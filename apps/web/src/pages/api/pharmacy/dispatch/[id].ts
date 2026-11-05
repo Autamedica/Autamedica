@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { internalError, jsonOk, notFound, unauthorized } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { resolveGuestSecret } from '@/lib/runtime-env'
@@ -19,6 +20,8 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
 
   try {
     const supabase = createAstroAdminClient(locals.runtime?.env)
+    // New protected offer table and approval RPC are not yet in generated types.
+    const dispatchAdmin = supabase as unknown as SupabaseClient
 
     const { data: requestRecord, error } = await supabase
       .from('pharmacy_dispatch_requests')
@@ -99,15 +102,29 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
           )
 
           if (countryVerified && doctorRow) {
-            if (requestRecord.assigned_doctor_id === doctorRow.id) {
+            // Admin client bypasses RLS: re-check the central clinical
+            // approval predicate before exposing PHI to any doctor.
+            const { data: approved, error: approvalError } = await dispatchAdmin.rpc(
+              'admin_is_dispatch_doctor_approved',
+              { p_doctor_id: doctorRow.id },
+            )
+            if (!approvalError && approved === true) {
+              if (requestRecord.assigned_doctor_id === doctorRow.id) {
               isAuthorized = true
             } else if (!requestRecord.assigned_doctor_id) {
-              const { data: dutyStatus } = await supabase
-                .from('doctor_duty_status')
-                .select('is_on_duty')
+              // Being on duty does not grant access to every patient's
+              // intake within the jurisdiction. Require a current offer to
+              // this exact doctor; RLS alone cannot protect admin queries.
+              const { data: activeOffer } = await dispatchAdmin
+                .from('dispatch_offers')
+                .select('id')
                 .eq('doctor_id', doctorRow.id)
+                .eq('dispatch_request_id', requestRecord.id)
+                .eq('status', 'pending')
+                .gt('expires_at', new Date().toISOString())
                 .maybeSingle()
-              isAuthorized = dutyStatus?.is_on_duty === true
+              isAuthorized = Boolean(activeOffer?.id)
+              }
             }
           }
         }

@@ -87,6 +87,7 @@ fun DoctorCockpitHeader(
     avatarUrl: String?,
     isOnDuty: Boolean,
     isLoading: Boolean,
+    guardApproved: Boolean? = null,
     onToggleOnDuty: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     onOpenProfile: (() -> Unit)? = null,
@@ -250,7 +251,7 @@ fun DoctorCockpitHeader(
             Spacer(modifier = Modifier.width(8.dp))
 
             // Pill Biocerámico de Matrícula Verificada
-            if (!licenseNumber.isNullOrBlank()) {
+            if (!licenseNumber.isNullOrBlank() && guardApproved == true) {
                 Surface(
                     shape = RoundedCornerShape(10.dp),
                     color = Color(0xFFEBF1FF),
@@ -302,7 +303,7 @@ fun DoctorCockpitHeader(
                     spotColor = if (isOnDuty) AuEmerald.copy(alpha = 0.25f) else Color(0x15000000),
                 )
                 .clickable(
-                    enabled = !isLoading,
+                    enabled = !isLoading && (guardApproved == true || isOnDuty),
                     onClick = {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                         onToggleOnDuty(!isOnDuty)
@@ -351,7 +352,11 @@ fun DoctorCockpitHeader(
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = if (isOnDuty) "CONECTADO A GUARDIA" else "GUARDIA DESCONECTADA",
+                                    text = when {
+                                        guardApproved != true -> "GUARDIA PENDIENTE DE VALIDACIÓN"
+                                        isOnDuty -> "CONECTADO A GUARDIA"
+                                        else -> "GUARDIA DESCONECTADA"
+                                    },
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontSize = 15.sp,
                                         fontWeight = FontWeight.ExtraBold,
@@ -373,8 +378,11 @@ fun DoctorCockpitHeader(
                             Spacer(modifier = Modifier.height(2.dp))
 
                             Text(
-                                text = if (isOnDuty) "Recibiendo derivaciones de farmacia en tiempo real"
-                                else "Toca para activar disponibilidad y recibir consultas",
+                                text = when {
+                                    guardApproved != true -> "Esperando aprobación del administrador"
+                                    isOnDuty -> "Recibiendo derivaciones de farmacia en tiempo real"
+                                    else -> "Toca para activar disponibilidad y recibir consultas"
+                                },
                                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                                 color = if (isOnDuty) AuCyan else Color(0xFF64748B),
                                 maxLines = 1,
@@ -395,6 +403,7 @@ fun DoctorCockpitHeader(
                         // Switch táctil de escala Uber Driver (1.25f para comodidad de pulgar)
                         Switch(
                             checked = isOnDuty,
+                            enabled = guardApproved == true || isOnDuty,
                             onCheckedChange = { isChecked ->
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                                 onToggleOnDuty(isChecked)

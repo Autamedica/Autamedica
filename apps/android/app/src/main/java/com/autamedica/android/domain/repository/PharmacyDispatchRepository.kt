@@ -2,15 +2,21 @@ package com.autamedica.android.domain.repository
 
 import com.autamedica.android.domain.model.DispatchClaimResult
 import com.autamedica.android.domain.model.DoctorDutyStatus
+import com.autamedica.android.domain.model.DoctorGuardApproval
 import com.autamedica.android.domain.model.PharmacyDispatchRequest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
  * On-Demand pharmacy dispatch ("Uber para médicos"): doctor duty status,
- * realtime searching queue and atomic claim via the `claim_pharmacy_request_tier` RPC.
+ * private offer stream and atomic claim via the `claim_pharmacy_request_tier` RPC.
  */
 interface PharmacyDispatchRepository {
+
+    /** Server-authoritative administrator approval for this authenticated doctor.
+     * The default fails closed for mock/alternate implementations. */
+    suspend fun getMyGuardApproval(): Result<DoctorGuardApproval> =
+        Result.failure(UnsupportedOperationException("Clinical guard approval unavailable"))
 
     /** Current duty status for a doctor record. */
     suspend fun getDoctorDutyStatus(doctorId: String): Result<DoctorDutyStatus>
@@ -25,7 +31,7 @@ interface PharmacyDispatchRepository {
     /** Send periodic heartbeat to refresh doctor presence while on duty via `public.doctor_heartbeat`. */
     suspend fun sendDoctorHeartbeat(doctorId: String): Result<Unit>
 
-    /** Reactive flow of dispatch requests still in `searching` status. */
+    /** Authenticated physician's pending valid offers (never the public clinical queue). */
     fun observeSearchingRequests(): StateFlow<List<PharmacyDispatchRequest>>
 
     /** Gen 2 incoming offers waiting for on-duty doctors. */
@@ -41,6 +47,10 @@ interface PharmacyDispatchRepository {
         doctorId: String,
     ): Result<DispatchClaimResult>
 
+    /** A physician explicitly refuses only their own unexpired offer. */
+    suspend fun declinePharmacyOffer(offerId: String): Result<Boolean> =
+        Result.failure(UnsupportedOperationException("Offer refusal not implemented"))
+
     /** Mark a request as in call / completed on the dispatch row. */
     suspend fun updateDispatchRequestStatus(requestId: String, status: String): Result<Unit>
 
@@ -49,6 +59,10 @@ interface PharmacyDispatchRepository {
         doctorId: String,
         requestId: String,
     ): Result<Unit>
+
+    /** Recover the authenticated patient's latest live dispatch after process death.
+     * A guest request needs its short-lived signed access token instead. */
+    suspend fun getActivePatientDispatchRequest(): Result<PharmacyDispatchRequest?> = Result.success(null)
 
     /** Patient side: Create an on-demand intake request in `pharmacy_dispatch_requests`. */
     suspend fun createPatientDispatchRequest(
@@ -67,6 +81,11 @@ interface PharmacyDispatchRepository {
 
     /** Patient side: Observe a specific on-demand request by id until matched/in_call. */
     fun observePatientRequest(requestId: String): kotlinx.coroutines.flow.Flow<PharmacyDispatchRequest>
+
+    /** Public aggregate for patient radar: doctors accepting consults in AR or BR.
+     * Does not expose clinician identities or return doctors from another country. */
+    suspend fun getCountryOnDutyCapacity(careCountry: String): Result<Int> =
+        Result.failure(UnsupportedOperationException("Country radar capacity not implemented"))
 
     /** Fetch live on-duty doctors currently connected to the network. */
     suspend fun getActiveOnDutyDoctors(): Result<List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo>>

@@ -286,6 +286,24 @@ class PharmacyIntakeViewModelTest {
     }
 
     @Test
+    fun `choosing another clinical reason never sends the previous auto selected chip`() = runTest(testDispatcher) {
+        val vm = PharmacyIntakeViewModel(
+            savedStateHandle = SavedStateHandle(),
+            authRepository = authRepo,
+            profileRepository = profileRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
+        )
+        advanceUntilIdle()
+        vm.onReasonChipSelected("Renovación de Receta")
+        assertThat(vm.uiState.value.effectiveReason).isEqualTo("Renovación de Receta")
+        vm.onReasonChipSelected("Presión / Hipertensión")
+        assertThat(vm.uiState.value.reasonText).isEqualTo("Presión / Hipertensión")
+        assertThat(vm.uiState.value.effectiveReason).isEqualTo("Presión / Hipertensión")
+        vm.onReasonChipSelected("Presión / Hipertensión")
+        assertThat(vm.uiState.value.reasonText).isEmpty()
+    }
+
+    @Test
     fun `submitting valid form creates dispatch request and keeps radar alive while searching`() = runTest(testDispatcher) {
         authRepo.user = User(
             id = "user-abc",
@@ -530,6 +548,54 @@ class PharmacyIntakeViewModelTest {
         assertThat(vm.uiState.value.error).contains("No pudimos cancelar")
         assertThat(vm.uiState.value.isSubmitting).isFalse()
         assertThat(pharmacyRepo.cancellationAttempts).containsExactly(created.id, created.id)
+    }
+
+    @Test
+    fun `no online doctors is a normal persistent waiting state and legacy expiration is informational`() = runTest(testDispatcher) {
+        val created = PharmacyDispatchRequest(
+            id = "req-persistent-ar-1",
+            patientDni = "28999888",
+            patientPhone = "+5491122334455",
+            patientName = "Paciente sintético AR",
+            tierRequested = "general",
+            symptomSummary = "Renovación de receta",
+            status = "searching",
+            cloudflareRoomId = "cf-room-persistent-ar",
+            createdAt = "2026-11-05T00:00:00Z",
+        )
+        pharmacyRepo.createResult = Result.success(created)
+        pharmacyRepo.activeDoctorsFlow.value = emptyList()
+        val vm = PharmacyIntakeViewModel(
+            savedStateHandle = SavedStateHandle(),
+            authRepository = authRepo,
+            profileRepository = profileRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
+        )
+        advanceUntilIdle()
+        vm.onPatientNameChanged("Paciente sintético AR")
+        vm.onPatientDniChanged("28999888")
+        vm.onPatientPhoneChanged("+5491122334455")
+        vm.onCountrySelected("AR")
+        vm.onReasonTextChanged("Renovación de receta")
+        vm.submitRequest()
+        testScheduler.runCurrent()
+        pharmacyRepo.requestFlow.value = created
+        testScheduler.runCurrent()
+
+        // Zero active physicians must not turn a valid queue into an error.
+        assertThat(vm.uiState.value.careCountry).isEqualTo("AR")
+        assertThat(vm.uiState.value.activeDoctors).isEmpty()
+        assertThat(vm.uiState.value.status).isEqualTo(PharmacyConsultationStatus.PENDING)
+        assertThat(vm.uiState.value.activeRequestId).isEqualTo(created.id)
+        assertThat(vm.uiState.value.error).isNull()
+        assertThat(vm.uiState.value.statusNotice).isNull()
+
+        // An actual legacy terminal status is shown as neutral information.
+        pharmacyRepo.requestFlow.value = created.copy(status = "expired")
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.activeRequestId).isNull()
+        assertThat(vm.uiState.value.error).isNull()
+        assertThat(vm.uiState.value.statusNotice).contains("finalizó")
     }
 
     @Test

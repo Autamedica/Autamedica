@@ -28,8 +28,11 @@ data class PharmacyIntakeUiState(
     val reasonText: String = "",
     val isAuthenticated: Boolean = false,
     val isLoadingProfile: Boolean = true,
+    val isRestoringRequest: Boolean = true,
     val isSubmitting: Boolean = false,
     val error: String? = null,
+    // Normal queue outcomes are informational, not validation/network errors.
+    val statusNotice: String? = null,
     val activeRequestId: String? = null,
     val status: PharmacyConsultationStatus? = null,
     val queuePosition: Int = 0,
@@ -39,6 +42,9 @@ data class PharmacyIntakeUiState(
     val roomId: String? = null,
     val readyToJoinCall: Boolean = false,
     val activeDoctors: List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo> = emptyList(),
+    // Privacy-safe backend capacity aggregate for the chosen care country.
+    // Null means unavailable/unknown, not zero.
+    val onlineDoctorsInMarket: Int? = null,
 ) {
     val effectiveReason: String
         get() = when {
@@ -76,6 +82,28 @@ class PharmacyIntakeViewModel @Inject constructor(
 
     private var statusPollingJob: Job? = null
     private var observeActiveDoctorsJob: Job? = null
+    private var marketCapacityJob: Job? = null
+
+    private fun refreshCountryDoctorCount(country: String?) {
+        if (country !in setOf("AR", "BR")) return
+        marketCapacityJob?.cancel()
+        marketCapacityJob = viewModelScope.launch {
+            pharmacyDispatchRepository.getCountryOnDutyCapacity(requireNotNull(country))
+                .onSuccess { count ->
+                    _uiState.update { state ->
+                        if (state.careCountry == country) {
+                            state.copy(onlineDoctorsInMarket = count.coerceAtLeast(0))
+                        } else state
+                    }
+                }
+                .onFailure {
+                    _uiState.update { state ->
+                        if (state.careCountry == country) state.copy(onlineDoctorsInMarket = null)
+                        else state
+                    }
+                }
+        }
+    }
 
     val reasonChips: List<String> = listOf(
         "Renovación de Receta",
@@ -105,6 +133,7 @@ class PharmacyIntakeViewModel @Inject constructor(
 
     fun loadUserProfile() {
         viewModelScope.launch {
+            _uiState.update { it.copy(isRestoringRequest = true) }
             _uiState.update { it.copy(isLoadingProfile = true, error = null) }
             runCatching {
                 val currentUser = authRepository.getCurrentUser()
@@ -145,11 +174,46 @@ class PharmacyIntakeViewModel @Inject constructor(
                 SecureLog.error("[PharmacyIntakeVM] Failed loading user profile", e)
                 _uiState.update { it.copy(isLoadingProfile = false) }
             }
+
+            // The active queue lives on the server, not in a transient Compose
+            // screen. Recover the same country/request after app restart.
+            // Both logged-in patients and guests with an encrypted device
+            // recovery credential restore the SAME request after app restart.
+            if (_uiState.value.activeRequestId == null) {
+                pharmacyDispatchRepository.getActivePatientDispatchRequest()
+                    .onSuccess { request ->
+                        if (request != null && _uiState.value.activeRequestId == null) {
+                            _uiState.update {
+                                it.copy(
+                                    activeRequestId = request.id,
+                                    careCountry = request.careCountry,
+                                    patientName = request.patientName ?: it.patientName,
+                                    patientDni = request.patientDni,
+                                    patientPhone = request.patientPhone,
+                                    reasonText = request.symptomSummary ?: it.reasonText,
+                                    status = mapDispatchStatus(request.status),
+                                    roomId = request.cloudflareRoomId.takeIf(String::isNotBlank),
+                                    readyToJoinCall = request.doctorAttendedCall && request.cloudflareRoomId.isNotBlank(),
+                                    error = null,
+                                    statusNotice = null,
+                                )
+                            }
+                            refreshCountryDoctorCount(request.careCountry)
+                            if (!request.doctorAttendedCall) {
+                                startStatusPolling(request.id)
+                            }
+                        }
+                    }
+                    .onFailure { error ->
+                        SecureLog.warn("[PharmacyIntakeVM] Queue recovery unavailable: ${error.message}")
+                    }
+            }
+            _uiState.update { it.copy(isRestoringRequest = false) }
         }
     }
 
     fun onPatientNameChanged(name: String) {
-        _uiState.update { it.copy(patientName = name, error = null) }
+        _uiState.update { it.copy(patientName = name, error = null, statusNotice = null) }
     }
 
     fun onPatientPhoneChanged(phone: String) {
@@ -167,15 +231,24 @@ class PharmacyIntakeViewModel @Inject constructor(
                 careCountry = country,
                 patientDni = if (it.careCountry != null && it.careCountry != country) "" else it.patientDni,
                 error = null,
+                onlineDoctorsInMarket = null,
             )
         }
+        refreshCountryDoctorCount(country)
     }
 
     fun onReasonChipSelected(chip: String) {
         _uiState.update { state ->
             val isSame = state.selectedReasonChip == chip
             val newChip = if (isSame) null else chip
-            val newText = if (state.reasonText.isBlank() && newChip != null) newChip else state.reasonText
+            // A previous auto-filled chip is never a second clinical reason.
+            // Preserve only genuinely custom text entered by the patient.
+            val previousWasAutoFilled = state.reasonText == state.selectedReasonChip
+            val newText = when {
+                newChip != null && (state.reasonText.isBlank() || previousWasAutoFilled) -> newChip
+                newChip == null && previousWasAutoFilled -> ""
+                else -> state.reasonText
+            }
             state.copy(selectedReasonChip = newChip, reasonText = newText, error = null)
         }
     }
@@ -186,6 +259,7 @@ class PharmacyIntakeViewModel @Inject constructor(
 
     fun submitRequest() {
         val state = _uiState.value
+        if (state.isRestoringRequest || state.isSubmitting || state.activeRequestId != null) return
         if (!state.isFormValid) {
             _uiState.update {
                 it.copy(
@@ -205,7 +279,7 @@ class PharmacyIntakeViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            _uiState.update { it.copy(isSubmitting = true, error = null, statusNotice = null) }
             pharmacyDispatchRepository.createPatientDispatchRequest(
                 patientDni = state.patientDni.trim(),
                 patientPhone = state.patientPhone.trim(),
@@ -220,6 +294,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                     it.copy(
                         isSubmitting = false,
                         activeRequestId = request.id,
+                        careCountry = request.careCountry ?: state.careCountry,
                         status = PharmacyConsultationStatus.PENDING,
                         // Queue position and wait time have not been confirmed by the backend.
                         queuePosition = 0,
@@ -232,6 +307,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                 // La espera queda activa (radar) mientras el request está searching/matched.
                 // readyToJoinCall solo se enciende cuando el médico atiende (in_call) y la sala existe.
                 startStatusPolling(request.id)
+                refreshCountryDoctorCount(request.careCountry ?: state.careCountry)
             }.onFailure { err ->
                 SecureLog.error("[PharmacyIntakeVM] Failed creating request", err)
                 _uiState.update {
@@ -251,6 +327,9 @@ class PharmacyIntakeViewModel @Inject constructor(
                 val isJoinable = request.doctorAttendedCall
                 val isTerminalFailure = request.status == "cancelled" || request.status == "expired"
                 val hasRoom = request.cloudflareRoomId.isNotBlank()
+                if (request.status == "searching" || request.status == "matched") {
+                    refreshCountryDoctorCount(_uiState.value.careCountry)
+                }
 
                 _uiState.update { state ->
                     state.copy(
@@ -270,8 +349,16 @@ class PharmacyIntakeViewModel @Inject constructor(
                     statusPollingJob?.cancel()
                     _uiState.update {
                         it.copy(
-                            error = "La solicitud fue cancelada o expiró. Podés iniciar una nueva.",
+                            // A completed/closed legacy request must not be mislabeled
+                            // as a failure due to unavailable physicians.
+                            error = null,
+                            statusNotice = when (request.status) {
+                                "expired" -> "Esta solicitud anterior finalizó. Podés iniciar una nueva consulta."
+                                else -> "La solicitud fue cancelada."
+                            },
                             activeRequestId = null,
+                            roomId = null,
+                            readyToJoinCall = false,
                         )
                     }
                 }

@@ -88,6 +88,17 @@ internal data class DoctorDutyCheckDto(
 )
 
 @Serializable
+internal data class LegacyGuardApprovalDto(
+    val approved: Boolean = false,
+)
+
+@Serializable
+internal data class Gen2DutyTransitionDto(
+    val success: Boolean = false,
+    @SerialName("is_on_duty") val isOnDuty: Boolean = false,
+)
+
+@Serializable
 internal data class Gen2DutyCheckDto(
     @SerialName("is_on_duty") val isOnDuty: Boolean = false,
     @SerialName("updated_at") val updatedAt: String? = null,
@@ -155,7 +166,15 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
                 .decodeSingleOrNull<Gen2DutyCheckDto>()
         }.getOrNull()
 
-        val effectiveOnDuty = gen2Duty?.isOnDuty ?: doc.onDutyPharmacy
+        // Never fall back to the legacy doctors.on_duty_pharmacy flag: it
+        // may have been set after a rejected RPC, before Admin approval.
+        val eligible = runCatching {
+            supabaseClient.postgrest
+                .rpc("get_my_guard_approval")
+                .decodeAs<LegacyGuardApprovalDto>()
+                .approved
+        }.getOrDefault(false)
+        val effectiveOnDuty = eligible && gen2Duty?.isOnDuty == true
         val effectiveSince = runCatching {
             (gen2Duty?.updatedAt ?: doc.onDutySince)?.let { OffsetDateTime.parse(it) }
         }.getOrNull()
@@ -184,28 +203,28 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
             }
             .decodeSingleOrNull<DoctorDutyCheckDto>() ?: throw IllegalStateException("Doctor record not found")
 
-        // Update Gen 2 duty status via RPC
-        val dutyParams = buildJsonObject {
-            put("p_doctor_id", doc.id)
-            put("p_is_on_duty", onDuty)
-            put("p_active_tiers", JsonArray(listOf(JsonPrimitive("general"))))
-        }
-        runCatching {
-            supabaseClient.postgrest.rpc("set_doctor_duty_status", dutyParams)
+        if (onDuty) {
+            val approved = supabaseClient.postgrest
+                .rpc("get_my_guard_approval")
+                .decodeAs<LegacyGuardApprovalDto>()
+                .approved
+            check(approved) {
+                "La matrícula todavía no fue validada por el administrador."
+            }
         }
 
-        // Update legacy columns on doctors table for backwards compatibility
-        val now = if (onDuty) OffsetDateTime.now().toString() else null
-        supabaseClient.postgrest
-            .from("doctors")
-            .update(
-                DoctorDutyUpdateDto(
-                    onDutyPharmacy = onDuty,
-                    onDutySince = now
-                )
-            ) {
-                filter { eq("user_id", user.id) }
-            }
+        // A rejected Gen 2 RPC is a failure. No legacy write can turn a
+        // failed activation into a visually successful medical guard.
+        val confirmed = supabaseClient.postgrest
+            .rpc("set_doctor_duty_status", buildJsonObject {
+                put("p_doctor_id", doc.id)
+                put("p_is_on_duty", onDuty)
+                put("p_active_tiers", JsonArray(listOf(JsonPrimitive("general"))))
+            })
+            .decodeAs<Gen2DutyTransitionDto>()
+        check(confirmed.success && confirmed.isOnDuty == onDuty) {
+            "El servidor no confirmó el estado de la guardia."
+        }
 
         getOnDutyStatus().getOrThrow()
     }.onFailure {
@@ -213,31 +232,13 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getPendingQueue(): Result<List<PharmacyConsultationRequest>> = runCatching {
-        // Query Gen 2 table first (pharmacy_dispatch_requests with status 'searching')
-        val dispatchDtos = runCatching {
-            supabaseClient.postgrest
-                .from("pharmacy_dispatch_requests")
-                .select(Columns.ALL) {
-                    filter { eq("status", "searching") }
-                    order("created_at", Order.ASCENDING)
-                }
-                .decodeList<PharmacyDispatchItemDto>()
-        }.getOrDefault(emptyList())
-
-        if (dispatchDtos.isNotEmpty()) {
-            return@runCatching dispatchDtos.map { it.toPharmacyConsultationRequest() }
-        }
-
-        // Fallback to Gen 1 table (pharmacy_consultation_requests)
-        val dtos = supabaseClient.postgrest
-            .from("pharmacy_consultation_requests")
-            .select(Columns.ALL) {
-                filter { eq("status", "pending") }
-                order("created_at", Order.ASCENDING)
-            }
-            .decodeList<PharmacyRequestDto>()
-
-        dtos.map { it.toDomain() }
+        // Do NOT expose the global patient queue or Gen 1 fallback.
+        // The server returns only pending, unexpired offers to the
+        // authenticated and ADMIN-APPROVED physician in this country.
+        val dispatchDtos = supabaseClient.postgrest
+            .rpc("get_my_pending_dispatch_offers")
+            .decodeAs<List<PharmacyDispatchItemDto>>()
+        dispatchDtos.map { it.toPharmacyConsultationRequest() }
     }.onFailure {
         SecureLog.error("[PharmacyOnDemandRepo] Failed fetching pending queue", it)
     }
@@ -467,7 +468,7 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
         }
         Unit
     }.onFailure {
-        SecureLog.error("[PharmacyOnDemandRepo] Failed cancelling active requests for patient DNI=$patientDni, Phone=$patientPhone", it)
+        SecureLog.error("[PharmacyOnDemandRepo] Failed cancelling previous guest intake", it)
     }
 
     private fun isValidUuid(str: String): Boolean =
@@ -514,7 +515,9 @@ internal data class ProfileNameDto(
 @Serializable
 private data class PharmacyDispatchItemDto(
     val id: String,
-    @SerialName("patient_dni") val patientDni: String = "",
+    @SerialName("patient_dni") val patientDni: String? = null,
+    @SerialName("patient_cpf") val patientCpf: String? = null,
+    @SerialName("care_country") val careCountry: String? = null,
     @SerialName("patient_phone") val patientPhone: String = "",
     @SerialName("patient_name") val patientName: String? = null,
     @SerialName("tier_requested") val tierRequested: String = "general",
@@ -532,10 +535,10 @@ private data class PharmacyDispatchItemDto(
             id = id,
             pharmacyId = null,
             pharmacyName = "Farmacia de Guardia",
-            patientDni = patientDni,
+            patientDni = if (careCountry == "BR") patientCpf.orEmpty() else patientDni.orEmpty(),
             patientName = patientName?.ifBlank { null } ?: "Paciente en espera",
             patientPhone = patientPhone,
-            reason = symptomSummary?.ifBlank { null } ?: "Derivación para atención médica inmediata",
+            reason = symptomSummary?.ifBlank { null } ?: "Motivo no especificado",
             status = PharmacyConsultationStatus.PENDING,
             roomId = cloudflareRoomId,
             createdAt = created,

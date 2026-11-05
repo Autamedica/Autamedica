@@ -27,6 +27,15 @@ object NotificationRouteResolver {
         val normalizedAppointmentId = appointmentId.normalizedOrNull()
         val normalizedRoomId = roomId.normalizedOrNull()
 
+        // A dispatch push is an invitation to REVIEW an offer, never a
+        // permission to enter the video room. Claim authorization happens later.
+        val normalizedType = notificationType?.trim()?.lowercase()
+        if (normalizedType == "pharmacy_dispatch_incoming" ||
+            normalizedType == "pharmacy_dispatch"
+        ) {
+            return Route.DoctorOnDemand
+        }
+
         if (isCallNotification(notificationType)) {
             // Las llamadas directas (creadas sin appointment) llegan con appointment_id
             // vacío pero con room_id. El flujo de VideoCall resuelve la sala por
@@ -95,9 +104,7 @@ object NotificationRouteResolver {
             normalized == "call_incoming" ||
             normalized == "autamedica_calls" ||
             normalized == "call" ||
-            normalized == "videocall" ||
-            normalized == "pharmacy_dispatch_incoming" ||
-            normalized == "pharmacy_dispatch"
+            normalized == "videocall"
     }
 
     /**
@@ -111,9 +118,7 @@ object NotificationRouteResolver {
             normalized == "call_incoming" ||
             normalized == "autamedica_calls" ||
             normalized == "call" ||
-            normalized == "videocall" ||
-            normalized == "pharmacy_dispatch_incoming" ||
-            normalized == "pharmacy_dispatch"
+            normalized == "videocall"
     }
 
     fun parseDeepLink(raw: String?): Route? {

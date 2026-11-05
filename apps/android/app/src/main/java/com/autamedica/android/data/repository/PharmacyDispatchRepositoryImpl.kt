@@ -15,7 +15,9 @@ import java.util.concurrent.ConcurrentHashMap
 import com.autamedica.android.di.IoDispatcher
 import com.autamedica.android.domain.model.DispatchClaimResult
 import com.autamedica.android.domain.model.DoctorDutyStatus
+import com.autamedica.android.domain.model.DoctorGuardApproval
 import com.autamedica.android.domain.model.PharmacyDispatchRequest
+import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.logging.SecureLog
@@ -57,6 +59,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val httpClient: OkHttpClient,
     private val json: Json,
+    private val securePreferences: SecurePreferences? = null,
 ) : PharmacyDispatchRepository {
 
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
@@ -64,8 +67,63 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     private val _searchingRequests = MutableStateFlow<List<PharmacyDispatchRequest>>(emptyList())
     private var searchingChannel: RealtimeChannel? = null
 
-    // Never write guest access tokens to logs, analytics or persistent storage.
+    // Never write short-lived guest JWTs to logs, analytics or persistent storage.
     private val guestAccessTokens = ConcurrentHashMap<String, String>()
+    // An opaque 256-bit RECOVERY secret (not the JWT) is Keystore-encrypted via
+    // SecurePreferences. It restores the same guest request after process death.
+    private val guestRecoveryKey = "pharmacy_guest_queue_recovery_v1"
+
+    private fun savedGuestRecovery(): Pair<String, String>? {
+        val saved = securePreferences?.getString(guestRecoveryKey) ?: return null
+        val parts = saved.split(':', limit = 2)
+        return if (parts.size == 2 &&
+            parts[0].matches(Regex("^[0-9a-fA-F-]{36}$")) &&
+            parts[1].matches(Regex("^[0-9a-f]{64}$"))) {
+            parts[0] to parts[1]
+        } else null
+    }
+
+    private fun clearGuestRecovery(requestId: String) {
+        if (savedGuestRecovery()?.first == requestId) {
+            securePreferences?.remove(guestRecoveryKey)
+        }
+        guestAccessTokens.remove(requestId)
+    }
+
+    private suspend fun resumeGuestRequestFromEncryptedDevice(requestId: String): PharmacyDispatchRequest? =
+        withContext(ioDispatcher) {
+            val recovery = savedGuestRecovery()?.takeIf { it.first == requestId }
+                ?: return@withContext null
+            val body = buildJsonObject {
+                put("requestId", requestId)
+                put("recoveryToken", recovery.second)
+            }
+            val request = Request.Builder()
+                .url("$guestApiOrigin/api/pharmacy/dispatch/resume")
+                .post(body.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
+                .build()
+
+            guestClient.newCall(request).execute().use { response ->
+                if (response.code == 401) {
+                    clearGuestRecovery(requestId)
+                    return@withContext null
+                }
+                check(response.isSuccessful) {
+                    "Guest queue recovery endpoint failed (HTTP ${response.code})"
+                }
+                val rawBody = response.body?.string() ?: error("Empty guest recovery response")
+                val data = json.parseToJsonElement(rawBody).jsonObject["data"]?.jsonObject
+                    ?: error("Missing guest recovery data")
+                val freshJwt = data["accessToken"]?.jsonPrimitive?.content
+                    ?.takeIf { it.isNotBlank() } ?: error("Missing renewed guest access token")
+                val dto = json.decodeFromJsonElement<DispatchRequestDto>(
+                    data["request"] ?: error("Missing recovered guest request")
+                )
+                check(dto.id == requestId) { "Recovered guest request mismatch" }
+                guestAccessTokens[requestId] = freshJwt
+                dto.toDomain()
+            }
+        }
     // The shared DEBUG HTTP client logs BODY and headers; this isolated client
     // removes logging interceptors to protect names, DNI, symptoms and tokens.
     private val guestClient: OkHttpClient by lazy {
@@ -94,6 +152,14 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 )
                 val token = data["accessToken"]?.jsonPrimitive?.content
                     ?.takeIf { it.isNotBlank() } ?: error("Missing signed guest access token")
+                val recoveryToken = data["recoveryToken"]?.jsonPrimitive?.content
+                    ?.takeIf { it.matches(Regex("^[0-9a-f]{64}$")) }
+                    ?: error("Missing scoped guest queue recovery token")
+                check(securePreferences != null) {
+                    "Encrypted guest queue recovery unavailable on this device"
+                }
+                // The originating device alone retains this opaque credential.
+                securePreferences.putString(guestRecoveryKey, "${dto.id}:$recoveryToken")
                 guestAccessTokens[dto.id] = token
                 dto.toDomain()
             }
@@ -109,6 +175,11 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 .build()
 
             guestClient.newCall(request).execute().use { response ->
+                if (response.code == 401) {
+                    // Short-lived JWT expired; renew using the Keystore-held
+                    // recovery credential without re-submitting the intake.
+                    return@withContext resumeGuestRequestFromEncryptedDevice(requestId)
+                }
                 if (!response.isSuccessful) return@withContext null
                 val body = response.body?.string() ?: return@withContext null
                 val data = json.parseToJsonElement(body).jsonObject["data"]?.jsonObject
@@ -116,9 +187,30 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 val dto = json.decodeFromJsonElement<DispatchRequestDto>(
                     data["request"] ?: return@withContext null
                 )
-                dto.toDomain()
+                dto.toDomain().also { request ->
+                    if (request.status in setOf("completed", "cancelled", "expired")) {
+                        clearGuestRecovery(requestId)
+                    }
+                }
             }
         }
+
+    override suspend fun getMyGuardApproval(): Result<DoctorGuardApproval> = runCatching {
+        check(!supabaseClient.auth.currentSessionOrNull()?.accessToken.isNullOrBlank()) {
+            "Authenticated medical professional required for eligibility query"
+        }
+        val eligibility = supabaseClient.postgrest
+            .rpc("get_my_guard_approval")
+            .decodeAs<DoctorGuardApprovalDto>()
+        DoctorGuardApproval(
+            approved = eligibility.approved,
+            code = eligibility.code,
+            country = eligibility.careCountry,
+            verificationStatus = eligibility.verificationStatus,
+        )
+    }.onFailure {
+        SecureLog.warn("[PharmacyDispatch] Could not confirm Admin guard approval")
+    }
 
     override suspend fun getDoctorDutyStatus(doctorId: String): Result<DoctorDutyStatus> = runCatching {
         supabaseClient.postgrest
@@ -143,7 +235,12 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             put("p_is_on_duty", isOnDuty)
             put("p_active_tiers", JsonArray(activeTiers.map { JsonPrimitive(it) }))
         }
-        supabaseClient.postgrest.rpc("set_doctor_duty_status", params)
+        val confirmation = supabaseClient.postgrest
+            .rpc("set_doctor_duty_status", params)
+            .decodeAs<DoctorGuardDutyRpcDto>()
+        check(confirmation.success && confirmation.isOnDuty == isOnDuty) {
+            "Doctor guard state was not confirmed by the server"
+        }
         Unit
     }.onFailure {
         SecureLog.error("[PharmacyDispatch] Failed setting duty status", it)
@@ -158,13 +255,20 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         val params = buildJsonObject {
             put("p_doctor_id", doctorId)
         }
-        supabaseClient.postgrest.rpc("doctor_heartbeat", params)
+        val confirmation = supabaseClient.postgrest
+            .rpc("doctor_heartbeat", params)
+            .decodeAs<DoctorGuardHeartbeatRpcDto>()
+        check(confirmation.success) {
+            "Doctor heartbeat was not accepted by the server"
+        }
         Unit
     }.onFailure {
         SecureLog.error("[PharmacyDispatch] Failed sending doctor heartbeat", it)
     }
 
     override fun observeSearchingRequests(): kotlinx.coroutines.flow.StateFlow<List<PharmacyDispatchRequest>> {
+        // This stream is NOT a country-wide clinical waiting list. Only the
+        // server-authorized physician's offers are returned (least privilege).
         scope.launch { loadSearchingRequests() }
         scope.launch { subscribeToSearchingQueue() }
         return _searchingRequests.asStateFlow()
@@ -201,9 +305,15 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         require(requestId.isNotBlank()) { "Missing request ID" }
         val guestToken = guestAccessTokens[requestId]
         if (guestToken != null) {
+            // The cancellation must work even after the clinical JWT's two-hour
+            // lifetime. Renew from the encrypted scoped credential first.
+            if (savedGuestRecovery()?.first == requestId) {
+                resumeGuestRequestFromEncryptedDevice(requestId)
+            }
+            val currentToken = guestAccessTokens[requestId] ?: guestToken
             val payload = buildJsonObject {
                 put("requestId", requestId)
-                put("accessToken", guestToken)
+                put("accessToken", currentToken)
             }
             val request = Request.Builder()
                 .url("$guestApiOrigin/api/pharmacy/on-demand/cancel")
@@ -219,40 +329,56 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                     answer == "true"
                 }
             }
-            if (confirmed) guestAccessTokens.remove(requestId)
+            if (confirmed) clearGuestRecovery(requestId)
             confirmed
         } else {
             check(authRepository.getCurrentUser() != null) { "Missing authenticated owner or guest token" }
-            val result = supabaseClient.postgrest
-                .from("pharmacy_dispatch_requests")
-                .update(buildJsonObject { put("status", "cancelled") }) {
-                    filter {
-                        eq("id", requestId)
-                        eq("status", "searching")
-                    }
-                    select(Columns.list("id"))
-                }
-                .decodeSingleOrNull<CancelledDispatchRequestDto>()
-            result != null
+            // The old direct UPDATE was rejected by the protected clinical
+            // table trigger. The RPC validates request ownership server-side.
+            supabaseClient.postgrest
+                .rpc("cancel_my_pharmacy_dispatch_request",
+                     buildJsonObject { put("p_request_id", requestId) })
+                .decodeAs<PatientCancelRpcDto>()
+                .cancelled
         }
     }.onFailure {
         SecureLog.error("[PharmacyDispatch] Patient cancellation not confirmed", it)
+    }
+
+    override suspend fun declinePharmacyOffer(offerId: String): Result<Boolean> = runCatching {
+        require(offerId.isNotBlank()) { "Missing offer ID" }
+        check(authRepository.getCurrentUser() != null) { "Authenticated physician required" }
+        supabaseClient.postgrest
+            .rpc("decline_my_pharmacy_dispatch_offer",
+                 buildJsonObject { put("p_offer_id", offerId) })
+            .decodeAs<DoctorDeclineRpcDto>()
+            .declined
+    }.onFailure {
+        SecureLog.error("[PharmacyDispatch] Doctor offer refusal not confirmed", it)
     }
 
     override suspend fun updateDispatchRequestStatus(
         requestId: String,
         status: String,
     ): Result<Unit> = runCatching {
+        require(status == "in_call" || status == "completed") {
+            "Unsupported clinical dispatch transition"
+        }
         val updates = buildMap {
             put("status", status)
             if (status == "in_call") put("call_started_at", java.time.OffsetDateTime.now().toString())
             if (status == "completed") put("call_ended_at", java.time.OffsetDateTime.now().toString())
         }
-        supabaseClient.postgrest
+        val persisted = supabaseClient.postgrest
             .from("pharmacy_dispatch_requests")
             .update(updates) {
                 filter { eq("id", requestId) }
+                select(Columns.list("id", "status"))
             }
+            .decodeSingleOrNull<DispatchStatusConfirmationDto>()
+        check(persisted?.status == status) {
+            "Clinical video transition was not confirmed by the server"
+        }
         Unit
     }.onFailure {
         SecureLog.error("[PharmacyDispatch] Failed updating request status", it)
@@ -272,6 +398,30 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         Unit
     }.onFailure {
         SecureLog.error("[PharmacyDispatch] Failed finishing request", it)
+    }
+
+    override suspend fun getActivePatientDispatchRequest(): Result<PharmacyDispatchRequest?> = runCatching {
+        val currentUser = authRepository.getCurrentUser()
+        if (currentUser != null) {
+            // Never reuse a previous guest's credential for a different
+            // authenticated patient on a shared phone.
+            return@runCatching supabaseClient.postgrest
+                .from("pharmacy_dispatch_requests")
+                .select(Columns.ALL) {
+                    filter {
+                        eq("requested_by_user_id", currentUser.id)
+                        isIn("status", listOf("searching", "matched", "in_call"))
+                    }
+                    order("created_at", Order.DESCENDING)
+                    limit(1)
+                }
+                .decodeSingleOrNull<DispatchRequestDto>()
+                ?.toDomain()
+        }
+        val guestRequestId = savedGuestRecovery()?.first ?: return@runCatching null
+        resumeGuestRequestFromEncryptedDevice(guestRequestId)
+    }.onFailure {
+        SecureLog.error("[PharmacyDispatch] Failed recovering patient's active waiting request", it)
     }
 
     override suspend fun createPatientDispatchRequest(
@@ -392,6 +542,18 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getCountryOnDutyCapacity(careCountry: String): Result<Int> = runCatching {
+        require(careCountry == "AR" || careCountry == "BR") { "Invalid care country" }
+        supabaseClient.postgrest
+            .rpc("get_country_on_duty_capacity", buildJsonObject {
+                put("p_care_country", careCountry)
+            })
+            .decodeAs<Int>()
+            .coerceAtLeast(0)
+    }.onFailure {
+        SecureLog.warn("[PharmacyDispatch] Country radar capacity temporarily unavailable")
+    }
+
     override suspend fun getActiveOnDutyDoctors(): Result<List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo>> = runCatching {
         supabaseClient.postgrest
             .rpc("get_active_on_duty_doctors")
@@ -453,16 +615,16 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 
     private suspend fun loadSearchingRequests() {
         runCatching {
+            // Server resolves doctor from the verified JWT and restricts results
+            // to unexpired offers in the same clinical jurisdiction.
             val dtos = supabaseClient.postgrest
-                .from("pharmacy_dispatch_requests")
-                .select(Columns.ALL) {
-                    filter { eq("status", "searching") }
-                    order("created_at", Order.ASCENDING)
-                }
-                .decodeList<DispatchRequestDto>()
+                .rpc("get_my_pending_dispatch_offers")
+                .decodeAs<List<DispatchRequestDto>>()
             _searchingRequests.value = dtos.map { it.toDomain() }
         }.onFailure {
-            SecureLog.error("[PharmacyDispatch] Failed loading searching requests", it)
+            // Never keep another doctor's cached offers after auth changes.
+            _searchingRequests.value = emptyList()
+            SecureLog.error("[PharmacyDispatch] Failed loading own pending dispatch offers", it)
         }
     }
 
@@ -470,20 +632,30 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         if (searchingChannel != null) return
 
         runCatching {
-            val channel = supabaseClient.channel("pharmacy-dispatch-search-queue")
+            val channel = supabaseClient.channel("pharmacy-dispatch-doctor-offers")
             val changeFlow = channel.postgresChangeFlow<PostgresAction>(
                 schema = "public",
             ) {
-                table = "pharmacy_dispatch_requests"
+                table = "dispatch_offers"
             }
 
             channel.subscribe()
             searchingChannel = channel
 
-            changeFlow.collect {
-                Timber.d("[PharmacyDispatch] Realtime dispatch update: ${it::class.simpleName}")
+            val realtimeJob = scope.launch {
+                changeFlow.collect {
+                    Timber.d("[PharmacyDispatch] Own offer stream updated")
+                    loadSearchingRequests()
+                }
+            }
+
+            // Notifications may be delayed by a phone or websocket reconnect.
+            // A periodic authenticated fetch keeps the doctor UI synchronized.
+            while (scope.isActive) {
+                delay(3000L)
                 loadSearchingRequests()
             }
+            realtimeJob.cancel()
         }.onFailure {
             SecureLog.error("[PharmacyDispatch] Failed subscribing to searching queue", it)
         }
@@ -493,8 +665,36 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 // ── DTOs ────────────────────────────────────────────────────
 
 @Serializable
-private data class CancelledDispatchRequestDto(val id: String)
+private data class DispatchStatusConfirmationDto(
+    val id: String,
+    val status: String,
+)
 
+@Serializable
+private data class PatientCancelRpcDto(val cancelled: Boolean)
+
+@Serializable
+private data class DoctorDeclineRpcDto(val declined: Boolean)
+
+
+@Serializable
+private data class DoctorGuardDutyRpcDto(
+    val success: Boolean = false,
+    @SerialName("is_on_duty") val isOnDuty: Boolean = false,
+)
+
+@Serializable
+private data class DoctorGuardHeartbeatRpcDto(
+    val success: Boolean = false,
+)
+
+@Serializable
+private data class DoctorGuardApprovalDto(
+    val approved: Boolean = false,
+    val code: String = "DOCTOR_PENDING_CLINICAL_APPROVAL",
+    @SerialName("care_country") val careCountry: String? = null,
+    @SerialName("verification_status") val verificationStatus: String = "pending",
+)
 
 @Serializable
 private data class DoctorDutyStatusDto(
@@ -514,7 +714,8 @@ private data class DoctorDutyStatusDto(
 @Serializable
 private data class DispatchRequestDto(
     val id: String,
-    @SerialName("patient_dni") val patientDni: String,
+    @SerialName("patient_dni") val patientDni: String? = null,
+    @SerialName("patient_cpf") val patientCpf: String? = null,
     @SerialName("patient_phone") val patientPhone: String,
     @SerialName("patient_name") val patientName: String? = null,
     @SerialName("tier_requested") val tierRequested: String = "general",
@@ -523,10 +724,16 @@ private data class DispatchRequestDto(
     @SerialName("assigned_doctor_id") val assignedDoctorId: String? = null,
     @SerialName("cloudflare_room_id") val cloudflareRoomId: String,
     @SerialName("created_at") val createdAt: String,
+    @SerialName("care_country") val careCountry: String? = null,
+    @SerialName("offer_id") val offerId: String? = null,
+    @SerialName("offer_expires_at") val offerExpiresAt: String? = null,
 ) {
     fun toDomain() = PharmacyDispatchRequest(
         id = id,
-        patientDni = patientDni,
+        offerId = offerId,
+        offerExpiresAt = offerExpiresAt,
+        careCountry = careCountry,
+        patientDni = if (careCountry == "BR") patientCpf.orEmpty() else patientDni.orEmpty(),
         patientPhone = patientPhone,
         patientName = patientName,
         tierRequested = tierRequested,

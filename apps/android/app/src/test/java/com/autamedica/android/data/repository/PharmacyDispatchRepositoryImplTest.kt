@@ -1,5 +1,6 @@
 package com.autamedica.android.data.repository
 
+import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.model.DoctorDutyStatus
 import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.model.UserRole
@@ -18,6 +19,8 @@ import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import io.mockk.every
+import io.mockk.mockk
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -41,9 +44,21 @@ class PharmacyDispatchRepositoryImplTest {
     private lateinit var supabaseClient: SupabaseClient
     private lateinit var repository: PharmacyDispatchRepositoryImpl
     private val testDispatcher = UnconfinedTestDispatcher()
+    private val secureValues = mutableMapOf<String, String>()
+    private val securePrefs = mockk<SecurePreferences>()
 
     @Before
     fun setUp() {
+        secureValues.clear()
+        every { securePrefs.getString(any()) } answers { secureValues[firstArg<String>()] }
+        every { securePrefs.putString(any(), any()) } answers {
+            secureValues[firstArg<String>()] = secondArg<String>()
+            Unit
+        }
+        every { securePrefs.remove(any()) } answers {
+            secureValues.remove(firstArg<String>())
+            Unit
+        }
         mockWebServer = MockWebServer()
         mockWebServer.start()
 
@@ -60,6 +75,7 @@ class PharmacyDispatchRepositoryImplTest {
             ioDispatcher = testDispatcher,
             httpClient = OkHttpClient(),
             json = Json { ignoreUnknownKeys = true },
+            securePreferences = securePrefs,
         )
         repository.guestApiOrigin = mockWebServer.url("/").toString().trimEnd('/')
     }
@@ -87,7 +103,8 @@ class PharmacyDispatchRepositoryImplTest {
                           "cloudflare_room_id": "synthetic-room-cancel",
                           "created_at": "2026-11-04T00:00:00Z"
                         },
-                        "accessToken": "synthetic-signed-cancel-token"
+                        "accessToken": "synthetic-signed-cancel-token",
+                        "recoveryToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
                       }
                     }""".trimIndent()
                 )
@@ -104,6 +121,44 @@ class PharmacyDispatchRepositoryImplTest {
         val id = result.getOrThrow().id
         assertThat(mockWebServer.takeRequest().path).isEqualTo("/api/pharmacy/dispatch/request")
         return id
+    }
+
+    @Test
+    fun `anonymous queue can be restored after process death without exposing long lived JWT`() = runTest {
+        val requestId = "01234567-89ab-4cde-8f01-23456789abcd"
+        val recoveryToken = "a".repeat(64)
+        secureValues["pharmacy_guest_queue_recovery_v1"] = "$requestId:$recoveryToken"
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{
+                      "success": true,
+                      "data": {
+                        "request": {
+                          "id": "$requestId",
+                          "patient_dni": "00000000",
+                          "patient_phone": "000000000",
+                          "patient_name": "Synthetic Guest",
+                          "tier_requested": "general",
+                          "status": "searching",
+                          "care_country": "AR",
+                          "cloudflare_room_id": "guest-room-1",
+                          "created_at": "2026-11-05T00:00:00Z"
+                        },
+                        "accessToken": "renewed-two-hour-test-token"
+                      }
+                    }""".trimIndent(),
+                ),
+        )
+        val restored = repository.getActivePatientDispatchRequest().getOrThrow()
+        assertThat(restored?.id).isEqualTo(requestId)
+        assertThat(restored?.status).isEqualTo("searching")
+        assertThat(restored?.careCountry).isEqualTo("AR")
+        val posted = mockWebServer.takeRequest()
+        assertThat(posted.method).isEqualTo("POST")
+        assertThat(posted.path).isEqualTo("/api/pharmacy/dispatch/resume")
+        assertThat(posted.body.readUtf8()).contains(recoveryToken)
     }
 
     @Test
@@ -231,7 +286,8 @@ class PharmacyDispatchRepositoryImplTest {
                   "cloudflare_room_id": "synthetic-room",
                   "created_at": "2026-10-21T00:00:00Z"
                 },
-                "accessToken": "synthetic-signed-token"
+                "accessToken": "synthetic-signed-token",
+                        "recoveryToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
               }
             }
         """.trimIndent()
