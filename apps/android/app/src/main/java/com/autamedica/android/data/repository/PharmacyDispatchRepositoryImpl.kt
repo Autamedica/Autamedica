@@ -801,6 +801,7 @@ private data class DispatchRequestDto(
     @SerialName("cloudflare_room_id") val cloudflareRoomId: String,
     @SerialName("created_at") val createdAt: String,
     @SerialName("care_country") val careCountry: String? = null,
+    @SerialName("referral_partner_id") val referralPartnerId: String? = null,
     @SerialName("offer_id") val offerId: String? = null,
     @SerialName("offer_expires_at") val offerExpiresAt: String? = null,
 ) {
@@ -809,6 +810,7 @@ private data class DispatchRequestDto(
         offerId = offerId,
         offerExpiresAt = offerExpiresAt,
         careCountry = careCountry,
+        referralPartnerId = referralPartnerId,
         patientDni = if (careCountry == "BR") patientCpf.orEmpty() else patientDni.orEmpty(),
         patientPhone = patientPhone,
         patientName = patientName,
