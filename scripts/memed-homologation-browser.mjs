@@ -156,7 +156,7 @@ async function main() {
         forceSign: false, allowShareModal: false,
       });
       await hub.command.send('plataforma.prescricao', 'setWorkplace', {
-        city: 'Cidade Teste', state: 'RS', cnes: '0000000',
+        city: 'Porto Alegre', state: 'RS', cnes: '0000000',
         local_name: 'AutaMedica HOMOLOGACAO - SEM VALIDADE',
         address: 'Endereco Ficticio de Teste',
       });
