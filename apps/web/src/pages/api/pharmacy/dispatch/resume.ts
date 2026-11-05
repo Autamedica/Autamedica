@@ -59,7 +59,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // The user must still hold a valid Supabase session owning this request.
     if (activeRequest.requested_by_user_id) {
       const authorization = request.headers.get('authorization')?.trim() ?? ''
-      const bearer = /^Bearer\\s+([A-Za-z0-9._-]+)$/i.exec(authorization)
+      const bearer = /^Bearer\s+([A-Za-z0-9._-]+)$/i.exec(authorization)
       if (!bearer) return unauthorized('guest_recovery_invalid')
       const { data: identity, error: identityError } = await admin.auth.getUser(bearer[1])
       if (identityError || identity.user?.id !== activeRequest.requested_by_user_id) {
