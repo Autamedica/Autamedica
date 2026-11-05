@@ -225,20 +225,28 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             confirmed
         } else {
             check(authRepository.getCurrentUser() != null) { "Missing authenticated owner or guest token" }
-            val result = supabaseClient.postgrest
-                .from("pharmacy_dispatch_requests")
-                .update(buildJsonObject { put("status", "cancelled") }) {
-                    filter {
-                        eq("id", requestId)
-                        eq("status", "searching")
-                    }
-                    select(Columns.list("id"))
-                }
-                .decodeSingleOrNull<CancelledDispatchRequestDto>()
-            result != null
+            // The old direct UPDATE was rejected by the protected clinical
+            // table trigger. The RPC validates request ownership server-side.
+            supabaseClient.postgrest
+                .rpc("cancel_my_pharmacy_dispatch_request",
+                     buildJsonObject { put("p_request_id", requestId) })
+                .decodeAs<PatientCancelRpcDto>()
+                .cancelled
         }
     }.onFailure {
         SecureLog.error("[PharmacyDispatch] Patient cancellation not confirmed", it)
+    }
+
+    override suspend fun declinePharmacyOffer(offerId: String): Result<Boolean> = runCatching {
+        require(offerId.isNotBlank()) { "Missing offer ID" }
+        check(authRepository.getCurrentUser() != null) { "Authenticated physician required" }
+        supabaseClient.postgrest
+            .rpc("decline_my_pharmacy_dispatch_offer",
+                 buildJsonObject { put("p_offer_id", offerId) })
+            .decodeAs<DoctorDeclineRpcDto>()
+            .declined
+    }.onFailure {
+        SecureLog.error("[PharmacyDispatch] Doctor offer refusal not confirmed", it)
     }
 
     override suspend fun updateDispatchRequestStatus(
@@ -524,7 +532,10 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 // ── DTOs ────────────────────────────────────────────────────
 
 @Serializable
-private data class CancelledDispatchRequestDto(val id: String)
+private data class PatientCancelRpcDto(val cancelled: Boolean)
+
+@Serializable
+private data class DoctorDeclineRpcDto(val declined: Boolean)
 
 
 @Serializable
