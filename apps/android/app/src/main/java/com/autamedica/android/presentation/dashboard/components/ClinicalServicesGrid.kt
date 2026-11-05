@@ -78,62 +78,62 @@ fun ClinicalServicesGrid(
             onClick = onPharmacyExpressClick,
         ),
         ServiceItem(
-            title = "Médico online",
-            description = "Atención inmediata",
+            title = stringResource(R.string.ui_service_online_title),
+            description = stringResource(R.string.ui_service_online_desc),
             icon = Icons.Default.Videocam,
             onClick = onOnlineDoctorClick,
         ),
         ServiceItem(
-            title = "Reserva de Salud",
-            description = "Beneficios acumulables",
+            title = stringResource(R.string.ui_service_reserve_title),
+            description = stringResource(R.string.ui_service_reserve_desc),
             icon = Icons.Outlined.AutoAwesome,
             onClick = onSubscriptionClick,
         ),
         ServiceItem(
-            title = "Mi agenda",
-            description = "Próximos turnos",
+            title = stringResource(R.string.ui_service_agenda_title),
+            description = stringResource(R.string.ui_service_agenda_desc),
             icon = Icons.Default.CalendarMonth,
             onClick = onScheduleClick,
         ),
         ServiceItem(
-            title = "Mis recetas y órdenes",
-            description = "Recetas y órdenes",
+            title = stringResource(R.string.ui_service_prescriptions_title),
+            description = stringResource(R.string.ui_service_prescriptions_desc),
             icon = Icons.Outlined.Description,
             onClick = onPrescriptionsClick,
         ),
         ServiceItem(
-            title = "Historia clínica",
-            description = "Ficha médica",
+            title = stringResource(R.string.ui_service_history_title),
+            description = stringResource(R.string.ui_service_history_desc),
             icon = Icons.Outlined.FavoriteBorder,
             onClick = onHistoryClick,
         ),
         ServiceItem(
-            title = "Salud mental",
-            description = "Psiquiatría y terapia",
+            title = stringResource(R.string.ui_service_mental_title),
+            description = stringResource(R.string.ui_service_mental_desc),
             icon = Icons.Outlined.Psychology,
             onClick = onMentalHealthClick,
         ),
         ServiceItem(
-            title = "Seguimiento & Continuidad",
-            description = "Monitoreo 48h",
+            title = stringResource(R.string.ui_service_continuity_title),
+            description = stringResource(R.string.ui_service_continuity_desc),
             icon = Icons.Outlined.Shield,
             onClick = onContinuityClick,
         ),
         ServiceItem(
-            title = "Prevención y chequeos",
-            description = "Chequeos y alertas",
+            title = stringResource(R.string.ui_service_prevention_title),
+            description = stringResource(R.string.ui_service_prevention_desc),
             icon = Icons.Outlined.HealthAndSafety,
             onClick = onPreventionClick,
         ),
         ServiceItem(
-            title = "Salud reproductiva",
-            description = "Planificación y cuidados",
+            title = stringResource(R.string.ui_service_reproductive_title),
+            description = stringResource(R.string.ui_service_reproductive_desc),
             icon = Icons.Default.Favorite,
             onClick = onReproductiveHealthClick,
         ),
         ServiceItem(
-            title = "Comunidad",
-            description = "Consultas y experiencias",
+            title = stringResource(R.string.ui_service_community_title),
+            description = stringResource(R.string.ui_service_community_desc),
             icon = Icons.Default.Groups,
             onClick = onCommunityClick,
         ),
@@ -145,13 +145,13 @@ fun ClinicalServicesGrid(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                text = "¿Cómo te ayudamos hoy?",
+                text = stringResource(R.string.ui_services_heading),
                 style = MaterialTheme.typography.titleMedium,
                 color = AuTextPrimary,
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = "Servicios y módulos clínicos.",
+                text = stringResource(R.string.ui_services_subtitle),
                 style = MaterialTheme.typography.bodySmall,
                 color = AuTextSecondary,
             )
@@ -190,7 +190,7 @@ private fun ServiceCard(
             .sizeIn(minHeight = 136.dp)
             .clip(RoundedCornerShape(24.dp))
             .clickable(
-                onClickLabel = "Abrir servicio ${item.title}",
+                onClickLabel = stringResource(R.string.ui_service_open_action, item.title),
                 onClick = item.onClick,
             ),
         shape = RoundedCornerShape(24.dp),
@@ -234,7 +234,7 @@ private fun ServiceCard(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Abrir servicio ${item.title}",
+                        contentDescription = stringResource(R.string.ui_service_open_action, item.title),
                         tint = Color(0xFF64748B),
                         modifier = Modifier.size(13.dp),
                     )
