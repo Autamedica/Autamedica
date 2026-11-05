@@ -277,9 +277,15 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         require(requestId.isNotBlank()) { "Missing request ID" }
         val guestToken = guestAccessTokens[requestId]
         if (guestToken != null) {
+            // The cancellation must work even after the clinical JWT's two-hour
+            // lifetime. Renew from the encrypted scoped credential first.
+            if (savedGuestRecovery()?.first == requestId) {
+                resumeGuestRequestFromEncryptedDevice(requestId)
+            }
+            val currentToken = guestAccessTokens[requestId] ?: guestToken
             val payload = buildJsonObject {
                 put("requestId", requestId)
-                put("accessToken", guestToken)
+                put("accessToken", currentToken)
             }
             val request = Request.Builder()
                 .url("$guestApiOrigin/api/pharmacy/on-demand/cancel")
