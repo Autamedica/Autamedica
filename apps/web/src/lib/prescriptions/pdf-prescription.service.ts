@@ -24,6 +24,9 @@ export interface PrescriptionPdfInput {
     dateOfBirth?: string;
     sex?: string;
     insurancePlan?: string;
+    // The accepted Farmalink PAN and entity are separate from the patient CUIL.
+    affiliateCredential?: string;
+    insuranceEntityCode?: number;
     address?: string;
   };
   prescriber: {
@@ -307,6 +310,7 @@ export async function generatePrescriptionPdf(
       ...originalInput.patient,
       name: sanitizePdfText(originalInput.patient.name),
       insurancePlan: sanitizePdfText(originalInput.patient.insurancePlan),
+      affiliateCredential: sanitizePdfText(originalInput.patient.affiliateCredential),
       address: sanitizePdfText(originalInput.patient.address),
     },
     prescriber: {
@@ -460,16 +464,12 @@ export async function generatePrescriptionPdf(
   // QR in header (pharmacy verification)
   if (!isHomologationTest) drawQrCodeVector(doc, qrContent, pageWidth - 50, 8, 30);
 
-  if (isHomologationTest) {
-    doc.setTextColor(71, 85, 105);
-    doc.setFontSize(7);
-    doc.text(`FARMALINK TEST / MODALIDAD GENERICO=${input.homologationMode}`, marginLeft, 50);
-  }
+  // Never print an internal generic-mode debug flag on a pharmacy-facing PDF.
   y = 55;
   doc.setTextColor(30, 41, 59);
 
   // Patient info (Compliance Block)
-  const patientBlockHeight = input.patient.address || input.patient.insurancePlan ? 40 : 32;
+  const patientBlockHeight = input.patient.address || input.patient.insurancePlan || input.patient.affiliateCredential ? 40 : 32;
   doc.setFillColor(patientBgColor[0], patientBgColor[1], patientBgColor[2]); 
   doc.rect(marginLeft, y, contentWidth, patientBlockHeight, 'F');
 
