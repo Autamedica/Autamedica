@@ -514,6 +514,18 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getCountryOnDutyCapacity(careCountry: String): Result<Int> = runCatching {
+        require(careCountry == "AR" || careCountry == "BR") { "Invalid care country" }
+        supabaseClient.postgrest
+            .rpc("get_country_on_duty_capacity", buildJsonObject {
+                put("p_care_country", careCountry)
+            })
+            .decodeAs<Int>()
+            .coerceAtLeast(0)
+    }.onFailure {
+        SecureLog.warn("[PharmacyDispatch] Country radar capacity temporarily unavailable")
+    }
+
     override suspend fun getActiveOnDutyDoctors(): Result<List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo>> = runCatching {
         supabaseClient.postgrest
             .rpc("get_active_on_duty_doctors")
