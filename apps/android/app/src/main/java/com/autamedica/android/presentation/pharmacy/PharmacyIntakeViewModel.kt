@@ -51,7 +51,7 @@ data class PharmacyIntakeUiState(
     // Privacy-safe backend capacity aggregate for the chosen care country.
     // Null means unavailable/unknown, not zero.
     val onlineDoctorsInMarket: Int? = null,
- ) {
+) {
     /** The signed backend resolves partner provenance; recovery must not bypass payment. */
     val requiresBrazilianPayment: Boolean
         get() = careCountry == "BR" && (referralCode == "JORDAN" || activeReferralPartnerId != null)
@@ -421,7 +421,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                     )
                 }
 
-                if (isJoinable && hasRoom) {
+                if (isJoinable && hasRoom && (!paymentRequired || verifiedPaymentStatus == "approved")) {
                     statusPollingJob?.cancel()
                 }
                 if (isTerminalFailure) {
