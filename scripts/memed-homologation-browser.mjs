@@ -127,6 +127,12 @@ async function main() {
             const response = JSON.parse(bytes.toString('utf8'));
             result.providerPdfResponseKeys = Object.keys(response || {}).slice(0, 12);
             result.providerPdfDataKeys = Object.keys(response?.data || {}).slice(0, 12);
+            const item = Array.isArray(response?.data) ? response.data[0] : response?.data;
+            result.providerPdfItemKeys = Object.keys(item || {}).slice(0, 20);
+            result.providerPdfItemType = typeof item?.type === 'string' ? item.type : null;
+            result.providerPdfItemAttributeKeys = Object.keys(item?.attributes || {}).slice(0, 25);
+            result.providerPdfItemLinkKeys = Object.keys(item?.links || {}).slice(0, 15);
+            result.providerPdfLinksKeys = Object.keys(response?.links || {}).slice(0, 15);
           }
         }
       }
