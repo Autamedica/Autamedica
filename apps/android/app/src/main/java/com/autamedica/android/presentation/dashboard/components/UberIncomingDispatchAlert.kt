@@ -65,6 +65,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.autamedica.android.R
+import com.autamedica.android.presentation.theme.PortalPharmacistsAction
 import com.autamedica.android.domain.model.PharmacyDispatchRequest
 import com.autamedica.android.domain.model.dispatchTierLabel
 import com.autamedica.android.presentation.dashboard.cleanPatientName
@@ -206,7 +207,7 @@ fun UberIncomingDispatchAlert(
                                 )
                                 Spacer(modifier = Modifier.width(5.dp))
                                 Text(
-                                    text = "OFERTA DISPATCH (${remainingSeconds}s)",
+                                    text = stringResource(R.string.ui_uber_compact_title, remainingSeconds),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = CyanSurgical,
@@ -214,7 +215,7 @@ fun UberIncomingDispatchAlert(
                                 )
                             }
                             Text(
-                                text = "$cleanName • Tocar para expandir",
+                                text = stringResource(R.string.ui_uber_compact_expand, cleanName),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.White,
@@ -232,11 +233,11 @@ fun UberIncomingDispatchAlert(
                             },
                             modifier = Modifier.height(36.dp),
                             shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = EmeraldAccept),
+                            colors = ButtonDefaults.buttonColors(containerColor = PortalPharmacistsAction),
                             contentPadding = PaddingValues(horizontal = 14.dp),
                         ) {
                             Text(
-                                text = "ATENDER",
+                                text = stringResource(R.string.ui_uber_answer),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = Color.White,
@@ -254,7 +255,7 @@ fun UberIncomingDispatchAlert(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
-                                contentDescription = "Cerrar",
+                                contentDescription = stringResource(R.string.ui_uber_close),
                                 tint = Color(0xFF94A3B8),
                                 modifier = Modifier.size(18.dp),
                             )
@@ -324,7 +325,14 @@ fun UberIncomingDispatchAlert(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "OFERTA DE GUARDIA · ${if (request.careCountry == "BR") "BR" else "AR"}",
+                                    text = stringResource(
+                                        R.string.ui_uber_guard_title,
+                                        when (request.careCountry) {
+                                            "BR" -> "BR"
+                                            "AR" -> "AR"
+                                            else -> "?"
+                                        },
+                                    ),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Black,
@@ -341,7 +349,7 @@ fun UberIncomingDispatchAlert(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ExpandMore,
-                                contentDescription = "Minimizar alerta",
+                                contentDescription = stringResource(R.string.ui_uber_minimize),
                                 tint = Color(0xFF94A3B8),
                                 modifier = Modifier.size(24.dp),
                             )
@@ -384,7 +392,7 @@ fun UberIncomingDispatchAlert(
                                 color = Color.White,
                             )
                             Text(
-                                text = "SEG REST.",
+                                text = stringResource(R.string.ui_uber_seconds_left),
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
@@ -449,7 +457,7 @@ fun UberIncomingDispatchAlert(
                                     )
 
                                     Text(
-                                        text = "${if (request.careCountry == "BR") "CPF" else "DNI"} ${request.patientDni}",
+                                        text = "${when (request.careCountry) { "BR" -> "CPF"; "AR" -> "DNI"; else -> stringResource(R.string.ui_document_generic) }} ${request.patientDni}",
                                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                                         color = Color(0xFF94A3B8),
                                     )
@@ -477,7 +485,7 @@ fun UberIncomingDispatchAlert(
                             // No synthetic symptoms: a doctor must only see
                             // the reason actually entered by this patient.
                             val displayReason = request.symptomSummary?.takeIf { it.isNotBlank() }
-                                ?: "Motivo no especificado"
+                                ?: stringResource(R.string.ui_uber_reason_unspecified)
                             Spacer(modifier = Modifier.height(10.dp))
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
@@ -487,7 +495,7 @@ fun UberIncomingDispatchAlert(
                             ) {
                                 Column(modifier = Modifier.padding(10.dp)) {
                                     Text(
-                                        text = "MOTIVO CLÍNICO REPORTADO",
+                                        text = stringResource(R.string.ui_uber_reported_reason),
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontSize = 10.sp,
                                             fontWeight = FontWeight.Bold,
@@ -522,7 +530,7 @@ fun UberIncomingDispatchAlert(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "${stringResource(R.string.uber_dispatch_origin_label)} • Teleconsulta Inmediata",
+                                    text = stringResource(R.string.ui_uber_origin_immediate, stringResource(R.string.uber_dispatch_origin_label)),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.SemiBold,
@@ -591,7 +599,7 @@ fun UberIncomingDispatchAlert(
                             enabled = !isClaiming && remainingSeconds > 0,
                             shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = EmeraldAccept,
+                                containerColor = PortalPharmacistsAction,
                                 contentColor = Color.White,
                             ),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
