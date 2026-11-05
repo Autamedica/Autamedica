@@ -442,7 +442,7 @@ export function DoctorAdminDashboard() {
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Médicos Activos</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Cuentas médicas activas (no implica habilitación)</p>
           <div className="mt-2 flex items-baseline justify-between">
             <span className="text-3xl font-bold tracking-tight text-slate-900">{stats.active}</span>
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
@@ -460,10 +460,10 @@ export function DoctorAdminDashboard() {
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Validados SISA</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Validación SISA registrada</p>
           <div className="mt-2 flex items-baseline justify-between">
             <span className="text-3xl font-bold tracking-tight text-emerald-600">{stats.validSisa}</span>
-            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800">Habilitados</span>
+            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800">Validación AR</span>
           </div>
         </div>
       </section>
