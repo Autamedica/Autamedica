@@ -34,6 +34,8 @@ const result = {
   prescriptionIssued: false,
   demoItemAdded: false,
   generateClicked: false,
+  continueClicked: false,
+  postContinueControls: { emit: false, confirm: false },
   postGenerateControls: { continue: false, emit: false, confirm: false },
   demoUiButtons: { generate: false, continue: false, emit: false },
   signatureVerified: false,
@@ -219,6 +221,31 @@ async function main() {
             result.postGenerateControls[name] = true;
           }
         } catch { /* modal not ready */ }
+      }
+    }
+    if (result.postGenerateControls.continue) {
+      for (const frame of page.frames()) {
+        const next = frame.getByRole('button', { name: /continuar|avan[cç]ar/i }).first();
+        try {
+          if (await next.isVisible({ timeout: 200 }) && await next.isEnabled()) {
+            await next.click({ timeout: 5000 });
+            result.continueClicked = true;
+            break;
+          }
+        } catch { /* sandbox modal transition */ }
+      }
+    }
+    if (result.continueClicked) {
+      await page.waitForTimeout(2000);
+      for (const frame of page.frames()) {
+        for (const [name, regex] of [['emit', /gerar|emitir|finalizar|concluir/i],
+                                     ['confirm', /confirmar|salvar|aceitar/i]]) {
+          try {
+            if (await frame.getByRole('button', { name: regex }).first().isVisible({ timeout: 250 })) {
+              result.postContinueControls[name] = true;
+            }
+          } catch {}
+        }
       }
     }
     result.prescriptionIssued = Boolean(await page.evaluate(() => window.__memedDemo?.emissionEventReceived));
