@@ -4,7 +4,7 @@
     <!-- 1. RECETAS MÉDICAS EMITIDAS (DoctorPrescriptionsScreen)            -->
     <!-- =================================================================== -->
     <string name="doctor_rx_title">Receitas Médicas Emitidas</string>
-    <string name="doctor_rx_subtitle">Decreto 63/2024 · Registro CUIR / SISA</string>
+    <string name="doctor_rx_subtitle">Consulta e gestão de receitas médicas</string>
     <string name="doctor_rx_action_back">Voltar</string>
     <string name="doctor_rx_action_refresh">Atualizar</string>
     <string name="doctor_rx_action_new">Nova Receita</string>

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -40,6 +41,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import com.autamedica.android.presentation.theme.AuCyan
 import com.autamedica.android.presentation.theme.AuEmerald
 import com.autamedica.android.presentation.theme.AuTextPrimary
@@ -71,7 +74,7 @@ fun QuickClinicalActionsBar(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            text = "HERRAMIENTAS CLÍNICAS",
+            text = stringResource(R.string.ui_clinical_tools),
             style = MaterialTheme.typography.labelSmall.copy(
                 fontSize = 11.sp,
                 fontWeight = FontWeight.ExtraBold,
@@ -85,7 +88,7 @@ fun QuickClinicalActionsBar(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             ClinicalActionButton(
-                label = "Receta Digital",
+                label = stringResource(R.string.ui_clinical_prescription),
                 icon = Icons.Outlined.Medication,
                 accentColor = PortalDoctors,
                 bgColor = Color(0xFFEBF1FF),
@@ -93,7 +96,7 @@ fun QuickClinicalActionsBar(
                 modifier = Modifier.weight(1f),
             )
             ClinicalActionButton(
-                label = "Certificado",
+                label = stringResource(R.string.ui_clinical_certificate),
                 icon = Icons.Outlined.Verified,
                 accentColor = AuEmerald,
                 bgColor = Color(0xFFECFDF5),
@@ -101,15 +104,21 @@ fun QuickClinicalActionsBar(
                 modifier = Modifier.weight(1f),
             )
             ClinicalActionButton(
-                label = "Órdenes",
+                label = stringResource(R.string.ui_clinical_orders),
                 icon = Icons.AutoMirrored.Outlined.Assignment,
                 accentColor = AuCyan,
                 bgColor = Color(0xFFECFEFF),
                 onClick = onNavigateToMedicalOrders,
                 modifier = Modifier.weight(1f),
             )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             ClinicalActionButton(
-                label = "On-Demand",
+                label = stringResource(R.string.ui_clinical_duty),
                 icon = Icons.Filled.Sensors,
                 accentColor = Color(0xFF0F172A),
                 bgColor = Color(0xFFF1F5F9),
@@ -117,7 +126,7 @@ fun QuickClinicalActionsBar(
                 modifier = Modifier.weight(1f),
             )
             ClinicalActionButton(
-                label = "+ Turno",
+                label = stringResource(R.string.ui_clinical_appointment),
                 icon = Icons.Default.Add,
                 accentColor = PortalDoctors,
                 bgColor = Color(0xFFEBF1FF),
@@ -145,6 +154,7 @@ private fun ClinicalActionButton(
             onClick()
         },
         modifier = modifier
+            .heightIn(min = 94.dp)
             .shadow(
                 elevation = 2.dp,
                 shape = RoundedCornerShape(20.dp),
@@ -158,7 +168,7 @@ private fun ClinicalActionButton(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 12.dp, horizontal = 2.dp),
+                .padding(vertical = 12.dp, horizontal = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -180,14 +190,14 @@ private fun ClinicalActionButton(
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 10.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    letterSpacing = (-0.3).sp,
+                    lineHeight = 15.sp,
                 ),
                 color = AuTextPrimary,
-                maxLines = 1,
-                softWrap = false,
-                overflow = TextOverflow.Clip,
+                maxLines = 2,
+                softWrap = true,
+                overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
             )
         }

@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.ConnectionState
 import com.autamedica.android.navigation.VIDEO_PREVIEW_APPOINTMENT_ID
 import com.autamedica.android.presentation.videocall.components.CallActionsOverflowSheet
@@ -134,7 +135,7 @@ fun VideoCallScreen(
                     .padding(horizontal = 24.dp),
             ) {
                 Text(
-                    text = "Se requieren permisos de cámara y micrófono para iniciar la videollamada.",
+                    text = stringResource(R.string.ui_video_permissions_required),
                     color = Color.White,
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center,
@@ -270,7 +271,7 @@ fun VideoCallScreen(
                             }
                         }
                         Text(
-                            text = "Cámara apagada",
+                            text = stringResource(R.string.ui_video_camera_off),
                             color = Color(0xFF94A3B8),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium,
@@ -398,7 +399,7 @@ fun VideoCallScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Text(
-                                text = "Conexión débil: llamada en solo audio",
+                                text = stringResource(R.string.ui_video_connection_weak),
                                 color = Color.White,
                                 fontSize = 12.sp,
                                 modifier = Modifier.weight(1f),
@@ -407,7 +408,7 @@ fun VideoCallScreen(
                                 onClick = { viewModel.reactivateVideo() },
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                             ) {
-                                Text("Reactivar video", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text(stringResource(R.string.ui_video_reactivate), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             }
                         }
                     }

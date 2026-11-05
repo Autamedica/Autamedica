@@ -347,15 +347,15 @@ object IncomingCallNotificationManager {
         val notification = NotificationCompat.Builder(context, DISPATCH_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setColor(ContextCompat.getColor(context, R.color.primary))
-            .setContentTitle("Nueva oferta de consulta")
-            .setContentText("Abrí el radar médico para revisar y aceptar la oferta.")
+            .setContentTitle(context.getString(R.string.ui_dispatch_offer_title))
+            .setContentText(context.getString(R.string.ui_dispatch_offer_body))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setOngoing(false)
             .setAutoCancel(true)
             .setContentIntent(openRadar)
-            .addAction(R.drawable.ic_notification, "Abrir radar", openRadar)
+            .addAction(R.drawable.ic_notification, context.getString(R.string.ui_dispatch_open_radar), openRadar)
             .build()
 
         // Never clear an unrelated real incoming video-call notification.
