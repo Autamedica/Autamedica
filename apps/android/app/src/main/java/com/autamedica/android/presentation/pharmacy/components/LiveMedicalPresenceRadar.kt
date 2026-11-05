@@ -121,6 +121,9 @@ val defaultOnDutyDoctors = emptyList<OnDutyDoctorInfo>()
 @Composable
 fun LiveMedicalPresenceRadar(
     doctors: List<OnDutyDoctorInfo> = defaultOnDutyDoctors,
+    // Anonymous market capacity: render generic signals without inventing or
+    // exposing individual doctor identities or another country's clinicians.
+    availableCount: Int? = null,
     modifier: Modifier = Modifier,
 ) {
     val availableDoctors = remember(doctors) { doctors.filter { it.isAvailable } }
@@ -333,6 +336,34 @@ fun LiveMedicalPresenceRadar(
                     modifier = Modifier.size(40.dp),
                     contentScale = ContentScale.Fit,
                 )
+            }
+        }
+
+        // Aggregate-only presence signals for guests and country-selected
+        // patients. Exactly one signal per available doctor, capped at four
+        // for screen legibility. No synthetic names or professional IDs.
+        if (availableCount != null && availableCount > 0) {
+            Canvas(modifier = Modifier.matchParentSize()) {
+                val center = Offset(size.width / 2f, size.height / 2f)
+                val radius = 105.dp.toPx()
+                val shown = availableCount.coerceAtMost(4)
+                repeat(shown) { index ->
+                    val angle = Math.toRadians((-45.0 + index * (360.0 / shown)))
+                    val point = Offset(
+                        x = center.x + radius * cos(angle).toFloat(),
+                        y = center.y + radius * sin(angle).toFloat(),
+                    )
+                    drawCircle(
+                        color = AuEmerald.copy(alpha = 0.2f),
+                        radius = 12.dp.toPx() * greenDotPulse,
+                        center = point,
+                    )
+                    drawCircle(
+                        color = AuEmerald,
+                        radius = 5.dp.toPx(),
+                        center = point,
+                    )
+                }
             }
         }
 
