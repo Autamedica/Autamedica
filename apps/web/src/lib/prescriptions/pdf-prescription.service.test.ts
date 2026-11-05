@@ -267,7 +267,9 @@ describe('generatePrescriptionPdf', () => {
         patient: {
           name: 'Demo Demo', dni: '12345678', cuil: '27123456780',
           dateOfBirth: '2025-01-01', sex: 'Masculino',
-          insurancePlan: 'Entidad TEST 7110 - Plan 100',
+          insurancePlan: '100',
+          affiliateCredential: '20123456786',
+          insuranceEntityCode: 7110,
           address: 'Paciente de prueba, sin domicilio real',
         },
         prescriber: {
@@ -294,6 +296,10 @@ describe('generatePrescriptionPdf', () => {
       expect(pdfText).toContain('GLICOLICOAC.ASOC.');
       expect(pdfText).toContain(scenario.number);
       expect(pdfText).toContain('SIN FIRMA - TEST');
+      expect(pdfText).toContain('Nro. afiliado / Credencial: 20123456786');
+      expect(pdfText).toContain('CUIL PACIENTE');
+      expect(pdfText).toContain('RL-2026-47574120-APN-SSVEIYES#MS');
+      expect(pdfText).not.toContain('MODALIDAD GENERICO=');
       expect(pdfText).toContain('NO ASIGNADO - TEST');
       expect(pdfText).not.toContain('PREDNISOLONA');
       expect(pdfText).not.toContain('Validador RCTA');
