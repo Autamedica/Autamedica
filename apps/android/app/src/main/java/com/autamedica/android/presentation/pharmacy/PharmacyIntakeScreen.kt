@@ -76,7 +76,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.Image
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.autamedica.android.R
+import com.autamedica.android.util.CareCountryLocale
 import com.autamedica.android.domain.model.PharmacyConsultationStatus
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -115,6 +120,7 @@ fun PharmacyIntakeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
     var showCancelConfirmation by remember { mutableStateOf(false) }
 
     // Leaving a waiting room must never cancel a clinical request silently.
@@ -126,11 +132,11 @@ fun PharmacyIntakeScreen(
     if (showCancelConfirmation) {
         AlertDialog(
             onDismissRequest = { showCancelConfirmation = false },
-            title = { Text("Tu solicitud sigue en la fila") },
-            text = { Text("Podés seguir esperando hasta que se conecte un médico. Si querés dejar la fila, cancelá la solicitud explícitamente.") },
+            title = { Text(stringResource(R.string.pharmacy_flow_dialog_title)) },
+            text = { Text(stringResource(R.string.pharmacy_flow_dialog_body)) },
             confirmButton = {
                 TextButton(onClick = { showCancelConfirmation = false }) {
-                    Text("Seguir esperando")
+                    Text(stringResource(R.string.pharmacy_flow_continue_waiting))
                 }
             },
             dismissButton = {
@@ -140,10 +146,17 @@ fun PharmacyIntakeScreen(
                         viewModel.cancelActiveRequest()
                     },
                 ) {
-                    Text("Cancelar solicitud")
+                    Text(stringResource(R.string.pharmacy_flow_cancel_request))
                 }
             },
         )
+    }
+
+    // Recovered requests must reopen in their own market language, too.
+    LaunchedEffect(uiState.activeRequestId, uiState.careCountry) {
+        if (uiState.activeRequestId != null && uiState.careCountry in setOf("AR", "BR")) {
+            CareCountryLocale.applyCountry(context, requireNotNull(uiState.careCountry))
+        }
     }
 
     // Automatic navigation when the doctor attends the call and the room is ready
@@ -179,13 +192,13 @@ fun PharmacyIntakeScreen(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "AutaMedica Guardia",
+                                text = stringResource(R.string.pharmacy_flow_header_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = AuTextPrimary,
                             )
                             Text(
-                                text = "Atención por videollamada",
+                                text = stringResource(R.string.pharmacy_flow_header_subtitle),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AuTextTertiary,
                             )
@@ -205,7 +218,7 @@ fun PharmacyIntakeScreen(
                     }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
+                            contentDescription = stringResource(R.string.pharmacy_flow_back),
                             tint = AuTextPrimary,
                         )
                     }
@@ -234,13 +247,19 @@ fun PharmacyIntakeScreen(
             // Intake Form
             PharmacyIntakeFormView(
                 uiState = uiState,
-                reasonChips = viewModel.reasonChips,
+                reasonChips = listOf(
+                    stringResource(R.string.pharmacy_flow_reason_rx), stringResource(R.string.pharmacy_flow_reason_bp), stringResource(R.string.pharmacy_flow_reason_flu),
+                    stringResource(R.string.pharmacy_flow_reason_allergy), stringResource(R.string.pharmacy_flow_reason_pain),
+                ),
                 onReasonChipSelected = viewModel::onReasonChipSelected,
                 onReasonTextChanged = viewModel::onReasonTextChanged,
                 onPatientNameChanged = viewModel::onPatientNameChanged,
                 onPatientDniChanged = viewModel::onPatientDniChanged,
                 onPatientPhoneChanged = viewModel::onPatientPhoneChanged,
-                onCountrySelected = viewModel::onCountrySelected,
+                onCountrySelected = { country ->
+                    viewModel.onCountrySelected(country)
+                    CareCountryLocale.applyCountry(context, country)
+                },
                 onSubmit = viewModel::submitRequest,
                 modifier = Modifier
                     .fillMaxSize()
@@ -271,9 +290,75 @@ private fun PharmacyIntakeFormView(
             .verticalScroll(scrollState)
             .padding(horizontal = 20.dp, vertical = 12.dp),
     ) {
+        // Clinical market is selected explicitly and never inferred from UI locale.
+        Text(
+            text = stringResource(R.string.pharmacy_flow_country_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = AuTextPrimary,
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            listOf(Triple("AR", "🇦🇷", "Argentina"), Triple("BR", "🇧🇷", "Brasil")).forEach { (country, flag, label) ->
+                val selected = uiState.careCountry == country
+                val accessibleLabel = stringResource(R.string.pharmacy_flow_country_select, label)
+                Surface(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onCountrySelected(country)
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(120.dp)
+                        .semantics { contentDescription = accessibleLabel },
+                    shape = RoundedCornerShape(18.dp),
+                    color = if (selected) Primary.copy(alpha = 0.08f) else AuSurface,
+                    border = BorderStroke(
+                        if (selected) 2.dp else 1.dp,
+                        if (selected) Primary else AuBorder,
+                    ),
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(12.dp),
+                    ) {
+                        Text(text = flag, fontSize = 32.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = AuTextPrimary,
+                            )
+                            if (selected) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = Primary,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                        }
+                        Text(
+                            text = if (country == "BR") "CPF" else "DNI",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = AuTextSecondary,
+                        )
+                    }
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(22.dp))
+
         // 1. Motivo de Consulta (Focus principal del usuario)
         Text(
-            text = "Motivo de Consulta",
+            text = stringResource(R.string.pharmacy_flow_reason_title),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = AuTextPrimary,
@@ -324,8 +409,8 @@ private fun PharmacyIntakeFormView(
         OutlinedTextField(
             value = uiState.reasonText,
             onValueChange = onReasonTextChanged,
-            label = { Text("Motivo o medicamento") },
-            placeholder = { Text("Ej: Renovar Losartán / Dolor de garganta") },
+            label = { Text(stringResource(R.string.pharmacy_flow_reason_label)) },
+            placeholder = { Text(stringResource(R.string.pharmacy_flow_reason_hint)) },
             modifier = Modifier.fillMaxWidth(),
             minLines = 2,
             maxLines = 4,
@@ -340,33 +425,9 @@ private fun PharmacyIntakeFormView(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Explicit clinical jurisdiction is required even for guest kiosk patients.
-        Text(
-            text = "País de atención / País de atendimento *",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = AuTextPrimary,
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            listOf("AR" to "Argentina · DNI", "BR" to "Brasil · CPF").forEach { (country, label) ->
-                FilterChip(
-                    selected = uiState.careCountry == country,
-                    onClick = { onCountrySelected(country) },
-                    label = { Text(label, style = MaterialTheme.typography.bodySmall) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = Primary,
-                        selectedLabelColor = Color.White,
-                        containerColor = AuSurface,
-                    ),
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-
         // 2. Datos del Paciente (Autocompletados y editables)
         Text(
-            text = "Tus datos",
+            text = stringResource(R.string.pharmacy_flow_patient_title),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = AuTextPrimary,
@@ -378,7 +439,7 @@ private fun PharmacyIntakeFormView(
         OutlinedTextField(
             value = uiState.patientName,
             onValueChange = onPatientNameChanged,
-            label = { Text("Nombre y Apellido") },
+            label = { Text(stringResource(R.string.pharmacy_flow_patient_name)) },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Person,
@@ -405,7 +466,7 @@ private fun PharmacyIntakeFormView(
         OutlinedTextField(
             value = uiState.patientDni,
             onValueChange = onPatientDniChanged,
-            label = { Text(if (uiState.careCountry == "BR") "CPF (11 dígitos)" else "DNI / Documento") },
+            label = { Text(if (uiState.careCountry == "BR") stringResource(R.string.pharmacy_flow_patient_cpf) else stringResource(R.string.pharmacy_flow_patient_dni)) },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Outlined.Badge,
@@ -432,7 +493,7 @@ private fun PharmacyIntakeFormView(
         OutlinedTextField(
             value = uiState.patientPhone,
             onValueChange = onPatientPhoneChanged,
-            label = { Text("Teléfono / WhatsApp") },
+            label = { Text(stringResource(R.string.pharmacy_flow_patient_phone)) },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Phone,
@@ -468,7 +529,7 @@ private fun PharmacyIntakeFormView(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
-                        text = notice,
+                        text = localizedPharmacyMessage(notice),
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextPrimary,
                         modifier = Modifier.padding(12.dp),
@@ -492,7 +553,7 @@ private fun PharmacyIntakeFormView(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
-                        text = err,
+                        text = localizedPharmacyMessage(err),
                         style = MaterialTheme.typography.bodySmall,
                         color = AuDanger,
                         modifier = Modifier.padding(12.dp),
@@ -528,7 +589,7 @@ private fun PharmacyIntakeFormView(
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "Conectando con guardia...",
+                    text = stringResource(R.string.pharmacy_flow_submit_connecting),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                 )
@@ -540,7 +601,7 @@ private fun PharmacyIntakeFormView(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Conectar con Guardia",
+                    text = stringResource(R.string.pharmacy_flow_submit),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                 )
@@ -623,7 +684,7 @@ private fun PharmacyWaitingRoomView(
                                     .background(AuEmerald)
                             )
                             Text(
-                                text = "INGRESO A CONSULTA HABILITADO",
+                                text = stringResource(R.string.pharmacy_flow_ready_badge),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = AuEmerald,
@@ -635,7 +696,7 @@ private fun PharmacyWaitingRoomView(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "Podés ingresar a la videollamada",
+                        text = stringResource(R.string.pharmacy_flow_ready_title),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = AuTextPrimary,
@@ -643,7 +704,7 @@ private fun PharmacyWaitingRoomView(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = uiState.assignedDoctorName ?: "Profesional de guardia",
+                        text = uiState.assignedDoctorName ?: stringResource(R.string.pharmacy_flow_on_duty),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Primary,
@@ -651,7 +712,7 @@ private fun PharmacyWaitingRoomView(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = uiState.assignedDoctorSpecialty ?: "Consulta médica por videollamada",
+                        text = uiState.assignedDoctorSpecialty ?: stringResource(R.string.pharmacy_flow_video_consultation),
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextTertiary,
                         textAlign = TextAlign.Center,
@@ -681,7 +742,7 @@ private fun PharmacyWaitingRoomView(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "Ingresar a la Consulta Ahora",
+                            text = stringResource(R.string.pharmacy_flow_enter_call),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                         )
@@ -712,11 +773,11 @@ private fun PharmacyWaitingRoomView(
             val marketName = when (uiState.careCountry) {
                 "AR" -> "Argentina"
                 "BR" -> "Brasil"
-                else -> "el país seleccionado"
+                else -> stringResource(R.string.pharmacy_flow_country_fallback)
             }
 
             Text(
-                text = if (doctorAssigned) "Médico asignado" else "Estás en la fila de atención",
+                text = if (doctorAssigned) stringResource(R.string.pharmacy_flow_assigned) else stringResource(R.string.pharmacy_flow_in_queue),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = AuTextPrimary,
@@ -726,9 +787,9 @@ private fun PharmacyWaitingRoomView(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = if (doctorAssigned)
-                    "El médico aceptó tu consulta. Estamos preparando la videollamada."
+                    stringResource(R.string.pharmacy_flow_assigned_hint)
                 else
-                    "Solicitud activa · $marketName",
+                    stringResource(R.string.pharmacy_flow_active_request, marketName),
                 style = MaterialTheme.typography.bodyMedium,
                 color = AuTextSecondary,
                 textAlign = TextAlign.Center,
@@ -769,16 +830,16 @@ private fun PharmacyWaitingRoomView(
                         Column {
                             Text(
                                 text = if (onlineDoctorCount == null)
-                                    "Consultando disponibilidad médica en $marketName..."
+                                    stringResource(R.string.pharmacy_flow_checking_capacity, marketName)
                                 else
-                                    "Esperando que haya un médico disponible en $marketName.",
+                                    stringResource(R.string.pharmacy_flow_waiting_capacity, marketName),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = AuTextPrimary,
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Tu solicitud ya está registrada y sigue en la fila. No necesitás volver a solicitarla.",
+                                text = stringResource(R.string.pharmacy_flow_request_registered),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AuTextSecondary,
                             )
@@ -789,7 +850,11 @@ private fun PharmacyWaitingRoomView(
 
             if (hasOnlineDoctors && !doctorAssigned) {
                 Text(
-                    text = "${onlineDoctorCount ?: uiState.activeDoctors.count { it.isAvailable }} profesional(es) disponible(s) en $marketName. Tu solicitud sigue en la fila hasta que alguien la acepte.",
+                    text = stringResource(
+                        R.string.pharmacy_flow_online_count,
+                        onlineDoctorCount ?: uiState.activeDoctors.count { it.isAvailable },
+                        marketName,
+                    ),
                     color = AuTextSecondary,
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center,
@@ -817,13 +882,14 @@ private fun PharmacyWaitingRoomView(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-                            text = "Posición en fila",
+                            text = stringResource(R.string.pharmacy_flow_queue_position),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextTertiary,
                         )
                         Spacer(modifier = Modifier.height(3.dp))
                         Text(
-                            text = queuePositionLabel(uiState.queuePosition),
+                            text = if (uiState.queuePosition > 0) queuePositionLabel(uiState.queuePosition)
+                                else stringResource(R.string.pharmacy_flow_pending_confirmation),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = Primary,
@@ -850,14 +916,15 @@ private fun PharmacyWaitingRoomView(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "Tiempo estimado",
+                                text = stringResource(R.string.pharmacy_flow_estimated_time),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AuTextTertiary,
                             )
                         }
                         Spacer(modifier = Modifier.height(3.dp))
                         Text(
-                            text = waitingTimeLabel(uiState.estimatedMinutes),
+                            text = if (uiState.estimatedMinutes > 0) waitingTimeLabel(uiState.estimatedMinutes)
+                                else stringResource(R.string.pharmacy_flow_no_estimate),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
@@ -887,7 +954,7 @@ private fun PharmacyWaitingRoomView(
                     .height(48.dp),
             ) {
                 Text(
-                    text = if (uiState.isSubmitting) "Cancelando..." else "Cancelar solicitud",
+                    text = if (uiState.isSubmitting) stringResource(R.string.pharmacy_flow_cancelling) else stringResource(R.string.pharmacy_flow_cancel_request),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -932,7 +999,7 @@ private fun CaseDetailsCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = uiState.patientName.ifBlank { "Paciente" },
+                        text = uiState.patientName.ifBlank { stringResource(R.string.pharmacy_flow_patient) },
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = AuTextPrimary,
@@ -941,7 +1008,12 @@ private fun CaseDetailsCard(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "DNI ${uiState.patientDni} • ${uiState.effectiveReason}",
+                        text = stringResource(
+                            R.string.pharmacy_flow_case_detail,
+                            if (uiState.careCountry == "BR") "CPF" else "DNI",
+                            uiState.patientDni,
+                            uiState.effectiveReason,
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextSecondary,
                         maxLines = 1,
@@ -955,7 +1027,7 @@ private fun CaseDetailsCard(
                     border = BorderStroke(0.5.dp, AuCyan.copy(alpha = 0.3f)),
                 ) {
                     Text(
-                        text = "Turno Inmediato",
+                        text = stringResource(R.string.pharmacy_flow_immediate),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = AuCyanDeep,
@@ -966,4 +1038,21 @@ private fun CaseDetailsCard(
             }
         }
     }
+}
+
+@Composable
+private fun localizedPharmacyMessage(message: String): String = when (message) {
+    "Ingresá el nombre completo del paciente" -> stringResource(R.string.pharmacy_flow_error_name)
+    "Seleccioná Argentina o Brasil" -> stringResource(R.string.pharmacy_flow_error_country)
+    "Ingresá un CPF de 11 dígitos" -> stringResource(R.string.pharmacy_flow_error_cpf)
+    "Ingresá un DNI válido" -> stringResource(R.string.pharmacy_flow_error_dni)
+    "Ingresá un teléfono de contacto válido" -> stringResource(R.string.pharmacy_flow_error_phone)
+    "Indicá el motivo de consulta o medicamento solicitado" -> stringResource(R.string.pharmacy_flow_error_reason)
+    "Completá los datos obligatorios" -> stringResource(R.string.pharmacy_flow_error_complete)
+    "No pudimos crear la solicitud. Verificá tu conexión e intentá nuevamente." -> stringResource(R.string.pharmacy_flow_error_create)
+    "No se confirmó la cancelación. Es posible que la solicitud ya haya sido asignada; verificá su estado." -> stringResource(R.string.pharmacy_flow_error_cancel_confirm)
+    "No pudimos cancelar la solicitud. Verificá tu conexión e intentá nuevamente." -> stringResource(R.string.pharmacy_flow_error_cancel)
+    "Esta solicitud anterior finalizó. Podés iniciar una nueva consulta." -> stringResource(R.string.pharmacy_flow_notice_expired)
+    "La solicitud fue cancelada." -> stringResource(R.string.pharmacy_flow_notice_cancelled)
+    else -> message // Keep unexpected backend failures visible for diagnostics.
 }
