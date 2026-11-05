@@ -76,6 +76,11 @@ interface PharmacyDispatchRepository {
     /** Patient side: Observe a specific on-demand request by id until matched/in_call. */
     fun observePatientRequest(requestId: String): kotlinx.coroutines.flow.Flow<PharmacyDispatchRequest>
 
+    /** Public aggregate for patient radar: doctors accepting consults in AR or BR.
+     * Does not expose clinician identities or return doctors from another country. */
+    suspend fun getCountryOnDutyCapacity(careCountry: String): Result<Int> =
+        Result.failure(UnsupportedOperationException("Country radar capacity not implemented"))
+
     /** Fetch live on-duty doctors currently connected to the network. */
     suspend fun getActiveOnDutyDoctors(): Result<List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo>>
 
