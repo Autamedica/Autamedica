@@ -155,7 +155,7 @@ jobs:
           test -x "$inspector"
           info="$("$inspector" dump badging "$apk" | head -n 1)"
           [[ "$info" == *"name='com.autamedica.android'"* ]]
-          [[ "$info" == *"versionCode='29'"* ]]
+          [[ "$info" == *"versionCode='${{ steps.version_info.outputs.version_code }}'"* ]]
           sha256sum "$apk"
           echo "APK_SIGNED_AND_PACKAGE_VERIFIED=true" >> "$GITHUB_STEP_SUMMARY"
           echo "SHA-256 recorded in action logs; no keystore or clinical data exposed" >> "$GITHUB_STEP_SUMMARY"
