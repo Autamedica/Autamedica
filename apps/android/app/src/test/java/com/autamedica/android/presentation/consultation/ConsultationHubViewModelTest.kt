@@ -132,68 +132,6 @@ class ConsultationHubViewModelTest {
         assertThat(state.paymentMessage).isNotNull()
     }
 
-    @Test
-    fun `requestEmergencyConsultation assigns on-call doctor immediately`() = runTest(testDispatcher) {
-        val viewModel = createViewModel()
-        advanceUntilIdle()
-
-        var enteredAppointmentId: String? = null
-        viewModel.requestEmergencyConsultation("Fiebre alta") { id ->
-            enteredAppointmentId = id
-        }
-        advanceUntilIdle()
-
-        assertThat(enteredAppointmentId).isNotNull()
-        val state = viewModel.uiState.value
-        assertThat(state.isEmergencyQueueLoading).isFalse()
-        assertThat(state.paymentMessage).contains("Médico de guardia asignado")
-    }
-
-    @Test
-    fun `requestEmergencyConsultation does not enter call and displays honest error when booking fails`() = runTest(testDispatcher) {
-        val failingRepo = FakeAppointmentRepo(
-            appointments = listOf(sampleAppointment),
-            doctors = listOf(sampleDoctor),
-            bookAppointmentReturnsError = true,
-        )
-        val failingStore = PatientClinicStore(failingRepo, fakeTelemedicineRepo, testDispatcher)
-        val viewModel = ConsultationHubViewModel(failingStore, failingRepo)
-        advanceUntilIdle()
-
-        var enteredAppointmentId: String? = null
-        viewModel.requestEmergencyConsultation("Dolor de pecho") { id ->
-            enteredAppointmentId = id
-        }
-        advanceUntilIdle()
-
-        assertThat(enteredAppointmentId).isNull()
-        val state = viewModel.uiState.value
-        assertThat(state.isEmergencyQueueLoading).isFalse()
-        assertThat(state.paymentMessage).contains("No fue posible conectar con la guardia médica")
-    }
-
-    @Test
-    fun `requestEmergencyConsultation displays honest error when no doctors available`() = runTest(testDispatcher) {
-        val noDoctorsRepo = FakeAppointmentRepo(
-            appointments = emptyList(),
-            doctors = emptyList(),
-        )
-        val noDoctorsStore = PatientClinicStore(noDoctorsRepo, fakeTelemedicineRepo, testDispatcher)
-        val viewModel = ConsultationHubViewModel(noDoctorsStore, noDoctorsRepo)
-        advanceUntilIdle()
-
-        var enteredAppointmentId: String? = null
-        viewModel.requestEmergencyConsultation("Fiebre alta") { id ->
-            enteredAppointmentId = id
-        }
-        advanceUntilIdle()
-
-        assertThat(enteredAppointmentId).isNull()
-        val state = viewModel.uiState.value
-        assertThat(state.isEmergencyQueueLoading).isFalse()
-        assertThat(state.paymentMessage).contains("no hay médicos de guardia disponibles")
-    }
-
     // ── FAKES ──
 
     private class FakeAuthRepo(private val user: User?) : AuthRepository {

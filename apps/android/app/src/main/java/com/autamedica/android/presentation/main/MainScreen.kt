@@ -383,6 +383,9 @@ fun MainScreen(
                         2 -> ConsultationHubScreen(
                             onNavigateToVideoCall = onNavigateToVideoCall,
                             onNavigateToBookAppointment = { selectedTab = 1 },
+                            // Use the real country-isolated dispatch queue instead of
+                            // booking the first directory doctor as immediately on duty.
+                            onNavigateToPharmacyIntake = onNavigateToPharmacyIntake,
                         )
                         3 -> PrescriptionsScreen(
                             onBack = { selectedTab = 2 },

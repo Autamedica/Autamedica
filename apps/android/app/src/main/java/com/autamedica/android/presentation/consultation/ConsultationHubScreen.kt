@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.HealthAndSafety
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -43,9 +42,6 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,7 +58,6 @@ import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
 import com.autamedica.android.presentation.theme.AuSuccess
 import com.autamedica.android.presentation.theme.AuSurface
-import com.autamedica.android.presentation.theme.AuSurfaceHover
 import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
@@ -76,11 +71,11 @@ import java.util.Locale
 fun ConsultationHubScreen(
     onNavigateToVideoCall: (appointmentId: String) -> Unit,
     onNavigateToBookAppointment: () -> Unit = {},
+    onNavigateToPharmacyIntake: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: ConsultationHubViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var showEmergencyConfirmDialog by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
 
     LaunchedEffect(uiState.checkoutUrlToLaunch) {
@@ -251,7 +246,7 @@ fun ConsultationHubScreen(
                             EmergencyOnCallCard(
                                 availableDoctorsCount = uiState.availableDoctors.size,
                                 isLoading = uiState.isEmergencyQueueLoading,
-                                onStartConsultation = { showEmergencyConfirmDialog = true },
+                                onStartConsultation = onNavigateToPharmacyIntake,
                             )
                         }
 
@@ -274,84 +269,7 @@ fun ConsultationHubScreen(
         }
     }
 
-    // ── Dialog de confirmación de Guardia 24/7 ──
-    if (showEmergencyConfirmDialog) {
-        AlertDialog(
-            onDismissRequest = { showEmergencyConfirmDialog = false },
-            title = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .clip(CircleShape)
-                            .background(AuSuccess),
-                    )
-                    Text(
-                        text = stringResource(R.string.consultation_emergency_dialog_title),
-                        fontWeight = FontWeight.Bold,
-                        color = AuTextPrimary,
-                    )
-                }
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = stringResource(R.string.consultation_emergency_dialog_subtitle),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = AuTextSecondary,
-                    )
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = AuSurfaceHover,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(
-                                text = stringResource(R.string.consultation_emergency_bullet_1),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = AuTextPrimary,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Text(
-                                text = stringResource(R.string.consultation_emergency_bullet_2),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = AuTextSecondary,
-                            )
-                            Text(
-                                text = stringResource(R.string.consultation_emergency_bullet_3),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = AuTextSecondary,
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showEmergencyConfirmDialog = false
-                        viewModel.requestEmergencyConsultation { appointmentId ->
-                            onNavigateToVideoCall(appointmentId)
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = PortalPatients),
-                    shape = RoundedCornerShape(12.dp),
-                ) {
-                    Text(stringResource(R.string.consultation_emergency_dialog_confirm), fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showEmergencyConfirmDialog = false }) {
-                    Text(stringResource(R.string.consultation_cancel), color = AuTextTertiary)
-                }
-            },
-            containerColor = AuSurface,
-            shape = RoundedCornerShape(20.dp),
-        )
-    }
+
 }
 
 // ── COMPONENTES DEL CENTRO DE CONSULTA Y TELEMEDICINA ──
