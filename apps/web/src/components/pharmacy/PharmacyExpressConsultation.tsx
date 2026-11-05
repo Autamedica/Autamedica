@@ -57,7 +57,7 @@ export function PharmacyExpressConsultation({
 
   const [step, setStep] = useState<Step>('FORM')
   const [formData, setFormData] = useState({
-    careCountry: '' as '' | 'AR' | 'BR',
+    careCountry: (referralCode === 'JORDAN' ? 'BR' : '') as '' | 'AR' | 'BR',
     dni: initialDni,
     name: '',
     phone: '',
@@ -127,6 +127,11 @@ export function PharmacyExpressConsultation({
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setFormError(null)
+
+    if (referralCode === 'JORDAN' && formData.careCountry !== 'BR') {
+      setFormError('O QR da Cantina Jordan é exclusivo para atendimento no Brasil.')
+      return
+    }
 
     if (!formData.careCountry) {
       setFormError('Seleccioná el país donde recibirás atención: Argentina o Brasil.')
@@ -296,7 +301,7 @@ export function PharmacyExpressConsultation({
               <fieldset className="rounded-xl border border-am-surface-700/80 p-3">
                 <legend className="text-xs font-medium text-am-surface-300 px-1">País de atención / País de atendimento *</legend>
                 <div className="flex flex-wrap gap-4 mt-2 text-sm text-white">
-                  {(['AR', 'BR'] as const).map((country) => (
+                  {(referralCode === 'JORDAN' ? (['BR'] as const) : (['AR', 'BR'] as const)).map((country) => (
                     <label key={country} className="inline-flex items-center gap-2 cursor-pointer">
                       <input
                         type="radio"
@@ -561,7 +566,7 @@ export function PharmacyExpressConsultation({
             <button
               type="button"
               onClick={() => {
-                setFormData({ careCountry: '', dni: '', name: '', phone: '', reason: '' })
+                setFormData({ careCountry: referralCode === 'JORDAN' ? 'BR' : '', dni: '', name: '', phone: '', reason: '' })
                 setStep('FORM')
               }}
               className="py-2.5 px-6 rounded-xl bg-am-primary-600 hover:bg-am-primary-500 text-white font-medium text-xs transition"
