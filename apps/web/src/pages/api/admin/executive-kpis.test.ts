@@ -4,10 +4,11 @@ import type { APIRoute } from 'astro';
 const state = vi.hoisted(() => ({
   tables: {} as Record<string, Record<string, unknown>[]>,
   authorized: true,
+  role: 'platform_admin',
   failed: '',
 }));
 vi.mock('@/lib/admin/auth', () => ({
-  resolveAdminRole: async () => state.authorized ? 'platform_admin' : null,
+  resolveAdminRole: async () => state.authorized ? state.role : null,
 }));
 vi.mock('@/lib/supabase', () => ({
   createAstroAdminClient: () => ({
@@ -46,12 +47,17 @@ async function run(country = 'BR', days = 30) {
 beforeEach(() => {
   state.tables = {};
   state.authorized = true;
+  state.role = 'platform_admin';
   state.failed = '';
 });
 
 describe('executive admin KPIs', () => {
   it('blocks unauthenticated access without querying a protected table', async () => {
     state.authorized = false;
+    expect((await run()).status).toBe(403);
+  });
+  it('prevents tenant admins from accessing platform-wide financial metrics', async () => {
+    state.role = 'organization_admin';
     expect((await run()).status).toBe(403);
   });
   it('rejects country mixing and arbitrary time windows', async () => {
