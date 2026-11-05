@@ -114,20 +114,27 @@ BEGIN
     (dispatch_request_id, doctor_id, offered_at, expires_at, status, price_brl)
   VALUES
     (p_dispatch_id, v_doctor_id, NOW(), NOW() + INTERVAL '30 seconds', 'pending', v_price)
+  -- Unique (request, doctor) already exists. A retry after cooldown must
+  -- reuse that row instead of violating the unique constraint.
+  ON CONFLICT (dispatch_request_id, doctor_id)
+  DO UPDATE SET
+    offered_at = NOW(),
+    expires_at = NOW() + INTERVAL '30 seconds',
+    status = 'pending',
+    accepted_at = NULL,
+    price_brl = EXCLUDED.price_brl
   RETURNING id INTO v_offer_id;
 
   -- Notificar solo a ese médico via pg_net (no broadcast)
   PERFORM app_private.send_authenticated_dispatch_push(
     (SELECT user_id FROM public.doctors WHERE id = v_doctor_id),
-    'Nueva Consulta — Respondé en 30 seg',
-    'Paciente ' || COALESCE(NULLIF(TRIM(v_req.patient_name), ''), 'en espera') || ' solicita atención inmediata.',
+    'Nueva consulta disponible',
+    'Abrí AutaMedica para revisar y aceptar la oferta.',
     jsonb_build_object(
       'type', 'pharmacy_dispatch_incoming',
       'request_id', p_dispatch_id::text,
       'offer_id', v_offer_id::text,
-      'room_id', v_req.cloudflare_room_id,
-      'patient_name', COALESCE(v_req.patient_name, ''),
-      'symptom_summary', COALESCE(v_req.symptom_summary, ''),
+      'care_country', v_req.care_country,
       'tier', v_req.tier_requested::text,
       'time_to_live', '30'
     )
@@ -197,7 +204,13 @@ BEGIN
   LIMIT 1;
 
   IF v_request_id IS NOT NULL THEN
-    PERFORM public.match_dispatch_doctors(v_request_id);
+    BEGIN
+      PERFORM public.match_dispatch_doctors(v_request_id);
+    EXCEPTION WHEN OTHERS THEN
+      -- A transient push/network error must not roll back doctor presence.
+      -- Next heartbeat or the queue retry job can dispatch again.
+      RAISE WARNING 'dispatch_waiting_patient_retry_failed: %', SQLSTATE;
+    END;
   END IF;
   RETURN NEW;
 END;
