@@ -152,7 +152,9 @@ class PharmacyIntakeViewModel @Inject constructor(
 
             // The active queue lives on the server, not in a transient Compose
             // screen. Recover the same country/request after app restart.
-            if (_uiState.value.isAuthenticated && _uiState.value.activeRequestId == null) {
+            // Both logged-in patients and guests with an encrypted device
+            // recovery credential restore the SAME request after app restart.
+            if (_uiState.value.activeRequestId == null) {
                 pharmacyDispatchRepository.getActivePatientDispatchRequest()
                     .onSuccess { request ->
                         if (request != null && _uiState.value.activeRequestId == null) {
