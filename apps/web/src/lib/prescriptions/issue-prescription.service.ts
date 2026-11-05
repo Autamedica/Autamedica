@@ -196,6 +196,8 @@ interface FarmalinkRegistration {
   vendorId: string;
   // Authoritative affiliation as submitted in the accepted altaReceta request.
   affiliateCredential: { codEntidad: number; pan: string; plan: string };
+  // The printed commercial suggestion must match the accepted Farmalink generic flag.
+  genericMode: 'S' | 'N';
   result: FarmalinkAltaResult;
   externalPrescription: Parameters<typeof generatePrescriptionPdf>[0]['externalPrescription'];
 }
@@ -283,6 +285,12 @@ function buildFarmalinkPrescriptionMapInput(input: {
   const itemConfig = asRecord(input.item.farmalink)
     ?? readRecord(farmalink, ['item', 'defaultItem', 'default_item'])
     ?? asRecord(Array.isArray(farmalink?.items) ? farmalink?.items[0] : undefined);
+  // Farmalink asks that generico=N PDF includes a branded product suggestion.
+  // Refuse an inconsistent request before calling the external API.
+  const isGeneric = readBoolean(itemConfig, ['generic', 'generico']) ?? true;
+  if (!isGeneric && !input.item.commercial_name?.trim()) {
+    throw new FarmalinkMappingError('items.0.commercial_name');
+  }
 
   const insurance = asRecord(input.patient.insurance_info);
   const insuranceFarmalink = readRecord(insurance, ['farmalink', 'farmalink_credential']);
@@ -382,7 +390,7 @@ function buildFarmalinkPrescriptionMapInput(input: {
           readString(itemConfig, ['genericText', 'generic_text', 'textoGenerico', 'texto_generico']),
           [input.item.generic_name, input.item.dosage, input.item.presentation].filter(Boolean).join(' '),
         ) ?? input.item.generic_name ?? '',
-        generic: readBoolean(itemConfig, ['generic', 'generico']) ?? true,
+        generic: isGeneric,
         brandRecommended: readBoolean(itemConfig, ['brandRecommended', 'brand_recommended', 'recomendacionMedica'])
           ?? Boolean(input.item.commercial_name),
       },
@@ -479,6 +487,7 @@ async function registerFarmalinkIfEnabled(input: {
         vendorName: 'farmalink',
         vendorId: result.nroRecElectronica,
         affiliateCredential: request.altaRecetaElectRq.recElectronica.afiliado.credencial,
+        genericMode: request.altaRecetaElectRq.recElectronica.detalleRecElectronica.item[0]?.generico === 'N' ? 'N' : 'S',
         result,
         externalPrescription: {
           provider: 'farmalink',
@@ -731,7 +740,7 @@ export async function issuePrescription(
         externalPrescription: externalRegistration?.externalPrescription,
         medication: {
           genericName: medicationName,
-          commercialName: item.commercial_name,
+          commercialName: externalRegistration.genericMode === 'S' ? undefined : item.commercial_name,
           dosage: item.dosage ?? '',
           presentation: item.presentation ?? '',
           quantity: item.quantity ?? 0,
