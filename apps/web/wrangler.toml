@@ -13,9 +13,10 @@ MEMED_SCRIPT_URL = "https://partners.memed.com.br/integration.js"
 
 [env.production.vars]
 NODE_ENV = "production"
-# Memed production is enabled ONLY for the verified pilot doctor enforced by both API endpoints.
-# The provider event is stored as draft pending independent signature/delivery verification.
-MEMED_RX_ENABLED = "true"
+# Safety gate: keep disabled until a BR doctor/patient consent, verified signature,
+# secure PDF delivery and end-to-end clinical test are independently confirmed.
+# Rollout must change this versioned setting and Cloudflare production variables together.
+MEMED_RX_ENABLED = "false"
 MEMED_API_URL = "https://api.memed.com.br/v1"
 MEMED_SCRIPT_URL = "https://partners.memed.com.br/integration.js"
 MEMED_PILOT_DOCTOR_ID = "7d3a8088-32a6-44ba-810b-e3b28a26608e"
