@@ -78,10 +78,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import com.autamedica.android.R
 import com.autamedica.android.util.CareCountryLocale
+import com.autamedica.android.presentation.common.CareCountryPicker
 import com.autamedica.android.domain.model.PharmacyConsultationStatus
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -289,70 +288,11 @@ private fun PharmacyIntakeFormView(
             .verticalScroll(scrollState)
             .padding(horizontal = 20.dp, vertical = 12.dp),
     ) {
-        // Clinical market is selected explicitly and never inferred from UI locale.
-        Text(
-            text = stringResource(R.string.pharmacy_flow_country_title),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = AuTextPrimary,
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Row(
+        CareCountryPicker(
+            selectedCountry = uiState.careCountry,
+            onCountrySelected = onCountrySelected,
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            listOf(Triple("AR", "🇦🇷", "Argentina"), Triple("BR", "🇧🇷", "Brasil")).forEach { (country, flag, label) ->
-                val selected = uiState.careCountry == country
-                val accessibleLabel = stringResource(R.string.pharmacy_flow_country_select, label)
-                Surface(
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onCountrySelected(country)
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(120.dp)
-                        .semantics { contentDescription = accessibleLabel },
-                    shape = RoundedCornerShape(18.dp),
-                    color = if (selected) Primary.copy(alpha = 0.08f) else AuSurface,
-                    border = BorderStroke(
-                        if (selected) 2.dp else 1.dp,
-                        if (selected) Primary else AuBorder,
-                    ),
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                        modifier = Modifier.padding(12.dp),
-                    ) {
-                        Text(text = flag, fontSize = 32.sp)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = AuTextPrimary,
-                            )
-                            if (selected) {
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    tint = Primary,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                            }
-                        }
-                        Text(
-                            text = if (country == "BR") "CPF" else "DNI",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = AuTextSecondary,
-                        )
-                    }
-                }
-            }
-        }
+        )
         Spacer(modifier = Modifier.height(22.dp))
 
         // 1. Motivo de Consulta (Focus principal del usuario)
