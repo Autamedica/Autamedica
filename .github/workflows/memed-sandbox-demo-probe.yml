@@ -1,0 +1,26 @@
+name: Memed isolated sandbox demo probe
+on:
+  push:
+    branches: [test/memed-demo-issue-20261105]
+    paths:
+      - 'scripts/memed-homologation-*.mjs'
+      - '.github/workflows/memed-sandbox-demo-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sdk-sandbox:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-pnpm
+        with:
+          node-version: '22'
+          pnpm-version: '9.15.2'
+      - name: Install Chromium
+        run: pnpm exec playwright install chromium --with-deps
+      - name: Verify real Memed homologation SDK using synthetic doctor and patient
+        run: node scripts/memed-homologation-browser.mjs
