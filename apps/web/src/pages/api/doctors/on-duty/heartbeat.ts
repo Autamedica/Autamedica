@@ -19,19 +19,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const doctorId = doctor.id
 
-    // Invocar doctor_heartbeat mediante el cliente autenticado con fallback al admin client
-    let { error } = await auth.supabase.rpc('doctor_heartbeat' as never, {
+    // Never retry a rejected user-scoped heartbeat with service-role.
+    // The fallback previously bypassed caller authorization decisions.
+    const { error } = await auth.supabase.rpc('doctor_heartbeat' as never, {
       p_doctor_id: doctorId,
     } as never)
-
-    if (error) {
-      const fallback = await admin.rpc('public.doctor_heartbeat' as never, {
-        p_doctor_id: doctorId,
-      } as never)
-      if (!fallback.error) {
-        error = null
-      }
-    }
 
     if (error) {
       logger.error('[api/doctors/on-duty/heartbeat] RPC error', error)
