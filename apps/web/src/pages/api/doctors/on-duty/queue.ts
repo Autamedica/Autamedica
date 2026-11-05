@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { logger } from '@autamedica/shared'
 import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth'
 import { internalError, jsonOk, forbidden } from '@/lib/api-helpers'
@@ -10,6 +11,9 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
   try {
     const admin = createAstroAdminClient(locals.runtime?.env)
+    // The generated Database types predate this PR's new RPC/dispatch tables.
+    // Restrict the untyped client to the new schema surface; regenerate types after merge.
+    const dispatchAdmin = admin as unknown as SupabaseClient
     const { data: doctor, error: doctorError } = await admin.from('doctors')
       .select('id, care_country, active').eq('user_id', auth.user.id).maybeSingle()
     if (doctorError) return internalError()
@@ -18,7 +22,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     }
     // Admin clients bypass RLS: never return the country-wide patient list.
     // A physician sees only currently assigned unexpired offers to THEM.
-    const { data: approved, error: approvalError } = await admin.rpc(
+    const { data: approved, error: approvalError } = await dispatchAdmin.rpc(
       'admin_is_dispatch_doctor_approved',
       { p_doctor_id: doctor.id },
     )
@@ -38,7 +42,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       return jsonOk({ queue: [], count: 0 })
     }
 
-    const { data: offers, error: offersError } = await admin
+    const { data: offers, error: offersError } = await dispatchAdmin
       .from('dispatch_offers')
       .select('dispatch_request_id')
       .eq('doctor_id', doctor.id)
