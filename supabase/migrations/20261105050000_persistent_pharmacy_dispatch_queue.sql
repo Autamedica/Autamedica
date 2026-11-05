@@ -80,6 +80,14 @@ BEGIN
     AND dds.is_on_duty = true
     AND dds.last_heartbeat_at > NOW() - INTERVAL '90 seconds'
     AND dds.current_active_request_id IS NULL   -- no está en otra consulta
+    -- Offer only categories that this physician has enabled in guard duty.
+    -- The acceptance RPC independently revalidates this predicate.
+    AND (
+      dds.active_tiers IS NULL
+      OR cardinality(dds.active_tiers) = 0
+      OR v_req.tier_requested::text = ANY(dds.active_tiers)
+      OR 'general' = ANY(dds.active_tiers)
+    )
     -- Do not send multiple simultaneous offers to the same professional.
     AND NOT EXISTS (
       SELECT 1 FROM public.dispatch_offers pending
@@ -92,7 +100,8 @@ BEGIN
       WHERE doe.dispatch_request_id = p_dispatch_id
         AND doe.doctor_id = d.id
         AND (
-          doe.status IN ('pending', 'accepted')
+          doe.status = 'accepted'
+          OR (doe.status = 'pending' AND doe.expires_at > NOW())
           OR doe.offered_at > NOW() - INTERVAL '5 minutes'
         )
     )
@@ -113,7 +122,8 @@ BEGIN
   INSERT INTO public.dispatch_offers
     (dispatch_request_id, doctor_id, offered_at, expires_at, status, price_brl)
   VALUES
-    (p_dispatch_id, v_doctor_id, NOW(), NOW() + INTERVAL '30 seconds', 'pending', v_price)
+    (p_dispatch_id, v_doctor_id, NOW(), NOW() + INTERVAL '30 seconds', 'pending',
+     CASE WHEN v_req.care_country = 'BR' THEN v_price ELSE NULL END)
   -- Unique (request, doctor) already exists. A retry after cooldown must
   -- reuse that row instead of violating the unique constraint.
   ON CONFLICT (dispatch_request_id, doctor_id)
