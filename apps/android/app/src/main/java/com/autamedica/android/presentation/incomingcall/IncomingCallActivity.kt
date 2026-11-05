@@ -1,6 +1,7 @@
 package com.autamedica.android.presentation.incomingcall
 
 import android.app.KeyguardManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
@@ -59,6 +60,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.autamedica.android.MainActivity
+import com.autamedica.android.util.CareCountryLocale
 import com.autamedica.android.R
 import com.autamedica.android.domain.model.NotificationType
 import com.autamedica.android.domain.repository.TelemedicineRepository
@@ -88,6 +90,10 @@ class IncomingCallActivity : ComponentActivity() {
 
     @Inject
     lateinit var telemedicineRepository: TelemedicineRepository
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(CareCountryLocale.wrap(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
