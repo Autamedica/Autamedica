@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { internalError, jsonOk, notFound, unauthorized } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { resolveGuestSecret } from '@/lib/runtime-env'
@@ -19,6 +20,8 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
 
   try {
     const supabase = createAstroAdminClient(locals.runtime?.env)
+    // New protected offer table and approval RPC are not yet in generated types.
+    const dispatchAdmin = supabase as unknown as SupabaseClient
 
     const { data: requestRecord, error } = await supabase
       .from('pharmacy_dispatch_requests')
@@ -101,7 +104,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
           if (countryVerified && doctorRow) {
             // Admin client bypasses RLS: re-check the central clinical
             // approval predicate before exposing PHI to any doctor.
-            const { data: approved, error: approvalError } = await supabase.rpc(
+            const { data: approved, error: approvalError } = await dispatchAdmin.rpc(
               'admin_is_dispatch_doctor_approved',
               { p_doctor_id: doctorRow.id },
             )
@@ -112,7 +115,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
               // Being on duty does not grant access to every patient's
               // intake within the jurisdiction. Require a current offer to
               // this exact doctor; RLS alone cannot protect admin queries.
-              const { data: activeOffer } = await supabase
+              const { data: activeOffer } = await dispatchAdmin
                 .from('dispatch_offers')
                 .select('id')
                 .eq('doctor_id', doctorRow.id)
