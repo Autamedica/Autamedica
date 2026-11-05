@@ -21,6 +21,13 @@ BEGIN
     AND s.is_on_duty IS TRUE
     AND s.last_heartbeat_at > NOW() - INTERVAL '90 seconds'
     AND s.current_active_request_id IS NULL
+    -- Intake currently submits a general-tier request; count only doctors
+    -- whose active guard configuration can actually accept that tier.
+    AND (
+      s.active_tiers IS NULL
+      OR cardinality(s.active_tiers)=0
+      OR 'general'::public.dispatch_tier_category=ANY(s.active_tiers)
+    )
     AND NOT EXISTS (
       SELECT 1 FROM public.dispatch_offers o
       WHERE o.doctor_id=d.id AND o.status='pending' AND o.expires_at>NOW()
