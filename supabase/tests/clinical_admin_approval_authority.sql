@@ -13,10 +13,24 @@ BEGIN
   SET active=true,role='doctor',sss_validation_status='pending_review'
   WHERE user_id=v_user;
 
-  INSERT INTO public.doctors(id,user_id,active,license_type,license_number,specialty)
-  VALUES(v_doctor,v_user,true,'MN','CI-APPROVAL','Medicina General');
-  INSERT INTO public.doctor_licenses(doctor_id,license_type,license_number,province,status)
-  VALUES(v_doctor,'MN','CI-APPROVAL','CABA','active');
+  -- Signup trigger may have already provisioned a doctor row. Reuse it.
+  SELECT id INTO v_doctor FROM public.doctors WHERE user_id=v_user;
+  IF v_doctor IS NULL THEN
+    INSERT INTO public.doctors(id,user_id,active,license_type,license_number,specialty)
+    VALUES(gen_random_uuid(),v_user,true,'MN','CI-APPROVAL','Medicina General')
+    RETURNING id INTO v_doctor;
+  ELSE
+    UPDATE public.doctors
+    SET active=true,license_type='MN',license_number='CI-APPROVAL'
+    WHERE id=v_doctor;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.doctor_licenses
+    WHERE doctor_id=v_doctor AND license_type='MN' AND license_number='CI-APPROVAL'
+  ) THEN
+    INSERT INTO public.doctor_licenses(doctor_id,license_type,license_number,province,status)
+    VALUES(v_doctor,'MN','CI-APPROVAL','CABA','active');
+  END IF;
 
   IF app_private.is_doctor_dispatch_approved(v_doctor) THEN
     RAISE EXCEPTION 'Synthetic pending clinician was incorrectly approved';
