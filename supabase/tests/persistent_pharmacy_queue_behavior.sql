@@ -78,6 +78,33 @@ BEGIN
   THEN
     RAISE EXCEPTION 'An offer must not remove a patient from the queue before acceptance';
   END IF;
+
+  -- AR clinical offers must never accidentally carry BRL pricing.
+  IF EXISTS (
+    SELECT 1 FROM public.dispatch_offers
+    WHERE dispatch_request_id=v_ar AND price_brl IS NOT NULL
+  ) THEN
+    RAISE EXCEPTION 'AR doctor offer contained BRL pricing';
+  END IF;
+
+  -- Recovery hashes are strictly server-only, and must be revoked when the
+  -- original guest leaves the waiting queue.
+  IF has_table_privilege('anon','public.pharmacy_guest_dispatch_sessions','SELECT')
+     OR has_table_privilege('authenticated','public.pharmacy_guest_dispatch_sessions','SELECT')
+  THEN
+    RAISE EXCEPTION 'Guest recovery credential hashes are exposed to clients';
+  END IF;
+
+  INSERT INTO public.pharmacy_guest_dispatch_sessions(request_id,token_sha256)
+    VALUES(v_br,repeat('a',64));
+  UPDATE public.pharmacy_dispatch_requests SET status='cancelled'
+    WHERE id=v_br;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.pharmacy_guest_dispatch_sessions
+    WHERE request_id=v_br AND revoked_at IS NOT NULL
+  ) THEN
+    RAISE EXCEPTION 'Guest recovery credential was not revoked on cancellation';
+  END IF;
 END;
 $test$;
 
