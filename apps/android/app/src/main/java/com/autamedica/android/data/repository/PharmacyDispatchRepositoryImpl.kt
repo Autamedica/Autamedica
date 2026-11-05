@@ -20,6 +20,7 @@ import com.autamedica.android.domain.model.PharmacyDispatchRequest
 import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.PharmacyDispatchRepository
+import com.autamedica.android.domain.repository.DispatchCheckoutResult
 import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
@@ -571,6 +572,51 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             launch { supabaseClient.realtime.removeChannel(channel) }
         }
     }
+
+    // Payment requests remain server-authorized and room-scoped. Never persist
+    // the short-lived token, never trust a browser redirect as paid, and never
+    // attach a payment to a different user's restored queue.
+    private suspend fun paymentGuestToken(requestId: String): String {
+        require(requestId.matches(Regex("^[0-9a-fA-F-]{36}$"))) { "Invalid payment request" }
+        val owner = securePreferences?.getString(guestRecoveryOwnerKey)
+        check(owner == authRepository.getCurrentUser()?.id) { "Payment credential belongs to another session" }
+        if (savedGuestRecovery()?.first == requestId) {
+            resumeGuestRequestFromEncryptedDevice(requestId)
+        }
+        return guestAccessTokens[requestId] ?: error("Signed payment credential unavailable")
+    }
+
+    private suspend fun paymentRequest(requestId: String, endpoint: String): DispatchCheckoutResult =
+        withContext(ioDispatcher) {
+            val body = buildJsonObject {
+                put("requestId", requestId)
+                put("accessToken", paymentGuestToken(requestId))
+            }
+            val request = Request.Builder()
+                .url("$guestApiOrigin/api/pharmacy/dispatch/payment/$endpoint")
+                .post(body.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
+                .build()
+            guestClient.newCall(request).execute().use { response ->
+                check(response.isSuccessful) { "Payment API unavailable (HTTP ${response.code})" }
+                val raw = response.body?.string() ?: error("Empty payment response")
+                val payment = json.parseToJsonElement(raw).jsonObject["data"]?.jsonObject
+                    ?: error("Missing payment response data")
+                val status = payment["status"]?.jsonPrimitive?.content ?: error("Missing payment status")
+                check(status in setOf("not_started","initializing","pending","approved","refunded","cancelled","rejected","failed")) {
+                    "Unexpected payment status"
+                }
+                val url = payment["checkoutUrl"]?.jsonPrimitive?.content?.takeIf { it.startsWith("https://") }
+                DispatchCheckoutResult(status = status, checkoutUrl = url)
+            }
+        }
+
+    override suspend fun startDispatchCheckout(requestId: String): Result<DispatchCheckoutResult> = runCatching {
+        paymentRequest(requestId, "create")
+    }.onFailure { SecureLog.warn("[PharmacyDispatch] Secure Brazilian checkout unavailable") }
+
+    override suspend fun getDispatchPaymentStatus(requestId: String): Result<String> = runCatching {
+        paymentRequest(requestId, "status").status
+    }.onFailure { SecureLog.warn("[PharmacyDispatch] Payment confirmation not available") }
 
     override suspend fun getCountryOnDutyCapacity(careCountry: String): Result<Int> = runCatching {
         require(careCountry == "AR" || careCountry == "BR") { "Invalid care country" }
