@@ -99,7 +99,14 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
           )
 
           if (countryVerified && doctorRow) {
-            if (requestRecord.assigned_doctor_id === doctorRow.id) {
+            // Admin client bypasses RLS: re-check the central clinical
+            // approval predicate before exposing PHI to any doctor.
+            const { data: approved, error: approvalError } = await supabase.rpc(
+              'admin_is_dispatch_doctor_approved',
+              { p_doctor_id: doctorRow.id },
+            )
+            if (!approvalError && approved === true) {
+              if (requestRecord.assigned_doctor_id === doctorRow.id) {
               isAuthorized = true
             } else if (!requestRecord.assigned_doctor_id) {
               // Being on duty does not grant access to every patient's
@@ -114,6 +121,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
                 .gt('expires_at', new Date().toISOString())
                 .maybeSingle()
               isAuthorized = Boolean(activeOffer?.id)
+              }
             }
           }
         }
