@@ -148,6 +148,18 @@ class NotificationRouteResolverTest {
     }
 
     @Test
+    fun `pharmacy dispatch push only opens doctor radar never video room`() {
+        val route = NotificationRouteResolver.resolve(
+            appointmentId = "dispatch-request-123",
+            roomId = "room-hidden-from-push",
+            notificationType = "pharmacy_dispatch_incoming",
+        )
+        assertThat(route).isEqualTo(Route.DoctorOnDemand)
+        assertThat(NotificationRouteResolver.isCallNotification("pharmacy_dispatch_incoming")).isFalse()
+        assertThat(NotificationRouteResolver.isIncomingCallNotificationType("pharmacy_dispatch_incoming")).isFalse()
+    }
+
+    @Test
     fun `incoming call notification type resolves to VideoCall route with direct join`() {
         val route = NotificationRouteResolver.resolve(
             appointmentId = "call-appointment-001",
