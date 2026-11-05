@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap
 import com.autamedica.android.di.IoDispatcher
 import com.autamedica.android.domain.model.DispatchClaimResult
 import com.autamedica.android.domain.model.DoctorDutyStatus
+import com.autamedica.android.domain.model.DoctorGuardApproval
 import com.autamedica.android.domain.model.PharmacyDispatchRequest
 import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.repository.AuthRepository
@@ -193,6 +194,23 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 }
             }
         }
+
+    override suspend fun getMyGuardApproval(): Result<DoctorGuardApproval> = runCatching {
+        check(!supabaseClient.auth.currentSessionOrNull()?.accessToken.isNullOrBlank()) {
+            "Authenticated medical professional required for eligibility query"
+        }
+        val eligibility = supabaseClient.postgrest
+            .rpc("get_my_guard_approval")
+            .decodeAs<DoctorGuardApprovalDto>()
+        DoctorGuardApproval(
+            approved = eligibility.approved,
+            code = eligibility.code,
+            country = eligibility.careCountry,
+            verificationStatus = eligibility.verificationStatus,
+        )
+    }.onFailure {
+        SecureLog.warn("[PharmacyDispatch] Could not confirm Admin guard approval")
+    }
 
     override suspend fun getDoctorDutyStatus(doctorId: String): Result<DoctorDutyStatus> = runCatching {
         supabaseClient.postgrest
@@ -648,6 +666,14 @@ private data class PatientCancelRpcDto(val cancelled: Boolean)
 @Serializable
 private data class DoctorDeclineRpcDto(val declined: Boolean)
 
+
+@Serializable
+private data class DoctorGuardApprovalDto(
+    val approved: Boolean = false,
+    val code: String = "DOCTOR_PENDING_CLINICAL_APPROVAL",
+    @SerialName("care_country") val careCountry: String? = null,
+    @SerialName("verification_status") val verificationStatus: String = "pending",
+)
 
 @Serializable
 private data class DoctorDutyStatusDto(
