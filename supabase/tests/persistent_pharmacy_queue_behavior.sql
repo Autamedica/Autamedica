@@ -56,6 +56,37 @@ BEGIN
     RAISE EXCEPTION 'Generated doctor country mismatch';
   END IF;
 
+  INSERT INTO public.doctor_licenses (doctor_id,license_number,license_type,province,status)
+  VALUES (v_doctor,'CI-TEST-123','MN','CABA','active');
+
+  -- Without explicit Admin/SISA approval the physician must NOT activate
+  -- the guard or receive a clinical offer, even if the doctor row is active.
+  UPDATE public.profiles
+  SET active=true, role='doctor', sss_validation_status='pending_review'
+  WHERE user_id=v_doctor_user;
+
+  IF app_private.is_doctor_dispatch_approved(v_doctor) THEN
+    RAISE EXCEPTION 'Pending doctor incorrectly approved';
+  END IF;
+  PERFORM set_config('request.jwt.claim.role','service_role',true);
+  BEGIN
+    PERFORM public.set_doctor_duty_status(v_doctor,true,ARRAY['general']::public.dispatch_tier_category[]);
+    RAISE EXCEPTION 'Pending doctor was able to activate clinical guard';
+  EXCEPTION
+    WHEN insufficient_privilege THEN
+      NULL; -- Expected DOCTOR_PENDING_CLINICAL_APPROVAL.
+  END;
+
+  -- Admin approval changes only professional validation, never creates a
+  -- new account. The same doctor may now become available.
+  UPDATE public.profiles
+  SET sss_validation_status='valid'
+  WHERE user_id=v_doctor_user;
+
+  IF NOT app_private.is_doctor_dispatch_approved(v_doctor) THEN
+    RAISE EXCEPTION 'Approved doctor still refused by clinical authorization predicate';
+  END IF;
+
   INSERT INTO public.doctor_duty_status(
       doctor_id,is_on_duty,last_heartbeat_at,duty_started_at)
     VALUES(v_doctor,true,NOW(),NOW());
