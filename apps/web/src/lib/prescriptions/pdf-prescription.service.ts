@@ -629,18 +629,39 @@ export async function generatePrescriptionPdf(
   }
 
   const barcodeOffset = template === 'female' ? 6 : 4;
-  doc.setFontSize(7);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
-  doc.text(barcodeTitle, marginLeft + barcodeOffset, barcodeY + 5);
-  drawCode128Barcode(doc, barcodeValue, marginLeft + 48, barcodeY + 3, 78, 8);
-  doc.setFontSize(7);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
-  doc.text(`${barcodeDisplayLabel}: ${barcodeValue}`, marginLeft + 48, barcodeY + 14);
-  doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
-  doc.text(barcodeLegend, marginLeft + 132, barcodeY + 9);
-
+  const submittedCuil = input.externalPrescription?.provider === 'farmalink'
+    ? input.patient.cuil?.replace(/\D/g, '')
+    : undefined;
+  if (input.externalPrescription?.provider === 'farmalink' && submittedCuil?.length === 11) {
+    // MSAL requires distinct scannable Code128 codes for Farmalink receipt ID and patient CUIL.
+    const leftX = marginLeft + barcodeOffset;
+    const rightX = marginLeft + 91;
+    doc.setFontSize(6.3);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
+    doc.text('RECETA FARMALINK', leftX, barcodeY + 3.8);
+    doc.text('CUIL PACIENTE', rightX, barcodeY + 3.8);
+    drawCode128Barcode(doc, barcodeValue, leftX + 2, barcodeY + 5.2, 69, 6.5);
+    drawCode128Barcode(doc, submittedCuil, rightX + 2, barcodeY + 5.2, 69, 6.5);
+    doc.setFontSize(7.2);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
+    doc.text(`${barcodeDisplayLabel}: ${barcodeValue}`, leftX + 2, barcodeY + 14.4);
+    doc.text(`CUIL: ${submittedCuil}`, rightX + 2, barcodeY + 14.4);
+  } else {
+    // Other countries and providers retain their pre-existing single-barcode PDF layout.
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
+    doc.text(barcodeTitle, marginLeft + barcodeOffset, barcodeY + 5);
+    drawCode128Barcode(doc, barcodeValue, marginLeft + 48, barcodeY + 3, 78, 8);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
+    doc.text(`${barcodeDisplayLabel}: ${barcodeValue}`, marginLeft + 48, barcodeY + 14);
+    doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
+    doc.text(barcodeLegend, marginLeft + 132, barcodeY + 9);
+  }
   // Prescriber (Regulatory Info Block - Premium Medical Card)
   y = 210; // Fixed position for footer block
   const prescriberBlockHeight = 30;
