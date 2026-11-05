@@ -117,6 +117,11 @@ private class FakePharmacyDispatchRepo : PharmacyDispatchRepository {
     val heartbeatInvocations = mutableListOf<Long>()
     var heartbeatResponse: Result<Unit> = Result.success(Unit)
     val searchingRequestsFlow = MutableStateFlow<List<PharmacyDispatchRequest>>(emptyList())
+    val declinedOfferIds = mutableListOf<String>()
+    override suspend fun declinePharmacyOffer(offerId: String): Result<Boolean> {
+        declinedOfferIds += offerId
+        return Result.success(true)
+    }
 
     override suspend fun getDoctorDutyStatus(doctorId: String): Result<DoctorDutyStatus> = Result.success(dutyStatus)
     override suspend fun setDoctorDutyStatus(doctorId: String, isOnDuty: Boolean, activeTiers: List<String>): Result<Unit> {
@@ -288,6 +293,9 @@ class DoctorDashboardViewModelTest {
 
         val incomingRequest = PharmacyDispatchRequest(
             id = "req-real-999",
+            offerId = "offer-owned-999",
+            offerExpiresAt = java.time.OffsetDateTime.now().plusSeconds(30).toString(),
+            careCountry = "AR",
             patientDni = "30111222",
             patientPhone = "+5491199887766",
             patientName = "Carlos Tevez",
@@ -313,6 +321,7 @@ class DoctorDashboardViewModelTest {
         testScheduler.runCurrent()
 
         assertThat(viewModel.uiState.value.simulatedDispatchAlert).isNull()
+        assertThat(dispatchRepo.declinedOfferIds).containsExactly("offer-owned-999")
 
         viewModel.viewModelScope.cancel()
     }
