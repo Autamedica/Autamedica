@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ui_services_heading">¿Cómo te ayudamos hoy?</string>
+    <string name="ui_services_subtitle">Servicios y módulos clínicos.</string>
+    <string name="ui_service_open_action">Abrir servicio %1$s</string>
+    <string name="ui_service_online_title">Médico online</string>
+    <string name="ui_service_online_desc">Atención inmediata</string>
+    <string name="ui_service_reserve_title">Reserva de Salud</string>
+    <string name="ui_service_reserve_desc">Beneficios acumulables</string>
+    <string name="ui_service_agenda_title">Mi agenda</string>
+    <string name="ui_service_agenda_desc">Próximos turnos</string>
+    <string name="ui_service_prescriptions_title">Mis recetas y órdenes</string>
+    <string name="ui_service_prescriptions_desc">Recetas y órdenes</string>
+    <string name="ui_service_history_title">Historia clínica</string>
+    <string name="ui_service_history_desc">Ficha médica</string>
+    <string name="ui_service_mental_title">Salud mental</string>
+    <string name="ui_service_mental_desc">Psiquiatría y terapia</string>
+    <string name="ui_service_continuity_title">Seguimiento y continuidad</string>
+    <string name="ui_service_continuity_desc">Monitoreo 48 h</string>
+    <string name="ui_service_prevention_title">Prevención y chequeos</string>
+    <string name="ui_service_prevention_desc">Chequeos y alertas</string>
+    <string name="ui_service_reproductive_title">Salud reproductiva</string>
+    <string name="ui_service_reproductive_desc">Planificación y cuidados</string>
+    <string name="ui_service_community_title">Comunidad</string>
+    <string name="ui_service_community_desc">Consultas y experiencias</string>
+    <string name="ui_clinical_tools">HERRAMIENTAS CLÍNICAS</string>
+    <string name="ui_clinical_prescription">Receta digital</string>
+    <string name="ui_clinical_certificate">Certificado</string>
+    <string name="ui_clinical_orders">Órdenes</string>
+    <string name="ui_clinical_duty">Guardia</string>
+    <string name="ui_clinical_appointment">Nueva consulta</string>
+    <string name="ui_dispatch_offer_title">Nueva oferta de consulta</string>
+    <string name="ui_dispatch_offer_body">Abrí el radar médico para revisar y aceptar la oferta.</string>
+    <string name="ui_dispatch_open_radar">Abrir radar</string>
+    <string name="ui_video_permissions_required">Se requieren permisos de cámara y micrófono para iniciar la videollamada.</string>
+    <string name="ui_video_camera_off">Cámara apagada</string>
+    <string name="ui_video_connection_weak">Conexión débil: llamada en solo audio</string>
+    <string name="ui_video_reactivate">Reactivar video</string>
+</resources>
