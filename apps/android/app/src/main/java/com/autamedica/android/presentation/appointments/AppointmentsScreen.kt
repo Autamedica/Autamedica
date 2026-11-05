@@ -75,6 +75,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -89,6 +90,8 @@ import com.autamedica.android.domain.model.AppointmentType
 import com.autamedica.android.domain.model.DoctorBookingInfo
 import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
 import com.autamedica.android.presentation.dashboard.components.AppointmentCard
+import com.autamedica.android.presentation.common.CareCountryPicker
+import com.autamedica.android.util.CareCountryLocale
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
@@ -130,25 +133,50 @@ fun AppointmentsScreen(
     val accentColor = if (isDoctor) PortalDoctors else PortalPatients
     val title = if (isDoctor) stringResource(R.string.appointments_title_doctor) else stringResource(R.string.appointments_title_patient)
 
+    val context = LocalContext.current
+
+    // The clinical market is persisted by the server. UI locale follows only
+    // after a confirmed country is loaded or a country change succeeds.
+    LaunchedEffect(uiState.careCountry, isDoctor) {
+        if (!isDoctor && uiState.careCountry in setOf("AR", "BR")) {
+            CareCountryLocale.applyCountry(context, requireNotNull(uiState.careCountry))
+        }
+    }
+
     if (!isDoctor && uiState.needsCareCountry) {
         AlertDialog(
             onDismissRequest = {},
-            title = { Text("País de atención / País de atendimento") },
-            text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Elegí dónde recibirás atención. Verás solo médicos con la matrícula de ese país. / Escolha onde receberá atendimento.")
-                Text("La selección quedará vinculada a tu cuenta. / A seleção ficará vinculada à sua conta.")
-                uiState.bookingErrorMessage?.let { Text(it, color = AuDanger) }
-            } },
-            confirmButton = {
-                TextButton(enabled = !uiState.isSavingCareCountry, onClick = { viewModel.selectCareCountry("BR") }) {
-                    Text("Brasil · CRM")
+            title = { Text(stringResource(R.string.pharmacy_flow_country_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    CareCountryPicker(
+                        selectedCountry = uiState.careCountry,
+                        onCountrySelected = viewModel::selectCareCountry,
+                        showTitle = false,
+                        showMedicalRegistration = true,
+                        enabled = !uiState.isSavingCareCountry,
+                    )
+                    Text(
+                        text = stringResource(R.string.pharmacy_flow_country_account_notice),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AuTextSecondary,
+                    )
+                    if (uiState.isSavingCareCountry) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                        )
+                    }
+                    if (uiState.bookingErrorMessage != null) {
+                        Text(
+                            text = stringResource(R.string.pharmacy_flow_country_save_error),
+                            color = AuDanger,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
                 }
             },
-            dismissButton = {
-                TextButton(enabled = !uiState.isSavingCareCountry, onClick = { viewModel.selectCareCountry("AR") }) {
-                    Text("Argentina · MN / MP")
-                }
-            },
+            confirmButton = {},
         )
     }
 
