@@ -125,8 +125,10 @@ BEGIN
     price_brl = EXCLUDED.price_brl
   RETURNING id INTO v_offer_id;
 
-  -- Notificar solo a ese médico via pg_net (no broadcast)
-  PERFORM app_private.send_authenticated_dispatch_push(
+  -- Push is best effort. The queue/offer is authoritative and must still
+  -- commit if FCM, pg_net or Vault is temporarily unavailable.
+  BEGIN
+    PERFORM app_private.send_authenticated_dispatch_push(
     (SELECT user_id FROM public.doctors WHERE id = v_doctor_id),
     'Nueva consulta disponible',
     'Abrí AutaMedica para revisar y aceptar la oferta.',
@@ -138,7 +140,10 @@ BEGIN
       'tier', v_req.tier_requested::text,
       'time_to_live', '30'
     )
-  );
+    );
+  EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'clinical_dispatch_push_deferred: %', SQLSTATE;
+  END;
 
   RETURN jsonb_build_object(
     'success',    true,
