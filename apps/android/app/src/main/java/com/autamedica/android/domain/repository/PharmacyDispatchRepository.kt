@@ -2,6 +2,7 @@ package com.autamedica.android.domain.repository
 
 import com.autamedica.android.domain.model.DispatchClaimResult
 import com.autamedica.android.domain.model.DoctorDutyStatus
+import com.autamedica.android.domain.model.DoctorGuardApproval
 import com.autamedica.android.domain.model.PharmacyDispatchRequest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,6 +12,11 @@ import kotlinx.coroutines.flow.StateFlow
  * private offer stream and atomic claim via the `claim_pharmacy_request_tier` RPC.
  */
 interface PharmacyDispatchRepository {
+
+    /** Server-authoritative administrator approval for this authenticated doctor.
+     * The default fails closed for mock/alternate implementations. */
+    suspend fun getMyGuardApproval(): Result<DoctorGuardApproval> =
+        Result.failure(UnsupportedOperationException("Clinical guard approval unavailable"))
 
     /** Current duty status for a doctor record. */
     suspend fun getDoctorDutyStatus(doctorId: String): Result<DoctorDutyStatus>
