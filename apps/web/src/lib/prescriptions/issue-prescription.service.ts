@@ -195,6 +195,9 @@ interface FarmalinkRegistration {
   vendorName: 'farmalink';
   genericMode: 'S' | 'N';
   vendorId: string;
+  // PAN, CUIL and plan must be taken from the exact accepted Farmalink request.
+  affiliateCredential: { codEntidad: number; pan: string; plan: string };
+  affiliateCuil: string;
   result: FarmalinkAltaResult;
   externalPrescription: Parameters<typeof generatePrescriptionPdf>[0]['externalPrescription'];
 }
@@ -420,6 +423,12 @@ async function registerFarmalinkIfEnabled(input: {
   let request: FarmalinkAltaRecetaRequest;
   try {
     request = buildFarmalinkAltaRecetaRequest(buildFarmalinkPrescriptionMapInput(input));
+    // Before creating a durable claim or contacting Farmalink, guarantee that
+    // the PDF can show the patient's CUIL in a second scannable barcode.
+    const submittedCuil = String(request.altaRecetaElectRq.recElectronica.afiliado.cuil ?? '');
+    if (!/^\d{11}$/.test(submittedCuil)) {
+      throw new FarmalinkMappingError('affiliate.cuil');
+    }
   } catch (error) {
     logger.error('[issuePrescription] Farmalink mapping failed', {
       field: error instanceof FarmalinkMappingError ? error.field : undefined,
@@ -481,6 +490,8 @@ async function registerFarmalinkIfEnabled(input: {
         vendorName: 'farmalink',
         genericMode: request.altaRecetaElectRq.recElectronica.detalleRecElectronica.item[0]?.generico ?? 'S',
         vendorId: result.nroRecElectronica,
+        affiliateCredential: request.altaRecetaElectRq.recElectronica.afiliado.credencial,
+        affiliateCuil: String(request.altaRecetaElectRq.recElectronica.afiliado.cuil),
         result,
         externalPrescription: {
           provider: 'farmalink',
@@ -745,10 +756,13 @@ export async function issuePrescription(
         patient: {
           name: patientName,
           dni: patient.dni ?? externalPatient?.dni ?? (patient as { ci?: string }).ci ?? (externalPatient as { ci?: string })?.ci ?? undefined,
-          cuil: patient.cuil ?? externalPatient?.cuil ?? undefined,
+          // Never mix locally modified data with the CUIL accepted by Farmalink.
+          cuil: externalRegistration?.affiliateCuil ?? patient.cuil ?? externalPatient?.cuil ?? undefined,
           dateOfBirth: patient.birth_date ?? externalPatient?.birth_date ?? undefined,
           sex: patient.gender ?? externalPatient?.gender ?? undefined,
-          insurancePlan: resolveInsurancePlan(patient.insurance_info),
+          insurancePlan: externalRegistration?.affiliateCredential.plan ?? resolveInsurancePlan(patient.insurance_info),
+          affiliateCredential: externalRegistration?.affiliateCredential.pan,
+          insuranceEntityCode: externalRegistration?.affiliateCredential.codEntidad,
           address: patient.address ?? externalPatient?.address ?? undefined,
         },
         prescriber: {
