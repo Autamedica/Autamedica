@@ -12,6 +12,8 @@ data class DoctorProfile(
     val active: Boolean = true,
     val sssValidationStatus: String? = null,
     val countryCode: String? = null,
+    val licenseType: String? = null,
+    val ufBrazil: String? = null,
 )
 
 data class DoctorStats(

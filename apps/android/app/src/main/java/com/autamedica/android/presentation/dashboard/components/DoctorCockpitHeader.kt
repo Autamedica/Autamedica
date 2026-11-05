@@ -58,6 +58,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.autamedica.android.domain.model.formatDoctorCredentialLabel
 import com.autamedica.android.presentation.theme.AuBorder
 import com.autamedica.android.presentation.theme.AuCyan
 import com.autamedica.android.presentation.theme.AuCyanSoft
@@ -84,6 +85,9 @@ fun DoctorCockpitHeader(
     doctorName: String,
     specialty: String?,
     licenseNumber: String?,
+    licenseType: String?,
+    countryCode: String?,
+    ufBrazil: String?,
     avatarUrl: String?,
     isOnDuty: Boolean,
     isLoading: Boolean,
@@ -93,6 +97,12 @@ fun DoctorCockpitHeader(
     onOpenProfile: (() -> Unit)? = null,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
+    val credentialLabel = formatDoctorCredentialLabel(
+        licenseNumber = licenseNumber,
+        licenseType = licenseType,
+        countryCode = countryCode,
+        ufBrazil = ufBrazil,
+    )
 
     // Micro-animación de respiración / glow cuando la guardia está activa
     val infiniteTransition = rememberInfiniteTransition(label = "doctorStatusRingPulse")
@@ -251,7 +261,7 @@ fun DoctorCockpitHeader(
             Spacer(modifier = Modifier.width(8.dp))
 
             // Pill Biocerámico de Matrícula Verificada
-            if (!licenseNumber.isNullOrBlank() && guardApproved == true) {
+            if (credentialLabel != null && guardApproved == true) {
                 Surface(
                     shape = RoundedCornerShape(10.dp),
                     color = Color(0xFFEBF1FF),
@@ -269,7 +279,7 @@ fun DoctorCockpitHeader(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "MN $licenseNumber",
+                            text = credentialLabel,
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
