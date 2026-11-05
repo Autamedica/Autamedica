@@ -27,6 +27,8 @@ data class DoctorOnDemandUiState(
     val error: String? = null,
     val doctorId: String = "",
     val isOnDuty: Boolean = false,
+    val guardApproved: Boolean? = null,
+    val guardVerificationStatus: String? = null,
     val dutyActiveTiers: List<String> = listOf("general"),
     val isDutyLoading: Boolean = false,
     val searchingRequests: List<PharmacyDispatchRequest> = emptyList(),
@@ -145,6 +147,27 @@ class DoctorOnDemandViewModel @Inject constructor(
         _uiState.update { it.copy(isDutyLoading = true) }
 
         viewModelScope.launch {
+            if (target) {
+                // Refresh at each activation: Admin may have revoked approval
+                // since this screen was opened.
+                val approval = pharmacyDispatchRepository.getMyGuardApproval().getOrNull()
+                if (approval?.approved != true) {
+                    stopHeartbeat()
+                    _uiState.update {
+                        it.copy(
+                            isOnDuty = false,
+                            guardApproved = false,
+                            guardVerificationStatus = approval?.verificationStatus ?: "pending",
+                            isDutyLoading = false,
+                            error = "La guardia no está habilitada. Tu matrícula requiere validación del administrador."
+                        )
+                    }
+                    return@launch
+                }
+                _uiState.update {
+                    it.copy(guardApproved = true, guardVerificationStatus = approval.verificationStatus)
+                }
+            }
             pharmacyDispatchRepository.setDoctorDutyStatus(
                 doctorId = doctorId,
                 isOnDuty = target,
@@ -242,17 +265,28 @@ class DoctorOnDemandViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(doctorId = profile.id, isLoading = false, error = null)
                 }
+                val approval = pharmacyDispatchRepository.getMyGuardApproval().getOrNull()
+                val isAuthorized = approval?.approved == true
+                _uiState.update {
+                    it.copy(
+                        guardApproved = isAuthorized,
+                        guardVerificationStatus = approval?.verificationStatus ?: "pending",
+                        error = if (!isAuthorized) {
+                            "La matrícula todavía no está validada para atender consultas. Contactá al administrador."
+                        } else null,
+                    )
+                }
                 pharmacyDispatchRepository.getDoctorDutyStatus(profile.id)
                     .onSuccess { duty ->
                         _uiState.update {
                             it.copy(
-                                isOnDuty = duty.isOnDuty,
+                                isOnDuty = duty.isOnDuty && isAuthorized,
                                 dutyActiveTiers = duty.activeTiers,
                                 activeRequestId = duty.currentActiveRequestId,
                                 isLoading = false,
                             )
                         }
-                        if (duty.isOnDuty) {
+                        if (duty.isOnDuty && isAuthorized) {
                             startHeartbeat(profile.id)
                         } else {
                             stopHeartbeat()
