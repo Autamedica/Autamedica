@@ -2,6 +2,10 @@ package com.autamedica.android.domain.model
 
 data class PharmacyDispatchRequest(
     val id: String,
+    // Present only on a physician-specific offer, not in the global waiting queue.
+    val offerId: String? = null,
+    val offerExpiresAt: String? = null,
+    val careCountry: String? = null,
     val patientDni: String,
     val patientPhone: String,
     val patientName: String? = null,
