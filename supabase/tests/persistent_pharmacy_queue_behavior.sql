@@ -50,8 +50,11 @@ BEGIN
   INSERT INTO auth.users(id,email)
     VALUES(v_doctor_user,'queue-ci-'||v_doctor_user||'@example.invalid');
   INSERT INTO public.doctors(
-      id,user_id,license_type,license_number,specialty,active,care_country)
-    VALUES(v_doctor,v_doctor_user,'MN','CI-TEST-123','Medicina General',true,'AR');
+      id,user_id,license_type,license_number,specialty,active)
+    VALUES(v_doctor,v_doctor_user,'MN','CI-TEST-123','Medicina General',true);
+  IF (SELECT care_country FROM public.doctors WHERE id=v_doctor) <> 'AR' THEN
+    RAISE EXCEPTION 'Generated doctor country mismatch';
+  END IF;
 
   INSERT INTO public.doctor_duty_status(
       doctor_id,is_on_duty,last_heartbeat_at,duty_started_at)
