@@ -204,6 +204,16 @@ fun DoctorOnDemandScreen(
                         }
                     }
 
+                    if (!uiState.activeRoomId.isNullOrBlank() && !uiState.activeRequestId.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = viewModel::retryAcceptedCall,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Reintentar ingreso a la videoconsulta")
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(20.dp))
 
                     Row(
