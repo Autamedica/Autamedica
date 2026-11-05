@@ -20,6 +20,13 @@ data class PharmacyDispatchRequest(
         get() = status == "in_call"
 }
 
+data class DoctorGuardApproval(
+    val approved: Boolean = false,
+    val code: String = "DOCTOR_PENDING_CLINICAL_APPROVAL",
+    val country: String? = null,
+    val verificationStatus: String = "pending",
+)
+
 data class DoctorDutyStatus(
     val doctorId: String,
     val isOnDuty: Boolean = false,
