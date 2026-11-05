@@ -806,6 +806,12 @@ export async function generatePrescriptionPdf(
   doc.setTextColor(148, 163, 184);
   if (isHomologationTest) {
     doc.text('SOLO TEST: sin firma, CUIR o QR; no válida para dispensación clínica.', marginLeft, footerY);
+    // ReNaPDiS recetario registration was notified by MSAL on 12/05/2026.
+    const testRenapdisLegajo =
+      getRuntimeEnvValue('RENAPDIS_RL_NUMBER') ??
+      getServerEnvOrDefault('RENAPDIS_RL_NUMBER', OFFICIAL_RENAPDIS_RL_NUMBER) ?? OFFICIAL_RENAPDIS_RL_NUMBER;
+    doc.text('Esta receta fue creada por un emisor inscripto y validado en el Registro de Recetarios Electrónicos', marginLeft, footerY + 6);
+    doc.text(`del Ministerio de Salud de la Nación - ${testRenapdisLegajo}.`, marginLeft, footerY + 10);
   } else {
   doc.text(
     `Esta prescripción tiene validez de documento público electrónico según Ley 27.553.`,
