@@ -85,7 +85,7 @@ BEGIN
     AND (
       dds.active_tiers IS NULL
       OR cardinality(dds.active_tiers) = 0
-      OR v_req.tier_requested::text = ANY(dds.active_tiers)
+      OR v_req.tier_requested = ANY(dds.active_tiers)
       OR 'general' = ANY(dds.active_tiers)
     )
     -- Do not send multiple simultaneous offers to the same professional.
