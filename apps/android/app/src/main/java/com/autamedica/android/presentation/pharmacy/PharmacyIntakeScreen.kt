@@ -504,7 +504,7 @@ private fun PharmacyIntakeFormView(
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onSubmit()
             },
-            enabled = !uiState.isSubmitting && uiState.isFormValid,
+            enabled = !uiState.isSubmitting && !uiState.isRestoringRequest && uiState.isFormValid,
             colors = ButtonDefaults.buttonColors(
                 containerColor = Primary,
                 disabledContainerColor = Primary.copy(alpha = 0.4f),
