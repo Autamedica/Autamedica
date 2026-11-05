@@ -36,6 +36,7 @@ const result = {
   generateClicked: false,
   continueClicked: false,
   postContinueControls: { emit: false, confirm: false },
+  afterContinueActions: {},
   postGenerateControls: { continue: false, emit: false, confirm: false },
   demoUiButtons: { generate: false, continue: false, emit: false },
   signatureVerified: false,
@@ -236,7 +237,7 @@ async function main() {
       }
     }
     if (result.continueClicked) {
-      await page.waitForTimeout(2000);
+      await page.waitForTimeout(7000);
       for (const frame of page.frames()) {
         for (const [name, regex] of [['emit', /gerar|emitir|finalizar|concluir/i],
                                      ['confirm', /confirmar|salvar|aceitar/i]]) {
@@ -246,6 +247,20 @@ async function main() {
             }
           } catch {}
         }
+      }
+    }
+    if (result.continueClicked) {
+      const actions = ['continuar','enviar','imprimir','gerar','assinar','baixar','voltar','fechar','revisar','confirmar','concluir','salvar','finalizar','compartilhar'];
+      for (const action of actions) {
+        let visible = false;
+        for (const frame of page.frames()) {
+          try {
+            if (await frame.getByRole('button', { name: new RegExp(action, 'i') }).first().isVisible({ timeout: 120 })) {
+              visible = true;
+            }
+          } catch {}
+        }
+        result.afterContinueActions[action] = visible;
       }
     }
     result.prescriptionIssued = Boolean(await page.evaluate(() => window.__memedDemo?.emissionEventReceived));
