@@ -299,7 +299,7 @@ async function main() {
             /phone|tel|cel/.test(identifier) ? 'phone' :
             /endere|address|cep|cnes|cidade|city|estado|uf/.test(identifier) ? 'address' :
             /aceit|termo|consent/.test(identifier) ? 'terms' : 'other';
-          fields.push({type, category, visible: await input.isVisible()});
+          fields.push({type, category, visible: await input.isVisible(), filled: Boolean((await input.inputValue().catch(() => '')).trim())});
         }
         return fields;
       } catch {return [];}
