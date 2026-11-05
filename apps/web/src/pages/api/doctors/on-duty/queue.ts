@@ -18,6 +18,13 @@ export const GET: APIRoute = async ({ request, locals }) => {
     }
     // Admin clients bypass RLS: never return the country-wide patient list.
     // A physician sees only currently assigned unexpired offers to THEM.
+    const { data: approved, error: approvalError } = await admin.rpc(
+      'admin_is_dispatch_doctor_approved',
+      { p_doctor_id: doctor.id },
+    )
+    if (approvalError) return internalError('No se pudo comprobar aprobación médica')
+    if (approved !== true) return forbidden('doctor_pending_clinical_approval')
+
     const { data: duty, error: dutyError } = await admin
       .from('doctor_duty_status')
       .select('is_on_duty,last_heartbeat_at')
