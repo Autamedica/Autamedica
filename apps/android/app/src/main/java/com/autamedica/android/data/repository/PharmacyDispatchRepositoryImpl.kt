@@ -253,16 +253,24 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         requestId: String,
         status: String,
     ): Result<Unit> = runCatching {
+        require(status == "in_call" || status == "completed") {
+            "Unsupported clinical dispatch transition"
+        }
         val updates = buildMap {
             put("status", status)
             if (status == "in_call") put("call_started_at", java.time.OffsetDateTime.now().toString())
             if (status == "completed") put("call_ended_at", java.time.OffsetDateTime.now().toString())
         }
-        supabaseClient.postgrest
+        val persisted = supabaseClient.postgrest
             .from("pharmacy_dispatch_requests")
             .update(updates) {
                 filter { eq("id", requestId) }
+                select(Columns.list("id", "status"))
             }
+            .decodeSingleOrNull<DispatchStatusConfirmationDto>()
+        check(persisted?.status == status) {
+            "Clinical video transition was not confirmed by the server"
+        }
         Unit
     }.onFailure {
         SecureLog.error("[PharmacyDispatch] Failed updating request status", it)
@@ -530,6 +538,12 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 }
 
 // ── DTOs ────────────────────────────────────────────────────
+
+@Serializable
+private data class DispatchStatusConfirmationDto(
+    val id: String,
+    val status: String,
+)
 
 @Serializable
 private data class PatientCancelRpcDto(val cancelled: Boolean)
