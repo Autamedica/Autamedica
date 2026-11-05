@@ -64,6 +64,7 @@ private class FakePharmacyDispatchRepository(
     var lastCreatedTier: String? = null
     var lastCreatedSummary: String? = null
     var lastCreatedCountry: String? = null
+    var lastReferralCode: String? = null
     val statusUpdates = mutableListOf<Pair<String, String>>()
     var cancelResult: Result<Boolean> = Result.success(true)
     val cancellationAttempts = mutableListOf<String>()
@@ -114,6 +115,7 @@ private class FakePharmacyDispatchRepository(
         symptomSummary: String?,
         patientCpf: String?,
         careCountry: String?,
+        referralCode: String?,
     ): Result<PharmacyDispatchRequest> {
         lastCreatedDni = patientDni
         lastCreatedPhone = patientPhone
@@ -121,6 +123,7 @@ private class FakePharmacyDispatchRepository(
         lastCreatedTier = tierRequested
         lastCreatedSummary = symptomSummary
         lastCreatedCountry = careCountry
+        lastReferralCode = referralCode
         createResult.getOrNull()?.let { requestFlow.value = it }
         return createResult
     }
@@ -214,6 +217,37 @@ class PharmacyIntakeViewModelTest {
         assertThat(state.patientPhone).isEmpty()
         assertThat(state.patientDni).isEmpty()
         assertThat(state.isLoadingProfile).isFalse()
+    }
+
+    @Test
+    fun `Jordan QR presets Brazil and forwards referral code to signed dispatch`() = runTest(testDispatcher) {
+        val vm = PharmacyIntakeViewModel(
+            savedStateHandle = SavedStateHandle(mapOf("referralCode" to "JORDAN")),
+            authRepository = authRepo,
+            profileRepository = profileRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
+        )
+        advanceUntilIdle()
+        assertThat(vm.uiState.value.careCountry).isEqualTo("BR")
+        vm.onCountrySelected("AR")
+        assertThat(vm.uiState.value.careCountry).isEqualTo("BR")
+        vm.onPatientNameChanged("Paciente brasileiro")
+        vm.onPatientPhoneChanged("+5551987654321")
+        vm.onPatientDniChanged("12345678909")
+        vm.onReasonTextChanged("Consulta geral")
+        pharmacyRepo.createResult = Result.success(
+            PharmacyDispatchRequest(
+                id = "guest-jordan-br", patientDni = "12345678909",
+                patientPhone = "+5551987654321", patientName = "Paciente brasileiro",
+                tierRequested = "general", status = "searching",
+                cloudflareRoomId = "cf-room-br", createdAt = "2026-11-05T18:00:00Z",
+                careCountry = "BR",
+            )
+        )
+        vm.submitRequest()
+        testScheduler.runCurrent()
+        assertThat(pharmacyRepo.lastCreatedCountry).isEqualTo("BR")
+        assertThat(pharmacyRepo.lastReferralCode).isEqualTo("JORDAN")
     }
 
     @Test
