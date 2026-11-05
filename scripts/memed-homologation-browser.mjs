@@ -143,7 +143,7 @@ async function main() {
     let demoItemAdded = false;
     try {
       await hub.command.send('plataforma.prescricao', 'setFeatureToggle', {
-        deletePatient: false, editPatient: false, editIdentification: false,
+        deletePatient: false, editPatient: false, editIdentification: true,
         forceSign: false, allowShareModal: false,
       });
       await hub.command.send('plataforma.prescricao', 'setWorkplace', {
