@@ -174,6 +174,17 @@ async function main() {
     } catch { /* widget may be loaded inside another iframe */ }
   }
 
+  result.uiSurfaces = await Promise.all(page.context().pages().map(async currentPage => ({
+    frameCount: currentPage.frames().length,
+    frameUi: await Promise.all(currentPage.frames().map(async frame => {
+      try {
+        const tags = await frame.locator('button, [role="button"]').count();
+        const inputs = await frame.locator('input').count();
+        const pageTitle = await frame.locator('h1,h2').count();
+        return { buttons: tags, inputs, headings: pageTitle, isMainFrame: frame === currentPage.mainFrame() };
+      } catch { return { buttons: -1, inputs: -1, headings: -1 }; }
+    })),
+  })));
   result.sandboxDemoPreflight = true;
   if (!actions.patientSet) throw new Error('memed_patient_set_rejected');
   if (!actions.moduleShown) throw new Error('memed_module_show_rejected');
