@@ -676,19 +676,20 @@ private fun DoctorDutyCard(
  */
 @Composable
 fun DispatchTelemetryTicker(
-    onlineDoctorCount: Int = 0,
+    onlineDoctorCount: Int? = null,
     modifier: Modifier = Modifier,
 ) {
     val telemetryMessages = remember(onlineDoctorCount) {
-        val doctorMessage = if (onlineDoctorCount > 0) {
-            "$onlineDoctorCount médico${if (onlineDoctorCount > 1) "s" else ""} en línea"
-        } else {
-            "Esperando profesional de guardia"
+        val doctorMessage = when {
+            onlineDoctorCount == null -> "Consultando disponibilidad médica"
+            onlineDoctorCount > 0 ->
+                "$onlineDoctorCount médico${if (onlineDoctorCount > 1) "s" else ""} disponible${if (onlineDoctorCount > 1) "s" else ""}"
+            else -> "Esperando profesional de guardia"
         }
-        val waitMessage = if (onlineDoctorCount > 0) {
-            "Tiempo de espera: ~2 min"
+        val waitMessage = if (onlineDoctorCount != null && onlineDoctorCount > 0) {
+            "Solicitud registrada; esperando aceptación médica"
         } else {
-            "En espera de conexión médica"
+            "En fila hasta que un médico esté disponible"
         }
         listOf(
             TelemetryItem(
