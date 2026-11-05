@@ -33,6 +33,7 @@ const result = {
   moduleShown: false,
   prescriptionIssued: false,
   demoItemAdded: false,
+  demoUiButtons: { generate: false, continue: false, emit: false },
   signatureVerified: false,
   errorCode: null,
 };
@@ -158,6 +159,21 @@ async function main() {
   result.patientSet = actions.patientSet;
   result.moduleShown = actions.moduleShown;
   result.demoItemAdded = Boolean(actions.demoItemAdded);
+  await page.waitForTimeout(1200);
+  for (const frame of page.frames()) {
+    try {
+      const checks = [
+        ['generate', /gerar prescri[cç][aã]o|gerar receita/i],
+        ['continue', /continuar|avan[cç]ar/i],
+        ['emit', /enviar e emitir|^emitir$|^concluir$/i],
+      ];
+      for (const [name, pattern] of checks) {
+        const button = frame.getByRole('button', { name: pattern }).first();
+        if (await button.isVisible({ timeout: 200 })) result.demoUiButtons[name] = true;
+      }
+    } catch { /* widget may be loaded inside another iframe */ }
+  }
+
   result.sandboxDemoPreflight = true;
   if (!actions.patientSet) throw new Error('memed_patient_set_rejected');
   if (!actions.moduleShown) throw new Error('memed_module_show_rejected');
