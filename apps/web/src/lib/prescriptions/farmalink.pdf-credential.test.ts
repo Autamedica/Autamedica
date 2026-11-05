@@ -68,4 +68,4 @@ describe('Farmalink PDF affiliate reconciliation', () => {
     expect(output.cuir).toContain('NO ASIGNADO - TEST');
     expect(output.qrContent).toBe('');
   });
-}
+});
