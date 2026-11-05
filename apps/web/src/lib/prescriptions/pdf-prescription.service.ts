@@ -609,7 +609,7 @@ export async function generatePrescriptionPdf(
 
   const barcodeOffset = template === 'female' ? 6 : 4;
   const submittedCuil = input.externalPrescription?.provider === 'farmalink'
-    ? input.patient.cuil?.replace(/\\D/g, '')
+    ? input.patient.cuil?.replace(/\D/g, '')
     : undefined;
   if (input.externalPrescription?.provider === 'farmalink' && submittedCuil?.length === 11) {
     // MSAL 12/05/2026: pharmacy PDF must contain both the Farmalink
