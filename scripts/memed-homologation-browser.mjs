@@ -154,7 +154,6 @@ async function main() {
       await hub.command.send('plataforma.prescricao', 'setPaciente', patient);
       patientSet = true;
       await hub.module.show('plataforma.prescricao');
-      await hub.command.send('plataforma.prescricao', 'newPrescription');
 
       try {
         await hub.command.send('plataforma.prescricao', 'addItem', {
