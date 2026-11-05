@@ -49,6 +49,8 @@ data class DoctorDashboardUiState(
     val patientNames: Map<String, String> = emptyMap(),
     val patientsMap: Map<String, PatientSummary> = emptyMap(),
     val pharmacyOnDutyState: DoctorOnDutyPharmacyState = DoctorOnDutyPharmacyState(),
+    val guardApproved: Boolean? = null,
+    val guardVerificationStatus: String? = null,
     val claimingPharmacyRequestId: String? = null,
     val claimErrorMessage: String? = null,
     val acceptedDispatchRequestId: String? = null,
@@ -316,6 +318,23 @@ class DoctorDashboardViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(pharmacyOnDutyState = it.pharmacyOnDutyState.copy(isLoading = true)) }
+            if (onDuty) {
+                val approval = pharmacyDispatchRepository.getMyGuardApproval().getOrNull()
+                if (approval?.approved != true) {
+                    stopHeartbeat()
+                    _isOnDuty.value = false
+                    _uiState.update { state ->
+                        state.copy(
+                            guardApproved = false,
+                            guardVerificationStatus = approval?.verificationStatus ?: "pending",
+                            pharmacyOnDutyState = state.pharmacyOnDutyState.copy(isOnDuty = false, isLoading = false),
+                            error = "La guardia necesita aprobación administrativa de la matrícula.",
+                        )
+                    }
+                    return@launch
+                }
+                _uiState.update { it.copy(guardApproved=true,guardVerificationStatus=approval.verificationStatus) }
+            }
             pharmacyDispatchRepository.setDoctorDutyStatus(
                 doctorId = doctorId,
                 isOnDuty = onDuty,
@@ -446,18 +465,26 @@ class DoctorDashboardViewModel @Inject constructor(
         if (doctorId.isBlank()) return
 
         viewModelScope.launch {
+            val approval = pharmacyDispatchRepository.getMyGuardApproval().getOrNull()
+            val authorized = approval?.approved == true
+            _uiState.update { state ->
+                state.copy(
+                    guardApproved = authorized,
+                    guardVerificationStatus = approval?.verificationStatus ?: "pending",
+                )
+            }
             pharmacyDispatchRepository.getDoctorDutyStatus(doctorId)
                 .onSuccess { duty ->
-                    _isOnDuty.value = duty.isOnDuty
+                    _isOnDuty.value = duty.isOnDuty && authorized
                     _uiState.update { state ->
                         state.copy(
                             pharmacyOnDutyState = state.pharmacyOnDutyState.copy(
-                                isOnDuty = duty.isOnDuty,
+                                isOnDuty = duty.isOnDuty && authorized,
                                 isLoading = false,
                             ),
                         )
                     }
-                    if (duty.isOnDuty) {
+                    if (duty.isOnDuty && authorized) {
                         startHeartbeat(doctorId)
                     } else {
                         stopHeartbeat()
