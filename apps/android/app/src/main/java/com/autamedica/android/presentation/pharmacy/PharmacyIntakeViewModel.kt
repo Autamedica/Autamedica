@@ -227,7 +227,8 @@ class PharmacyIntakeViewModel @Inject constructor(
     fun onCountrySelected(country: String) {
         require(country == "AR" || country == "BR")
         _uiState.update { state ->
-            val countryChanged = state.careCountry != country
+            // Initial selection is not a switch between clinical markets.
+            val countryChanged = state.careCountry != null && state.careCountry != country
             val reasonWasAutoFilled = state.selectedReasonChip != null &&
                 state.reasonText == state.selectedReasonChip
             state.copy(
