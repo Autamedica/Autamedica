@@ -36,6 +36,19 @@ INSERT INTO public.doctor_licenses(doctor_id,license_type,license_number,uf_braz
 INSERT INTO public.doctor_licenses(doctor_id,license_type,license_number,status)
  SELECT id,'MN','765432','active' FROM country_fixture WHERE kind='doctor_br';
 
+-- Only Admin-approved clinicians may appear in the guard radar. Positive
+-- synthetic fixtures must carry their country's own verified credentials.
+UPDATE public.profiles p SET sss_validation_status='valid'
+FROM country_fixture f WHERE p.user_id=f.uid AND f.kind='doctor_ar';
+
+INSERT INTO public.doctor_licenses(doctor_id,license_type,license_number,province,status)
+SELECT id,'MN','CI-'||id::text,'CABA','active'
+FROM country_fixture WHERE kind='doctor_ar';
+
+INSERT INTO public.doctor_licenses(doctor_id,license_type,license_number,uf_brazil,status,cfm_validation_status)
+SELECT id,'CRM','CI-'||id::text,'RS','active','valid'
+FROM country_fixture WHERE kind='doctor_br';
+
 -- Synthetic historical data only: verify country hardening preserves cleanup.
 ALTER TABLE public.doctor_patient DISABLE TRIGGER trg_country_pair;
 INSERT INTO public.doctor_patient(patient_id,doctor_id)
