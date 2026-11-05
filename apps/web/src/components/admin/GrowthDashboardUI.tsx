@@ -1111,10 +1111,6 @@ function percentage(value: number, total: number): number {
   return Math.min(100, Math.round((value / total) * 100));
 }
 
-function money(value: number): string {
-  return `$${Number(value || 0).toLocaleString("es-AR")}`;
-}
-
 function formatDateTime(value: string): string {
   return new Date(value).toLocaleString("es-AR", {
     day: "2-digit",
