@@ -30,6 +30,8 @@ data class PharmacyIntakeUiState(
     val isLoadingProfile: Boolean = true,
     val isSubmitting: Boolean = false,
     val error: String? = null,
+    // Normal queue outcomes are informational, not validation/network errors.
+    val statusNotice: String? = null,
     val activeRequestId: String? = null,
     val status: PharmacyConsultationStatus? = null,
     val queuePosition: Int = 0,
@@ -149,7 +151,7 @@ class PharmacyIntakeViewModel @Inject constructor(
     }
 
     fun onPatientNameChanged(name: String) {
-        _uiState.update { it.copy(patientName = name, error = null) }
+        _uiState.update { it.copy(patientName = name, error = null, statusNotice = null) }
     }
 
     fun onPatientPhoneChanged(phone: String) {
@@ -205,7 +207,7 @@ class PharmacyIntakeViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            _uiState.update { it.copy(isSubmitting = true, error = null, statusNotice = null) }
             pharmacyDispatchRepository.createPatientDispatchRequest(
                 patientDni = state.patientDni.trim(),
                 patientPhone = state.patientPhone.trim(),
@@ -270,8 +272,16 @@ class PharmacyIntakeViewModel @Inject constructor(
                     statusPollingJob?.cancel()
                     _uiState.update {
                         it.copy(
-                            error = "La solicitud fue cancelada o expiró. Podés iniciar una nueva.",
+                            // A completed/closed legacy request must not be mislabeled
+                            // as a failure due to unavailable physicians.
+                            error = null,
+                            statusNotice = when (request.status) {
+                                "expired" -> "Esta solicitud anterior finalizó. Podés iniciar una nueva consulta."
+                                else -> "La solicitud fue cancelada."
+                            },
                             activeRequestId = null,
+                            roomId = null,
+                            readyToJoinCall = false,
                         )
                     }
                 }
