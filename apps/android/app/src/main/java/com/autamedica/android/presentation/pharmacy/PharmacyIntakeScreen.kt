@@ -118,7 +118,8 @@ fun PharmacyIntakeScreen(
     var showCancelConfirmation by remember { mutableStateOf(false) }
 
     // Leaving a waiting room must never cancel a clinical request silently.
-    BackHandler(enabled = uiState.activeRequestId != null) {
+    BackHandler(enabled = uiState.activeRequestId != null &&
+        uiState.status == PharmacyConsultationStatus.PENDING) {
         showCancelConfirmation = true
     }
 
@@ -193,9 +194,12 @@ fun PharmacyIntakeScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        if (uiState.activeRequestId != null) {
+                        if (uiState.activeRequestId != null &&
+                            uiState.status == PharmacyConsultationStatus.PENDING) {
                             showCancelConfirmation = true
                         } else {
+                            // Assigned consultations stay in the server, even
+                            // if the patient navigates away from the radar.
                             onBack()
                         }
                     }) {
@@ -691,27 +695,10 @@ private fun PharmacyWaitingRoomView(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            OutlinedButton(
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onCancelRequest()
-                },
-                enabled = !uiState.isSubmitting,
-                shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, Primary.copy(alpha = 0.35f)),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = Primary,
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .sizeIn(minHeight = 46.dp),
-            ) {
-                Text(
-                    text = if (uiState.isSubmitting) "Cancelando..." else "Cancelar solicitud",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
+            // Once a physician accepted, this is not a queued request.
+            // Do not offer a misleading "Cancel request" action that the
+            // backend rightfully refuses after assignment.
+
         } else {
             // ── EFECTO UBER PARA TELEMEDICINA DE GUARDIA ──
             val onlineDoctorCount = uiState.onlineDoctorsInMarket
