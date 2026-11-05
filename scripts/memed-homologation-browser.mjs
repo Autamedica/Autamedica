@@ -41,6 +41,7 @@ const result = {
   postContinueControls: { emit: false, confirm: false },
   afterContinueActions: {},
   afterContinueForm: [],
+  formFieldTypes: [],
   postGenerateControls: { continue: false, emit: false, confirm: false },
   demoUiButtons: { generate: false, continue: false, emit: false },
   signatureVerified: false,
@@ -281,6 +282,24 @@ async function main() {
         } catch { return { inputs: -1 }; }
       }));
     }
+    result.formFieldTypes = await Promise.all(page.frames().map(async frame => {
+      try {
+        const inputs = await frame.locator('input').all();
+        const fields = [];
+        for (const input of inputs.slice(0, 20)) {
+          const type = await input.getAttribute('type') || 'text';
+          const identifier = (await input.getAttribute('name') || '').toLowerCase();
+          const category = /cpf|documento|passport/.test(identifier) ? 'document' :
+            /data|birth|nasc/.test(identifier) ? 'birth_date' :
+            /mail/.test(identifier) ? 'email' :
+            /phone|tel|cel/.test(identifier) ? 'phone' :
+            /endere|address|cep|cnes|cidade|city|estado|uf/.test(identifier) ? 'address' :
+            /aceit|termo|consent/.test(identifier) ? 'terms' : 'other';
+          fields.push({type, category, visible: await input.isVisible()});
+        }
+        return fields;
+      } catch {return [];}
+    }));
     result.prescriptionIssued = Boolean(await page.evaluate(() => window.__memedDemo?.emissionEventReceived));
   }
   result.sandboxDemoPreflight = true;
