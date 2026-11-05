@@ -286,15 +286,15 @@ class DoctorDashboardViewModel @Inject constructor(
     fun dismissDispatchAlert(requestId: String? = null) {
         val offer = _uiState.value.simulatedDispatchAlert
             ?.takeIf { requestId == null || it.id == requestId }
-        if (offer?.offerId.isNullOrBlank()) {
+        if (offer == null || offer.offerId.isNullOrBlank()) {
             _uiState.update { it.copy(claimErrorMessage = "Esta oferta ya no está disponible.") }
             return
         }
         viewModelScope.launch {
-            pharmacyDispatchRepository.declinePharmacyOffer(requireNotNull(offer?.offerId))
+            pharmacyDispatchRepository.declinePharmacyOffer(requireNotNull(offer.offerId))
                 .onSuccess { declined ->
                     if (declined) {
-                        _dismissedRequestIds.update { it + offer!!.id }
+                        _dismissedRequestIds.update { it + offer.id }
                         _uiState.update {
                             it.copy(simulatedDispatchAlert = null, activelyDispatchedPatientId = null,
                                 dismissedRequestIds = it.dismissedRequestIds + offer.id)
