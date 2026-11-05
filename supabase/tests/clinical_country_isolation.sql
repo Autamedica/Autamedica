@@ -49,6 +49,31 @@ INSERT INTO public.doctor_licenses(doctor_id,license_type,license_number,uf_braz
 SELECT id,'CRM','CI-'||id::text,'RS','active','valid'
 FROM country_fixture WHERE kind='doctor_br';
 
+-- An active AR doctor with a current licence but no Admin approval
+-- must not be listed to patients.
+DO $pending_directory$
+DECLARE
+  v_uid uuid := gen_random_uuid();
+  v_doc_id uuid;
+BEGIN
+  INSERT INTO auth.users(id,email)
+  VALUES(v_uid,'pending-country-ci-'||v_uid||'@example.invalid');
+  UPDATE public.profiles SET role='doctor',active=true,
+    sss_validation_status='pending_review' WHERE user_id=v_uid;
+  SELECT id INTO v_doc_id FROM public.doctors WHERE user_id=v_uid LIMIT 1;
+  IF v_doc_id IS NULL THEN
+    INSERT INTO public.doctors(user_id,license_type,license_number,specialty,active)
+    VALUES(v_uid,'MN','CI-PENDING-NO-ADMIN','Synthetic',true)
+    RETURNING id INTO v_doc_id;
+  ELSE
+    UPDATE public.doctors SET license_type='MN',license_number='CI-PENDING-NO-ADMIN',active=true
+    WHERE id=v_doc_id;
+  END IF;
+  INSERT INTO public.doctor_licenses(doctor_id,license_type,license_number,province,status)
+  VALUES(v_doc_id,'MN','CI-PENDING-NO-ADMIN','CABA','active');
+END;
+$pending_directory$;
+
 -- Synthetic historical data only: verify country hardening preserves cleanup.
 ALTER TABLE public.doctor_patient DISABLE TRIGGER trg_country_pair;
 INSERT INTO public.doctor_patient(patient_id,doctor_id)
@@ -104,6 +129,10 @@ BEGIN
       SELECT 1 FROM jsonb_array_elements(public.get_patient_doctor_directory()) d
       JOIN country_fixture f ON f.id::text=d->>'id' WHERE f.kind='doctor_'||market
     ) THEN RAISE EXCEPTION 'Matching doctor hidden for %',market; END IF;
+    IF market='ar' AND EXISTS(
+      SELECT 1 FROM jsonb_array_elements(public.get_patient_doctor_directory()) d
+      WHERE d->>'license_number'='CI-PENDING-NO-ADMIN'
+    ) THEN RAISE EXCEPTION 'Pending unapproved doctor exposed in AR directory'; END IF;
     IF EXISTS(SELECT 1 FROM jsonb_array_elements(public.get_patient_doctor_directory()) d
       WHERE d->>'care_country' IS DISTINCT FROM v_country
          OR (v_country='BR' AND d#>>'{profile,matricula_nacional}' IS NOT NULL)
