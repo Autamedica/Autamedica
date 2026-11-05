@@ -16,6 +16,7 @@ BEGIN
   JOIN public.doctor_duty_status s ON s.doctor_id=d.id
   WHERE d.care_country=p_care_country
     AND d.active IS TRUE
+    AND app_private.is_doctor_dispatch_approved(d.id)
     AND NULLIF(btrim(d.license_number),'') IS NOT NULL
     AND upper(btrim(d.license_number)) !~ '^PENDING'
     AND s.is_on_duty IS TRUE
