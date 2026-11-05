@@ -714,8 +714,12 @@ private fun PharmacyWaitingRoomView(
             }
         } else {
             // ── EFECTO UBER PARA TELEMEDICINA DE GUARDIA ──
-            val onlineDoctorCount = uiState.activeDoctors.count { it.isAvailable }
-            val hasOnlineDoctors = onlineDoctorCount > 0
+            val onlineDoctorCount = uiState.onlineDoctorsInMarket
+            val hasOnlineDoctors = if (onlineDoctorCount != null) {
+                onlineDoctorCount > 0
+            } else {
+                uiState.activeDoctors.any { it.isAvailable }
+            }
             val doctorAssigned = uiState.status == PharmacyConsultationStatus.ASSIGNED
 
             val marketName = when (uiState.careCountry) {
@@ -772,7 +776,10 @@ private fun PharmacyWaitingRoomView(
                         )
                         Column {
                             Text(
-                                text = "Esperando que se conecte un médico de $marketName.",
+                                text = if (onlineDoctorCount == null)
+                                    "Consultando disponibilidad médica en $marketName..."
+                                else
+                                    "Esperando que haya un médico disponible en $marketName.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = AuTextPrimary,
@@ -790,7 +797,7 @@ private fun PharmacyWaitingRoomView(
 
             if (hasOnlineDoctors && !doctorAssigned) {
                 Text(
-                    text = "$onlineDoctorCount profesional(es) conectado(s). Tu solicitud sigue en la fila hasta que alguien la acepte.",
+                    text = "${onlineDoctorCount ?: uiState.activeDoctors.count { it.isAvailable }} profesional(es) disponible(s) en $marketName. Tu solicitud sigue en la fila hasta que alguien la acepte.",
                     color = AuTextSecondary,
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center,
