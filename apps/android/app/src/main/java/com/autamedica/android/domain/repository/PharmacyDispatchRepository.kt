@@ -41,6 +41,10 @@ interface PharmacyDispatchRepository {
         doctorId: String,
     ): Result<DispatchClaimResult>
 
+    /** A physician explicitly refuses only their own unexpired offer. */
+    suspend fun declinePharmacyOffer(offerId: String): Result<Boolean> =
+        Result.failure(UnsupportedOperationException("Offer refusal not implemented"))
+
     /** Mark a request as in call / completed on the dispatch row. */
     suspend fun updateDispatchRequestStatus(requestId: String, status: String): Result<Unit>
 
