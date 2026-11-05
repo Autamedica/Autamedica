@@ -159,6 +159,7 @@ async function main() {
         city: 'Porto Alegre', state: 'RS', cnes: '0000000',
         local_name: 'AutaMedica HOMOLOGACAO - SEM VALIDADE',
         address: 'Endereco Ficticio de Teste',
+        phone: '0000000000',
       });
       await hub.command.send('plataforma.prescricao', 'setPaciente', patient);
       patientSet = true;
