@@ -99,10 +99,10 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const [patients, appointments, dispatches, appointmentPayments, dispatchPayments, prescriptions, certificates, commissions, partners] =
       await Promise.all([
         readAll<Patient>((a, b) => db.from('patients').select('id,care_country').order('id').range(a, b)),
-        readAll<Appointment>((a, b) => db.from('appointments').select('id,patient_id,status,created_at,deleted_at').gte('created_at', since).order('created_at').order('id').range(a, b)),
-        readAll<Dispatch>((a, b) => db.from('pharmacy_dispatch_requests').select('id,patient_id,care_country,status,created_at,call_started_at,referral_partner_id').gte('created_at', since).order('created_at').order('id').range(a, b)),
-        readAll<Pay>((a, b) => db.from('appointment_payments').select('id,appointment_id,patient_id,status,currency,gross_amount,created_at,paid_at').gte('created_at', since).order('created_at').order('id').range(a, b)),
-        readAll<Pay>((a, b) => db.from('pharmacy_dispatch_payments').select('id,dispatch_request_id,status,currency,amount_minor,created_at,paid_at').gte('created_at', since).order('created_at').order('id').range(a, b)),
+        readAll<Appointment>((a, b) => db.from('appointments').select('id,patient_id,status,created_at,deleted_at').order('created_at').order('id').range(a, b)),
+        readAll<Dispatch>((a, b) => db.from('pharmacy_dispatch_requests').select('id,patient_id,care_country,status,created_at,call_started_at,referral_partner_id').order('created_at').order('id').range(a, b)),
+        readAll<Pay>((a, b) => db.from('appointment_payments').select('id,appointment_id,patient_id,status,currency,gross_amount,created_at,paid_at').order('created_at').order('id').range(a, b)),
+        readAll<Pay>((a, b) => db.from('pharmacy_dispatch_payments').select('id,dispatch_request_id,status,currency,amount_minor,created_at,paid_at').order('created_at').order('id').range(a, b)),
         readAll<Prescription>((a, b) => db.from('prescriptions').select('id,appointment_id,country_code,status,created_at').gte('created_at', since).order('created_at').order('id').range(a, b)),
         readAll<Certificate>((a, b) => db.from('medical_certificates').select('id,appointment_id,country_code,status,created_at').gte('created_at', since).order('created_at').order('id').range(a, b)),
         readAll<Commission>((a, b) => db.from('commercial_referral_commissions').select('id,referral_partner_id,dispatch_request_id,status,amount_minor,currency,created_at').gte('created_at', since).order('created_at').order('id').range(a, b)),
@@ -122,12 +122,12 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const dispatchPaymentCountry = (row: Pay): Country =>
       countryOf(dispatchMap.get(row.dispatch_request_id ?? '')?.care_country);
 
-    const visibleAppointments = [...appointmentMap.values()].filter(a => appointmentCountry(a) === country);
-    const visibleDispatches = dispatches.filter(d => countryOf(d.care_country) === country);
+    const visibleAppointments = [...appointmentMap.values()].filter(a => a.created_at >= since && appointmentCountry(a) === country);
+    const visibleDispatches = dispatches.filter(d => d.created_at >= since && countryOf(d.care_country) === country);
     const visiblePrescriptions = prescriptions.filter(r => countryOf(r.country_code) === country);
     const visibleCertificates = certificates.filter(r => countryOf(r.country_code) === country);
-    const visibleAppointmentPays = appointmentPayments.filter(p => appointmentPaymentCountry(p) === country);
-    const visibleDispatchPays = dispatchPayments.filter(p => dispatchPaymentCountry(p) === country);
+    const visibleAppointmentPays = appointmentPayments.filter(p => (p.created_at >= since || (p.paid_at !== null && p.paid_at >= since)) && appointmentPaymentCountry(p) === country);
+    const visibleDispatchPays = dispatchPayments.filter(p => (p.created_at >= since || (p.paid_at !== null && p.paid_at >= since)) && dispatchPaymentCountry(p) === country);
 
     const waitMinutes = visibleDispatches.flatMap(d => {
       const start = ms(d.created_at);
@@ -165,9 +165,9 @@ export const GET: APIRoute = async ({ request, locals }) => {
       };
     });
 
-    const unknownCountryDispatches = dispatches.filter(d => countryOf(d.care_country) === 'UNKNOWN').length;
-    const unknownCountryAppointments = [...appointmentMap.values()].filter(a => appointmentCountry(a) === 'UNKNOWN').length;
-    const unknownCountryAppointmentPayments = appointmentPayments.filter(p => appointmentPaymentCountry(p) === 'UNKNOWN').length;
+    const unknownCountryDispatches = dispatches.filter(d => d.created_at >= since && countryOf(d.care_country) === 'UNKNOWN').length;
+    const unknownCountryAppointments = [...appointmentMap.values()].filter(a => a.created_at >= since && appointmentCountry(a) === 'UNKNOWN').length;
+    const unknownCountryAppointmentPayments = appointmentPayments.filter(p => (p.created_at >= since || (p.paid_at !== null && p.paid_at >= since)) && appointmentPaymentCountry(p) === 'UNKNOWN').length;
     const allPaid = [...visibleAppointmentPays, ...visibleDispatchPays];
 
     return new Response(JSON.stringify({
