@@ -25,7 +25,7 @@ const PATIENT = {
   data_nascimento: '15/05/1985',
   email: 'paciente-demo-autamedica@example.invalid',
   endereco: 'Rua de Teste, 123 - NAO EXISTE',
-  cidade: 'Cidade de Homologacao',
+  cidade: 'Porto Alegre',
 };
 const result = {
   environment: 'memed_homologation_only',
