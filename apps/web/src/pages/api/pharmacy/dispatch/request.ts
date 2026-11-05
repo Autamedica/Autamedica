@@ -4,6 +4,7 @@ import { createAstroAdminClient } from '@/lib/supabase'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { generateCloudflareRoomId, type DispatchTierCategory } from '@/lib/pharmacy/pharmacy-on-demand.service'
 import { signGuestToken } from '@/lib/calls/lib/guest-token'
+import { createGuestQueueRecoveryToken, hashGuestQueueRecoveryToken } from '@/lib/pharmacy/guest-queue-recovery'
 import { resolveGuestSecret } from '@/lib/runtime-env'
 import { logger } from '@autamedica/shared'
 
@@ -201,10 +202,35 @@ export const POST: APIRoute = async ({ request, locals }) => {
       secret,
     )
 
+    // A guest's queue must survive Android process death and the 2-hour
+    // clinical JWT expiry. Recovery secret is random, request-scoped and
+    // saved only as a digest on the server (never in logs or a URL).
+    let recoveryToken: string | null = null
+    if (!requestedByUserId) {
+      recoveryToken = createGuestQueueRecoveryToken()
+      const digest = await hashGuestQueueRecoveryToken(recoveryToken)
+      const { error: recoveryError } = await (supabase as unknown as SupabaseClient)
+        .from('pharmacy_guest_dispatch_sessions')
+        .insert({ request_id: data.id, token_sha256: digest })
+
+      if (recoveryError) {
+        logger.error('[api/pharmacy/dispatch/request] recovery_session_creation_failed', {
+          code: recoveryError.code ?? 'INTERNAL',
+        })
+        // Never strand an anonymous request without a way to recover it.
+        await supabase.from('pharmacy_dispatch_requests')
+          .update({ status: 'cancelled' })
+          .eq('id', data.id)
+          .eq('status', 'searching')
+        return serviceUnavailable('guest_queue_recovery_unavailable')
+      }
+    }
+
     return jsonOk({
       request: data,
       cloudflare_room_id: cloudflareRoomId,
       accessToken,
+      ...(recoveryToken ? { recoveryToken } : {}),
     })
   } catch {
     logger.error('[api/pharmacy/dispatch/request] unexpected_failure')
