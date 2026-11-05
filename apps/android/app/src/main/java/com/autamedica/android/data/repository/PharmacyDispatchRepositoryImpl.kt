@@ -165,6 +165,8 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     }
 
     override fun observeSearchingRequests(): kotlinx.coroutines.flow.StateFlow<List<PharmacyDispatchRequest>> {
+        // This stream is NOT a country-wide clinical waiting list. Only the
+        // server-authorized physician's offers are returned (least privilege).
         scope.launch { loadSearchingRequests() }
         scope.launch { subscribeToSearchingQueue() }
         return _searchingRequests.asStateFlow()
@@ -272,6 +274,25 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         Unit
     }.onFailure {
         SecureLog.error("[PharmacyDispatch] Failed finishing request", it)
+    }
+
+    override suspend fun getActivePatientDispatchRequest(): Result<PharmacyDispatchRequest?> = runCatching {
+        val currentUser = authRepository.getCurrentUser()
+            ?: return@runCatching null
+        supabaseClient.postgrest
+            .from("pharmacy_dispatch_requests")
+            .select(Columns.ALL) {
+                filter {
+                    eq("requested_by_user_id", currentUser.id)
+                    isIn("status", listOf("searching", "matched", "in_call"))
+                }
+                order("created_at", Order.DESCENDING)
+                limit(1)
+            }
+            .decodeSingleOrNull<DispatchRequestDto>()
+            ?.toDomain()
+    }.onFailure {
+        SecureLog.error("[PharmacyDispatch] Failed recovering patient's active waiting request", it)
     }
 
     override suspend fun createPatientDispatchRequest(
@@ -453,16 +474,16 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 
     private suspend fun loadSearchingRequests() {
         runCatching {
+            // Server resolves doctor from the verified JWT and restricts results
+            // to unexpired offers in the same clinical jurisdiction.
             val dtos = supabaseClient.postgrest
-                .from("pharmacy_dispatch_requests")
-                .select(Columns.ALL) {
-                    filter { eq("status", "searching") }
-                    order("created_at", Order.ASCENDING)
-                }
-                .decodeList<DispatchRequestDto>()
+                .rpc("get_my_pending_dispatch_offers")
+                .decodeAs<List<DispatchRequestDto>>()
             _searchingRequests.value = dtos.map { it.toDomain() }
         }.onFailure {
-            SecureLog.error("[PharmacyDispatch] Failed loading searching requests", it)
+            // Never keep another doctor's cached offers after auth changes.
+            _searchingRequests.value = emptyList()
+            SecureLog.error("[PharmacyDispatch] Failed loading own pending dispatch offers", it)
         }
     }
 
@@ -470,20 +491,30 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         if (searchingChannel != null) return
 
         runCatching {
-            val channel = supabaseClient.channel("pharmacy-dispatch-search-queue")
+            val channel = supabaseClient.channel("pharmacy-dispatch-doctor-offers")
             val changeFlow = channel.postgresChangeFlow<PostgresAction>(
                 schema = "public",
             ) {
-                table = "pharmacy_dispatch_requests"
+                table = "dispatch_offers"
             }
 
             channel.subscribe()
             searchingChannel = channel
 
-            changeFlow.collect {
-                Timber.d("[PharmacyDispatch] Realtime dispatch update: ${it::class.simpleName}")
+            val realtimeJob = scope.launch {
+                changeFlow.collect {
+                    Timber.d("[PharmacyDispatch] Own offer stream updated")
+                    loadSearchingRequests()
+                }
+            }
+
+            // Notifications may be delayed by a phone or websocket reconnect.
+            // A periodic authenticated fetch keeps the doctor UI synchronized.
+            while (scope.isActive) {
+                delay(3000L)
                 loadSearchingRequests()
             }
+            realtimeJob.cancel()
         }.onFailure {
             SecureLog.error("[PharmacyDispatch] Failed subscribing to searching queue", it)
         }
@@ -514,7 +545,8 @@ private data class DoctorDutyStatusDto(
 @Serializable
 private data class DispatchRequestDto(
     val id: String,
-    @SerialName("patient_dni") val patientDni: String,
+    @SerialName("patient_dni") val patientDni: String? = null,
+    @SerialName("patient_cpf") val patientCpf: String? = null,
     @SerialName("patient_phone") val patientPhone: String,
     @SerialName("patient_name") val patientName: String? = null,
     @SerialName("tier_requested") val tierRequested: String = "general",
@@ -523,10 +555,16 @@ private data class DispatchRequestDto(
     @SerialName("assigned_doctor_id") val assignedDoctorId: String? = null,
     @SerialName("cloudflare_room_id") val cloudflareRoomId: String,
     @SerialName("created_at") val createdAt: String,
+    @SerialName("care_country") val careCountry: String? = null,
+    @SerialName("offer_id") val offerId: String? = null,
+    @SerialName("offer_expires_at") val offerExpiresAt: String? = null,
 ) {
     fun toDomain() = PharmacyDispatchRequest(
         id = id,
-        patientDni = patientDni,
+        offerId = offerId,
+        offerExpiresAt = offerExpiresAt,
+        careCountry = careCountry,
+        patientDni = if (careCountry == "BR") patientCpf.orEmpty() else patientDni.orEmpty(),
         patientPhone = patientPhone,
         patientName = patientName,
         tierRequested = tierRequested,
