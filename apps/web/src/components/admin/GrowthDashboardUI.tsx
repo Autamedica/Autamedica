@@ -288,9 +288,7 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
   const attributionAppointments = attribution.filter(
     (item) => item.converted_to_appointment,
   ).length;
-  const attributionRevenue = attribution
-    .filter((item) => item.converted_to_revenue)
-    .reduce((total, item) => total + (Number(item.payment_amount) || 0), 0);
+  const attributionPaymentCount = attribution.filter((item) => item.converted_to_revenue).length;
 
   return (
     <div className="space-y-8 pb-12">
@@ -580,10 +578,10 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
               active={summary.conversions.lead_to_appointment > 0}
             />
             <PipelineStep
-              label="Pago"
-              value={money(summary.conversions.total_revenue)}
-              detail={`${money(attributionRevenue)} vista atribucion`}
-              active={summary.conversions.total_revenue > 0}
+              label="Leads con pago"
+              value={attributionPaymentCount}
+              detail="Vínculos reportados; importe pendiente de conciliación por moneda"
+              active={attributionPaymentCount > 0}
             />
           </div>
         </div>
