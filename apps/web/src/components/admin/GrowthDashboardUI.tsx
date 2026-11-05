@@ -274,11 +274,11 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
       detail: `último envío: ${lastNewsletterSent}`,
     },
     {
-      label: "CAC / ad spend",
+      label: "Gasto publicitario (sin CAC verificado)",
       status: hasAdSpend ? "ok" : "warning",
-      value: hasAdSpend ? money(cac?.total_spend ?? 0) : "sin costes registrados",
+      value: hasAdSpend ? `${cac?.spend_rows ?? 0} registros de gasto` : "sin costes registrados",
       detail: hasAdSpend
-        ? `${cac?.spend_rows ?? 0} registros cargados`
+        ? "Pendiente de conciliación por moneda y canal"
         : "growth_os.ad_spend vacío",
     },
   ];
@@ -288,9 +288,7 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
   const attributionAppointments = attribution.filter(
     (item) => item.converted_to_appointment,
   ).length;
-  const attributionRevenue = attribution
-    .filter((item) => item.converted_to_revenue)
-    .reduce((total, item) => total + (Number(item.payment_amount) || 0), 0);
+  const attributionPaymentCount = attribution.filter((item) => item.converted_to_revenue).length;
 
   return (
     <div className="space-y-8 pb-12">
@@ -409,7 +407,7 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
               <DollarSign className="h-5 w-5 text-slate-500" />
             </div>
             <div className="text-2xl font-bold text-white">
-              {money(cac.total_spend)}
+              {cac.spend_rows} registros
             </div>
             <div className="text-xs text-slate-500 mt-1">
               {cac.spend_rows > 0
@@ -420,31 +418,31 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
           <div className="bg-slate-900 p-6 rounded-xl border border-slate-800 shadow-lg">
             <div className="flex justify-between items-start mb-4">
               <span className="text-slate-400 text-sm font-medium uppercase tracking-wider">
-                Margen Operativo
+                Margen de contribución
               </span>
               <BarChart3 className="h-5 w-5 text-emerald-500" />
             </div>
             <div
-              className={`text-2xl font-bold ${cac.total_margin >= 0 ? "text-emerald-400" : "text-red-400"}`}
+              className="text-2xl font-bold text-slate-300"
             >
-              {money(cac.total_margin)}
+              No calculable
             </div>
             <div className="text-xs text-slate-500 mt-1">
-              Revenue - Inversión
+              Faltan honorarios, comisiones, pasarela y conciliación de monedas
             </div>
           </div>
           <div className="bg-slate-900 p-6 rounded-xl border border-slate-800 shadow-lg">
             <div className="flex justify-between items-start mb-4">
               <span className="text-slate-400 text-sm font-medium uppercase tracking-wider">
-                CAC Promedio
+                CAC por paciente pagador
               </span>
               <Target className="h-5 w-5 text-cyan-400" />
             </div>
             <div className="text-2xl font-bold text-white">
-              {money(cac.total_spend / (summary.total_leads || 1))}
+              No calculable
             </div>
             <div className="text-xs text-slate-500 mt-1">
-              Costo por lead adquirido
+              Los leads no equivalen a pacientes pagadores
             </div>
           </div>
         </div>
@@ -580,10 +578,10 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
               active={summary.conversions.lead_to_appointment > 0}
             />
             <PipelineStep
-              label="Pago"
-              value={money(summary.conversions.total_revenue)}
-              detail={`${money(attributionRevenue)} vista atribucion`}
-              active={summary.conversions.total_revenue > 0}
+              label="Leads con pago"
+              value={attributionPaymentCount}
+              detail="Vínculos reportados; importe pendiente de conciliación por moneda"
+              active={attributionPaymentCount > 0}
             />
           </div>
         </div>
@@ -642,7 +640,7 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-100">
             <h3 className="font-bold text-gray-900">
-              Atribución CAC y ROAS por Canal
+              Atribución de leads por canal (no CAC validado)
             </h3>
           </div>
           <div className="overflow-x-auto">
@@ -651,12 +649,12 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
                 <tr>
                   <th className="px-6 py-3">Canal</th>
                   <th className="px-6 py-3">Leads</th>
-                  <th className="px-6 py-3">Inversión</th>
-                  <th className="px-6 py-3">CAC (Lead)</th>
+                  <th className="px-6 py-3">Gasto no conciliado</th>
+                  <th className="px-6 py-3">CPL pendiente</th>
                   <th className="px-6 py-3">Turnos</th>
-                  <th className="px-6 py-3">Revenue</th>
-                  <th className="px-6 py-3">ROAS</th>
-                  <th className="px-6 py-3">Margen</th>
+                  <th className="px-6 py-3">Ingreso no conciliado</th>
+                  <th className="px-6 py-3">ROAS pendiente</th>
+                  <th className="px-6 py-3">Margen pendiente</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -672,26 +670,26 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
                       </td>
                       <td className="px-6 py-4">{s.leads}</td>
                       <td className="px-6 py-4 text-gray-500">
-                        {money(s.spend)}
+                        Sin conciliar
                       </td>
                       <td className="px-6 py-4 font-medium text-cyan-700">
-                        {money(s.cac)}
+                        No conciliado
                       </td>
                       <td className="px-6 py-4">{s.appointments}</td>
                       <td className="px-6 py-4 text-emerald-700 font-medium">
-                        {money(s.revenue)}
+                        Sin conciliar
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`px-2 py-1 rounded text-xs font-bold ${s.roas > 2 ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-600"}`}
+                          className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600"
                         >
-                          {s.roas.toFixed(2)}x
+                          No conciliado
                         </span>
                       </td>
                       <td
-                        className={`px-6 py-4 font-bold ${s.margin >= 0 ? "text-emerald-600" : "text-red-600"}`}
+                        className="px-6 py-4 text-gray-500"
                       >
-                        {money(s.margin)}
+                        No conciliado
                       </td>
                     </tr>
                   ))}
@@ -1111,10 +1109,6 @@ function countBy<T>(
 function percentage(value: number, total: number): number {
   if (!total) return 0;
   return Math.min(100, Math.round((value / total) * 100));
-}
-
-function money(value: number): string {
-  return `$${Number(value || 0).toLocaleString("es-AR")}`;
 }
 
 function formatDateTime(value: string): string {

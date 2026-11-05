@@ -16,7 +16,16 @@ if (!role) {
   return Astro.redirect('/admin/unauthorized');
 }
 
+const canViewExecutive = role === 'platform_admin' || role === 'admin';
 const modules = [
+  ...(canViewExecutive ? [{
+    href: '/admin/executive',
+    label: 'Dirección y rentabilidad',
+    eyebrow: 'Indicadores ejecutivos',
+    description: 'Consultas, cobros, documentos, tiempos de espera y referidos, con separación Argentina / Brasil y alertas de calidad.',
+    metric: 'KPI reales',
+    accent: 'border-blue-300',
+  }] : []),
   {
     href: '/admin/doctors',
     label: 'Médicos & Staff',
@@ -88,6 +97,9 @@ const modules = [
             <p class="text-sm text-slate-500">Rol activo: {role}</p>
           </div>
           <nav class="flex flex-wrap gap-2 text-sm">
+            {canViewExecutive && (
+              <a href="/admin/executive" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-blue-400 hover:text-blue-700">Dirección</a>
+            )}
             <a href="/admin/doctors" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-sky-400 hover:text-sky-700">Médicos</a>
             <a href="/admin/growth" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-slate-400 hover:text-slate-900">Growth</a>
             <a href="/admin/crm" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-emerald-400 hover:text-emerald-700">CRM</a>
