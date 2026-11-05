@@ -26,6 +26,10 @@ val AuAccentSoft = Color(0x1F0EA5E9)       // rgba(14, 165, 233, 0.12)
 
 // Portal-specific accent colors (matching web role themes)
 val PortalPatients = Color(0xFF0EA5E9)        // --portal-patients (sky-500)
+// Interactive accents provide >= 4.5:1 contrast for white button labels.
+val PortalPatientsAction = Color(0xFF0369A1)  // 5.93:1 white contrast
+val PortalDoctorsAction = Color(0xFF0E7490)   // 5.36:1 white contrast
+val PortalPharmacistsAction = Color(0xFF047857) // 5.48:1 white contrast
 val PortalPatientsSoft = Color(0x1F0EA5E9)    // rgba(14, 165, 233, 0.12)
 val PortalDoctors = Color(0xFF0891B2)         // --portal-doctors (cyan-600)
 val PortalDoctor = PortalDoctors

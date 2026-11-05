@@ -57,6 +57,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.R
+import com.autamedica.android.presentation.common.findHostActivity
 import com.autamedica.android.domain.model.ConnectionState
 import com.autamedica.android.navigation.VIDEO_PREVIEW_APPOINTMENT_ID
 import com.autamedica.android.presentation.videocall.components.CallActionsOverflowSheet
@@ -85,7 +86,7 @@ fun VideoCallScreen(
 ) {
     val isPreviewRoute = appointmentId == VIDEO_PREVIEW_APPOINTMENT_ID
     val context = LocalContext.current
-    val activity = context as? android.app.Activity
+    val activity = context.findHostActivity()
     val currentView = androidx.compose.ui.platform.LocalView.current
     DisposableEffect(Unit) {
         currentView.keepScreenOn = true
