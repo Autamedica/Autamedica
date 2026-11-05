@@ -226,10 +226,17 @@ class PharmacyIntakeViewModel @Inject constructor(
 
     fun onCountrySelected(country: String) {
         require(country == "AR" || country == "BR")
-        _uiState.update {
-            it.copy(
+        _uiState.update { state ->
+            val countryChanged = state.careCountry != country
+            val reasonWasAutoFilled = state.selectedReasonChip != null &&
+                state.reasonText == state.selectedReasonChip
+            state.copy(
                 careCountry = country,
-                patientDni = if (it.careCountry != null && it.careCountry != country) "" else it.patientDni,
+                // Do not reuse one patient's national identifier in another jurisdiction.
+                patientDni = if (countryChanged) "" else state.patientDni,
+                // A localized reason chip must never travel to the other country's intake.
+                selectedReasonChip = if (countryChanged) null else state.selectedReasonChip,
+                reasonText = if (countryChanged && reasonWasAutoFilled) "" else state.reasonText,
                 error = null,
                 onlineDoctorsInMarket = null,
             )
