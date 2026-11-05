@@ -5,8 +5,9 @@
  * sandbox test keys. Token and synthetic CPF are never logged/artifacted.
  */
 import { createServer } from 'node:http';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { chromium } from 'playwright';
+import { createHash } from 'node:crypto';
 
 const DOC = 'https://doc.memed.com.br/docs/primeiros-passos/';
 const API = 'https://integrations.api.memed.com.br/v1';
@@ -133,6 +134,38 @@ async function main() {
             result.providerPdfItemAttributeKeys = Object.keys(item?.attributes || {}).slice(0, 25);
             result.providerPdfItemLinkKeys = Object.keys(item?.links || {}).slice(0, 15);
             result.providerPdfLinksKeys = Object.keys(response?.links || {}).slice(0, 15);
+            result.providerReportedSigned = item?.attributes?.signed === true ||
+              item?.attributes?.signed === 1;
+            const link = item?.attributes?.link;
+            if (typeof link === 'string' && link.length > 0) {
+              const downloadUrl = new URL(link);
+              const hostname = downloadUrl.hostname.toLowerCase();
+              result.providerPdfLinkHost = hostname;
+              const allowed = downloadUrl.protocol === 'https:' &&
+                (hostname === 'memed.com.br' || hostname.endsWith('.memed.com.br') ||
+                 hostname.endsWith('.amazonaws.com') || hostname.endsWith('.cloudfront.net'));
+              if (allowed) {
+                const fileRes = await fetch(downloadUrl, {
+                  redirect: 'error', referrerPolicy: 'no-referrer',
+                  signal: AbortSignal.timeout(20000),
+                });
+                result.providerPdfDownloadStatus = fileRes.status;
+                if (fileRes.ok) {
+                  const fileBytes = Buffer.from(await fileRes.arrayBuffer());
+                  const validHeader = fileBytes.subarray(0, 5).toString('ascii') === '%PDF-';
+                  const validTrailer = fileBytes.subarray(-2048).toString('latin1').includes('%%EOF');
+                  result.providerPdfVerified = validHeader && validTrailer && fileBytes.length > 1000;
+                  if (result.providerPdfVerified) {
+                    mkdirSync('test-results', { recursive: true });
+                    writeFileSync('test-results/memed-sandbox-provider-demo.pdf', fileBytes);
+                    result.providerPdfBytes = fileBytes.length;
+                    result.providerPdfSha256 = createHash('sha256').update(fileBytes).digest('hex');
+                  }
+                }
+              } else {
+                result.providerPdfLinkHostAllowed = false;
+              }
+            }
           }
         }
       }
