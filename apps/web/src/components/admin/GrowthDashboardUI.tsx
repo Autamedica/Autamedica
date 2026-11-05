@@ -409,7 +409,7 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
               <DollarSign className="h-5 w-5 text-slate-500" />
             </div>
             <div className="text-2xl font-bold text-white">
-              {money(cac.total_spend)}
+              {cac.spend_rows} registros
             </div>
             <div className="text-xs text-slate-500 mt-1">
               {cac.spend_rows > 0
@@ -651,10 +651,10 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
                 <tr>
                   <th className="px-6 py-3">Canal</th>
                   <th className="px-6 py-3">Leads</th>
-                  <th className="px-6 py-3">Inversión</th>
+                  <th className="px-6 py-3">Gasto no conciliado</th>
                   <th className="px-6 py-3">CPL pendiente</th>
                   <th className="px-6 py-3">Turnos</th>
-                  <th className="px-6 py-3">Revenue</th>
+                  <th className="px-6 py-3">Ingreso no conciliado</th>
                   <th className="px-6 py-3">ROAS pendiente</th>
                   <th className="px-6 py-3">Margen pendiente</th>
                 </tr>
@@ -672,14 +672,14 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
                       </td>
                       <td className="px-6 py-4">{s.leads}</td>
                       <td className="px-6 py-4 text-gray-500">
-                        {money(s.spend)}
+                        Sin conciliar
                       </td>
                       <td className="px-6 py-4 font-medium text-cyan-700">
                         No conciliado
                       </td>
                       <td className="px-6 py-4">{s.appointments}</td>
                       <td className="px-6 py-4 text-emerald-700 font-medium">
-                        {money(s.revenue)}
+                        Sin conciliar
                       </td>
                       <td className="px-6 py-4">
                         <span
