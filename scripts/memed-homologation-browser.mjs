@@ -144,6 +144,7 @@ async function main() {
   }, PATIENT);
   result.patientSet = actions.patientSet;
   result.moduleShown = actions.moduleShown;
+  result.sandboxDemoPreflight = true;
   if (!actions.patientSet) throw new Error('memed_patient_set_rejected');
   if (!actions.moduleShown) throw new Error('memed_module_show_rejected');
   if (result.productionAccess) throw new Error('production_memed_call_blocked');
