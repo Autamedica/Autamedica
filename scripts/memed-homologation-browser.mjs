@@ -37,6 +37,7 @@ const result = {
   continueClicked: false,
   postContinueControls: { emit: false, confirm: false },
   afterContinueActions: {},
+  afterContinueForm: [],
   postGenerateControls: { continue: false, emit: false, confirm: false },
   demoUiButtons: { generate: false, continue: false, emit: false },
   signatureVerified: false,
@@ -262,6 +263,21 @@ async function main() {
         }
         result.afterContinueActions[action] = visible;
       }
+    }
+    if (result.continueClicked) {
+      result.afterContinueForm = await Promise.all(page.frames().map(async frame => {
+        try {
+          return {
+            inputs: await frame.locator('input').count(),
+            invalid: await frame.locator('input:invalid').count(),
+            ariaInvalid: await frame.locator('input[aria-invalid="true"]').count(),
+            required: await frame.locator('input[required]').count(),
+            emptyRequired: await frame.locator('input[required]:not([value])').count(),
+            uncheckedBoxes: await frame.locator('input[type="checkbox"]:not(:checked)').count(),
+            alerts: await frame.locator('[role="alert"]').count(),
+          };
+        } catch { return { inputs: -1 }; }
+      }));
     }
     result.prescriptionIssued = Boolean(await page.evaluate(() => window.__memedDemo?.emissionEventReceived));
   }
