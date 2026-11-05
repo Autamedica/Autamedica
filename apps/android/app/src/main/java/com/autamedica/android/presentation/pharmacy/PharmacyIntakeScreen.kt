@@ -105,7 +105,6 @@ import com.autamedica.android.presentation.theme.AuTextTertiary
 import com.autamedica.android.presentation.theme.PortalPharmacists
 import com.autamedica.android.presentation.theme.PortalPharmacistsSoft
 import com.autamedica.android.presentation.theme.SuccessContainer
-import com.autamedica.android.presentation.pharmacy.components.ActiveMedicalNetworkPanel
 import com.autamedica.android.presentation.pharmacy.components.DispatchTelemetryTicker
 import com.autamedica.android.presentation.pharmacy.components.LiveMedicalPresenceRadar
 
@@ -763,11 +762,8 @@ private fun PharmacyWaitingRoomView(
         } else {
             // ── EFECTO UBER PARA TELEMEDICINA DE GUARDIA ──
             val onlineDoctorCount = uiState.onlineDoctorsInMarket
-            val hasOnlineDoctors = if (onlineDoctorCount != null) {
-                onlineDoctorCount > 0
-            } else {
-                uiState.activeDoctors.any { it.isAvailable }
-            }
+            // Only the jurisdiction-filtered backend aggregate is authoritative.
+            val hasOnlineDoctors = onlineDoctorCount != null && onlineDoctorCount > 0
             val doctorAssigned = uiState.status == PharmacyConsultationStatus.ASSIGNED
 
             val marketName = when (uiState.careCountry) {
@@ -935,11 +931,7 @@ private fun PharmacyWaitingRoomView(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 4. Panel de Red Médica Conectada ('Médicos en Guardia Activos')
-            ActiveMedicalNetworkPanel(doctors = uiState.activeDoctors)
-
-            Spacer(modifier = Modifier.height(16.dp))
-
+            // Avoid showing a doctor roster that has not been verified for this country.
             // 5. Acción de Salir de la fila (Azul AutaMedica outline)
             if (!doctorAssigned) OutlinedButton(
                 onClick = onCancelRequest,
