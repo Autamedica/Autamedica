@@ -196,6 +196,7 @@ interface FarmalinkRegistration {
   vendorId: string;
   // Authoritative affiliation as submitted in the accepted altaReceta request.
   affiliateCredential: { codEntidad: number; pan: string; plan: string };
+  affiliateCuil: string;
   // The printed commercial suggestion must match the accepted Farmalink generic flag.
   genericMode: 'S' | 'N';
   result: FarmalinkAltaResult;
@@ -426,6 +427,12 @@ async function registerFarmalinkIfEnabled(input: {
   let request: FarmalinkAltaRecetaRequest;
   try {
     request = buildFarmalinkAltaRecetaRequest(buildFarmalinkPrescriptionMapInput(input));
+    // The MSAL requires the patient's CUIL, not the Farmalink PAN, in the second
+    // pharmacy-readable barcode. Reject before alta if we cannot render it.
+    const submittedCuil = String(request.altaRecetaElectRq.recElectronica.afiliado.cuil ?? '');
+    if (!/^\\d{11}$/.test(submittedCuil)) {
+      throw new FarmalinkMappingError('affiliate.cuil');
+    }
   } catch (error) {
     logger.error('[issuePrescription] Farmalink mapping failed', {
       field: error instanceof FarmalinkMappingError ? error.field : undefined,
@@ -487,6 +494,7 @@ async function registerFarmalinkIfEnabled(input: {
         vendorName: 'farmalink',
         vendorId: result.nroRecElectronica,
         affiliateCredential: request.altaRecetaElectRq.recElectronica.afiliado.credencial,
+        affiliateCuil: String(request.altaRecetaElectRq.recElectronica.afiliado.cuil),
         genericMode: request.altaRecetaElectRq.recElectronica.detalleRecElectronica.item[0]?.generico === 'N' ? 'N' : 'S',
         result,
         externalPrescription: {
@@ -751,7 +759,8 @@ export async function issuePrescription(
         patient: {
           name: patientName,
           dni: patient.dni ?? externalPatient?.dni ?? (patient as { ci?: string }).ci ?? (externalPatient as { ci?: string })?.ci ?? undefined,
-          cuil: patient.cuil ?? externalPatient?.cuil ?? undefined,
+          // Same CUIL submitted to the confirmed Farmalink alta, never an unchecked local override.
+          cuil: externalRegistration.affiliateCuil,
           dateOfBirth: patient.birth_date ?? externalPatient?.birth_date ?? undefined,
           sex: patient.gender ?? externalPatient?.gender ?? undefined,
           // Do not use patient CUIL or a local insurance plan as the Farmalink PAN.
