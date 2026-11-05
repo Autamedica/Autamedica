@@ -1,0 +1,43 @@
+name: Memed production credentials read-only verification
+on:
+  push:
+    branches: [test/memed-prod-credentials-readonly-20261105]
+    paths:
+      - '.github/workflows/memed-production-readonly-20261105.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check-key:
+    name: Check Memed production key acceptance (no patient or Rx)
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Verify Memed production credential pair read-only
+        env:
+          MEMED_API_KEY: ${{ secrets.MEMED_API_KEY }}
+          MEMED_SECRET_KEY: ${{ secrets.MEMED_SECRET_KEY }}
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const result = { environment: 'memed_production', checkKeyOnly: true, patientTouched: false, prescriptionTouched: false, credentialsPresent: Boolean(process.env.MEMED_API_KEY && process.env.MEMED_SECRET_KEY), providerStatus: null, accepted: false };
+          try {
+            if (!result.credentialsPresent) throw new Error('credentials_missing');
+            const url = new URL('https://api.memed.com.br/v1/sinapse-prescricao/check-key');
+            url.searchParams.set('api-key', process.env.MEMED_API_KEY);
+            url.searchParams.set('secret-key', process.env.MEMED_SECRET_KEY);
+            const res = await fetch(url, {
+              method: 'GET', redirect: 'error', referrerPolicy: 'no-referrer',
+              headers: { Accept: 'application/vnd.api+json', 'Cache-Control': 'no-cache' },
+              signal: AbortSignal.timeout(15000),
+            });
+            result.providerStatus = res.status;
+            const payload = await res.json().catch(() => ({}));
+            result.accepted = res.ok && Array.isArray(payload.success) &&
+              payload.success.some(item => item?.code === 'chave-valida');
+          } catch {
+            result.providerError = 'check_key_failed_or_unavailable';
+          }
+          console.log(JSON.stringify(result));
+          if (!result.accepted) process.exitCode = 1;
+          NODE
