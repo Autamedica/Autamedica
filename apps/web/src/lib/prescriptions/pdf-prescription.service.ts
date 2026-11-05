@@ -24,6 +24,9 @@ export interface PrescriptionPdfInput {
     dateOfBirth?: string;
     sex?: string;
     insurancePlan?: string;
+    // Must be sourced from the exact Farmalink altaReceta request, not inferred from CUIL.
+    affiliateCredential?: string;
+    insuranceEntityCode?: number;
     address?: string;
   };
   prescriber: {
@@ -304,6 +307,7 @@ export async function generatePrescriptionPdf(
       ...originalInput.patient,
       name: sanitizePdfText(originalInput.patient.name),
       insurancePlan: sanitizePdfText(originalInput.patient.insurancePlan),
+      affiliateCredential: sanitizePdfText(originalInput.patient.affiliateCredential),
       address: sanitizePdfText(originalInput.patient.address),
     },
     prescriber: {
@@ -444,7 +448,7 @@ export async function generatePrescriptionPdf(
   doc.setTextColor(30, 41, 59);
 
   // Patient info (Compliance Block)
-  const patientBlockHeight = input.patient.address || input.patient.insurancePlan ? 40 : 32;
+  const patientBlockHeight = input.patient.address || input.patient.insurancePlan || input.patient.affiliateCredential ? 40 : 32;
   doc.setFillColor(patientBgColor[0], patientBgColor[1], patientBgColor[2]); 
   doc.rect(marginLeft, y, contentWidth, patientBlockHeight, 'F');
 
@@ -486,7 +490,17 @@ export async function generatePrescriptionPdf(
     doc.text(`Domicilio: ${input.patient.address}`, marginLeft + textOffset, y + 26);
     extraLine += 6;
   }
-  if (input.patient.insurancePlan) {
+  if (input.patient.affiliateCredential) {
+    // Print the provider's actual affiliate PAN, never the patient's CUIL in its place.
+    const affiliation = [
+      input.patient.insuranceEntityCode ? `Entidad: ${input.patient.insuranceEntityCode}` : null,
+      `Nro. afiliado / Credencial: ${input.patient.affiliateCredential}`,
+      input.patient.insurancePlan ? `Plan: ${input.patient.insurancePlan}` : null,
+    ].filter(Boolean).join('  |  ');
+    doc.setFontSize(8);
+    doc.setTextColor(infoTextColor[0], infoTextColor[1], infoTextColor[2]);
+    doc.text(affiliation, marginLeft + textOffset, y + 26 + extraLine, { maxWidth: contentWidth - 8 });
+  } else if (input.patient.insurancePlan) {
     doc.setFontSize(8);
     doc.setTextColor(infoTextColor[0], infoTextColor[1], infoTextColor[2]);
     doc.text(`OOSS / Plan: ${input.patient.insurancePlan}`, marginLeft + textOffset, y + 26 + extraLine);
