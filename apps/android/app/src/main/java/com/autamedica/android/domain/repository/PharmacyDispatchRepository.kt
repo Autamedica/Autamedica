@@ -73,6 +73,7 @@ interface PharmacyDispatchRepository {
         symptomSummary: String?,
         patientCpf: String? = null,
         careCountry: String? = null,
+        referralCode: String? = null,
     ): Result<PharmacyDispatchRequest>
 
     /** Patient side: cancel a still-searching request only after server confirmation. */
