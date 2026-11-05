@@ -327,6 +327,23 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     }))
   })
 
+  it('rechaza QR Jordan para paciente de Argentina sin consultar socios ni crear solicitud', async () => {
+    const response = await POST(makeContext({
+      body: {
+        careCountry: 'AR',
+        patientDni: '38123456',
+        patientPhone: '+5491122334455',
+        patientName: 'Paciente sintético',
+        referralCode: 'JORDAN',
+      },
+    }))
+    expect(response.status).toBe(400)
+    const body = await response.json()
+    expect(body.error.message).toBe('jordan_referral_brazil_only')
+    expect(supabaseMock.from).not.toHaveBeenCalledWith('commercial_referral_partners')
+    expect(supabaseMock.from).not.toHaveBeenCalledWith('pharmacy_dispatch_requests')
+  })
+
   it('no acredita origen de Jordan si no existe código QR', async () => {
     const dispatchTable = buildTableChain({
       id: 'dispatch-no-ref-demo', cloudflare_room_id: 'cf-room-demo', status: 'searching',
