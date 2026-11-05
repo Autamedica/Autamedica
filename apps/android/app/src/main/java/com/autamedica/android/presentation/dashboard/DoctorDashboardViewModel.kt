@@ -51,6 +51,8 @@ data class DoctorDashboardUiState(
     val pharmacyOnDutyState: DoctorOnDutyPharmacyState = DoctorOnDutyPharmacyState(),
     val claimingPharmacyRequestId: String? = null,
     val claimErrorMessage: String? = null,
+    val acceptedDispatchRequestId: String? = null,
+    val acceptedDispatchRoomId: String? = null,
     val simulatedDispatchAlert: PharmacyDispatchRequest? = null,
     val activelyDispatchedPatientId: String? = null,
     val liveWaitingQueue: List<QueuedPatient> = emptyList(),
@@ -282,16 +284,29 @@ class DoctorDashboardViewModel @Inject constructor(
     }
 
     fun dismissDispatchAlert(requestId: String? = null) {
-        val targetId = requestId ?: _uiState.value.simulatedDispatchAlert?.id
-        if (targetId != null) {
-            _dismissedRequestIds.update { it + targetId }
+        val offer = _uiState.value.simulatedDispatchAlert
+            ?.takeIf { requestId == null || it.id == requestId }
+        if (offer?.offerId.isNullOrBlank()) {
+            _uiState.update { it.copy(claimErrorMessage = "Esta oferta ya no está disponible.") }
+            return
         }
-        _uiState.update { state ->
-            state.copy(
-                simulatedDispatchAlert = null,
-                activelyDispatchedPatientId = null,
-                dismissedRequestIds = if (targetId != null) state.dismissedRequestIds + targetId else state.dismissedRequestIds,
-            )
+        viewModelScope.launch {
+            pharmacyDispatchRepository.declinePharmacyOffer(requireNotNull(offer?.offerId))
+                .onSuccess { declined ->
+                    if (declined) {
+                        _dismissedRequestIds.update { it + offer!!.id }
+                        _uiState.update {
+                            it.copy(simulatedDispatchAlert = null, activelyDispatchedPatientId = null,
+                                dismissedRequestIds = it.dismissedRequestIds + offer.id)
+                        }
+                    } else {
+                        _uiState.update { it.copy(claimErrorMessage = "La oferta ya venció o fue asignada.") }
+                    }
+                }
+                .onFailure { error ->
+                    SecureLog.error("[DoctorDashboard] Offer refusal failed", error)
+                    _uiState.update { it.copy(claimErrorMessage = "No se pudo rechazar la oferta.") }
+                }
         }
     }
 
@@ -343,6 +358,12 @@ class DoctorDashboardViewModel @Inject constructor(
             return
         }
         if (_uiState.value.claimingPharmacyRequestId != null) return
+        val incoming = _uiState.value.simulatedDispatchAlert
+        if (!_uiState.value.pharmacyOnDutyState.isOnDuty
+            || incoming?.id != requestId || incoming.offerId.isNullOrBlank()) {
+            _uiState.update { it.copy(claimErrorMessage = "La oferta no está vigente. Revisá el radar.") }
+            return
+        }
 
         val traceId = "trace-" + java.util.UUID.randomUUID().toString().substring(0, 8)
         com.autamedica.android.telemetry.CallTelemetry.recordMilestone(traceId, "T0_TAP_INGRESAR")
@@ -364,14 +385,25 @@ class DoctorDashboardViewModel @Inject constructor(
                                 dismissedRequestIds = state.dismissedRequestIds + requestId,
                             )
                         }
-                        // Claim is authoritative; status write is best effort and must not
-                        // be presented as evidence of a second successful operation.
+                        _uiState.update {
+                            it.copy(acceptedDispatchRequestId = requestId, acceptedDispatchRoomId = roomId)
+                        }
+                        // Both phones must observe the same authoritative status
+                        // before opening the call. A failed update is not success.
                         pharmacyDispatchRepository.updateDispatchRequestStatus(requestId, "in_call")
-                            .onFailure { SecureLog.warn("[DoctorDashboard] Could not mark call in progress: ${it.message}") }
-                        com.autamedica.android.telemetry.CallTelemetry.recordMilestone(
-                            traceId, "T1_BACKEND_CLAIM", mapOf("success" to true)
-                        )
-                        onNavigateToVideoCall(roomId)
+                            .onSuccess {
+                                com.autamedica.android.telemetry.CallTelemetry.recordMilestone(
+                                    traceId, "T1_BACKEND_CLAIM", mapOf("success" to true)
+                                )
+                                _uiState.update { state -> state.copy(claimErrorMessage = null) }
+                                onNavigateToVideoCall(roomId)
+                            }
+                            .onFailure { error ->
+                                SecureLog.error("[DoctorDashboard] Cannot confirm in_call", error)
+                                _uiState.update {
+                                    it.copy(claimErrorMessage = "Consulta aceptada. Reintentá el ingreso a la videollamada.")
+                                }
+                            }
                     } else {
                         val reason = claim.message?.takeIf { it.isNotBlank() }
                             ?: "La consulta no está disponible o no tiene sala asignada."
@@ -387,6 +419,23 @@ class DoctorDashboardViewModel @Inject constructor(
                             claimingPharmacyRequestId = null,
                             claimErrorMessage = UiErrorMapper.map(error, "No se pudo aceptar la solicitud"),
                         )
+                    }
+                }
+        }
+    }
+
+    fun retryAcceptedVideo(onNavigateToVideoCall: (String) -> Unit) {
+        val requestId = _uiState.value.acceptedDispatchRequestId ?: return
+        val roomId = _uiState.value.acceptedDispatchRoomId ?: return
+        viewModelScope.launch {
+            pharmacyDispatchRepository.updateDispatchRequestStatus(requestId, "in_call")
+                .onSuccess {
+                    _uiState.update { it.copy(claimErrorMessage = null) }
+                    onNavigateToVideoCall(roomId)
+                }
+                .onFailure {
+                    _uiState.update { state ->
+                        state.copy(claimErrorMessage = "No se confirmó el ingreso. Volvé a intentarlo.")
                     }
                 }
         }
