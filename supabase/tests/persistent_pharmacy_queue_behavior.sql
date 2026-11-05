@@ -105,6 +105,24 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'Guest recovery credential was not revoked on cancellation';
   END IF;
+
+  -- A valid offer must be claimable by the eligible AR physician. The
+  -- patient stays waiting until this acceptance, then becomes 'matched'.
+  PERFORM set_config('request.jwt.claim.role','service_role',true);
+  SELECT public.claim_pharmacy_request_tier(v_doctor,v_ar) INTO v_result;
+  IF COALESCE(v_result->>'success','false') <> 'true'
+    OR (SELECT status::text FROM public.pharmacy_dispatch_requests WHERE id=v_ar) <> 'matched'
+    OR (SELECT assigned_doctor_id FROM public.pharmacy_dispatch_requests WHERE id=v_ar) <> v_doctor
+  THEN
+    RAISE EXCEPTION 'AR offer acceptance failed: %',v_result;
+  END IF;
+
+  UPDATE public.pharmacy_dispatch_requests SET status='in_call'
+  WHERE id=v_ar AND status='matched';
+
+  IF (SELECT status::text FROM public.pharmacy_dispatch_requests WHERE id=v_ar) <> 'in_call' THEN
+    RAISE EXCEPTION 'Accepted AR patient did not become video-joinable';
+  END IF;
 END;
 $test$;
 
