@@ -97,12 +97,39 @@ async function main() {
       const payload = await historyRes.json();
       const list = Array.isArray(payload?.data) ? payload.data : [];
       result.sandboxHistoryCount = list.length;
-      result.matchedOwnDemoCount = list.filter(entry => {
+      const ownedDemo = list.filter(entry => {
         const rx = entry?.attributes?.prescricao || entry?.attributes || {};
         const patient = rx?.paciente || entry?.attributes?.paciente || {};
         return patient.external_id === PATIENT.idExterno ||
           patient.externalId === PATIENT.idExterno;
-      }).length;
+      });
+      result.matchedOwnDemoCount = ownedDemo.length;
+      result.ownedDemoHasProviderId = ownedDemo.some(entry =>
+        /^[0-9]{1,20}$/.test(String(entry?.id ?? '')));
+      const ownedWithId = ownedDemo.find(entry =>
+        /^[0-9]{1,20}$/.test(String(entry?.id ?? '')));
+      if (ownedWithId) {
+        const pdfEndpoint = new URL(API + '/prescricoes/' + String(ownedWithId.id) + '/url-document/full');
+        pdfEndpoint.searchParams.set('token', token);
+        const pdfResponse = await fetch(pdfEndpoint, {
+          headers: { Accept: 'application/vnd.api+json' },
+          redirect: 'error', referrerPolicy: 'no-referrer',
+          signal: AbortSignal.timeout(15000),
+        });
+        result.providerPdfEndpointStatus = pdfResponse.status;
+        result.providerPdfContentType = (pdfResponse.headers.get('content-type') || '').split(';')[0];
+        if (pdfResponse.ok) {
+          const bytes = Buffer.from(await pdfResponse.arrayBuffer());
+          if (bytes.subarray(0, 5).toString('ascii') === '%PDF-') {
+            result.providerPdfIsBinary = true;
+            result.providerPdfLength = bytes.length;
+          } else {
+            const response = JSON.parse(bytes.toString('utf8'));
+            result.providerPdfResponseKeys = Object.keys(response || {}).slice(0, 12);
+            result.providerPdfDataKeys = Object.keys(response?.data || {}).slice(0, 12);
+          }
+        }
+      }
     }
   } catch {
     result.sandboxPrescriptionHistoryStatus = 'unavailable';
