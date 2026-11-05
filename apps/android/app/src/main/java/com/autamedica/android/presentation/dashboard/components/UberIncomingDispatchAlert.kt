@@ -564,7 +564,7 @@ fun UberIncomingDispatchAlert(
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 onDismiss()
                             },
-                            enabled = !isClaiming,
+                            enabled = !isClaiming && remainingSeconds > 0,
                             shape = RoundedCornerShape(16.dp),
                             border = BorderStroke(1.dp, CrimsonReject.copy(alpha = 0.6f)),
                             colors = ButtonDefaults.outlinedButtonColors(
@@ -588,7 +588,7 @@ fun UberIncomingDispatchAlert(
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                                 onAccept(request.id)
                             },
-                            enabled = !isClaiming,
+                            enabled = !isClaiming && remainingSeconds > 0,
                             shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = EmeraldAccept,
