@@ -151,6 +151,12 @@ fun PharmacyIntakeScreen(
     }
 
     // Recovered requests must reopen in their own market language, too.
+    LaunchedEffect(uiState.referralCode, uiState.careCountry) {
+        if (uiState.referralCode == "JORDAN" && uiState.careCountry == "BR") {
+            CareCountryLocale.applyCountry(context, "BR")
+        }
+    }
+
     LaunchedEffect(uiState.activeRequestId, uiState.careCountry) {
         if (uiState.activeRequestId != null && uiState.careCountry in setOf("AR", "BR")) {
             CareCountryLocale.applyCountry(context, requireNotNull(uiState.careCountry))
@@ -291,6 +297,7 @@ private fun PharmacyIntakeFormView(
         CareCountryPicker(
             selectedCountry = uiState.careCountry,
             onCountrySelected = onCountrySelected,
+            enabled = uiState.referralCode != "JORDAN",
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(22.dp))
