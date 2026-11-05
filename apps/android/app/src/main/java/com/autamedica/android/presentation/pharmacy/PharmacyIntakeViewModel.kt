@@ -42,6 +42,9 @@ data class PharmacyIntakeUiState(
     val roomId: String? = null,
     val readyToJoinCall: Boolean = false,
     val activeDoctors: List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo> = emptyList(),
+    // Privacy-safe backend capacity aggregate for the chosen care country.
+    // Null means unavailable/unknown, not zero.
+    val onlineDoctorsInMarket: Int? = null,
 ) {
     val effectiveReason: String
         get() = when {
@@ -79,6 +82,28 @@ class PharmacyIntakeViewModel @Inject constructor(
 
     private var statusPollingJob: Job? = null
     private var observeActiveDoctorsJob: Job? = null
+    private var marketCapacityJob: Job? = null
+
+    private fun refreshCountryDoctorCount(country: String?) {
+        if (country !in setOf("AR", "BR")) return
+        marketCapacityJob?.cancel()
+        marketCapacityJob = viewModelScope.launch {
+            pharmacyDispatchRepository.getCountryOnDutyCapacity(requireNotNull(country))
+                .onSuccess { count ->
+                    _uiState.update { state ->
+                        if (state.careCountry == country) {
+                            state.copy(onlineDoctorsInMarket = count.coerceAtLeast(0))
+                        } else state
+                    }
+                }
+                .onFailure {
+                    _uiState.update { state ->
+                        if (state.careCountry == country) state.copy(onlineDoctorsInMarket = null)
+                        else state
+                    }
+                }
+        }
+    }
 
     val reasonChips: List<String> = listOf(
         "Renovación de Receta",
@@ -173,6 +198,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                                     statusNotice = null,
                                 )
                             }
+                            refreshCountryDoctorCount(request.careCountry)
                             if (!request.doctorAttendedCall) {
                                 startStatusPolling(request.id)
                             }
@@ -205,8 +231,10 @@ class PharmacyIntakeViewModel @Inject constructor(
                 careCountry = country,
                 patientDni = if (it.careCountry != null && it.careCountry != country) "" else it.patientDni,
                 error = null,
+                onlineDoctorsInMarket = null,
             )
         }
+        refreshCountryDoctorCount(country)
     }
 
     fun onReasonChipSelected(chip: String) {
@@ -279,6 +307,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                 // La espera queda activa (radar) mientras el request está searching/matched.
                 // readyToJoinCall solo se enciende cuando el médico atiende (in_call) y la sala existe.
                 startStatusPolling(request.id)
+                refreshCountryDoctorCount(request.careCountry ?: state.careCountry)
             }.onFailure { err ->
                 SecureLog.error("[PharmacyIntakeVM] Failed creating request", err)
                 _uiState.update {
@@ -298,6 +327,9 @@ class PharmacyIntakeViewModel @Inject constructor(
                 val isJoinable = request.doctorAttendedCall
                 val isTerminalFailure = request.status == "cancelled" || request.status == "expired"
                 val hasRoom = request.cloudflareRoomId.isNotBlank()
+                if (request.status == "searching" || request.status == "matched") {
+                    refreshCountryDoctorCount(_uiState.value.careCountry)
+                }
 
                 _uiState.update { state ->
                     state.copy(
