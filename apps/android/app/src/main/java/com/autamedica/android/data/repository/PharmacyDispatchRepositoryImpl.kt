@@ -72,6 +72,9 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     // An opaque 256-bit RECOVERY secret (not the JWT) is Keystore-encrypted via
     // SecurePreferences. It restores the same guest request after process death.
     private val guestRecoveryKey = "pharmacy_guest_queue_recovery_v1"
+    // For referral guests created while signed in, bind local recovery to
+    // the same account. Never resurrect another person's queue after login.
+    private val guestRecoveryOwnerKey = "pharmacy_guest_queue_recovery_owner_v1"
 
     private fun savedGuestRecovery(): Pair<String, String>? {
         val saved = securePreferences?.getString(guestRecoveryKey) ?: return null
@@ -86,12 +89,16 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     private fun clearGuestRecovery(requestId: String) {
         if (savedGuestRecovery()?.first == requestId) {
             securePreferences?.remove(guestRecoveryKey)
+            securePreferences?.remove(guestRecoveryOwnerKey)
         }
         guestAccessTokens.remove(requestId)
     }
 
     private suspend fun resumeGuestRequestFromEncryptedDevice(requestId: String): PharmacyDispatchRequest? =
         withContext(ioDispatcher) {
+            val ownerId = securePreferences?.getString(guestRecoveryOwnerKey)
+            val activeUser = authRepository.getCurrentUser()?.id
+            if (ownerId != activeUser) return@withContext null
             val recovery = savedGuestRecovery()?.takeIf { it.first == requestId }
                 ?: return@withContext null
             val body = buildJsonObject {
@@ -135,7 +142,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     // Visible to the repository's MockWebServer tests; production defaults to WEB_API_URL.
     internal var guestApiOrigin = BuildConfig.WEB_API_URL.trimEnd('/')
 
-    private suspend fun createGuestRequestViaSignedApi(payload: kotlinx.serialization.json.JsonObject): PharmacyDispatchRequest =
+    private suspend fun createGuestRequestViaSignedApi(payload: kotlinx.serialization.json.JsonObject, ownerUserId: String? = null): PharmacyDispatchRequest =
         withContext(ioDispatcher) {
             val request = Request.Builder()
                 .url("$guestApiOrigin/api/pharmacy/dispatch/request")
@@ -160,6 +167,8 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 }
                 // The originating device alone retains this opaque credential.
                 securePreferences.putString(guestRecoveryKey, "${dto.id}:$recoveryToken")
+                if (ownerUserId != null) securePreferences.putString(guestRecoveryOwnerKey, ownerUserId)
+                else securePreferences.remove(guestRecoveryOwnerKey)
                 guestAccessTokens[dto.id] = token
                 dto.toDomain()
             }
@@ -303,7 +312,9 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
      */
     override suspend fun cancelPatientDispatchRequest(requestId: String): Result<Boolean> = runCatching {
         require(requestId.isNotBlank()) { "Missing request ID" }
-        val guestToken = guestAccessTokens[requestId]
+        val tokenOwner = securePreferences?.getString(guestRecoveryOwnerKey)
+        val activeUserId = authRepository.getCurrentUser()?.id
+        val guestToken = if (tokenOwner == activeUserId) guestAccessTokens[requestId] else null
         if (guestToken != null) {
             // The cancellation must work even after the clinical JWT's two-hour
             // lifetime. Renew from the encrypted scoped credential first.
@@ -402,6 +413,14 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 
     override suspend fun getActivePatientDispatchRequest(): Result<PharmacyDispatchRequest?> = runCatching {
         val currentUser = authRepository.getCurrentUser()
+        val recovery = savedGuestRecovery()
+        val recoveryOwner = securePreferences?.getString(guestRecoveryOwnerKey)
+        if (recovery != null && recoveryOwner == currentUser?.id) {
+            val restored = resumeGuestRequestFromEncryptedDevice(recovery.first)
+            if (restored != null && restored.status in setOf("searching", "matched", "in_call")) {
+                return@runCatching restored
+            }
+        }
         if (currentUser != null) {
             // Never reuse a previous guest's credential for a different
             // authenticated patient on a shared phone.
@@ -418,8 +437,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 .decodeSingleOrNull<DispatchRequestDto>()
                 ?.toDomain()
         }
-        val guestRequestId = savedGuestRecovery()?.first ?: return@runCatching null
-        resumeGuestRequestFromEncryptedDevice(guestRequestId)
+        null // Anonymous recovery was handled above, with an owner check.
     }.onFailure {
         SecureLog.error("[PharmacyDispatch] Failed recovering patient's active waiting request", it)
     }
@@ -432,6 +450,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         symptomSummary: String?,
         patientCpf: String?,
         careCountry: String?,
+        referralCode: String?,
     ): Result<PharmacyDispatchRequest> = runCatching {
         require(careCountry == "AR" || careCountry == "BR") {
             "Seleccioná Argentina o Brasil como país de atención"
@@ -443,7 +462,14 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             "Documento del paciente inválido para el país seleccionado"
         }
         val currentUser = authRepository.getCurrentUser()
-        if (currentUser == null) {
+        val commercialCode = referralCode?.trim()?.uppercase(java.util.Locale.ROOT)?.takeIf { it.isNotBlank() }
+        require(commercialCode == null || commercialCode.matches(Regex("^[A-Z0-9_-]{3,32}$"))) {
+            "Código de referencia inválido"
+        }
+        require(commercialCode != "JORDAN" || careCountry == "BR") {
+            "El código de Jordan solo corresponde a Brasil"
+        }
+        if (currentUser == null || commercialCode != null) {
             val guestPayload = buildJsonObject {
                 put("careCountry", careCountry)
                 if (careCountry == "BR") put("patientCpf", documentDigits)
@@ -452,10 +478,14 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 if (!patientName.isNullOrBlank()) put("patientName", patientName.trim())
                 put("tier", tierRequested.ifBlank { "general" })
                 if (!symptomSummary.isNullOrBlank()) put("symptomSummary", symptomSummary.trim())
+                if (commercialCode != null) put("referralCode", commercialCode)
             }
-            // Anonymous users have no direct SELECT/UPDATE on the clinical table.
+            // The signed server endpoint validates the commercial QR source.
+            // It also issues a room-scoped token and encrypted recovery material.
+            // Authenticated patients using a referral are handled as a locally
+            // account-bound guest until the backend supports authenticated QR binding.
             // The server creates the request and returns a scoped guest token.
-            return@runCatching createGuestRequestViaSignedApi(guestPayload)
+            return@runCatching createGuestRequestViaSignedApi(guestPayload, currentUser?.id)
         }
 
         // Room IDs are access-adjacent metadata, never embed DNI/CPF digits.
