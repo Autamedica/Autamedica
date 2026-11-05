@@ -102,12 +102,18 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
             if (requestRecord.assigned_doctor_id === doctorRow.id) {
               isAuthorized = true
             } else if (!requestRecord.assigned_doctor_id) {
-              const { data: dutyStatus } = await supabase
-                .from('doctor_duty_status')
-                .select('is_on_duty')
+              // Being on duty does not grant access to every patient's
+              // intake within the jurisdiction. Require a current offer to
+              // this exact doctor; RLS alone cannot protect admin queries.
+              const { data: activeOffer } = await supabase
+                .from('dispatch_offers')
+                .select('id')
                 .eq('doctor_id', doctorRow.id)
+                .eq('dispatch_request_id', requestRecord.id)
+                .eq('status', 'pending')
+                .gt('expires_at', new Date().toISOString())
                 .maybeSingle()
-              isAuthorized = dutyStatus?.is_on_duty === true
+              isAuthorized = Boolean(activeOffer?.id)
             }
           }
         }
