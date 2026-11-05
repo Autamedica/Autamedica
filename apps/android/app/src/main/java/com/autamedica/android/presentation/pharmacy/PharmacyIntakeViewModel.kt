@@ -19,6 +19,7 @@ import javax.inject.Inject
 
 data class PharmacyIntakeUiState(
     val pharmacyId: String = "",
+    val referralCode: String = "",
     val pharmacyName: String = "Farmacia de Turno",
     val patientName: String = "",
     val patientPhone: String = "",
@@ -74,9 +75,16 @@ class PharmacyIntakeViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val pharmacyIdParam: String = savedStateHandle["pharmacyId"] ?: ""
+    private val referralCodeParam: String = (savedStateHandle.get<String>("referralCode") ?: "")
+        .trim().uppercase(java.util.Locale.ROOT)
+        .takeIf { it.matches(Regex("^[A-Z0-9_-]{3,32}$")) } ?: ""
 
     private val _uiState = MutableStateFlow(
-        PharmacyIntakeUiState(pharmacyId = pharmacyIdParam)
+        PharmacyIntakeUiState(
+            pharmacyId = pharmacyIdParam,
+            referralCode = referralCodeParam,
+            careCountry = if (referralCodeParam == "JORDAN") "BR" else null,
+        )
     )
     val uiState: StateFlow<PharmacyIntakeUiState> = _uiState.asStateFlow()
 
@@ -226,6 +234,8 @@ class PharmacyIntakeViewModel @Inject constructor(
 
     fun onCountrySelected(country: String) {
         require(country == "AR" || country == "BR")
+        // Brazil-only QR partner may never be submitted as an Argentine intake.
+        if (_uiState.value.referralCode == "JORDAN" && country != "BR") return
         _uiState.update { state ->
             // Initial selection is not a switch between clinical markets.
             val countryChanged = state.careCountry != null && state.careCountry != country
@@ -296,6 +306,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                 symptomSummary = state.effectiveReason.trim(),
                 patientCpf = if (state.careCountry == "BR") state.patientDni.trim() else null,
                 careCountry = state.careCountry,
+                referralCode = state.referralCode.ifBlank { null },
             ).onSuccess { request ->
                 val hasRoom = request.cloudflareRoomId.isNotBlank()
                 _uiState.update {
