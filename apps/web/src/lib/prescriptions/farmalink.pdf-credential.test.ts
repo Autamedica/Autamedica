@@ -25,7 +25,7 @@ describe('Farmalink PDF affiliate reconciliation', () => {
       patient: {
         name: 'Demo Demo',
         dni: '12345678',
-        cuil: '27123456780',
+        cuil: '27-12345678-0',
         affiliateCredential: '20123456786',
         insuranceEntityCode: 7110,
         insurancePlan: '100',
