@@ -138,7 +138,7 @@ async function main() {
     try {
       await hub.command.send('plataforma.prescricao', 'setFeatureToggle', {
         deletePatient: false, editPatient: false, editIdentification: false,
-        forceSign: true, allowShareModal: false,
+        forceSign: false, allowShareModal: false,
       });
       await hub.command.send('plataforma.prescricao', 'setPaciente', patient);
       patientSet = true;
