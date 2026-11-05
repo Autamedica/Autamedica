@@ -430,7 +430,7 @@ async function registerFarmalinkIfEnabled(input: {
     // The MSAL requires the patient's CUIL, not the Farmalink PAN, in the second
     // pharmacy-readable barcode. Reject before alta if we cannot render it.
     const submittedCuil = String(request.altaRecetaElectRq.recElectronica.afiliado.cuil ?? '');
-    if (!/^\\d{11}$/.test(submittedCuil)) {
+    if (!/^\d{11}$/.test(submittedCuil)) {
       throw new FarmalinkMappingError('affiliate.cuil');
     }
   } catch (error) {
