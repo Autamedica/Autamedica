@@ -737,7 +737,12 @@ private fun PharmacyWaitingRoomView(
             Spacer(modifier = Modifier.height(14.dp))
 
             // 1. Live Medical Dispatch Radar (Radar de Guardia en Vivo con médicos reales)
-            LiveMedicalPresenceRadar(doctors = uiState.activeDoctors)
+            // Market aggregate is authoritative. Do not display doctor
+            // avatars obtained for a different authenticated jurisdiction.
+            LiveMedicalPresenceRadar(
+                doctors = emptyList(),
+                availableCount = uiState.onlineDoctorsInMarket,
+            )
 
             Spacer(modifier = Modifier.height(14.dp))
 
