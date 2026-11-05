@@ -106,10 +106,15 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 put("requestId", requestId)
                 put("recoveryToken", recovery.second)
             }
-            val request = Request.Builder()
+            val requestBuilder = Request.Builder()
                 .url("$guestApiOrigin/api/pharmacy/dispatch/resume")
                 .post(body.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
-                .build()
+            if (ownerId != null) {
+                val accessToken = supabaseClient.auth.currentSessionOrNull()?.accessToken
+                    ?: error("Authenticated recovery requires an active session")
+                requestBuilder.header("Authorization", "Bearer $accessToken")
+            }
+            val request = requestBuilder.build()
 
             guestClient.newCall(request).execute().use { response ->
                 if (response.code == 401) {
@@ -145,10 +150,15 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 
     private suspend fun createGuestRequestViaSignedApi(payload: kotlinx.serialization.json.JsonObject, ownerUserId: String? = null): PharmacyDispatchRequest =
         withContext(ioDispatcher) {
-            val request = Request.Builder()
+            val requestBuilder = Request.Builder()
                 .url("$guestApiOrigin/api/pharmacy/dispatch/request")
                 .post(payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
-                .build()
+            if (ownerUserId != null) {
+                val accessToken = supabaseClient.auth.currentSessionOrNull()?.accessToken
+                    ?: error("Authenticated referral requires an active session")
+                requestBuilder.header("Authorization", "Bearer $accessToken")
+            }
+            val request = requestBuilder.build()
 
             guestClient.newCall(request).execute().use { response ->
                 check(response.isSuccessful) { "Guest dispatch API rejected intake (HTTP ${response.code})" }
