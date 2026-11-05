@@ -270,6 +270,35 @@ class PharmacyIntakeViewModelTest {
     }
 
     @Test
+    fun `changing country clears foreign ID and auto-filled reason but preserves typed text`() = runTest(testDispatcher) {
+        val vm = PharmacyIntakeViewModel(
+            savedStateHandle = SavedStateHandle(),
+            authRepository = authRepo,
+            profileRepository = profileRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
+        )
+        advanceUntilIdle()
+
+        vm.onCountrySelected("AR")
+        vm.onPatientDniChanged("35123456")
+        vm.onReasonChipSelected("Renovación de Receta")
+        vm.onCountrySelected("BR")
+
+        assertThat(vm.uiState.value.careCountry).isEqualTo("BR")
+        assertThat(vm.uiState.value.patientDni).isEmpty()
+        assertThat(vm.uiState.value.selectedReasonChip).isNull()
+        assertThat(vm.uiState.value.reasonText).isEmpty()
+
+        vm.onPatientDniChanged("12345678909")
+        vm.onReasonTextChanged("Consulta particular")
+        vm.onCountrySelected("AR")
+
+        assertThat(vm.uiState.value.patientDni).isEmpty()
+        assertThat(vm.uiState.value.selectedReasonChip).isNull()
+        assertThat(vm.uiState.value.reasonText).isEqualTo("Consulta particular")
+    }
+
+    @Test
     fun `submitting without required fields sets validation error`() = runTest(testDispatcher) {
         val vm = PharmacyIntakeViewModel(
             savedStateHandle = SavedStateHandle(),
