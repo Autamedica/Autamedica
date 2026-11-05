@@ -79,7 +79,9 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
   // This endpoint uses service privileges after verifying the interactive admin session.
   // Never authorize it using query parameters, user_metadata, or a public API key.
-  if (!(await resolveAdminRole(locals.session, locals.supabase))) return fail(403, 'forbidden');
+  const adminRole = await resolveAdminRole(locals.session, locals.supabase);
+  // Organization admins are tenant-scoped and must not see platform-wide revenue.
+  if (adminRole !== 'platform_admin' && adminRole !== 'admin') return fail(403, 'forbidden');
 
   const url = new URL(request.url);
   const countryParam = url.searchParams.get('country') ?? 'BR';
