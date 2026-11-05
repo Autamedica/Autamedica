@@ -24,3 +24,11 @@ jobs:
         run: pnpm exec playwright install chromium --with-deps
       - name: Verify real Memed homologation SDK using synthetic doctor and patient
         run: node scripts/memed-homologation-browser.mjs
+      - name: Upload masked sandbox UI screenshot
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: memed-sandbox-ui-diagnostics
+          path: test-results/memed-demo-identificacao.png
+          retention-days: 1
+          if-no-files-found: ignore
