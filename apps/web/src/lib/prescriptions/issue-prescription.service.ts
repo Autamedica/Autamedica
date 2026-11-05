@@ -194,6 +194,8 @@ function canIssueWithPrescriberValidationStatus(status?: string | null): boolean
 interface FarmalinkRegistration {
   vendorName: 'farmalink';
   vendorId: string;
+  // Authoritative affiliation as submitted in the accepted altaReceta request.
+  affiliateCredential: { codEntidad: number; pan: string; plan: string };
   result: FarmalinkAltaResult;
   externalPrescription: Parameters<typeof generatePrescriptionPdf>[0]['externalPrescription'];
 }
@@ -476,6 +478,7 @@ async function registerFarmalinkIfEnabled(input: {
       registration: {
         vendorName: 'farmalink',
         vendorId: result.nroRecElectronica,
+        affiliateCredential: request.altaRecetaElectRq.recElectronica.afiliado.credencial,
         result,
         externalPrescription: {
           provider: 'farmalink',
@@ -742,7 +745,10 @@ export async function issuePrescription(
           cuil: patient.cuil ?? externalPatient?.cuil ?? undefined,
           dateOfBirth: patient.birth_date ?? externalPatient?.birth_date ?? undefined,
           sex: patient.gender ?? externalPatient?.gender ?? undefined,
-          insurancePlan: resolveInsurancePlan(patient.insurance_info),
+          // Do not use patient CUIL or a local insurance plan as the Farmalink PAN.
+          insurancePlan: externalRegistration?.affiliateCredential.plan ?? resolveInsurancePlan(patient.insurance_info),
+          affiliateCredential: externalRegistration?.affiliateCredential.pan,
+          insuranceEntityCode: externalRegistration?.affiliateCredential.codEntidad,
           address: patient.address ?? externalPatient?.address ?? undefined,
         },
         prescriber: {
