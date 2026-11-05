@@ -140,6 +140,11 @@ async function main() {
         deletePatient: false, editPatient: false, editIdentification: false,
         forceSign: false, allowShareModal: false,
       });
+      await hub.command.send('plataforma.prescricao', 'setWorkplace', {
+        city: 'Cidade Teste', state: 'RS', cnes: '0000000',
+        local_name: 'AutaMedica HOMOLOGACAO - SEM VALIDADE',
+        address: 'Endereco Ficticio de Teste',
+      });
       await hub.command.send('plataforma.prescricao', 'setPaciente', patient);
       patientSet = true;
       await hub.module.show('plataforma.prescricao');
