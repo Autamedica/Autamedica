@@ -72,4 +72,6 @@
     <string name="pharmacy_flow_error_cancel">Não foi possível cancelar a solicitação. Verifique sua conexão e tente novamente.</string>
     <string name="pharmacy_flow_notice_expired">A solicitação anterior terminou. Você pode iniciar uma nova consulta.</string>
     <string name="pharmacy_flow_notice_cancelled">A solicitação foi cancelada.</string>
+    <string name="pharmacy_flow_country_save_error">Não foi possível salvar o país. Tente novamente.</string>
+    <string name="pharmacy_flow_country_account_notice">Seu país fica salvo na sua conta.</string>
 </resources>
