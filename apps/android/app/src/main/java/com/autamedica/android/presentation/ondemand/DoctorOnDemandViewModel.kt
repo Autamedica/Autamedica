@@ -32,6 +32,7 @@ data class DoctorOnDemandUiState(
     val searchingRequests: List<PharmacyDispatchRequest> = emptyList(),
     val claimingId: String? = null,
     val activeRequestId: String? = null,
+    val activeRoomId: String? = null,
 )
 
 @HiltViewModel
@@ -166,7 +167,8 @@ class DoctorOnDemandViewModel @Inject constructor(
 
     fun accept(request: PharmacyDispatchRequest) {
         val doctorId = _uiState.value.doctorId
-        if (doctorId.isBlank() || _uiState.value.claimingId != null) return
+        if (doctorId.isBlank() || !_uiState.value.isOnDuty || request.offerId.isNullOrBlank()
+            || _uiState.value.claimingId != null) return
 
         _uiState.update { it.copy(claimingId = request.id) }
 
@@ -174,14 +176,26 @@ class DoctorOnDemandViewModel @Inject constructor(
             pharmacyDispatchRepository.claimPharmacyRequest(request.id, doctorId)
                 .onSuccess { claim ->
                     if (claim.success && !claim.cloudflareRoomId.isNullOrBlank()) {
-                        pharmacyDispatchRepository.updateDispatchRequestStatus(request.id, "in_call")
                         _uiState.update { state ->
                             state.copy(
                                 claimingId = null,
                                 activeRequestId = claim.requestId ?: request.id,
+                                activeRoomId = claim.cloudflareRoomId,
                             )
                         }
-                        _navigateToCall.value = claim
+                        // The patient only joins once the in_call state is
+                        // confirmed by the server. Preserve assigned room for
+                        // retry if a network failure occurs after claim.
+                        pharmacyDispatchRepository.updateDispatchRequestStatus(request.id, "in_call")
+                            .onSuccess {
+                                _navigateToCall.value = claim
+                            }
+                            .onFailure { error ->
+                                SecureLog.error("[DoctorOnDemand] Could not confirm video entry", error)
+                                _uiState.update {
+                                    it.copy(error = "Consulta aceptada. No pudimos confirmar la videollamada. Tocá Reintentar ingreso.")
+                                }
+                            }
                     } else {
                         _uiState.update {
                             it.copy(
@@ -208,7 +222,7 @@ class DoctorOnDemandViewModel @Inject constructor(
         viewModelScope.launch {
             pharmacyDispatchRepository.finishPharmacyRequest(doctorId, requestId)
                 .onSuccess {
-                    _uiState.update { it.copy(activeRequestId = null) }
+                    _uiState.update { it.copy(activeRequestId = null, activeRoomId = null) }
                 }
                 .onFailure { error ->
                     SecureLog.error("[DoctorOnDemand] Failed finishing request", error)
@@ -257,8 +271,50 @@ class DoctorOnDemandViewModel @Inject constructor(
             }
     }
 
+    /** The clinician's rejection must be recorded on the one-time offer. */
     fun dismiss(request: PharmacyDispatchRequest) {
-        _dismissedRequestIds.update { it + request.id }
+        val offerId = request.offerId
+        if (offerId.isNullOrBlank()) {
+            _uiState.update { it.copy(error = "Oferta sin identificador válido. Actualizá la lista.") }
+            return
+        }
+        viewModelScope.launch {
+            pharmacyDispatchRepository.declinePharmacyOffer(offerId)
+                .onSuccess { declined ->
+                    if (declined) {
+                        _dismissedRequestIds.update { it + request.id }
+                    } else {
+                        _uiState.update { it.copy(error = "Esta oferta ya no está disponible.") }
+                    }
+                }
+                .onFailure { error ->
+                    SecureLog.error("[DoctorOnDemand] Failed declining offer", error)
+                    _uiState.update { it.copy(error = "No se pudo rechazar la oferta. Intentá nuevamente.") }
+                }
+        }
+    }
+
+    fun retryAcceptedCall() {
+        val requestId = _uiState.value.activeRequestId ?: return
+        val roomId = _uiState.value.activeRoomId ?: return
+        if (_uiState.value.claimingId != null) return
+        viewModelScope.launch {
+            pharmacyDispatchRepository.updateDispatchRequestStatus(requestId, "in_call")
+                .onSuccess {
+                    _uiState.update { it.copy(error = null) }
+                    _navigateToCall.value = DispatchClaimResult(
+                        success = true,
+                        code = "CALL_RESUMED",
+                        requestId = requestId,
+                        cloudflareRoomId = roomId,
+                    )
+                }
+                .onFailure {
+                    _uiState.update { state ->
+                        state.copy(error = "La conexión aún no está confirmada. Podés volver a intentarlo.")
+                    }
+                }
+        }
     }
 
     private suspend fun observeSearchingQueue() {
