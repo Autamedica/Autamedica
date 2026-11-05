@@ -194,7 +194,7 @@ jobs:
           github.event_name == 'push' &&
           github.ref == 'refs/heads/main' &&
           needs.build-release-aab.outputs.version_code == '30' &&
-          github.event.head_commit.message == 'release(play): 1.2.20 internal rollout (one-shot)'
+          startsWith(github.event.head_commit.message, 'release(play): 1.2.20 internal rollout (one-shot)')
         )
       )
     steps:
