@@ -235,7 +235,12 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             put("p_is_on_duty", isOnDuty)
             put("p_active_tiers", JsonArray(activeTiers.map { JsonPrimitive(it) }))
         }
-        supabaseClient.postgrest.rpc("set_doctor_duty_status", params)
+        val confirmation = supabaseClient.postgrest
+            .rpc("set_doctor_duty_status", params)
+            .decodeAs<DoctorGuardDutyRpcDto>()
+        check(confirmation.success && confirmation.isOnDuty == isOnDuty) {
+            "Doctor guard state was not confirmed by the server"
+        }
         Unit
     }.onFailure {
         SecureLog.error("[PharmacyDispatch] Failed setting duty status", it)
@@ -250,7 +255,12 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         val params = buildJsonObject {
             put("p_doctor_id", doctorId)
         }
-        supabaseClient.postgrest.rpc("doctor_heartbeat", params)
+        val confirmation = supabaseClient.postgrest
+            .rpc("doctor_heartbeat", params)
+            .decodeAs<DoctorGuardHeartbeatRpcDto>()
+        check(confirmation.success) {
+            "Doctor heartbeat was not accepted by the server"
+        }
         Unit
     }.onFailure {
         SecureLog.error("[PharmacyDispatch] Failed sending doctor heartbeat", it)
@@ -666,6 +676,17 @@ private data class PatientCancelRpcDto(val cancelled: Boolean)
 @Serializable
 private data class DoctorDeclineRpcDto(val declined: Boolean)
 
+
+@Serializable
+private data class DoctorGuardDutyRpcDto(
+    val success: Boolean = false,
+    @SerialName("is_on_duty") val isOnDuty: Boolean = false,
+)
+
+@Serializable
+private data class DoctorGuardHeartbeatRpcDto(
+    val success: Boolean = false,
+)
 
 @Serializable
 private data class DoctorGuardApprovalDto(
