@@ -140,7 +140,7 @@ BEGIN
     'doctor_id',  v_doctor_id
   );
 END;
-$function$
+$function$;
 
 
 -- Heartbeat/guard activation is the missing event that retries queued patients.
