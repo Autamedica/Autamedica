@@ -42,6 +42,8 @@ const result = {
   afterContinueActions: {},
   afterContinueForm: [],
   formFieldTypes: [],
+  clinicianReady: { physicianIdentity: false, birthDate: false },
+  iframeRepoAvailable: [],
   postGenerateControls: { continue: false, emit: false, confirm: false },
   demoUiButtons: { generate: false, continue: false, emit: false },
   signatureVerified: false,
@@ -79,6 +81,8 @@ async function main() {
   }
   const token = attrs.token;
   result.prescriberAuthenticated = true;
+  result.clinicianReady.physicianIdentity = true;
+  result.clinicianReady.birthDate = Boolean(attrs.data_nascimento);
 
   server = createServer((_req, res) => {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -299,6 +303,15 @@ async function main() {
         }
         return fields;
       } catch {return [];}
+    }));
+    result.iframeRepoAvailable = await Promise.all(page.frames().map(async frame => {
+      try {
+        return await frame.evaluate(() => {
+          if (!window.locator?.get) return { repositoryReady: false };
+          const repository = window.locator.get('usuarioRepository');
+          return { repositoryReady: Boolean(repository?.getUser && repository?.getPaciente) };
+        });
+      } catch { return { repositoryReady: false }; }
     }));
     result.prescriptionIssued = Boolean(await page.evaluate(() => window.__memedDemo?.emissionEventReceived));
   }
