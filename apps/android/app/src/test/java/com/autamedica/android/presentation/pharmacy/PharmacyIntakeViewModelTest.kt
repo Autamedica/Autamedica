@@ -286,6 +286,24 @@ class PharmacyIntakeViewModelTest {
     }
 
     @Test
+    fun `choosing another clinical reason never sends the previous auto selected chip`() = runTest(testDispatcher) {
+        val vm = PharmacyIntakeViewModel(
+            savedStateHandle = SavedStateHandle(),
+            authRepository = authRepo,
+            profileRepository = profileRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
+        )
+        advanceUntilIdle()
+        vm.onReasonChipSelected("Renovación de Receta")
+        assertThat(vm.uiState.value.effectiveReason).isEqualTo("Renovación de Receta")
+        vm.onReasonChipSelected("Presión / Hipertensión")
+        assertThat(vm.uiState.value.reasonText).isEqualTo("Presión / Hipertensión")
+        assertThat(vm.uiState.value.effectiveReason).isEqualTo("Presión / Hipertensión")
+        vm.onReasonChipSelected("Presión / Hipertensión")
+        assertThat(vm.uiState.value.reasonText).isEmpty()
+    }
+
+    @Test
     fun `submitting valid form creates dispatch request and keeps radar alive while searching`() = runTest(testDispatcher) {
         authRepo.user = User(
             id = "user-abc",
