@@ -224,6 +224,25 @@ $get_approval$;
 REVOKE ALL ON FUNCTION public.get_my_guard_approval() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_my_guard_approval() TO authenticated, service_role;
 
+-- Privileged web gateways bypass RLS. They must consult the same single
+-- approval predicate as Android/Postgres rather than use doctors.active.
+CREATE OR REPLACE FUNCTION public.admin_is_dispatch_doctor_approved(p_doctor_id uuid)
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER
+SET search_path TO public, pg_temp
+AS $admin_approval$
+BEGIN
+  IF auth.role() IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'service_role_required' USING ERRCODE='42501';
+  END IF;
+  RETURN app_private.is_doctor_dispatch_approved(p_doctor_id);
+END;
+$admin_approval$;
+
+REVOKE ALL ON FUNCTION public.admin_is_dispatch_doctor_approved(uuid)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_is_dispatch_doctor_approved(uuid)
+  TO service_role;
+
 -- Disable stale waiting duty for unapproved accounts, without cancelling or
 -- altering an already-assigned consultation.
 UPDATE public.doctor_duty_status duty
