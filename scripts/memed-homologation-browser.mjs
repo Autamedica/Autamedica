@@ -108,7 +108,10 @@ async function main() {
         return;
       }
       window.MdSinapsePrescricao.event.add('core:moduleInit', module => {
-        if (module?.name === 'plataforma.prescricao') window.__memedDemo.ready = true;
+        if (module?.name === 'plataforma.prescricao') {
+          window.__memedDemo.ready = true;
+          window.MdHub?.event?.add('prescricaoImpressa', () => { window.__memedDemo.emissionEventReceived = true; });
+        }
       });
     };
     script.onerror = () => { window.__memedDemo.failed = true; };
