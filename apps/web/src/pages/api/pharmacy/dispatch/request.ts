@@ -78,7 +78,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const authorization = request.headers.get('authorization')?.trim() ?? ''
     let mobileUserId: string | null = null
     if (authorization) {
-      const match = /^Bearer\\s+([A-Za-z0-9._-]+)$/i.exec(authorization)
+      const match = /^Bearer\s+([A-Za-z0-9._-]+)$/i.exec(authorization)
       if (!match) return unauthorized('invalid_mobile_session')
       const { data: bearerIdentity, error: bearerError } = await supabase.auth.getUser(match[1])
       if (bearerError || !bearerIdentity.user) return unauthorized('invalid_mobile_session')
