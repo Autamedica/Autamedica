@@ -20,7 +20,7 @@ const DEMO = {
 const PATIENT = {
   idExterno: 'autamedica-homologacao-paciente-demo-20261103-01',
   nome: 'Paciente DEMO AutaMedica',
-  sexo: 'Feminino',
+  sexo: 'F',
   cpf: '39053344705',
   data_nascimento: '15/05/1985',
   email: 'paciente-demo-autamedica@example.invalid',
