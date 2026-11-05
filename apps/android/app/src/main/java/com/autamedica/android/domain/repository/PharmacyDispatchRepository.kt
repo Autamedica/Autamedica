@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 
 /**
  * On-Demand pharmacy dispatch ("Uber para médicos"): doctor duty status,
- * realtime searching queue and atomic claim via the `claim_pharmacy_request_tier` RPC.
+ * private offer stream and atomic claim via the `claim_pharmacy_request_tier` RPC.
  */
 interface PharmacyDispatchRepository {
 
@@ -25,7 +25,7 @@ interface PharmacyDispatchRepository {
     /** Send periodic heartbeat to refresh doctor presence while on duty via `public.doctor_heartbeat`. */
     suspend fun sendDoctorHeartbeat(doctorId: String): Result<Unit>
 
-    /** Reactive flow of dispatch requests still in `searching` status. */
+    /** Authenticated physician's pending valid offers (never the public clinical queue). */
     fun observeSearchingRequests(): StateFlow<List<PharmacyDispatchRequest>>
 
     /** Gen 2 incoming offers waiting for on-duty doctors. */
@@ -49,6 +49,10 @@ interface PharmacyDispatchRepository {
         doctorId: String,
         requestId: String,
     ): Result<Unit>
+
+    /** Recover the authenticated patient's latest live dispatch after process death.
+     * A guest request needs its short-lived signed access token instead. */
+    suspend fun getActivePatientDispatchRequest(): Result<PharmacyDispatchRequest?> = Result.success(null)
 
     /** Patient side: Create an on-demand intake request in `pharmacy_dispatch_requests`. */
     suspend fun createPatientDispatchRequest(
