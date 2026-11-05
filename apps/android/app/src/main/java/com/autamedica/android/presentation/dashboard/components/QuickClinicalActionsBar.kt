@@ -47,6 +47,7 @@ import com.autamedica.android.presentation.theme.AuCyan
 import com.autamedica.android.presentation.theme.AuEmerald
 import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.PortalDoctors
+import com.autamedica.android.presentation.theme.PortalDoctorsAction
 
 /**
  * Barra de Accesos Rápidos Clínicos (Quick Clinical Actions Bar).
@@ -80,7 +81,7 @@ fun QuickClinicalActionsBar(
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 1.sp,
             ),
-            color = PortalDoctors,
+            color = PortalDoctorsAction,
         )
 
         Row(
