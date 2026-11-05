@@ -82,6 +82,32 @@ async function main() {
   }
   const token = attrs.token;
   result.prescriberAuthenticated = true;
+  // Read-only: check whether Memed has already issued a prescription for this exact DEMO patient.
+  // Never print physician tokens, other patient data or the full provider response.
+  try {
+    const historyUrl = new URL(API + '/prescricoes');
+    historyUrl.searchParams.set('token', token);
+    const historyRes = await fetch(historyUrl, {
+      headers: { Accept: 'application/vnd.api+json' },
+      redirect: 'error', referrerPolicy: 'no-referrer',
+      signal: AbortSignal.timeout(15000),
+    });
+    result.sandboxPrescriptionHistoryStatus = historyRes.status;
+    if (historyRes.ok) {
+      const payload = await historyRes.json();
+      const list = Array.isArray(payload?.data) ? payload.data : [];
+      result.sandboxHistoryCount = list.length;
+      result.matchedOwnDemoCount = list.filter(entry => {
+        const rx = entry?.attributes?.prescricao || entry?.attributes || {};
+        const patient = rx?.paciente || entry?.attributes?.paciente || {};
+        return patient.external_id === PATIENT.idExterno ||
+          patient.externalId === PATIENT.idExterno;
+      }).length;
+    }
+  } catch {
+    result.sandboxPrescriptionHistoryStatus = 'unavailable';
+  }
+
   result.clinicianReady.physicianIdentity = true;
   result.clinicianReady.birthDate = Boolean(attrs.data_nascimento);
 
