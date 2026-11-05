@@ -36,4 +36,20 @@
     <string name="ui_video_camera_off">Cámara apagada</string>
     <string name="ui_video_connection_weak">Conexión débil: llamada en solo audio</string>
     <string name="ui_video_reactivate">Reactivar video</string>
+    <string name="ui_medical_radar_title">RADAR EN VIVO</string>
+    <string name="ui_medical_radar_scanning">Esperando solicitudes de farmacias</string>
+    <string name="ui_medical_radar_patient_waiting">%1$d pacientes en espera</string>
+    <string name="ui_medical_radar_queue_count">%1$d EN COLA</string>
+    <string name="ui_medical_radar_toggle">Expandir o contraer radar</string>
+    <string name="ui_medical_radar_empty_title">Radar activo · Sin solicitudes pendientes</string>
+    <string name="ui_medical_radar_empty_body">Las solicitudes de farmacia aparecerán aquí cuando estén disponibles.</string>
+    <string name="ui_medical_radar_wait_minutes">Espera: %1$d min</string>
+    <string name="ui_medical_radar_open_chart">Ver ficha</string>
+    <string name="ui_doctor_duty_connected">Guardia conectada · Radar activo</string>
+    <string name="ui_doctor_duty_disconnected">Guardia desconectada</string>
+    <string name="ui_doctor_approval_checking">Verificando habilitación médica</string>
+    <string name="ui_doctor_approval_pending">Habilitación médica pendiente</string>
+    <string name="ui_doctor_approval_checking_body">Estamos consultando el estado de aprobación del administrador.</string>
+    <string name="ui_doctor_approval_pending_body">Tu registro existe, pero todavía no estás autorizado para atender pacientes. Completá tu perfil y consultá al administrador.</string>
+    <string name="ui_doctor_approval_refresh">Actualizar habilitación</string>
 </resources>

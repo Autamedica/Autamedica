@@ -293,23 +293,23 @@ fun DoctorDashboardScreen(
                         ) {
                             Text(
                                 text = if (uiState.guardApproved == null)
-                                    "Comprobando habilitación clínica"
+                                    stringResource(R.string.ui_doctor_approval_checking)
                                 else
-                                    "Habilitación médica pendiente",
+                                    stringResource(R.string.ui_doctor_approval_pending),
                                 style = MaterialTheme.typography.titleLarge,
                                 color = AuTextPrimary,
                                 fontWeight = FontWeight.Bold,
                             )
                             Text(
                                 text = if (uiState.guardApproved == null)
-                                    "Estamos consultando el estado de aprobación del administrador."
+                                    stringResource(R.string.ui_doctor_approval_checking_body)
                                 else
-                                    "Tu cuenta está registrada, pero todavía no está autorizada para atender pacientes. Podés completar tu perfil y consultar al administrador.",
+                                    stringResource(R.string.ui_doctor_approval_pending_body),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Slate500,
                             )
                             Button(onClick = viewModel::refresh) {
-                                Text("Actualizar estado de habilitación")
+                                Text(stringResource(R.string.ui_doctor_approval_refresh))
                             }
                         }
                     }

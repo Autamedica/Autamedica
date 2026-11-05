@@ -59,6 +59,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.autamedica.android.domain.model.formatDoctorCredentialLabel
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
+import com.autamedica.android.presentation.theme.PortalDoctorsAction
 import com.autamedica.android.presentation.theme.AuBorder
 import com.autamedica.android.presentation.theme.AuCyan
 import com.autamedica.android.presentation.theme.AuCyanSoft
@@ -281,10 +284,10 @@ fun DoctorCockpitHeader(
                         Text(
                             text = credentialLabel,
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 11.sp,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                             ),
-                            color = PortalDoctors,
+                            color = PortalDoctorsAction,
                         )
                     }
                 }
@@ -453,8 +456,8 @@ fun DoctorCockpitHeader(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (isOnDuty) "Radar Activo • Heartbeat cada 30s • SLA de respuesta < 2 min"
-                            else "Telemetría en reposo • Desconectado de la red de farmacias",
+                            text = if (isOnDuty) stringResource(R.string.ui_doctor_duty_connected)
+                            else stringResource(R.string.ui_doctor_duty_disconnected),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = 11.sp,
                                 fontWeight = if (isOnDuty) FontWeight.SemiBold else FontWeight.Normal,

@@ -40,4 +40,20 @@
     <string name="notification_dispatch_title">%1$s aguarda no plantão</string>
     <string name="notification_dispatch_title_default">Há uma pessoa aguardando no plantão</string>
     <string name="notification_dispatch_text">Nova consulta sob demanda · responda em até 30 segundos</string>
+    <string name="ui_medical_radar_title">RADAR AO VIVO</string>
+    <string name="ui_medical_radar_scanning">Aguardando solicitações de farmácias</string>
+    <string name="ui_medical_radar_patient_waiting">%1$d pacientes aguardando</string>
+    <string name="ui_medical_radar_queue_count">%1$d NA FILA</string>
+    <string name="ui_medical_radar_toggle">Expandir ou recolher radar</string>
+    <string name="ui_medical_radar_empty_title">Radar ativo · Sem solicitações pendentes</string>
+    <string name="ui_medical_radar_empty_body">As solicitações das farmácias aparecerão aqui quando estiverem disponíveis.</string>
+    <string name="ui_medical_radar_wait_minutes">Espera: %1$d min</string>
+    <string name="ui_medical_radar_open_chart">Ver ficha</string>
+    <string name="ui_doctor_duty_connected">Plantão conectado · Radar ativo</string>
+    <string name="ui_doctor_duty_disconnected">Plantão desconectado</string>
+    <string name="ui_doctor_approval_checking">Verificando autorização médica</string>
+    <string name="ui_doctor_approval_pending">Autorização médica pendente</string>
+    <string name="ui_doctor_approval_checking_body">Estamos consultando a aprovação pelo administrador.</string>
+    <string name="ui_doctor_approval_pending_body">Seu cadastro existe, mas você ainda não está autorizado a atender pacientes. Complete seu perfil e consulte o administrador.</string>
+    <string name="ui_doctor_approval_refresh">Atualizar autorização</string>
 </resources>
