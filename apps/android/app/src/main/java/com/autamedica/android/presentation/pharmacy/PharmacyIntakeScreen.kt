@@ -77,6 +77,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import com.autamedica.android.R
+import com.autamedica.android.domain.model.PharmacyConsultationStatus
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.autamedica.android.presentation.theme.Primary
@@ -715,6 +716,7 @@ private fun PharmacyWaitingRoomView(
             // ── EFECTO UBER PARA TELEMEDICINA DE GUARDIA ──
             val onlineDoctorCount = uiState.activeDoctors.count { it.isAvailable }
             val hasOnlineDoctors = onlineDoctorCount > 0
+            val doctorAssigned = uiState.status == PharmacyConsultationStatus.ASSIGNED
 
             val marketName = when (uiState.careCountry) {
                 "AR" -> "Argentina"
@@ -723,7 +725,7 @@ private fun PharmacyWaitingRoomView(
             }
 
             Text(
-                text = "Estás en la fila de atención",
+                text = if (doctorAssigned) "Médico asignado" else "Estás en la fila de atención",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = AuTextPrimary,
@@ -732,7 +734,10 @@ private fun PharmacyWaitingRoomView(
 
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Solicitud activa · $marketName",
+                text = if (doctorAssigned)
+                    "El médico aceptó tu consulta. Estamos preparando la videollamada."
+                else
+                    "Solicitud activa · $marketName",
                 style = MaterialTheme.typography.bodyMedium,
                 color = AuTextSecondary,
                 textAlign = TextAlign.Center,
@@ -746,7 +751,7 @@ private fun PharmacyWaitingRoomView(
             Spacer(modifier = Modifier.height(14.dp))
 
             // Estado explícito si no hay médicos en línea (Cero Amarillo - Paleta Cyan / Slate)
-            if (!hasOnlineDoctors) {
+            if (!hasOnlineDoctors && !doctorAssigned) {
                 Surface(
                     shape = RoundedCornerShape(14.dp),
                     color = AuCyanSoft,
@@ -781,6 +786,15 @@ private fun PharmacyWaitingRoomView(
                         }
                     }
                 }
+            }
+
+            if (hasOnlineDoctors && !doctorAssigned) {
+                Text(
+                    text = "$onlineDoctorCount profesional(es) conectado(s). Tu solicitud sigue en la fila hasta que alguien la acepte.",
+                    color = AuTextSecondary,
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
+                )
             }
 
             // 2. Ticker de Telemetría Dinámica (Dispatch Status Ticker)
@@ -861,7 +875,7 @@ private fun PharmacyWaitingRoomView(
             Spacer(modifier = Modifier.height(16.dp))
 
             // 5. Acción de Salir de la fila (Azul AutaMedica outline)
-            OutlinedButton(
+            if (!doctorAssigned) OutlinedButton(
                 onClick = onCancelRequest,
                 enabled = !uiState.isSubmitting,
                 shape = RoundedCornerShape(12.dp),
