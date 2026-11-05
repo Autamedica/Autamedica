@@ -533,6 +533,54 @@ class PharmacyIntakeViewModelTest {
     }
 
     @Test
+    fun `no online doctors is a normal persistent waiting state and legacy expiration is informational`() = runTest(testDispatcher) {
+        val created = PharmacyDispatchRequest(
+            id = "req-persistent-ar-1",
+            patientDni = "28999888",
+            patientPhone = "+5491122334455",
+            patientName = "Paciente sintético AR",
+            tierRequested = "general",
+            symptomSummary = "Renovación de receta",
+            status = "searching",
+            cloudflareRoomId = "cf-room-persistent-ar",
+            createdAt = "2026-11-05T00:00:00Z",
+        )
+        pharmacyRepo.createResult = Result.success(created)
+        pharmacyRepo.activeDoctorsFlow.value = emptyList()
+        val vm = PharmacyIntakeViewModel(
+            savedStateHandle = SavedStateHandle(),
+            authRepository = authRepo,
+            profileRepository = profileRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
+        )
+        advanceUntilIdle()
+        vm.onPatientNameChanged("Paciente sintético AR")
+        vm.onPatientDniChanged("28999888")
+        vm.onPatientPhoneChanged("+5491122334455")
+        vm.onCountrySelected("AR")
+        vm.onReasonTextChanged("Renovación de receta")
+        vm.submitRequest()
+        testScheduler.runCurrent()
+        pharmacyRepo.requestFlow.value = created
+        testScheduler.runCurrent()
+
+        // Zero active physicians must not turn a valid queue into an error.
+        assertThat(vm.uiState.value.careCountry).isEqualTo("AR")
+        assertThat(vm.uiState.value.activeDoctors).isEmpty()
+        assertThat(vm.uiState.value.status).isEqualTo(PharmacyConsultationStatus.PENDING)
+        assertThat(vm.uiState.value.activeRequestId).isEqualTo(created.id)
+        assertThat(vm.uiState.value.error).isNull()
+        assertThat(vm.uiState.value.statusNotice).isNull()
+
+        // An actual legacy terminal status is shown as neutral information.
+        pharmacyRepo.requestFlow.value = created.copy(status = "expired")
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.activeRequestId).isNull()
+        assertThat(vm.uiState.value.error).isNull()
+        assertThat(vm.uiState.value.statusNotice).contains("finalizó")
+    }
+
+    @Test
     fun `observeActiveOnDutyDoctors updates activeDoctors dynamically on connection and disconnection`() = runTest(testDispatcher) {
         val doctor1 = com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo(
             id = "doc-1",
