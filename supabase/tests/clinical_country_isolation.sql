@@ -198,7 +198,8 @@ BEGIN
     END LOOP;
   END LOOP;
 END $service_checks$;
--- With only AR doctors live, a BR request must expire without an AR offer or push.
+-- With only AR doctors live, a BR request must remain queued without
+-- an AR offer or cross-border notification. No-doctor is not an error.
 UPDATE public.doctor_duty_status SET is_on_duty=false,last_heartbeat_at=now()-interval '1 day'
  WHERE doctor_id IN (SELECT id FROM public.doctors WHERE care_country='BR');
 DO $no_candidate$
@@ -211,9 +212,9 @@ BEGIN
   RETURNING id INTO v_request;
   -- Gen2 may invoke matching explicitly rather than through the legacy trigger.
   SELECT public.match_dispatch_doctors(v_request) INTO v_result;
-  IF NOT EXISTS(SELECT 1 FROM public.pharmacy_dispatch_requests WHERE id=v_request AND status='expired')
+  IF NOT EXISTS(SELECT 1 FROM public.pharmacy_dispatch_requests WHERE id=v_request AND status='searching' AND search_timeout_at IS NULL)
      OR EXISTS(SELECT 1 FROM public.dispatch_offers WHERE dispatch_request_id=v_request) THEN
-    RAISE EXCEPTION 'BR dispatch country/terminal-state failure: result %, status %, offers %',
+    RAISE EXCEPTION 'BR dispatch country/persistent-queue failure: result %, status %, offers %',
       v_result,(SELECT status FROM public.pharmacy_dispatch_requests WHERE id=v_request),
       (SELECT count(*) FROM public.dispatch_offers WHERE dispatch_request_id=v_request);
   END IF;
