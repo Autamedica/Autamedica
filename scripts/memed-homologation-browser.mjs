@@ -299,7 +299,11 @@ async function main() {
             /phone|tel|cel/.test(identifier) ? 'phone' :
             /endere|address|cep|cnes|cidade|city|estado|uf/.test(identifier) ? 'address' :
             /aceit|termo|consent/.test(identifier) ? 'terms' : 'other';
-          fields.push({type, category, visible: await input.isVisible(), filled: Boolean((await input.inputValue().catch(() => '')).trim())});
+          const rawName = await input.getAttribute('name') || await input.getAttribute('aria-label') || await input.getAttribute('placeholder') || '';
+          const fieldName = /^[a-zA-ZÀ-ÿ0-9_\- ]{1,60}$/.test(rawName) ? rawName.toLowerCase() : 'unknown';
+          fields.push({fieldName, type, category, visible: await input.isVisible(),
+            filled: Boolean((await input.inputValue().catch(() => '')).trim()),
+            checked: type === 'checkbox' ? await input.isChecked() : null});
         }
         return fields;
       } catch {return [];}
