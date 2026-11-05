@@ -1,5 +1,6 @@
 package com.autamedica.android
 
+import android.content.Context
 import android.app.PictureInPictureParams
 import android.content.Intent
 import android.content.pm.ActivityInfo
@@ -22,6 +23,7 @@ import com.autamedica.android.navigation.AppNavHost
 import com.autamedica.android.navigation.NotificationRouteResolver
 import com.autamedica.android.navigation.Route
 import com.autamedica.android.presentation.theme.AutamedicaTheme
+import com.autamedica.android.util.CareCountryLocale
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -38,6 +40,10 @@ class MainActivity : ComponentActivity() {
         private set
     private var incomingIntent by mutableStateOf<Intent?>(null)
     private var pendingPostLoginRoute by mutableStateOf<Route?>(null)
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(CareCountryLocale.wrap(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
