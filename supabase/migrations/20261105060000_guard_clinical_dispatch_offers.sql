@@ -118,6 +118,7 @@ BEGIN
         WHERE d.id = v_resolved_doc_id
           AND d.active IS TRUE
           AND d.care_country = v_req.care_country
+          AND app_private.is_doctor_dispatch_approved(d.id)
           AND NULLIF(btrim(d.license_number), '') IS NOT NULL
           AND upper(btrim(d.license_number)) !~ '^PENDING'
     ) THEN
@@ -275,6 +276,7 @@ BEGIN
     SELECT 1 FROM public.doctors d
     WHERE d.id = v_resolved_doc_id
       AND d.active IS TRUE
+      AND app_private.is_doctor_dispatch_approved(d.id)
       AND NULLIF(btrim(d.license_number), '') IS NOT NULL
       AND upper(btrim(d.license_number)) !~ '^PENDING'
   ) THEN
@@ -422,6 +424,7 @@ BEGIN
   JOIN public.doctor_duty_status dds ON dds.doctor_id=d.id
   WHERE d.user_id=v_user
     AND d.active IS TRUE
+    AND app_private.is_doctor_dispatch_approved(d.id)
     AND d.care_country IN ('AR','BR')
     AND NULLIF(btrim(d.license_number),'') IS NOT NULL
     AND upper(btrim(d.license_number)) !~ '^PENDING'
@@ -480,6 +483,7 @@ USING (
        WHERE d.id=pharmacy_dispatch_requests.assigned_doctor_id
          AND d.user_id=(SELECT auth.uid())
          AND d.active IS TRUE
+         AND app_private.is_doctor_dispatch_approved(d.id)
          AND d.care_country=pharmacy_dispatch_requests.care_country
     )
     OR EXISTS (
@@ -490,6 +494,7 @@ USING (
          AND o.expires_at > NOW()
          AND d.user_id=(SELECT auth.uid())
          AND d.active IS TRUE
+         AND app_private.is_doctor_dispatch_approved(d.id)
          AND d.care_country=pharmacy_dispatch_requests.care_country
     )
   )
