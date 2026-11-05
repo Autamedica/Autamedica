@@ -324,6 +324,7 @@ fun DoctorDashboardScreen(
                                 avatarUrl = null,
                                 isOnDuty = uiState.pharmacyOnDutyState.isOnDuty,
                                 isLoading = uiState.pharmacyOnDutyState.isLoading,
+                                guardApproved = uiState.guardApproved,
                                 onToggleOnDuty = viewModel::togglePharmacyOnDuty,
                             )
                         }
@@ -469,6 +470,7 @@ private fun DoctorGreetingHeader(
 private fun AutaMedicaOsDutyHero(
     isOnDuty: Boolean,
     isLoading: Boolean,
+    guardApproved: Boolean?,
     onToggleOnDuty: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -524,7 +526,11 @@ private fun AutaMedicaOsDutyHero(
                     Spacer(modifier = Modifier.width(14.dp))
                     Column {
                         Text(
-                            text = if (isOnDuty) "Guardia Médica Activa" else "Guardia en Pausa",
+                            text = when {
+                                guardApproved != true -> "Guardia pendiente de validación"
+                                isOnDuty -> "Guardia Médica Activa"
+                                else -> "Guardia en Pausa"
+                            },
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.ExtraBold,
@@ -533,7 +539,11 @@ private fun AutaMedicaOsDutyHero(
                             color = if (isOnDuty) Color(0xFF0F172A) else Color(0xFF475569),
                         )
                         Text(
-                            text = if (isOnDuty) "Recibiendo consultas on-demand" else "Toca para conectar con la red de farmacias",
+                            text = when {
+                                guardApproved != true -> "Requiere aprobación administrativa de matrícula"
+                                isOnDuty -> "Recibiendo consultas on-demand"
+                                else -> "Toca para conectar con la red de farmacias"
+                            },
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                             color = if (isOnDuty) AutaGreen else Slate500,
                         )
@@ -549,7 +559,7 @@ private fun AutaMedicaOsDutyHero(
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                         onToggleOnDuty(isChecked)
                     },
-                    enabled = !isLoading,
+                    enabled = !isLoading && (guardApproved == true || isOnDuty),
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
                         checkedTrackColor = AutaGreen,
