@@ -73,6 +73,7 @@ BEGIN
   JOIN public.doctor_duty_status dds ON dds.doctor_id = d.id
   WHERE d.active IS TRUE
     AND d.care_country = v_req.care_country
+    AND app_private.is_doctor_dispatch_approved(d.id)
     -- At minimum, a provisional or blank license cannot take a clinical dispatch.
     -- Official license validation remains a separate mandatory human approval.
     AND NULLIF(btrim(d.license_number), '') IS NOT NULL
@@ -189,6 +190,7 @@ BEGIN
   FROM public.doctors d
   WHERE d.id = NEW.doctor_id
     AND d.active IS TRUE
+    AND app_private.is_doctor_dispatch_approved(d.id)
     AND NULLIF(btrim(d.license_number), '') IS NOT NULL
     AND upper(btrim(d.license_number)) !~ '^PENDING'
     AND d.care_country IN ('AR','BR');
