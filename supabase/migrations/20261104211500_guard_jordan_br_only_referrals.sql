@@ -2,6 +2,8 @@
 -- This guard prevents a non-BR dispatch from carrying Jordan attribution,
 -- independently of callers (web, Android, direct PostgREST or service role).
 -- It does not change the isolated Argentina consultation flow.
+-- Staging may not yet contain the full app_private clinical schema.
+CREATE SCHEMA IF NOT EXISTS app_private;
 CREATE OR REPLACE FUNCTION app_private.guard_jordan_br_referral()
 RETURNS trigger
 LANGUAGE plpgsql
