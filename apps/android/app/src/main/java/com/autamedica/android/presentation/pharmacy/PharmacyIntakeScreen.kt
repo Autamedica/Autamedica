@@ -1,5 +1,6 @@
 package com.autamedica.android.presentation.pharmacy
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -34,6 +35,7 @@ import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.LocalPharmacy
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -49,10 +51,14 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -108,6 +114,35 @@ fun PharmacyIntakeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     val haptic = LocalHapticFeedback.current
+    var showCancelConfirmation by remember { mutableStateOf(false) }
+
+    // Leaving a waiting room must never cancel a clinical request silently.
+    BackHandler(enabled = uiState.activeRequestId != null) {
+        showCancelConfirmation = true
+    }
+
+    if (showCancelConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showCancelConfirmation = false },
+            title = { Text("Tu solicitud sigue en la fila") },
+            text = { Text("Podés seguir esperando hasta que se conecte un médico. Si querés dejar la fila, cancelá la solicitud explícitamente.") },
+            confirmButton = {
+                TextButton(onClick = { showCancelConfirmation = false }) {
+                    Text("Seguir esperando")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showCancelConfirmation = false
+                        viewModel.cancelActiveRequest()
+                    },
+                ) {
+                    Text("Cancelar solicitud")
+                }
+            },
+        )
+    }
 
     // Automatic navigation when the doctor attends the call and the room is ready
     LaunchedEffect(uiState.readyToJoinCall, uiState.roomId) {
@@ -148,7 +183,7 @@ fun PharmacyIntakeScreen(
                                 color = AuTextPrimary,
                             )
                             Text(
-                                text = "Atención inmediata",
+                                text = "Atención por videollamada",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AuTextTertiary,
                             )
@@ -158,9 +193,10 @@ fun PharmacyIntakeScreen(
                 navigationIcon = {
                     IconButton(onClick = {
                         if (uiState.activeRequestId != null) {
-                            viewModel.cancelActiveRequest()
+                            showCancelConfirmation = true
+                        } else {
+                            onBack()
                         }
-                        onBack()
                     }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -412,7 +448,31 @@ private fun PharmacyIntakeFormView(
             ),
         )
 
-        // Error Banner
+        // Ended/cancelled legacy requests are an informational state, not a red error.
+        AnimatedVisibility(
+            visible = uiState.statusNotice != null,
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
+            uiState.statusNotice?.let { notice ->
+                Spacer(modifier = Modifier.height(12.dp))
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = AuCyanSoft,
+                    border = BorderStroke(1.dp, AuCyan.copy(alpha = 0.25f)),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = notice,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AuTextPrimary,
+                        modifier = Modifier.padding(12.dp),
+                    )
+                }
+            }
+        }
+
+        // Error Banner (only validation, auth and real technical failures)
         AnimatedVisibility(
             visible = uiState.error != null,
             enter = fadeIn(),
@@ -656,11 +716,25 @@ private fun PharmacyWaitingRoomView(
             val onlineDoctorCount = uiState.activeDoctors.count { it.isAvailable }
             val hasOnlineDoctors = onlineDoctorCount > 0
 
+            val marketName = when (uiState.careCountry) {
+                "AR" -> "Argentina"
+                "BR" -> "Brasil"
+                else -> "el país seleccionado"
+            }
+
             Text(
-                text = if (hasOnlineDoctors) "Buscando médico de guardia..." else "En espera de guardia...",
+                text = "Estás en la fila de atención",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = AuTextPrimary,
+                textAlign = TextAlign.Center,
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Solicitud activa · $marketName",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AuTextSecondary,
                 textAlign = TextAlign.Center,
             )
 
@@ -693,14 +767,14 @@ private fun PharmacyWaitingRoomView(
                         )
                         Column {
                             Text(
-                                text = "Sin médicos de guardia en línea en este momento.",
+                                text = "Esperando que se conecte un médico de $marketName.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = AuTextPrimary,
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "La consulta quedará en espera hasta que un profesional se conecte.",
+                                text = "Tu solicitud ya está registrada y sigue en la fila. No necesitás volver a solicitarla.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AuTextSecondary,
                             )
