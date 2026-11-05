@@ -32,6 +32,7 @@ const result = {
   patientSet: false,
   moduleShown: false,
   prescriptionIssued: false,
+  demoItemAdded: false,
   signatureVerified: false,
   errorCode: null,
 };
@@ -129,6 +130,7 @@ async function main() {
     const hub = window.MdHub;
     if (!hub?.command?.send || !hub?.module?.show) return { patientSet: false, moduleShown: false, error: 'hub_missing' };
     let patientSet = false;
+    let demoItemAdded = false;
     try {
       await hub.command.send('plataforma.prescricao', 'setFeatureToggle', {
         deletePatient: false, editPatient: false, editIdentification: false,
@@ -137,13 +139,22 @@ async function main() {
       await hub.command.send('plataforma.prescricao', 'setPaciente', patient);
       patientSet = true;
       await hub.module.show('plataforma.prescricao');
-      return { patientSet, moduleShown: true, error: null };
+      try {
+        await hub.command.send('plataforma.prescricao', 'addItem', {
+          nome: 'DOCUMENTO DEMO - NAO E MEDICAMENTO - SEM VALIDADE',
+          posologia: '<p>Somente teste de integracao, nao dispensar.</p>',
+          quantidade: 1,
+        });
+        demoItemAdded = true;
+      } catch { /* SDK may reject test-only items */ }
+      return { patientSet, moduleShown: true, demoItemAdded, error: null };
     } catch {
       return { patientSet, moduleShown: false, error: 'sdk_command_rejected' };
     }
   }, PATIENT);
   result.patientSet = actions.patientSet;
   result.moduleShown = actions.moduleShown;
+  result.demoItemAdded = Boolean(actions.demoItemAdded);
   result.sandboxDemoPreflight = true;
   if (!actions.patientSet) throw new Error('memed_patient_set_rejected');
   if (!actions.moduleShown) throw new Error('memed_module_show_rejected');
