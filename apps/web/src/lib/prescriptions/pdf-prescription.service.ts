@@ -511,7 +511,17 @@ export async function generatePrescriptionPdf(
     doc.text(`Domicilio: ${input.patient.address}`, marginLeft + textOffset, y + 26);
     extraLine += 6;
   }
-  if (input.patient.insurancePlan) {
+  if (input.patient.affiliateCredential) {
+    // The PAN must match the confirmed altaReceta, not the CUIL or local insurance metadata.
+    const affiliation = [
+      input.patient.insuranceEntityCode ? `Entidad: ${input.patient.insuranceEntityCode}` : null,
+      `Nro. afiliado / Credencial: ${input.patient.affiliateCredential}`,
+      input.patient.insurancePlan ? `Plan: ${input.patient.insurancePlan}` : null,
+    ].filter(Boolean).join('  |  ');
+    doc.setFontSize(8);
+    doc.setTextColor(infoTextColor[0], infoTextColor[1], infoTextColor[2]);
+    doc.text(affiliation, marginLeft + textOffset, y + 26 + extraLine, { maxWidth: contentWidth - 8 });
+  } else if (input.patient.insurancePlan) {
     doc.setFontSize(8);
     doc.setTextColor(infoTextColor[0], infoTextColor[1], infoTextColor[2]);
     doc.text(`OOSS / Plan: ${input.patient.insurancePlan}`, marginLeft + textOffset, y + 26 + extraLine);
