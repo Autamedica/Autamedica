@@ -5,6 +5,7 @@
  * sandbox test keys. Token and synthetic CPF are never logged/artifacted.
  */
 import { createServer } from 'node:http';
+import { mkdirSync } from 'node:fs';
 import { chromium } from 'playwright';
 
 const DOC = 'https://doc.memed.com.br/docs/primeiros-passos/';
@@ -308,6 +309,13 @@ async function main() {
         return fields;
       } catch {return [];}
     }));
+    mkdirSync('test-results', { recursive: true });
+    await page.screenshot({
+      path: 'test-results/memed-demo-identificacao.png',
+      fullPage: true,
+      animations: 'disabled',
+      mask: page.frames().flatMap(frame => [frame.locator('input')]),
+    });
     result.iframeRepoAvailable = await Promise.all(page.frames().map(async frame => {
       try {
         return await frame.evaluate(() => {
