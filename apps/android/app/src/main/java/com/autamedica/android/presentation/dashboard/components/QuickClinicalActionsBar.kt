@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -36,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -84,59 +86,79 @@ fun QuickClinicalActionsBar(
             color = PortalDoctorsAction,
         )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            ClinicalActionButton(
+        val actions = listOf(
+            ClinicalActionItem(
                 label = stringResource(R.string.ui_clinical_prescription),
                 icon = Icons.Outlined.Medication,
                 accentColor = PortalDoctors,
                 bgColor = Color(0xFFEBF1FF),
                 onClick = onNavigateToPrescriptions,
-                modifier = Modifier.weight(1f),
-            )
-            ClinicalActionButton(
+            ),
+            ClinicalActionItem(
                 label = stringResource(R.string.ui_clinical_certificate),
                 icon = Icons.Outlined.Verified,
                 accentColor = AuEmerald,
                 bgColor = Color(0xFFECFDF5),
                 onClick = onNavigateToCertificates,
-                modifier = Modifier.weight(1f),
-            )
-            ClinicalActionButton(
+            ),
+            ClinicalActionItem(
                 label = stringResource(R.string.ui_clinical_orders),
                 icon = Icons.AutoMirrored.Outlined.Assignment,
                 accentColor = AuCyan,
                 bgColor = Color(0xFFECFEFF),
                 onClick = onNavigateToMedicalOrders,
-                modifier = Modifier.weight(1f),
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            ClinicalActionButton(
+            ),
+            ClinicalActionItem(
                 label = stringResource(R.string.ui_clinical_duty),
                 icon = Icons.Filled.Sensors,
                 accentColor = Color(0xFF0F172A),
                 bgColor = Color(0xFFF1F5F9),
                 onClick = onNavigateToDoctorOnDemand,
-                modifier = Modifier.weight(1f),
-            )
-            ClinicalActionButton(
+            ),
+            ClinicalActionItem(
                 label = stringResource(R.string.ui_clinical_appointment),
                 icon = Icons.Default.Add,
                 accentColor = PortalDoctors,
                 bgColor = Color(0xFFEBF1FF),
                 onClick = onNavigateToCreateAppointment,
-                modifier = Modifier.weight(1f),
-            )
+            ),
+        )
+        val fontScale = LocalDensity.current.fontScale
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val columns = if (maxWidth < 400.dp || fontScale >= 1.3f) 2 else 3
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                actions.chunked(columns).forEach { rowActions ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        rowActions.forEach { action ->
+                            ClinicalActionButton(
+                                label = action.label,
+                                icon = action.icon,
+                                accentColor = action.accentColor,
+                                bgColor = action.bgColor,
+                                onClick = action.onClick,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        repeat(columns - rowActions.size) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
         }
     }
 }
+
+private data class ClinicalActionItem(
+    val label: String,
+    val icon: ImageVector,
+    val accentColor: Color,
+    val bgColor: Color,
+    val onClick: () -> Unit,
+)
 
 @Composable
 private fun ClinicalActionButton(
