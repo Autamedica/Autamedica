@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.DoctorBookingInfo
 import com.autamedica.android.domain.model.DoctorDutyStatus
+import com.autamedica.android.domain.model.DoctorGuardApproval
 import com.autamedica.android.domain.model.DoctorOnDutyPharmacyState
 import com.autamedica.android.domain.model.DoctorProfile
 import com.autamedica.android.domain.model.DoctorStats
@@ -108,6 +109,16 @@ private class FakeChatRepo : ChatRepository {
 }
 
 private class FakePharmacyDispatchRepo : PharmacyDispatchRepository {
+    // These fixtures represent an administratively APPROVED clinical doctor.
+    // Unapproved doctors must fail closed in production.
+    override suspend fun getMyGuardApproval(): Result<DoctorGuardApproval> =
+        Result.success(DoctorGuardApproval(
+            approved = true,
+            code = "CLINICALLY_APPROVED",
+            country = "AR",
+            verificationStatus = "valid",
+        ))
+
     var dutyStatus = DoctorDutyStatus(
         doctorId = "doctor-456",
         isOnDuty = true,
