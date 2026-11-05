@@ -16,6 +16,7 @@ import com.autamedica.android.di.IoDispatcher
 import com.autamedica.android.domain.model.DispatchClaimResult
 import com.autamedica.android.domain.model.DoctorDutyStatus
 import com.autamedica.android.domain.model.PharmacyDispatchRequest
+import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.logging.SecureLog
@@ -57,6 +58,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val httpClient: OkHttpClient,
     private val json: Json,
+    private val securePreferences: SecurePreferences? = null,
 ) : PharmacyDispatchRepository {
 
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
@@ -64,8 +66,63 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     private val _searchingRequests = MutableStateFlow<List<PharmacyDispatchRequest>>(emptyList())
     private var searchingChannel: RealtimeChannel? = null
 
-    // Never write guest access tokens to logs, analytics or persistent storage.
+    // Never write short-lived guest JWTs to logs, analytics or persistent storage.
     private val guestAccessTokens = ConcurrentHashMap<String, String>()
+    // An opaque 256-bit RECOVERY secret (not the JWT) is Keystore-encrypted via
+    // SecurePreferences. It restores the same guest request after process death.
+    private val guestRecoveryKey = "pharmacy_guest_queue_recovery_v1"
+
+    private fun savedGuestRecovery(): Pair<String, String>? {
+        val saved = securePreferences?.getString(guestRecoveryKey) ?: return null
+        val parts = saved.split(':', limit = 2)
+        return if (parts.size == 2 &&
+            parts[0].matches(Regex("^[0-9a-fA-F-]{36}$")) &&
+            parts[1].matches(Regex("^[0-9a-f]{64}$"))) {
+            parts[0] to parts[1]
+        } else null
+    }
+
+    private fun clearGuestRecovery(requestId: String) {
+        if (savedGuestRecovery()?.first == requestId) {
+            securePreferences?.remove(guestRecoveryKey)
+        }
+        guestAccessTokens.remove(requestId)
+    }
+
+    private suspend fun resumeGuestRequestFromEncryptedDevice(requestId: String): PharmacyDispatchRequest? =
+        withContext(ioDispatcher) {
+            val recovery = savedGuestRecovery()?.takeIf { it.first == requestId }
+                ?: return@withContext null
+            val body = buildJsonObject {
+                put("requestId", requestId)
+                put("recoveryToken", recovery.second)
+            }
+            val request = Request.Builder()
+                .url("$guestApiOrigin/api/pharmacy/dispatch/resume")
+                .post(body.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
+                .build()
+
+            guestClient.newCall(request).execute().use { response ->
+                if (response.code == 401) {
+                    clearGuestRecovery(requestId)
+                    return@withContext null
+                }
+                check(response.isSuccessful) {
+                    "Guest queue recovery endpoint failed (HTTP ${response.code})"
+                }
+                val rawBody = response.body?.string() ?: error("Empty guest recovery response")
+                val data = json.parseToJsonElement(rawBody).jsonObject["data"]?.jsonObject
+                    ?: error("Missing guest recovery data")
+                val freshJwt = data["accessToken"]?.jsonPrimitive?.content
+                    ?.takeIf { it.isNotBlank() } ?: error("Missing renewed guest access token")
+                val dto = json.decodeFromJsonElement<DispatchRequestDto>(
+                    data["request"] ?: error("Missing recovered guest request")
+                )
+                check(dto.id == requestId) { "Recovered guest request mismatch" }
+                guestAccessTokens[requestId] = freshJwt
+                dto.toDomain()
+            }
+        }
     // The shared DEBUG HTTP client logs BODY and headers; this isolated client
     // removes logging interceptors to protect names, DNI, symptoms and tokens.
     private val guestClient: OkHttpClient by lazy {
@@ -94,6 +151,14 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 )
                 val token = data["accessToken"]?.jsonPrimitive?.content
                     ?.takeIf { it.isNotBlank() } ?: error("Missing signed guest access token")
+                val recoveryToken = data["recoveryToken"]?.jsonPrimitive?.content
+                    ?.takeIf { it.matches(Regex("^[0-9a-f]{64}$")) }
+                    ?: error("Missing scoped guest queue recovery token")
+                check(securePreferences != null) {
+                    "Encrypted guest queue recovery unavailable on this device"
+                }
+                // The originating device alone retains this opaque credential.
+                securePreferences.putString(guestRecoveryKey, "${dto.id}:$recoveryToken")
                 guestAccessTokens[dto.id] = token
                 dto.toDomain()
             }
@@ -109,6 +174,11 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 .build()
 
             guestClient.newCall(request).execute().use { response ->
+                if (response.code == 401) {
+                    // Short-lived JWT expired; renew using the Keystore-held
+                    // recovery credential without re-submitting the intake.
+                    return@withContext resumeGuestRequestFromEncryptedDevice(requestId)
+                }
                 if (!response.isSuccessful) return@withContext null
                 val body = response.body?.string() ?: return@withContext null
                 val data = json.parseToJsonElement(body).jsonObject["data"]?.jsonObject
@@ -116,7 +186,11 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 val dto = json.decodeFromJsonElement<DispatchRequestDto>(
                     data["request"] ?: return@withContext null
                 )
-                dto.toDomain()
+                dto.toDomain().also { request ->
+                    if (request.status in setOf("completed", "cancelled", "expired")) {
+                        clearGuestRecovery(requestId)
+                    }
+                }
             }
         }
 
@@ -221,7 +295,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                     answer == "true"
                 }
             }
-            if (confirmed) guestAccessTokens.remove(requestId)
+            if (confirmed) clearGuestRecovery(requestId)
             confirmed
         } else {
             check(authRepository.getCurrentUser() != null) { "Missing authenticated owner or guest token" }
@@ -294,19 +368,24 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 
     override suspend fun getActivePatientDispatchRequest(): Result<PharmacyDispatchRequest?> = runCatching {
         val currentUser = authRepository.getCurrentUser()
-            ?: return@runCatching null
-        supabaseClient.postgrest
-            .from("pharmacy_dispatch_requests")
-            .select(Columns.ALL) {
-                filter {
-                    eq("requested_by_user_id", currentUser.id)
-                    isIn("status", listOf("searching", "matched", "in_call"))
+        if (currentUser != null) {
+            // Never reuse a previous guest's credential for a different
+            // authenticated patient on a shared phone.
+            return@runCatching supabaseClient.postgrest
+                .from("pharmacy_dispatch_requests")
+                .select(Columns.ALL) {
+                    filter {
+                        eq("requested_by_user_id", currentUser.id)
+                        isIn("status", listOf("searching", "matched", "in_call"))
+                    }
+                    order("created_at", Order.DESCENDING)
+                    limit(1)
                 }
-                order("created_at", Order.DESCENDING)
-                limit(1)
-            }
-            .decodeSingleOrNull<DispatchRequestDto>()
-            ?.toDomain()
+                .decodeSingleOrNull<DispatchRequestDto>()
+                ?.toDomain()
+        }
+        val guestRequestId = savedGuestRecovery()?.first ?: return@runCatching null
+        resumeGuestRequestFromEncryptedDevice(guestRequestId)
     }.onFailure {
         SecureLog.error("[PharmacyDispatch] Failed recovering patient's active waiting request", it)
     }
