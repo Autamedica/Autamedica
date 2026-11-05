@@ -8,7 +8,9 @@ if (!session) {
   return Astro.redirect('/auth/login?returnTo=/admin/executive&portal=admin');
 }
 const role = await resolveAdminRole(session, Astro.locals.supabase);
-if (!role) return Astro.redirect('/admin/unauthorized');
+if (role !== 'platform_admin' && role !== 'admin') {
+  return Astro.redirect('/admin/unauthorized');
+}
 ---
 
 <Layout title="Dirección y rentabilidad | AutaMedica Admin" description="Indicadores ejecutivos verificados, por jurisdicción y período.">
