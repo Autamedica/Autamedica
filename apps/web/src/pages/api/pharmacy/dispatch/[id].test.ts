@@ -56,6 +56,7 @@ type TableChain = {
   then: (resolve: (value: unknown) => void) => void
   select: ReturnType<typeof vi.fn>
   eq: ReturnType<typeof vi.fn>
+  gt: ReturnType<typeof vi.fn>
   maybeSingle: ReturnType<typeof vi.fn>
   single: ReturnType<typeof vi.fn>
 }
@@ -67,11 +68,13 @@ function buildTableChain(data: unknown, error: unknown = null): TableChain {
     },
     select: vi.fn(),
     eq: vi.fn(),
+    gt: vi.fn(),
     maybeSingle: vi.fn(),
     single: vi.fn(),
   }
   chain.select.mockReturnValue(chain)
   chain.eq.mockReturnValue(chain)
+  chain.gt.mockReturnValue(chain)
   chain.maybeSingle.mockReturnValue(chain)
   chain.single.mockReturnValue(chain)
   return chain
@@ -280,7 +283,7 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
     expect(body.data.request.id).toBe('req-1')
   })
 
-  it('devuelve 200 si el usuario autenticado es un médico en guardia activa', async () => {
+  it('devuelve 200 solo al médico con oferta pendiente y vigente para esta solicitud', async () => {
     const unassignedReq = { ...REQUEST_RECORD, assigned_doctor_id: null }
     const otherDoctor = { id: 'other-doc-row', user_id: 'other-doc-user', active: true, license_type: 'MN', care_country: 'AR', uf_brazil: null }
 
@@ -291,8 +294,8 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
       if (table === 'doctors') {
         return buildTableChain(otherDoctor, null)
       }
-      if (table === 'doctor_duty_status') {
-        return buildTableChain({ is_on_duty: true }, null)
+      if (table === 'dispatch_offers') {
+        return buildTableChain({ id: 'offer-exact-to-doctor-1' }, null)
       }
       return buildTableChain(null, null)
     })
@@ -306,6 +309,20 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
     expect(response.status).toBe(200)
     const body = await response.json()
     expect(body.success).toBe(true)
+  })
+
+  it('no permite leer datos clínicos solo por estar de guardia en el mismo país', async () => {
+    const unassignedReq = { ...REQUEST_RECORD, assigned_doctor_id: null }
+    const doctorOnDuty = { ...DOCTOR_ROW, id: 'doctor-on-duty', user_id: 'doctor-other-user' }
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_requests') return buildTableChain(unassignedReq)
+      if (table === 'doctors') return buildTableChain(doctorOnDuty)
+      if (table === 'dispatch_offers') return buildTableChain(null)
+      return buildTableChain(null)
+    })
+    const response = await GET(makeContext({ session: { user: { id: 'doctor-other-user' } } }))
+    expect(response.status).toBe(401)
+    expect(supabaseMock.from).toHaveBeenCalledWith('dispatch_offers')
   })
 
   it('devuelve 401 si un usuario autenticado ajeno (no dueño, no asignado, no guardia) intenta acceder', async () => {
