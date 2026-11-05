@@ -262,7 +262,7 @@ class DoctorDashboardViewModel @Inject constructor(
                 _dismissedRequestIds,
                 _isOnDuty,
             ) { requests, dismissed, onDuty ->
-                Triple(requests.filter { it.id !in dismissed }, dismissed, onDuty)
+                Triple(requests.filter { "${it.id}:${it.offerExpiresAt}" !in dismissed }, dismissed, onDuty)
             }.collect { (activeOffers, _, onDuty) ->
                 val nextAlert = if (onDuty) activeOffers.firstOrNull() else null
                 val mappedQueue = activeOffers.map { it.toQueuedPatient() }
@@ -294,10 +294,10 @@ class DoctorDashboardViewModel @Inject constructor(
             pharmacyDispatchRepository.declinePharmacyOffer(requireNotNull(offer.offerId))
                 .onSuccess { declined ->
                     if (declined) {
-                        _dismissedRequestIds.update { it + offer.id }
+                        _dismissedRequestIds.update { it + "${offer.id}:${offer.offerExpiresAt}" }
                         _uiState.update {
                             it.copy(simulatedDispatchAlert = null, activelyDispatchedPatientId = null,
-                                dismissedRequestIds = it.dismissedRequestIds + offer.id)
+                                dismissedRequestIds = it.dismissedRequestIds + "${offer.id}:${offer.offerExpiresAt}")
                         }
                     } else {
                         _uiState.update { it.copy(claimErrorMessage = "La oferta ya venció o fue asignada.") }
@@ -375,7 +375,7 @@ class DoctorDashboardViewModel @Inject constructor(
                 .onSuccess { claim ->
                     val roomId = claim.cloudflareRoomId?.takeIf { it.isNotBlank() }
                     if (claim.success && roomId != null) {
-                        _dismissedRequestIds.update { it + requestId }
+                        _dismissedRequestIds.update { it + "${incoming.id}:${incoming.offerExpiresAt}" }
                         _uiState.update { state ->
                             state.copy(
                                 claimingPharmacyRequestId = null,
