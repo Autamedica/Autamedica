@@ -181,6 +181,7 @@ fun DoctorOnDemandScreen(
                     DutyToggleCard(
                         isOnDuty = uiState.isOnDuty,
                         isLoading = uiState.isDutyLoading,
+                        guardApproved = uiState.guardApproved,
                         onToggle = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             viewModel.toggleDuty()
@@ -289,6 +290,7 @@ fun DoctorOnDemandScreen(
 private fun DutyToggleCard(
     isOnDuty: Boolean,
     isLoading: Boolean,
+    guardApproved: Boolean?,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -330,7 +332,11 @@ private fun DutyToggleCard(
             Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (isOnDuty) "Guardia activa" else "Guardia en pausa",
+                    text = when {
+                        guardApproved != true -> "Guardia pendiente de aprobación"
+                        isOnDuty -> "Guardia activa"
+                        else -> "Guardia en pausa"
+                    },
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                     color = AuTextPrimary,
                     maxLines = 1,
@@ -338,7 +344,11 @@ private fun DutyToggleCard(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = if (isOnDuty) "Recibiendo consultas on-demand de farmacias" else "Tocá activar para recibir consultas",
+                    text = when {
+                        guardApproved != true -> "El administrador debe validar la matrícula antes de recibir consultas"
+                        isOnDuty -> "Recibiendo consultas on-demand de farmacias"
+                        else -> "Tocá activar para recibir consultas"
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary,
                     maxLines = 1,
@@ -347,7 +357,7 @@ private fun DutyToggleCard(
             }
             Button(
                 onClick = onToggle,
-                enabled = !isLoading,
+                enabled = !isLoading && (guardApproved == true || isOnDuty),
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isOnDuty) Color(0xFFE11D48) else PortalDoctors,
@@ -356,7 +366,11 @@ private fun DutyToggleCard(
                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
             ) {
                 Text(
-                    text = if (isOnDuty) "Pausar" else "Activar",
+                    text = when {
+                        isOnDuty -> "Pausar"
+                        guardApproved != true -> "Pendiente"
+                        else -> "Activar"
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                 )
