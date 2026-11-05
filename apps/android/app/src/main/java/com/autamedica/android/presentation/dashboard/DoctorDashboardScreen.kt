@@ -242,7 +242,8 @@ fun DoctorDashboardScreen(
             // logged-in doctor. Never derive a room ID from a request ID.
             val incomingAlert: PharmacyDispatchRequest? =
                 uiState.simulatedDispatchAlert?.takeIf {
-                    uiState.pharmacyOnDutyState.isOnDuty && !it.offerId.isNullOrBlank()
+                    uiState.guardApproved == true &&
+                        uiState.pharmacyOnDutyState.isOnDuty && !it.offerId.isNullOrBlank()
                 }
             UberIncomingDispatchAlert(
                 request = incomingAlert,
@@ -274,6 +275,43 @@ fun DoctorDashboardScreen(
                         contentAlignment = Alignment.Center,
                     ) {
                         CircularProgressIndicator(color = MedicalBlue, strokeWidth = 2.dp)
+                    }
+                }
+
+                uiState.guardApproved != true -> {
+                    // A registered doctor is not automatically an approved
+                    // clinical practitioner. Keep profile/onboarding navigation
+                    // accessible, but no appointments, patient charts, queue
+                    // acceptance, video or other clinical shortcuts here.
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(24.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Text(
+                                text = if (uiState.guardApproved == null)
+                                    "Comprobando habilitación clínica"
+                                else
+                                    "Habilitación médica pendiente",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = AuTextPrimary,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                text = if (uiState.guardApproved == null)
+                                    "Estamos consultando el estado de aprobación del administrador."
+                                else
+                                    "Tu cuenta está registrada, pero todavía no está autorizada para atender pacientes. Podés completar tu perfil y consultar al administrador.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Slate500,
+                            )
+                            Button(onClick = viewModel::refresh) {
+                                Text("Actualizar estado de habilitación")
+                            }
+                        }
                     }
                 }
 
