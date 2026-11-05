@@ -282,7 +282,7 @@ class DoctorOnDemandViewModel @Inject constructor(
             pharmacyDispatchRepository.declinePharmacyOffer(offerId)
                 .onSuccess { declined ->
                     if (declined) {
-                        _dismissedRequestIds.update { it + request.id }
+                        _dismissedRequestIds.update { it + "${request.id}:${request.offerExpiresAt}" }
                     } else {
                         _uiState.update { it.copy(error = "Esta oferta ya no está disponible.") }
                     }
@@ -323,7 +323,7 @@ class DoctorOnDemandViewModel @Inject constructor(
                 pharmacyDispatchRepository.observeSearchingRequests(),
                 _dismissedRequestIds,
             ) { requests, dismissed ->
-                requests.filter { it.id !in dismissed }
+                requests.filter { "${it.id}:${it.offerExpiresAt}" !in dismissed }
             }.collect { filteredRequests ->
                 _uiState.update { it.copy(searchingRequests = filteredRequests) }
             }
