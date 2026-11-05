@@ -41,12 +41,40 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Initial rollout deliberately scoped to Jordan's commercial QR.
     const { data: source, error: sourceError } = await admin
       .from('pharmacy_dispatch_requests')
-      .select('referral_partner_id, commercial_referral_partners!pharmacy_dispatch_requests_referral_partner_id_fkey(code,active)')
+      .select('referral_partner_id, patient_id, assigned_doctor_id, commercial_referral_partners!pharmacy_dispatch_requests_referral_partner_id_fkey(code,active)')
       .eq('id', dispatch.id).maybeSingle()
     if (sourceError) throw sourceError
     const partner = source?.commercial_referral_partners as { code?: string; active?: boolean } | null
     if (partner?.code !== 'JORDAN' || partner.active !== true) {
       return badRequest('jordan_qr_required_for_this_checkout')
+    }
+
+    // The monetary path must enforce BOTH sides of the BR clinical boundary,
+    // not merely trust an on-demand status label. BR patient and CRM/BR doctor
+    // are independently verified at the server before contacting Mercado Pago.
+    if (!source?.patient_id || !source?.assigned_doctor_id) {
+      return badRequest('brazilian_clinical_pair_required')
+    }
+    const [patientResult, doctorResult] = await Promise.all([
+      admin.from('patients')
+        .select('id,care_country,active')
+        .eq('id', source.patient_id).maybeSingle(),
+      admin.from('doctors')
+        .select('id,care_country,active,license_type,license_number')
+        .eq('id', source.assigned_doctor_id).maybeSingle(),
+    ])
+    if (patientResult.error || doctorResult.error) {
+      return serviceUnavailable('brazilian_clinical_pair_unavailable')
+    }
+    const patient = patientResult.data
+    const doctor = doctorResult.data
+    const clinicianCredential = typeof doctor?.license_number === 'string'
+      ? doctor.license_number.trim() : ''
+    if (!patient?.active || patient.care_country !== 'BR' ||
+        !doctor?.active || doctor.care_country !== 'BR' ||
+        doctor.license_type !== 'CRM' ||
+        !clinicianCredential || /^PENDING/i.test(clinicianCredential)) {
+      return badRequest('brazilian_clinical_pair_required')
     }
 
     const amountCents = GENERAL_PHARMACY_BR_PRICE_CENTS
