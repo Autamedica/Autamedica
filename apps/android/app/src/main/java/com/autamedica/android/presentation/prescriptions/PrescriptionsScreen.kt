@@ -437,7 +437,7 @@ private fun PrescriptionCard(
 ) {
     val doctorText = formatDoctorName(prescription.doctorName)
     val dateStr = formatPrescriptionDate(prescription.prescribedDate ?: prescription.createdAt)
-    val downloadablePdfUrl = getDownloadablePdfUrl(prescription)
+    val downloadablePdfUrl = prescription.effectivePdfUrl
     val formattedMedication = formatMedicationName(prescription.medicationName)
     val formattedPosology = formatPosologySummary(prescription.dosage, prescription.frequency, prescription.duration)
 
@@ -704,7 +704,7 @@ private fun PrescriptionDetailBottomSheet(
     val doctorText = formatDoctorName(prescription.doctorName)
     val dateStr = formatPrescriptionDate(prescription.prescribedDate ?: prescription.createdAt)
     val formattedMedication = formatMedicationName(prescription.medicationName)
-    val downloadablePdfUrl = getDownloadablePdfUrl(prescription)
+    val downloadablePdfUrl = prescription.effectivePdfUrl
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -1191,14 +1191,6 @@ private fun formatPrescriptionDate(dateStr: String?): String {
         parsedDate.format(DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", currentLocale))
     }.getOrElse {
         dateStr
-    }
-}
-
-private fun getDownloadablePdfUrl(prescription: Prescription): String? {
-    // A CUIR is a reference, never a substitute for an actual server-backed PDF.
-    // A non-signed or cancelled document must not be presented as downloadable.
-    return prescription.signedPdfUrl?.takeIf {
-        prescription.isActive && it.startsWith("https://", ignoreCase = true)
     }
 }
 
