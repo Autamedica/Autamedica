@@ -152,7 +152,7 @@ fun CreateCertificateScreen(
                             .height(50.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PortalDoctors),
-                        enabled = !uiState.isSubmitting,
+                        enabled = !uiState.isSubmitting && !uiState.isLoadingEligibility && uiState.doctorEligibility?.isEligible == true,
                     ) {
                         if (uiState.isSubmitting) {
                             CircularProgressIndicator(
@@ -328,12 +328,14 @@ fun CreateCertificateScreen(
                         }
                     }
 
-                    // QR Preview
-                    QrCodeView(
-                        content = created.effectiveQrContent,
-                        modifier = Modifier.size(140.dp),
-                        contentDescription = stringResource(R.string.cert_qr_validation_content_desc),
-                    )
+                    // Drafts must never display a QR that looks like a public verification token.
+                    if (created.effectiveQrContent.isNotBlank()) {
+                        QrCodeView(
+                            content = created.effectiveQrContent,
+                            modifier = Modifier.size(140.dp),
+                            contentDescription = stringResource(R.string.cert_qr_validation_content_desc),
+                        )
+                    }
 
                     Text(
                         text = stringResource(R.string.cert_success_dialog_footer),
@@ -360,7 +362,7 @@ fun CreateCertificateScreen(
 
 @Composable
 private fun DoctorRegulatoryBanner(eligibility: DoctorEligibility?) {
-    val isEligible = eligibility?.isEligible ?: true
+    val isEligible = eligibility?.isEligible == true
     val license = eligibility?.doctorLicense ?: stringResource(R.string.cert_reg_registered)
 
     Surface(
