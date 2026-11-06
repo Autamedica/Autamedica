@@ -139,17 +139,6 @@ class PharmacyDispatchRepositoryImplTest {
               "accessToken":"signed-intake-token","recoveryToken":"$recovery"
             }}
         """.trimIndent()
-        val resumed = """
-            {"success":true,"data":{
-              "request":{"id":"$requestId","care_country":"BR",
-                "referral_partner_id":"$partnerId",
-                "patient_cpf":"12345678909","patient_phone":"+5551987654321",
-                "patient_name":"Synthetic Patient","tier_requested":"general",
-                "status":"matched","cloudflare_room_id":"cf-room-br-qr",
-                "created_at":"2026-11-05T12:00:00Z"},
-              "accessToken":"renewed-payment-token"
-            }}
-        """.trimIndent()
         mockWebServer.enqueue(MockResponse().setResponseCode(200)
             .setHeader("Content-Type","application/json").setBody(created))
         val intake = repository.createPatientDispatchRequest(
@@ -164,28 +153,24 @@ class PharmacyDispatchRepositoryImplTest {
         assertThat(request.body.readUtf8()).contains("\"referralCode\":\"JORDAN\"")
 
         mockWebServer.enqueue(MockResponse().setResponseCode(200)
-            .setHeader("Content-Type","application/json").setBody(resumed))
-        mockWebServer.enqueue(MockResponse().setResponseCode(200)
             .setHeader("Content-Type","application/json")
             .setBody("""{"success":true,"data":{"status":"pending","checkoutUrl":"https://www.mercadopago.com.br/checkout/"}}"""))
         val checkout = repository.startDispatchCheckout(requestId).getOrThrow()
         assertThat(checkout.status).isEqualTo("pending")
         assertThat(checkout.checkoutUrl).startsWith("https://")
-        assertThat(mockWebServer.takeRequest().path).isEqualTo("/api/pharmacy/dispatch/resume")
         val post = mockWebServer.takeRequest()
         assertThat(post.path).isEqualTo("/api/pharmacy/dispatch/payment/create")
-        assertThat(post.body.readUtf8()).contains("renewed-payment-token")
+        assertThat(post.body.readUtf8()).contains("signed-intake-token")
         assertThat(post.getHeader("Authorization")).isNull()
 
-        mockWebServer.enqueue(MockResponse().setResponseCode(200)
-            .setHeader("Content-Type","application/json").setBody(resumed))
         mockWebServer.enqueue(MockResponse().setResponseCode(200)
             .setHeader("Content-Type","application/json")
             .setBody("""{"success":true,"data":{"status":"pending","amountCents":7900,"currency":"BRL"}}"""))
         val status = repository.getDispatchPaymentStatus(requestId).getOrThrow()
         assertThat(status).isEqualTo("pending")
-        assertThat(mockWebServer.takeRequest().path).isEqualTo("/api/pharmacy/dispatch/resume")
         assertThat(mockWebServer.takeRequest().path).isEqualTo("/api/pharmacy/dispatch/payment/status")
+        // No redundant /resume HTTP roundtrip or recovery database write during polling.
+        assertThat(mockWebServer.requestCount).isEqualTo(3)
     }
 
     @Test
