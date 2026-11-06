@@ -219,6 +219,12 @@ class PrescriptionRepositoryImpl @Inject constructor(
         ) == request.countryCode) {
             "País y matrícula profesional no coinciden o el médico está inactivo"
         }
+        val professionalEligibility = getDoctorEligibility().getOrElse {
+            throw IllegalStateException("No se pudo verificar la habilitación profesional", it)
+        }
+        check(professionalEligibility.isEligible) {
+            professionalEligibility.reason ?: "El profesional no está habilitado para registrar recetas"
+        }
 
         // The trusted issuer creates the reference. Never fabricate a CUIR in Android
         // or present a storage signed URL as proof of professional signature.
