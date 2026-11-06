@@ -9,6 +9,7 @@ import {
   buildMemedMobileLaunchUrl,
   validMemedMobileAppointment,
   verifiedBrazilLicense,
+  validBrazilPatientIdentity,
 } from '../_shared/memed-mobile-policy.ts';
 
 const NO_STORE = {'Cache-Control': 'private, no-store', 'Referrer-Policy': 'no-referrer'};
@@ -71,8 +72,7 @@ export async function handler(req: Request): Promise<Response> {
       .eq('id', appointment.patient_id).maybeSingle();
     if (patientError || patient?.active !== true || patient.care_country !== 'BR' ||
       patient.lgpd_consent !== true) return reply({code: 'BRAZIL_PATIENT_CONSENT_REQUIRED'}, 403, cors);
-    if (!/^\d{11}$/.test(String(patient.cpf ?? '').replace(/\D/g, '')) ||
-      !patient.birth_date || !patient.gender) {
+    if (!validBrazilPatientIdentity(patient.cpf, patient.birth_date, patient.gender, Date.now())) {
       return reply({code: 'PATIENT_IDENTITY_INCOMPLETE'}, 403, cors);
     }
     return reply({
