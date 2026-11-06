@@ -1,0 +1,56 @@
+name: Memed - manual sandbox DEMO verification
+on:
+  workflow_dispatch:
+    inputs:
+      acknowledge_sandbox_only:
+        description: 'Confirm fictional sandbox doctor/patient and zero real delivery'
+        required: true
+        type: boolean
+        default: false
+      emit_one_demo:
+        description: 'Attempt AT MOST ONE sandbox DEMO emission (default READ ONLY)'
+        required: true
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: memed-homologation-manual-demo
+  cancel-in-progress: false
+jobs:
+  memed-homologation:
+    if: ${{ inputs.acknowledge_sandbox_only == true }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout reviewed PR #704 sandbox script, never production
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: deb246189fbfde8dc2067523096fda472982eec3
+          persist-credentials: false
+      - uses: ./.github/actions/setup-pnpm
+        with:
+          node-version: '22'
+          pnpm-version: '9.15.2'
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install chromium --with-deps
+      - name: Audit existing Memed sandbox records, or issue one DEMO with explicit opt-in
+        env:
+          MEMED_DEMO_MODE: ${{ inputs.emit_one_demo == true && 'emit-once' || 'audit' }}
+        run: node scripts/memed-homologation-browser.mjs
+      - name: Upload masked Memed UI evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: memed-sandbox-demo-masked-ui
+          path: test-results/memed-demo-identificacao.png
+          if-no-files-found: ignore
+          retention-days: 1
+      - name: Upload provider PDF only after binary authenticity verification
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: memed-authentic-sandbox-demo-pdf
+          path: test-results/memed-sandbox-provider-demo.pdf
+          if-no-files-found: ignore
+          retention-days: 2
