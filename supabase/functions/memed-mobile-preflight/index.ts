@@ -62,11 +62,11 @@ export async function handler(req: Request): Promise<Response> {
       return reply({code: 'CFM_LICENSE_NOT_VERIFIED'}, 403, cors);
     }
     const {data: appointment, error: apptError} = await db.from('appointments')
-      .select('doctor_id, patient_id, status, start_time, end_time')
+      .select('doctor_id, patient_id, status, start_time, end_time, type')
       .is('deleted_at', null)
       .eq('id', appointmentId).eq('doctor_id', doctor.id).maybeSingle();
     if (apptError || !appointment || !appointmentPermitsPrescription(
-      appointment.status, appointment.start_time, appointment.end_time, Date.now(),
+      appointment.status, appointment.start_time, appointment.end_time, Date.now(), appointment.type,
     )) return reply({code: 'CLINICAL_ENCOUNTER_REQUIRED'}, 403, cors);
     const {data: patient, error: patientError} = await db.from('patients')
       .select('id, active, care_country, lgpd_consent, cpf, birth_date, gender')
