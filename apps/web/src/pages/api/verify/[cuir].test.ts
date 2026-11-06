@@ -84,6 +84,60 @@ describe('public prescription verification must fail closed until trusted signin
     expect(mocks.from).toHaveBeenCalledTimes(1);
   });
 
+  it('does not consider an unsigned certificate with a local QR and PDF valid', async () => {
+    mocks.cert = {
+      id: 'synthetic-certificate',
+      cuir: 'TEST-DOCUMENT-CUIR',
+      status: 'signed',
+      signed_pdf_url: 'https://private.example.invalid/certificate.pdf',
+      signature_verified_at: null,
+      signature_hash: null,
+      signature_method: 'electronic_simple',
+      qr_code_content: 'LOCAL-QR-ONLY',
+      patient_id: 'private-patient-uuid',
+    };
+
+    const result = await verify();
+    expect(result.status).toBe(200);
+    expect(result.body).toEqual({
+      valid: false,
+      reason: 'certificate_not_verified',
+      documentType: 'certificate',
+      prescription: null,
+      certificate: null,
+    });
+    expect(JSON.stringify(result.body)).not.toContain('private-patient-uuid');
+    expect(mocks.from).not.toHaveBeenCalledWith('doctors');
+    expect(mocks.from).not.toHaveBeenCalledWith('patients');
+  });
+
+  it('still recognises independently signed certificate records', async () => {
+    mocks.cert = {
+      id: 'synthetic-certificate',
+      cuir: 'TEST-DOCUMENT-CUIR',
+      status: 'signed',
+      signed_pdf_url: 'https://private.example.invalid/certificate.pdf',
+      signature_verified_at: '2026-11-06T12:00:00Z',
+      signature_hash: 'test-sha256-hash',
+      signature_method: 'ac_external',
+      doctor_id: 'synthetic-doctor',
+      certificate_type: 'constancia_atencion',
+      country_code: 'AR',
+      created_at: '2026-11-06T11:00:00Z',
+      qr_code_content: 'SAFE-PUBLIC-VERIFY-CODE',
+    };
+
+    const result = await verify();
+    expect(result.status).toBe(200);
+    expect(result.body).toMatchObject({
+      valid: true,
+      documentType: 'certificate',
+      prescription: null,
+      certificate: { cuir: 'TEST-DOCUMENT-CUIR', signatureMethod: 'ac_external', pdfUrl: null },
+    });
+    expect(JSON.stringify(result.body)).not.toContain('private.example.invalid');
+  });
+
   it('returns invalid for missing prescriptions and certificates', async () => {
     const result = await verify();
     expect(result.body).toMatchObject({ valid: false, prescription: null, certificate: null });
