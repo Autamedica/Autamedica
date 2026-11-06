@@ -84,12 +84,15 @@ jobs:
               printf '%s\n' '{"project_info":{"project_number":"653971537811","project_id":"autamedica-e54fa","storage_bucket":"autamedica-e54fa.firebasestorage.app"},"client":[{"client_info":{"mobilesdk_app_id":"1:653971537811:android:dummy","android_client_info":{"package_name":"com.autamedica.android"}},"oauth_client":[],"api_key":[{"current_key":"dummy"}],"services":{}}],"configuration_version":"1"}' > apps/android/app/google-services.json
             fi
       - run:
-          name: JVM tests and Android test compilation
+          name: JVM tests, Android test compilation and unsigned release-bundle build
           command: |
             cd apps/android
             chmod +x ./gradlew
-            ./gradlew testDebugUnitTest compileDebugAndroidTestSources -PfirebasePerformanceInstrumentationEnabled=false --max-workers=2 --no-daemon --stacktrace
-          no_output_timeout: 20m
+            # This release dry run uses synthetic configuration; NEVER distribute this bundle.
+            ./gradlew testDebugUnitTest compileDebugAndroidTestSources bundleRelease -PfirebasePerformanceInstrumentationEnabled=false --max-workers=2 --no-daemon --stacktrace
+            test -n "$(find app/build/outputs/bundle/release -maxdepth 1 -type f -name '*.aab' -size +0c -print -quit)"
+            echo 'UNSIGNED RELEASE BUNDLE COMPILED — NOT FOR PLAY UPLOAD'
+          no_output_timeout: 25m
 
 workflows:
   smoke_manual:
