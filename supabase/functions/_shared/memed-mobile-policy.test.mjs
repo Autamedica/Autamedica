@@ -28,7 +28,7 @@ test('only active/recent completed or in progress encounter is eligible', () => 
   assert.equal(appointmentPermitsPrescription('in_progress','2026-11-06T11:00:00.000Z',null,now,'telemedicine'),false);
 });
 test('CFM license must match exact doctor CRM and UF', () => {
-  const d={active:true,license_type:'CRM',license_number:'123456',uf_brazil:'RS'};
+  const d={active:true,license_type:'CRM',license_number:'123456',uf_brazil:'RS',care_country:'BR'};
   const valid=[{license_number:'123456',uf_brazil:'RS',status:'active',cfm_validation_status:'valid'}];
   assert.equal(verifiedBrazilLicense(d,valid),true);
   assert.equal(verifiedBrazilLicense(d,[{...valid[0],uf_brazil:'SC'}]),false);
