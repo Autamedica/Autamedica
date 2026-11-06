@@ -23,9 +23,10 @@ export const GET: APIRoute = async ({request, locals}) => {
   try {
     const admin = createAstroAdminClient(locals.runtime?.env);
     const {data: doctor, error: doctorError} = await admin.from('doctors')
-      .select('id, active, license_type, license_number, uf_brazil')
+      .select('id, active, license_type, license_number, uf_brazil, care_country')
       .eq('user_id', auth.user.id).maybeSingle();
     if (doctorError || !doctor?.active || doctor.license_type !== 'CRM' ||
+      (doctor.care_country != null && doctor.care_country !== 'BR') ||
       doctor.id !== locals.runtime?.env?.MEMED_PILOT_DOCTOR_ID) {
       return forbidden('memed_pilot_doctor_required');
     }
