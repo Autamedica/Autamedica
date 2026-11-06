@@ -4,6 +4,7 @@ import { normalizeArPhone, canOpenWhatsApp, isExplicitOptOut, waMeLink } from '.
 describe('B2C WhatsApp Argentina safety rules', () => {
   it('normalizes 10 digit Argentina mobiles without guessing partial numbers', () => {
     expect(normalizeArPhone('11 1234-5678')).toBe('+5491112345678');
+    expect(normalizeArPhone('011 1234-5678')).toBe('+5491112345678');
     expect(normalizeArPhone('+54 9 11 1234-5678')).toBe('+5491112345678');
     expect(normalizeArPhone('123')).toBe(null);
     expect(normalizeArPhone('')).toBe(null);
