@@ -6,6 +6,7 @@ import { withAuth, isAuthed } from '@/lib/api-auth'
 import { callSessionBackendService } from '@/lib/calls/services/call-session.backend'
 import { verifyGuestToken } from '@/lib/calls/lib/guest-token'
 import { resolveGuestSecret } from '@/lib/runtime-env'
+import { verifyGuestDispatchAccess } from '@/lib/calls/lib/guest-dispatch-access'
 
 
 
@@ -34,7 +35,13 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
       if (!guest) return unauthorized()
 
       const admin = createAstroAdminClient(locals.runtime?.env)
-      const result = await callSessionBackendService.getGuestBootstrap(admin, roomId, guest, bearerToken)
+      if (guest.roomId !== roomId) return forbidden('call_access_denied')
+      const access = await verifyGuestDispatchAccess(admin, guest)
+      if (access.kind === 'forbidden') return forbidden('call_access_denied')
+      if (access.kind === 'conflict') return conflict(access.message)
+      const result = await callSessionBackendService.getGuestBootstrap(
+        admin, roomId, guest, bearerToken, access.dispatchRequestId,
+      )
 
       if (result.kind === 'not_found') return notFound('call_not_found')
       if (result.kind === 'conflict') return conflict(result.message)
