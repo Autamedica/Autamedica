@@ -12,8 +12,9 @@ export function buildMemedMobileLaunchUrl(appointmentId: string): string {
   return url.toString();
 }
 export function appointmentPermitsPrescription(
-  status: unknown, startTime: unknown, endTime: unknown, nowMs: number,
+  status: unknown, startTime: unknown, endTime: unknown, nowMs: number, appointmentType: unknown, 
 ): boolean {
+  if (appointmentType !== 'telemedicine') return false;
   if (status !== 'in_progress' && status !== 'completed') return false;
   if (typeof startTime !== 'string') return false;
   const started = Date.parse(startTime);
@@ -27,7 +28,7 @@ export function verifiedBrazilLicense(
 ): boolean {
   const digits = (s: unknown) => String(s ?? '').replace(/\D/g, '');
   return doctor.active === true && doctor.license_type === 'CRM' &&
-    (doctor.care_country == null || doctor.care_country === 'BR') &&
+    doctor.care_country === 'BR' &&
     /^[A-Z]{2}$/.test(doctor.uf_brazil ?? '') &&
     digits(doctor.license_number).length > 0 &&
     licenses.some(row => row.status === 'active' && row.cfm_validation_status === 'valid' &&
