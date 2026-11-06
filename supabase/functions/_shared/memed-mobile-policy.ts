@@ -22,11 +22,12 @@ export function appointmentPermitsPrescription(
   return true;
 }
 export function verifiedBrazilLicense(
-  doctor: {active?: boolean; license_type?: string; license_number?: string; uf_brazil?: string},
+  doctor: {active?: boolean; license_type?: string; license_number?: string; uf_brazil?: string; care_country?: string | null},
   licenses: Array<{license_number?: string; uf_brazil?: string; status?: string; cfm_validation_status?: string}>,
 ): boolean {
   const digits = (s: unknown) => String(s ?? '').replace(/\D/g, '');
   return doctor.active === true && doctor.license_type === 'CRM' &&
+    (doctor.care_country == null || doctor.care_country === 'BR') &&
     /^[A-Z]{2}$/.test(doctor.uf_brazil ?? '') &&
     digits(doctor.license_number).length > 0 &&
     licenses.some(row => row.status === 'active' && row.cfm_validation_status === 'valid' &&
