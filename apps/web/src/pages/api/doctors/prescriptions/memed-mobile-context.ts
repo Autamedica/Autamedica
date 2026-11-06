@@ -26,7 +26,7 @@ export const GET: APIRoute = async ({request, locals}) => {
       .select('id, active, license_type, license_number, uf_brazil, care_country')
       .eq('user_id', auth.user.id).maybeSingle();
     if (doctorError || !doctor?.active || doctor.license_type !== 'CRM' ||
-      (doctor.care_country != null && doctor.care_country !== 'BR') ||
+      doctor.care_country !== 'BR' ||
       doctor.id !== locals.runtime?.env?.MEMED_PILOT_DOCTOR_ID) {
       return forbidden('memed_pilot_doctor_required');
     }
@@ -40,11 +40,12 @@ export const GET: APIRoute = async ({request, locals}) => {
       lic.uf_brazil?.toUpperCase() === doctor.uf_brazil?.toUpperCase());
     if (!validLicense) return forbidden('verified_crm_required');
     const {data: appt, error: apptError} = await admin.from('appointments')
-      .select('doctor_id, patient_id, status, start_time')
+      .select('doctor_id, patient_id, status, start_time, type')
       .is('deleted_at', null)
       .eq('id', appointmentId).eq('doctor_id', doctor.id).maybeSingle();
     const start = appt?.start_time ? Date.parse(appt.start_time) : NaN;
-    if (apptError || !appt || !['in_progress', 'completed'].includes(appt.status) ||
+    if (apptError || !appt || appt.type !== 'telemedicine' ||
+      !['in_progress', 'completed'].includes(appt.status) ||
       !Number.isFinite(start) || start < Date.now() - 24 * 60 * 60_000 || start > Date.now() + 5 * 60_000) {
       return forbidden('clinical_encounter_required');
     }
