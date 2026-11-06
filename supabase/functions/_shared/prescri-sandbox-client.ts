@@ -74,17 +74,17 @@ export async function providerFetch(
       !ALLOWED_PATHS.has(url.pathname.slice('/functions/v1'.length))) {
     throw new Error('prescri_endpoint_not_allowlisted');
   }
+  const headers = new Headers(init.headers);
+  headers.set('X-API-Key', credentials.key);
+  headers.set('X-API-Secret', credentials.secret);
+  headers.set('Accept', path.startsWith('/api-signatures-pdf') ? 'application/pdf' : 'application/json');
+  if (init.body) headers.set('Content-Type', 'application/json');
   return fetcher(url, {
     ...init,
     redirect: 'error',
     referrerPolicy: 'no-referrer',
     signal: AbortSignal.timeout(15_000),
-    headers: {
-      'X-API-Key': credentials.key,
-      'X-API-Secret': credentials.secret,
-      'Accept': path.startsWith('/api-signatures-pdf') ? 'application/pdf' : 'application/json',
-      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-    },
+    headers,
   });
 }
 
