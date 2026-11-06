@@ -27,12 +27,16 @@ data class Prescription(
      * Determines whether this prescription is currently active and valid.
      */
     val isActive: Boolean
-        get() = !signedPdfUrl.isNullOrBlank() && (
+        get() = signedPdfUrl?.startsWith("https://", ignoreCase = true) == true && (
             status.equals("activa", ignoreCase = true) ||
             status.equals("active", ignoreCase = true) ||
             status.equals("signed", ignoreCase = true) ||
             status.equals("firmada", ignoreCase = true)
         )
+
+    /** A server-supplied HTTPS PDF with an accepted signed status, not legal verification. */
+    val effectivePdfUrl: String?
+        get() = signedPdfUrl?.takeIf { isActive }
 
     /**
      * Determines whether this prescription was already dispensed by a pharmacy.
@@ -68,7 +72,7 @@ data class Prescription(
      * Effective QR content for pharmacy scanning (falls back to verification URL if cuir is present).
      */
     val effectiveQrContent: String
-        get() = if (status.equals("draft", ignoreCase = true)) "" else (
+        get() = if (!isActive) "" else (
             qrCodeContent?.takeIf { it.isNotBlank() }
                 ?: cuir?.let { "https://autamedica.com/verify/$it" }
                 ?: ""
