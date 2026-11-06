@@ -3,7 +3,7 @@
 ## Alcance implementado
 - O médico na videoconferência Android vê `Abrir receita BR no Memed` apenas no caso BR, com vínculo de paciente e país clínico compatível.
 - Um `memed-mobile-preflight` autenticado com JWT Supabase verifica o **médico logado** (role, registro CRM/UF, CFM vigente, `MEMED_MOBILE_PILOT_DOCTOR_ID`), a consulta pelo UUID (`in_progress`/`completed` nas últimas 24h) e paciente BR com `active`, CPF e data de nascimento, gênero e consentimento LGPD.
-- O backend retorna **apenas** `https://www.autamedica.com/doctors/prescriptions/memed-mobile?appointmentId=<UUID>`; nem CPF, nem ID de paciente, tokens Memed, credenciais ou JWT no URL.
+- O backend retorna **apenas** `https://doctor.autamedica.com/doctors/prescriptions/memed-mobile?appointmentId=<UUID>`; nem CPF, nem ID de paciente, tokens Memed, credenciais ou JWT no URL.
 - Kotlin valida estritamente esquema/host/rota/parâmetros antes de chamar `androidx.browser:browser` em Custom Tabs, sem `addJavascriptInterface` e sem permitir sharing pelo browser.
 - Página médica **exclusiva de celular** `/doctors/prescriptions/memed-mobile` faz nova autenticação via cookie de sessão do portal, cruza a consulta ao médico e executa o `MemedPrescriptionWidget` já existente. O médico pode ter de iniciar sessão no navegador — a sessão Kotlin **não** é compartilhada automaticamente.
 - O endpoint `memed-mobile-context` exige `MEMED_RX_ENABLED=true`, `MEMED_MOBILE_ENABLED=true`, CRM/CFM validado, mesmo piloto, mesmo agendamento e `resolveMemedPatient` (autorização e consentimento). Nenhum dado clínico aparece antes desse check.
