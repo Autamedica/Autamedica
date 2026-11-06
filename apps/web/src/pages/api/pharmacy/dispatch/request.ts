@@ -40,6 +40,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return badRequest('Seleccioná Argentina o Brasil como país de atención')
     }
 
+    // A commercial partner QR is jurisdiction-specific. Reject this at the
+    // server boundary, not only in the Android country picker.
+    if (referralCode === 'JORDAN' && careCountry !== 'BR') {
+      return badRequest('referral_not_available_for_selected_country')
+    }
+
     const rawDocument = careCountry === 'BR' ? (patientCpf ?? patientDni) : patientDni
     if (typeof rawDocument !== 'string' || !rawDocument.trim()) {
       return badRequest('Número de documento requerido')
