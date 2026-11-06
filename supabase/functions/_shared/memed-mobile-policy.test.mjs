@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { appointmentPermitsPrescription, buildMemedMobileLaunchUrl,
-  validMemedMobileAppointment, verifiedBrazilLicense } from './memed-mobile-policy.ts';
+  validMemedMobileAppointment, verifiedBrazilLicense, validBrazilPatientIdentity } from './memed-mobile-policy.ts';
 
 const appointment = '12345678-abcd-4d91-8a1f-1234567890ab';
 test('accepts only UUID appointment identifiers, not arbitrary URLs', () => {
@@ -35,4 +35,15 @@ test('CFM license must match exact doctor CRM and UF', () => {
   assert.equal(verifiedBrazilLicense({...d,active:false},valid),false);
   assert.equal(verifiedBrazilLicense({...d,license_type:'MP'},valid),false);
   assert.equal(verifiedBrazilLicense({...d,care_country:'AR'},valid),false);
+});
+
+test('patient identity requires real CPF checksum, possible DOB and a supported sex value', () => {
+  const now = Date.parse('2026-11-06T13:00:00.000Z');
+  // Fictional test checksum vector; no patient record or real transmission.
+  assert.equal(validBrazilPatientIdentity('12345678909', '2000-01-01', 'F', now), true);
+  assert.equal(validBrazilPatientIdentity('12345678900', '2000-01-01', 'F', now), false);
+  assert.equal(validBrazilPatientIdentity('00000000000', '2000-01-01', 'F', now), false);
+  assert.equal(validBrazilPatientIdentity('12345678909', '2026-02-30', 'F', now), false);
+  assert.equal(validBrazilPatientIdentity('12345678909', '2099-01-01', 'F', now), false);
+  assert.equal(validBrazilPatientIdentity('12345678909', '2000-01-01', 'unknown', now), false);
 });
