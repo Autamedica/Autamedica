@@ -1,0 +1,17 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { B2CWhatsAppDashboardUI } from '@/components/admin/B2CWhatsAppDashboardUI';
+import { resolveAdminRole } from '@/lib/admin/auth';
+const session = Astro.locals.session;
+if (!session) return Astro.redirect('/auth/login?returnTo=/admin/b2c-whatsapp&portal=admin');
+const role = await resolveAdminRole(session, Astro.locals.supabase);
+if (!role) return Astro.redirect('/admin/unauthorized');
+---
+<Layout title="B2C WhatsApp | AutaMedica Admin" description="CRM B2C Argentina">
+  <div class="min-h-screen bg-slate-50 px-4 py-6">
+    <main class="mx-auto max-w-6xl">
+      <a href="/admin" class="text-sm underline">Admin</a>
+      <B2CWhatsAppDashboardUI client:load />
+    </main>
+  </div>
+</Layout>
