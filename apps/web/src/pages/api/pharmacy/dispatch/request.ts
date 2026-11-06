@@ -85,6 +85,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       mobileUserId = bearerIdentity.user.id
     }
 
+    // Reject account/session mismatches before any commercial lookup or clinical write.
+    const sessionUser = (locals as { user?: { id: string } }).user ?? locals.session?.user
+    if (sessionUser?.id && mobileUserId && sessionUser.id !== mobileUserId) {
+      return forbidden('mobile_session_conflicts_with_cookie_session')
+    }
+    const requestedByUserId = mobileUserId || sessionUser?.id || null
+
     // 2. Validar pertenencia a kiosco registrado si kioskId viene provisto
     let resolvedKioskId: string | null = null
     let resolvedPharmacyId: string | null = null
@@ -160,13 +167,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     const cloudflareRoomId = generateCloudflareRoomId(selectedTier, normalizedDocument)
-
-    // Asociar usuario dueño si la petición proviene de un usuario autenticado
-    const sessionUser = (locals as { user?: { id: string } }).user ?? locals.session?.user
-    if (sessionUser?.id && mobileUserId && sessionUser.id !== mobileUserId) {
-      return forbidden('mobile_session_conflicts_with_cookie_session')
-    }
-    const requestedByUserId = mobileUserId || sessionUser?.id || null
 
     const secret = resolveGuestSecret(locals.runtime?.env)
     if (!secret) {
