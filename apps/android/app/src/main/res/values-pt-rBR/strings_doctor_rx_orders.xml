@@ -109,12 +109,12 @@
     <string name="doctor_create_rx_notes_placeholder">Ex: Permite substituição por genérico, uso contínuo...</string>
 
     <!-- Success Modal Dialog -->
-    <string name="doctor_create_rx_success_title">Receita Emitida com Sucesso!</string>
-    <string name="doctor_create_rx_success_body">A receita digital foi assinada e registrada de acordo com a legislação vigente.</string>
+    <string name="doctor_create_rx_success_title">Receita registrada</string>
+    <string name="doctor_create_rx_success_body">A receita foi registrada. Esta mensagem não confirma a verificação da assinatura digital.</string>
     <string name="doctor_create_rx_cuir_label">CÓDIGO ÚNICO (CUIR):</string>
     <string name="doctor_create_rx_copy_cuir">Copiar</string>
     <string name="doctor_create_rx_cuir_copied_toast">CUIR copiado</string>
-    <string name="doctor_create_rx_success_validity">Válida em farmácias de todo o país por consulta online ou leitura do código QR.</string>
+    <string name="doctor_create_rx_success_validity">Confira a assinatura e a validade com o emissor antes de utilizar o documento.</string>
     <string name="doctor_create_rx_success_button">Ver Minhas Receitas</string>
 
     <!-- =================================================================== -->
@@ -228,7 +228,7 @@
     <string name="doctor_rx_val_frequency_required">Indique a frequência de uso para %1$s</string>
     <string name="doctor_rx_val_diagnosis_required">Indique o diagnóstico clínico (CID-10)</string>
     <string name="doctor_rx_val_license_required">Deve configurar seu CRM/registro antes de emitir receitas</string>
-    <string name="doctor_rx_val_issued_success">Receita emitida com sucesso: CUIR %1$s</string>
+    <string name="doctor_rx_val_issued_success">Receita registrada: referência %1$s. Confira a assinatura antes de utilizá-la.</string>
     <string name="doctor_rx_val_issue_error">Erro ao emitir: %1$s</string>
     <string name="doctor_rx_val_load_error">Erro ao carregar receitas: %1$s</string>
     <string name="doctor_rx_val_unknown_error">Erro desconhecido</string>
