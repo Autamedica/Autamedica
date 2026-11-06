@@ -70,69 +70,39 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (payload.object !== 'whatsapp_business_account') return json({ ignored: true });
   const db = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient;
   let processed = 0;
-
   for (const entry of payload.entry || []) {
     for (const change of entry.changes || []) {
       const value = change.value;
       if (!value || value.metadata?.phone_number_id !== expectedPhoneId) continue;
-      const inboundMessages = value.messages || [];
-      const appEchoes = value.smb_message_echoes || [];
-      for (const item of [...inboundMessages.map(message => ({ message, echo: false })),
-                           ...appEchoes.map(message => ({ message, echo: true }))]) {
-        const message = item.message;
-        if (!message.id || message.id.length > 255) continue;
-        const sender = normalizeArPhone(item.echo ? message.to : message.from);
-        if (!sender) continue;
-        const { data: contacts, error: lookupError } = await db.from('b2c_whatsapp_contacts')
-          .select('id,contact_status,consent_status')
-          .eq('country_code', 'AR').eq('phone_e164', sender).limit(2);
-        if (lookupError) return json({ error: 'contact_lookup_failed' }, 500);
-        // Shared phone -> ambiguous identity. Never attribute message to a person automatically.
-        if (!contacts || contacts.length !== 1) continue;
-        const contact = contacts[0];
-        const optedOut = !item.echo && isExplicitOptOut(message.text?.body);
-        const eventType = item.echo ? 'app_echo' : optedOut ? 'inbound_opt_out' : 'inbound_message';
-        const { error: eventError } = await db.from('b2c_whatsapp_events')
-          .insert({ contact_id: contact.id, event_type: eventType, origin: 'meta_webhook', provider_message_id: message.id });
-        if (eventError) {
-          if (eventError.code === '23505') continue; // Meta retries, process once.
-          return json({ error: 'event_write_failed' }, 500);
-        }
-        if (optedOut) {
-          const { error } = await db.from('b2c_whatsapp_contacts').update({
-            consent_status: 'withdrawn', contact_status: 'do_not_contact',
-            exclusion_reason: 'Baja explícita por WhatsApp', last_inbound_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }).eq('id', contact.id);
-          if (error) return json({ error: 'optout_write_failed' }, 500);
-        } else if (item.echo) {
-          // An app echo alone is not proof of delivery or of a paid conversion.
-          const { error } = await db.from('b2c_whatsapp_contacts').update({
-            last_outbound_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-          }).eq('id', contact.id);
-          if (error) return json({ error: 'outbound_write_failed' }, 500);
-        } else if (contact.contact_status !== 'do_not_contact') {
-          const { error } = await db.from('b2c_whatsapp_contacts').update({
-            contact_status: contact.contact_status === 'interested' ? 'interested' : 'replied',
-            last_inbound_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-          }).eq('id', contact.id).neq('contact_status','do_not_contact');
-          if (error) return json({ error: 'inbound_write_failed' }, 500);
-        }
-        processed++;
+      // Meta sends SMB outbound echoes through the smb_message_echoes field.
+      // They must not be interpreted as customer replies.
+      const echoField = change.field === 'smb_message_echoes';
+      const inbound = echoField ? [] : (value.messages || []);
+      const echoes = echoField ? (value.messages || value.smb_message_echoes || []) : (value.smb_message_echoes || []);
+      for (const { message, isEcho } of [
+        ...inbound.map(message => ({ message, isEcho: false })),
+        ...echoes.map(message => ({ message, isEcho: true })),
+      ]) {
+        if (!message.id) continue;
+        const to = message as MetaMessage & { recipient_id?: string };
+        const phone = normalizeArPhone(isEcho ? (to.to || to.recipient_id) : message.from);
+        if (!phone) continue;
+        const eventType = isEcho ? 'app_echo'
+          : isExplicitOptOut(message.text?.body) ? 'inbound_opt_out' : 'inbound_message';
+        const { data, error } = await db.rpc('record_b2c_whatsapp_event', {
+          p_phone_e164: phone, p_event_type: eventType, p_provider_message_id: message.id,
+        });
+        if (error) return json({ error: 'event_write_failed' }, 500);
+        if (data === true) processed++;
       }
       for (const status of value.statuses || []) {
         if (!status.id || !['delivered','read'].includes(status.status || '')) continue;
         const phone = normalizeArPhone(status.recipient_id);
         if (!phone) continue;
-        const { data: contacts, error } = await db.from('b2c_whatsapp_contacts')
-          .select('id').eq('country_code','AR').eq('phone_e164',phone).limit(2);
-        if (error) return json({ error: 'status_lookup_failed' }, 500);
-        if (!contacts || contacts.length !== 1) continue;
-        const { error: eventError } = await db.from('b2c_whatsapp_events').insert({
-          contact_id: contacts[0].id, event_type: status.status, origin: 'meta_webhook',
-          provider_message_id: status.id.slice(0,255),
+        const { error } = await db.rpc('record_b2c_whatsapp_event', {
+          p_phone_e164: phone, p_event_type: status.status, p_provider_message_id: status.id,
         });
-        if (eventError && eventError.code !== '23505') return json({ error: 'status_write_failed' }, 500);
+        if (error) return json({ error: 'status_write_failed' }, 500);
       }
     }
   }
