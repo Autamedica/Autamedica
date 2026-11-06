@@ -70,6 +70,7 @@ export function MemedMobileRoute() {
     </main>;
   }
   return <MemedPrescriptionWidget
+    mobileFullscreen
     patientId={state.patientId}
     onPrescriptionSaved={id => onEvent('issued', id)}
     onPrescriptionDeleted={id => onEvent('deleted', id)}
