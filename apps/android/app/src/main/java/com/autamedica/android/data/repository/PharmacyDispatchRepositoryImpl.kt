@@ -70,6 +70,13 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 
     // Never write short-lived guest JWTs to logs, analytics or persistent storage.
     private val guestAccessTokens = ConcurrentHashMap<String, String>()
+    // Guest JWTs last two hours on the server. Refresh no later than one hour
+    // to avoid an unnecessary recovery POST (and DB write) every 3s poll.
+    private val guestTokenRefreshDeadline = ConcurrentHashMap<String, Long>()
+    private fun rememberGuestToken(requestId: String, token: String) {
+        guestAccessTokens[requestId] = token
+        guestTokenRefreshDeadline[requestId] = System.currentTimeMillis() + 3_600_000L
+    }
     // An opaque 256-bit RECOVERY secret (not the JWT) is Keystore-encrypted via
     // SecurePreferences. It restores the same guest request after process death.
     private val guestRecoveryKey = "pharmacy_guest_queue_recovery_v1"
@@ -93,6 +100,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             securePreferences?.remove(guestRecoveryOwnerKey)
         }
         guestAccessTokens.remove(requestId)
+        guestTokenRefreshDeadline.remove(requestId)
     }
 
     private suspend fun resumeGuestRequestFromEncryptedDevice(requestId: String): PharmacyDispatchRequest? =
@@ -133,7 +141,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                     data["request"] ?: error("Missing recovered guest request")
                 )
                 check(dto.id == requestId) { "Recovered guest request mismatch" }
-                guestAccessTokens[requestId] = freshJwt
+                rememberGuestToken(requestId, freshJwt)
                 dto.toDomain()
             }
         }
@@ -180,7 +188,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 securePreferences.putString(guestRecoveryKey, "${dto.id}:$recoveryToken")
                 if (ownerUserId != null) securePreferences.putString(guestRecoveryOwnerKey, ownerUserId)
                 else securePreferences.remove(guestRecoveryOwnerKey)
-                guestAccessTokens[dto.id] = token
+                rememberGuestToken(dto.id, token)
                 dto.toDomain()
             }
         }
@@ -590,8 +598,15 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         require(requestId.matches(Regex("^[0-9a-fA-F-]{36}$"))) { "Invalid payment request" }
         val owner = securePreferences?.getString(guestRecoveryOwnerKey)
         check(owner == authRepository.getCurrentUser()?.id) { "Payment credential belongs to another session" }
-        if (savedGuestRecovery()?.first == requestId) {
-            resumeGuestRequestFromEncryptedDevice(requestId)
+        val now = System.currentTimeMillis()
+        if (guestAccessTokens[requestId] == null ||
+            (guestTokenRefreshDeadline[requestId] ?: 0L) <= now) {
+            check(savedGuestRecovery()?.first == requestId) {
+                "Encrypted payment recovery unavailable"
+            }
+            check(resumeGuestRequestFromEncryptedDevice(requestId) != null) {
+                "Cannot restore signed payment credential"
+            }
         }
         return guestAccessTokens[requestId] ?: error("Signed payment credential unavailable")
     }
