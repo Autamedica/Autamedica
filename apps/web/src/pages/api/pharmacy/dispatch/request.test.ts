@@ -203,6 +203,17 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     }))
   })
 
+  it('rejects forged Jordan country crossing before commercial or clinical queries', async () => {
+    const response = await POST(makeContext({
+      body: {
+        careCountry: 'AR', patientDni: '38123456',
+        patientPhone: '+5491122334455', referralCode: 'JORDAN',
+      },
+    }))
+    expect(response.status).toBe(400)
+    expect(supabaseMock.from).not.toHaveBeenCalled()
+  })
+
   it('rechaza CPF brasileño incompleto', async () => {
     const response = await POST(makeContext({
       body: { careCountry: 'BR', patientCpf: '1234', patientPhone: '+5551987654321' },
