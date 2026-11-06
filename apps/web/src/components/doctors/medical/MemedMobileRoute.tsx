@@ -50,8 +50,15 @@ export function MemedMobileRoute() {
     return <main className="mx-auto max-w-md p-6">
       <h1 className="text-xl font-semibold">Sessão médica necessária</h1>
       <p className="mt-3 text-sm">Entre no portal AutaMedica como o médico responsável e retorne a esta página.</p>
-      <button className="mt-4 rounded bg-blue-700 px-4 py-3 text-white" onClick={() => setRevision(x => x + 1)}>
-        Já entrei — verificar novamente
+      <button className="mt-4 rounded bg-blue-700 px-4 py-3 text-white" onClick={() => {
+        const returnTo = window.location.pathname + window.location.search;
+        window.location.assign('/auth/login?role=doctor&returnTo=' + encodeURIComponent(returnTo));
+      }}>
+        Entrar como médico
+      </button>
+      <button className="ml-3 mt-4 rounded border px-4 py-3 text-slate-700"
+        onClick={() => { setState({status: 'loading'}); setRevision(x => x + 1); }}>
+        Já entrei — verificar
       </button>
     </main>;
   }
