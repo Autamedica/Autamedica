@@ -20,7 +20,7 @@ begin
      or p_event_type not in ('inbound_message','inbound_opt_out','app_echo','delivered','read') then
     return false;
   end if;
-  select count(*), min(id) into v_count,v_contact_id
+  select count(*), min(id::text)::uuid into v_count,v_contact_id
     from public.b2c_whatsapp_contacts where country_code='AR' and phone_e164=p_phone_e164;
   if v_count <> 1 then return false; end if;
 
