@@ -1,11 +1,11 @@
 # AutaMedica Memed Android: isolated CircleCI smoke, no deployment.
-# PR #713 only. Temporary single-commit Android test: restore opt-in default after obtaining CI result.
+# PR #713 only. Android tests require an explicit CircleCI pipeline parameter.
 version: 2.1
 
 parameters:
   run_android:
     type: boolean
-    default: true
+    default: false
 
 jobs:
   memed_contract:
