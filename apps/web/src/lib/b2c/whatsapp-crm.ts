@@ -15,6 +15,8 @@ export function normalizeArPhone(input: unknown): string | null {
   if (typeof input !== 'string' && typeof input !== 'number') return null;
   const digits = String(input).replace(/[^0-9]/g, '');
   if (/^[0-9]{10}$/.test(digits)) return '+549' + digits;
+  // Argentina national trunk prefix (e.g. 011 + 8-digit local number).
+  if (/^0[0-9]{10}$/.test(digits)) return '+549' + digits.slice(1);
   if (/^549[0-9]{10}$/.test(digits)) return '+' + digits;
   if (/^54[0-9]{10}$/.test(digits)) return '+' + digits;
   return null;
