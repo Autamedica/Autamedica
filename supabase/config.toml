@@ -44,3 +44,7 @@ ip_version = "IPv4"
 [functions]
 
 [analytics]
+
+# Sandbox-only API proxy: require authenticated Supabase user JWT.
+[functions.prescri-br-sandbox]
+verify_jwt = true
