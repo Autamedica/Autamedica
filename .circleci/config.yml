@@ -63,12 +63,14 @@ jobs:
     environment:
       CI: "true"
       GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2048m -Dkotlin.daemon.jvm.options=-Xmx768m"
+      JAVA_HOME: "/usr/lib/jvm/java-17-openjdk-amd64"
     steps:
       - checkout
       - run:
           name: Check JDK and Android toolchain (no production secrets)
           command: |
-            java -version
+            test -x "$JAVA_HOME/bin/java"
+            "$JAVA_HOME/bin/java" -version
             test -f apps/android/gradlew
             printf '%s\n' 'SUPABASE_URL=https://placeholder.supabase.co' 'SUPABASE_ANON_KEY=placeholder-key' 'SIGNALING_URL=wss://placeholder.autamedica.invalid/signaling' 'GOOGLE_WEB_CLIENT_ID=placeholder-client-id' > apps/android/local.properties
             python3 - <<'PY'
