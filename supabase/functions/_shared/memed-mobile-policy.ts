@@ -1,6 +1,6 @@
 /** Pure, shared Memed Android handoff policy. Never authorizes issuance by itself. */
 export const MEMED_MOBILE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-export const MEMED_MOBILE_URL_BASE = 'https://www.autamedica.com/doctors/prescriptions/memed-mobile';
+export const MEMED_MOBILE_URL_BASE = 'https://doctor.autamedica.com/doctors/prescriptions/memed-mobile';
 
 export function validMemedMobileAppointment(input: unknown): input is string {
   return typeof input === 'string' && MEMED_MOBILE_UUID.test(input);
