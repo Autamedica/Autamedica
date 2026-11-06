@@ -1,0 +1,108 @@
+# AutaMedica — CircleCI Free, opt-in only.
+# This configuration never deploys, writes production data or signs APKs.
+# Every workflow is disabled unless manually enabled in CircleCI pipeline parameters.
+version: 2.1
+
+parameters:
+  run_smoke:
+    type: boolean
+    default: false
+  run_web:
+    type: boolean
+    default: false
+  run_android:
+    type: boolean
+    default: false
+
+jobs:
+  smoke:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Offline clinical privacy and Memed configuration guards
+          command: |
+            node --version
+            node --test scripts/security/service-worker-privacy.test.mjs
+            node --test scripts/ops/sync-memed-secrets.test.mjs
+
+  web:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: medium
+    environment:
+      CI: "true"
+      HUSKY: "0"
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+    steps:
+      - checkout
+      - run:
+          name: Install locked workspace dependencies
+          command: |
+            corepack enable
+            corepack prepare pnpm@9.15.2 --activate
+            pnpm install --frozen-lockfile
+          no_output_timeout: 15m
+      - run:
+          name: Verify clinical dispatch and optional signed-QR regression
+          command: |
+            pnpm --filter @autamedica/web exec vitest run 'src/pages/api/pharmacy/dispatch/request.test.ts'
+            if [ -f 'apps/web/src/pages/api/verify/[cuir].test.ts' ]; then
+              pnpm --filter @autamedica/web exec vitest run 'src/pages/api/verify/[cuir].test.ts'
+            else
+              echo 'VERIFY TEST NOT PRESENT ON THIS BRANCH: QR signature verification NOT validated by this job.'
+            fi
+          no_output_timeout: 10m
+
+  android:
+    docker:
+      - image: cimg/android:2026.10
+    resource_class: medium
+    environment:
+      CI: "true"
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2048m -Dkotlin.daemon.jvm.options=-Xmx768m"
+    steps:
+      - checkout
+      - run:
+          name: Check JDK and Android toolchain (no production secrets)
+          command: |
+            java -version
+            test -f apps/android/gradlew
+            printf '%s\n' 'SUPABASE_URL=https://placeholder.supabase.co' 'SUPABASE_ANON_KEY=placeholder-key' 'SIGNALING_URL=wss://placeholder.autamedica.invalid/signaling' 'GOOGLE_WEB_CLIENT_ID=placeholder-client-id' > apps/android/local.properties
+            python3 - <<'PY'
+            import json
+            from pathlib import Path
+            out = Path('apps/android/app/google-services.json')
+            if not out.exists():
+                synthetic = {
+                  'project_info': {'project_number': '653971537811', 'project_id': 'autamedica-e54fa', 'storage_bucket': 'autamedica-e54fa.firebasestorage.app'},
+                  'client': [{'client_info': {'mobilesdk_app_id': '1:653971537811:android:dummy', 'android_client_info': {'package_name': 'com.autamedica.android'}}, 'oauth_client': [], 'api_key': [{'current_key': 'dummy'}], 'services': {}}],
+                  'configuration_version': '1',
+                }
+                out.write_text(json.dumps(synthetic), encoding='utf-8')
+            PY
+      - run:
+          name: JVM tests and Android test compilation
+          command: |
+            cd apps/android
+            chmod +x ./gradlew
+            ./gradlew testDebugUnitTest compileDebugAndroidTestSources -PfirebasePerformanceInstrumentationEnabled=false --max-workers=2 --no-daemon --stacktrace
+          no_output_timeout: 20m
+
+workflows:
+  smoke_manual:
+    when: << pipeline.parameters.run_smoke >>
+    jobs:
+      - smoke
+
+  web_manual:
+    when: << pipeline.parameters.run_web >>
+    jobs:
+      - web
+
+  android_manual:
+    when: << pipeline.parameters.run_android >>
+    jobs:
+      - android
