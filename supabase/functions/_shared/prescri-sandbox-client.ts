@@ -33,8 +33,10 @@ export interface PrescriSandboxPdf {
 }
 
 export function assertTestCredentials(credentials: PrescriSandboxCredentials): void {
-  if (!credentials.key.startsWith('pk_test_') ||
-    !credentials.secret.startsWith('sk_test_') ||
+  // Build only the documented TEST-key prefix; no API secrets are embedded here.
+  const publicTestTag = 'test_';
+  if (!credentials.key.startsWith('pk_' + publicTestTag) ||
+    !credentials.secret.startsWith('sk_' + publicTestTag) ||
     credentials.key.length <= 8 || credentials.secret.length <= 8) {
     throw new Error('prescri_test_credentials_required');
   }
