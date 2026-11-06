@@ -250,6 +250,14 @@ class NotificationRouteResolverTest {
     }
 
     @Test
+    fun `Memed return link resumes app without starting duplicate video call`() {
+        // The browser returns to MainActivity's singleTop instance.
+        // A navigation route would recreate the ongoing call and risk dropping media.
+        assertThat(NotificationRouteResolver.parseDeepLink("autamedica://return")).isNull()
+        assertThat(NotificationRouteResolver.resolve(deepLink = "autamedica://return")).isNull()
+    }
+
+    @Test
     fun `pharmacy deep link with path id resolves to PharmacyIntake with extracted id`() {
         val route = NotificationRouteResolver.resolve(
             deepLink = "autamedica://farmacia/pharm-456"
