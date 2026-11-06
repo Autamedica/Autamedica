@@ -39,11 +39,11 @@ interface AppointmentRepository {
 
     suspend fun createAppointmentPayment(
         appointmentId: String,
-    ): Result<AppointmentPaymentExecution> = Result.success(AppointmentPaymentExecution(status = "approved"))
+    ): Result<AppointmentPaymentExecution> = Result.failure(IllegalStateException("appointment_payment_creation_unavailable"))
 
     suspend fun getAppointmentPaymentStatus(
         appointmentId: String,
-    ): Result<String?> = Result.success("approved")
+    ): Result<String?> = Result.failure(IllegalStateException("appointment_payment_status_unavailable"))
 
     suspend fun cancelAppointment(id: String): Result<Unit> = Result.success(Unit)
 
