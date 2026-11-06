@@ -46,8 +46,8 @@ export async function handler(req: Request): Promise<Response> {
     const appointmentId = payload.appointmentId;
     const {serviceClient: db, user} = auth;
     const {data: profile, error: profileError} = await db.from('profiles')
-      .select('role').eq('user_id', user.id).maybeSingle();
-    if (profileError || !DOCTOR_ROLES.has(profile?.role ?? '')) return reply({code: 'DOCTOR_REQUIRED'}, 403, cors);
+      .select('role, active').eq('user_id', user.id).maybeSingle();
+    if (profileError || profile?.active !== true || !DOCTOR_ROLES.has(profile?.role ?? '')) return reply({code: 'DOCTOR_REQUIRED'}, 403, cors);
     const {data: doctor, error: doctorError} = await db.from('doctors')
       .select('id, active, license_type, license_number, uf_brazil, care_country')
       .eq('user_id', user.id).maybeSingle();
