@@ -171,6 +171,7 @@ dependencies {
     implementation(libs.core.ktx)
     implementation(libs.activity.compose)
     implementation(libs.core.splashscreen)
+    implementation(libs.androidx.browser)
 
     // Navigation
     implementation(libs.navigation.compose)
