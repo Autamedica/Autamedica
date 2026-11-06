@@ -41,6 +41,7 @@ export const GET: APIRoute = async ({request, locals}) => {
     if (!validLicense) return forbidden('verified_crm_required');
     const {data: appt, error: apptError} = await admin.from('appointments')
       .select('doctor_id, patient_id, status, start_time')
+      .is('deleted_at', null)
       .eq('id', appointmentId).eq('doctor_id', doctor.id).maybeSingle();
     const start = appt?.start_time ? Date.parse(appt.start_time) : NaN;
     if (apptError || !appt || !['in_progress', 'completed'].includes(appt.status) ||
