@@ -1,0 +1,23 @@
+name: Memed Android mobile handoff contract
+on:
+  pull_request:
+    paths:
+      - 'supabase/functions/memed-mobile-preflight/**'
+      - 'supabase/functions/_shared/memed-mobile-policy*'
+      - 'apps/android/**'
+      - 'apps/web/src/pages/doctors/prescriptions/memed-mobile.astro'
+      - 'apps/web/src/pages/api/doctors/prescriptions/memed-mobile-context.ts'
+      - 'apps/web/src/components/doctors/medical/MemedMobileRoute.tsx'
+      - '.github/workflows/memed-mobile-bridge.yml'
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Test mobile handoff eligibility (offline only)
+        run: node --experimental-strip-types --test supabase/functions/_shared/memed-mobile-policy.test.mjs
