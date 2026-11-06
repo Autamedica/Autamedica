@@ -109,12 +109,12 @@
     <string name="doctor_create_rx_notes_placeholder">Ej: Apto sustitución genérica, uso prolongado...</string>
 
     <!-- Success Modal Dialog -->
-    <string name="doctor_create_rx_success_title">¡Receta Emitida con Éxito!</string>
-    <string name="doctor_create_rx_success_body">La receta digital ha sido firmada y registrada según normativa vigente.</string>
+    <string name="doctor_create_rx_success_title">Receta registrada</string>
+    <string name="doctor_create_rx_success_body">La receta fue registrada. Este aviso no confirma que la firma digital haya sido verificada.</string>
     <string name="doctor_create_rx_cuir_label">CÓDIGO ÚNICO (CUIR):</string>
     <string name="doctor_create_rx_copy_cuir">Copiar</string>
     <string name="doctor_create_rx_cuir_copied_toast">CUIR copiado</string>
-    <string name="doctor_create_rx_success_validity">Válida en farmacias de todo el país mediante consulta online o lectura del código QR.</string>
+    <string name="doctor_create_rx_success_validity">Verificá la firma y la validez con el emisor antes de utilizar el documento.</string>
     <string name="doctor_create_rx_success_button">Ver Mis Recetas</string>
 
     <!-- =================================================================== -->
@@ -228,7 +228,7 @@
     <string name="doctor_rx_val_frequency_required">Indique la frecuencia de toma para %1$s</string>
     <string name="doctor_rx_val_diagnosis_required">Indique el diagnóstico clínico (CIE-10)</string>
     <string name="doctor_rx_val_license_required">Debe configurar su matrícula médica antes de emitir recetas</string>
-    <string name="doctor_rx_val_issued_success">Receta emitida con éxito: CUIR %1$s</string>
+    <string name="doctor_rx_val_issued_success">Receta registrada: referencia %1$s. Verificá la firma antes de utilizarla.</string>
     <string name="doctor_rx_val_issue_error">Error al emitir: %1$s</string>
     <string name="doctor_rx_val_load_error">Error al cargar recetas: %1$s</string>
     <string name="doctor_rx_val_unknown_error">Error desconocido</string>
