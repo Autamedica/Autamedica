@@ -1,0 +1,76 @@
+# AutaMedica Memed Android: isolated CircleCI smoke, no deployment.
+# PR #713 only. Android tests require an explicit CircleCI pipeline parameter.
+version: 2.1
+
+parameters:
+  run_android:
+    type: boolean
+    default: false
+
+jobs:
+  memed_contract:
+    docker:
+      - image: cimg/node:22.16
+    resource_class: small
+    working_directory: ~/autamedica
+    steps:
+      - checkout
+      - run:
+          name: Verify Memed mobile preflight without private credentials
+          command: |
+            node --version
+            node --experimental-strip-types --test supabase/functions/_shared/memed-mobile-policy.test.mjs
+
+  android_unit_tests:
+    docker:
+      - image: cimg/android:2026.10
+    resource_class: medium
+    working_directory: ~/autamedica
+    steps:
+      - checkout
+      - run:
+          name: Create placeholder-only Android build configuration
+          command: |
+            cd apps/android
+            printf '%s\n' \
+              'SUPABASE_URL=https://placeholder.supabase.co' \
+              'SUPABASE_ANON_KEY=placeholder-key' \
+              'SIGNALING_URL=wss://placeholder.autamedica.com/signaling' \
+              'GOOGLE_WEB_CLIENT_ID=placeholder-client-id' \
+              > local.properties
+            if [ ! -f app/google-services.json ]; then
+              printf '%s\n' '{"project_info":{"project_number":"653971537811","project_id":"autamedica-e54fa","storage_bucket":"autamedica-e54fa.firebasestorage.app"},"client":[{"client_info":{"mobilesdk_app_id":"1:653971537811:android:dummy","android_client_info":{"package_name":"com.autamedica.android"}},"oauth_client":[],"api_key":[{"current_key":"dummy"}],"services":{}}],"configuration_version":"1"}' > app/google-services.json
+            fi
+      - run:
+          name: Run Android JVM tests (no production credentials)
+          no_output_timeout: 15m
+          command: |
+            cd apps/android
+            chmod +x ./gradlew
+            ./gradlew testDebugUnitTest -PfirebasePerformanceInstrumentationEnabled=false --no-daemon --stacktrace
+
+workflows:
+  memed_connectivity_smoke:
+    when:
+      not: << pipeline.parameters.run_android >>
+    jobs:
+      - memed_contract:
+          filters:
+            branches:
+              only:
+                - feat/memed-kotlin-mobile-bridge-20261106
+  memed_android_opt_in:
+    when: << pipeline.parameters.run_android >>
+    jobs:
+      - memed_contract:
+          filters:
+            branches:
+              only:
+                - feat/memed-kotlin-mobile-bridge-20261106
+      - android_unit_tests:
+          requires:
+            - memed_contract
+          filters:
+            branches:
+              only:
+                - feat/memed-kotlin-mobile-bridge-20261106
