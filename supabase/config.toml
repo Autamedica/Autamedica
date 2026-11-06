@@ -44,3 +44,8 @@ ip_version = "IPv4"
 [functions]
 
 [analytics]
+
+# Android Memed preflight; Supabase JWT is mandatory and clinical feature
+# remains disabled until verified physician/patient E2E is approved.
+[functions.memed-mobile-preflight]
+verify_jwt = true
