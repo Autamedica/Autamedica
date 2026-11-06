@@ -48,7 +48,7 @@ export async function handler(req: Request): Promise<Response> {
       .select('role').eq('user_id', user.id).maybeSingle();
     if (profileError || !DOCTOR_ROLES.has(profile?.role ?? '')) return reply({code: 'DOCTOR_REQUIRED'}, 403, cors);
     const {data: doctor, error: doctorError} = await db.from('doctors')
-      .select('id, active, license_type, license_number, uf_brazil')
+      .select('id, active, license_type, license_number, uf_brazil, care_country')
       .eq('user_id', user.id).maybeSingle();
     const pilotId = Deno.env.get('MEMED_MOBILE_PILOT_DOCTOR_ID');
     if (doctorError || !doctor || !pilotId || pilotId !== doctor.id) {
