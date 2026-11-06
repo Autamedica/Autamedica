@@ -181,7 +181,7 @@ fun CreateCertificateScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // 1. Regulatory Verification Status Banner
-            DoctorRegulatoryBanner(uiState.doctorEligibility)
+            DoctorRegulatoryBanner(uiState.doctorEligibility, uiState.isLoadingEligibility, viewModel::loadEligibility)
 
             // 2. Patient Selector Card
             PatientSelectorSection(
@@ -361,7 +361,7 @@ fun CreateCertificateScreen(
 }
 
 @Composable
-private fun DoctorRegulatoryBanner(eligibility: DoctorEligibility?) {
+private fun DoctorRegulatoryBanner(eligibility: DoctorEligibility?, isLoading: Boolean, onRetry: () -> Unit) {
     val isEligible = eligibility?.isEligible == true
     val license = eligibility?.doctorLicense ?: stringResource(R.string.cert_reg_registered)
 
@@ -398,6 +398,11 @@ private fun DoctorRegulatoryBanner(eligibility: DoctorEligibility?) {
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary
                 )
+                if (!isEligible) {
+                    TextButton(onClick = onRetry, enabled = !isLoading) {
+                        Text(stringResource(R.string.clinical_ops_refresh))
+                    }
+                }
             }
         }
     }
