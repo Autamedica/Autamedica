@@ -146,7 +146,7 @@ fun CreatePrescriptionScreen(
                             .height(50.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PortalDoctors),
-                        enabled = !uiState.isSubmitting,
+                        enabled = !uiState.isSubmitting && !uiState.isLoadingEligibility && uiState.doctorEligibility?.isEligible == true,
                     ) {
                         if (uiState.isSubmitting) {
                             CircularProgressIndicator(
@@ -351,7 +351,7 @@ fun CreatePrescriptionScreen(
 
 @Composable
 private fun DoctorRegulatoryBanner(eligibility: com.autamedica.android.domain.model.DoctorEligibility?) {
-    val isEligible = eligibility?.isEligible ?: true
+    val isEligible = eligibility?.isEligible == true
     val license = eligibility?.doctorLicense ?: stringResource(R.string.doctor_create_rx_regulatory_registered)
 
     Surface(
