@@ -55,7 +55,7 @@ object MemedMobileLaunchUrl {
         require(isUuid(expectedAppointmentId)) { "Consulta inválida" }
         require(raw.length < 512) { "Endereço Memed inválido" }
         val uri = URI(raw)
-        require(uri.scheme == "https" && uri.host == "www.autamedica.com" &&
+        require(uri.scheme == "https" && uri.host == "doctor.autamedica.com" &&
             uri.port == -1 && uri.rawUserInfo == null && uri.fragment == null &&
             uri.path == "/doctors/prescriptions/memed-mobile") {
             "Destino Memed não autorizado"
