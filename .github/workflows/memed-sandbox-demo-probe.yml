@@ -6,6 +6,12 @@ on:
       - 'scripts/memed-homologation-*.mjs'
       - '.github/workflows/memed-sandbox-demo-probe.yml'
   workflow_dispatch:
+    inputs:
+      emit_demo_once:
+        description: "Opt in to one Memed sandbox DEMO issuance (fictional patient, no external delivery)"
+        type: boolean
+        required: true
+        default: false
 permissions:
   contents: read
 jobs:
@@ -22,7 +28,9 @@ jobs:
           pnpm-version: '9.15.2'
       - name: Install Chromium
         run: pnpm exec playwright install chromium --with-deps
-      - name: Verify real Memed homologation SDK using synthetic doctor and patient
+      - name: Audit Memed sandbox by default; issue only with explicit workflow_dispatch consent
+        env:
+          MEMED_DEMO_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.emit_demo_once == true && 'emit-once' || 'audit' }}
         run: node scripts/memed-homologation-browser.mjs
       - name: Upload masked sandbox UI screenshot
         if: always()
