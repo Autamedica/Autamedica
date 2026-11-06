@@ -46,6 +46,13 @@ jobs:
             pnpm install --frozen-lockfile
           no_output_timeout: 15m
       - run:
+          name: Build workspace dependencies required by Vitest
+          command: |
+            # Workspace packages export dist/ files, which a fresh pnpm install does not generate.
+            # Build only the transitive dependencies of the web package, not the Astro web app itself.
+            pnpm --filter '@autamedica/web^...' run build
+          no_output_timeout: 15m
+      - run:
           name: Verify clinical dispatch and optional signed-QR regression
           command: |
             pnpm --filter @autamedica/web exec vitest run 'src/pages/api/pharmacy/dispatch/request.test.ts'
