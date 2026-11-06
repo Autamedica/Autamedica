@@ -46,8 +46,8 @@ export async function handleCloudflareCallsProxy(
   // The four operations below are the only ones used by the SFU SDK.
   const allowed =
     (method === 'POST' && path === 'sessions/new') ||
-    (method === 'POST' && /^sessions\\/[A-Za-z0-9_-]{1,128}\\/tracks\\/new$/.test(path)) ||
-    (method === 'PUT' && /^sessions\\/[A-Za-z0-9_-]{1,128}\\/(tracks\\/close|renegotiate)$/.test(path))
+    (method === 'POST' && /^sessions\/[A-Za-z0-9_-]{1,128}\/tracks\/new$/.test(path)) ||
+    (method === 'PUT' && /^sessions\/[A-Za-z0-9_-]{1,128}\/(tracks\/close|renegotiate)$/.test(path))
   if (!allowed) {
     return { status: 403, body: { error: 'Cloudflare Calls operation not allowed' } }
   }
