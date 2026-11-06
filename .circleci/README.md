@@ -68,3 +68,66 @@ App and that a project and pipeline definition were created.
 - https://circleci.com/docs/guides/orchestrate/pipeline-variables/
 - https://circleci.com/docs/guides/plans-pricing/credits/
 - https://circleci.com/developer/images/image/cimg/android
+
+## Automatic internal-draft release from a Git tag (separate from manual test jobs)
+
+**Status: staged code only. Not enabled for live release until the contexts and tag trigger exist.**
+The `android_release_internal_draft` workflow runs only on Git tags matching
+`android-vMAJOR.MINOR.PATCH`, never on every push to `main`. For example,
+`android-v1.2.22` must refer to an already-merged `main` commit whose
+`apps/android/app/build.gradle.kts` has `versionName = "1.2.22"`.
+The tag must also be protected by GitHub rulesets. Do not create it until QA.
+
+1. In CircleCI project settings, create a **GitHub App 'Tag pushes' trigger**
+   for the existing config source (not a continuous full Android build on all pushes).
+   Confirm the trigger actually passes the tag and uses the config on that tagged commit.
+2. Create **two restricted CircleCI contexts**. Restrict both to the AutaMedica
+   project and an expression that matches release tags and disallows SSH reruns;
+   review the exact expression syntax with CircleCI Organization Settings → Contexts.
+   Do not store signing or service-account secrets in code, GitHub comments,
+   project-wide environment variables or a screen recording.
+3. Set `autamedica-android-signing` context variables, using the **original
+   Google Play upload keystore** (NOT a newly generated key):
+   `AUTAMEDICA_RELEASE_KEYSTORE_BASE64`,
+   `AUTAMEDICA_RELEASE_STORE_PASSWORD`,
+   `AUTAMEDICA_RELEASE_KEY_ALIAS`,
+   `AUTAMEDICA_RELEASE_KEY_PASSWORD`,
+   `AUTAMEDICA_SUPABASE_URL`,
+   `AUTAMEDICA_SUPABASE_ANON_KEY`,
+   `AUTAMEDICA_GOOGLE_WEB_CLIENT_ID`,
+   `AUTAMEDICA_GOOGLE_SERVICES_JSON`.
+   Provide only real application configuration; the release job fails closed
+   on missing required values instead of silently using placeholders.
+4. Set `autamedica-google-play-internal` context variable
+   `AUTAMEDICA_GOOGLE_PLAY_SERVICE_ACCOUNT` to the Google Play Developer API
+   service-account JSON; grant the account narrowly scoped internal-track
+   release rights in Play Console, not administrative access.
+5. Validate that the new `versionCode` has not previously been used on ANY
+   Play testing/production track. Do not launch a new version while the
+   previous production review is unresolved without understanding its impact.
+6. After reviewed merge, sandbox clinical QA and sign-off, push **one
+   protected tag** on the intended `main` commit. CircleCI will automatically:
+   test Kotlin; check tag/main ancestry and version; generate a signed release
+   AAB with production endpoints; verify the JAR signature; pass only the AAB
+   through a short-lived workspace; and use pinned Fastlane to upload an
+   **internal-track DRAFT**. The upload is NOT a production release and does
+   not make the new version available to patients.
+7. Verify Play Console → Internal testing → Releases / Publishing overview.
+   Complete internal-device clinical QA, then explicitly approve any
+   rollout to production in Play Console. No automatic production promotion
+   exists in this workflow.
+
+**Safeguards:** missing credentials abort the job; source tag must match the
+Android versionName and be reachable from `main`; full signing keys and Google
+service-account credentials are never written to repository or CircleCI
+artifacts; only the signed AAB passes through a CircleCI workspace; matching
+tag filters on both jobs prevent ordinary push builds. The existing
+`run_smoke`, `run_web`, `run_android` manual jobs remain unchanged and
+use synthetic values. Budget: each release tag runs one Android medium job
+and one Ruby small job, using CircleCI Free credits (subject to account limits).
+Review CircleCI workspace retention limits and Google Play API permissions.
+
+References: CircleCI [GitHub tag triggers](https://circleci.com/docs/guides/orchestrate/github-trigger-event-options/),
+[Android deployment](https://circleci.com/docs/guides/deploy/deploy-android-applications/),
+[restricted contexts](https://circleci.com/docs/guides/security/contexts/),
+and [Fastlane supply](https://docs.fastlane.tools/actions/supply/).
