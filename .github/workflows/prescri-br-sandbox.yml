@@ -1,0 +1,29 @@
+name: Prescri BR sandbox adapter tests
+on:
+  push:
+    branches:
+      - feat/prescri-br-sandbox-api-20261106
+    paths:
+      - 'supabase/functions/_shared/prescri-sandbox-client.ts'
+      - 'supabase/functions/_shared/prescri-sandbox-client.test.mjs'
+      - '.github/workflows/prescri-br-sandbox.yml'
+  pull_request:
+    paths:
+      - 'supabase/functions/_shared/prescri-sandbox-client.ts'
+      - 'supabase/functions/_shared/prescri-sandbox-client.test.mjs'
+permissions:
+  contents: read
+jobs:
+  offline-contract-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-pnpm
+        with:
+          node-version: '22'
+          pnpm-version: '9.15.2'
+      - name: Verify sandbox-only REST contract without external network
+        run: node --experimental-strip-types --test supabase/functions/_shared/prescri-sandbox-client.test.mjs
