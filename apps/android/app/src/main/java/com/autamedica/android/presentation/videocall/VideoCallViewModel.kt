@@ -27,6 +27,7 @@ import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.DoctorRepository
 import com.autamedica.android.domain.repository.MedicalCertificateRepository
 import com.autamedica.android.domain.repository.PrescriptionRepository
+import com.autamedica.android.data.repository.MemedMobileBridgeRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.logging.SecureLog
 import com.autamedica.android.telemetry.CallTelemetry
@@ -109,6 +110,9 @@ data class VideoCallUiState(
     val isPreconsultationSaved: Boolean = false,
     val isAutoDegradedToAudio: Boolean = false,
     val isIssuingPrescription: Boolean = false,
+    val isOpeningMemed: Boolean = false,
+    val memedLaunchUrl: String? = null,
+    val memedLaunchError: String? = null,
     val isIssuingCertificate: Boolean = false,
     val lastIssuedDocumentCuir: String? = null,
     val inCallClinicalError: String? = null,
@@ -150,6 +154,7 @@ class VideoCallViewModel @Inject constructor(
     private val videoCallStateHolder: VideoCallStateHolder,
     private val supabaseClient: SupabaseClient,
     private val prescriptionRepository: PrescriptionRepository,
+    private val memedMobileBridgeRepository: MemedMobileBridgeRepository,
     private val medicalCertificateRepository: MedicalCertificateRepository,
 ) : ViewModel() {
 
@@ -1468,6 +1473,42 @@ class VideoCallViewModel @Inject constructor(
         if (username != null) builder.setUsername(username)
         if (credential != null) builder.setPassword(credential)
         return builder.createIceServer()
+    }
+
+    /**
+     * Brazil only: secure preflight for the official Memed browser module.
+     * No Brazilian prescription is issued by the native Argentina repository.
+     */
+    fun openMemedForBrazil() {
+        val state = _uiState.value
+        if (!state.isDoctor || previewOnlyMode || appointmentId.isBlank() ||
+            state.doctorCountryCode != "BR" ||
+            state.patientCareCountryCode != "BR" || state.patientId.isBlank()) {
+            _uiState.update { it.copy(memedLaunchError = "Consulta brasileira não autorizada para Memed") }
+            return
+        }
+        if (state.isOpeningMemed) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isOpeningMemed = true, memedLaunchError = null, memedLaunchUrl = null) }
+            memedMobileBridgeRepository.createLaunch(appointmentId)
+                .onSuccess { url ->
+                    _uiState.update { it.copy(isOpeningMemed = false, memedLaunchUrl = url) }
+                }.onFailure {
+                    _uiState.update {
+                        it.copy(isOpeningMemed = false,
+                            memedLaunchError = "Memed indisponível. Verifique a habilitação e os dados da consulta.")
+                    }
+                }
+        }
+    }
+
+    /** Consume once before opening browser to avoid duplicate tabs on Compose recreation. */
+    fun consumeMemedLaunchUrl() {
+        _uiState.update { it.copy(memedLaunchUrl = null) }
+    }
+
+    fun reportMemedBrowserError() {
+        _uiState.update { it.copy(memedLaunchError = "Navegador compatível não encontrado para abrir Memed.") }
     }
 
     fun issueInCallPrescription(
