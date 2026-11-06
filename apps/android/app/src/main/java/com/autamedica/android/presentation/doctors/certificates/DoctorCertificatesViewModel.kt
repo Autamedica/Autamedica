@@ -78,7 +78,7 @@ class DoctorCertificatesViewModel @Inject constructor(
             certificateRepository.getDoctorCertificates()
                 .onSuccess { list ->
                     val total = list.size
-                    val valid = list.count { it.status == "signed" }
+                    val valid = list.count { it.isActive }
                     val cancelled = list.count { it.status == "cancelled" }
 
                     _uiState.update { current ->
@@ -108,13 +108,13 @@ class DoctorCertificatesViewModel @Inject constructor(
 
     fun loadEligibility() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingEligibility = true) }
+            _uiState.update { it.copy(isLoadingEligibility = true, doctorEligibility = null) }
             prescriptionRepository.getDoctorEligibility()
                 .onSuccess { eligibility ->
                     _uiState.update { it.copy(isLoadingEligibility = false, doctorEligibility = eligibility) }
                 }
                 .onFailure {
-                    _uiState.update { it.copy(isLoadingEligibility = false) }
+                    _uiState.update { it.copy(isLoadingEligibility = false, doctorEligibility = null) }
                 }
         }
     }
@@ -287,11 +287,11 @@ class DoctorCertificatesViewModel @Inject constructor(
         }
 
         val eligibility = state.doctorEligibility
-        if (eligibility != null && !eligibility.isEligible) {
+        if (eligibility?.isEligible != true) {
             _uiState.update {
                 it.copy(
-                    createError = eligibility.reason ?: "El profesional no cumple los requisitos para emitir certificados",
-                    createErrorRes = if (eligibility.reason == null) R.string.cert_error_not_eligible else null,
+                    createError = eligibility?.reason ?: if (eligibility == null) "No fue posible verificar la habilitación profesional. Actualizá e intentá nuevamente." else "El profesional no cumple los requisitos para emitir certificados",
+                    createErrorRes = if (eligibility != null && eligibility.reason == null) R.string.cert_error_not_eligible else null,
                     createErrorArg = null,
                 )
             }
@@ -375,7 +375,7 @@ class DoctorCertificatesViewModel @Inject constructor(
     ): List<MedicalCertificate> {
         return list.filter { cert ->
             val matchesFilter = when (statusFilter) {
-                "validos" -> cert.status == "signed"
+                "validos" -> cert.isActive
                 "cancelados" -> cert.status == "cancelled"
                 else -> true
             }
