@@ -60,7 +60,7 @@ describe('signed guest dispatch video authorization', () => {
   })
 
   it('rejects an unpaid Brazilian partner session even if the doctor is already connected', async () => {
-    const { admin, from } = buildAdmin(request(), { id: null })
+    const { admin, from } = buildAdmin(request())
     expect(await verifyGuestDispatchAccess(admin, { callId: dispatchId, roomId: room }))
       .toEqual({ kind: 'conflict', message: 'pharmacy_payment_required' })
     expect(from).toHaveBeenCalledWith('pharmacy_dispatch_payments')
