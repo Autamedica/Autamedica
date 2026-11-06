@@ -68,7 +68,7 @@ export async function providerFetch(
   fetcher: typeof fetch = fetch,
 ): Promise<Response> {
   assertTestCredentials(credentials);
-  const url = new URL(path, PRESCRI_SANDBOX_BASE + '/');
+  const url = new URL(path.replace(/^\//, ''), PRESCRI_SANDBOX_BASE + '/');
   if (url.origin !== 'https://suykokupoevtdfalrzue.supabase.co' ||
       !url.pathname.startsWith('/functions/v1/') ||
       !ALLOWED_PATHS.has(url.pathname.slice('/functions/v1'.length))) {
