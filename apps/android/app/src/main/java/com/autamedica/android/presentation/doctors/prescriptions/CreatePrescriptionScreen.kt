@@ -175,7 +175,7 @@ fun CreatePrescriptionScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // 1. SISA / REFEPS Regulatory Verification Status Banner
-            DoctorRegulatoryBanner(uiState.doctorEligibility)
+            DoctorRegulatoryBanner(uiState.doctorEligibility, uiState.isLoadingEligibility, viewModel::loadEligibility)
 
             // 2. Patient Selector Card
             PatientSelectorSection(
@@ -350,7 +350,7 @@ fun CreatePrescriptionScreen(
 }
 
 @Composable
-private fun DoctorRegulatoryBanner(eligibility: com.autamedica.android.domain.model.DoctorEligibility?) {
+private fun DoctorRegulatoryBanner(eligibility: com.autamedica.android.domain.model.DoctorEligibility?, isLoading: Boolean, onRetry: () -> Unit) {
     val isEligible = eligibility?.isEligible == true
     val license = eligibility?.doctorLicense ?: stringResource(R.string.doctor_create_rx_regulatory_registered)
 
@@ -387,6 +387,11 @@ private fun DoctorRegulatoryBanner(eligibility: com.autamedica.android.domain.mo
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary
                 )
+                if (!isEligible) {
+                    TextButton(onClick = onRetry, enabled = !isLoading) {
+                        Text(stringResource(R.string.clinical_ops_refresh))
+                    }
+                }
             }
         }
     }
