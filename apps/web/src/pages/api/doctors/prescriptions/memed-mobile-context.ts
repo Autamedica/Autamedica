@@ -22,6 +22,11 @@ export const GET: APIRoute = async ({request, locals}) => {
   if (!UUID.test(appointmentId)) return badRequest('invalid_appointment');
   try {
     const admin = createAstroAdminClient(locals.runtime?.env);
+    const {data: profile, error: profileError} = await admin.from('profiles')
+      .select('active').eq('user_id', auth.user.id).maybeSingle();
+    if (profileError || profile?.active !== true) {
+      return forbidden('active_doctor_profile_required');
+    }
     const {data: doctor, error: doctorError} = await admin.from('doctors')
       .select('id, active, license_type, license_number, uf_brazil, care_country')
       .eq('user_id', auth.user.id).maybeSingle();
