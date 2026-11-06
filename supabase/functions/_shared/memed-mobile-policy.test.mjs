@@ -21,11 +21,11 @@ test('launch destination is fixed HTTPS, doctor portal, no bearer, CPF or patien
 });
 test('only active/recent completed or in progress encounter is eligible', () => {
   const now=Date.parse('2026-11-06T10:00:00.000Z');
-  assert.ok(appointmentPermitsPrescription('in_progress','2026-11-06T09:00:00.000Z',null,now));
-  assert.ok(appointmentPermitsPrescription('completed','2026-11-06T09:00:00.000Z',null,now));
-  assert.equal(appointmentPermitsPrescription('scheduled','2026-11-06T09:00:00.000Z',null,now),false);
-  assert.equal(appointmentPermitsPrescription('in_progress','2026-11-04T09:00:00.000Z',null,now),false);
-  assert.equal(appointmentPermitsPrescription('in_progress','2026-11-06T11:00:00.000Z',null,now),false);
+  assert.ok(appointmentPermitsPrescription('in_progress','2026-11-06T09:00:00.000Z',null,now,'telemedicine'));
+  assert.ok(appointmentPermitsPrescription('completed','2026-11-06T09:00:00.000Z',null,now,'telemedicine'));
+  assert.equal(appointmentPermitsPrescription('scheduled','2026-11-06T09:00:00.000Z',null,now,'telemedicine'),false);
+  assert.equal(appointmentPermitsPrescription('in_progress','2026-11-04T09:00:00.000Z',null,now,'telemedicine'),false);
+  assert.equal(appointmentPermitsPrescription('in_progress','2026-11-06T11:00:00.000Z',null,now,'telemedicine'),false);
 });
 test('CFM license must match exact doctor CRM and UF', () => {
   const d={active:true,license_type:'CRM',license_number:'123456',uf_brazil:'RS'};
@@ -46,4 +46,14 @@ test('patient identity requires real CPF checksum, possible DOB and a supported 
   assert.equal(validBrazilPatientIdentity('12345678909', '2026-02-30', 'F', now), false);
   assert.equal(validBrazilPatientIdentity('12345678909', '2099-01-01', 'F', now), false);
   assert.equal(validBrazilPatientIdentity('12345678909', '2000-01-01', 'unknown', now), false);
+});
+
+test('rejects non-telemedicine and unknown countries even with a matching CRM', () => {
+  const now=Date.parse('2026-11-06T10:00:00.000Z');
+  assert.equal(appointmentPermitsPrescription('in_progress','2026-11-06T09:00:00.000Z',null,now,'in_person'),false);
+  assert.equal(appointmentPermitsPrescription('in_progress','2026-11-06T09:00:00.000Z',null,now,null),false);
+  const doctor={active:true,license_type:'CRM',license_number:'123456',uf_brazil:'RS'};
+  const license=[{license_number:'123456',uf_brazil:'RS',status:'active',cfm_validation_status:'valid'}];
+  assert.equal(verifiedBrazilLicense(doctor,license),false);
+  assert.equal(verifiedBrazilLicense({...doctor,care_country:'BR'},license),true);
 });
