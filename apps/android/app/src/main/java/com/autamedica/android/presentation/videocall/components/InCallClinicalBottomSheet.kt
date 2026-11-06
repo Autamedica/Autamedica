@@ -87,6 +87,8 @@ fun InCallClinicalBottomSheet(
     patientCareCountryCode: String? = null,
     patientLinked: Boolean = false,
     isSubmitting: Boolean,
+    onOpenMemed: (() -> Unit)? = null,
+    memedLaunchError: String? = null,
     onIssuePrescription: (medicationName: String, dosage: String, instructions: String, diagnosis: String, onResult: (Boolean, String?) -> Unit) -> Unit,
     onIssueCertificate: (type: CertificateType, daysOfRest: Int, diagnosis: String, onResult: (Boolean, String?) -> Unit) -> Unit,
     onDismiss: () -> Unit,
@@ -429,6 +431,37 @@ fun InCallClinicalBottomSheet(
             if (successCuir == null) {
                 when (currentMode) {
                     InCallClinicalMode.PRESCRIPTION -> {
+                        if (countryCode == "BR") {
+                            Text(
+                                text = "Receita brasileira pelo módulo oficial Memed. A assinatura e a entrega são feitas pelo médico no ambiente autorizado.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = AuTextPrimary,
+                            )
+                            if (memedLaunchError != null) {
+                                Text(text = memedLaunchError, color = AuDanger,
+                                    style = MaterialTheme.typography.bodySmall)
+                            }
+                            Text(
+                                text = "Ao abrir o navegador, pode ser necessário entrar novamente com a conta médica. Volte à chamada após a prescrição.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = AuTextSecondary,
+                            )
+                            Button(
+                                onClick = { onOpenMemed?.invoke() },
+                                enabled = onOpenMemed != null && !isSubmitting && patientLinked && countriesMatch,
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                shape = RoundedCornerShape(12.dp),
+                            ) {
+                                if (isSubmitting) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp), color = Color.White,
+                                        strokeWidth = 2.dp,
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+                                Text(if (isSubmitting) "Autorizando Memed..." else "Abrir receita BR no Memed")
+                            }
+                        } else {
                         // Medicamento
                         OutlinedTextField(
                             value = medicationName,
@@ -549,6 +582,7 @@ fun InCallClinicalBottomSheet(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Registrar receta AR", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
+                        }
                         }
                     }
 

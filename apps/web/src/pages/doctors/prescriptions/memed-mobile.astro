@@ -1,0 +1,11 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import {MemedMobileRoute} from '@/components/doctors/medical/MemedMobileRoute';
+
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+Astro.response.headers.set('Referrer-Policy', 'no-referrer');
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+---
+<Layout title="Memed | AutaMedica" description="Prescrição médica Brasil no celular">
+  <MemedMobileRoute client:load />
+</Layout>
