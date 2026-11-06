@@ -1,6 +1,7 @@
 /**
  * Browser test against Memed's REAL homologation SDK (not production).
- * Registers no new prescriber and DOES NOT issue or sign any prescription.
+ * READ-ONLY by default. A one-shot sandbox emission requires explicit manual dispatch.
+ * Test patient/doctor are fictitious; no real contact channels or drugs.
  * The demo user's valid token is obtained at runtime using Memed's public
  * sandbox test keys. Token and synthetic CPF are never logged/artifacted.
  */
@@ -18,6 +19,7 @@ const DEMO = {
   crm: '99091103',
   uf: 'RS',
 };
+const RUN_MODE = process.env.MEMED_DEMO_MODE === 'emit-once' ? 'emit-once' : 'audit';
 const PATIENT = {
   idExterno: 'autamedica-homologacao-paciente-demo-20261103-01',
   nome: 'Paciente DEMO AutaMedica',
@@ -31,6 +33,11 @@ const PATIENT = {
 const result = {
   environment: 'memed_homologation_only',
   productionAccess: false,
+  mode: RUN_MODE,
+  auditOnly: RUN_MODE !== 'emit-once',
+  emitClicked: false,
+  alternativeSignatureClicked: false,
+  emittedDocumentIds: [],
   prescriberAuthenticated: false,
   sdkScriptLoaded: false,
   moduleInitialized: false,
@@ -88,6 +95,8 @@ async function main() {
   try {
     const historyUrl = new URL(API + '/prescricoes');
     historyUrl.searchParams.set('token', token);
+    historyUrl.searchParams.set('page[limit]', '100');
+    historyUrl.searchParams.set('page[offset]', '0');
     const historyRes = await fetch(historyUrl, {
       headers: { Accept: 'application/vnd.api+json' },
       redirect: 'error', referrerPolicy: 'no-referrer',
@@ -177,6 +186,22 @@ async function main() {
   result.clinicianReady.physicianIdentity = true;
   result.clinicianReady.birthDate = Boolean(attrs.data_nascimento);
 
+  if (RUN_MODE !== 'emit-once') {
+    result.sandboxDemoPreflight = true;
+    return;
+  }
+  if (process.env.GITHUB_EVENT_NAME !== 'workflow_dispatch') {
+    throw new Error('sandbox_emission_requires_manual_dispatch');
+  }
+  const localTime = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo', weekday: 'short', hour: '2-digit', hourCycle: 'h23',
+  }).formatToParts(new Date());
+  const weekday = localTime.find(part => part.type === 'weekday')?.value;
+  const hour = Number(localTime.find(part => part.type === 'hour')?.value);
+  if (weekday === 'Sat' || weekday === 'Sun' || !Number.isFinite(hour) || hour < 6) {
+    throw new Error('sandbox_outside_service_window');
+  }
+
   server = createServer((_req, res) => {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
@@ -218,7 +243,18 @@ async function main() {
       window.MdSinapsePrescricao.event.add('core:moduleInit', module => {
         if (module?.name === 'plataforma.prescricao') {
           window.__memedDemo.ready = true;
-          window.MdHub?.event?.add('prescricaoImpressa', () => { window.__memedDemo.emissionEventReceived = true; });
+          window.MdHub?.event?.add('prescricaoImpressa', payload => {
+            const prescription = payload?.prescricao || payload || {};
+            const docs = Array.isArray(prescription.documents) ? prescription.documents : [];
+            window.__memedDemo.emissionEventReceived = true;
+            window.__memedDemo.issuedDocumentIds = docs
+              .filter(d => d?.type === 'full' && d?.status === 'saved')
+              .map(d => String(d.prescription_id ?? ''))
+              .filter(id => /^[0-9]{1,20}$/.test(id))
+              .slice(0, 5);
+            window.__memedDemo.issuedPrescriptionUuidPresent =
+              typeof prescription.prescriptionUuid === 'string';
+          });
         }
       });
     };
@@ -418,7 +454,7 @@ async function main() {
         });
       } catch { return { repositoryReady: false }; }
     }));
-    result.prescriptionIssued = Boolean(await page.evaluate(() => window.__memedDemo?.emissionEventReceived));
+    result.preEmitEventReceived = Boolean(await page.evaluate(() => window.__memedDemo?.emissionEventReceived));
   }
   // In the isolated SDK sandbox, suppress all delivery channels before issuance.
   if (result.postGenerateControls.emit) {
@@ -432,6 +468,7 @@ async function main() {
           deliveryControlsFound = true;
           if (await email.isChecked()) await email.uncheck({ force: true });
           if (await sms.isChecked()) await sms.uncheck({ force: true });
+          if (await sign.isChecked()) await sign.uncheck({ force: true });
           if (await email.isChecked() || await sms.isChecked() || await sign.isChecked()) {
             throw new Error('sandbox_delivery_not_disabled');
           }
@@ -443,6 +480,84 @@ async function main() {
     }
     result.deliveryChannelsOff = deliveryControlsFound;
   }
+  if (!result.deliveryChannelsOff) throw new Error('sandbox_delivery_controls_not_confirmed');
+  // Never retry the final issue click automatically: duplicates may accrue.
+  for (const frame of page.frames()) {
+    const button = frame.getByRole('button', { name: /^enviar e emitir$|^emitir$/i }).first();
+    try {
+      if (await button.isVisible({ timeout: 350 }) && await button.isEnabled()) {
+        await button.click({ timeout: 7000 });
+        result.emitClicked = true;
+        break;
+      }
+    } catch {}
+  }
+  if (!result.emitClicked) throw new Error('sandbox_emit_button_not_found');
+  for (let i = 0; i < 12; i++) {
+    for (const frame of page.frames()) {
+      const alternative = frame.getByRole('button', {
+        name: /vou assinar de outra forma|assinar de outra forma/i,
+      }).first();
+      try {
+        if (await alternative.isVisible({ timeout: 300 }) && await alternative.isEnabled()) {
+          await alternative.click({ timeout: 7000 });
+          result.alternativeSignatureClicked = true;
+          break;
+        }
+      } catch {}
+    }
+    if (result.alternativeSignatureClicked ||
+      await page.evaluate(() => Boolean(window.__memedDemo?.emissionEventReceived))) break;
+    await page.waitForTimeout(700);
+  }
+  await page.waitForFunction(() => Boolean(window.__memedDemo?.emissionEventReceived),
+    null, { timeout: 18000 }).catch(() => {});
+  const issued = await page.evaluate(() => ({
+    event: Boolean(window.__memedDemo?.emissionEventReceived),
+    documentIds: window.__memedDemo?.issuedDocumentIds || [],
+    uuidPresent: Boolean(window.__memedDemo?.issuedPrescriptionUuidPresent),
+  }));
+  result.prescriptionIssued = issued.event;
+  result.emittedDocumentIds = issued.documentIds;
+  result.emittedPrescriptionUuidPresent = issued.uuidPresent;
+  if (!result.prescriptionIssued) throw new Error('sandbox_issuance_event_not_received');
+
+  for (const providerId of issued.documentIds) {
+    const url = new URL(API + '/prescricoes/' + providerId + '/url-document/full');
+    url.searchParams.set('token', token);
+    const response = await fetch(url, {
+      headers: { Accept: 'application/vnd.api+json' }, redirect: 'error',
+      referrerPolicy: 'no-referrer', signal: AbortSignal.timeout(15000),
+    });
+    result.emittedPdfEndpointStatus = response.status;
+    if (!response.ok) continue;
+    const json = await response.json().catch(() => null);
+    const doc = Array.isArray(json?.data) ? json.data[0] : json?.data;
+    const pdfLink = doc?.attributes?.link;
+    if (typeof pdfLink !== 'string' || !pdfLink) continue;
+    const downloadUrl = new URL(pdfLink);
+    const host = downloadUrl.hostname.toLowerCase();
+    if (downloadUrl.protocol !== 'https:' ||
+        !(host === 'memed.com.br' || host.endsWith('.memed.com.br') ||
+          host.endsWith('.amazonaws.com') || host.endsWith('.cloudfront.net'))) {
+      throw new Error('sandbox_pdf_host_not_allowed');
+    }
+    const fileResponse = await fetch(downloadUrl, {
+      redirect: 'error', referrerPolicy: 'no-referrer',
+      signal: AbortSignal.timeout(25000),
+    });
+    if (!fileResponse.ok) continue;
+    const data = Buffer.from(await fileResponse.arrayBuffer());
+    if (data.length <= 1000 || data.subarray(0, 5).toString('ascii') !== '%PDF-' ||
+        !data.subarray(-2048).toString('latin1').includes('%%EOF')) continue;
+    mkdirSync('test-results', { recursive: true });
+    writeFileSync('test-results/memed-sandbox-provider-demo.pdf', data);
+    result.providerPdfVerified = true;
+    result.providerPdfBytes = data.length;
+    result.providerPdfSha256 = createHash('sha256').update(data).digest('hex');
+    break;
+  }
+  if (!result.providerPdfVerified) throw new Error('sandbox_provider_pdf_not_verified');
   result.sandboxDemoPreflight = true;
   if (!actions.patientSet) throw new Error('memed_patient_set_rejected');
   if (!actions.moduleShown) throw new Error('memed_module_show_rejected');
