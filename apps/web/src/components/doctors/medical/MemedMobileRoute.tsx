@@ -33,7 +33,11 @@ export function MemedMobileRoute() {
     return () => controller.abort();
   }, [revision]);
 
-  const returnToApp = () => { window.close(); if (!window.closed) window.history.back(); };
+  // The native Activity is singleTop and handles autamedica:// without changing
+  // the active video-call route. Do not put an appointment ID or JWT in this link.
+  const returnToApp = () => {
+    window.location.assign('autamedica://return');
+  };
   const onEvent = async (action: 'issued'|'deleted', prescriptionId: string) => {
     if (state.status !== 'ready' || !state.patientId) throw new Error('Sessão não autorizada');
     const response = await fetch('/api/doctors/prescriptions/memed-event', {
