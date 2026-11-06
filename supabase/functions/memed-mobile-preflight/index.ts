@@ -63,6 +63,7 @@ export async function handler(req: Request): Promise<Response> {
     }
     const {data: appointment, error: apptError} = await db.from('appointments')
       .select('doctor_id, patient_id, status, start_time, end_time')
+      .is('deleted_at', null)
       .eq('id', appointmentId).eq('doctor_id', doctor.id).maybeSingle();
     if (apptError || !appointment || !appointmentPermitsPrescription(
       appointment.status, appointment.start_time, appointment.end_time, Date.now(),
