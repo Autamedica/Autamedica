@@ -34,4 +34,5 @@ test('CFM license must match exact doctor CRM and UF', () => {
   assert.equal(verifiedBrazilLicense(d,[{...valid[0],uf_brazil:'SC'}]),false);
   assert.equal(verifiedBrazilLicense({...d,active:false},valid),false);
   assert.equal(verifiedBrazilLicense({...d,license_type:'MP'},valid),false);
+  assert.equal(verifiedBrazilLicense({...d,care_country:'AR'},valid),false);
 });
