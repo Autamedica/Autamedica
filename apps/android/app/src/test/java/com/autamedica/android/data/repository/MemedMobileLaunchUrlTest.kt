@@ -8,7 +8,7 @@ import org.junit.Test
 
 class MemedMobileLaunchUrlTest {
     private val appointment = "12345678-abcd-4d91-8a1f-1234567890ab"
-    private val allowed = "https://www.autamedica.com/doctors/prescriptions/memed-mobile?appointmentId=$appointment"
+    private val allowed = "https://doctor.autamedica.com/doctors/prescriptions/memed-mobile?appointmentId=$appointment"
 
     @Test fun acceptsOnlyCanonicalPortalUrlAndMatchingAppointment() {
         assertEquals(allowed, MemedMobileLaunchUrl.validate(allowed, appointment))
@@ -20,7 +20,7 @@ class MemedMobileLaunchUrlTest {
         val bad = listOf(
             allowed + "&patientId=123",
             allowed + "#access_token=secret",
-            allowed.replace("www.autamedica.com", "evil.example"),
+            allowed.replace("doctor.autamedica.com", "evil.example"),
             allowed.replace("https:", "http:"),
             allowed.replace("https://", "https://attacker@"),
             allowed.replace("appointmentId=", "jwt="),
