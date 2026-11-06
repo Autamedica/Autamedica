@@ -19,11 +19,20 @@ export function MemedMobileRoute() {
     void fetch('/api/doctors/prescriptions/memed-mobile-context?appointmentId=' +
         encodeURIComponent(id), {credentials: 'include', cache: 'no-store', signal: controller.signal})
       .then(async response => {
-        if (response.status === 401) {
-          setState({status: 'login'});
+        // The Astro middleware can redirect unauthenticated API calls to
+        // /auth/login (302); fetch follows it and surfaces 200 HTML instead
+        // of the original 401. Treat the redirect as a login requirement.
+        const redirectedPath = response.redirected
+          ? new URL(response.url, window.location.origin).pathname
+          : '';
+        if (response.status === 401 || redirectedPath === '/auth/login') {
+          if (!controller.signal.aborted) setState({status: 'login'});
           return;
         }
         if (!response.ok) throw new Error('O médico, o paciente ou a consulta não estão autorizados para Memed.');
+        if (!response.headers.get('content-type')?.includes('application/json')) {
+          throw new Error('Memed mobile context returned a non-JSON response.');
+        }
         const json: {data?: {patientId?: string}} = await response.json();
         if (!json.data?.patientId || !UUID.test(json.data.patientId)) throw new Error('Paciente não validado.');
         if (!controller.signal.aborted) setState({status: 'ready', patientId: json.data.patientId});
