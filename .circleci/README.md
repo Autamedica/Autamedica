@@ -198,3 +198,40 @@ Official CircleCI references:
 - https://circleci.com/docs/guides/permissions-authentication/users-organizations-and-integrations-guide/
 - https://circleci.zendesk.com/hc/en-us/articles/20302893166363-Is-my-project-setup-using-GitHub-OAuth-or-GitHub-Apps
 - https://circleci.zendesk.com/hc/en-us/articles/38397680126619-How-to-Set-Up-a-New-GitHub-OAuth-App-Organization
+
+
+## Android CI diagnostic update — 7 Nov 2026
+
+CircleCI pipeline **#39**, commit `0dbb456`, checked out the repository and
+passed the JDK setup, but the combined Gradle test/AndroidTest/AAB step failed
+after about 10 minutes. The private Gradle exception was not accessible during
+this review; **OOM remains a hypothesis, not a confirmed root cause**.
+
+Docker `medium` provides 2 vCPU / 4 GB RAM. The repository-level Gradle
+defaults reserve up to 2304 MB for Gradle and 3072 MB for Kotlin, and
+`kotlin.daemon.jvmargs` takes precedence over
+`kotlin.daemon.jvm.options`. To protect CircleCI, both Android jobs now
+supply the explicit `-Pkotlin.daemon.jvmargs=-Xmx768m` override alongside
+`GRADLE_OPTS=-Dorg.gradle.jvmargs=-Xmx2048m`,
+`-Dorg.gradle.parallel=false`, and `--max-workers=1`. This does not
+change the local developer defaults, the app version or production credentials.
+
+On a non-zero Gradle failure, the two jobs execute a non-secret `on_fail`
+diagnostic step displaying cgroup `memory.events`, `memory.peak` and
+`memory.max` **when available**. A positive `oom_kill` counter is useful
+evidence of cgroup OOM; a successful build or an absence of that counter
+does not by itself prove full device/clinical readiness. The diagnostic step
+is not guaranteed to execute if CircleCI cancels or kills the whole job.
+
+Do not rerun #39 when validating the correction: rerun reuses its old commit.
+Instead, manually trigger a NEW pipeline on the latest HEAD of
+`ci/circleci-play-internal-draft-20261106`, set both config and checkout refs
+to this branch, and set **only** `run_android=true` (leave `run_smoke`
+and `run_web` false). Verify the actual SHA and capture any Gradle error.
+Run a separate `run_smoke=true` job to execute the policy-regression test.
+No GitHub release tag, signing secrets, internal-upload action or production
+publication is authorized by these checks.
+
+References: [CircleCI Docker sizes](https://circleci.com/docs/guides/execute/using-docker/),
+[Kotlin daemon JVM options](https://kotlinlang.org/docs/gradle-compilation-and-caches.html),
+[CircleCI `on_fail` behavior](https://circleci.com/docs/reference/configuration-reference/).
