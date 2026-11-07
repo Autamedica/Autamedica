@@ -24,7 +24,7 @@ class AutamedicaApplication : Application() {
                     .joinToString(" -> ") { it.javaClass.name }
                 val frames = error.stackTrace
                     .take(12)
-                    .joinToString("\n") { "\${it.className}.\${it.methodName}" }
+                    .joinToString("\n") { "${it.className}.${it.methodName}" }
                 base.getSharedPreferences("qa_crash_diagnostics", Context.MODE_PRIVATE)
                     .edit()
                     .putString("qa_last_crash", "Exception types: $types\nStack symbols:\n$frames")
