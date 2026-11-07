@@ -269,6 +269,46 @@ jobs:
               --skip_upload_screenshots
           no_output_timeout: 20m
 
+  # Internal QA only: debug-signed Android 1.2.22 installable APK.
+  # This branch is isolated from the release-tag signing and Play workflows.
+  android_internal_apk_122:
+    docker:
+      - image: cimg/android:2026.10
+    resource_class: medium
+    environment:
+      CI: "true"
+      JAVA_HOME: "/usr/lib/jvm/java-17-openjdk-amd64"
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8"
+    steps:
+      - checkout
+      - run:
+          name: Prepare public production Supabase client settings, synthetic Firebase debug config
+          command: |
+            set -euo pipefail
+            test -n "${AUTAMEDICA_SUPABASE_URL:-}" || { echo "Missing public SUPABASE_URL"; exit 1; }
+            test -n "${AUTAMEDICA_SUPABASE_ANON_KEY:-}" || { echo "Missing public SUPABASE_ANON_KEY"; exit 1; }
+            test "${AUTAMEDICA_SUPABASE_URL}" = "https://qxjjrpksmwwrmubhvjew.supabase.co" || { echo "Wrong Supabase project"; exit 1; }
+            printf 'SUPABASE_URL=%s\nSUPABASE_ANON_KEY=%s\nSIGNALING_URL=wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling\nWEB_API_URL=https://www.autamedica.com\n' "${AUTAMEDICA_SUPABASE_URL}" "${AUTAMEDICA_SUPABASE_ANON_KEY}" > apps/android/local.properties
+            if [ ! -f apps/android/app/google-services.json ]; then
+              printf '%s\n' '{"project_info":{"project_number":"653971537811","project_id":"autamedica-e54fa","storage_bucket":"autamedica-e54fa.firebasestorage.app"},"client":[{"client_info":{"mobilesdk_app_id":"1:653971537811:android:dummy","android_client_info":{"package_name":"com.autamedica.android"}},"oauth_client":[],"api_key":[{"current_key":"dummy"}],"services":{}}],"configuration_version":"1"}' > apps/android/app/google-services.json
+            fi
+            grep -Eq 'versionCode[[:space:]]*=[[:space:]]*32' apps/android/app/build.gradle.kts
+            grep -Eq 'versionName[[:space:]]*=[[:space:]]*"1.2.22"' apps/android/app/build.gradle.kts
+            echo "Version 1.2.22 code 32 validated; debug-only build"
+      - run:
+          name: Assemble debug-signed 1.2.22 installable APK
+          command: |
+            set -euo pipefail
+            cd apps/android
+            chmod +x ./gradlew
+            ./gradlew :app:assembleDebug -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+            test -s app/build/outputs/apk/debug/app-debug.apk
+            sha256sum app/build/outputs/apk/debug/app-debug.apk
+          no_output_timeout: 25m
+      - store_artifacts:
+          path: apps/android/app/build/outputs/apk/debug/app-debug.apk
+          destination: autamedica-1.2.22-code32-internal-debug.apk
+
 workflows:
   smoke_manual:
     when: << pipeline.parameters.run_smoke >>
@@ -301,3 +341,10 @@ workflows:
           requires:
             - android_release_bundle
           filters: *android_release_tag_filter
+
+  android_internal_apk_122_qa_branch:
+    jobs:
+      - android_internal_apk_122:
+          filters:
+            branches:
+              only: ci/android-internal-apk-1.2.22-20261107
