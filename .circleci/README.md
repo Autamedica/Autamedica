@@ -2,13 +2,9 @@
 
 ## Scope and safety
 
-This is a **draft-only** migration. CircleCI is not yet an approved production gate.
-The repository remains private. No production credentials, patient records,
-signed medical documents, release signing keys, deploy or database writes are used.
+This configuration is a **draft-only** migration until its release workflow has passed a real signed, internal-track QA run. The existing manually invoked CI jobs continue using synthetic credentials. The new tag-gated release workflow is separately defined and must receive restricted CircleCI contexts before it can build a signed AAB. It never publishes to the production Play track.
 
-Three independent pipeline booleans default to `false`. A normal GitHub push or
-PR event therefore runs **no jobs**, avoiding an accidental repeat of the
-historical thousands of CI runs. Remove/default-disable any all-push CircleCI
+Three independent test-workflow booleans default to `false`. A normal GitHub branch push or PR event therefore runs **no test or release jobs**. Only a validated GitHub release-tag push can enter the separate internal-draft publishing workflow. This avoids repeating the historical thousands of CI runs. Remove/default-disable any all-push CircleCI
 project-level trigger if one was created during onboarding. A CircleCI project
 must be created/configured for this private GitHub repository before runs work.
 
@@ -80,10 +76,9 @@ The tag must also be protected by GitHub rulesets. Do not create it until QA.
 
 1. In CircleCI project settings, create a **GitHub App 'Tag pushes' trigger**
    for the existing config source (not a continuous full Android build on all pushes).
-   Confirm the trigger actually passes the tag and uses the config on that tagged commit.
+   The checkout source AND the config source MUST both resolve to `refs/tags/<tag>` on the exact same release commit. The job rejects the event if the configuration is fetched from `main`, another tag, an API-triggered run or a different repository.
 2. Create **two restricted CircleCI contexts**. Restrict both to the AutaMedica
-   project and an expression that matches release tags and disallows SSH reruns;
-   review the exact expression syntax with CircleCI Organization Settings → Contexts.
+   project and an expression such as `pipeline.git.tag starts-with "android-v" and pipeline.trigger.type == "github_app" and pipeline.event.name == "push" and not job.ssh.enabled` (verify in the CircleCI restriction editor). Do NOT use `pipeline.parameters.*` in a context restriction. The job independently verifies exact tag, repository and main-branch ancestry.
    Do not store signing or service-account secrets in code, GitHub comments,
    project-wide environment variables or a screen recording.
 3. Set `autamedica-android-signing` context variables, using the **original
@@ -97,7 +92,7 @@ The tag must also be protected by GitHub rulesets. Do not create it until QA.
    `AUTAMEDICA_GOOGLE_WEB_CLIENT_ID`,
    `AUTAMEDICA_GOOGLE_SERVICES_JSON`.
    Provide only real application configuration; the release job fails closed
-   on missing required values instead of silently using placeholders.
+   on missing required values instead of silently using placeholders. The original keystore is written temporarily inside the build container (never to git or artifacts). Signing PASSWORDS are read directly by Gradle from the CircleCI context environment and are NOT written to `local.properties`. Use single-line/minified JSON and base64 for the context values.
 4. Set `autamedica-google-play-internal` context variable
    `AUTAMEDICA_GOOGLE_PLAY_SERVICE_ACCOUNT` to the Google Play Developer API
    service-account JSON; grant the account narrowly scoped internal-track
@@ -117,7 +112,7 @@ The tag must also be protected by GitHub rulesets. Do not create it until QA.
    rollout to production in Play Console. No automatic production promotion
    exists in this workflow.
 
-**Safeguards:** missing credentials abort the job; source tag must match the
+**Safeguards:** the offline `node --test .circleci/scripts/android-release-policy.test.mjs` guard runs in the manual `smoke` workflow. Missing credentials abort the release job; source tag must match the
 Android versionName and be reachable from `main`; full signing keys and Google
 service-account credentials are never written to repository or CircleCI
 artifacts; only the signed AAB passes through a CircleCI workspace; matching
