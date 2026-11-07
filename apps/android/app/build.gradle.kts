@@ -124,6 +124,9 @@ android {
 
     buildTypes {
         debug {
+            // Internal QA package installs alongside the Play Store app.
+            // Never change applicationId for release or publish this build to Play.
+            applicationIdSuffix = ".internal"
             val releaseConfig = signingConfigs.findByName("release")
             if (releaseConfig?.storeFile != null) {
                 signingConfig = releaseConfig
