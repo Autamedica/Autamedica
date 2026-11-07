@@ -78,7 +78,7 @@ The tag must also be protected by GitHub rulesets. Do not create it until QA.
    for the existing config source (not a continuous full Android build on all pushes).
    The checkout source AND the config source MUST both resolve to `refs/tags/<tag>` on the exact same release commit. The job rejects the event if the configuration is fetched from `main`, another tag, an API-triggered run or a different repository.
 2. Create **two restricted CircleCI contexts**. Restrict both to the AutaMedica
-   project and a **single expression restriction**: `pipeline.git.repo_owner == "ecucondorSA" and pipeline.git.repo_name == "Autamedica" and pipeline.git.tag starts-with "android-v" and pipeline.trigger.type == "github_app" and pipeline.event.name == "push" and pipeline.config.ref starts-with "refs/tags/android-v" and not job.ssh.enabled`. Confirm the expression is accepted by CircleCI before adding any secrets. Do NOT use `pipeline.parameters.*` in a context restriction. The job independently checks the exact tag/version, repository, config ref, checkout SHA and main-branch ancestry.
+   project and a **single expression restriction**: `pipeline.git.repo_owner == "ecucondorSA" and pipeline.git.repo_name == "Autamedica" and pipeline.config.repository.name == "ecucondorSA/Autamedica" and pipeline.config.sha == pipeline.git.revision and pipeline.git.tag starts-with "android-v" and pipeline.trigger.type == "github_app" and pipeline.event.name == "push" and pipeline.config.ref starts-with "refs/tags/android-v" and not job.ssh.enabled`. Confirm the expression is accepted by CircleCI before adding any secrets. Do NOT use `pipeline.parameters.*` in a context restriction. The job independently checks the exact tag/version, repository, config ref, checkout SHA and main-branch ancestry.
    Do not store signing or service-account secrets in code, GitHub comments,
    project-wide environment variables or a screen recording.
 3. Set `autamedica-android-signing` context variables, using the **original
@@ -90,9 +90,15 @@ The tag must also be protected by GitHub rulesets. Do not create it until QA.
    `AUTAMEDICA_SUPABASE_URL`,
    `AUTAMEDICA_SUPABASE_ANON_KEY`,
    `AUTAMEDICA_GOOGLE_WEB_CLIENT_ID`,
-   `AUTAMEDICA_GOOGLE_SERVICES_JSON`.
+   `AUTAMEDICA_GOOGLE_SERVICES_JSON`,
+   `AUTAMEDICA_UPLOAD_CERT_SHA256` (the SHA-256 fingerprint of the **upload** certificate in Google Play Console → App integrity, not the Google Play app-signing certificate; colons optional).
    Provide only real application configuration; the release job fails closed
-   on missing required values instead of silently using placeholders. The original keystore is written temporarily inside the build container (never to git or artifacts). Signing PASSWORDS are read directly by Gradle from the CircleCI context environment and are NOT written to `local.properties`. Use single-line/minified JSON and base64 for the context values.
+   on missing required values instead of silently using placeholders. Before
+   Gradle runs, the release script reads the upload certificate from the original
+   keystore using `keytool` and refuses any SHA-256 mismatch with Google Play
+   (without printing passwords or key bytes). The configuration repository
+   must also equal the checkout repository, and its SHA must equal the release
+   commit (not merely a similarly named tag). The original keystore is written temporarily inside the build container (never to git or artifacts). Signing PASSWORDS are read directly by Gradle from the CircleCI context environment and are NOT written to `local.properties`. Use single-line/minified JSON and base64 for the context values.
 4. Set `autamedica-google-play-internal` context variable
    `AUTAMEDICA_GOOGLE_PLAY_SERVICE_ACCOUNT` to the Google Play Developer API
    service-account JSON; grant the account narrowly scoped internal-track
