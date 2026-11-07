@@ -78,7 +78,7 @@ The tag must also be protected by GitHub rulesets. Do not create it until QA.
    for the existing config source (not a continuous full Android build on all pushes).
    The checkout source AND the config source MUST both resolve to `refs/tags/<tag>` on the exact same release commit. The job rejects the event if the configuration is fetched from `main`, another tag, an API-triggered run or a different repository.
 2. Create **two restricted CircleCI contexts**. Restrict both to the AutaMedica
-   project and an expression such as `pipeline.git.tag starts-with "android-v" and pipeline.trigger.type == "github_app" and pipeline.event.name == "push" and not job.ssh.enabled` (verify in the CircleCI restriction editor). Do NOT use `pipeline.parameters.*` in a context restriction. The job independently verifies exact tag, repository and main-branch ancestry.
+   project and a **single expression restriction**: `pipeline.git.repo_owner == "ecucondorSA" and pipeline.git.repo_name == "Autamedica" and pipeline.git.tag starts-with "android-v" and pipeline.trigger.type == "github_app" and pipeline.event.name == "push" and pipeline.config.ref starts-with "refs/tags/android-v" and not job.ssh.enabled`. Confirm the expression is accepted by CircleCI before adding any secrets. Do NOT use `pipeline.parameters.*` in a context restriction. The job independently checks the exact tag/version, repository, config ref, checkout SHA and main-branch ancestry.
    Do not store signing or service-account secrets in code, GitHub comments,
    project-wide environment variables or a screen recording.
 3. Set `autamedica-android-signing` context variables, using the **original
