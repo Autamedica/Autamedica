@@ -70,7 +70,7 @@ jobs:
     resource_class: medium
     environment:
       CI: "true"
-      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8"
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8"
       JAVA_HOME: "/usr/lib/jvm/java-17-openjdk-amd64"
     steps:
       - checkout
@@ -91,8 +91,8 @@ jobs:
             chmod +x ./gradlew
             # This release dry run uses synthetic configuration; NEVER distribute this bundle.
             # CI override: repository Kotlin daemon heap is 3072m and overrides GRADLE_OPTS.
-            # Cap it explicitly using -P so Docker medium (4 GB) is not overcommitted.
-            ./gradlew testDebugUnitTest compileDebugAndroidTestSources bundleRelease -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx768m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+            # Keep the combined Gradle (1536m) + Kotlin (1280m) heap below the medium (4 GB) limit.
+            ./gradlew testDebugUnitTest compileDebugAndroidTestSources bundleRelease -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
             test -n "$(find app/build/outputs/bundle/release -maxdepth 1 -type f -name '*.aab' -size +0c -print -quit)"
             echo 'UNSIGNED RELEASE BUNDLE COMPILED — NOT FOR PLAY UPLOAD'
           no_output_timeout: 25m
@@ -118,7 +118,7 @@ jobs:
     environment:
       CI: "true"
       JAVA_HOME: "/usr/lib/jvm/java-17-openjdk-amd64"
-      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8"
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8"
       CIRCLE_RELEASE_TAG: << pipeline.git.tag >>
       CIRCLE_RELEASE_SHA: << pipeline.git.revision >>
       CIRCLE_RELEASE_TRIGGER: << pipeline.trigger.type >>
@@ -164,7 +164,7 @@ jobs:
             set -euo pipefail
             cd apps/android
             chmod +x ./gradlew
-            ./gradlew testDebugUnitTest compileDebugAndroidTestSources bundleRelease -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx768m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+            ./gradlew testDebugUnitTest compileDebugAndroidTestSources bundleRelease -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
             aab="$(find app/build/outputs/bundle/release -maxdepth 1 -type f -name '*.aab' -size +0c -print -quit)"
             test -n "$aab"
             jarsigner -verify "$aab" | grep -F 'jar verified.'
