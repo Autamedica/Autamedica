@@ -90,6 +90,14 @@ test('release jobs require GitHub tag event and original tagged configuration', 
   assert.ok(bundle.includes('test "${CIRCLE_RELEASE_CONFIG_SHA:-}" = "$CIRCLE_RELEASE_SHA"'));
   assert.doesNotMatch(bundle, /pipeline\.event\.github\.ref/); // push-only value breaks API-triggered smoke
   assert.ok(bundle.includes('git merge-base --is-ancestor "$CIRCLE_RELEASE_SHA" FETCH_HEAD'));
+  // Immutable GitHub releases permanently reserve deleted tag names; version-matched
+  // rc tags are permitted but still must pass GitHub App provenance and main ancestry.
+  assert.ok(bundle.includes("echo \"$tag\" | grep -Eq '^android-v[0-9]+\\.[0-9]+\\.[0-9]+(-rc[1-9][0-9]*)?$'"));
+  assert.ok(bundle.includes('tag_version="${tag#android-v}"'));
+  assert.ok(bundle.includes('tag_version="${tag_version%%-rc*}"'));
+  assert.ok(bundle.includes('test "$tag_version" = "$version"'));
+  assert.ok(config.includes("echo \"$CIRCLE_RELEASE_TAG\" | grep -Eq '^android-v[0-9]+\\.[0-9]+\\.[0-9]+(-rc[1-9][0-9]*)?$'"));
+  assert.ok(workflow.includes("only: /^android-v[0-9]+\\.[0-9]+\\.[0-9]+(-rc[1-9][0-9]*)?$/"));
 });
 
 test('only a draft in the Google Play internal track is permitted', () => {

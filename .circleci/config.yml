@@ -157,10 +157,12 @@ jobs:
             test -n "${CIRCLE_RELEASE_SHA:-}"
             test "${CIRCLE_RELEASE_CONFIG_SHA:-}" = "$CIRCLE_RELEASE_SHA"
             test "$(git rev-parse HEAD)" = "$CIRCLE_RELEASE_SHA"
-            echo "$tag" | grep -Eq '^android-v[0-9]+\.[0-9]+\.[0-9]+$'
+            echo "$tag" | grep -Eq '^android-v[0-9]+\.[0-9]+\.[0-9]+(-rc[1-9][0-9]*)?$'
             version="$(sed -nE 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' apps/android/app/build.gradle.kts | head -1)"
             test -n "$version"
-            test "$tag" = "android-v$version"
+            tag_version="${tag#android-v}"
+            tag_version="${tag_version%%-rc*}"
+            test "$tag_version" = "$version"
             git fetch origin main
             git merge-base --is-ancestor "$CIRCLE_RELEASE_SHA" FETCH_HEAD || {
               echo 'Release tag must reference a commit already on main'; exit 1;
@@ -245,7 +247,7 @@ jobs:
             test -n "${CIRCLE_RELEASE_SHA:-}"
             test "${CIRCLE_RELEASE_CONFIG_SHA:-}" = "$CIRCLE_RELEASE_SHA"
             test "$(git rev-parse HEAD)" = "$CIRCLE_RELEASE_SHA"
-            echo "$CIRCLE_RELEASE_TAG" | grep -Eq '^android-v[0-9]+\.[0-9]+\.[0-9]+$'
+            echo "$CIRCLE_RELEASE_TAG" | grep -Eq '^android-v[0-9]+\.[0-9]+\.[0-9]+(-rc[1-9][0-9]*)?$'
             aab="$(find apps/android/app/build/outputs/bundle/release -maxdepth 1 -type f -name '*.aab' -size +0c -print -quit)"
             test -n "$aab"
             test -n "${AUTAMEDICA_GOOGLE_PLAY_SERVICE_ACCOUNT:-}"
@@ -293,7 +295,7 @@ workflows:
             branches:
               ignore: /.*/
             tags:
-              only: /^android-v[0-9]+\.[0-9]+\.[0-9]+$/
+              only: /^android-v[0-9]+\.[0-9]+\.[0-9]+(-rc[1-9][0-9]*)?$/
       - android_play_internal_draft:
           context: autamedica-google-play-internal
           requires:
