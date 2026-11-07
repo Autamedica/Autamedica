@@ -25,13 +25,14 @@ test('release jobs are isolated from the existing manual CI defaults', () => {
 test('release jobs require GitHub tag event and original tagged configuration', () => {
   const bundle = config.slice(start, end);
   for (const name of [
-    'CIRCLE_RELEASE_TAG', 'CIRCLE_RELEASE_REF', 'CIRCLE_RELEASE_CONFIG_REF',
+    'CIRCLE_RELEASE_TAG', 'CIRCLE_RELEASE_CONFIG_REF',
     'CIRCLE_RELEASE_SHA', 'CIRCLE_RELEASE_TRIGGER', 'CIRCLE_RELEASE_EVENT',
   ]) {
     assert.ok(bundle.includes(name), `Missing mandatory release provenance gate ${name}`);
   }
   assert.ok(bundle.includes('test "${CIRCLE_RELEASE_CONFIG_REF:-}" = "refs/tags/$tag"'));
   assert.ok(bundle.includes('test "${CIRCLE_RELEASE_TRIGGER:-}" = "github_app"'));
+  assert.doesNotMatch(bundle, /pipeline\.event\.github\.ref/); // push-only value breaks API-triggered smoke
   assert.ok(bundle.includes('git merge-base --is-ancestor "$CIRCLE_RELEASE_SHA" FETCH_HEAD'));
 });
 
