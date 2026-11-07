@@ -28,6 +28,7 @@ test('Android CI JVM budgets are bounded on both medium Docker jobs', () => {
     assert.match(section, /-Pkotlin\.daemon\.jvmargs=-Xmx768m/,
       `${name}: Kotlin gradle.properties has a larger default; -P override is required`);
     assert.match(section, /-Dorg\.gradle\.parallel=false/, `${name}: Gradle parallelism must be disabled`);
+    assert.match(section, /--no-parallel/, `${name}: CLI no-parallel flag must override project Gradle settings`);
     assert.match(section, /--max-workers=1/, `${name}: Gradle worker cap missing`);
     assert.doesNotMatch(section, /-Dkotlin\.daemon\.jvm\.options=/,
       `${name}: overridden JVM options must not be mistaken for Kotlin heap limit`);
