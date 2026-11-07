@@ -35,6 +35,17 @@ test('Android CI JVM budgets are bounded on both medium Docker jobs', () => {
   }
 });
 
+
+test('Google Play Android minimum target API and identity', () => {
+  const targetSdk = Number(gradle.match(/^\\s*targetSdk\\s*=\\s*(\\d+)/m)?.[1]);
+  const versionCode = Number(gradle.match(/^\\s*versionCode\\s*=\\s*(\\d+)/m)?.[1]);
+  const versionName = gradle.match(/^\\s*versionName\\s*=\\s*"([^"]+)"/m)?.[1];
+  assert.ok(targetSdk >= 36, 'Google Play mobile updates require targetSdk 36+ since 2026-08-31');
+  assert.ok(Number.isInteger(versionCode) && versionCode > 0, 'versionCode must be positive');
+  assert.match(versionName ?? '', /^\\d+\\.\\d+\\.\\d+$/, 'release name must match android-v tag format');
+  assert.match(gradle, /applicationId\\s*=\\s*"com\\.autamedica\\.android"/);
+});
+
 test('release jobs are isolated from the existing manual CI defaults', () => {
   assert.ok(start > 0 && end > start);
   for (const flag of ['run_smoke', 'run_web', 'run_android']) {
