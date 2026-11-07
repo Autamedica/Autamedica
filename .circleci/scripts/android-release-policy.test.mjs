@@ -14,6 +14,26 @@ const start = config.indexOf('  android_release_bundle:');
 const end = config.indexOf('\nworkflows:', start);
 const workflow = config.slice(config.indexOf('  android_release_internal_draft:\n', end));
 
+
+test('Android CI JVM budgets are bounded on both medium Docker jobs', () => {
+  const sections = [
+    ['manual', config.slice(config.indexOf('  android:\n'), config.indexOf('  # Tag-triggered release only.'))],
+    ['release', config.slice(config.indexOf('  android_release_bundle:\n'), config.indexOf('  android_play_internal_draft:\n'))],
+  ];
+  for (const [name, section] of sections) {
+    assert.ok(section.startsWith('  android'), `${name}: Android job section missing`);
+    assert.match(section, /resource_class: medium/, `${name}: expected 4 GB Docker medium`);
+    assert.match(section, /GRADLE_OPTS: "-Dorg\.gradle\.jvmargs=-Xmx2048m -Dfile\.encoding=UTF-8"/,
+      `${name}: expected bounded Gradle heap`);
+    assert.match(section, /-Pkotlin\.daemon\.jvmargs=-Xmx768m/,
+      `${name}: Kotlin gradle.properties has a larger default; -P override is required`);
+    assert.match(section, /-Dorg\.gradle\.parallel=false/, `${name}: Gradle parallelism must be disabled`);
+    assert.match(section, /--max-workers=1/, `${name}: Gradle worker cap missing`);
+    assert.doesNotMatch(section, /-Dkotlin\.daemon\.jvm\.options=/,
+      `${name}: overridden JVM options must not be mistaken for Kotlin heap limit`);
+  }
+});
+
 test('release jobs are isolated from the existing manual CI defaults', () => {
   assert.ok(start > 0 && end > start);
   for (const flag of ['run_smoke', 'run_web', 'run_android']) {
