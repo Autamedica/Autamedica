@@ -27,6 +27,7 @@ jobs:
             node --version
             node --test scripts/security/service-worker-privacy.test.mjs
             node --test scripts/ops/sync-memed-secrets.test.mjs
+            node --test .circleci/scripts/android-release-policy.test.mjs
 
   web:
     docker:
