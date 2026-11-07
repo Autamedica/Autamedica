@@ -132,3 +132,69 @@ References: CircleCI [GitHub tag triggers](https://circleci.com/docs/guides/orch
 [Android deployment](https://circleci.com/docs/guides/deploy/deploy-android-applications/),
 [restricted contexts](https://circleci.com/docs/guides/security/contexts/),
 and [Fastlane supply](https://docs.fastlane.tools/actions/supply/).
+
+## Checkout / `no SSH key` incident (7 Nov 2026)
+
+**Observed live, no speculation about Android/Kotlin:** CircleCI
+[Pipeline #37](https://app.circleci.com/pipelines/github/ecucondorSA/Autamedica/37)
+on this PR branch and SHA `95569328defc9e55ffc34507217f18545694673a`
+ran `smoke_manual` successfully. A later attempt to trigger `android_manual`
+was rejected **before creating any job** with
+`We did not run this pipeline because the project has no SSH key.`
+The UI audit showed an existing OAuth-style **All pushes** trigger and no
+GitHub App **Tag pushes** trigger. The two protected signing contexts are
+not present at the organization level. This is a **pipeline authorization**
+blocker, not proof of a Kotlin test failure or a deficient AAB.
+
+**Preferred free route: configure a GitHub App pipeline (HTTPS checkout).**
+For a project in a legacy GitHub OAuth org:
+
+1. Open CircleCI [Project Settings → Project Setup](https://app.circleci.com/settings/project/github/ecucondorSA/Autamedica/setup).
+   Identify the existing OAuth pipeline (gray badge) and its current
+   `All pushes` trigger. Do not select the OAuth pipeline when manually
+   testing the Android GitHub App config.
+2. An org administrator can open **Organization Settings → VCS Connections**
+   and **Install GitHub App** if not already installed. Grant access to the
+   existing private `ecucondorSA/Autamedica` repository only; avoid
+   repository-wide scope if the UI supports selection.
+3. On **Project Setup**, select **Add pipeline** and create a **GitHub App**
+   pipeline (purple badge). Configure **both config source and checkout source**
+   to the same private AutaMedica GitHub repository; config path
+   `.circleci/config.yml`. Manual smoke tests use the same feature branch
+   for both sources.
+4. First test **one** manual `run_smoke=true` pipeline on the exact current
+   PR SHA, with `run_android=false` and `run_web=false`.
+   After it succeeds, test `run_android=true` alone with **synthetic**
+   Firebase/Supabase values. These test jobs never use the production
+   signing contexts.
+5. After confirming GitHub App pipeline works, remove the **OAuth All pushes
+   trigger** to prevent duplicate/no-workflow pipelines and Free credit waste.
+   The legacy OAuth pipeline card itself may remain visible by design.
+   Leave all other triggers disabled until the release is reviewed.
+6. When Android tests pass, configure the **GitHub App Tag pushes** trigger,
+   the two restricted contexts and the original Google Play upload key.
+   Do not push `android-v1.2.22` merely to test checkout; that tag could
+   launch a real signed release if contexts are ready.
+
+**Alternate route if intentionally retaining GitHub OAuth:** CircleCI normally
+creates a **read-only deploy key** in GitHub when an OAuth project is set up.
+Check GitHub organization **Settings → Security → Deploy keys** for the
+policy allowing repositories to create deploy keys. Check the repository's
+**Settings → Deploy keys** and CircleCI **Project Settings → SSH Keys** for
+a working **read-only checkout key**. Use the official CircleCI instructions
+to repair the OAuth project's deployment key. Do not enable **write** access
+or put a private SSH key in repository code or chat. If possible, migrate to
+GitHub App instead of creating another key.
+
+The `no SSH key` error happens **before** any `.circleci/config.yml`
+job begins, so changing Gradle or Kotlin cannot resolve it.
+**This PR must remain draft until the new pipeline passes.** Current GitHub
+Actions are independently blocked by GitHub billing, and TinyFish browser
+automation has exhausted its available wallet balance; neither is required
+for the above free setup steps.
+
+Official CircleCI references:
+- https://circleci.com/docs/guides/integration/using-the-circleci-github-app-in-an-oauth-org/
+- https://circleci.com/docs/guides/permissions-authentication/users-organizations-and-integrations-guide/
+- https://circleci.zendesk.com/hc/en-us/articles/20302893166363-Is-my-project-setup-using-GitHub-OAuth-or-GitHub-Apps
+- https://circleci.zendesk.com/hc/en-us/articles/38397680126619-How-to-Set-Up-a-New-GitHub-OAuth-App-Organization
