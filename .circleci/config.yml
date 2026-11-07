@@ -96,6 +96,17 @@ jobs:
             test -n "$(find app/build/outputs/bundle/release -maxdepth 1 -type f -name '*.aab' -size +0c -print -quit)"
             echo 'UNSIGNED RELEASE BUNDLE COMPILED — NOT FOR PLAY UPLOAD'
           no_output_timeout: 25m
+      - run:
+          name: Android failure diagnostics (cgroup memory only; no secrets)
+          when: on_fail
+          command: |
+            echo 'Android build failed. Consult the Gradle error above.'
+            for path in /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.peak /sys/fs/cgroup/memory.max; do
+              if [ -r "$path" ]; then
+                printf '%s\n' "$path"
+                cat "$path"
+              fi
+            done
 
   # Tag-triggered release only. Secrets are injected from restricted CircleCI contexts.
   # This workflow NEVER touches production Play track or auto-publishes to users.
@@ -159,6 +170,17 @@ jobs:
             jarsigner -verify "$aab" | grep -F 'jar verified.'
             sha256sum "$aab"
           no_output_timeout: 25m
+      - run:
+          name: Android failure diagnostics (cgroup memory only; no secrets)
+          when: on_fail
+          command: |
+            echo 'Android build failed. Consult the Gradle error above.'
+            for path in /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.peak /sys/fs/cgroup/memory.max; do
+              if [ -r "$path" ]; then
+                printf '%s\n' "$path"
+                cat "$path"
+              fi
+            done
       - persist_to_workspace:
           root: .
           paths:
