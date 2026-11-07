@@ -111,6 +111,8 @@ jobs:
       CIRCLE_RELEASE_TRIGGER: << pipeline.trigger.type >>
       CIRCLE_RELEASE_EVENT: << pipeline.event.name >>
       CIRCLE_RELEASE_CONFIG_REF: << pipeline.config.ref >>
+      CIRCLE_RELEASE_CONFIG_SHA: << pipeline.config.sha >>
+      CIRCLE_RELEASE_CONFIG_REPO: << pipeline.config.repository.name >>
       CIRCLE_RELEASE_OWNER: << pipeline.git.repo_owner >>
       CIRCLE_RELEASE_REPO: << pipeline.git.repo_name >>
     steps:
@@ -125,7 +127,9 @@ jobs:
             test "${CIRCLE_RELEASE_OWNER:-}" = "ecucondorSA"
             test "${CIRCLE_RELEASE_REPO:-}" = "Autamedica"
             test "${CIRCLE_RELEASE_CONFIG_REF:-}" = "refs/tags/$tag"
+            test "${CIRCLE_RELEASE_CONFIG_REPO:-}" = "ecucondorSA/Autamedica"
             test -n "${CIRCLE_RELEASE_SHA:-}"
+            test "${CIRCLE_RELEASE_CONFIG_SHA:-}" = "$CIRCLE_RELEASE_SHA"
             test "$(git rev-parse HEAD)" = "$CIRCLE_RELEASE_SHA"
             echo "$tag" | grep -Eq '^android-v[0-9]+\.[0-9]+\.[0-9]+$'
             version="$(sed -nE 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' apps/android/app/build.gradle.kts | head -1)"
@@ -170,6 +174,9 @@ jobs:
       CIRCLE_RELEASE_TAG: << pipeline.git.tag >>
       CIRCLE_RELEASE_TRIGGER: << pipeline.trigger.type >>
       CIRCLE_RELEASE_EVENT: << pipeline.event.name >>
+      CIRCLE_RELEASE_CONFIG_SHA: << pipeline.config.sha >>
+      CIRCLE_RELEASE_CONFIG_REPO: << pipeline.config.repository.name >>
+      CIRCLE_RELEASE_SHA: << pipeline.git.revision >>
     steps:
       - checkout
       - attach_workspace:
@@ -180,7 +187,11 @@ jobs:
             set -euo pipefail
             test "${CIRCLE_RELEASE_TRIGGER:-}" = "github_app"
             test "${CIRCLE_RELEASE_EVENT:-}" = "push"
+            test "${CIRCLE_RELEASE_CONFIG_REPO:-}" = "ecucondorSA/Autamedica"
             test -n "${CIRCLE_RELEASE_TAG:-}"
+            test -n "${CIRCLE_RELEASE_SHA:-}"
+            test "${CIRCLE_RELEASE_CONFIG_SHA:-}" = "$CIRCLE_RELEASE_SHA"
+            test "$(git rev-parse HEAD)" = "$CIRCLE_RELEASE_SHA"
             echo "$CIRCLE_RELEASE_TAG" | grep -Eq '^android-v[0-9]+\.[0-9]+\.[0-9]+$'
             aab="$(find apps/android/app/build/outputs/bundle/release -maxdepth 1 -type f -name '*.aab' -size +0c -print -quit)"
             test -n "$aab"
