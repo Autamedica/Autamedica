@@ -23,8 +23,8 @@ test('Android CI JVM budgets are bounded on both medium Docker jobs', () => {
   for (const [name, section] of sections) {
     assert.ok(section.startsWith('  android'), `${name}: Android job section missing`);
     assert.match(section, /resource_class: medium/, `${name}: expected 4 GB Docker medium`);
-    const gradleHeap = name === 'manual' ? 1536 : 2048;
-    const kotlinHeap = name === 'manual' ? 1280 : 768;
+    const gradleHeap = 1536;
+    const kotlinHeap = 1280;
     assert.ok(section.includes(`GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx${gradleHeap}m -Dfile.encoding=UTF-8"`),
       `${name}: expected bounded Gradle heap`);
     assert.ok(section.includes(`-Pkotlin.daemon.jvmargs=-Xmx${kotlinHeap}m`),
@@ -51,8 +51,10 @@ test('synthetic Android CI isolates Kotlin errors and never uploads Crashlytics 
     'synthetic bundle must omit only the upload task');
   assert.doesNotMatch(release, /-x :app:uploadCrashlyticsMappingFileRelease/,
     'signed release must preserve Crashlytics mapping uploads');
-  assert.match(release, /testDebugUnitTest compileDebugAndroidTestSources bundleRelease/,
-    'signed release must continue testing and producing the signed AAB');
+  assert.ok(release.includes('./gradlew :app:compileDebugKotlin '));
+  assert.ok(release.includes('./gradlew testDebugUnitTest compileDebugAndroidTestSources '));
+  assert.ok(release.includes('./gradlew bundleRelease -PfirebasePerformanceInstrumentationEnabled=false '));
+  assert.ok(release.includes('jarsigner -verify'));
 });
 
 test('Google Play Android minimum target API and identity', () => {
@@ -103,7 +105,9 @@ test('only a draft in the Google Play internal track is permitted', () => {
 
 test('build gates signed AAB and never exports release keystore as an artifact', () => {
   const bundle = config.slice(start, end);
-  assert.match(bundle, /testDebugUnitTest compileDebugAndroidTestSources bundleRelease/);
+  assert.ok(bundle.includes('./gradlew :app:compileDebugKotlin '));
+  assert.ok(bundle.includes('./gradlew testDebugUnitTest compileDebugAndroidTestSources '));
+  assert.ok(bundle.includes('./gradlew bundleRelease -PfirebasePerformanceInstrumentationEnabled=false '));
   assert.match(bundle, /jarsigner -verify/);
   assert.ok(bundle.includes('apps/android/app/build/outputs/bundle/release'));
   assert.doesNotMatch(bundle, /store_artifacts:[\s\S]*keystore/);
