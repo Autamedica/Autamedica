@@ -5,8 +5,11 @@ Fails closed when any production input is absent. Never used by opt-in synthetic
 """
 import base64
 import binascii
+import hashlib
 import json
 import os
+import re
+import subprocess
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -34,6 +37,9 @@ def main() -> None:
     required("AUTAMEDICA_RELEASE_STORE_PASSWORD")
     required("AUTAMEDICA_RELEASE_KEY_ALIAS")
     required("AUTAMEDICA_RELEASE_KEY_PASSWORD")
+    upload_sha = required("AUTAMEDICA_UPLOAD_CERT_SHA256").replace(":", "").lower()
+    if not re.fullmatch(r"[0-9a-f]{64}", upload_sha):
+        raise SystemExit("Invalid expected Google Play upload certificate SHA-256")
 
     try:
         raw = base64.b64decode(required("AUTAMEDICA_RELEASE_KEYSTORE_BASE64"), validate=True)
@@ -58,6 +64,21 @@ def main() -> None:
     keystore = root / "autamedica-release.keystore"
     keystore.write_bytes(raw)
     keystore.chmod(0o600)
+    certificate = subprocess.run(
+        [
+            "keytool", "-exportcert",
+            "-keystore", str(keystore),
+            "-alias", required("AUTAMEDICA_RELEASE_KEY_ALIAS"),
+            "-storepass:env", "AUTAMEDICA_RELEASE_STORE_PASSWORD",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if certificate.returncode != 0 or not certificate.stdout:
+        raise SystemExit("Cannot read release keystore upload certificate")
+    if hashlib.sha256(certificate.stdout).hexdigest() != upload_sha:
+        raise SystemExit("Release keystore does not match Google Play upload certificate SHA-256")
     services = root / "app" / "google-services.json"
     services.write_text(json.dumps(google), encoding="utf-8")
     services.chmod(0o600)
@@ -75,7 +96,7 @@ def main() -> None:
     props = root / "local.properties"
     props.write_text("\n".join(lines) + "\n", encoding="utf-8")
     props.chmod(0o600)
-    print("Release keystore and public app configuration prepared; signing passwords remain in CircleCI context environment")
+    print("Google Play upload certificate verified; production app config prepared; secrets not logged")
 
 
 if __name__ == "__main__":
