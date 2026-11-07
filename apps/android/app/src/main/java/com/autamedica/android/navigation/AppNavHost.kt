@@ -5,6 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import android.os.Bundle
 import com.google.firebase.analytics.FirebaseAnalytics
+import com.autamedica.android.BuildConfig
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -38,6 +39,9 @@ fun AppNavHost(
     // Compose routes do not create distinct Android Activities. Report static,
     // non-clinical screen categories only; never serialize navigation arguments.
     LaunchedEffect(navController, context) {
+        // The side-by-side QA APK uses placeholder Firebase metadata.
+        // Do not initialize Analytics with a synthetic Firebase app ID.
+        if (BuildConfig.DEBUG && BuildConfig.APPLICATION_ID.endsWith(".internal")) return@LaunchedEffect
         var previousScreen: String? = null
         navController.currentBackStackEntryFlow.collect { entry ->
             val routeTemplate = entry.destination.route.orEmpty()
