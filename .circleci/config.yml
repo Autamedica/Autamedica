@@ -70,7 +70,7 @@ jobs:
     resource_class: medium
     environment:
       CI: "true"
-      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8"
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8"
       JAVA_HOME: "/usr/lib/jvm/java-17-openjdk-amd64"
     steps:
       - checkout
@@ -85,14 +85,27 @@ jobs:
               printf '%s\n' '{"project_info":{"project_number":"653971537811","project_id":"autamedica-e54fa","storage_bucket":"autamedica-e54fa.firebasestorage.app"},"client":[{"client_info":{"mobilesdk_app_id":"1:653971537811:android:dummy","android_client_info":{"package_name":"com.autamedica.android"}},"oauth_client":[],"api_key":[{"current_key":"dummy"}],"services":{}}],"configuration_version":"1"}' > apps/android/app/google-services.json
             fi
       - run:
-          name: JVM tests, Android test compilation and unsigned release-bundle build
+          name: Compile Android debug Kotlin (synthetic CI)
           command: |
             cd apps/android
             chmod +x ./gradlew
-            # This release dry run uses synthetic configuration; NEVER distribute this bundle.
-            # CI override: repository Kotlin daemon heap is 3072m and overrides GRADLE_OPTS.
-            # Cap it explicitly using -P so Docker medium (4 GB) is not overcommitted.
-            ./gradlew testDebugUnitTest compileDebugAndroidTestSources bundleRelease -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx768m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+            # Isolate the Kotlin compiler failure before running tests or R8/bundling.
+            # Repository Kotlin heap defaults to 3072m; override for Docker medium (4 GB).
+            ./gradlew :app:compileDebugKotlin -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+          no_output_timeout: 25m
+      - run:
+          name: JVM tests and Android test source compilation (synthetic CI)
+          command: |
+            cd apps/android
+            ./gradlew testDebugUnitTest compileDebugAndroidTestSources -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+          no_output_timeout: 25m
+      - run:
+          name: Unsigned release bundle (synthetic CI; no Crashlytics upload)
+          command: |
+            cd apps/android
+            # Synthetic placeholders: skip external mapping upload ONLY on manual CI.
+            # Signed tag builds below keep the Crashlytics mapping upload enabled.
+            ./gradlew bundleRelease -x :app:uploadCrashlyticsMappingFileRelease -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
             test -n "$(find app/build/outputs/bundle/release -maxdepth 1 -type f -name '*.aab' -size +0c -print -quit)"
             echo 'UNSIGNED RELEASE BUNDLE COMPILED — NOT FOR PLAY UPLOAD'
           no_output_timeout: 25m
@@ -118,7 +131,7 @@ jobs:
     environment:
       CI: "true"
       JAVA_HOME: "/usr/lib/jvm/java-17-openjdk-amd64"
-      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8"
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8"
       CIRCLE_RELEASE_TAG: << pipeline.git.tag >>
       CIRCLE_RELEASE_SHA: << pipeline.git.revision >>
       CIRCLE_RELEASE_TRIGGER: << pipeline.trigger.type >>
@@ -159,12 +172,28 @@ jobs:
             set -euo pipefail
             python3 .circleci/scripts/prepare_android_release.py
       - run:
-          name: Kotlin tests and SIGNED release AAB
+          name: Compile Android Kotlin for signed release
           command: |
             set -euo pipefail
             cd apps/android
             chmod +x ./gradlew
-            ./gradlew testDebugUnitTest compileDebugAndroidTestSources bundleRelease -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx768m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+            # Kotlin compiler uses same bounded memory verified in synthetic Android CI.
+            ./gradlew :app:compileDebugKotlin -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+          no_output_timeout: 25m
+      - run:
+          name: Validate Android JVM tests and AndroidTest sources for signed release
+          command: |
+            set -euo pipefail
+            cd apps/android
+            ./gradlew testDebugUnitTest compileDebugAndroidTestSources -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+          no_output_timeout: 25m
+      - run:
+          name: Build and verify SIGNED release AAB (Crashlytics enabled)
+          command: |
+            set -euo pipefail
+            cd apps/android
+            # No Crashlytics task exclusions on real signed releases.
+            ./gradlew bundleRelease -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
             aab="$(find app/build/outputs/bundle/release -maxdepth 1 -type f -name '*.aab' -size +0c -print -quit)"
             test -n "$aab"
             jarsigner -verify "$aab" | grep -F 'jar verified.'

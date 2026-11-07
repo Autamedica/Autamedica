@@ -27,7 +27,6 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.time.Instant
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -153,31 +152,44 @@ class MedicalOrderRepositoryImpl @Inject constructor(
         SecureLog.error("[MedicalOrders] Failed fetching medical order $id", it)
     }
 
-    override suspend fun createMedicalOrder(request: CreateMedicalOrderRequest): Result<MedicalOrder> = runCatching {
+    // Keep the coroutine state machines small: the former monolithic suspend method
+    // exhausted the Kotlin compiler heap on CircleCI during JVM back-end lowering.
+    override suspend fun createMedicalOrder(request: CreateMedicalOrderRequest): Result<MedicalOrder> =
+        runCatching { createVerifiedMedicalOrder(request) }.onFailure {
+            SecureLog.error("[MedicalOrders] Failed creating medical order", it)
+        }
+
+    private suspend fun createVerifiedMedicalOrder(request: CreateMedicalOrderRequest): MedicalOrder {
         require(request.patientId.isNotBlank()) { "ID de paciente requerido" }
         require(request.practices.isNotEmpty()) { "Debe especificar al menos una práctica o estudio" }
         require(request.diagnosis.isNotBlank()) { "Diagnóstico presuntivo requerido" }
 
-        val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
-            ?: throw IllegalStateException("No authenticated user ID found")
+        val doctorId = resolveDoctorId()
+        val issued = issueMedicalOrder(request)
+        val (patientNames, patientDnis) = resolvePatientsInfo(listOf(request.patientId))
+        val (doctorNames, doctorLicenses) = resolveDoctorsInfo(listOf(doctorId))
 
-        val doctor = supabaseClient.postgrest
-            .from("doctors")
-            .select(Columns.list("id", "license_number")) {
-                filter { eq("user_id", userId) }
-            }
-            .decodeSingleOrNull<DoctorRecordDto>()
-            ?: throw IllegalStateException("Perfil médico no encontrado")
+        return MedicalOrder(
+            id = issued.id,
+            cuir = issued.cuir,
+            status = issued.status,
+            studyType = request.studyType,
+            practices = request.practices,
+            diagnosis = request.diagnosis,
+            notes = request.notes,
+            qrCodeContent = issued.qrCodeContent,
+            signedPdfUrl = issued.signedPdfUrl,
+            doctorName = doctorNames[doctorId],
+            doctorLicense = doctorLicenses[doctorId],
+            patientName = patientNames[request.patientId],
+            patientDni = patientDnis[request.patientId],
+            createdAt = issued.createdAt ?: Instant.now().toString(),
+        )
+    }
 
-        val orderId = UUID.randomUUID().toString()
-        val now = Instant.now().toString()
-        val timestampHex = java.lang.Long.toHexString(System.currentTimeMillis()).uppercase()
-        val randomHex = UUID.randomUUID().toString().replace("-", "").take(6).uppercase()
-        val fallbackCuir = "AR-ORD-$timestampHex-$randomHex"
-        val fallbackQr = "https://autamedica.com/verify/$fallbackCuir"
-
-        val practicesArray = buildJsonArray {
-            for (practice in request.practices) {
+    private fun medicalOrderPracticesJson(practices: List<PracticeItem>): JsonArray =
+        buildJsonArray {
+            for (practice in practices) {
                 add(buildJsonObject {
                     put("name", practice.name)
                     practice.code?.let { put("code", it) }
@@ -185,95 +197,48 @@ class MedicalOrderRepositoryImpl @Inject constructor(
             }
         }
 
-        // 1. Invocar Edge Function issue-medical-order
-        val functionPayload = buildJsonObject {
+    private suspend fun issueMedicalOrder(request: CreateMedicalOrderRequest): IssuedMedicalOrder {
+        val payload = buildJsonObject {
             put("patientId", request.patientId)
             put("studyType", request.studyType.value)
-            put("practices", practicesArray)
+            put("practices", medicalOrderPracticesJson(request.practices))
             put("diagnosis", request.diagnosis)
             request.notes?.takeIf { it.isNotBlank() }?.let { put("notes", it) }
         }
 
-        var finalOrderId = orderId
-        var finalCuir = fallbackCuir
-        var finalPdfUrl: String? = null
-        var finalStatus = "signed"
-        var finalQr = fallbackQr
+        // Only the server may issue an order. Never generate a local CUIR or mark
+        // a PostgREST fallback as signed when the issuance function is unavailable.
+        val response = supabaseClient.functions.invoke("issue-medical-order", payload)
+        val root = Json.parseToJsonElement(response.bodyAsText()) as? JsonObject
+            ?: throw IllegalStateException("Respuesta inválida al emitir la orden médica")
+        val data = root["data"] as? JsonObject
+            ?: throw IllegalStateException("No se pudo emitir la orden médica")
 
-        val edgeSuccess = runCatching {
-            val response = supabaseClient.functions.invoke("issue-medical-order", functionPayload)
-            val responseText = response.bodyAsText()
-            SecureLog.info("[MedicalOrders] issue-medical-order Edge Function response: $responseText")
-            val jsonElement = Json.parseToJsonElement(responseText)
-            val jsonObj = (jsonElement as? JsonObject)
-                ?: (jsonElement as? JsonArray)?.firstOrNull() as? JsonObject
-            val targetObj = jsonObj?.get("data") as? JsonObject
-                ?: jsonObj?.get("order") as? JsonObject
-                ?: jsonObj
+        val status = requiredIssuedOrderField(data, "status")
+        check(status == "signed") { "La orden médica no fue emitida correctamente" }
 
-            val returnedId = targetObj?.get("id")?.jsonPrimitive?.contentOrNull
-            val returnedCuir = targetObj?.get("cuir")?.jsonPrimitive?.contentOrNull
-            val returnedPdf = targetObj?.get("signed_pdf_url")?.jsonPrimitive?.contentOrNull
-                ?: targetObj?.get("signedPdfUrl")?.jsonPrimitive?.contentOrNull
-            val returnedStatus = targetObj?.get("status")?.jsonPrimitive?.contentOrNull ?: "signed"
-            val returnedQr = targetObj?.get("qr_code_content")?.jsonPrimitive?.contentOrNull
-                ?: targetObj?.get("qrContent")?.jsonPrimitive?.contentOrNull
-
-            if (!returnedCuir.isNullOrBlank()) {
-                if (!returnedId.isNullOrBlank()) {
-                    finalOrderId = returnedId
-                }
-                finalCuir = returnedCuir
-                finalPdfUrl = returnedPdf
-                finalStatus = returnedStatus
-                finalQr = returnedQr ?: "https://autamedica.com/verify/$returnedCuir"
-                true
-            } else {
-                false
-            }
-        }.getOrDefault(false)
-
-        // 2. Si la Edge Function falló o estamos en fallback offline, persistimos directamente vía PostgREST
-        if (!edgeSuccess) {
-            val insertPayload = buildJsonObject {
-                put("id", orderId)
-                put("doctor_id", doctor.id)
-                put("patient_id", request.patientId)
-                put("cuir", fallbackCuir)
-                put("status", "signed")
-                put("study_type", request.studyType.value)
-                put("practices", practicesArray)
-                put("diagnosis", request.diagnosis)
-                request.notes?.takeIf { it.isNotBlank() }?.let { put("notes", it) }
-                put("qr_code_content", fallbackQr)
-                put("created_at", now)
-                put("updated_at", now)
-            }
-            supabaseClient.postgrest.from("medical_orders").insert(insertPayload)
-        }
-
-        val (patientNameMap, patientDniMap) = resolvePatientsInfo(listOf(request.patientId))
-        val (doctorNameMap, doctorLicenseMap) = resolveDoctorsInfo(listOf(doctor.id))
-
-        MedicalOrder(
-            id = finalOrderId,
-            cuir = finalCuir,
-            status = finalStatus,
-            studyType = request.studyType,
-            practices = request.practices,
-            diagnosis = request.diagnosis,
-            notes = request.notes,
-            qrCodeContent = finalQr,
-            signedPdfUrl = finalPdfUrl,
-            doctorName = doctorNameMap[doctor.id],
-            doctorLicense = doctorLicenseMap[doctor.id] ?: doctor.licenseNumber,
-            patientName = patientNameMap[request.patientId],
-            patientDni = patientDniMap[request.patientId],
-            createdAt = now,
+        return IssuedMedicalOrder(
+            id = requiredIssuedOrderField(data, "id"),
+            cuir = requiredIssuedOrderField(data, "cuir"),
+            status = status,
+            signedPdfUrl = requiredIssuedOrderField(data, "signed_pdf_url"),
+            qrCodeContent = requiredIssuedOrderField(data, "qr_code_content"),
+            createdAt = data["created_at"]?.jsonPrimitive?.contentOrNull,
         )
-    }.onFailure {
-        SecureLog.error("[MedicalOrders] Failed creating medical order", it)
     }
+
+    private fun requiredIssuedOrderField(data: JsonObject, field: String): String =
+        data[field]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
+            ?: throw IllegalStateException("Respuesta incompleta al emitir la orden médica: $field")
+
+    private data class IssuedMedicalOrder(
+        val id: String,
+        val cuir: String,
+        val status: String,
+        val signedPdfUrl: String,
+        val qrCodeContent: String,
+        val createdAt: String?,
+    )
 
     override suspend fun cancelMedicalOrder(orderId: String, reason: String): Result<Unit> = runCatching {
         require(reason.isNotBlank()) { "Motivo de cancelación requerido" }

@@ -23,9 +23,11 @@ test('Android CI JVM budgets are bounded on both medium Docker jobs', () => {
   for (const [name, section] of sections) {
     assert.ok(section.startsWith('  android'), `${name}: Android job section missing`);
     assert.match(section, /resource_class: medium/, `${name}: expected 4 GB Docker medium`);
-    assert.match(section, /GRADLE_OPTS: "-Dorg\.gradle\.jvmargs=-Xmx2048m -Dfile\.encoding=UTF-8"/,
+    const gradleHeap = 1536;
+    const kotlinHeap = 1280;
+    assert.ok(section.includes(`GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx${gradleHeap}m -Dfile.encoding=UTF-8"`),
       `${name}: expected bounded Gradle heap`);
-    assert.match(section, /-Pkotlin\.daemon\.jvmargs=-Xmx768m/,
+    assert.ok(section.includes(`-Pkotlin.daemon.jvmargs=-Xmx${kotlinHeap}m`),
       `${name}: Kotlin gradle.properties has a larger default; -P override is required`);
     assert.match(section, /-Dorg\.gradle\.parallel=false/, `${name}: Gradle parallelism must be disabled`);
     assert.match(section, /--no-parallel/, `${name}: CLI no-parallel flag must override project Gradle settings`);
@@ -35,6 +37,25 @@ test('Android CI JVM budgets are bounded on both medium Docker jobs', () => {
   }
 });
 
+
+test('synthetic Android CI isolates Kotlin errors and never uploads Crashlytics mappings', () => {
+  const manual = config.slice(config.indexOf('  android:\n'), config.indexOf('  # Tag-triggered release only.'));
+  const release = config.slice(start, config.indexOf('  android_play_internal_draft:\n', start));
+  assert.ok(manual.includes('name: Compile Android debug Kotlin (synthetic CI)'));
+  assert.ok(manual.includes('./gradlew :app:compileDebugKotlin '));
+  assert.ok(manual.includes('name: JVM tests and Android test source compilation (synthetic CI)'));
+  assert.ok(manual.includes('./gradlew testDebugUnitTest compileDebugAndroidTestSources '));
+  assert.ok(manual.includes('name: Unsigned release bundle (synthetic CI; no Crashlytics upload)'));
+  assert.ok(manual.includes('./gradlew bundleRelease -x :app:uploadCrashlyticsMappingFileRelease '));
+  assert.equal((manual.match(/-x :app:uploadCrashlyticsMappingFileRelease/g) ?? []).length, 1,
+    'synthetic bundle must omit only the upload task');
+  assert.doesNotMatch(release, /-x :app:uploadCrashlyticsMappingFileRelease/,
+    'signed release must preserve Crashlytics mapping uploads');
+  assert.ok(release.includes('./gradlew :app:compileDebugKotlin '));
+  assert.ok(release.includes('./gradlew testDebugUnitTest compileDebugAndroidTestSources '));
+  assert.ok(release.includes('./gradlew bundleRelease -PfirebasePerformanceInstrumentationEnabled=false '));
+  assert.ok(release.includes('jarsigner -verify'));
+});
 
 test('Google Play Android minimum target API and identity', () => {
   const targetSdk = Number(gradle.match(/^\s*targetSdk\s*=\s*(\d+)/m)?.[1]);
@@ -84,7 +105,9 @@ test('only a draft in the Google Play internal track is permitted', () => {
 
 test('build gates signed AAB and never exports release keystore as an artifact', () => {
   const bundle = config.slice(start, end);
-  assert.match(bundle, /testDebugUnitTest compileDebugAndroidTestSources bundleRelease/);
+  assert.ok(bundle.includes('./gradlew :app:compileDebugKotlin '));
+  assert.ok(bundle.includes('./gradlew testDebugUnitTest compileDebugAndroidTestSources '));
+  assert.ok(bundle.includes('./gradlew bundleRelease -PfirebasePerformanceInstrumentationEnabled=false '));
   assert.match(bundle, /jarsigner -verify/);
   assert.ok(bundle.includes('apps/android/app/build/outputs/bundle/release'));
   assert.doesNotMatch(bundle, /store_artifacts:[\s\S]*keystore/);
