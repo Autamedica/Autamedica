@@ -54,7 +54,8 @@ object NetworkModule {
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
 
-        if (BuildConfig.DEBUG) {
+        // No request/response bodies in QA logs: the backend may carry patient data.
+        if (BuildConfig.DEBUG && !BuildConfig.APPLICATION_ID.endsWith(".internal")) {
             val logging = HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BODY
             }
