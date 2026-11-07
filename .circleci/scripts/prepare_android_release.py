@@ -31,9 +31,9 @@ def main() -> None:
 
     anon_key = required("AUTAMEDICA_SUPABASE_ANON_KEY")
     web_client_id = required("AUTAMEDICA_GOOGLE_WEB_CLIENT_ID")
-    store_password = required("AUTAMEDICA_RELEASE_STORE_PASSWORD")
-    alias = required("AUTAMEDICA_RELEASE_KEY_ALIAS")
-    key_password = required("AUTAMEDICA_RELEASE_KEY_PASSWORD")
+    required("AUTAMEDICA_RELEASE_STORE_PASSWORD")
+    required("AUTAMEDICA_RELEASE_KEY_ALIAS")
+    required("AUTAMEDICA_RELEASE_KEY_PASSWORD")
 
     try:
         raw = base64.b64decode(required("AUTAMEDICA_RELEASE_KEYSTORE_BASE64"), validate=True)
@@ -71,14 +71,11 @@ def main() -> None:
         f"SUPABASE_ANON_KEY={anon_key}",
         f"GOOGLE_WEB_CLIENT_ID={web_client_id}",
         "RELEASE_STORE_FILE=../autamedica-release.keystore",
-        f"RELEASE_STORE_PASSWORD={store_password}",
-        f"RELEASE_KEY_ALIAS={alias}",
-        f"RELEASE_KEY_PASSWORD={key_password}",
     ]
     props = root / "local.properties"
     props.write_text("\n".join(lines) + "\n", encoding="utf-8")
     props.chmod(0o600)
-    print("Release signing inputs and production endpoints prepared securely; values not logged")
+    print("Release keystore and public app configuration prepared; signing passwords remain in CircleCI context environment")
 
 
 if __name__ == "__main__":
