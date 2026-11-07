@@ -131,7 +131,7 @@ jobs:
     environment:
       CI: "true"
       JAVA_HOME: "/usr/lib/jvm/java-17-openjdk-amd64"
-      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8"
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8"
       CIRCLE_RELEASE_TAG: << pipeline.git.tag >>
       CIRCLE_RELEASE_SHA: << pipeline.git.revision >>
       CIRCLE_RELEASE_TRIGGER: << pipeline.trigger.type >>
@@ -172,12 +172,28 @@ jobs:
             set -euo pipefail
             python3 .circleci/scripts/prepare_android_release.py
       - run:
-          name: Kotlin tests and SIGNED release AAB
+          name: Compile Android Kotlin for signed release
           command: |
             set -euo pipefail
             cd apps/android
             chmod +x ./gradlew
-            ./gradlew testDebugUnitTest compileDebugAndroidTestSources bundleRelease -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx768m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+            # Kotlin compiler uses same bounded memory verified in synthetic Android CI.
+            ./gradlew :app:compileDebugKotlin -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+          no_output_timeout: 25m
+      - run:
+          name: Validate Android JVM tests and AndroidTest sources for signed release
+          command: |
+            set -euo pipefail
+            cd apps/android
+            ./gradlew testDebugUnitTest compileDebugAndroidTestSources -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+          no_output_timeout: 25m
+      - run:
+          name: Build and verify SIGNED release AAB (Crashlytics enabled)
+          command: |
+            set -euo pipefail
+            cd apps/android
+            # No Crashlytics task exclusions on real signed releases.
+            ./gradlew bundleRelease -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
             aab="$(find app/build/outputs/bundle/release -maxdepth 1 -type f -name '*.aab' -size +0c -print -quit)"
             test -n "$aab"
             jarsigner -verify "$aab" | grep -F 'jar verified.'
