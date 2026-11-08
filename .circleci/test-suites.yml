@@ -1,0 +1,12 @@
+---
+# Free Smarter Testing baseline; no credit-charged features enabled.
+# The three source tests are existing offline guards in the smoke job.
+name: autamedica smoke
+discover: >-
+  printf '%s\n'
+  'scripts/security/service-worker-privacy.test.mjs'
+  'scripts/ops/sync-memed-secrets.test.mjs'
+  '.circleci/scripts/android-release-policy.test.mjs'
+run: node .circleci/scripts/run-node-testsuite.mjs "<< outputs.junit >>" << test.atoms >>
+outputs:
+  junit: test-results/smarter-testing/junit.xml
