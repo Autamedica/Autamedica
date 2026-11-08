@@ -9,6 +9,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.autamedica.android.MainActivity
+import com.autamedica.android.R
 import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.navigation.NotificationRouteResolver
 import org.junit.After
@@ -52,8 +53,17 @@ class NotificationRoutingActivityTest {
             composeTestRule.waitForIdle()
 
             // Verify the user remains on the Login screen (checking for login button/elements)
-            composeTestRule.onNodeWithText("Iniciar Sesion").assertIsDisplayed()
-            composeTestRule.onNodeWithText("¿No tenes cuenta? Registrate").assertIsDisplayed()
+            // The app is localized (ES/PT-BR); avoid hard-coded Spanish copy,
+            // and match the real register footer rather than a removed mock string.
+            composeTestRule.onNodeWithText(context.getString(R.string.login_title)).assertIsDisplayed()
+            composeTestRule.onNodeWithText(
+                context.getString(R.string.auth_no_account),
+                substring = true,
+            ).assertIsDisplayed()
+            composeTestRule.onNodeWithText(
+                context.getString(R.string.auth_register_now),
+                substring = true,
+            ).assertIsDisplayed()
         }
     }
 
