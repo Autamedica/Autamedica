@@ -24,6 +24,8 @@ function mockSupabaseFetch(overrides: {
   doctor?: Record<string, unknown> | null;
   patient?: Record<string, unknown> | null;
   dispatch?: Record<string, unknown> | null;
+  partner?: Record<string, unknown> | null;
+  payment?: Record<string, unknown> | null;
   cfResponse?: { status: number; body: unknown };
 }): FetchMock {
   const originalFetch = globalThis.fetch;
@@ -50,7 +52,15 @@ function mockSupabaseFetch(overrides: {
     }
 
     if (url.includes("/rest/v1/pharmacy_dispatch_requests?")) {
-      return jsonResponse(overrides.dispatch === null ? [] : [overrides.dispatch]);
+      return jsonResponse(overrides.dispatch == null ? [] : [overrides.dispatch]);
+    }
+
+    if (url.includes("/rest/v1/commercial_referral_partners?")) {
+      return jsonResponse(overrides.partner == null ? [] : [overrides.partner]);
+    }
+
+    if (url.includes("/rest/v1/pharmacy_dispatch_payments?")) {
+      return jsonResponse(overrides.payment == null ? [] : [overrides.payment]);
     }
 
     if (url.includes("rtc.live.cloudflare.com")) {
@@ -413,6 +423,107 @@ Deno.test("cloudflare-calls - Dispatch legacy fallback keeps requested_by_user_i
     assertEquals(res.status, 201);
     const data = await res.json();
     assertEquals(data.sessionId, "sess-dispatch-legacy");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+const JORDAN_ROOM = "cf-room-jordan-gate-test";
+const JORDAN_DISPATCH = {
+  id: "dispatch-jordan-gate-test",
+  cloudflare_room_id: JORDAN_ROOM,
+  assigned_doctor_id: "dr-jordan",
+  status: "matched",
+  patient_id: null,
+  requested_by_user_id: "user-jordan",
+  care_country: "BR",
+  referral_partner_id: "partner-jordan",
+};
+const JORDAN_APPROVED = {
+  status: "approved",
+  provider: "mercadopago",
+  provider_payment_id: "123456789",
+  paid_at: "2026-11-08T10:00:00Z",
+  amount_minor: 7900,
+  currency: "BRL",
+};
+
+for (const scenario of [
+  { name: "without payment", payment: null, expected: 402 },
+  { name: "pending", payment: { ...JORDAN_APPROVED, status: "pending" }, expected: 402 },
+  { name: "refunded", payment: { ...JORDAN_APPROVED, status: "refunded" }, expected: 402 },
+  { name: "wrong currency", payment: { ...JORDAN_APPROVED, currency: "ARS" }, expected: 402 },
+  { name: "missing PSP ID", payment: { ...JORDAN_APPROVED, provider_payment_id: null }, expected: 402 },
+  { name: "approved", payment: JORDAN_APPROVED, expected: 200 },
+]) {
+  Deno.test(`cloudflare-calls - Jordan media gate ${scenario.name}`, async () => {
+    setEnv();
+    const originalFetch = globalThis.fetch;
+    let cfRequests = 0;
+    const backend = mockSupabaseFetch({
+      user: { id: "user-jordan" },
+      call: null,
+      dispatch: JORDAN_DISPATCH,
+      partner: { code: "JORDAN", active: true },
+      payment: scenario.payment,
+    });
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).includes("rtc.live.cloudflare.com")) cfRequests++;
+      return backend(input, init);
+    };
+    try {
+      const req = new Request("http://localhost/cloudflare-calls", {
+        method: "POST",
+        headers: { Authorization: "Bearer synthetic-valid-token" },
+        body: JSON.stringify({ roomId: JORDAN_ROOM, method: "POST", path: "sessions/new", body: {} }),
+      });
+      const res = await handler(req);
+      assertEquals(res.status, scenario.expected);
+      assertEquals(cfRequests, scenario.expected === 200 ? 1 : 0);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+}
+
+Deno.test("cloudflare-calls - Jordan cannot cross into Argentina", async () => {
+  setEnv();
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = mockSupabaseFetch({
+    user: { id: "user-jordan" },
+    call: null,
+    dispatch: { ...JORDAN_DISPATCH, care_country: "AR" },
+    partner: { code: "JORDAN", active: true },
+    payment: JORDAN_APPROVED,
+  });
+  try {
+    const res = await handler(new Request("http://localhost/cloudflare-calls", {
+      method: "POST",
+      headers: { Authorization: "Bearer synthetic-valid-token" },
+      body: JSON.stringify({ roomId: JORDAN_ROOM, path: "sessions/new", body: {} }),
+    }));
+    assertEquals(res.status, 403);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("cloudflare-calls - unresolved referral must fail closed", async () => {
+  setEnv();
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = mockSupabaseFetch({
+    user: { id: "user-jordan" },
+    call: null,
+    dispatch: JORDAN_DISPATCH,
+    partner: null,
+    payment: JORDAN_APPROVED,
+  });
+  try {
+    const res = await handler(new Request("http://localhost/cloudflare-calls", {
+      method: "POST",
+      headers: { Authorization: "Bearer synthetic-valid-token" },
+      body: JSON.stringify({ roomId: JORDAN_ROOM, path: "sessions/new", body: {} }),
+    }));
+    assertEquals(res.status, 503);
   } finally {
     globalThis.fetch = originalFetch;
   }
