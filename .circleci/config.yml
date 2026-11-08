@@ -13,6 +13,9 @@ parameters:
   run_android:
     type: boolean
     default: false
+  run_jordan_gate:
+    type: boolean
+    default: false
 
 jobs:
   smoke:
@@ -28,6 +31,30 @@ jobs:
             node --test scripts/security/service-worker-privacy.test.mjs
             node --test scripts/ops/sync-memed-secrets.test.mjs
             node --test .circleci/scripts/android-release-policy.test.mjs
+
+  jordan_sql_contract:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Jordan offline DB/API/security source invariants (NOT SQL replay)
+          command: node --test scripts/ci/jordan-release-contract.test.mjs
+
+  jordan_deno:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Deno synthetic SFU authorization, Jordan payment and country isolation
+          command: |
+            # Pinned Deno CLI via npm; the CircleCI Node image includes git for checkout.
+            npx --yes deno@2.4.5 --version
+            npx --yes deno@2.4.5 test --no-check --allow-env --allow-net supabase/functions/tests/cloudflare-calls.test.ts
+          no_output_timeout: 10m
 
   web:
     docker:
@@ -63,6 +90,33 @@ jobs:
               echo 'VERIFY TEST NOT PRESENT ON THIS BRANCH: QR signature verification NOT validated by this job.'
             fi
           no_output_timeout: 10m
+
+      - run:
+          name: Jordan checkout, finance, media and provider unit regressions
+          command: |
+            pnpm --filter @autamedica/web exec vitest run \
+              src/pages/api/pharmacy/dispatch/request.test.ts \
+              src/lib/pharmacy/payments/referral-finance.test.ts \
+              src/lib/pharmacy/payments/jordan-media-access.test.ts \
+              src/lib/calls/web-cloudflare-media-authorization.test.ts
+            pnpm --filter @autamedica/telemedicine exec vitest run src/server/cloudflare-calls-handler.test.ts
+            if [ -f 'apps/web/src/lib/pharmacy/payments/jordan-commission-eligibility.test.ts' ]; then
+              pnpm --filter @autamedica/web exec vitest run src/lib/pharmacy/payments/jordan-commission-eligibility.test.ts
+            else
+              echo 'GATE 5 IDENTITY TEST ABSENT ON THIS COMMIT — NOT RELEASE APPROVED'
+            fi
+            if [ -f 'apps/web/src/lib/calls/sfu-room-binding.test.ts' ]; then
+              pnpm --filter @autamedica/web exec vitest run src/lib/calls/sfu-room-binding.test.ts
+            else
+              echo 'GATE 7 SFU SESSION BINDING TEST ABSENT ON THIS COMMIT — NOT RELEASE APPROVED'
+            fi
+          no_output_timeout: 10m
+      - run:
+          name: Web Astro typecheck and non-deploying production build
+          command: |
+            pnpm --filter @autamedica/web check
+            pnpm --filter @autamedica/web build
+          no_output_timeout: 15m
 
   android:
     docker:
@@ -270,6 +324,27 @@ jobs:
           no_output_timeout: 20m
 
 workflows:
+  # Release evidence must refer to exactly the chosen reviewed main commit.
+  # Explicitly triggered with run_jordan_gate=true: no unattended credits,
+  # production deployment, payment toggles or signed Play release.
+  jordan_release_gate_manual:
+    when: << pipeline.parameters.run_jordan_gate >>
+    jobs:
+      - smoke
+      - jordan_sql_contract
+      - web:
+          requires:
+            - smoke
+            - jordan_sql_contract
+      - jordan_deno:
+          requires:
+            - smoke
+            - jordan_sql_contract
+      - android:
+          requires:
+            - web
+            - jordan_deno
+
   smoke_manual:
     when: << pipeline.parameters.run_smoke >>
     jobs:
