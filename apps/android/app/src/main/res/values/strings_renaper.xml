@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="renaper_title">Consulta de identidad argentina — RENAPER</string>
+    <string name="renaper_notice">Solo para pacientes con DNI argentino. La consulta requiere autorización y no sustituye la validación médica ni acredita cobertura.</string>
+    <string name="renaper_dni_label">DNI argentino</string>
+    <string name="renaper_sex_label">Sexo registral que figura en el DNI</string>
+    <string name="renaper_sex_female">Femenino</string>
+    <string name="renaper_sex_male">Masculino</string>
+    <string name="renaper_sex_other">X / otro</string>
+    <string name="renaper_consent">Autorizo consultar mis datos de identidad en el servicio oficial.</string>
+    <string name="renaper_action">Consultar identidad</string>
+    <string name="renaper_partial">Respuesta parcial: los datos están enmascarados según la autorización del servidor.</string>
+    <string name="renaper_name">Nombre: %1$s</string>
+    <string name="renaper_coverage">Cobertura: %1$s</string>
+    <string name="renaper_checked_at">Consulta: %1$s</string>
+    <string name="renaper_error_invalid">Ingresá un DNI válido (6 a 12 dígitos) y seleccioná sexo registral.</string>
+    <string name="renaper_error_auth">Tu sesión o autorización no permite esta consulta.</string>
+    <string name="renaper_error_limit">Se alcanzó el límite de consultas de identidad.</string>
+    <string name="renaper_error_unavailable">El servicio oficial no está disponible. No se modificó tu perfil.</string>
+    <string name="renaper_error_default">No se pudo realizar la consulta. No se modificó tu perfil.</string>
+</resources>
