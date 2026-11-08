@@ -521,9 +521,9 @@ class DoctorDashboardViewModel @Inject constructor(
                         // Both phones must observe the same authoritative status
                         // before opening the call. A failed update is not success.
                         pharmacyDispatchRepository.updateDispatchRequestStatus(requestId, "in_call")
-                            .onSuccess {
+                            .onSuccess confirmedCall@{
                                 if (permissionVersion != authorizationVersion || _uiState.value.guardApproved != true ||
-                                    _uiState.value.doctorId != doctorId) return@onSuccess
+                                    _uiState.value.doctorId != doctorId) return@confirmedCall
                                 com.autamedica.android.telemetry.CallTelemetry.recordMilestone(
                                     traceId, "T1_BACKEND_CLAIM", mapOf("success" to true)
                                 )
