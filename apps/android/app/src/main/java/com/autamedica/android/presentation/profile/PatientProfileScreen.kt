@@ -223,7 +223,10 @@ fun PatientProfileScreen(
                                     loading = uiState.renaperLoading,
                                     identity = uiState.renaperResult,
                                     errorStatus = uiState.renaperErrorStatus,
+                                    confirming = uiState.renaperConfirming,
+                                    confirmErrorStatus = uiState.renaperConfirmErrorStatus,
                                     onLookup = viewModel::lookupRenaper,
+                                    onConfirm = viewModel::confirmRenaper,
                                     onClear = viewModel::clearRenaperResponse,
                                 )
                             }
