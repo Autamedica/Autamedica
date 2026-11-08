@@ -9,6 +9,7 @@ import {
   type RenaperSexId,
 } from '@/lib/interoperability/non-fhir.service';
 import { logger } from '@autamedica/shared';
+import { isOfficialPhotoAvailable, maskOfficialAddress } from '@/lib/patients/services/renaper-display-privacy';
 import {
   isRenaperLookupInPatientScope,
   returnedRenaperDocumentMatches,
@@ -32,14 +33,6 @@ function maskCuil(cuilStr: string | null | undefined): string {
   const clean = cuilStr.replace(/\D/g, '');
   if (clean.length < 11) return cuilStr;
   return `${clean.slice(0, 2)}-******-${clean.slice(-1)}`;
-}
-
-function maskAddress(addressStr: string | null | undefined): string {
-  if (!addressStr) return '';
-  const parts = addressStr.split(',');
-  const maskedStreet = parts[0] ? maskText(parts[0], 4) : '';
-  const rest = parts.slice(1).map((p) => maskText(p.trim(), 2)).join(', ');
-  return [maskedStreet, rest].filter(Boolean).join(', ');
 }
 
 function normalizeDni(value: unknown): string | null {
@@ -167,7 +160,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
     const firstName = person.nombres ?? '';
     const lastName = person.apellido ?? '';
-    const address = buildAddress(person);
+    // All response paths expose only a redacted address; do not send official photo bytes.
+    const maskedAddress = maskOfficialAddress(buildAddress(person));
+    const photoAvailable = isOfficialPhotoAvailable(person.foto);
     const coverage = result.coverages[0] ?? null;
 
     // Do not persist provider PII to RLS-readable insurance_info.
@@ -196,7 +191,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
           birthDate: person.fechaNacimiento ?? '',
           gender: mapSexToGender(person.sexo) ?? '',
           cuil: person.cuil && person.cuil !== '0' ? person.cuil : '',
-          address: address ?? '',
+          address: maskedAddress,
+          photoAvailable,
         },
         coverage: coverage
           ? {
@@ -220,7 +216,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
         birthDate: maskDate(person.fechaNacimiento ?? ''),
         gender: mapSexToGender(person.sexo) ?? '',
         cuil: maskCuil(person.cuil && person.cuil !== '0' ? person.cuil : ''),
-        address: maskAddress(address ?? ''),
+        address: maskedAddress,
+        photoAvailable,
       },
       coverage: coverage
         ? {
