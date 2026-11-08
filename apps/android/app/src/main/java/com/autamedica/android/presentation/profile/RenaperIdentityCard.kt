@@ -10,7 +10,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -22,13 +21,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.autamedica.android.R
 import com.autamedica.android.domain.model.RenaperIdentity
+import com.autamedica.android.domain.model.PatientProfileSnapshot
+import com.autamedica.android.domain.model.RenaperLookupPolicy
 import com.autamedica.android.domain.model.RenaperSexId
 
 /**
@@ -37,14 +36,14 @@ import com.autamedica.android.domain.model.RenaperSexId
  */
 @Composable
 fun RenaperIdentityCard(
+    patient: PatientProfileSnapshot,
     loading: Boolean,
     identity: RenaperIdentity?,
     errorStatus: Int?,
-    onLookup: (String, RenaperSexId) -> Unit,
+    onLookup: (RenaperSexId) -> Unit,
     onClear: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var dni by remember { mutableStateOf("") }
     var sex by remember { mutableStateOf<RenaperSexId?>(null) }
     var consent by remember { mutableStateOf(false) }
 
@@ -61,18 +60,17 @@ fun RenaperIdentityCard(
             Text(stringResource(R.string.renaper_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(stringResource(R.string.renaper_notice), style = MaterialTheme.typography.bodySmall)
 
-            OutlinedTextField(
-                value = dni,
-                onValueChange = { input ->
-                    dni = input.filter(Char::isDigit).take(12)
-                    onClear()
-                },
-                enabled = !loading,
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                label = { Text(stringResource(R.string.renaper_dni_label)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            )
+            // The client never accepts a free-text DNI for this operation.
+            // Show only an obscured hint of the registered patient's document.
+            val maskedDni = RenaperLookupPolicy.maskedDni(patient)
+            if (maskedDni == null) {
+                Text(
+                    stringResource(R.string.renaper_dni_missing),
+                    color = MaterialTheme.colorScheme.error,
+                )
+            } else {
+                Text(stringResource(R.string.renaper_dni_registered, maskedDni))
+            }
 
             Text(stringResource(R.string.renaper_sex_label), style = MaterialTheme.typography.bodyMedium)
             listOf(
@@ -100,9 +98,9 @@ fun RenaperIdentityCard(
             Button(
                 onClick = {
                     val selectedSex = sex ?: return@Button
-                    onLookup(dni, selectedSex)
+                    onLookup(selectedSex)
                 },
-                enabled = !loading && consent && sex != null && dni.matches(Regex("^[0-9]{6,12}$")),
+                enabled = !loading && consent && sex != null && RenaperLookupPolicy.canQuery(patient, sex),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 if (loading) CircularProgressIndicator(strokeWidth = 2.dp)
@@ -121,6 +119,8 @@ fun RenaperIdentityCard(
             }
 
             if (identity != null) {
+                Text(stringResource(R.string.renaper_data_matched), fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.renaper_identity_not_verified), style = MaterialTheme.typography.bodySmall)
                 if (!identity.hasPaid) {
                     Text(stringResource(R.string.renaper_partial), style = MaterialTheme.typography.bodySmall)
                 }
