@@ -7,6 +7,7 @@ function setEnv(): void {
   Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", "dummy_service_role"); // secrets.test
   Deno.env.set("CLOUDFLARE_CALLS_APP_ID", "cf-app-1");
   Deno.env.set("CLOUDFLARE_CALLS_APP_SECRET", "cf-secret");
+  Deno.env.set("SFU_SESSION_BINDINGS_ENABLED", "false");
 }
 
 type FetchMock = (_input: RequestInfo | URL, _init?: RequestInit) => Promise<Response>;
@@ -453,7 +454,7 @@ for (const scenario of [
   { name: "refunded", payment: { ...JORDAN_APPROVED, status: "refunded" }, expected: 402 },
   { name: "wrong currency", payment: { ...JORDAN_APPROVED, currency: "ARS" }, expected: 402 },
   { name: "missing PSP ID", payment: { ...JORDAN_APPROVED, provider_payment_id: null }, expected: 402 },
-  { name: "approved", payment: JORDAN_APPROVED, expected: 200 },
+  { name: "approved but unbound", payment: JORDAN_APPROVED, expected: 503 },
 ]) {
   Deno.test(`cloudflare-calls - Jordan media gate ${scenario.name}`, async () => {
     setEnv();
@@ -526,5 +527,80 @@ Deno.test("cloudflare-calls - unresolved referral must fail closed", async () =>
     assertEquals(res.status, 503);
   } finally {
     globalThis.fetch = originalFetch;
+  }
+});
+
+
+Deno.test("cloudflare-calls - verified paid Jordan records SFU owner and room before returning session", async () => {
+  setEnv();
+  Deno.env.set("SFU_SESSION_BINDINGS_ENABLED", "true");
+  const originalFetch = globalThis.fetch;
+  const backend = mockSupabaseFetch({
+    user: { id: "user-jordan" }, call: null, dispatch: JORDAN_DISPATCH,
+    partner: { code: "JORDAN", active: true }, payment: JORDAN_APPROVED,
+    cfResponse: { status: 201, body: { sessionId: "jordan-session-001" } },
+  });
+  let stored = 0;
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url.includes("/rest/v1/sfu_room_session_bindings")) {
+      const value = JSON.parse(String(init?.body ?? "{}"));
+      const item = Array.isArray(value) ? value[0] : value;
+      assertEquals(item.session_id, "jordan-session-001");
+      assertEquals(item.room_id, JORDAN_ROOM);
+      assertEquals(item.principal_key, "user:user-jordan");
+      stored++;
+      return jsonResponse([], 201);
+    }
+    return backend(input,init);
+  };
+  try {
+    const res = await handler(new Request("http://localhost/cloudflare-calls", {
+      method:"POST", headers:{ Authorization:"Bearer synthetic-valid-token" },
+      body:JSON.stringify({ roomId:JORDAN_ROOM,method:"POST",path:"sessions/new",
+        body:{ sessionDescription:{type:"offer",sdp:"synthetic"} } }),
+    }));
+    assertEquals(res.status,201);
+    assertEquals(stored,1);
+    assertEquals((await res.json()).sessionId,"jordan-session-001");
+  } finally {
+    globalThis.fetch = originalFetch;
+    Deno.env.set("SFU_SESSION_BINDINGS_ENABLED", "false");
+  }
+});
+
+Deno.test("cloudflare-calls - Jordan rejects cross-room SFU track subscription", async () => {
+  setEnv();
+  Deno.env.set("SFU_SESSION_BINDINGS_ENABLED", "true");
+  const originalFetch = globalThis.fetch;
+  const backend = mockSupabaseFetch({
+    user: { id: "user-jordan" }, call: null, dispatch: JORDAN_DISPATCH,
+    partner: { code: "JORDAN", active: true }, payment: JORDAN_APPROVED,
+  });
+  let upstreamCalls = 0;
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url.includes("rtc.live.cloudflare.com")) upstreamCalls++;
+    if (url.includes("/rest/v1/sfu_room_session_bindings")) {
+      if (url.includes("session_id=eq.")) {
+        return jsonResponse([{ room_id:JORDAN_ROOM, principal_key:"user:user-jordan" }]);
+      }
+      return jsonResponse([{ session_id:"foreign-session",room_id:"another-room" }]);
+    }
+    return backend(input,init);
+  };
+  try {
+    const res = await handler(new Request("http://localhost/cloudflare-calls", {
+      method:"POST", headers:{ Authorization:"Bearer synthetic-valid-token" },
+      body:JSON.stringify({
+        roomId:JORDAN_ROOM,method:"POST",path:"sessions/jordan-session-001/tracks/new",
+        body:{ tracks:[{location:"remote",sessionId:"foreign-session",trackName:"video0"}] },
+      }),
+    }));
+    assertEquals(res.status,403);
+    assertEquals(upstreamCalls,0);
+  } finally {
+    globalThis.fetch=originalFetch;
+    Deno.env.set("SFU_SESSION_BINDINGS_ENABLED", "false");
   }
 });
