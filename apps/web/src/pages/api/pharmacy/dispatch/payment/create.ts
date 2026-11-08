@@ -5,6 +5,7 @@ import { createAstroAdminClient } from '@/lib/supabase'
 import { getRuntimeEnvValue } from '@/lib/runtime-env'
 import { authorizePharmacyPaymentRequest, hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payment-access'
 import { GENERAL_PHARMACY_BR_PRICE_CENTS } from '@/lib/pharmacy/payments/referral-finance'
+import { isEligibleJordanBrClinicalPair } from '@/lib/pharmacy/payments/br-clinical-pair'
 import { logger } from '@autamedica/shared'
 
 interface CheckoutPreference {
@@ -41,12 +42,33 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Initial rollout deliberately scoped to Jordan's commercial QR.
     const { data: source, error: sourceError } = await admin
       .from('pharmacy_dispatch_requests')
-      .select('referral_partner_id, commercial_referral_partners!pharmacy_dispatch_requests_referral_partner_id_fkey(code,active)')
+      .select('referral_partner_id, patient_id, assigned_doctor_id, commercial_referral_partners!pharmacy_dispatch_requests_referral_partner_id_fkey(code,active)')
       .eq('id', dispatch.id).maybeSingle()
     if (sourceError) throw sourceError
     const partner = source?.commercial_referral_partners as { code?: string; active?: boolean } | null
     if (partner?.code !== 'JORDAN' || partner.active !== true) {
       return badRequest('jordan_qr_required_for_this_checkout')
+    }
+
+    // The monetary path must enforce BOTH sides of the BR clinical boundary,
+    // not merely trust an on-demand status label. BR patient and CRM/BR doctor
+    // are independently verified at the server before contacting Mercado Pago.
+    if (!source?.patient_id || !source?.assigned_doctor_id) {
+      return badRequest('brazilian_clinical_pair_required')
+    }
+    const [patientResult, doctorResult] = await Promise.all([
+      admin.from('patients')
+        .select('id,care_country,active')
+        .eq('id', source.patient_id).maybeSingle(),
+      admin.from('doctors')
+        .select('id,care_country,active,license_type,license_number')
+        .eq('id', source.assigned_doctor_id).maybeSingle(),
+    ])
+    if (patientResult.error || doctorResult.error) {
+      return serviceUnavailable('brazilian_clinical_pair_unavailable')
+    }
+    if (!isEligibleJordanBrClinicalPair(patientResult.data, doctorResult.data)) {
+      return badRequest('brazilian_clinical_pair_required')
     }
 
     const amountCents = GENERAL_PHARMACY_BR_PRICE_CENTS

@@ -80,11 +80,29 @@ BEGIN
   IF EXISTS (SELECT 1 FROM public.commercial_referral_commissions WHERE dispatch_request_id=dispatch_anon)
   THEN RAISE EXCEPTION 'unattributed consultation was credited to Jordan'; END IF;
 
+  -- An Argentine request with Jordan's BR-only origin must not enter the system.
+  BEGIN
+    INSERT INTO public.pharmacy_dispatch_requests
+      (id,patient_phone,patient_dni,patient_name,tier_requested,
+       cloudflare_room_id,status,care_country,referral_partner_id)
+    VALUES (dispatch_ar,'54911000000','38123456','SYNTHETIC ONLY','general',
+            'cf-room-referral-test-ar','searching','AR',partner);
+    RAISE EXCEPTION 'ar_jordan_was_accepted';
+  EXCEPTION WHEN SQLSTATE '23514' THEN
+    GET STACKED DIAGNOSTICS err=MESSAGE_TEXT;
+    IF err <> 'jordan_referral_brazil_only' THEN
+      RAISE EXCEPTION 'unexpected AR rejection: %', err;
+    END IF;
+  END;
+  IF EXISTS (SELECT 1 FROM public.pharmacy_dispatch_requests WHERE id=dispatch_ar)
+  THEN RAISE EXCEPTION 'AR Jordan dispatch escaped guard'; END IF;
+
+  -- The independent Argentine flow must still work WITHOUT Jordan attribution.
   INSERT INTO public.pharmacy_dispatch_requests
     (id,patient_phone,patient_dni,patient_name,tier_requested,
      cloudflare_room_id,status,care_country,referral_partner_id)
   VALUES (dispatch_ar,'54911000000','38123456','SYNTHETIC ONLY','general',
-          'cf-room-referral-test-ar','searching','AR',partner);
+          'cf-room-referral-test-ar','searching','AR',NULL);
   INSERT INTO public.pharmacy_dispatch_payments
     (id,dispatch_request_id,amount_minor,currency,status,provider_payment_id,paid_at)
   VALUES (payment_ar,dispatch_ar,7900,'BRL','approved','333333333333',now());
