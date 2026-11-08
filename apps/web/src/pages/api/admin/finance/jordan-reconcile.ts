@@ -11,6 +11,7 @@ import {
   type VerifiedPharmacyProviderPayment,
 } from '@/lib/pharmacy/payments/referral-finance'
 import { logger } from '@autamedica/shared'
+import { isVerifiedJordanCommissionEligible } from '@/lib/pharmacy/payments/jordan-commission-eligibility'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -90,14 +91,29 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const reconciled = await reconcilePharmacyProviderPayment(admin,evidence)
     if (!reconciled.handled) return conflict(reconciled.reason ?? 'provider_match_failed')
 
-    const { data: payment, error: paymentError } = await admin
-      .from('pharmacy_dispatch_payments')
-      .select('status').eq('dispatch_request_id',dispatchId).maybeSingle()
-    if (paymentError) throw paymentError
+    // Provider approval alone cannot create a payable Jordan commission.
+    // Only the DB ledger is authoritative after trusted identity verification.
+    const [
+      { data: payment, error: paymentError },
+      { data: commission, error: commissionError },
+    ] = await Promise.all([
+      admin.from('pharmacy_dispatch_payments')
+        .select('status').eq('dispatch_request_id',dispatchId).maybeSingle(),
+      admin.from('commercial_referral_commissions')
+        .select('status,verified_subject_hash')
+        .eq('dispatch_request_id',dispatchId)
+        .eq('referral_partner_id',dispatch.referral_partner_id)
+        .maybeSingle(),
+    ])
+    if (paymentError || commissionError) throw paymentError ?? commissionError
+    const eligibleCommissionCreated = isVerifiedJordanCommissionEligible(
+      payment?.status, commission,
+    )
     return jsonOk({
       providerMatchedPayments:1,
       verifiedStatus:payment?.status ?? 'unknown',
-      eligibleCommissionCreated:payment?.status === 'approved',
+      eligibleCommissionCreated,
+      requiresTrustedIdentityVerification: !eligibleCommissionCreated,
       paidOut:false,
       providerConfirmedIsNotBankSettled:true,
     })
