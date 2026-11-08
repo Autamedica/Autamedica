@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { logger } from '@autamedica/shared'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { badRequest, conflict, forbidden, internalError, jsonOk, notFound, unauthorized } from '@/lib/api-helpers'
@@ -41,7 +42,7 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
       if (result.kind === 'not_found') return notFound('call_not_found')
       if (result.kind === 'conflict') return conflict(result.message)
       if (result.kind === 'forbidden') return forbidden('call_access_denied')
-      if (await checkJordanMediaAccess(admin, roomId) !== 'allowed') {
+      if (await checkJordanMediaAccess(admin as unknown as SupabaseClient, roomId) !== 'allowed') {
         return conflict('jordan_payment_required')
       }
 
@@ -58,7 +59,7 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
     if (result.kind === 'not_found') return notFound('call_not_found')
     if (result.kind === 'conflict') return conflict(result.message)
     if (result.kind === 'forbidden') return forbidden('call_access_denied')
-    if (await checkJordanMediaAccess(admin, roomId) !== 'allowed') {
+    if (await checkJordanMediaAccess(admin as unknown as SupabaseClient, roomId) !== 'allowed') {
       return conflict('jordan_payment_required')
     }
 
