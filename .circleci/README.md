@@ -12,9 +12,9 @@ must be created/configured for this private GitHub repository before runs work.
 
 1. Open https://app.circleci.com/ → **Projects** → `Autamedica` → **Pipelines**.
 2. Select **Trigger Pipeline**.
-3. Choose **config source** branch `ci/circleci-manual-gates-20261106`.
-   With the GitHub App integration, choose the **checkout source** branch
-   `ci/circleci-manual-gates-20261106` too.
+3. Choose **config source** branch `main` at the current reviewed commit.
+   With the GitHub App integration, choose **checkout source** branch `main` too.
+   Record the exact SHA and verify that config and checkout reference the same commit.
 4. Add one **boolean** parameter `run_smoke=true`; leave `run_web` and
    `run_android` **false**.
 5. Confirm the single `smoke` job is scheduled, starts, reports steps, and
@@ -137,8 +137,9 @@ and [Fastlane supply](https://docs.fastlane.tools/actions/supply/).
 
 **Observed live, no speculation about Android/Kotlin:** CircleCI
 [Pipeline #37](https://app.circleci.com/pipelines/github/ecucondorSA/Autamedica/37)
-on this PR branch and SHA `95569328defc9e55ffc34507217f18545694673a`
-ran `smoke_manual` successfully. A later attempt to trigger `android_manual`
+on the historical CI branch at SHA `95569328defc9e55ffc34507217f18545694673a`
+ran `smoke_manual` successfully. This is historical evidence, **not** a passing smoke
+result for current `main` or other PR heads. A later attempt to trigger `android_manual`
 was rejected **before creating any job** with
 `We did not run this pipeline because the project has no SSH key.`
 The UI audit showed an existing OAuth-style **All pushes** trigger and no
