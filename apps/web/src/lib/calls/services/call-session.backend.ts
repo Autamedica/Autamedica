@@ -221,6 +221,7 @@ export const callSessionBackendService = {
     roomId: string,
     guest: { callId: string; roomId: string; guestName: string },
     guestToken: string,
+    authorizedDispatchRequestId: string | null = null,
   ): Promise<BootstrapResolution> {
     const call = await callSessionRepo.findLatestByRoomId(supabase, roomId)
 
@@ -228,7 +229,11 @@ export const callSessionBackendService = {
       return { kind: 'not_found' }
     }
 
-    if (call.id !== guest.callId || call.room_id !== guest.roomId) {
+    // For QR dispatch, the issued guest token refers to the dispatch UUID;
+    // the resulting call has a separately generated calls.id. The route
+    // verifies their relationship before passing this trusted ID.
+    if ((call.id !== guest.callId && authorizedDispatchRequestId !== guest.callId)
+      || call.room_id !== guest.roomId) {
       return { kind: 'forbidden' }
     }
 

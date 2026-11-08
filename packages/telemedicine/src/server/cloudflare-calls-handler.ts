@@ -41,6 +41,17 @@ export async function handleCloudflareCallsProxy(
     return { status: 400, body: { error: 'Missing "path" field' } }
   }
 
+  // This endpoint uses an account-level Cloudflare credential. Never let a
+  // browser/Android client specify arbitrary API paths, methods or URLs.
+  // The four operations below are the only ones used by the SFU SDK.
+  const allowed =
+    (method === 'POST' && path === 'sessions/new') ||
+    (method === 'POST' && /^sessions\/[A-Za-z0-9_-]{1,128}\/tracks\/new$/.test(path)) ||
+    (method === 'PUT' && /^sessions\/[A-Za-z0-9_-]{1,128}\/(tracks\/close|renegotiate)$/.test(path))
+  if (!allowed) {
+    return { status: 403, body: { error: 'Cloudflare Calls operation not allowed' } }
+  }
+
   const url = `${CF_API_BASE}/${appId}/${path}`
 
   try {
