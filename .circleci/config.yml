@@ -390,19 +390,27 @@ workflows:
   # Explicit, non-production candidate smoke for #707/#728/#729 before merging.
   # There is NO Jordan release pass here: DB replay and live PSP/device gates
   # are deliberately NOT claimed by this workflow.
+  # Candidate-only push gate: lets GitHub App start verification directly
+  # from Chat by pushing this branch. Never triggers on main, tags, or other PRs.
+  # Manual run_jordan_candidate=true remains available unchanged.
   jordan_candidate_manual:
-    when: << pipeline.parameters.run_jordan_candidate >>
+    when: pipeline.parameters.run_jordan_candidate or (pipeline.git.branch == "ci/jordan-integrated-candidate-20261108" and pipeline.trigger.type == "github_app")
     jobs:
       - jordan_candidate_source_identity
       - smoke:
           requires:
             - jordan_candidate_source_identity
+      - jordan_sql_contract:
+          requires:
+            - jordan_candidate_source_identity
       - web:
           requires:
             - smoke
+            - jordan_sql_contract
       - jordan_deno:
           requires:
             - smoke
+            - jordan_sql_contract
       - android:
           requires:
             - web
