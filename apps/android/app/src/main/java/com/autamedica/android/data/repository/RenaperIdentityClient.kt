@@ -99,6 +99,9 @@ internal fun parseRenaperResponse(raw: String, json: Json = Json): RenaperIdenti
         throw RenaperLookupException(502)
     }
     val data = root["data"]?.jsonObject ?: throw RenaperLookupException(502)
+    if (data["source"]?.jsonPrimitive?.contentOrNull != "RENAPER") {
+        throw RenaperLookupException(502)
+    }
     val form = data["form"]?.jsonObject ?: throw RenaperLookupException(502)
     val hasPaid = data["hasPaid"]?.jsonPrimitive?.booleanOrNull
         ?: throw RenaperLookupException(502)
