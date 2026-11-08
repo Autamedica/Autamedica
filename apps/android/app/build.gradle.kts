@@ -40,12 +40,12 @@ fun quoteForBuildConfig(value: String): String {
 
 android {
     namespace = "com.autamedica.android"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.autamedica.android"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 32
         versionName = "1.2.22"
 
