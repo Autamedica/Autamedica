@@ -108,6 +108,12 @@ private data class PatientTabItem(
     val icon: ImageVector,
 )
 
+// Patient-bearing doctor tabs require explicit positive server eligibility.
+// Keep Home and Profile available for renewal/onboarding. Also protects
+// restored navigation state and dashboard-directed navigation.
+internal fun isDoctorTabAllowed(index: Int, approved: Boolean): Boolean =
+    index in 0..4 && (approved || index == 0 || index == 4)
+
 // Patient tabs matching Web/iOS 1:1 (Início, Agenda, Consultar, Receitas, Comunidade)
 private val patientTabs = listOf(
     PatientTabItem(R.string.nav_patient_home, Icons.Outlined.FavoriteBorder),
@@ -179,7 +185,7 @@ fun MainScreen(
         approvalUiState.guardApproved == true
     } else false
     // Saved tab state must not display a clinical page after access is revoked.
-    val visibleDoctorTab = if (isDoctor && !doctorGuardApproved && selectedTab in 1..3) 0 else selectedTab
+    val visibleDoctorTab = if (isDoctor && !isDoctorTabAllowed(selectedTab, doctorGuardApproved)) 0 else selectedTab
 
     // ── Android 13+ notification permission ──
     val context = LocalContext.current
@@ -259,7 +265,7 @@ fun MainScreen(
                     if (isDoctor) {
                         doctorTabs.forEachIndexed { index, tab ->
                             val isSelected = visibleDoctorTab == index
-                            val tabAllowed = index == 0 || index == 4 || doctorGuardApproved
+                            val tabAllowed = isDoctorTabAllowed(index, doctorGuardApproved)
                             NavigationBarItem(
                                 selected = isSelected,
                                 enabled = tabAllowed,
@@ -337,7 +343,7 @@ fun MainScreen(
                     0 -> DoctorDashboardScreen(
                         onNavigateToVideoCall = onNavigateToVideoCall,
                         onNavigateToTab = { target ->
-                            if (target !in 1..3 || doctorGuardApproved) selectedTab = target
+                            if (isDoctorTabAllowed(target, doctorGuardApproved)) selectedTab = target
                         },
                         onNavigateToDoctorSignature = onNavigateToDoctorSignature,
                         onNavigateToDoctorPrescriptions = onNavigateToDoctorPrescriptions,
