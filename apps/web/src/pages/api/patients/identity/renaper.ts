@@ -9,6 +9,10 @@ import {
   type RenaperSexId,
 } from '@/lib/interoperability/non-fhir.service';
 import { logger } from '@autamedica/shared';
+import {
+  isRenaperLookupInPatientScope,
+  returnedRenaperDocumentMatches,
+} from '@/lib/patients/services/renaper-identity-scope';
 
 function maskText(text: string | null | undefined, visibleCount = 1): string {
   if (!text) return '';
@@ -87,7 +91,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const supabase = createAstroAdminClient(locals.runtime?.env);
   const { data: patient } = await supabase
     .from('patients')
-    .select('id, insurance_info, dni, gender')
+    .select('id, insurance_info, dni, gender, care_country')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -137,6 +141,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return badRequest('Seleccioná el sexo registral para consultar datos oficiales.');
   }
 
+  // A logged-in patient is not authorized to enumerate arbitrary DNI values.
+  // Bind the official query to the registered patient record, never client form alone.
+  // A saved DNI is still self-declared: this is not biometric identity assurance.
+  if (!isRenaperLookupInPatientScope(patient, dni, sexId)) {
+    return jsonFail(
+      'FORBIDDEN',
+      'La consulta requiere que el DNI y el sexo registral coincidan con el perfil argentino registrado.',
+      403,
+    );
+  }
+
   try {
     const result = await fetchOfficialIdentity({
       dni,
@@ -145,6 +160,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
 
     const person = result.person;
+    if (!returnedRenaperDocumentMatches(dni, person.numeroDocumento)) {
+      // Never attach a different person's official record to this account.
+      return jsonFail('CONFLICT', 'La identidad oficial no coincide con el DNI registrado.', 409);
+    }
     const firstName = person.nombres ?? '';
     const lastName = person.apellido ?? '';
     const address = buildAddress(person);
