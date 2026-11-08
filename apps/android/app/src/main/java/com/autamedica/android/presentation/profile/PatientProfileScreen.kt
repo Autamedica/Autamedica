@@ -172,8 +172,9 @@ fun PatientProfileScreen(
 
                     // Argentina identity lookup stays Kotlin-native; the authenticated
                     // backend is solely the credential-safe RENAPER intermediary.
-                    if (uiState.user?.role == UserRole.PATIENT) {
+                    if (uiState.user?.role == UserRole.PATIENT && uiState.patientSnapshot?.careCountry == "AR") {
                         RenaperIdentityCard(
+                            patient = uiState.patientSnapshot!!,
                             loading = uiState.renaperLoading,
                             identity = uiState.renaperResult,
                             errorStatus = uiState.renaperErrorStatus,
