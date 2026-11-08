@@ -20,7 +20,7 @@ const MODULE_NAME = 'plataforma.prescricao';
  */
 function numericPrescriptionId(value: unknown): string | null {
   if (typeof value === 'number') return Number.isSafeInteger(value) && value > 0 ? String(value) : null;
-  return typeof value === 'string' && /^[1-9]\\d{0,19}$/.test(value) ? value : null;
+  return typeof value === 'string' && /^[1-9]\d{0,19}$/.test(value) ? value : null;
 }
 
 function issuedPrescriptionId(event: Record<string, unknown>): string | null {
