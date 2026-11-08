@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { handleCloudflareCallsProxy } from '@autamedica/telemedicine/server'
 import { unauthorized, internalError } from '@/lib/api-helpers'
 import { verifyGuestToken } from '@/lib/calls/lib/guest-token'
@@ -65,7 +66,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         })
       }
     }
-    if (await checkJordanMediaAccess(admin, guest.roomId) !== 'allowed') {
+    if (await checkJordanMediaAccess(admin as unknown as SupabaseClient, guest.roomId) !== 'allowed') {
       return new Response(JSON.stringify({ error: 'jordan_payment_required' }), {
         status: 402,
         headers: { 'Content-Type': 'application/json' },
