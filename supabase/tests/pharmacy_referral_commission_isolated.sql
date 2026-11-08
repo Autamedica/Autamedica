@@ -90,7 +90,10 @@ BEGIN
     RAISE EXCEPTION 'ar_jordan_was_accepted';
   EXCEPTION WHEN SQLSTATE '23514' THEN
     GET STACKED DIAGNOSTICS err=MESSAGE_TEXT;
-    IF err <> 'jordan_referral_brazil_only' THEN
+    -- Both independent BEFORE INSERT guards must reject AR/Jordan. Postgres
+    -- executes same-kind triggers by name, so the first denial may come from
+    -- the quote trigger or the explicit BR-only attribution trigger.
+    IF err NOT IN ('jordan_referral_brazil_only','jordan_br_general_only') THEN
       RAISE EXCEPTION 'unexpected AR rejection: %',err;
     END IF;
   END;
