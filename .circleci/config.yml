@@ -62,12 +62,10 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Offline clinical privacy and Memed configuration guards
-          command: |
-            node --version
-            node --test scripts/security/service-worker-privacy.test.mjs
-            node --test scripts/ops/sync-memed-secrets.test.mjs
-            node --test .circleci/scripts/android-release-policy.test.mjs
+          name: Smarter Testing — offline clinical, privacy and Android policy smoke
+          command: circleci testsuite run "autamedica smoke"
+      - store_test_results:
+          path: test-results/smarter-testing
 
   jordan_sql_contract:
     docker:
