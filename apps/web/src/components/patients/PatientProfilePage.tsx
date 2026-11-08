@@ -22,6 +22,7 @@ import {
   UserCircle2,
 } from 'lucide-react';
 import { Field, SelectField } from '@/components/shared/FormFields';
+import { maskOfficialAddress } from '@/lib/patients/services/renaper-display-privacy';
 import { MetricCard } from '@/components/shared/MetricCard';
 import { CrossModuleCard } from '@/components/shared/CrossModuleCard';
 import {
@@ -84,7 +85,7 @@ function AuthenticatedPatientProfilePage({
     { label: 'Fecha de nacimiento', value: form.birthDate },
     { label: 'Sexo', value: form.gender ? genderLabel : '' },
     { label: 'CUIL', value: form.cuil },
-    { label: 'Domicilio', value: form.address },
+    { label: 'Domicilio', value: maskOfficialAddress(form.address) },
   ];
 
   return (
@@ -250,6 +251,8 @@ function AuthenticatedPatientProfilePage({
                   <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-gray-400">
                     Identidad y contacto
                   </h3>
+                  {session.patient?.careCountry === 'AR' ? (
+                    <>
                   <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <p className="text-sm font-semibold text-sky-950">Identidad oficial</p>
@@ -315,7 +318,7 @@ function AuthenticatedPatientProfilePage({
                         ) : (
                           <AlertCircle className="h-3.5 w-3.5" />
                         )}
-                        {hasOfficialIdentity ? 'Verificado' : 'Pendiente de consulta'}
+                        {hasOfficialIdentity ? 'Datos oficiales consultados' : 'Pendiente de consulta'}
                       </span>
                     </div>
                     <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -331,6 +334,9 @@ function AuthenticatedPatientProfilePage({
                       ))}
                     </div>
                   </div>
+
+                    </>
+                  ) : null}
 
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <Field
