@@ -3,6 +3,9 @@ package com.autamedica.android.presentation.profile
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,6 +16,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -131,6 +138,54 @@ fun RenaperIdentityCard(
                 if (!identity.coverageName.isNullOrBlank()) {
                     Text(stringResource(R.string.renaper_coverage, identity.coverageName))
                 }
+
+                if (identity.maskedAddress.isNotBlank()) {
+                    Text(stringResource(R.string.renaper_address, identity.maskedAddress))
+                }
+                // Never decode, display or fetch RENAPER image bytes here.
+                // Even if an official photo exists, only a generic locked
+                // silhouette is shown until a separate identity-ownership flow.
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(68.dp)
+                            .background(
+                                MaterialTheme.colorScheme.surfaceVariant,
+                                RoundedCornerShape(12.dp),
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Person,
+                            contentDescription = null,
+                            modifier = Modifier.size(36.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Icon(
+                            imageVector = Icons.Outlined.Lock,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(5.dp)
+                                .size(17.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Text(
+                        stringResource(
+                            if (identity.photoAvailable) R.string.renaper_photo_hidden
+                            else R.string.renaper_photo_unavailable,
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                Text(
+                    stringResource(R.string.renaper_photo_preview_note),
+                    style = MaterialTheme.typography.bodySmall,
+                )
                 if (identity.checkedAt.isNotBlank()) {
                     Text(stringResource(R.string.renaper_checked_at, identity.checkedAt), style = MaterialTheme.typography.bodySmall)
                 }
