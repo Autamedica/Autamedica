@@ -34,6 +34,7 @@ import com.autamedica.android.R
 @Composable
 fun PsychiatryIntakeScreen(
     onBack: () -> Unit,
+    onNavigateToTdahEvaluation: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: PsychiatryIntakeViewModel = hiltViewModel()
 ) {
@@ -93,6 +94,9 @@ fun PsychiatryIntakeScreen(
                         text = stringResource(R.string.psychiatry_intake_submitted_desc),
                         style = MaterialTheme.typography.bodyMedium
                     )
+                    Button(onClick = onNavigateToTdahEvaluation) {
+                        Text(stringResource(R.string.psychiatry_intake_tdah_btn))
+                    }
                     Button(onClick = onBack) {
                         Text(stringResource(R.string.psychiatry_intake_back_home_btn))
                     }
