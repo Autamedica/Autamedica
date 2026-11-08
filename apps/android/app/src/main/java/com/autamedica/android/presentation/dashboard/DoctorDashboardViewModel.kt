@@ -157,8 +157,10 @@ class DoctorDashboardViewModel @Inject constructor(
                 telemedicineError = null,
             )
         }
+        val loadVersion = authorizationVersion
         loadJob = viewModelScope.launch {
             val user = authRepository.getCurrentUser()
+            if (loadVersion != authorizationVersion) return@launch
             if (user == null) {
                 _uiState.update {
                     it.copy(
@@ -180,12 +182,14 @@ class DoctorDashboardViewModel @Inject constructor(
             }
 
             val profileResult = doctorRepository.getDoctorProfile(user.id)
+            if (loadVersion != authorizationVersion) return@launch
             profileResult.onSuccess { profile ->
                 _uiState.update { it.copy(doctorProfile = profile, doctorId = profile.id) }
 
                 // Guard eligibility is server-authoritative, including country and licence.
                 // Check BEFORE any stats, patient, appointment, chat or offer read.
                 val approvalResult = pharmacyDispatchRepository.getMyGuardApproval()
+                if (loadVersion != authorizationVersion) return@onSuccess
                 val approval = approvalResult.getOrNull()
                 if (approval == null) {
                     approvalResult.exceptionOrNull()?.let {
@@ -225,6 +229,7 @@ class DoctorDashboardViewModel @Inject constructor(
                 val stats = statsDeferred.await()
                 val appointments = appointmentsDeferred.await()
                 val patients = patientsDeferred.await()
+                if (loadVersion != authorizationVersion) return@onSuccess
                 val allAppointments = appointments.getOrDefault(emptyList())
                 val patientsList = patients.getOrDefault(emptyList())
 
@@ -248,6 +253,7 @@ class DoctorDashboardViewModel @Inject constructor(
                     "${p.firstName} ${p.lastName}".trim()
                 }
                 val joinableResult = resolveJoinableAppointmentIds(allAppointments)
+                if (loadVersion != authorizationVersion) return@onSuccess
 
                 _uiState.update { state ->
                     state.copy(
@@ -269,6 +275,7 @@ class DoctorDashboardViewModel @Inject constructor(
                 observeIncomingOffers()
                 loadPharmacyDuty(profile.id)
             }.onFailure { error ->
+                if (loadVersion != authorizationVersion) return@onFailure
                 SecureLog.error("[DoctorDashboard] Failed loading doctor profile", error)
                 _uiState.update {
                     it.copy(
@@ -462,6 +469,7 @@ class DoctorDashboardViewModel @Inject constructor(
                     stopHeartbeat()
                 }
             }.onFailure { error ->
+                if (permissionVersion != authorizationVersion) return@onFailure
                 SecureLog.error("[DoctorDashboard] Error toggling pharmacy duty", error)
                 // Keep the previously confirmed server state. Never start a false heartbeat.
                 _uiState.update { state ->
@@ -531,6 +539,7 @@ class DoctorDashboardViewModel @Inject constructor(
                                 onNavigateToVideoCall(roomId)
                             }
                             .onFailure { error ->
+                                if (permissionVersion != authorizationVersion) return@onFailure
                                 SecureLog.error("[DoctorDashboard] Cannot confirm in_call", error)
                                 _uiState.update {
                                     it.copy(claimErrorMessage = "Consulta aceptada. Reintentá el ingreso a la videollamada.")
@@ -545,6 +554,7 @@ class DoctorDashboardViewModel @Inject constructor(
                     }
                 }
                 .onFailure { error ->
+                    if (permissionVersion != authorizationVersion) return@onFailure
                     SecureLog.error("[DoctorDashboard] Error claiming pharmacy request", error)
                     _uiState.update {
                         it.copy(
@@ -571,6 +581,7 @@ class DoctorDashboardViewModel @Inject constructor(
                     onNavigateToVideoCall(roomId)
                 }
                 .onFailure {
+                    if (permissionVersion != authorizationVersion) return@onFailure
                     _uiState.update { state ->
                         state.copy(claimErrorMessage = "No se confirmó el ingreso. Volvé a intentarlo.")
                     }
