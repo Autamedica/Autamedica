@@ -27,6 +27,7 @@ function makeDb(opts: { jordan?: boolean; bindings?: Binding[] }) {
         return chain
       },
       gt: () => chain,
+      order: () => chain,
       limit: () => chain,
       maybeSingle: async () => {
         if (table === 'pharmacy_dispatch_requests') return {
@@ -108,6 +109,40 @@ describe('Cloudflare Calls room-bound session gate', () => {
     const result = await handleRoomBoundCloudflareProxy(
       req('sessions/my-session/tracks/new',{tracks:[{location:'local',trackName:'audio0'}]}),
       admin,'jordan-room','user:authorized-user',env)
+    expect(result.status).toBe(403)
+    expect(handleCloudflareCallsProxy).not.toHaveBeenCalled()
+  })
+
+  it('allows a subscribed track only from another bound participant in the same room', async () => {
+    const { admin } = makeDb({
+      jordan:true,
+      bindings:[
+        {session_id:'my-session',room_id:'jordan-room',principal_key:'user:authorized-user'},
+        {session_id:'doctor-session',room_id:'jordan-room',principal_key:'user:doctor-123'},
+      ],
+    })
+    const result = await handleRoomBoundCloudflareProxy(
+      req('sessions/my-session/tracks/new',{tracks:[{
+        location:'remote',sessionId:'doctor-session',trackName:'camera',
+      }]}),
+      admin,'jordan-room','user:authorized-user',{
+        appId:'test',appSecret:'test',bindingsEnabled:true,
+      })
+    expect(result.status).toBe(201)
+    expect(handleCloudflareCallsProxy).toHaveBeenCalledTimes(1)
+  })
+
+  it('denies forged remote sessions even if the requesting owner is authorized', async () => {
+    const { admin } = makeDb({ jordan:true, bindings:[
+      {session_id:'my-session',room_id:'jordan-room',principal_key:'user:authorized-user'},
+    ] })
+    const result = await handleRoomBoundCloudflareProxy(
+      req('sessions/my-session/tracks/new',{tracks:[{
+        location:'remote',sessionId:'nonexistent-publisher',trackName:'camera',
+      }]}),
+      admin,'jordan-room','user:authorized-user',{
+        appId:'test',appSecret:'test',bindingsEnabled:true,
+      })
     expect(result.status).toBe(403)
     expect(handleCloudflareCallsProxy).not.toHaveBeenCalled()
   })
