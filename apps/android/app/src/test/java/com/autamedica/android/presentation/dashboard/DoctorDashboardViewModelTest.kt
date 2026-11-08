@@ -236,6 +236,26 @@ class DoctorDashboardViewModelTest {
     }
 
     @Test
+    fun `missing jurisdiction is not confused with a pending registration review`() = runTest(testDispatcher) {
+        dispatchRepo.approvalResult = Result.success(
+            DoctorGuardApproval(approved = false, code = "DOCTOR_PENDING_CLINICAL_APPROVAL",
+                country = null, verificationStatus = "pending")
+        )
+        val vm = DoctorDashboardViewModel(
+            doctorRepository = doctorRepo, appointmentRepository = appointmentRepo,
+            authRepository = authRepo, telemedicineRepository = telemedicineRepo,
+            chatRepository = chatRepo, pharmacyDispatchRepository = dispatchRepo,
+            connectivityObserver = connectivityObserver, ioDispatcher = testDispatcher,
+        )
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.guardApproved).isFalse()
+        assertThat(vm.uiState.value.guardCareCountry).isNull()
+        assertThat(vm.uiState.value.approvalCheckFailed).isFalse()
+        assertThat(doctorRepo.patientReads).isEqualTo(0)
+        vm.viewModelScope.cancel()
+    }
+
+    @Test
     fun `failed approval RPC reports technical error without clinical reads`() = runTest(testDispatcher) {
         dispatchRepo.approvalResult = Result.failure(IOException("Permission denied"))
         val vm = DoctorDashboardViewModel(
