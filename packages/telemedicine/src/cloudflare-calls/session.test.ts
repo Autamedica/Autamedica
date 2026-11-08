@@ -7,6 +7,7 @@ describe('CloudflareCallsSession lifecycle races', () => {
     const onError = vi.fn()
     const session = new CloudflareCallsSession({
       apiProxyUrl: '/api/patients/cloudflare-calls',
+      roomId: 'room-test',
       onTrack: vi.fn(),
       onConnectionStateChange: vi.fn(),
       onError,
