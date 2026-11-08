@@ -23,7 +23,7 @@ class RenaperIdentityClientTest {
 
     @Test fun parsePartialResponsePreservesProviderMasking() {
         val result = parseRenaperResponse(
-            """{"success":true,"data":{"hasPaid":false,"checkedAt":"2026-11-08T12:00:00Z","form":{"firstName":"M****","lastName":"R*****","birthDate":"****-**-**","gender":"female"},"coverage":{"name":"Obra***"}}}""",
+            """{"success":true,"data":{"source":"RENAPER","hasPaid":false,"checkedAt":"2026-11-08T12:00:00Z","form":{"firstName":"M****","lastName":"R*****","birthDate":"****-**-**","gender":"female"},"coverage":{"name":"Obra***"}}}""",
             json,
         )
         assertThat(result.hasPaid).isFalse()
@@ -32,8 +32,28 @@ class RenaperIdentityClientTest {
         assertThat(result.coverageName).contains("*")
     }
 
+    @Test fun rejectSuccessPayloadWithoutRenaperProvenance() {
+        val result = runCatching {
+            parseRenaperResponse(
+                """{"success":true,"data":{"hasPaid":true,"form":{"firstName":"FAKE"}}}""",
+                json,
+            )
+        }
+        assertThat(result.exceptionOrNull()).isInstanceOf(RenaperLookupException::class.java)
+    }
+
+    @Test fun unpaidLookupCannotDiscloseUnmaskedServerName() {
+        val result = parseRenaperResponse(
+            """{"success":true,"data":{"source":"RENAPER","hasPaid":false,"form":{"firstName":"UNMASKED","lastName":"SYNTHETIC","birthDate":"1989-07-13"}}}""",
+            json,
+        )
+        assertThat(result.firstName).isEqualTo("U*******")
+        assertThat(result.lastName).doesNotContain("SYNTHETIC")
+        assertThat(result.birthDate).doesNotContain("1989")
+    }
+
     @Test fun rejectsMissingServerPaymentFlag() {
-        val malformed = """{"success":true,"data":{"form":{"firstName":"DEMO"}}}"""
+        val malformed = """{"success":true,"data":{"source":"RENAPER","form":{"firstName":"DEMO"}}}"""
         val thrown = runCatching { parseRenaperResponse(malformed, json) }.exceptionOrNull()
         assertThat(thrown).isInstanceOf(RenaperLookupException::class.java)
     }
@@ -43,7 +63,7 @@ class RenaperIdentityClientTest {
         server.start()
         try {
             server.enqueue(MockResponse().setResponseCode(200)
-                .setBody("""{"success":true,"data":{"hasPaid":true,"checkedAt":"2026-11-08","form":{"firstName":"DEMO","lastName":"TEST","birthDate":"2000-01-01","gender":"other"}}}"""))
+                .setBody("""{"success":true,"data":{"source":"RENAPER","hasPaid":true,"checkedAt":"2026-11-08","form":{"firstName":"DEMO","lastName":"TEST","birthDate":"2000-01-01","gender":"other"}}}"""))
             val client = RenaperIdentityClient(mockk<SupabaseClient>(), OkHttpClient(), json)
             val result = client.postLookup(server.url("/").toString(), "12345678", RenaperSexId.OTHER, "test-session-access-token")
             val req = server.takeRequest()
