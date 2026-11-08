@@ -22,4 +22,8 @@
     <string name="renaper_dni_missing">Cadastre seu DNI argentino no perfil para consultar os dados oficiais.</string>
     <string name="renaper_data_matched">Foram encontrados dados no registro oficial</string>
     <string name="renaper_identity_not_verified">Consultar dados do DNI não prova que quem usa esta conta é seu titular. Isso não autoriza receitas nem atestados.</string>
+    <string name="renaper_address">Endereço (protegido): %1$s</string>
+    <string name="renaper_photo_hidden">Foto oficial disponível — prévia oculta</string>
+    <string name="renaper_photo_unavailable">Foto oficial indisponível — amostra protegida</string>
+    <string name="renaper_photo_preview_note">Esta silhueta é ilustrativa; a fotografia real não é exibida nem baixada.</string>
 </resources>
