@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { handleCloudflareCallsProxy } from '@autamedica/telemedicine/server'
+import { handleRoomBoundCloudflareProxy } from '@/lib/calls/sfu-room-binding'
 import { unauthorized, internalError } from '@/lib/api-helpers'
 import { verifyGuestToken } from '@/lib/calls/lib/guest-token'
 import { resolveGuestSecret, resolveCloudflareCallsEnv } from '@/lib/runtime-env'
@@ -31,9 +31,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     })
   }
 
-  // Every SFU operation rechecks room ownership and the persisted payment.
+  // Every SFU operation rechecks room ownership and persisted payment.
+  let admin: SupabaseClient
   try {
-    const admin = createAstroAdminClient(locals.runtime?.env)
+    admin = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient
     const { data: dispatch, error: dispatchError } = await admin
       .from('pharmacy_dispatch_requests')
       .select('id,status')
@@ -78,10 +79,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   const { appId, appSecret } = resolveCloudflareCallsEnv(locals.runtime?.env)
-  const result = await handleCloudflareCallsProxy(request, {
-    appId,
-    appSecret,
-  })
+  const enabled = (locals.runtime?.env?.SFU_SESSION_BINDINGS_ENABLED as string | undefined)
+    ?? import.meta.env.SFU_SESSION_BINDINGS_ENABLED
+  const result = await handleRoomBoundCloudflareProxy(
+    request, admin, guest.roomId, `guest:${guest.callId}`,
+    { appId, appSecret, bindingsEnabled: enabled === 'true' },
+  )
 
   return new Response(JSON.stringify(result.body), {
     status: result.status,

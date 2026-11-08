@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { corsHeaders } from '../_shared/cors.ts'
+import { authorizeEdgeSfuBinding, recordEdgeSfuSession } from '../_shared/sfu-room-session-binding.ts'
 
 /**
  * cloudflare-calls
@@ -95,7 +96,7 @@ export async function handler(req: Request): Promise<Response> {
 
   const roomId = typeof payload.roomId === 'string' ? payload.roomId.trim() : ''
   const method = typeof payload.method === 'string' ? payload.method.toUpperCase() : 'POST'
-  const path = payload.path
+  const path = typeof payload.path === 'string' ? payload.path : ''
 
   if (!roomId) {
     return new Response(
@@ -159,6 +160,7 @@ export async function handler(req: Request): Promise<Response> {
       })
     }
 
+    let isJordanRoom = false
     if (mediaDispatch?.referral_partner_id) {
       const { data: partner, error: partnerError } = await supabaseAdmin
         .from('commercial_referral_partners')
@@ -174,6 +176,7 @@ export async function handler(req: Request): Promise<Response> {
       }
 
       if (partner.code === 'JORDAN') {
+        isJordanRoom = true
         if (mediaDispatch.care_country !== 'BR' || partner.active !== true) {
           return new Response(JSON.stringify({ error: 'Jordan is limited to Brazil' }), {
             status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -369,7 +372,37 @@ export async function handler(req: Request): Promise<Response> {
       path,
     })
 
-    // 4. Proxy hacia Cloudflare Calls SFU
+    // 4. Bind EVERY SFU session to the authorized participant/room before
+    // any tracks operation. Existing ordinary calls retain their legacy path
+    // until the separately approved binding flag is enabled on the Edge.
+    const bindingsEnabled = Deno.env.get('SFU_SESSION_BINDINGS_ENABLED') === 'true'
+    if (isJordanRoom && !bindingsEnabled) {
+      return new Response(JSON.stringify({ error: 'jordan_sfu_session_binding_not_ready' }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const requiredMethod = path === 'sessions/new' || path.endsWith('/tracks/new')
+      ? 'POST' : 'PUT'
+    if (method !== requiredMethod) {
+      return new Response(JSON.stringify({ error: 'invalid_sfu_method' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    if (bindingsEnabled) {
+      try {
+        const bound = await authorizeEdgeSfuBinding(supabaseAdmin,roomId,userId,path,payload.body)
+        if (!bound) {
+          return new Response(JSON.stringify({ error: 'sfu_session_owner_or_room_mismatch' }), {
+            status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+      } catch {
+        return new Response(JSON.stringify({ error: 'sfu_binding_lookup_unavailable' }), {
+          status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
     const url = `https://rtc.live.cloudflare.com/v1/apps/${appId}/${path}`
     const body = payload.body !== undefined ? JSON.stringify(payload.body) : undefined
 
@@ -382,8 +415,22 @@ export async function handler(req: Request): Promise<Response> {
       },
       body,
     })
-
     const cfBody = await cfRes.json().catch(() => null) ?? (await cfRes.text().catch(() => ''))
+
+    // Never return a usable new SFU session ID before its scoped DB binding
+    // is persisted. An orphaned Cloudflare session is not an authorization.
+    if (bindingsEnabled && path === 'sessions/new' &&
+        cfRes.status >= 200 && cfRes.status < 300) {
+      try {
+        const stored = await recordEdgeSfuSession(supabaseAdmin,roomId,userId,cfBody)
+        if (!stored) throw new Error('sfu_session_id_missing')
+      } catch {
+        return new Response(JSON.stringify({ error: 'sfu_session_binding_unavailable' }), {
+          status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
     return new Response(
       JSON.stringify(cfBody),
       { status: cfRes.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
