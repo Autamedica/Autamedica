@@ -62,12 +62,24 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Offline clinical privacy and Memed configuration guards
-          command: |
-            node --version
-            node --test scripts/security/service-worker-privacy.test.mjs
-            node --test scripts/ops/sync-memed-secrets.test.mjs
-            node --test .circleci/scripts/android-release-policy.test.mjs
+          name: Smarter Testing — offline clinical, privacy and Android policy smoke
+          command: circleci testsuite run "autamedica smoke"
+      - store_test_results:
+          path: test-results/smarter-testing
+
+  # Diagnostic only. CI runs doctor on the Smarter Testing feature branch.
+  # No secrets, deployment, Android signing or credit-charged testing features.
+  smarter_doctor:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Verify CircleCI Smarter Testing smoke suite
+          command: circleci testsuite doctor "autamedica smoke" --json
+      - store_test_results:
+          path: test-results/smarter-testing
 
   jordan_sql_contract:
     docker:
@@ -423,8 +435,19 @@ workflows:
     jobs:
       - android
 
-  # GitHub App must have a 'Tag pushes' trigger configured in CircleCI project settings.
-  # All regular branch pushes remain opt-in / job-free.
+  # One feature-branch diagnostic. Never runs on main, releases or other branches.
+  smarter_doctor_feature_branch:
+    jobs:
+      - smarter_doctor:
+          filters: &smarter_testing_candidate_filter
+            branches:
+              only: ci/smarter-testing-smoke-20261108
+      - smoke:
+          requires:
+            - smarter_doctor
+          filters: *smarter_testing_candidate_filter
+
+  # GitHub App release-tag trigger only. Other branches remain opt-in / job-free.
   android_release_internal_draft:
     jobs:
       - android_release_bundle:
