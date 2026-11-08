@@ -92,6 +92,10 @@ class DoctorDashboardViewModel @Inject constructor(
 
     private var loadJob: Job? = null
     private var chatSummaryJob: Job? = null
+    private var claimJob: Job? = null
+    private var retryCallJob: Job? = null
+    private var dutyToggleJob: Job? = null
+    private var authorizationVersion = 0L
 
     init {
         loadAll()
@@ -105,8 +109,16 @@ class DoctorDashboardViewModel @Inject constructor(
     private fun loadAll() {
         // Revoke cached clinical state before any refresh or account transition.
         // Never retain patient data or incoming offers while approval is unknown.
+        authorizationVersion++
         loadJob?.cancel()
+        claimJob?.cancel()
+        claimJob = null
+        retryCallJob?.cancel()
+        retryCallJob = null
+        dutyToggleJob?.cancel()
+        dutyToggleJob = null
         stopHeartbeat()
+        _dismissedRequestIds.value = emptySet()
         incomingOffersJob?.cancel()
         incomingOffersJob = null
         chatSummaryJob?.cancel()
@@ -130,10 +142,17 @@ class DoctorDashboardViewModel @Inject constructor(
                 guardVerificationStatus = null,
                 guardCareCountry = null,
                 approvalCheckFailed = false,
+                claimingPharmacyRequestId = null,
+                claimErrorMessage = null,
+                acceptedDispatchRequestId = null,
+                acceptedDispatchRoomId = null,
+                dismissedRequestIds = emptySet(),
                 simulatedDispatchAlert = null,
                 activelyDispatchedPatientId = null,
                 liveWaitingQueue = emptyList(),
                 isLoading = true,
+                userId = "",
+                userName = "",
                 error = null,
                 telemedicineError = null,
             )
@@ -393,10 +412,13 @@ class DoctorDashboardViewModel @Inject constructor(
         val doctorId = _uiState.value.doctorId
         if (doctorId.isBlank()) return
 
-        viewModelScope.launch {
+        val permissionVersion = authorizationVersion
+        dutyToggleJob?.cancel()
+        dutyToggleJob = viewModelScope.launch {
             _uiState.update { it.copy(pharmacyOnDutyState = it.pharmacyOnDutyState.copy(isLoading = true)) }
             if (onDuty) {
                 val approvalResult = pharmacyDispatchRepository.getMyGuardApproval()
+                if (permissionVersion != authorizationVersion || _uiState.value.doctorId != doctorId) return@launch
                 val approval = approvalResult.getOrNull()
                 if (approval?.approved != true) {
                     stopHeartbeat()
@@ -423,6 +445,8 @@ class DoctorDashboardViewModel @Inject constructor(
                 isOnDuty = onDuty,
                 activeTiers = listOf("general"),
             ).onSuccess {
+                if (permissionVersion != authorizationVersion || _uiState.value.guardApproved != true ||
+                    _uiState.value.doctorId != doctorId) return@onSuccess
                 _isOnDuty.value = onDuty
                 _uiState.update { state ->
                     state.copy(
@@ -472,9 +496,13 @@ class DoctorDashboardViewModel @Inject constructor(
         _uiState.update { it.copy(claimingPharmacyRequestId = requestId, claimErrorMessage = null) }
 
         // Claim atomically first. Never open a call for unconfirmed/synthetic offers.
-        viewModelScope.launch {
+        val permissionVersion = authorizationVersion
+        claimJob?.cancel()
+        claimJob = viewModelScope.launch {
             pharmacyDispatchRepository.claimPharmacyRequest(requestId, doctorId)
                 .onSuccess { claim ->
+                    if (permissionVersion != authorizationVersion || _uiState.value.guardApproved != true ||
+                        _uiState.value.doctorId != doctorId) return@onSuccess
                     val roomId = claim.cloudflareRoomId?.takeIf { it.isNotBlank() }
                     if (claim.success && roomId != null) {
                         _dismissedRequestIds.update { it + "${incoming.id}:${incoming.offerExpiresAt}" }
@@ -494,6 +522,8 @@ class DoctorDashboardViewModel @Inject constructor(
                         // before opening the call. A failed update is not success.
                         pharmacyDispatchRepository.updateDispatchRequestStatus(requestId, "in_call")
                             .onSuccess {
+                                if (permissionVersion != authorizationVersion || _uiState.value.guardApproved != true ||
+                                    _uiState.value.doctorId != doctorId) return@onSuccess
                                 com.autamedica.android.telemetry.CallTelemetry.recordMilestone(
                                     traceId, "T1_BACKEND_CLAIM", mapOf("success" to true)
                                 )
@@ -527,11 +557,16 @@ class DoctorDashboardViewModel @Inject constructor(
     }
 
     fun retryAcceptedVideo(onNavigateToVideoCall: (String) -> Unit) {
+        if (_uiState.value.guardApproved != true) return
         val requestId = _uiState.value.acceptedDispatchRequestId ?: return
         val roomId = _uiState.value.acceptedDispatchRoomId ?: return
-        viewModelScope.launch {
+        val permissionVersion = authorizationVersion
+        retryCallJob?.cancel()
+        retryCallJob = viewModelScope.launch {
             pharmacyDispatchRepository.updateDispatchRequestStatus(requestId, "in_call")
                 .onSuccess {
+                    if (permissionVersion != authorizationVersion || _uiState.value.guardApproved != true ||
+                        _uiState.value.acceptedDispatchRequestId != requestId) return@onSuccess
                     _uiState.update { it.copy(claimErrorMessage = null) }
                     onNavigateToVideoCall(roomId)
                 }
