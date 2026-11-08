@@ -439,9 +439,13 @@ workflows:
   smarter_doctor_feature_branch:
     jobs:
       - smarter_doctor:
-          filters:
+          filters: &smarter_testing_candidate_filter
             branches:
               only: ci/smarter-testing-smoke-20261108
+      - smoke:
+          requires:
+            - smarter_doctor
+          filters: *smarter_testing_candidate_filter
 
   # GitHub App release-tag trigger only. Other branches remain opt-in / job-free.
   android_release_internal_draft:
