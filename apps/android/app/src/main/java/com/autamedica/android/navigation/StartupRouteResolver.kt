@@ -11,8 +11,8 @@ import kotlinx.coroutines.withTimeoutOrNull
  * A timed-out/failed lookup fails closed to Login instead of spinning forever.
  */
 internal suspend fun resolveStartupRoute(
-    getCurrentUser: suspend () -> User?,
     timeoutMillis: Long = 12_000L,
+    getCurrentUser: suspend () -> User?,
 ): Route {
     return try {
         val user = withTimeoutOrNull(timeoutMillis) { getCurrentUser() }
