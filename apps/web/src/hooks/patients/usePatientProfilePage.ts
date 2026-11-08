@@ -209,7 +209,7 @@ export function usePatientProfilePage(
           }));
           setIdentityLookupSuccess(
             data.coverage?.name
-              ? `Perfil actualizado. Cobertura: ${data.coverage.name}.`
+              ? `Consulta oficial completada. Cobertura informada: ${data.coverage.name}.`
               : 'Consulta oficial completada; no prueba titularidad del DNI.',
           );
         } else {
