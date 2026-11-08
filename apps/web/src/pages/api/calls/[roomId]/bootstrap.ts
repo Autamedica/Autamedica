@@ -36,14 +36,14 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
 
       if (guest.roomId !== roomId) return forbidden('call_access_denied')
       const admin = createAstroAdminClient(locals.runtime?.env)
-      if (await checkJordanMediaAccess(admin, roomId) !== 'allowed') {
-        return conflict('jordan_payment_required')
-      }
       const result = await callSessionBackendService.getGuestBootstrap(admin, roomId, guest, bearerToken)
 
       if (result.kind === 'not_found') return notFound('call_not_found')
       if (result.kind === 'conflict') return conflict(result.message)
       if (result.kind === 'forbidden') return forbidden('call_access_denied')
+      if (await checkJordanMediaAccess(admin, roomId) !== 'allowed') {
+        return conflict('jordan_payment_required')
+      }
 
       return jsonOk(result.data)
     }
@@ -53,14 +53,14 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
     if (!isAuthed(auth)) return auth
 
     const admin = createAstroAdminClient(locals.runtime?.env)
-    if (await checkJordanMediaAccess(admin, roomId) !== 'allowed') {
-      return conflict('jordan_payment_required')
-    }
     const result = await callSessionBackendService.getBootstrap(admin, roomId, auth.user.id)
 
     if (result.kind === 'not_found') return notFound('call_not_found')
     if (result.kind === 'conflict') return conflict(result.message)
     if (result.kind === 'forbidden') return forbidden('call_access_denied')
+    if (await checkJordanMediaAccess(admin, roomId) !== 'allowed') {
+      return conflict('jordan_payment_required')
+    }
 
     return jsonOk(result.data)
   } catch (err) {
