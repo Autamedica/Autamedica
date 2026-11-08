@@ -80,12 +80,12 @@ function AuthenticatedPatientProfilePage({
     form.dni.trim().length > 0 &&
     form.gender.trim().length > 0 &&
     !!insuranceInfo?.official_data;
+  // A legacy profile form is not a biometric proof or immutable official source.
+  // Avoid presenting patient-entered names/dates as RENAPER-certified records.
   const officialIdentityRows = [
-    { label: 'Nombre legal', value: [form.firstName, form.lastName].filter(Boolean).join(' ') },
-    { label: 'Fecha de nacimiento', value: form.birthDate },
-    { label: 'Sexo', value: form.gender ? genderLabel : '' },
-    { label: 'CUIL', value: form.cuil },
-    { label: 'Domicilio', value: maskOfficialAddress(form.address) },
+    { label: 'DNI del perfil', value: form.dni ? `***${form.dni.replace(/\D/g, '').slice(-3)}` : '' },
+    { label: 'Consulta', value: hasOfficialIdentity ? 'RENAPER — consulta registrada' : 'Pendiente' },
+    { label: 'Domicilio del perfil (oculto)', value: maskOfficialAddress(form.address) },
   ];
 
   return (
