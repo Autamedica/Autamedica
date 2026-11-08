@@ -18,4 +18,8 @@
     <string name="renaper_error_limit">Limite de consultas de identidade atingido.</string>
     <string name="renaper_error_unavailable">O serviço oficial está indisponível. Seu perfil não foi alterado.</string>
     <string name="renaper_error_default">Não foi possível consultar. Seu perfil não foi alterado.</string>
+    <string name="renaper_dni_registered">DNI cadastrado: %1$s</string>
+    <string name="renaper_dni_missing">Cadastre seu DNI argentino no perfil para consultar os dados oficiais.</string>
+    <string name="renaper_data_matched">Foram encontrados dados no registro oficial</string>
+    <string name="renaper_identity_not_verified">Consultar dados do DNI não prova que quem usa esta conta é seu titular. Isso não autoriza receitas nem atestados.</string>
 </resources>
