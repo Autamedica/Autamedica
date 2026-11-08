@@ -3,6 +3,7 @@ package com.autamedica.android.data.repository
 import com.autamedica.android.domain.model.RenaperIdentity
 import com.autamedica.android.domain.model.RenaperLookupException
 import com.autamedica.android.domain.model.RenaperSexId
+import com.autamedica.android.domain.model.RenaperPreviewPrivacy
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.Dispatchers
@@ -126,5 +127,10 @@ internal fun parseRenaperResponse(raw: String, json: Json = Json): RenaperIdenti
         birthDate = maskIfUnpaid(field("birthDate")),
         gender = field("gender"),
         coverageName = coverage?.get("name")?.jsonPrimitive?.contentOrNull?.take(180)?.let(::maskIfUnpaid),
+        // Always redact address (including paid results): confirmation of identity
+        // is separate from a transaction/payment or a successful lookup.
+        maskedAddress = RenaperPreviewPrivacy.maskAddress(field("address")),
+        photoAvailable = data["photoAvailable"]?.jsonPrimitive?.booleanOrNull
+            ?: form["photoAvailable"]?.jsonPrimitive?.booleanOrNull ?: false,
     )
 }
