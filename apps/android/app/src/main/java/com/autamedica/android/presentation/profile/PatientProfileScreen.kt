@@ -38,6 +38,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -175,15 +176,58 @@ fun PatientProfileScreen(
                     uiState.patientSnapshot
                         ?.takeIf { it.careCountry == "AR" && uiState.user?.role == UserRole.PATIENT }
                         ?.let { patient ->
-                        RenaperIdentityCard(
-                            patient = patient,
-                            loading = uiState.renaperLoading,
-                            identity = uiState.renaperResult,
-                            errorStatus = uiState.renaperErrorStatus,
-                            onLookup = viewModel::lookupRenaper,
-                            onClear = viewModel::clearRenaperResponse,
-                        )
-                    }
+                            if (patient.renaperConfirmedAt != null) {
+                                Surface(
+                                    color = Color.White,
+                                    shape = RoundedCornerShape(20.dp),
+                                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(18.dp),
+                                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                                    ) {
+                                        Text(
+                                            stringResource(R.string.renaper_confirmed_title),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                        Text(
+                                            stringResource(R.string.renaper_confirmed_notice),
+                                            style = MaterialTheme.typography.bodySmall,
+                                        )
+                                        OutlinedTextField(
+                                            value = uiState.editableAddress,
+                                            onValueChange = viewModel::onAddressChange,
+                                            label = { Text(stringResource(R.string.renaper_address_edit)) },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            enabled = !uiState.isAddressSaving,
+                                        )
+                                        Button(
+                                            onClick = viewModel::saveAddress,
+                                            enabled = !uiState.isAddressSaving &&
+                                                uiState.editableAddress.isNotBlank(),
+                                        ) {
+                                            Text(stringResource(R.string.renaper_address_save))
+                                        }
+                                        if (uiState.addressSaveSuccess) {
+                                            Text(stringResource(R.string.renaper_address_saved))
+                                        }
+                                        if (uiState.error != null) {
+                                            Text(uiState.error.orEmpty(), color = MaterialTheme.colorScheme.error)
+                                        }
+                                    }
+                                }
+                            } else {
+                                RenaperIdentityCard(
+                                    patient = patient,
+                                    loading = uiState.renaperLoading,
+                                    identity = uiState.renaperResult,
+                                    errorStatus = uiState.renaperErrorStatus,
+                                    onLookup = viewModel::lookupRenaper,
+                                    onClear = viewModel::clearRenaperResponse,
+                                )
+                            }
+                        }
 
                     // 2. Wallet Balance Card
                     PatientWalletCard(
