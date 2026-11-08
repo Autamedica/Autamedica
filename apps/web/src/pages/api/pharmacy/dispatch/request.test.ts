@@ -57,6 +57,7 @@ function buildTableChain(data: unknown, error: unknown = null): TableChain {
 function makeContext(options?: {
   body?: unknown
   session?: { user: { id: string } } | null
+  jordanEnabled?: boolean
 }): Parameters<typeof POST>[0] {
   const request = new Request('http://localhost/api/pharmacy/dispatch/request', {
     method: 'POST',
@@ -78,7 +79,7 @@ function makeContext(options?: {
     request,
     locals: {
       session: options?.session !== undefined ? options.session : null,
-      runtime: { env: { GUEST_TOKEN_SECRET: TEST_SECRET } },
+      runtime: { env: { GUEST_TOKEN_SECRET: TEST_SECRET, ENABLE_JORDAN_PAYMENTS: options?.jordanEnabled ? 'true' : 'false' } },
     },
   } as unknown as Parameters<typeof POST>[0]
 }
@@ -317,6 +318,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
         patientPhone: '+5551999998888', patientName: 'Paciente sintético',
         referralCode: 'JORDAN',
       },
+      jordanEnabled: true,
     }))
     expect(response.status).toBe(200)
     expect(dispatchTable.insert).toHaveBeenCalledWith(expect.objectContaining({
@@ -325,6 +327,38 @@ describe('API: /api/pharmacy/dispatch/request', () => {
       pharmacy_id: null,
       patient_dni: null,
     }))
+  })
+
+  it('rechaza Jordan sin checkout habilitado antes de crear una solicitud', async () => {
+    const response = await POST(makeContext({
+      body: {
+        careCountry: 'BR', patientCpf: '12345678909',
+        patientPhone: '+5551999998888', referralCode: 'JORDAN',
+      },
+    }))
+    expect(response.status).toBe(503)
+    expect(supabaseMock.from).not.toHaveBeenCalled()
+  })
+
+  it('rechaza Jordan Argentina y especialidades sin consumir guardia médica', async () => {
+    const ar = await POST(makeContext({
+      body: {
+        careCountry: 'AR', patientDni: '38123456',
+        patientPhone: '+549112345678', referralCode: 'JORDAN',
+      },
+      jordanEnabled: true,
+    }))
+    expect(ar.status).toBe(400)
+    const specialist = await POST(makeContext({
+      body: {
+        careCountry: 'BR', patientCpf: '12345678909',
+        patientPhone: '+5551999998888', referralCode: 'JORDAN',
+        tier: 'cardiologia',
+      },
+      jordanEnabled: true,
+    }))
+    expect(specialist.status).toBe(400)
+    expect(supabaseMock.from).not.toHaveBeenCalled()
   })
 
   it('no acredita origen de Jordan si no existe código QR', async () => {
