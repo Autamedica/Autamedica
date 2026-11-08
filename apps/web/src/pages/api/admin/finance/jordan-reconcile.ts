@@ -11,6 +11,7 @@ import {
   type VerifiedPharmacyProviderPayment,
 } from '@/lib/pharmacy/payments/referral-finance'
 import { logger } from '@autamedica/shared'
+import { isVerifiedJordanCommissionEligible } from '@/lib/pharmacy/payments/jordan-commission-eligibility'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -105,10 +106,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
         .maybeSingle(),
     ])
     if (paymentError || commissionError) throw paymentError ?? commissionError
-    const eligibleCommissionCreated = payment?.status === 'approved'
-      && commission?.status === 'eligible'
-      && typeof commission?.verified_subject_hash === 'string'
-      && /^[0-9a-f]{64}$/.test(commission.verified_subject_hash)
+    const eligibleCommissionCreated = isVerifiedJordanCommissionEligible(
+      payment?.status, commission,
+    )
     return jsonOk({
       providerMatchedPayments:1,
       verifiedStatus:payment?.status ?? 'unknown',
