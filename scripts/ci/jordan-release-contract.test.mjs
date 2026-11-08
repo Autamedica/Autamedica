@@ -71,10 +71,7 @@ function countOccurrences(text, fragment) {
 
 test('optional verified-person migration has one complete atomic SQL definition', () => {
   const path = 'supabase/migrations/20261108110000_jordan_verified_subject_commissions.sql'
-  if (!existsSync(path)) {
-    console.log('Gate 5 migration absent from this SHA; not approved for payout')
-    return
-  }
+  assert.ok(existsSync(path), 'NO-GO: verified identity gate #728 has not reached this main commit')
   const sql = source(path)
   assert.equal(countOccurrences(sql, '\nBEGIN;'), 1)
   assert.equal(countOccurrences(sql, '\nCOMMIT;'), 1)
@@ -94,10 +91,7 @@ test('optional verified-person migration has one complete atomic SQL definition'
 
 test('optional session binding migration is service-only and RLS enabled', () => {
   const path = 'supabase/migrations/20261108120000_sfu_room_session_bindings.sql'
-  if (!existsSync(path)) {
-    console.log('Gate 7 binding migration absent from this SHA; no Jordan video GO')
-    return
-  }
+  assert.ok(existsSync(path), 'NO-GO: SFU session-room binding gate #729 has not reached this main commit')
   const sql = source(path)
   assert.equal(countOccurrences(sql, '\nBEGIN;'), 1)
   assert.equal(countOccurrences(sql, '\nCOMMIT;'), 1)
