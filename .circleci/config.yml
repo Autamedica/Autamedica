@@ -44,15 +44,16 @@ jobs:
 
   jordan_deno:
     docker:
-      - image: denoland/deno:2.4.5
+      - image: cimg/node:22.15.0
     resource_class: small
     steps:
       - checkout
       - run:
           name: Deno synthetic SFU authorization, Jordan payment and country isolation
           command: |
-            deno --version
-            deno test --no-check --allow-env --allow-net supabase/functions/tests/cloudflare-calls.test.ts
+            # Pinned Deno CLI via npm; the CircleCI Node image includes git for checkout.
+            npx --yes deno@2.4.5 --version
+            npx --yes deno@2.4.5 test --no-check --allow-env --allow-net supabase/functions/tests/cloudflare-calls.test.ts
           no_output_timeout: 10m
 
   web:
