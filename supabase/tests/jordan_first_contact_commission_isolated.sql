@@ -16,9 +16,13 @@ DECLARE
   v_other uuid := gen_random_uuid();
   v_later uuid := gen_random_uuid();
   v_unverified uuid := gen_random_uuid();
+  v_wrong_amount uuid := gen_random_uuid();
+  v_untrusted_receipt uuid := gen_random_uuid();
   v_payment uuid := gen_random_uuid();
   v_first_digest text := repeat('a',64); -- synthetic HMAC-like test only
   v_other_digest text := repeat('b',64);
+  v_wrong_amount_digest text := repeat('c',64);
+  v_untrusted_receipt_digest text := repeat('d',64);
   v_err text;
 BEGIN
   SELECT id INTO STRICT v_partner FROM public.commercial_referral_partners
@@ -144,6 +148,43 @@ BEGIN
             WHERE dispatch_request_id=v_unverified) THEN
     RAISE EXCEPTION 'Unverified new contact incorrectly generated commission';
   END IF;
+
+  -- Verified identity alone is insufficient if PSP approved the wrong
+  -- patient amount: Jordan is exactly R$79.00, never arbitrary BRL amounts.
+  INSERT INTO public.pharmacy_dispatch_requests
+    (id,patient_phone,patient_cpf,patient_name,tier_requested,
+     cloudflare_room_id,status,care_country,referral_partner_id)
+  VALUES (v_wrong_amount,'51987654324','98765432104','SYNTHETIC WRONG AMOUNT',
+          'general','ci-jordan-wrong-amount-'||gen_random_uuid(),'searching','BR',v_partner);
+  INSERT INTO public.commercial_referral_identity_proofs
+    (dispatch_request_id,referral_partner_id,subject_digest,
+     verification_method,verification_receipt_id,verified_at)
+  VALUES (v_wrong_amount,v_partner,v_wrong_amount_digest,'cpf_kyc','CI-KYC-AMOUNT-0001',now());
+  INSERT INTO public.pharmacy_dispatch_payments
+    (dispatch_request_id,amount_minor,currency,status,provider_payment_id,paid_at)
+  VALUES (v_wrong_amount,8100,'BRL','approved','9100000006',now());
+  IF EXISTS(SELECT 1 FROM public.commercial_referral_commissions
+            WHERE dispatch_request_id=v_wrong_amount)
+  THEN RAISE EXCEPTION 'Wrong R$81 amount incorrectly awarded Jordan commission'; END IF;
+
+  -- A forged/alphanumeric provider_payment_id is not reconciled evidence,
+  -- even if the database row status says approved and a proof row exists.
+  INSERT INTO public.pharmacy_dispatch_requests
+    (id,patient_phone,patient_cpf,patient_name,tier_requested,
+     cloudflare_room_id,status,care_country,referral_partner_id)
+  VALUES (v_untrusted_receipt,'51987654325','98765432105','SYNTHETIC UNTRUSTED RECEIPT',
+          'general','ci-jordan-bad-receipt-'||gen_random_uuid(),'searching','BR',v_partner);
+  INSERT INTO public.commercial_referral_identity_proofs
+    (dispatch_request_id,referral_partner_id,subject_digest,
+     verification_method,verification_receipt_id,verified_at)
+  VALUES (v_untrusted_receipt,v_partner,v_untrusted_receipt_digest,
+          'cpf_kyc','CI-KYC-RECEIPT-0001',now());
+  INSERT INTO public.pharmacy_dispatch_payments
+    (dispatch_request_id,amount_minor,currency,status,provider_payment_id,paid_at)
+  VALUES (v_untrusted_receipt,7900,'BRL','approved','NOT_A_PROVIDER_PAYMENT_ID',now());
+  IF EXISTS(SELECT 1 FROM public.commercial_referral_commissions
+            WHERE dispatch_request_id=v_untrusted_receipt)
+  THEN RAISE EXCEPTION 'Forged provider ID incorrectly awarded commission'; END IF;
 
   -- Replayed provider approval cannot duplicate an eligible commission.
   UPDATE public.pharmacy_dispatch_payments SET status='approved'
