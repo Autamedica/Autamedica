@@ -24,12 +24,12 @@ data class Prescription(
     val items: List<PrescriptionItem> = emptyList(),
 ) {
     /**
-     * Determines whether this prescription is currently active and valid.
+     * UI availability only: accepted signed status and HTTPS PDF are required.
+     * Neither condition proves independent provider or cryptographic verification.
+     * Unsigned 'active'/'activa' must never expose a pharmacy-facing QR.
      */
     val isActive: Boolean
         get() = signedPdfUrl?.startsWith("https://", ignoreCase = true) == true && (
-            status.equals("activa", ignoreCase = true) ||
-            status.equals("active", ignoreCase = true) ||
             status.equals("signed", ignoreCase = true) ||
             status.equals("firmada", ignoreCase = true)
         )
