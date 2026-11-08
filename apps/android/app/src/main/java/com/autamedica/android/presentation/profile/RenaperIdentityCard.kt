@@ -92,8 +92,8 @@ fun RenaperIdentityCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RadioButton(
                         selected = sex == value,
-                        enabled = !loading,
-                        onClick = { sex = value; onClear() },
+                        enabled = !loading && !confirming,
+                        onClick = { sex = value; attestation = false; onClear() },
                     )
                     Text(stringResource(label), style = MaterialTheme.typography.bodyMedium)
                 }
@@ -101,17 +101,18 @@ fun RenaperIdentityCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(
                     checked = consent,
-                    enabled = !loading,
-                    onCheckedChange = { consent = it; onClear() },
+                    enabled = !loading && !confirming,
+                    onCheckedChange = { consent = it; attestation = false; onClear() },
                 )
                 Text(stringResource(R.string.renaper_consent), style = MaterialTheme.typography.bodySmall)
             }
             Button(
                 onClick = {
                     val selectedSex = sex ?: return@Button
+                    attestation = false
                     onLookup(selectedSex)
                 },
-                enabled = !loading && consent && (sex?.let { RenaperLookupPolicy.canQuery(patient, it) } == true),
+                enabled = !loading && !confirming && consent && (sex?.let { RenaperLookupPolicy.canQuery(patient, it) } == true),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 if (loading) CircularProgressIndicator(strokeWidth = 2.dp)
