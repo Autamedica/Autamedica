@@ -12,6 +12,7 @@ import { logger } from '@autamedica/shared';
 import {
   isRenaperLookupInPatientScope,
   returnedRenaperDocumentMatches,
+  buildMinimalRenaperAudit,
 } from '@/lib/patients/services/renaper-identity-scope';
 
 function maskText(text: string | null | undefined, visibleCount = 1): string {
@@ -169,20 +170,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const address = buildAddress(person);
     const coverage = result.coverages[0] ?? null;
 
-    const newCount = lookupCount + 1;
-    const newInsuranceInfo = {
-      ...insuranceInfo,
-      identity_lookup_count: newCount,
-      official_data: {
-        dni: person.numeroDocumento ?? dni,
-        firstName,
-        lastName,
-        birthDate: person.fechaNacimiento ?? '',
-        gender: mapSexToGender(person.sexo) ?? '',
-        cuil: person.cuil && person.cuil !== '0' ? person.cuil : '',
-        address: address ?? '',
-      }
-    };
+    // Do not persist provider PII to RLS-readable insurance_info.
+    // Preserve the marker required by legacy profile completion, without
+    // copying RENAPER names, birth dates, CUIL, addresses or pictures.
+    const newInsuranceInfo = buildMinimalRenaperAudit(insuranceInfo, dni, lookupCount);
 
     const { error: updateErr } = await supabase
       .from('patients')
