@@ -46,8 +46,8 @@ android {
         applicationId = "com.autamedica.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 31
-        versionName = "1.2.21"
+        versionCode = 32
+        versionName = "1.2.22"
 
         resourceConfigurations += listOf("es", "pt", "pt-rBR")
 
@@ -108,11 +108,16 @@ android {
     signingConfigs {
         create("release") {
             val ksFile = localProperties.getProperty("RELEASE_STORE_FILE")
+                ?: System.getenv("RELEASE_STORE_FILE")
             if (ksFile != null) {
                 storeFile = file(ksFile)
-                storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD", "")
-                keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS", "autamedica")
-                keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD", "")
+                storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD")
+                    ?: System.getenv("AUTAMEDICA_RELEASE_STORE_PASSWORD").orEmpty()
+                keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS")
+                    ?: System.getenv("AUTAMEDICA_RELEASE_KEY_ALIAS")
+                    ?: "autamedica"
+                keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD")
+                    ?: System.getenv("AUTAMEDICA_RELEASE_KEY_PASSWORD").orEmpty()
             }
         }
     }
