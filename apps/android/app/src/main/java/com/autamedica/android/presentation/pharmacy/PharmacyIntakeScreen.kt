@@ -151,10 +151,29 @@ fun PharmacyIntakeScreen(
     }
 
     // Recovered requests must reopen in their own market language, too.
+    LaunchedEffect(uiState.referralCode, uiState.careCountry) {
+        if (uiState.referralCode == "JORDAN" && uiState.careCountry == "BR") {
+            CareCountryLocale.applyCountry(context, "BR")
+        }
+    }
+
     LaunchedEffect(uiState.activeRequestId, uiState.careCountry) {
         if (uiState.activeRequestId != null && uiState.careCountry in setOf("AR", "BR")) {
             CareCountryLocale.applyCountry(context, requireNotNull(uiState.careCountry))
         }
+    }
+
+    // Browser return is not payment evidence. The backend status API alone can
+    // release the patient into the call after verifying Mercado Pago.
+    LaunchedEffect(uiState.paymentCheckoutUrl) {
+        val checkoutUrl = uiState.paymentCheckoutUrl ?: return@LaunchedEffect
+        runCatching {
+            val uri = android.net.Uri.parse(checkoutUrl)
+            require(uri.scheme == "https") { "Secure checkout URL required" }
+            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
+            context.startActivity(intent)
+        }
+        viewModel.clearCheckoutUrl()
     }
 
     // Automatic navigation when the doctor attends the call and the room is ready
@@ -234,8 +253,9 @@ fun PharmacyIntakeScreen(
             PharmacyWaitingRoomView(
                 uiState = uiState,
                 onCancelRequest = viewModel::cancelActiveRequest,
+                onBeginPayment = viewModel::beginBrazilianCheckout,
                 onJoinCall = {
-                    uiState.roomId?.let(onNavigateToCall)
+                    if (uiState.readyToJoinCall) uiState.roomId?.let(onNavigateToCall)
                 },
                 modifier = Modifier
                     .fillMaxSize()
@@ -291,6 +311,7 @@ private fun PharmacyIntakeFormView(
         CareCountryPicker(
             selectedCountry = uiState.careCountry,
             onCountrySelected = onCountrySelected,
+            enabled = uiState.referralCode != "JORDAN",
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(22.dp))
@@ -555,6 +576,7 @@ private fun PharmacyIntakeFormView(
 private fun PharmacyWaitingRoomView(
     uiState: PharmacyIntakeUiState,
     onCancelRequest: () -> Unit = {},
+    onBeginPayment: () -> Unit = {},
     onJoinCall: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -569,6 +591,48 @@ private fun PharmacyWaitingRoomView(
             .fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        if (uiState.requiresBrazilianPayment) {
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = AuSurface,
+                border = BorderStroke(1.dp, AuBorder),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text("Consulta médica · R$ 79,00", style = MaterialTheme.typography.titleMedium,
+                        color = AuTextPrimary, fontWeight = FontWeight.Bold)
+                    val confirmed = uiState.paymentStatus == "approved"
+                    val canStartCheckout = uiState.status == PharmacyConsultationStatus.ASSIGNED ||
+                        uiState.status == PharmacyConsultationStatus.IN_CALL
+                    Text(
+                        text = when {
+                            confirmed -> "Pagamento confirmado. Acesso liberado quando o médico iniciar a consulta."
+                            uiState.paymentStatus == "pending" -> "Aguardando confirmação do Mercado Pago."
+                            canStartCheckout -> "O médico aceitou o pedido. Confirme o pagamento para continuar."
+                            else -> "Aguardando um médico disponível antes do pagamento."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AuTextSecondary,
+                    )
+                    if (!confirmed && canStartCheckout) {
+                        Button(onClick = onBeginPayment, enabled = !uiState.isPaymentLoading,
+                            modifier = Modifier.fillMaxWidth()) {
+                            if (uiState.isPaymentLoading) {
+                                CircularProgressIndicator(modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp)
+                            } else Text("Pagar R$ 79,00")
+                        }
+                    }
+                    uiState.paymentError?.let { error ->
+                        Text(error, style = MaterialTheme.typography.bodySmall, color = AuDanger)
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(18.dp))
+        }
         if (callReady) {
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -981,6 +1045,12 @@ private fun localizedPharmacyMessage(message: String): String = when (message) {
     "Ingresá un teléfono de contacto válido" -> stringResource(R.string.pharmacy_flow_error_phone)
     "Indicá el motivo de consulta o medicamento solicitado" -> stringResource(R.string.pharmacy_flow_error_reason)
     "Completá los datos obligatorios" -> stringResource(R.string.pharmacy_flow_error_complete)
+    "Necesitás completar tu perfil de paciente para solicitar una consulta." -> stringResource(R.string.pharmacy_flow_error_patient_profile)
+    "El país de la consulta no coincide con tu perfil de paciente." -> stringResource(R.string.pharmacy_flow_error_country_mismatch)
+    "No pudimos validar tu sesión. Iniciá sesión nuevamente." -> stringResource(R.string.pharmacy_flow_error_session)
+    "No se pudo autorizar la solicitud. Revisá tus datos de paciente." -> stringResource(R.string.pharmacy_flow_error_authorization)
+    "El servicio de consultas no está disponible temporalmente. Intentá más tarde." -> stringResource(R.string.pharmacy_flow_error_unavailable)
+    "No pudimos registrar tu consulta. Intentá nuevamente o contactá soporte." -> stringResource(R.string.pharmacy_flow_error_generic)
     "No pudimos crear la solicitud. Verificá tu conexión e intentá nuevamente." -> stringResource(R.string.pharmacy_flow_error_create)
     "No se confirmó la cancelación. Es posible que la solicitud ya haya sido asignada; verificá su estado." -> stringResource(R.string.pharmacy_flow_error_cancel_confirm)
     "No pudimos cancelar la solicitud. Verificá tu conexión e intentá nuevamente." -> stringResource(R.string.pharmacy_flow_error_cancel)
