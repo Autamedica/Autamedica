@@ -108,12 +108,6 @@ private data class PatientTabItem(
     val icon: ImageVector,
 )
 
-// Patient-bearing doctor tabs require explicit positive server eligibility.
-// Keep Home and Profile available for renewal/onboarding. Also protects
-// restored navigation state and dashboard-directed navigation.
-internal fun isDoctorTabAllowed(index: Int, approved: Boolean): Boolean =
-    index in 0..4 && (approved || index == 0 || index == 4)
-
 // Patient tabs matching Web/iOS 1:1 (Início, Agenda, Consultar, Receitas, Comunidade)
 private val patientTabs = listOf(
     PatientTabItem(R.string.nav_patient_home, Icons.Outlined.FavoriteBorder),
