@@ -43,7 +43,21 @@ class NotificationInboxReducerTest {
     }
 
     @Test
-    fun emptyInboxDoesNotGenerateFallbackMessages() {
-        assertThat(emptyList<PortalNotification>()).isEmpty()
+    fun successfulEmptyServerResponseClearsStaleCache() {
+        val cached = notification("old-message")
+        val result = resolvePortalInbox(Result.success(emptyList()), listOf(cached))
+
+        assertThat(result).isEmpty()
+    }
+
+    @Test
+    fun failedRefreshRetainsLastKnownInbox() {
+        val cached = notification("cached")
+        val result = resolvePortalInbox(
+            Result.failure(IllegalStateException("offline")),
+            listOf(cached),
+        )
+
+        assertThat(result).containsExactly(cached)
     }
 }
