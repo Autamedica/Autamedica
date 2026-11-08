@@ -30,6 +30,7 @@ async function isJordanRoom(admin: SupabaseClient, roomId: string): Promise<bool
     .from('pharmacy_dispatch_requests')
     .select('referral_partner_id')
     .eq('cloudflare_room_id', roomId)
+    .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
   if (dispatchError) throw dispatchError
