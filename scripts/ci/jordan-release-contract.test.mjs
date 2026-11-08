@@ -76,8 +76,8 @@ test('optional verified-person migration has one complete atomic SQL definition'
     return
   }
   const sql = source(path)
-  assert.equal(countOccurrences(sql, '\\nBEGIN;'), 1)
-  assert.equal(countOccurrences(sql, '\\nCOMMIT;'), 1)
+  assert.equal(countOccurrences(sql, '\nBEGIN;'), 1)
+  assert.equal(countOccurrences(sql, '\nCOMMIT;'), 1)
   for (const name of [
     'CREATE OR REPLACE FUNCTION app_private.try_credit_verified_jordan(',
     'CREATE OR REPLACE FUNCTION app_private.guard_jordan_verified_commission()',
@@ -99,8 +99,8 @@ test('optional session binding migration is service-only and RLS enabled', () =>
     return
   }
   const sql = source(path)
-  assert.equal(countOccurrences(sql, '\\nBEGIN;'), 1)
-  assert.equal(countOccurrences(sql, '\\nCOMMIT;'), 1)
+  assert.equal(countOccurrences(sql, '\nBEGIN;'), 1)
+  assert.equal(countOccurrences(sql, '\nCOMMIT;'), 1)
   assert.match(sql, /sfu_room_session_bindings ENABLE ROW LEVEL SECURITY/)
   assert.match(sql, /REVOKE ALL ON public\.sfu_room_session_bindings FROM PUBLIC,anon,authenticated/)
   assert.match(sql, /GRANT SELECT,INSERT ON public\.sfu_room_session_bindings TO service_role/)
