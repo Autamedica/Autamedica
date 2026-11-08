@@ -3,9 +3,52 @@
 -- 20261105050000_persistent_pharmacy_dispatch_queue.sql.
 -- All non-Jordan ranking, physician licensure, FIFO, cooldown, AR isolation,
 -- update ACLs and push behavior are intentionally preserved.
--- Jordan consultation = R$79; verified doctor's offer = R$40.
+-- Jordan consultation = R$79 (set BEFORE INSERT); doctor's offer = R$40.
 -- DOES NOT enable payment flags, settle commissions, or rewrite existing offers.
 BEGIN;
+
+-- Quote at intake: the persisted patient price is R$79, doctor fee R$40.
+-- BEFORE INSERT sees NEW before the AFTER INSERT matching trigger executes.
+-- Existing channel prices and all AR dispatches remain untouched.
+CREATE OR REPLACE FUNCTION public.set_jordan_br_dispatch_quote()
+RETURNS trigger LANGUAGE plpgsql
+SET search_path TO '' AS $jordan_quote$
+DECLARE
+  v_code text;
+  v_active boolean;
+BEGIN
+  IF NEW.referral_partner_id IS NULL THEN
+    RETURN NEW;
+  END IF;
+  SELECT p.code,p.active INTO v_code,v_active
+  FROM public.commercial_referral_partners p
+  WHERE p.id=NEW.referral_partner_id;
+  IF NOT FOUND OR v_active IS DISTINCT FROM TRUE THEN
+    RAISE EXCEPTION 'referral_partner_inactive_or_missing' USING ERRCODE='23514';
+  END IF;
+  IF v_code IS DISTINCT FROM 'JORDAN' THEN
+    RETURN NEW;
+  END IF;
+  IF NEW.care_country IS DISTINCT FROM 'BR'
+     OR NEW.tier_requested::text <> 'general' THEN
+    RAISE EXCEPTION 'jordan_br_general_only' USING ERRCODE='23514';
+  END IF;
+  IF (NEW.price_brl IS NOT NULL AND NEW.price_brl <> 79.00)
+     OR (NEW.doctor_fee_brl IS NOT NULL AND NEW.doctor_fee_brl <> 40.00) THEN
+    RAISE EXCEPTION 'jordan_existing_price_conflict' USING ERRCODE='23514';
+  END IF;
+  NEW.price_brl := 79.00;
+  NEW.doctor_fee_brl := 40.00;
+  RETURN NEW;
+END;
+$jordan_quote$;
+
+REVOKE ALL ON FUNCTION public.set_jordan_br_dispatch_quote()
+  FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS trg_set_jordan_br_dispatch_quote ON public.pharmacy_dispatch_requests;
+CREATE TRIGGER trg_set_jordan_br_dispatch_quote
+BEFORE INSERT ON public.pharmacy_dispatch_requests
+FOR EACH ROW EXECUTE FUNCTION public.set_jordan_br_dispatch_quote();
 
 CREATE OR REPLACE FUNCTION public.match_dispatch_doctors(p_dispatch_id uuid)
  RETURNS jsonb
@@ -56,22 +99,11 @@ BEGIN
       END IF;
       v_is_jordan := true;
 
-      -- No silent repricing of an already quoted/accepted request.
-      IF (v_req.price_brl IS NOT NULL AND v_req.price_brl <> 79.00)
-         OR (v_req.doctor_fee_brl IS NOT NULL AND v_req.doctor_fee_brl <> 40.00)
-      THEN
-        RAISE EXCEPTION 'jordan_existing_price_conflict' USING ERRCODE='23514';
-      END IF;
-
-      -- Persist the separate patient price and medical fee atomically before
-      -- dispatch offers. This also covers the zero-doctor persistent queue.
+      -- The BEFORE INSERT quote trigger must have populated this exact
+      -- amount. Do not update an inserted row from an AFTER INSERT trigger.
       IF v_req.price_brl IS DISTINCT FROM 79.00
          OR v_req.doctor_fee_brl IS DISTINCT FROM 40.00 THEN
-        UPDATE public.pharmacy_dispatch_requests
-           SET price_brl = 79.00,
-               doctor_fee_brl = 40.00,
-               updated_at = now()
-         WHERE id = p_dispatch_id;
+        RAISE EXCEPTION 'jordan_quote_missing_or_mismatch' USING ERRCODE='23514';
       END IF;
     END IF;
   END IF;
