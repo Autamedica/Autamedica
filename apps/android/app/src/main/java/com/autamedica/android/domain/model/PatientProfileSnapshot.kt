@@ -12,4 +12,7 @@ data class PatientProfileSnapshot(
     val emergencyContactPhone: String? = null,
     val emergencyContactEmail: String? = null,
     val careCountry: String? = null,
+    val address: String? = null,
+    /** Patient attestation of RENAPER-sourced data; NOT biometric verification. */
+    val renaperConfirmedAt: String? = null,
 )
