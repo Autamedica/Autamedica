@@ -28,11 +28,11 @@ import com.autamedica.android.domain.model.VideoCallStateHolder
 import com.autamedica.android.navigation.AppNavHost
 import com.autamedica.android.navigation.NotificationRouteResolver
 import com.autamedica.android.navigation.Route
+import com.autamedica.android.navigation.resolveStartupRoute
 import com.autamedica.android.presentation.theme.AutamedicaTheme
 import com.autamedica.android.util.CareCountryLocale
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
-import kotlinx.coroutines.CancellationException
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -74,13 +74,7 @@ class MainActivity : ComponentActivity() {
             // restored the session AND the server-authoritative profile role.
             // getCurrentUser() awaits auth initialization and fails closed to null.
             val initialRoute by produceState<Route?>(initialValue = null, authRepository) {
-                value = try {
-                    if (authRepository.getCurrentUser() != null) Route.Main else Route.Login
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (_: Exception) {
-                    Route.Login
-                }
+                value = resolveStartupRoute { authRepository.getCurrentUser() }
             }
             val activeIntent = incomingIntent
 
