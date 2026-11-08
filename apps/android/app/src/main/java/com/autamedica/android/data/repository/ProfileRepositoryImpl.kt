@@ -55,6 +55,28 @@ class ProfileRepositoryImpl @Inject constructor(
         SecureLog.error("[Profile] Failed fetching patient snapshot", it)
     }
 
+    override suspend fun updatePatientAddress(address: String): Result<PatientProfileSnapshot?> = runCatching {
+        val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
+            ?: throw IllegalStateException("No user ID found")
+        val sanitized = address.trim()
+        require(sanitized.isNotEmpty() && sanitized.length <= 240) { "Invalid address" }
+        val current = supabaseClient.postgrest.from("patients").select(Columns.ALL) {
+            filter { eq("user_id", userId) }
+        }.decodeSingle<PatientProfileDto>()
+        require(current.careCountry == "AR" && current.renaperConfirmedAt != null) {
+            "Patient identity must be confirmed in Argentina"
+        }
+        supabaseClient.postgrest.from("patients").update({
+            set("address", sanitized)
+        }) {
+            filter { eq("user_id", userId) }
+            select(Columns.ALL)
+        }.decodeSingle<PatientProfileDto>().toDomain()
+    }.onFailure {
+        // Do not log full address values.
+        SecureLog.error("[Profile] Patient address update failed", it)
+    }
+
     override suspend fun updateProfile(
         firstName: String,
         lastName: String,
