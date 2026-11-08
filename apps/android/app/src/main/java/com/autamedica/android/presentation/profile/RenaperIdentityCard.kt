@@ -112,8 +112,8 @@ fun RenaperIdentityCard(
             if (errorStatus != null) {
                 val errorMessage = when (errorStatus) {
                     400 -> R.string.renaper_error_invalid
-                    401, 403 -> R.string.renaper_error_auth
-                    429 -> R.string.renaper_error_limit
+                    401 -> R.string.renaper_error_auth
+                    403, 429 -> R.string.renaper_error_limit
                     503, 504 -> R.string.renaper_error_unavailable
                     else -> R.string.renaper_error_default
                 }
