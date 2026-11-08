@@ -173,6 +173,53 @@ class PharmacyIntakeViewModelTest {
     }
 
     @Test
+    fun `intake failures distinguish profile session permission and network errors`() {
+        assertThat(classifyIntakeCreationFailure(
+            IllegalStateException("care_country_or_patient_profile_required")
+        )).contains("perfil de paciente")
+        assertThat(classifyIntakeCreationFailure(
+            IllegalStateException("care_country_dispatch_mismatch")
+        )).contains("país")
+        assertThat(classifyIntakeCreationFailure(
+            IllegalStateException("Guest dispatch API rejected intake (HTTP 401)")
+        )).contains("sesión")
+        assertThat(classifyIntakeCreationFailure(
+            IllegalStateException("permission denied for function")
+        )).contains("autorizar")
+        assertThat(classifyIntakeCreationFailure(
+            java.net.UnknownHostException("unable to resolve host")
+        )).contains("conexión")
+        assertThat(classifyIntakeCreationFailure(
+            IllegalStateException("Unexpected database rejection: private information")
+        )).doesNotContain("private information")
+    }
+
+    @Test
+    fun `intake submission exposes actionable profile error without submitting twice`() = runTest(testDispatcher) {
+        val vm = PharmacyIntakeViewModel(
+            savedStateHandle = SavedStateHandle(),
+            authRepository = authRepo, profileRepository = profileRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
+        )
+        advanceUntilIdle()
+        vm.onCountrySelected("AR")
+        vm.onPatientNameChanged("Paciente de prueba")
+        vm.onPatientDniChanged("12345678")
+        vm.onPatientPhoneChanged("+5491198765432")
+        vm.onReasonTextChanged("Consulta general")
+        pharmacyRepo.createResult = Result.failure(
+            IllegalStateException("care_country_or_patient_profile_required")
+        )
+        assertThat(vm.uiState.value.isFormValid).isTrue()
+        vm.submitRequest()
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.error).contains("perfil de paciente")
+        assertThat(vm.uiState.value.error).doesNotContain("conexión")
+        assertThat(vm.uiState.value.activeRequestId).isNull()
+        assertThat(vm.uiState.value.isSubmitting).isFalse()
+    }
+
+    @Test
     fun `logged in user autofills patientName, phone, and DNI from profile`() = runTest(testDispatcher) {
         val testUser = User(
             id = "user-abc",
