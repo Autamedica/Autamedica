@@ -99,6 +99,20 @@ class ClinicalDocumentAvailabilityTest {
     }
 
     @Test
+    fun malformedHttpsDocumentUrlsAreNotAvailableToPharmacy() {
+        for (url in listOf("https://", "https:///not-a-host.pdf", "https://u:p@example.invalid/rx.pdf", " https://example.invalid/rx.pdf")) {
+            val prescription = draftPrescription.copy(status = "signed", signedPdfUrl = url)
+            val certificate = draftCertificate.copy(status = "signed", signedPdfUrl = url)
+            assertThat(prescription.isActive).isFalse()
+            assertThat(prescription.effectivePdfUrl).isNull()
+            assertThat(prescription.effectiveQrContent).isEmpty()
+            assertThat(certificate.isActive).isFalse()
+            assertThat(certificate.effectivePdfUrl).isNull()
+            assertThat(certificate.effectiveQrContent).isEmpty()
+        }
+    }
+
+    @Test
     fun certificateRequiresHttpsPdfForAvailability() {
         val insecureUrl = draftCertificate.copy(
             status = "signed",

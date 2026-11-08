@@ -22,7 +22,7 @@ data class MedicalCertificate(
     val createdAt: String,
 ) {
     val isActive: Boolean
-        get() = status.equals("signed", ignoreCase = true) && signedPdfUrl?.startsWith("https://", ignoreCase = true) == true
+        get() = status.equals("signed", ignoreCase = true) && hasHttpsDocumentUrl(signedPdfUrl)
 
     val effectiveQrContent: String
         get() = if (!isActive) "" else (

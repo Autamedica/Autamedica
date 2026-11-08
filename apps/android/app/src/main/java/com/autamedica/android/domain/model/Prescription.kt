@@ -29,7 +29,7 @@ data class Prescription(
      * Unsigned 'active'/'activa' must never expose a pharmacy-facing QR.
      */
     val isActive: Boolean
-        get() = signedPdfUrl?.startsWith("https://", ignoreCase = true) == true && (
+        get() = hasHttpsDocumentUrl(signedPdfUrl) && (
             status.equals("signed", ignoreCase = true) ||
             status.equals("firmada", ignoreCase = true)
         )
