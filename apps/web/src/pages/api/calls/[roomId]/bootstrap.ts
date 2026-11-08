@@ -6,6 +6,7 @@ import { withAuth, isAuthed } from '@/lib/api-auth'
 import { callSessionBackendService } from '@/lib/calls/services/call-session.backend'
 import { verifyGuestToken } from '@/lib/calls/lib/guest-token'
 import { resolveGuestSecret } from '@/lib/runtime-env'
+import { checkJordanMediaAccess } from '@/lib/pharmacy/payments/jordan-media-access'
 
 
 
@@ -33,7 +34,11 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
       const guest = await verifyGuestToken(bearerToken, secret)
       if (!guest) return unauthorized()
 
+      if (guest.roomId !== roomId) return forbidden('call_access_denied')
       const admin = createAstroAdminClient(locals.runtime?.env)
+      if (await checkJordanMediaAccess(admin, roomId) !== 'allowed') {
+        return conflict('jordan_payment_required')
+      }
       const result = await callSessionBackendService.getGuestBootstrap(admin, roomId, guest, bearerToken)
 
       if (result.kind === 'not_found') return notFound('call_not_found')
@@ -48,6 +53,9 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
     if (!isAuthed(auth)) return auth
 
     const admin = createAstroAdminClient(locals.runtime?.env)
+    if (await checkJordanMediaAccess(admin, roomId) !== 'allowed') {
+      return conflict('jordan_payment_required')
+    }
     const result = await callSessionBackendService.getBootstrap(admin, roomId, auth.user.id)
 
     if (result.kind === 'not_found') return notFound('call_not_found')
