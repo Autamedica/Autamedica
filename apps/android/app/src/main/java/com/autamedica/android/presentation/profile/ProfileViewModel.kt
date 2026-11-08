@@ -5,6 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.autamedica.android.domain.model.PatientProfileSnapshot
 import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.model.UserRole
+import com.autamedica.android.domain.model.RenaperIdentity
+import com.autamedica.android.domain.model.RenaperLookupException
+import com.autamedica.android.domain.model.RenaperSexId
+import com.autamedica.android.data.repository.RenaperIdentityClient
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.domain.repository.WalletRepository
@@ -21,6 +25,9 @@ import javax.inject.Inject
 data class ProfileUiState(
     val user: User? = null,
     val patientSnapshot: PatientProfileSnapshot? = null,
+    val renaperLoading: Boolean = false,
+    val renaperResult: RenaperIdentity? = null,
+    val renaperErrorStatus: Int? = null,
     val isLoading: Boolean = true,
     val error: String? = null,
     val isSaving: Boolean = false,
@@ -39,6 +46,7 @@ class ProfileViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val walletRepository: WalletRepository,
     private val authRepository: AuthRepository,
+    private val renaperIdentityClient: RenaperIdentityClient,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -135,6 +143,46 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Only an explicit patient action may start a RENAPER consultation. Android
+     * never persists the response or uses it to grant clinical access.
+     */
+    fun lookupRenaper(dni: String, sex: RenaperSexId) {
+        if (_uiState.value.user?.role != UserRole.PATIENT || _uiState.value.renaperLoading) return
+        val digits = dni.trim()
+        if (!digits.matches(Regex("^[0-9]{6,12}$"))) {
+            _uiState.update { it.copy(renaperErrorStatus = 400, renaperResult = null) }
+            return
+        }
+        _uiState.update {
+            it.copy(renaperLoading = true, renaperErrorStatus = null, renaperResult = null)
+        }
+        viewModelScope.launch {
+            renaperIdentityClient.lookup(digits, sex).fold(
+                onSuccess = { identity ->
+                    _uiState.update {
+                        it.copy(renaperLoading = false, renaperResult = identity, renaperErrorStatus = null)
+                    }
+                },
+                onFailure = { failure ->
+                    _uiState.update {
+                        it.copy(
+                            renaperLoading = false,
+                            renaperResult = null,
+                            renaperErrorStatus = (failure as? RenaperLookupException)?.httpStatus ?: 500,
+                        )
+                    }
+                },
+            )
+        }
+    }
+
+    fun clearRenaperResponse() {
+        _uiState.update {
+            it.copy(renaperResult = null, renaperErrorStatus = null)
+        }
+    }
+
     fun refreshWallet() {
         viewModelScope.launch {
             walletRepository.getWalletBalance().onSuccess { balance ->
@@ -177,6 +225,7 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun logout(onComplete: () -> Unit) {
+        clearRenaperResponse()
         viewModelScope.launch {
             authRepository.logout()
             onComplete()
