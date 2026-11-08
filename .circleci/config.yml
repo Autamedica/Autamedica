@@ -365,7 +365,7 @@ workflows:
   # Explicitly triggered with run_jordan_gate=true: no unattended credits,
   # production deployment, payment toggles or signed Play release.
   jordan_release_gate_manual:
-    when: << pipeline.parameters.run_jordan_gate >>
+    when: pipeline.parameters.run_jordan_gate and pipeline.git.branch == "main"
     jobs:
       - jordan_source_identity
       - smoke:
