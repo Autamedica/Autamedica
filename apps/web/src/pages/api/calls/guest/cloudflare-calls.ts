@@ -21,10 +21,50 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const guest = await verifyGuestToken(token, secret)
   if (!guest) return unauthorized()
 
-  // Every SFU operation must recheck the persisted PSP result: an existing
-  // room token or an earlier bootstrap must not bypass payment or refund.
+  // A guest token authenticates only the signed room and call, not arbitrary
+  // Cloudflare sessions. Reject client-forged room IDs before touching the SFU.
+  const payload = await request.clone().json().catch(() => null)
+  if (typeof payload?.roomId !== 'string' || payload.roomId !== guest.roomId) {
+    return new Response(JSON.stringify({ error: 'call_access_denied' }), {
+      status: 403, headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  // Every SFU operation rechecks room ownership and the persisted payment.
   try {
     const admin = createAstroAdminClient(locals.runtime?.env)
+    const { data: dispatch, error: dispatchError } = await admin
+      .from('pharmacy_dispatch_requests')
+      .select('id,status')
+      .eq('cloudflare_room_id', guest.roomId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (dispatchError) throw dispatchError
+
+    if (dispatch) {
+      if (dispatch.id !== guest.callId ||
+          ['completed','cancelled','canceled','expired'].includes(dispatch.status)) {
+        return new Response(JSON.stringify({ error: 'call_access_denied' }), {
+          status: 403, headers: { 'Content-Type': 'application/json' },
+        })
+      }
+    } else {
+      const { data: call, error: callError } = await admin
+        .from('calls')
+        .select('id,status')
+        .eq('room_id', guest.roomId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (callError) throw callError
+      if (!call || call.id !== guest.callId ||
+          ['ended','declined','canceled','cancelled'].includes(call.status)) {
+        return new Response(JSON.stringify({ error: 'call_access_denied' }), {
+          status: 403, headers: { 'Content-Type': 'application/json' },
+        })
+      }
+    }
     if (await checkJordanMediaAccess(admin, guest.roomId) !== 'allowed') {
       return new Response(JSON.stringify({ error: 'jordan_payment_required' }), {
         status: 402,
