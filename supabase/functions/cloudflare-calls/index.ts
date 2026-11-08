@@ -194,7 +194,7 @@ export async function handler(req: Request): Promise<Response> {
         const approved = payment?.status === 'approved'
           && payment.provider === 'mercadopago'
           && typeof payment.provider_payment_id === 'string'
-          && /^\\d{1,20}$/.test(payment.provider_payment_id)
+          && /^\d{1,20}$/.test(payment.provider_payment_id)
           && Boolean(payment.paid_at)
           && payment.amount_minor === 7900
           && payment.currency === 'BRL'
