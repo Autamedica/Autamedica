@@ -47,23 +47,24 @@ class NotificationRoutingActivityTest {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
 
-        // Launch MainActivity
-        ActivityScenario.launch<MainActivity>(intent).use {
-            // Wait for Compose UI to draw
+        // Launch MainActivity with the active locale and read its resources.
+        ActivityScenario.launch<MainActivity>(intent).use { scenario ->
+            lateinit var loginTitle: String
+            lateinit var noAccount: String
+            lateinit var registerNow: String
+            scenario.onActivity { activity ->
+                loginTitle = activity.getString(R.string.login_title)
+                noAccount = activity.getString(R.string.auth_no_account)
+                registerNow = activity.getString(R.string.auth_register_now)
+            }
+
             composeTestRule.waitForIdle()
 
-            // Verify the user remains on the Login screen (checking for login button/elements)
-            // The app is localized (ES/PT-BR); avoid hard-coded Spanish copy,
-            // and match the real register footer rather than a removed mock string.
-            composeTestRule.onNodeWithText(context.getString(R.string.login_title)).assertIsDisplayed()
-            composeTestRule.onNodeWithText(
-                context.getString(R.string.auth_no_account),
-                substring = true,
-            ).assertIsDisplayed()
-            composeTestRule.onNodeWithText(
-                context.getString(R.string.auth_register_now),
-                substring = true,
-            ).assertIsDisplayed()
+            // Assertions use the Activity locale, not hard-coded Spanish text or
+            // the application context, which may have a different configuration.
+            composeTestRule.onNodeWithText(loginTitle).assertIsDisplayed()
+            composeTestRule.onNodeWithText(noAccount, substring = true).assertIsDisplayed()
+            composeTestRule.onNodeWithText(registerNow, substring = true).assertIsDisplayed()
         }
     }
 
