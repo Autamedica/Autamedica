@@ -73,8 +73,8 @@ class ProfileRepositoryImpl @Inject constructor(
             select(Columns.ALL)
         }.decodeSingle<PatientProfileDto>().toDomain()
     }.onFailure {
-        // Do not log full address values.
-        SecureLog.error("[Profile] Patient address update failed", it)
+        // Throwable messages may embed the submitted address; never log them.
+        SecureLog.warn("[Profile] Patient address update failed")
     }
 
     override suspend fun updateProfile(
