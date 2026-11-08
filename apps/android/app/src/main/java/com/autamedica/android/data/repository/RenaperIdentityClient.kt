@@ -41,6 +41,9 @@ class RenaperIdentityClient @Inject constructor(
         interceptors().removeAll { it is HttpLoggingInterceptor }
         networkInterceptors().removeAll { it is HttpLoggingInterceptor }
         cache(null)
+        // Never follow redirects with a patient Bearer token, even within a host.
+        followRedirects(false)
+        followSslRedirects(false)
     }.build()
 
     suspend fun lookup(dni: String, sex: RenaperSexId): Result<RenaperIdentity> = runCatching {
