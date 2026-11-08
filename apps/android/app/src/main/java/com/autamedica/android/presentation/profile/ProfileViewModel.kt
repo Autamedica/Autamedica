@@ -204,7 +204,7 @@ class ProfileViewModel @Inject constructor(
         renaperLookupJob?.cancel()
         renaperLookupJob = null
         _uiState.update {
-            it.copy(renaperLoading = false, renaperResult = null, renaperErrorStatus = null)
+            it.copy(renaperLoading = false, renaperResult = null, renaperErrorStatus = null, renaperConfirmErrorStatus = null)
         }
     }
 
