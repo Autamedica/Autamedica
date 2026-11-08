@@ -1,0 +1,119 @@
+package com.autamedica.android.data.repository
+
+import com.autamedica.android.BuildConfig
+import com.autamedica.android.domain.model.RenaperIdentity
+import com.autamedica.android.domain.model.RenaperLookupException
+import com.autamedica.android.domain.model.RenaperSexId
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.logging.HttpLoggingInterceptor
+import java.net.URI
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * Kotlin/Android RENAPER client. Calls ONLY AutaMedica's patient-authenticated
+ * proxy; the MSAL/RENAPER password and Supabase service role stay server-side.
+ *
+ * Never log bodies, Bearer tokens, DNI, sex ID, or identity responses, even
+ * under DEBUG (NetworkModule's shared OkHttp logs BODY by default).
+ */
+@Singleton
+class RenaperIdentityClient @Inject constructor(
+    private val supabaseClient: SupabaseClient,
+    sharedHttp: OkHttpClient,
+    private val json: Json,
+) {
+    private val privateHttp = sharedHttp.newBuilder().apply {
+        interceptors().removeAll { it is HttpLoggingInterceptor }
+        networkInterceptors().removeAll { it is HttpLoggingInterceptor }
+        cache(null)
+    }.build()
+
+    suspend fun lookup(dni: String, sex: RenaperSexId): Result<RenaperIdentity> = runCatching {
+        val origin = BuildConfig.WEB_API_URL.trimEnd('/')
+        val parsed = URI(origin)
+        require(
+            parsed.scheme == "https" &&
+                (parsed.host == "autamedica.com" || parsed.host == "www.autamedica.com") &&
+                parsed.userInfo == null && parsed.path.isNullOrEmpty()
+        ) { "Invalid RENAPER API origin" }
+
+        supabaseClient.auth.awaitInitialization()
+        val session = supabaseClient.auth.currentSessionOrNull()
+            ?: throw RenaperLookupException(401)
+        requireNotNull(session.user?.id) { "Authenticated patient required" }
+        postLookup(origin, dni, sex, session.accessToken)
+    }
+
+    /** Internal for MockWebServer regression tests. No production call uses its URL. */
+    internal suspend fun postLookup(
+        origin: String,
+        dni: String,
+        sex: RenaperSexId,
+        bearer: String,
+    ): RenaperIdentity = withContext(Dispatchers.IO) {
+        require(dni.matches(Regex("^[0-9]{6,12}$"))) { "Invalid DNI" }
+        require(bearer.isNotBlank()) { "Authenticated patient required" }
+
+        val body = buildJsonObject {
+            put("dni", dni)
+            put("sexId", sex.providerId)
+        }.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+
+        val request = Request.Builder()
+            .url("${origin.trimEnd('/')}/api/patients/identity/renaper")
+            .header("Authorization", "Bearer $bearer")
+            .header("Cache-Control", "no-store")
+            .header("Accept", "application/json")
+            .post(body)
+            .build()
+
+        privateHttp.newCall(request).execute().use { response ->
+            // Do not include raw response bodies in exceptions or diagnostics.
+            if (!response.isSuccessful) throw RenaperLookupException(response.code)
+            val raw = response.body?.string().orEmpty()
+            parseRenaperResponse(raw, json)
+        }
+    }
+}
+
+/** The API owns masking policy. Unpaid results must never be treated as unmasked. */
+internal fun parseRenaperResponse(raw: String, json: Json = Json): RenaperIdentity {
+    val root = json.parseToJsonElement(raw).jsonObject
+    if (root["success"]?.jsonPrimitive?.booleanOrNull != true) {
+        throw RenaperLookupException(502)
+    }
+    val data = root["data"]?.jsonObject ?: throw RenaperLookupException(502)
+    val form = data["form"]?.jsonObject ?: throw RenaperLookupException(502)
+    val hasPaid = data["hasPaid"]?.jsonPrimitive?.booleanOrNull
+        ?: throw RenaperLookupException(502)
+    val coverage = data["coverage"]?.let { element ->
+        runCatching { element.jsonObject }.getOrNull()
+    }
+    fun field(name: String): String =
+        form[name]?.jsonPrimitive?.contentOrNull.orEmpty().take(180)
+
+    return RenaperIdentity(
+        checkedAt = data["checkedAt"]?.jsonPrimitive?.contentOrNull.orEmpty().take(64),
+        hasPaid = hasPaid,
+        firstName = field("firstName"),
+        lastName = field("lastName"),
+        birthDate = field("birthDate"),
+        gender = field("gender"),
+        coverageName = coverage?.get("name")?.jsonPrimitive?.contentOrNull?.take(180),
+    )
+}
