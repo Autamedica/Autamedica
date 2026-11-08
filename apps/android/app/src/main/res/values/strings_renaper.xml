@@ -26,4 +26,9 @@
     <string name="renaper_photo_hidden">Foto oficial disponible — vista previa oculta</string>
     <string name="renaper_photo_unavailable">Foto oficial no disponible — muestra protegida</string>
     <string name="renaper_photo_preview_note">Esta silueta es ilustrativa; no se muestra ni se descarga la fotografía real.</string>
+    <string name="renaper_confirmed_title">Datos oficiales confirmados por el paciente</string>
+    <string name="renaper_confirmed_notice">Nombre, DNI, CUIL, fecha de nacimiento, sexo y huella digital de la foto quedan bloqueados. Esta confirmación no equivale a verificación biométrica. El domicilio sigue siendo editable.</string>
+    <string name="renaper_address_edit">Domicilio actual (editable)</string>
+    <string name="renaper_address_save">Guardar domicilio</string>
+    <string name="renaper_address_saved">Domicilio actualizado.</string>
 </resources>
