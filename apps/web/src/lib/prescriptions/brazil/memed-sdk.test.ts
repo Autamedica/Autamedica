@@ -58,7 +58,8 @@ describe('Memed SDK lifecycle', () => {
         ],
       },
     });
-    expect(onIssued).toHaveBeenCalledExactlyOnceWith('902');
+    expect(onIssued).toHaveBeenCalledTimes(1);
+    expect(onIssued).toHaveBeenCalledWith('902');
     events.prescricaoImpressa({ prescricao: { id: 903, prescriptionUuid: 'rx-another-uuid' } });
     expect(onIssued).toHaveBeenLastCalledWith('903');
   });
