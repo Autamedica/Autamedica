@@ -176,7 +176,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .eq('id', patient.id);
 
     if (updateErr) {
-      logger.error('[renaper] failed to update insurance_info lookup count', updateErr);
+      logger.error('[renaper] failed to update insurance_info lookup count');
     }
 
     if (hasPaid) {
@@ -243,7 +243,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return badRequest('No encontramos datos oficiales para ese DNI y sexo registral.');
     }
 
-    logger.error('[patients/identity/renaper] lookup failed', error);
+    // Provider and database errors can embed official PII; never log them.
+    logger.error('[patients/identity/renaper] lookup failed');
     return internalError('No pudimos consultar los datos oficiales en este momento.');
   }
 };
