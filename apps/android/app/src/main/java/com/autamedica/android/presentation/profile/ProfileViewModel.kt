@@ -136,7 +136,7 @@ class ProfileViewModel @Inject constructor(
                         it.copy(
                             user = user,
                             patientSnapshot = patientSnapshot,
-                            editableAddress = patientSnapshot?.address.orEmpty(),
+                            editableAddress = "", // Never prefill a readable official address; type a replacement.
                             firstName = user.firstName,
                             lastName = user.lastName,
                             phone = user.phone.orEmpty(),
@@ -229,7 +229,7 @@ class ProfileViewModel @Inject constructor(
                             previous.copy(
                                 patientSnapshot = refreshed,
                                 user = user ?: previous.user,
-                                editableAddress = refreshed.address.orEmpty(),
+                                editableAddress = "",
                                 renaperResult = null,
                                 renaperConfirming = false,
                                 renaperConfirmErrorStatus = null,
@@ -276,7 +276,7 @@ class ProfileViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             patientSnapshot = updated,
-                            editableAddress = updated?.address.orEmpty(),
+                            editableAddress = "",
                             isAddressSaving = false,
                             addressSaveSuccess = true,
                         )
