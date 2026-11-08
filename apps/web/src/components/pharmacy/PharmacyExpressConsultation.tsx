@@ -137,6 +137,10 @@ export function PharmacyExpressConsultation({
       setFormError('O canal Jordan atende exclusivamente no Brasil.')
       return
     }
+    if (referralCode === 'JORDAN' && !jordanPaymentsEnabled) {
+      setFormError('Este canal ainda não está disponível para atendimento. Nenhuma cobrança será feita.')
+      return
+    }
     const documentNumber = formData.dni.replace(/\D/g, '')
     if (formData.careCountry === 'BR' ? documentNumber.length !== 11 : documentNumber.length < 5 || documentNumber.length > 10) {
       setFormError(formData.careCountry === 'BR' ? 'Ingresá un CPF de 11 dígitos.' : 'Ingresá un DNI válido.')
@@ -243,7 +247,7 @@ export function PharmacyExpressConsultation({
             </div>
           </div>
         )}
-        {requiresJordanPayment && paymentReady && (
+        {requiresJordanPayment && jordanPaymentsEnabled && formData.careCountry === 'BR' && requestId && accessToken && (
           <JordanPaymentWidget
             dispatchId={requestId}
             guestToken={accessToken}
