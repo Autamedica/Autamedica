@@ -28,7 +28,7 @@
     <string name="renaper_photo_preview_note">Esta silhueta é ilustrativa; a fotografia real não é exibida nem baixada.</string>
     <string name="renaper_confirmed_title">Dados oficiais confirmados pelo paciente</string>
     <string name="renaper_confirmed_notice">Nome, DNI, CUIL, data de nascimento, sexo e impressão digital da foto ficam bloqueados. Esta confirmação não é uma verificação biométrica. O endereço pode ser alterado.</string>
-    <string name="renaper_address_edit">Endereço atual (editável)</string>
+    <string name="renaper_address_edit">Novo endereço (digite o endereço completo)</string>
     <string name="renaper_address_save">Salvar endereço</string>
     <string name="renaper_address_saved">Endereço atualizado.</string>
     <string name="renaper_confirm_attestation">Confirmo que estes dados oficiais são meus e aceito bloquear nome, DNI, CUIL, data de nascimento e sexo. O endereço continuará editável. Isto não verifica biometria.</string>
