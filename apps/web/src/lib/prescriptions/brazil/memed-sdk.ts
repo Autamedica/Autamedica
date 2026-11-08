@@ -13,6 +13,34 @@ interface MemedCore {
 const SCRIPT_ID = 'memed-prescricao-script';
 const MODULE_NAME = 'plataforma.prescricao';
 
+/**
+ * Memed's REST /prescricoes/{id} and /url-document/full routes use the
+ * provider's prescription ID. It is distinct from prescriptionUuid (UUID).
+ * Prefer the ID associated with a saved full document in prescricaoImpressa.
+ */
+function numericPrescriptionId(value: unknown): string | null {
+  if (typeof value === 'number') return Number.isSafeInteger(value) && value > 0 ? String(value) : null;
+  return typeof value === 'string' && /^[1-9]\\d{0,19}$/.test(value) ? value : null;
+}
+
+function issuedPrescriptionId(event: Record<string, unknown>): string | null {
+  const p = event.prescricao !== null && typeof event.prescricao === 'object' &&
+    !Array.isArray(event.prescricao) ? event.prescricao as Record<string, unknown> : event;
+  const documents = Array.isArray(p.documents) ? p.documents : [];
+  for (const item of documents) {
+    if (item === null || typeof item !== 'object' || Array.isArray(item)) continue;
+    const doc = item as Record<string, unknown>;
+    if (doc.type !== 'full' || doc.status !== 'saved') continue;
+    const id = numericPrescriptionId(doc.prescription_id);
+    if (id) return id;
+  }
+  const providerId = numericPrescriptionId(p.id) ?? numericPrescriptionId(event.id);
+  if (providerId) return providerId;
+  // Backward-compatible fallback for legacy provider events with no numeric ID.
+  const legacy = p.prescriptionUuid ?? event.prescriptionUuid;
+  return typeof legacy === 'string' && /^[a-zA-Z0-9-]{1,80}$/.test(legacy) ? legacy : null;
+}
+
 // Memed mandates a singleton script/listeners in SPA sessions.
 let scriptPromise: Promise<void> | null = null;
 let scriptToken: string | null = null;
@@ -99,11 +127,8 @@ export function ensureMemedScript(token: string, scriptUrl: string, userId: stri
         }
         if (!eventListenersRegistered) {
           hub.event.add('prescricaoImpressa', (data) => {
-            const prescription = (data.prescricao ?? data) as Record<string, unknown>;
-            const id = prescription.prescriptionUuid ?? prescription.id ?? data.id;
-            if (id !== undefined && id !== null && activeOnIssued) {
-              activeOnIssued(String(id));
-            }
+            const id = issuedPrescriptionId(data);
+            if (id && activeOnIssued) activeOnIssued(id);
           });
           hub.event.add('prescricaoExcluida', (data) => {
             const prescription = (data.prescricao ?? data) as Record<string, unknown>;
