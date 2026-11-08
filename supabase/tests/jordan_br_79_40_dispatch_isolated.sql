@@ -25,6 +25,7 @@ DECLARE
   v_user uuid := gen_random_uuid();
   v_offer numeric;
   v_claim jsonb;
+  v_error text;
 BEGIN
   SELECT id INTO STRICT v_partner FROM public.commercial_referral_partners
   WHERE code='JORDAN' AND active IS TRUE;
@@ -41,6 +42,41 @@ BEGIN
     SELECT 1 FROM public.pharmacy_dispatch_requests
     WHERE id=v_jordan AND price_brl=79.00 AND doctor_fee_brl=40.00
   ) THEN RAISE EXCEPTION 'Jordan must persist the independent 79/40 quote'; END IF;
+
+  -- Direct SQL insert must not bypass BR-only, general-only or tariff rules.
+  BEGIN
+    INSERT INTO public.pharmacy_dispatch_requests(
+      patient_phone,patient_dni,tier_requested,care_country,
+      cloudflare_room_id,status,referral_partner_id
+    ) VALUES ('5491100000100','38123456','general','AR',
+      'ci-jordan-bad-ar-'||gen_random_uuid(),'searching',v_partner);
+    RAISE EXCEPTION 'AR Jordan incorrectly accepted';
+  EXCEPTION WHEN OTHERS THEN
+    GET STACKED DIAGNOSTICS v_error=MESSAGE_TEXT;
+    IF v_error<>'jordan_br_general_only' THEN RAISE; END IF;
+  END;
+  BEGIN
+    INSERT INTO public.pharmacy_dispatch_requests(
+      patient_phone,patient_cpf,tier_requested,care_country,
+      cloudflare_room_id,status,referral_partner_id
+    ) VALUES ('5551900000100','12345678909','cardiologia','BR',
+      'ci-jordan-bad-specialty-'||gen_random_uuid(),'searching',v_partner);
+    RAISE EXCEPTION 'Specialist Jordan incorrectly accepted';
+  EXCEPTION WHEN OTHERS THEN
+    GET STACKED DIAGNOSTICS v_error=MESSAGE_TEXT;
+    IF v_error<>'jordan_br_general_only' THEN RAISE; END IF;
+  END;
+  BEGIN
+    INSERT INTO public.pharmacy_dispatch_requests(
+      patient_phone,patient_cpf,tier_requested,care_country,
+      cloudflare_room_id,status,referral_partner_id,price_brl,doctor_fee_brl
+    ) VALUES ('5551900000100','12345678909','general','BR',
+      'ci-jordan-bad-price-'||gen_random_uuid(),'searching',v_partner,79.00,50.00);
+    RAISE EXCEPTION 'Wrong Jordan doctor fee incorrectly accepted';
+  EXCEPTION WHEN OTHERS THEN
+    GET STACKED DIAGNOSTICS v_error=MESSAGE_TEXT;
+    IF v_error<>'jordan_existing_price_conflict' THEN RAISE; END IF;
+  END;
 
   INSERT INTO public.pharmacy_dispatch_requests(
       patient_phone,patient_cpf,patient_name,tier_requested,care_country,
