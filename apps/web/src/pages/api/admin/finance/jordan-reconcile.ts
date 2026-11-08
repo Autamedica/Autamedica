@@ -107,7 +107,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (paymentError || commissionError) throw paymentError ?? commissionError
     const eligibleCommissionCreated = payment?.status === 'approved'
       && commission?.status === 'eligible'
-      && typeof commission.verified_subject_hash === 'string'
+      && typeof commission?.verified_subject_hash === 'string'
       && /^[0-9a-f]{64}$/.test(commission.verified_subject_hash)
     return jsonOk({
       providerMatchedPayments:1,
