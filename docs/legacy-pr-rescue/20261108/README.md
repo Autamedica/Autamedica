@@ -27,4 +27,4 @@ Los enlaces originales del archivo son permanentes en el historial GitHub. Este 
 - Inspeccionar diff: únicamente archivos documentales archivados y un verificador manual Memed existente en rama antigua.
 - Confirmar que `scripts/memed-homologation-artifact-check.mjs` NO está referenciado por cron, workflows o despliegues automáticos.
 - Validación estática únicamente; no ejecutar consultas SQL ni contactar APIs clínicas ni producción para aprobar este archivo.
-- Mantener `#523` abierto hasta una verificación independiente y conservar `#617/#628/#664` abiertos hasta que este rescate esté integrado en `main`.
+- Mantener `#523` abierto hasta una verificación independiente. `#617/#628/#664` pueden cerrarse como *superseded* una vez cotejadas copias con blob SHA idéntico en el PR de rescate #737; **el rescate sigue pendiente de merge en `main`** y no debe confundirse con una funcionalidad desplegada.
