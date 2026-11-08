@@ -6,6 +6,8 @@ data class PharmacyDispatchRequest(
     val offerId: String? = null,
     val offerExpiresAt: String? = null,
     val careCountry: String? = null,
+    /** Server-resolved referral provenance; never a browser-claimed partner ID. */
+    val referralPartnerId: String? = null,
     val patientDni: String,
     val patientPhone: String,
     val patientName: String? = null,
