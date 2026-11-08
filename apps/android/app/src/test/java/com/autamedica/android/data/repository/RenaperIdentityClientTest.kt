@@ -52,6 +52,27 @@ class RenaperIdentityClientTest {
         assertThat(result.birthDate).doesNotContain("1989")
     }
 
+    @Test fun paidLookupStillMasksOfficialAddressAndNeverDownloadsPhoto() {
+        val result = parseRenaperResponse(
+            """{"success":true,"data":{"source":"RENAPER","hasPaid":true,"form":{"firstName":"DEMO","lastName":"TEST","address":"Calle Ficticia 123, Rosario, Santa Fe","photoAvailable":true}}}""",
+            json,
+        )
+        assertThat(result.firstName).isEqualTo("DEMO")
+        assertThat(result.maskedAddress).isEqualTo("Cal** ******** ***, Ros****, San** **")
+        assertThat(result.maskedAddress).doesNotContain("123")
+        assertThat(result.photoAvailable).isTrue()
+        assertThat(result.toString()).doesNotContain("BASE64")
+    }
+
+    @Test fun missingPhotoDoesNotSuggestOfficialPictureExists() {
+        val result = parseRenaperResponse(
+            """{"success":true,"data":{"source":"RENAPER","hasPaid":false,"form":{"firstName":"A","address":"","photoAvailable":false}}}""",
+            json,
+        )
+        assertThat(result.photoAvailable).isFalse()
+        assertThat(result.maskedAddress).isEmpty()
+    }
+
     @Test fun rejectsMissingServerPaymentFlag() {
         val malformed = """{"success":true,"data":{"source":"RENAPER","form":{"firstName":"DEMO"}}}"""
         val thrown = runCatching { parseRenaperResponse(malformed, json) }.exceptionOrNull()
