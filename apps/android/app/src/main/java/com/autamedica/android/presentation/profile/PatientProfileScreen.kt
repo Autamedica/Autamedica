@@ -70,6 +70,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.domain.model.PatientProfileSnapshot
+import com.autamedica.android.domain.model.RenaperPreviewPrivacy
 import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.presentation.dashboard.components.WalletTopupDialog
@@ -193,6 +194,15 @@ fun PatientProfileScreen(
                                         )
                                         Text(
                                             stringResource(R.string.renaper_confirmed_notice),
+                                            style = MaterialTheme.typography.bodySmall,
+                                        )
+                                        // Always show current saved domicile only as a
+                                        // redacted preview. The edit form starts blank.
+                                        Text(
+                                            stringResource(
+                                                R.string.renaper_address,
+                                                RenaperPreviewPrivacy.maskAddress(patient.address),
+                                            ),
                                             style = MaterialTheme.typography.bodySmall,
                                         )
                                         OutlinedTextField(
