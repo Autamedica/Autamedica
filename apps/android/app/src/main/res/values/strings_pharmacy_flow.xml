@@ -68,6 +68,12 @@
     <string name="pharmacy_flow_error_reason">Indicá el motivo de consulta o medicamento solicitado</string>
     <string name="pharmacy_flow_error_complete">Completá los datos obligatorios</string>
     <string name="pharmacy_flow_error_create">No pudimos crear la solicitud. Verificá tu conexión e intentá nuevamente.</string>
+    <string name="pharmacy_flow_error_patient_profile">Necesitás completar tu perfil de paciente para solicitar una consulta.</string>
+    <string name="pharmacy_flow_error_country_mismatch">El país de la consulta no coincide con tu perfil de paciente.</string>
+    <string name="pharmacy_flow_error_session">No pudimos validar tu sesión. Iniciá sesión nuevamente.</string>
+    <string name="pharmacy_flow_error_authorization">No se pudo autorizar la solicitud. Revisá tus datos de paciente.</string>
+    <string name="pharmacy_flow_error_unavailable">El servicio de consultas no está disponible temporalmente. Intentá más tarde.</string>
+    <string name="pharmacy_flow_error_generic">No pudimos registrar tu consulta. Intentá nuevamente o contactá soporte.</string>
     <string name="pharmacy_flow_error_cancel_confirm">No se confirmó la cancelación. Es posible que la solicitud ya haya sido asignada; verificá su estado.</string>
     <string name="pharmacy_flow_error_cancel">No pudimos cancelar la solicitud. Verificá tu conexión e intentá nuevamente.</string>
     <string name="pharmacy_flow_notice_expired">Esta solicitud anterior finalizó. Podés iniciar una nueva consulta.</string>
