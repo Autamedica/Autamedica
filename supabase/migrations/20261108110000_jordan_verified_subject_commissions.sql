@@ -173,6 +173,13 @@ SET search_path TO '' AS $ledger_guard$
 DECLARE
   v_code text;
 BEGIN
+  -- Enforce the same provider-and-verified-subject proof for any transition
+  -- into eligibility, not only INSERT. Otherwise an UPDATE of an existing
+  -- noneligible ledger row could bypass the insert-only verification check.
+  SELECT p.code INTO v_code
+  FROM public.commercial_referral_partners p
+  WHERE p.id=NEW.referral_partner_id;
+
   IF TG_OP='UPDATE' THEN
     IF OLD.status='reversed' AND NEW.status<>'reversed' THEN
       RAISE EXCEPTION 'reversed_commission_is_terminal' USING ERRCODE='42501';
@@ -186,14 +193,11 @@ BEGIN
     THEN
       RAISE EXCEPTION 'commission_evidence_immutable' USING ERRCODE='42501';
     END IF;
-    RETURN NEW;
   END IF;
 
-  SELECT p.code INTO v_code
-  FROM public.commercial_referral_partners p
-  WHERE p.id=NEW.referral_partner_id;
-
-  IF v_code='JORDAN' AND (
+  IF v_code='JORDAN'
+     AND (TG_OP='INSERT' OR NEW.status='eligible')
+     AND (
     NEW.verified_subject_hash IS NULL
     OR NOT EXISTS (
       SELECT 1 FROM public.commercial_referral_identity_proofs proof
