@@ -31,6 +31,8 @@ data class ProfileUiState(
     val renaperLoading: Boolean = false,
     val renaperResult: RenaperIdentity? = null,
     val renaperErrorStatus: Int? = null,
+    val renaperConfirming: Boolean = false,
+    val renaperConfirmErrorStatus: Int? = null,
     val editableAddress: String = "",
     val isAddressSaving: Boolean = false,
     val addressSaveSuccess: Boolean = false,
@@ -203,6 +205,53 @@ class ProfileViewModel @Inject constructor(
         renaperLookupJob = null
         _uiState.update {
             it.copy(renaperLoading = false, renaperResult = null, renaperErrorStatus = null)
+        }
+    }
+
+    fun confirmRenaper(sex: RenaperSexId) {
+        val state = _uiState.value
+        val patient = state.patientSnapshot
+        if (state.user?.role != UserRole.PATIENT || state.renaperLoading ||
+            state.renaperConfirming || patient?.careCountry != "AR" ||
+            patient.renaperConfirmedAt != null || state.renaperResult?.hasPaid != true ||
+            !RenaperLookupPolicy.sexMatchesPatient(patient, sex)) return
+
+        _uiState.update {
+            it.copy(renaperConfirming = true, renaperConfirmErrorStatus = null)
+        }
+        viewModelScope.launch {
+            renaperIdentityClient.confirm(sex).fold(
+                onSuccess = {
+                    val refreshed = profileRepository.getPatientProfileSnapshot().getOrNull()
+                    val user = profileRepository.getProfile().getOrNull()
+                    _uiState.update { previous ->
+                        if (refreshed?.renaperConfirmedAt != null) {
+                            previous.copy(
+                                patientSnapshot = refreshed,
+                                user = user ?: previous.user,
+                                editableAddress = refreshed.address.orEmpty(),
+                                renaperResult = null,
+                                renaperConfirming = false,
+                                renaperConfirmErrorStatus = null,
+                            )
+                        } else {
+                            previous.copy(
+                                renaperConfirming = false,
+                                renaperConfirmErrorStatus = 409,
+                            )
+                        }
+                    }
+                },
+                onFailure = { failure ->
+                    _uiState.update {
+                        it.copy(
+                            renaperConfirming = false,
+                            renaperConfirmErrorStatus =
+                                (failure as? RenaperLookupException)?.httpStatus ?: 500,
+                        )
+                    }
+                },
+            )
         }
     }
 
