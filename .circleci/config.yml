@@ -18,6 +18,23 @@ parameters:
     default: false
 
 jobs:
+  jordan_source_identity:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: small
+    environment:
+      JORDAN_CI_CHECKOUT_SHA: "<< pipeline.git.revision >>"
+      JORDAN_CI_CONFIG_SHA: "<< pipeline.config.sha >>"
+      JORDAN_CI_CHECKOUT_BRANCH: "<< pipeline.git.branch >>"
+      JORDAN_CI_CONFIG_REF: "<< pipeline.config.ref >>"
+      JORDAN_CI_CONFIG_REPO: "<< pipeline.config.repository.name >>"
+      JORDAN_CI_CHECKOUT_REPO: "<< pipeline.git.repo_owner >>/<< pipeline.git.repo_name >>"
+    steps:
+      - checkout
+      - run:
+          name: Reject cross-branch, cross-commit or wrong-config Jordan builds
+          command: bash scripts/ci/verify-jordan-main-source.sh
+
   smoke:
     docker:
       - image: cimg/node:22.15.0
@@ -330,8 +347,13 @@ workflows:
   jordan_release_gate_manual:
     when: << pipeline.parameters.run_jordan_gate >>
     jobs:
-      - smoke
-      - jordan_sql_contract
+      - jordan_source_identity
+      - smoke:
+          requires:
+            - jordan_source_identity
+      - jordan_sql_contract:
+          requires:
+            - jordan_source_identity
       - web:
           requires:
             - smoke
