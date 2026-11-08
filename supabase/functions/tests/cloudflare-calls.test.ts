@@ -604,3 +604,45 @@ Deno.test("cloudflare-calls - Jordan rejects cross-room SFU track subscription",
     Deno.env.set("SFU_SESSION_BINDINGS_ENABLED", "false");
   }
 });
+
+Deno.test("cloudflare-calls - Jordan accepts same-room authorized peer publication", async () => {
+  setEnv();
+  Deno.env.set("SFU_SESSION_BINDINGS_ENABLED", "true");
+  const originalFetch = globalThis.fetch;
+  const backend = mockSupabaseFetch({
+    user: { id: "user-jordan" }, call: null, dispatch: JORDAN_DISPATCH,
+    partner: { code: "JORDAN", active: true }, payment: JORDAN_APPROVED,
+    cfResponse: { status: 200, body: { tracks: [{ trackName: "camera" }] } },
+  });
+  let upstreamCalls = 0;
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url.includes("rtc.live.cloudflare.com")) upstreamCalls++;
+    if (url.includes("/rest/v1/sfu_room_session_bindings")) {
+      if (url.includes("session_id=eq.")) {
+        return jsonResponse([{ room_id: JORDAN_ROOM, principal_key: "user:user-jordan" }]);
+      }
+      return jsonResponse([{ session_id: "doctor-session", room_id: JORDAN_ROOM }]);
+    }
+    return backend(input, init);
+  };
+  try {
+    const res = await handler(new Request("http://localhost/cloudflare-calls", {
+      method: "POST",
+      headers: { Authorization: "Bearer synthetic-valid-token" },
+      body: JSON.stringify({
+        roomId: JORDAN_ROOM,
+        method: "POST",
+        path: "sessions/patient-session/tracks/new",
+        body: { tracks: [
+          { location: "remote", sessionId: "doctor-session", trackName: "camera" },
+        ] },
+      }),
+    }));
+    assertEquals(res.status, 200);
+    assertEquals(upstreamCalls, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    Deno.env.set("SFU_SESSION_BINDINGS_ENABLED", "false");
+  }
+});
