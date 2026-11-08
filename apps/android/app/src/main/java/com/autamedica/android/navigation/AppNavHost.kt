@@ -65,8 +65,11 @@ fun AppNavHost(
         navController.currentBackStackEntryFlow.collect { backStackEntry ->
             if (consumed) return@collect
             val currentRoute = backStackEntry.destination.route
-            val isOnLogin = currentRoute?.contains("Login") == true
-            if (!isOnLogin) {
+            // A pending deep link is never consumed on Register, ForgotPassword
+            // or other unauthenticated screens. Only the authenticated landing
+            // route (Main) can release it after login/profile verification.
+            val isOnAuthenticatedLanding = currentRoute?.contains("Route.Main") == true
+            if (isOnAuthenticatedLanding) {
                 consumed = true
                 navController.navigate(route) {
                     launchSingleTop = true
