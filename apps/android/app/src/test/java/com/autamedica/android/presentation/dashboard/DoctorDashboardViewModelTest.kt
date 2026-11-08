@@ -18,6 +18,7 @@ import com.autamedica.android.domain.model.PharmacyDispatchRequest
 import com.autamedica.android.domain.model.RequestStatusResponse
 import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.model.UserRole
+import com.autamedica.android.presentation.main.isDoctorTabAllowed
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.ChatRepository
@@ -112,7 +113,11 @@ private class FakeTelemedicineRepo : TelemedicineRepository {
 }
 
 private class FakeChatRepo : ChatRepository {
-    override fun observeChats(): Flow<List<MedicalChat>> = flowOf(emptyList())
+    var chatReads = 0
+    override fun observeChats(): Flow<List<MedicalChat>> {
+        chatReads++
+        return flowOf(emptyList())
+    }
     override fun observeMessages(chatId: String): Flow<List<MedicalMessage>> = flowOf(emptyList())
     override suspend fun sendMessage(chatId: String, content: String, contentType: String): Result<Unit> = Result.success(Unit)
     override suspend fun markAsRead(chatId: String): Result<Unit> = Result.success(Unit)
@@ -212,6 +217,36 @@ class DoctorDashboardViewModelTest {
     }
 
     @Test
+    fun `doctor clinical tabs remain disabled without positive approval`() {
+        for (approved in listOf(false, true)) {
+            assertThat(isDoctorTabAllowed(0, approved)).isTrue()
+            assertThat(isDoctorTabAllowed(4, approved)).isTrue()
+            for (index in 1..3) {
+                assertThat(isDoctorTabAllowed(index, approved)).isEqualTo(approved)
+            }
+        }
+        assertThat(isDoctorTabAllowed(-1, true)).isFalse()
+        assertThat(isDoctorTabAllowed(5, true)).isFalse()
+    }
+
+    @Test
+    fun `approved clinician can load patients appointments and messages`() = runTest(testDispatcher) {
+        val vm = DoctorDashboardViewModel(
+            doctorRepository = doctorRepo, appointmentRepository = appointmentRepo,
+            authRepository = authRepo, telemedicineRepository = telemedicineRepo,
+            chatRepository = chatRepo, pharmacyDispatchRepository = dispatchRepo,
+            connectivityObserver = connectivityObserver, ioDispatcher = testDispatcher,
+        )
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.guardApproved).isTrue()
+        assertThat(doctorRepo.statsReads).isEqualTo(1)
+        assertThat(doctorRepo.patientReads).isEqualTo(1)
+        assertThat(appointmentRepo.appointmentReads).isEqualTo(1)
+        assertThat(chatRepo.chatReads).isEqualTo(1)
+        vm.viewModelScope.cancel()
+    }
+
+    @Test
     fun `pending clinician cannot load patient data or subscribe to duty`() = runTest(testDispatcher) {
         dispatchRepo.approvalResult = Result.success(
             DoctorGuardApproval(approved = false, code = "DOCTOR_PENDING_CLINICAL_APPROVAL",
@@ -231,6 +266,7 @@ class DoctorDashboardViewModelTest {
         assertThat(doctorRepo.statsReads).isEqualTo(0)
         assertThat(doctorRepo.patientReads).isEqualTo(0)
         assertThat(appointmentRepo.appointmentReads).isEqualTo(0)
+        assertThat(chatRepo.chatReads).isEqualTo(0)
         assertThat(dispatchRepo.heartbeatInvocations).isEmpty()
         vm.viewModelScope.cancel()
     }
@@ -272,6 +308,7 @@ class DoctorDashboardViewModelTest {
         assertThat(doctorRepo.statsReads).isEqualTo(0)
         assertThat(doctorRepo.patientReads).isEqualTo(0)
         assertThat(appointmentRepo.appointmentReads).isEqualTo(0)
+        assertThat(chatRepo.chatReads).isEqualTo(0)
         assertThat(dispatchRepo.heartbeatInvocations).isEmpty()
         vm.viewModelScope.cancel()
     }
