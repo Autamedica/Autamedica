@@ -100,6 +100,16 @@ jobs:
               src/lib/pharmacy/payments/jordan-media-access.test.ts \
               src/lib/calls/web-cloudflare-media-authorization.test.ts
             pnpm --filter @autamedica/telemedicine exec vitest run src/server/cloudflare-calls-handler.test.ts
+            if [ -f 'apps/web/src/lib/pharmacy/payments/jordan-commission-eligibility.test.ts' ]; then
+              pnpm --filter @autamedica/web exec vitest run src/lib/pharmacy/payments/jordan-commission-eligibility.test.ts
+            else
+              echo 'GATE 5 IDENTITY TEST ABSENT ON THIS COMMIT — NOT RELEASE APPROVED'
+            fi
+            if [ -f 'apps/web/src/lib/calls/sfu-room-binding.test.ts' ]; then
+              pnpm --filter @autamedica/web exec vitest run src/lib/calls/sfu-room-binding.test.ts
+            else
+              echo 'GATE 7 SFU SESSION BINDING TEST ABSENT ON THIS COMMIT — NOT RELEASE APPROVED'
+            fi
           no_output_timeout: 10m
       - run:
           name: Web Astro typecheck and non-deploying production build
