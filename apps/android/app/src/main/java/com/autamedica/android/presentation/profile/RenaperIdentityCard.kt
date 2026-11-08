@@ -100,7 +100,7 @@ fun RenaperIdentityCard(
                     val selectedSex = sex ?: return@Button
                     onLookup(selectedSex)
                 },
-                enabled = !loading && consent && sex != null && RenaperLookupPolicy.canQuery(patient, sex),
+                enabled = !loading && consent && (sex?.let { RenaperLookupPolicy.canQuery(patient, it) } == true),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 if (loading) CircularProgressIndicator(strokeWidth = 2.dp)
