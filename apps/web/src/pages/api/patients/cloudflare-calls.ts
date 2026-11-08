@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { logger } from '@autamedica/shared'
 import { handleCloudflareCallsProxy } from '@autamedica/telemedicine/server'
 import { withAuthRole, isAuthed, PATIENT_ROLES } from '@/lib/api-auth'
@@ -15,7 +16,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!roomId) return Response.json({ error: 'room_id_required' }, { status: 400 })
 
   try {
-    const admin = createAstroAdminClient(locals.runtime?.env)
+    const admin = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient
     const access = await authorizeWebCloudflareMedia(admin, roomId, auth.user.id, 'patient')
     if (access !== 'allowed') {
       return Response.json(
