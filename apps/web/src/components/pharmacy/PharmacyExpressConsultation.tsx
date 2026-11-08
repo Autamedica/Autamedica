@@ -57,7 +57,7 @@ export function PharmacyExpressConsultation({
 
   const [step, setStep] = useState<Step>('FORM')
   const [formData, setFormData] = useState({
-    careCountry: '' as '' | 'AR' | 'BR',
+    careCountry: (referralCode === 'JORDAN' ? 'BR' : '') as '' | 'AR' | 'BR',
     dni: initialDni,
     name: '',
     phone: '',
@@ -70,6 +70,7 @@ export function PharmacyExpressConsultation({
   const [requestId, setRequestId] = useState<string | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [callRoomId, setCallRoomId] = useState<string | null>(null)
+  const [jordanPaymentApproved, setJordanPaymentApproved] = useState(false)
 
   // Polling / escucha para consultar GET /api/pharmacy/dispatch/${requestId}?token=${accessToken}
   const checkStatus = useCallback(async (id: string, token: string | null) => {
@@ -130,6 +131,10 @@ export function PharmacyExpressConsultation({
 
     if (!formData.careCountry) {
       setFormError('Seleccioná el país donde recibirás atención: Argentina o Brasil.')
+      return
+    }
+    if (referralCode === 'JORDAN' && formData.careCountry !== 'BR') {
+      setFormError('O canal Jordan atende exclusivamente no Brasil.')
       return
     }
     const documentNumber = formData.dni.replace(/\D/g, '')
@@ -210,6 +215,8 @@ export function PharmacyExpressConsultation({
 
   // 1. STEP: CALL
   if (step === 'CALL' && callRoomId) {
+    const requiresJordanPayment = referralCode === 'JORDAN'
+    const paymentReady = jordanPaymentsEnabled && formData.careCountry === 'BR' && requestId && accessToken
     return (
       <div className="w-full h-full min-h-[100dvh] bg-am-surface-900">
         <div className="fixed top-3 left-4 z-50 flex items-center gap-2.5 bg-zinc-950/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10 shadow-2xl text-xs font-medium text-white">
@@ -223,9 +230,25 @@ export function PharmacyExpressConsultation({
           <span className="text-zinc-500 hidden sm:inline">•</span>
           <span className="text-zinc-300 hidden sm:inline font-normal">{referralPartnerName ?? pharmacyName}</span>
         </div>
-        <GuestCallPage roomId={callRoomId} />
-        {jordanPaymentsEnabled && referralCode === 'JORDAN' && formData.careCountry === 'BR' && requestId && accessToken && (
-          <JordanPaymentWidget dispatchId={requestId} guestToken={accessToken} />
+        {(!requiresJordanPayment || jordanPaymentApproved) && <GuestCallPage roomId={callRoomId} />}
+        {requiresJordanPayment && !jordanPaymentApproved && (
+          <div className="min-h-[100dvh] flex items-center justify-center p-6 text-center text-white">
+            <div className="max-w-md">
+              <h2 className="text-xl font-semibold">Consulta médica · R$ 79,00</h2>
+              <p className="mt-3 text-sm text-zinc-300">
+                {paymentReady
+                  ? 'Confirme o pagamento para iniciar a videochamada com o médico.'
+                  : 'O pagamento desta consulta ainda não está disponível. Nenhuma cobrança será feita.'}
+              </p>
+            </div>
+          </div>
+        )}
+        {requiresJordanPayment && paymentReady && (
+          <JordanPaymentWidget
+            dispatchId={requestId}
+            guestToken={accessToken}
+            onStatusChange={(status) => setJordanPaymentApproved(status === 'approved')}
+          />
         )}
       </div>
     )
@@ -303,6 +326,7 @@ export function PharmacyExpressConsultation({
                         name="careCountry"
                         required
                         checked={formData.careCountry === country}
+                        disabled={referralCode === 'JORDAN' && country === 'AR'}
                         onChange={() => setFormData({ ...formData, careCountry: country, dni: '' })}
                         className="accent-emerald-500"
                       />
