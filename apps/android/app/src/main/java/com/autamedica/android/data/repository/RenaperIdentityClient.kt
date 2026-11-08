@@ -110,7 +110,7 @@ internal fun parseRenaperResponse(raw: String, json: Json = Json): RenaperIdenti
     // Defensive masking: even a faulty backend response must not display
     // complete personal names or coverage when hasPaid=false.
     fun maskIfUnpaid(value: String): String {
-        if (hasPaid || value.isBlank() || '*' in value) return value
+        if (hasPaid || value.isBlank()) return value
         return value.take(1) + "*".repeat((value.length - 1).coerceAtMost(40))
     }
 
