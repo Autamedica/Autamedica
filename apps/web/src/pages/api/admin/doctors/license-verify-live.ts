@@ -252,36 +252,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
         .find((identifier) => identifier.value)?.value,
     );
 
-    // 5. Update the doctor's profile status in the database
+    // 5. Persist the official credential first. A failed license write must
+    // never leave the profile marked as validated for clinical dispatch.
     if (persist) {
-      const profileUpdates: Record<string, string | null> = {
-        sss_validation_status: finalStatus,
-        sss_last_checked_at: checkedAt,
-      };
-
-      if (registeredSpecialty) profileUpdates.especialidad_registrada = registeredSpecialty;
-      if (validatedLicense) profileUpdates.matricula_nacional = validatedLicense;
-
-      const { error: updateError } = await admin
-        .from('profiles')
-        .update(profileUpdates)
-        .eq('user_id', doctor.user_id);
-
-      if (updateError) throw updateError;
-
-      if (practitionerId) {
-        const { error: doctorUpdateError } = await admin
-          .from('doctors')
-          .update({
-            refeps_id: practitionerId,
-            ...(validatedLicense ? { license_number: validatedLicense } : {}),
-            ...(province ? { enrollment_jurisdiction: province } : {}),
-          })
-          .eq('id', doctor.id);
-
-        if (doctorUpdateError) throw doctorUpdateError;
-      }
-
       const { error: licenseError } = await admin
         .from('doctor_licenses')
         .upsert(
@@ -297,8 +270,43 @@ export const POST: APIRoute = async ({ request, locals }) => {
         );
 
       if (licenseError) {
-        logger.warn('[license-verify-live] structured license upsert skipped', licenseError);
+        logger.error('[license-verify-live] Official license persistence failed', licenseError);
+        return jsonFail(
+          'SERVICE_UNAVAILABLE',
+          'No se pudo guardar la matrícula verificada. La habilitación anterior se conserva.',
+          503,
+          { reason: 'REFEPS_LICENSE_PERSIST_FAILED' },
+        );
       }
+
+      if (practitionerId) {
+        const { error: doctorUpdateError } = await admin
+          .from('doctors')
+          .update({
+            refeps_id: practitionerId,
+            ...(validatedLicense ? { license_number: validatedLicense } : {}),
+            ...(province ? { enrollment_jurisdiction: province } : {}),
+          })
+          .eq('id', doctor.id);
+
+        if (doctorUpdateError) throw doctorUpdateError;
+      }
+
+      // The profile approval is the final write, after mandatory license persistence.
+      const profileUpdates: Record<string, string | null> = {
+        sss_validation_status: finalStatus,
+        sss_last_checked_at: checkedAt,
+      };
+
+      if (registeredSpecialty) profileUpdates.especialidad_registrada = registeredSpecialty;
+      if (validatedLicense) profileUpdates.matricula_nacional = validatedLicense;
+
+      const { error: updateError } = await admin
+        .from('profiles')
+        .update(profileUpdates)
+        .eq('user_id', doctor.user_id);
+
+      if (updateError) throw updateError;
 
       if (registeredSpecialty) {
         const { error: specialtyError } = await admin
