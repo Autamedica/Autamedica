@@ -297,6 +297,8 @@ fun DoctorDashboardScreen(
                                         stringResource(R.string.ui_doctor_approval_unavailable)
                                     uiState.guardApproved == null ->
                                         stringResource(R.string.ui_doctor_approval_checking)
+                                    uiState.guardCareCountry == null ->
+                                        stringResource(R.string.ui_doctor_approval_country_missing)
                                     else -> stringResource(R.string.ui_doctor_approval_pending)
                                 },
                                 style = MaterialTheme.typography.titleLarge,
@@ -309,6 +311,8 @@ fun DoctorDashboardScreen(
                                         stringResource(R.string.ui_doctor_approval_unavailable_body)
                                     uiState.guardApproved == null ->
                                         stringResource(R.string.ui_doctor_approval_checking_body)
+                                    uiState.guardCareCountry == null ->
+                                        stringResource(R.string.ui_doctor_approval_country_missing_body)
                                     else -> stringResource(R.string.ui_doctor_approval_pending_body)
                                 },
                                 style = MaterialTheme.typography.bodyMedium,
