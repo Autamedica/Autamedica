@@ -98,6 +98,48 @@ class RenaperIdentityClientTest {
         }
     }
 
+    @Test fun confirmingOfficialDataUsesPatientTokenAndNoRawIdentityFields() = runBlocking {
+        val server = MockWebServer()
+        server.start()
+        try {
+            server.enqueue(MockResponse().setResponseCode(200).setBody(
+                """{"success":true,"data":{"confirmed":true,"biometricVerified":false}}"""
+            ))
+            val client = RenaperIdentityClient(mockk<SupabaseClient>(), OkHttpClient(), json)
+            assertThat(client.confirmOnServer(
+                server.url("/").toString(), RenaperSexId.FEMALE, "synthetic-bearer",
+            )).isTrue()
+            val request = server.takeRequest()
+            assertThat(request.path).isEqualTo("/api/patients/identity/renaper/confirm")
+            assertThat(request.getHeader("Authorization")).isEqualTo("Bearer synthetic-bearer")
+            val body = request.body.readUtf8()
+            assertThat(body).contains("\"acknowledge\":true")
+            assertThat(body).contains("\"sexId\":1")
+            assertThat(body).doesNotContain("dni")
+            assertThat(body).doesNotContain("photo")
+            assertThat(body).doesNotContain("firstName")
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test fun confirmationRejectsFalseBiometricVerificationClaims() = runBlocking {
+        val server = MockWebServer()
+        server.start()
+        try {
+            server.enqueue(MockResponse().setResponseCode(200).setBody(
+                """{"success":true,"data":{"confirmed":true,"biometricVerified":true}}"""
+            ))
+            val client = RenaperIdentityClient(mockk<SupabaseClient>(), OkHttpClient(), json)
+            val failure = runCatching {
+                client.confirmOnServer(server.url("/").toString(), RenaperSexId.MALE, "bearer")
+            }.exceptionOrNull()
+            assertThat(failure).isInstanceOf(RenaperLookupException::class.java)
+        } finally {
+            server.shutdown()
+        }
+    }
+
     @Test fun rejectsInvalidDniBeforeNetwork() = runBlocking {
         val server = MockWebServer()
         server.start()
