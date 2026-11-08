@@ -122,7 +122,7 @@ class NotificationRepositoryImpl @Inject constructor(
                 SecureLog.warn("[Notifications] Failed to query portal_notifications, retaining cached messages", error)
             }
 
-            val finalNotifications = remoteResult.getOrElse { _notifications.value }
+            val finalNotifications = resolvePortalInbox(remoteResult, _notifications.value)
 
             _notifications.value = finalNotifications
             _unreadCount.value = finalNotifications.count { !it.isRead }
