@@ -155,6 +155,32 @@ object NotificationRouteResolver {
             return Route.DoctorOnDemand
         }
 
+        // TDAH evaluation deep link: autamedica://tdah, autamedica://adhd
+        if (firstSegment == "tdah" || firstSegment == "adhd") {
+            return Route.TdahEvaluation
+        }
+
+        // Doctor accounting / billing: autamedica://accounting, autamedica://contabilidad
+        if (firstSegment == "accounting" || firstSegment == "contabilidad") {
+            return Route.DoctorAccounting
+        }
+
+        // Patient consultation reports: autamedica://reports, autamedica://informes
+        if (firstSegment == "reports" || firstSegment == "informes") {
+            return Route.ConsultationReports
+        }
+
+        // Adverse events reporting: autamedica://adverse-events, autamedica://eventos-adversos
+        if (firstSegment == "adverse-events" || firstSegment == "eventos-adversos" || firstSegment == "adverse") {
+            return Route.AdverseEvents
+        }
+
+        // Telemedicine informed consent: autamedica://consent/appointmentId
+        if (firstSegment == "consent" || firstSegment == "consentimiento") {
+            val appointmentId = if (segments.size >= 2) segments.last().normalizedOrNull() ?: "" else ""
+            return Route.Consent(appointmentId)
+        }
+
         // Doctor prescriptions list or create prescription
         if (firstSegment == "prescriptions" || firstSegment == "recetas") {
             if (segments.size < 2) return Route.DoctorPrescriptions

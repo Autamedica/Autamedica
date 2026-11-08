@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.mapLatest
-import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -174,7 +173,7 @@ class AuthRepositoryImpl @Inject constructor(
         return try {
             UserRole.entries.first { it.name.equals(role, ignoreCase = true) }
         } catch (_: NoSuchElementException) {
-            Timber.w("Unknown role: $role, defaulting to PATIENT")
+            SecureLog.error("[Auth] Unknown role from DB: '$role' — defaulting to PATIENT")
             UserRole.PATIENT
         }
     }

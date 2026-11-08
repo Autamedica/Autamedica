@@ -34,37 +34,28 @@ class TelemedicineRepositoryImpl @Inject constructor(
         private val UUID_REGEX = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$")
     }
 
-    internal var sessionInfoFinder: (suspend (String) -> TelemedicineSessionInfo?)? = null
-    internal var iceServersProvider: (() -> List<IceServerInfo>)? = null
-
     override suspend fun getSession(sessionId: String): Result<TelemedicineSessionInfo> = runCatching {
         val identifier = sessionId.trim()
         require(identifier.isNotEmpty()) { "Session identifier cannot be empty" }
 
-        val customFinder = sessionInfoFinder
-        if (customFinder != null) {
-            val resolved = customFinder(identifier)
-            if (resolved != null) return@runCatching resolved
-        } else {
-            val call = findCallForIdentifier(identifier)
-            if (call != null) {
-                return@runCatching TelemedicineSessionInfo(
-                    sessionId = call.id,
-                    roomId = call.roomId,
-                    signalingUrl = BuildConfig.SIGNALING_URL,
-                    iceServers = fetchTurnIceServers(),
-                )
-            }
+        val call = findCallForIdentifier(identifier)
+        if (call != null) {
+            return@runCatching TelemedicineSessionInfo(
+                sessionId = call.id,
+                roomId = call.roomId,
+                signalingUrl = BuildConfig.SIGNALING_URL,
+                iceServers = fetchTurnIceServers(),
+            )
+        }
 
-            val session = findTelemedicineSessionForIdentifier(identifier)
-            if (session != null) {
-                return@runCatching TelemedicineSessionInfo(
-                    sessionId = session.id,
-                    roomId = session.roomId?.trim()?.takeIf { it.isNotEmpty() } ?: identifier,
-                    signalingUrl = BuildConfig.SIGNALING_URL,
-                    iceServers = fetchTurnIceServers(),
-                )
-            }
+        val session = findTelemedicineSessionForIdentifier(identifier)
+        if (session != null) {
+            return@runCatching TelemedicineSessionInfo(
+                sessionId = session.id,
+                roomId = session.roomId?.trim()?.takeIf { it.isNotEmpty() } ?: identifier,
+                signalingUrl = BuildConfig.SIGNALING_URL,
+                iceServers = fetchTurnIceServers(),
+            )
         }
 
         SecureLog.info("[Telemedicine] Fallback to direct roomId connection for identifier=$identifier")
@@ -368,9 +359,6 @@ class TelemedicineRepositoryImpl @Inject constructor(
     }
 
     internal fun getDefaultIceServers(): List<IceServerInfo> {
-        val custom = iceServersProvider?.invoke()
-        if (custom != null) return custom
-
         val servers = mutableListOf(
             IceServerInfo(listOf("stun:stun.l.google.com:19302")),
             IceServerInfo(listOf("stun:stun1.l.google.com:19302")),
@@ -400,9 +388,6 @@ class TelemedicineRepositoryImpl @Inject constructor(
     }
 
     internal suspend fun fetchTurnIceServers(): List<IceServerInfo> {
-        val custom = iceServersProvider?.invoke()
-        if (custom != null) return custom
-
         val fetched = runCatching {
             val response = supabaseClient.functions.invoke("turn-credentials")
             val text = response.bodyAsText()

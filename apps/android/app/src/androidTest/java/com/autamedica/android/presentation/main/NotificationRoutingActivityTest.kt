@@ -52,7 +52,7 @@ class NotificationRoutingActivityTest {
             composeTestRule.waitForIdle()
 
             // Verify the user remains on the Login screen (checking for login button/elements)
-            composeTestRule.onNodeWithText("Iniciar Sesion").assertIsDisplayed()
+            composeTestRule.onNodeWithText("Iniciar Sesión").assertIsDisplayed()
             composeTestRule.onNodeWithText("¿No tenes cuenta? Registrate").assertIsDisplayed()
         }
     }
