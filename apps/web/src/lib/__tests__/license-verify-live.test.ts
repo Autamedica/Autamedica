@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const state = vi.hoisted(() => ({
   tokenSecret: 'test-only', domainUrl: 'https://test.invalid', role: 'admin', sessionUser: true, authHeader: 'Bearer test-user',
   firstName: 'Nombre', lastName: 'Prueba', validatorConfig: vi.fn(),
-  createAdmin: vi.fn(), verify: vi.fn(), updateProfile: vi.fn(), updateDoctor: vi.fn(),
+  createAdmin: vi.fn(), verify: vi.fn(), updateProfile: vi.fn(), updateDoctor: vi.fn(), upsertLicense: vi.fn(),
 }));
 vi.mock('@autamedica/shared', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
 vi.mock('@/lib/supabase', () => ({ createAstroAdminClient: state.createAdmin }));
@@ -27,10 +27,11 @@ beforeEach(() => {
   state.tokenSecret = 'test-only'; state.domainUrl = 'https://test.invalid';
   state.firstName = 'Nombre'; state.lastName = 'Prueba'; state.validatorConfig.mockReset();
   state.role = 'admin'; state.sessionUser = true; state.authHeader = 'Bearer test-user';
-  state.verify.mockReset(); state.updateProfile.mockReset(); state.updateDoctor.mockReset();
+  state.verify.mockReset(); state.updateProfile.mockReset(); state.updateDoctor.mockReset(); state.upsertLicense.mockReset();
   state.createAdmin.mockReset();
   state.updateProfile.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
   state.updateDoctor.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
+  state.upsertLicense.mockResolvedValue({ error: null });
   const query = (data: unknown) => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data, error: null }) }) }) });
   state.createAdmin.mockReturnValue({ auth: { getUser: async () => ({ data: { user: { id: 'test-user' } }, error: null }) }, from: (name: string) => {
     if (name === 'profiles') return { ...query({ role: state.role, first_name: state.firstName, last_name: state.lastName }), update: state.updateProfile };
@@ -39,6 +40,7 @@ beforeEach(() => {
         enrollment_jurisdiction: 'CABA', enrollment_entity: 'Ministerio de Salud', refeps_id: '541000000001' }),
       update: state.updateDoctor,
     };
+    if (name === 'doctor_licenses') return { upsert: state.upsertLicense };
     return { upsert: vi.fn().mockResolvedValue({ error: null }) };
   } });
 });
@@ -180,6 +182,28 @@ describe('administrative official license verification', () => {
     state.verify.mockResolvedValue({ isValid: true, source: 'local_database_fallback', registrationStatus: 'active' });
     expect((await call('www.autamedica.com', { doctorId: 'test-doctor', persist: true })).status).toBe(503);
     expect(state.updateProfile).not.toHaveBeenCalled();
+  });
+  it('never marks a profile valid when persisting its official license fails', async () => {
+    state.verify.mockResolvedValue({ isValid: true, source: 'national_refeps_api', registrationStatus: 'active',
+      matriculaNumber: '123456', practitionerId: '541000000001' });
+    state.upsertLicense.mockResolvedValue({ error: { message: 'license insert denied' } });
+    const response = await call('www.autamedica.com', { doctorId: 'test-doctor', persist: true });
+    const payload = await response.json();
+    expect(response.status).toBe(503);
+    expect(payload.error.details.reason).toBe('REFEPS_LICENSE_PERSIST_FAILED');
+    expect(state.upsertLicense).toHaveBeenCalledOnce();
+    expect(state.updateProfile).not.toHaveBeenCalled();
+    expect(state.updateDoctor).not.toHaveBeenCalled();
+  });
+  it('persists the official license before recording SSS approval', async () => {
+    state.verify.mockResolvedValue({ isValid: true, source: 'national_refeps_api', registrationStatus: 'active',
+      matriculaNumber: '123456', practitionerId: '541000000001' });
+    expect((await call('www.autamedica.com', { doctorId: 'test-doctor', persist: true })).status).toBe(200);
+    expect(state.upsertLicense).toHaveBeenCalledWith(
+      expect.objectContaining({ license_number: '123456', license_type: 'MN', status: 'active' }),
+      expect.objectContaining({ onConflict: 'doctor_id,province,license_number' }),
+    );
+    expect(state.upsertLicense.mock.invocationCallOrder[0]).toBeLessThan(state.updateProfile.mock.invocationCallOrder[0]);
   });
   it('persists a valid official result only when requested', async () => {
     state.verify.mockResolvedValue({ isValid: true, source: 'national_refeps_api', registrationStatus: 'active',
