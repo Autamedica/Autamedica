@@ -30,7 +30,7 @@ jobs:
       JORDAN_CI_CONFIG_SHA: "<< pipeline.config.sha >>"
       JORDAN_CI_CHECKOUT_BRANCH: "<< pipeline.git.branch >>"
       JORDAN_CI_CONFIG_REF: "<< pipeline.config.ref >>"
-      JORDAN_CI_CONFIG_REPO: "<< pipeline.config.repository.name >>"
+      JORDAN_CI_CONFIG_REPO: "<< pipeline.git.repo_owner >>/<< pipeline.config.repository.name >>"
       JORDAN_CI_CHECKOUT_REPO: "<< pipeline.git.repo_owner >>/<< pipeline.git.repo_name >>"
     steps:
       - checkout
@@ -47,7 +47,7 @@ jobs:
       JORDAN_CI_CONFIG_SHA: "<< pipeline.config.sha >>"
       JORDAN_CI_CHECKOUT_BRANCH: "<< pipeline.git.branch >>"
       JORDAN_CI_CONFIG_REF: "<< pipeline.config.ref >>"
-      JORDAN_CI_CONFIG_REPO: "<< pipeline.config.repository.name >>"
+      JORDAN_CI_CONFIG_REPO: "<< pipeline.git.repo_owner >>/<< pipeline.config.repository.name >>"
       JORDAN_CI_CHECKOUT_REPO: "<< pipeline.git.repo_owner >>/<< pipeline.git.repo_name >>"
     steps:
       - checkout
@@ -229,7 +229,7 @@ jobs:
       CIRCLE_RELEASE_EVENT: << pipeline.event.name >>
       CIRCLE_RELEASE_CONFIG_REF: << pipeline.config.ref >>
       CIRCLE_RELEASE_CONFIG_SHA: << pipeline.config.sha >>
-      CIRCLE_RELEASE_CONFIG_REPO: << pipeline.config.repository.name >>
+      CIRCLE_RELEASE_CONFIG_REPO: << pipeline.git.repo_owner >>/<< pipeline.config.repository.name >>
       CIRCLE_RELEASE_OWNER: << pipeline.git.repo_owner >>
       CIRCLE_RELEASE_REPO: << pipeline.git.repo_name >>
     steps:
@@ -321,7 +321,7 @@ jobs:
       CIRCLE_RELEASE_TRIGGER: << pipeline.trigger.type >>
       CIRCLE_RELEASE_EVENT: << pipeline.event.name >>
       CIRCLE_RELEASE_CONFIG_SHA: << pipeline.config.sha >>
-      CIRCLE_RELEASE_CONFIG_REPO: << pipeline.config.repository.name >>
+      CIRCLE_RELEASE_CONFIG_REPO: << pipeline.git.repo_owner >>/<< pipeline.config.repository.name >>
       CIRCLE_RELEASE_SHA: << pipeline.git.revision >>
     steps:
       - checkout
