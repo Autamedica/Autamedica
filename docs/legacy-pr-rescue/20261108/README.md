@@ -6,10 +6,10 @@ Este directorio conserva **evidencia histórica**, no documentación operativa v
 
 | PR original | Artefacto recuperado | Propósito | Restricción |
 | --- | --- | --- | --- |
-| [#617](../../../../pull/617) | `openclaw-mcp-relay-migration.md` | Historial de recuperación Oracle/OpenClaw y gate de actualización | Diagnóstico fechado 2026-10-31; **no ejecutar migraciones, reinicios, habilitación MCP o SSH** sin autorización explícita y backup verificado |
-| [#628](../../../../pull/628) | `commercial-intelligence/README.md` | Hallazgos comerciales iniciales y diccionario KPI | Snapshot de 2026-11-01; no representa ingresos/cobros actuales |
-| [#628](../../../../pull/628) | `commercial-intelligence/commercial-kpi-readonly.sql` | Plantillas SQL agregadas | **No ejecutadas ni validadas en esta copia**; revisar esquema, RLS y privacidad; nunca publicar como API |
-| [#664](../../../../pull/664) | `../../../scripts/memed-homologation-artifact-check.mjs` | Inspección manual GET-only de evidencia Memed DEMO | Homologación exclusivamente; no certifica receta emitida, firma, PDF legal ni aptitud para producción |
+| [#617](https://github.com/ecucondorSA/Autamedica/pull/617) | `openclaw-mcp-relay-migration.md` | Historial de recuperación Oracle/OpenClaw y gate de actualización | Diagnóstico fechado 2026-10-31; **no ejecutar migraciones, reinicios, habilitación MCP o SSH** sin autorización explícita y backup verificado |
+| [#628](https://github.com/ecucondorSA/Autamedica/pull/628) | `commercial-intelligence/README.md` | Hallazgos comerciales iniciales y diccionario KPI | Snapshot de 2026-11-01; no representa ingresos/cobros actuales |
+| [#628](https://github.com/ecucondorSA/Autamedica/pull/628) | `commercial-intelligence/commercial-kpi-readonly.sql` | Plantillas SQL agregadas | **No ejecutadas ni validadas en esta copia**; revisar esquema, RLS y privacidad; nunca publicar como API |
+| [#664](https://github.com/ecucondorSA/Autamedica/pull/664) | `scripts/memed-homologation-artifact-check.mjs` | Inspección manual GET-only de evidencia Memed DEMO | Homologación exclusivamente; no certifica receta emitida, firma, PDF legal ni aptitud para producción |
 
 Los enlaces originales del archivo son permanentes en el historial GitHub. Este PR copia el contenido sin activar nuevos workflows.
 
