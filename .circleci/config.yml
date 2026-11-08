@@ -16,6 +16,9 @@ parameters:
   run_jordan_gate:
     type: boolean
     default: false
+  run_jordan_candidate:
+    type: boolean
+    default: false
 
 jobs:
   jordan_source_identity:
@@ -34,6 +37,23 @@ jobs:
       - run:
           name: Reject cross-branch, cross-commit or wrong-config Jordan builds
           command: bash scripts/ci/verify-jordan-main-source.sh
+
+  jordan_candidate_source_identity:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: small
+    environment:
+      JORDAN_CI_CHECKOUT_SHA: "<< pipeline.git.revision >>"
+      JORDAN_CI_CONFIG_SHA: "<< pipeline.config.sha >>"
+      JORDAN_CI_CHECKOUT_BRANCH: "<< pipeline.git.branch >>"
+      JORDAN_CI_CONFIG_REF: "<< pipeline.config.ref >>"
+      JORDAN_CI_CONFIG_REPO: "<< pipeline.config.repository.name >>"
+      JORDAN_CI_CHECKOUT_REPO: "<< pipeline.git.repo_owner >>/<< pipeline.git.repo_name >>"
+    steps:
+      - checkout
+      - run:
+          name: Non-main candidate branch source and configuration fingerprint
+          command: bash scripts/ci/verify-jordan-candidate-source.sh
 
   smoke:
     docker:
@@ -362,6 +382,27 @@ workflows:
           requires:
             - smoke
             - jordan_sql_contract
+      - android:
+          requires:
+            - web
+            - jordan_deno
+
+  # Explicit, non-production candidate smoke for #707/#728/#729 before merging.
+  # There is NO Jordan release pass here: DB replay and live PSP/device gates
+  # are deliberately NOT claimed by this workflow.
+  jordan_candidate_manual:
+    when: << pipeline.parameters.run_jordan_candidate >>
+    jobs:
+      - jordan_candidate_source_identity
+      - smoke:
+          requires:
+            - jordan_candidate_source_identity
+      - web:
+          requires:
+            - smoke
+      - jordan_deno:
+          requires:
+            - smoke
       - android:
           requires:
             - web
