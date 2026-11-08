@@ -139,6 +139,8 @@ private data class ProfileDto(
 private data class PatientProfileDto(
     val dni: String? = null,
     @SerialName("care_country") val careCountry: String? = null,
+    val address: String? = null,
+    @SerialName("renaper_confirmed_at") val renaperConfirmedAt: String? = null,
     @SerialName("birth_date") val birthDate: String? = null,
     val gender: String? = null,
     @SerialName("blood_type") val bloodType: String? = null,
@@ -149,6 +151,8 @@ private data class PatientProfileDto(
     fun toDomain() = PatientProfileSnapshot(
         dni = dni,
         careCountry = careCountry,
+        address = address,
+        renaperConfirmedAt = renaperConfirmedAt,
         birthDate = birthDate,
         gender = gender,
         bloodType = bloodType,
