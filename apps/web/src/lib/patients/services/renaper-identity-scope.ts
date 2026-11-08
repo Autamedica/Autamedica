@@ -48,3 +48,24 @@ export function returnedRenaperDocumentMatches(
   if (!officialDocument) return false;
   return normalizedRegisteredDni(officialDocument) === requestedDni;
 }
+
+/**
+ * The API must never put names, CUIL, birth date, photos or provider address
+ * into patients.insurance_info: the whole JSONB column is readable through
+ * authenticated patient RLS. Keep only the DNI previously declared in
+ * patients plus the existing per-account lookup counter.
+ */
+export function buildMinimalRenaperAudit(
+  insuranceInfo: Record<string, unknown>,
+  requestedDni: string,
+  previousLookupCount: number,
+): Record<string, unknown> {
+  // Purge previously injected raw official records when an account is
+  // consulted again; historical rows need an independently reviewed cleanup.
+  const { official_data: _discardSensitiveOfficialData, ...other } = insuranceInfo;
+  return {
+    ...other,
+    identity_lookup_count: previousLookupCount + 1,
+    official_data: { dni: requestedDni },
+  };
+}
