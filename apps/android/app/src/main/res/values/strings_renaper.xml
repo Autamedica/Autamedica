@@ -31,4 +31,7 @@
     <string name="renaper_address_edit">Domicilio actual (editable)</string>
     <string name="renaper_address_save">Guardar domicilio</string>
     <string name="renaper_address_saved">Domicilio actualizado.</string>
+    <string name="renaper_confirm_attestation">Confirmo que estos datos oficiales me corresponden y acepto bloquear nombre, DNI, CUIL, fecha de nacimiento y sexo. El domicilio seguirá editable. Esta acción no valida mi identidad biométricamente.</string>
+    <string name="renaper_confirm_action">Confirmar datos y bloquear</string>
+    <string name="renaper_confirm_failed">No se pudieron confirmar los datos. Ningún cambio de identidad fue acreditado.</string>
 </resources>
