@@ -210,7 +210,7 @@ export function usePatientProfilePage(
           setIdentityLookupSuccess(
             data.coverage?.name
               ? `Perfil actualizado. Cobertura: ${data.coverage.name}.`
-              : 'Perfil actualizado.',
+              : 'Consulta oficial completada; no prueba titularidad del DNI.',
           );
         } else {
         setForm((current) => ({
@@ -219,7 +219,7 @@ export function usePatientProfilePage(
           gender: data.form.gender || current.gender,
           }));
           setIdentityLookupSuccess(
-            'Verificación lista. Para completar el perfil y las recetas, activá tu primera consulta.'
+            'Consulta oficial registrada; no acredita que quien usa la cuenta sea titular del DNI.'
           );
         }
 
