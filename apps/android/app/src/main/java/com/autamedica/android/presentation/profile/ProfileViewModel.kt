@@ -6,6 +6,7 @@ import com.autamedica.android.domain.model.PatientProfileSnapshot
 import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.domain.model.RenaperIdentity
+import com.autamedica.android.domain.model.RenaperLookupPolicy
 import com.autamedica.android.domain.model.RenaperLookupException
 import com.autamedica.android.domain.model.RenaperSexId
 import com.autamedica.android.data.repository.RenaperIdentityClient
@@ -19,6 +20,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 import com.autamedica.android.presentation.common.UiErrorMapper
 import javax.inject.Inject
 
@@ -50,6 +53,7 @@ class ProfileViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
+    private var renaperLookupJob: Job? = null
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
     init {
@@ -144,21 +148,29 @@ class ProfileViewModel @Inject constructor(
     }
 
     /**
-     * Only an explicit patient action may start a RENAPER consultation. Android
-     * never persists the response or uses it to grant clinical access.
+     * The DNI and jurisdiction are read from the authenticated patient profile.
+     * A caller cannot replace the registered DNI with somebody else's number.
+     * This is defence-in-depth; the server MUST repeat the ownership check.
      */
-    fun lookupRenaper(dni: String, sex: RenaperSexId) {
-        if (_uiState.value.user?.role != UserRole.PATIENT || _uiState.value.renaperLoading) return
-        val digits = dni.trim()
-        if (!digits.matches(Regex("^[0-9]{6,12}$"))) {
+    fun lookupRenaper(sex: RenaperSexId) {
+        val state = _uiState.value
+        if (state.user?.role != UserRole.PATIENT || state.renaperLoading) return
+
+        val patient = state.patientSnapshot
+        val dni = RenaperLookupPolicy.registeredArgentineDni(patient)
+        if (dni == null || !RenaperLookupPolicy.sexMatchesPatient(patient, sex)) {
             _uiState.update { it.copy(renaperErrorStatus = 400, renaperResult = null) }
             return
         }
+
         _uiState.update {
             it.copy(renaperLoading = true, renaperErrorStatus = null, renaperResult = null)
         }
-        viewModelScope.launch {
-            renaperIdentityClient.lookup(digits, sex).fold(
+        renaperLookupJob?.cancel()
+        renaperLookupJob = viewModelScope.launch {
+            val result = renaperIdentityClient.lookup(dni, sex)
+            if (!isActive) return@launch
+            result.fold(
                 onSuccess = { identity ->
                     _uiState.update {
                         it.copy(renaperLoading = false, renaperResult = identity, renaperErrorStatus = null)
@@ -178,8 +190,10 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun clearRenaperResponse() {
+        renaperLookupJob?.cancel()
+        renaperLookupJob = null
         _uiState.update {
-            it.copy(renaperResult = null, renaperErrorStatus = null)
+            it.copy(renaperLoading = false, renaperResult = null, renaperErrorStatus = null)
         }
     }
 
