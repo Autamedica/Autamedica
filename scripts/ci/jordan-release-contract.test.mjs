@@ -85,6 +85,29 @@ test('optional verified-person migration has one complete atomic SQL definition'
   assert.match(sql, /trg_guard_jordan_verified_commission/)
   assert.match(sql, /jordan_verified_payment_and_subject_required/)
   assert.match(sql, /reversed_commission_is_terminal/)
+  // An UPDATE to 'eligible' must recheck identity and provider payment.
+  assert.match(sql, /TG_OP='INSERT' OR NEW\.status='eligible'/)
+  assert.match(sql, /pay\.status='approved'/)
+  assert.match(sql, /pay\.provider='mercadopago'/)
+  assert.match(sql, /pay\.amount_minor=7900/)
+  assert.match(sql, /pay\.provider_payment_id ~ '\^\[0-9\]\{1,20\}\
+  assert.doesNotMatch(sql, /COMMIT;\s*\);/)
+})
+
+test('optional session binding migration is service-only and RLS enabled', () => {
+  const path = 'supabase/migrations/20261108120000_sfu_room_session_bindings.sql'
+  assert.ok(existsSync(path), 'NO-GO: SFU session-room binding gate #729 has not reached this main commit')
+  const sql = source(path)
+  assert.equal(countOccurrences(sql, '\nBEGIN;'), 1)
+  assert.equal(countOccurrences(sql, '\nCOMMIT;'), 1)
+  assert.match(sql, /sfu_room_session_bindings ENABLE ROW LEVEL SECURITY/)
+  assert.match(sql, /REVOKE ALL ON public\.sfu_room_session_bindings FROM PUBLIC,anon,authenticated/)
+  assert.match(sql, /GRANT SELECT,INSERT ON public\.sfu_room_session_bindings TO service_role/)
+})
+/)
+  const smoke = source('supabase/tests/jordan_first_contact_commission_isolated.sql')
+  assert.match(smoke, /Wrong R\$81 amount incorrectly awarded Jordan commission/)
+  assert.match(smoke, /Forged provider ID incorrectly awarded commission/)
   assert.match(sql, /CHECK \(verified_subject_hash IS NULL/)
   assert.doesNotMatch(sql, /COMMIT;\s*\);/)
 })
