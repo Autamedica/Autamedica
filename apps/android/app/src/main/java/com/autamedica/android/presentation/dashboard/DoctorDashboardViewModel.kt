@@ -51,6 +51,7 @@ data class DoctorDashboardUiState(
     val pharmacyOnDutyState: DoctorOnDutyPharmacyState = DoctorOnDutyPharmacyState(),
     val guardApproved: Boolean? = null,
     val guardVerificationStatus: String? = null,
+    val guardCareCountry: String? = null,
     // A failed RPC must never be presented as an actual rejected/pending approval.
     val approvalCheckFailed: Boolean = false,
     val claimingPharmacyRequestId: String? = null,
@@ -127,6 +128,7 @@ class DoctorDashboardViewModel @Inject constructor(
                 pharmacyOnDutyState = DoctorOnDutyPharmacyState(),
                 guardApproved = null,
                 guardVerificationStatus = null,
+                guardCareCountry = null,
                 approvalCheckFailed = false,
                 simulatedDispatchAlert = null,
                 activelyDispatchedPatientId = null,
@@ -185,6 +187,7 @@ class DoctorDashboardViewModel @Inject constructor(
                     it.copy(
                         guardApproved = approval.approved,
                         guardVerificationStatus = approval.verificationStatus,
+                        guardCareCountry = approval.country,
                         approvalCheckFailed = false,
                     )
                 }
@@ -402,6 +405,7 @@ class DoctorDashboardViewModel @Inject constructor(
                         state.copy(
                             guardApproved = if (approval == null) null else false,
                             guardVerificationStatus = approval?.verificationStatus,
+                            guardCareCountry = approval?.country,
                             approvalCheckFailed = approval == null,
                             pharmacyOnDutyState = state.pharmacyOnDutyState.copy(isOnDuty = false, isLoading = false),
                             error = if (approval == null)
@@ -412,7 +416,7 @@ class DoctorDashboardViewModel @Inject constructor(
                     }
                     return@launch
                 }
-                _uiState.update { it.copy(guardApproved = true, guardVerificationStatus = approval.verificationStatus, approvalCheckFailed = false) }
+                _uiState.update { it.copy(guardApproved = true, guardVerificationStatus = approval.verificationStatus, guardCareCountry = approval.country, approvalCheckFailed = false) }
             }
             pharmacyDispatchRepository.setDoctorDutyStatus(
                 doctorId = doctorId,
