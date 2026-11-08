@@ -14,11 +14,12 @@ DECLARE
   v_partner uuid;
   v_country text;
   v_partner_code text;
+  v_partner_active boolean;
   v_phone text;
 BEGIN
   IF NEW.status = 'approved' THEN
-    SELECT d.referral_partner_id,d.care_country,d.patient_phone,p.code
-      INTO v_partner,v_country,v_phone,v_partner_code
+    SELECT d.referral_partner_id,d.care_country,d.patient_phone,p.code,p.active
+      INTO v_partner,v_country,v_phone,v_partner_code,v_partner_active
     FROM public.pharmacy_dispatch_requests d
     LEFT JOIN public.commercial_referral_partners p
       ON p.id=d.referral_partner_id
@@ -29,6 +30,9 @@ BEGIN
     END IF;
 
     IF v_partner_code = 'JORDAN' THEN
+      IF v_partner_active IS DISTINCT FROM TRUE THEN
+        RETURN NEW;
+      END IF;
       -- Only a reconciled payment is capable of opening an eligibility.
       IF NEW.provider IS DISTINCT FROM 'mercadopago'
          OR NEW.amount_minor IS DISTINCT FROM 7900
