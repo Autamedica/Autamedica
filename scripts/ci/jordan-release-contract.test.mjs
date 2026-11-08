@@ -11,6 +11,7 @@ const brazilOnly = source('supabase/migrations/20261105001545_guard_jordan_br_on
 const api = source('apps/web/src/pages/api/pharmacy/dispatch/request.ts')
 const checkout = source('apps/web/src/pages/api/pharmacy/dispatch/payment/create.ts')
 const media = source('apps/web/src/lib/pharmacy/payments/jordan-media-access.ts')
+const pricing = source('apps/web/src/lib/pharmacy/payments/referral-finance.ts')
 const cf = source('packages/telemedicine/src/server/cloudflare-calls-handler.ts')
 const wrangler = source('apps/web/wrangler.toml')
 
@@ -36,7 +37,8 @@ test('Jordan is blocked outside BR at both dispatch intake and database', () => 
 test('checkout and video gates require server-side verification', () => {
   assert.match(checkout, /ENABLE_JORDAN_PAYMENTS/)
   assert.match(media, /approved/)
-  assert.match(media, /7900/)
+  assert.match(media, /GENERAL_PHARMACY_BR_PRICE_CENTS/)
+  assert.match(pricing, /GENERAL_PHARMACY_BR_PRICE_CENTS\s*=\s*79_?00/)
   assert.match(media, /mercadopago/)
   assert.match(cf, /ALLOWED_CF_PATH/)
   assert.doesNotMatch(wrangler, /^ENABLE_JORDAN_PAYMENTS\s*=\s*["']true["']/m)
