@@ -4,7 +4,7 @@ import { isOfficialPhotoAvailable, maskOfficialAddress } from './renaper-display
 describe('Argentina RENAPER protected address/photo preview', () => {
   it('shows only three letters per comma-separated address part and never digits', () => {
     const masked = maskOfficialAddress('Calle Ficticia 123, Rosario, Santa Fe');
-    expect(masked).toBe('Cal** ******** *' + '**' + ', Ros****, San** Fe');
+    expect(masked).toBe('Cal** ******** ***, Ros****, San** **');
     expect(masked).not.toContain('123');
     expect(masked).not.toContain('Ficticia');
     expect(masked).not.toContain('Rosario');
