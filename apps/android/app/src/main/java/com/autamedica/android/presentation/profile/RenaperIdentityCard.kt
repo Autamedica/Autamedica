@@ -47,12 +47,16 @@ fun RenaperIdentityCard(
     loading: Boolean,
     identity: RenaperIdentity?,
     errorStatus: Int?,
+    confirming: Boolean,
+    confirmErrorStatus: Int?,
     onLookup: (RenaperSexId) -> Unit,
+    onConfirm: (RenaperSexId) -> Unit,
     onClear: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var sex by remember { mutableStateOf<RenaperSexId?>(null) }
     var consent by remember { mutableStateOf(false) }
+    var attestation by remember { mutableStateOf(false) }
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -188,6 +192,37 @@ fun RenaperIdentityCard(
                 )
                 if (identity.checkedAt.isNotBlank()) {
                     Text(stringResource(R.string.renaper_checked_at, identity.checkedAt), style = MaterialTheme.typography.bodySmall)
+                }
+                if (identity.hasPaid) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = attestation,
+                            onCheckedChange = { attestation = it },
+                            enabled = !confirming,
+                        )
+                        Text(
+                            stringResource(R.string.renaper_confirm_attestation),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    Button(
+                        onClick = {
+                            val selectedSex = sex ?: return@Button
+                            onConfirm(selectedSex)
+                        },
+                        enabled = attestation && !confirming &&
+                            (sex?.let { RenaperLookupPolicy.canQuery(patient, it) } == true),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        if (confirming) CircularProgressIndicator(strokeWidth = 2.dp)
+                        else Text(stringResource(R.string.renaper_confirm_action))
+                    }
+                }
+                if (confirmErrorStatus != null) {
+                    Text(
+                        stringResource(R.string.renaper_confirm_failed),
+                        color = MaterialTheme.colorScheme.error,
+                    )
                 }
             }
         }
