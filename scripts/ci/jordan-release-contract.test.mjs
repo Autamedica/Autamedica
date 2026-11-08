@@ -1,6 +1,6 @@
 // Non-clinical, offline source-contract checks for the gated Jordan candidate.
 // Static contracts are not DB migration replay, PSP verification or on-device QA.
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
@@ -62,4 +62,46 @@ test('synthetic SQL smoke fixtures cannot execute without explicit isolated flag
     assert.match(sql, /autamedica\.isolated_test/)
     assert.match(sql, /ROLLBACK;/)
   }
+})
+
+
+function countOccurrences(text, fragment) {
+  return text.split(fragment).length - 1
+}
+
+test('optional verified-person migration has one complete atomic SQL definition', () => {
+  const path = 'supabase/migrations/20261108110000_jordan_verified_subject_commissions.sql'
+  if (!existsSync(path)) {
+    console.log('Gate 5 migration absent from this SHA; not approved for payout')
+    return
+  }
+  const sql = source(path)
+  assert.equal(countOccurrences(sql, '\\nBEGIN;'), 1)
+  assert.equal(countOccurrences(sql, '\\nCOMMIT;'), 1)
+  for (const name of [
+    'CREATE OR REPLACE FUNCTION app_private.try_credit_verified_jordan(',
+    'CREATE OR REPLACE FUNCTION app_private.guard_jordan_verified_commission()',
+    'CREATE OR REPLACE FUNCTION public.sync_pharmacy_referral_commission()',
+  ]) {
+    assert.equal(countOccurrences(sql, name), 1, `SQL duplicate: ${name}`)
+  }
+  assert.match(sql, /trg_guard_jordan_verified_commission/)
+  assert.match(sql, /jordan_verified_payment_and_subject_required/)
+  assert.match(sql, /reversed_commission_is_terminal/)
+  assert.match(sql, /CHECK \(verified_subject_hash IS NULL/)
+  assert.doesNotMatch(sql, /COMMIT;\s*\);/)
+})
+
+test('optional session binding migration is service-only and RLS enabled', () => {
+  const path = 'supabase/migrations/20261108120000_sfu_room_session_bindings.sql'
+  if (!existsSync(path)) {
+    console.log('Gate 7 binding migration absent from this SHA; no Jordan video GO')
+    return
+  }
+  const sql = source(path)
+  assert.equal(countOccurrences(sql, '\\nBEGIN;'), 1)
+  assert.equal(countOccurrences(sql, '\\nCOMMIT;'), 1)
+  assert.match(sql, /sfu_room_session_bindings ENABLE ROW LEVEL SECURITY/)
+  assert.match(sql, /REVOKE ALL ON public\.sfu_room_session_bindings FROM PUBLIC,anon,authenticated/)
+  assert.match(sql, /GRANT SELECT,INSERT ON public\.sfu_room_session_bindings TO service_role/)
 })
