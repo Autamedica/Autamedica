@@ -341,6 +341,54 @@ class DoctorDashboardViewModelTest {
     }
 
     @Test
+    fun `refresh removes accepted room and prevents video retry after approval loss`() = runTest(testDispatcher) {
+        val vm = DoctorDashboardViewModel(
+            doctorRepository = doctorRepo, appointmentRepository = appointmentRepo,
+            authRepository = authRepo, telemedicineRepository = telemedicineRepo,
+            chatRepository = chatRepo, pharmacyDispatchRepository = dispatchRepo,
+            connectivityObserver = connectivityObserver, ioDispatcher = testDispatcher,
+        )
+        testScheduler.runCurrent()
+        val offer = PharmacyDispatchRequest(
+            id = "req-approval-revoked",
+            offerId = "offer-approval-revoked",
+            offerExpiresAt = java.time.OffsetDateTime.now().plusSeconds(30).toString(),
+            careCountry = "AR",
+            patientDni = "30111222",
+            patientPhone = "+5491199887766",
+            patientName = "Paciente de prueba",
+            tierRequested = "general",
+            symptomSummary = "Consulta general",
+            status = "searching",
+            cloudflareRoomId = "cf-room-approval-revoked",
+            createdAt = java.time.OffsetDateTime.now().toString(),
+        )
+        dispatchRepo.searchingRequestsFlow.value = listOf(offer)
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.simulatedDispatchAlert).isNotNull()
+        var navigationCount = 0
+        vm.claimPharmacyRequest(offer.id) { navigationCount++ }
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.acceptedDispatchRequestId).isEqualTo(offer.id)
+        assertThat(vm.uiState.value.acceptedDispatchRoomId).isNotNull()
+        assertThat(navigationCount).isEqualTo(1)
+
+        dispatchRepo.approvalResult = Result.failure(IOException("Authorization server unavailable"))
+        vm.refresh()
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.guardApproved).isNull()
+        assertThat(vm.uiState.value.acceptedDispatchRequestId).isNull()
+        assertThat(vm.uiState.value.acceptedDispatchRoomId).isNull()
+        assertThat(vm.uiState.value.claimingPharmacyRequestId).isNull()
+        assertThat(vm.uiState.value.dismissedRequestIds).isEmpty()
+
+        vm.retryAcceptedVideo { navigationCount++ }
+        testScheduler.runCurrent()
+        assertThat(navigationCount).isEqualTo(1)
+        vm.viewModelScope.cancel()
+    }
+
+    @Test
     fun `when on duty heartbeat sends periodically every 30s`() = runTest(testDispatcher) {
         val viewModel = DoctorDashboardViewModel(
             doctorRepository = doctorRepo,
