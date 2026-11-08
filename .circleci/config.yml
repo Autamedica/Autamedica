@@ -419,7 +419,7 @@ workflows:
       - web
 
   android_manual:
-    when: << pipeline.parameters.run_android >>
+    when: pipeline.parameters.run_android or pipeline.git.branch == "ci/android-734-verify-20261108"
     jobs:
       - android
 
