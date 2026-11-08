@@ -31,6 +31,9 @@ data class ProfileUiState(
     val renaperLoading: Boolean = false,
     val renaperResult: RenaperIdentity? = null,
     val renaperErrorStatus: Int? = null,
+    val editableAddress: String = "",
+    val isAddressSaving: Boolean = false,
+    val addressSaveSuccess: Boolean = false,
     val isLoading: Boolean = true,
     val error: String? = null,
     val isSaving: Boolean = false,
@@ -61,10 +64,12 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun onFirstNameChange(value: String) {
+        if (_uiState.value.patientSnapshot?.renaperConfirmedAt != null) return
         _uiState.update { it.copy(firstName = value, saveSuccess = false, error = null) }
     }
 
     fun onLastNameChange(value: String) {
+        if (_uiState.value.patientSnapshot?.renaperConfirmedAt != null) return
         _uiState.update { it.copy(lastName = value, saveSuccess = false, error = null) }
     }
 
@@ -75,6 +80,9 @@ class ProfileViewModel @Inject constructor(
     fun saveProfile() {
         val state = _uiState.value
         if (state.firstName.isBlank()) return
+        if (state.patientSnapshot?.renaperConfirmedAt != null &&
+            (state.firstName.trim() != state.user?.firstName ||
+                state.lastName.trim() != state.user?.lastName)) return
 
         _uiState.update { it.copy(isSaving = true, error = null) }
 
@@ -126,6 +134,7 @@ class ProfileViewModel @Inject constructor(
                         it.copy(
                             user = user,
                             patientSnapshot = patientSnapshot,
+                            editableAddress = patientSnapshot?.address.orEmpty(),
                             firstName = user.firstName,
                             lastName = user.lastName,
                             phone = user.phone.orEmpty(),
@@ -194,6 +203,46 @@ class ProfileViewModel @Inject constructor(
         renaperLookupJob = null
         _uiState.update {
             it.copy(renaperLoading = false, renaperResult = null, renaperErrorStatus = null)
+        }
+    }
+
+    fun onAddressChange(value: String) {
+        val patient = _uiState.value.patientSnapshot
+        if (patient?.careCountry != "AR" || patient.renaperConfirmedAt == null) return
+        _uiState.update {
+            it.copy(editableAddress = value.take(240), addressSaveSuccess = false, error = null)
+        }
+    }
+
+    fun saveAddress() {
+        val state = _uiState.value
+        val patient = state.patientSnapshot
+        val address = state.editableAddress.trim()
+        if (patient?.careCountry != "AR" || patient.renaperConfirmedAt == null ||
+            state.isAddressSaving || address.isBlank() || address.length > 240) return
+        _uiState.update { it.copy(isAddressSaving = true, addressSaveSuccess = false, error = null) }
+        viewModelScope.launch {
+            profileRepository.updatePatientAddress(address).fold(
+                onSuccess = { updated ->
+                    _uiState.update {
+                        it.copy(
+                            patientSnapshot = updated,
+                            editableAddress = updated?.address.orEmpty(),
+                            isAddressSaving = false,
+                            addressSaveSuccess = true,
+                        )
+                    }
+                },
+                onFailure = { failure ->
+                    _uiState.update {
+                        it.copy(
+                            isAddressSaving = false,
+                            addressSaveSuccess = false,
+                            error = UiErrorMapper.map(failure, "No se pudo actualizar el domicilio"),
+                        )
+                    }
+                },
+            )
         }
     }
 
