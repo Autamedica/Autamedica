@@ -345,7 +345,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isSubmitting = false,
-                        error = "No pudimos crear la solicitud. Verificá tu conexión e intentá nuevamente."
+                        error = classifyIntakeCreationFailure(err),
                     )
                 }
             }
@@ -518,5 +518,34 @@ class PharmacyIntakeViewModel @Inject constructor(
         super.onCleared()
         statusPollingJob?.cancel()
         observeActiveDoctorsJob?.cancel()
+    }
+}
+
+/**
+ * Only public, allowlisted failure categories reach the UI. Never show
+ * PostgREST exception details: they can include patient documents or symptoms.
+ */
+internal fun classifyIntakeCreationFailure(error: Throwable): String {
+    val message = error.message.orEmpty().lowercase(java.util.Locale.ROOT)
+    return when {
+        "care_country_or_patient_profile_required" in message ->
+            "Necesitás completar tu perfil de paciente para solicitar una consulta."
+        "care_country_dispatch_mismatch" in message ||
+            "care_country_required_or_mismatched" in message ->
+            "El país de la consulta no coincide con tu perfil de paciente."
+        "invalid_mobile_session" in message || "dispatch_request_identity_denied" in message ||
+            "http 401" in message || "jwt expired" in message ->
+            "No pudimos validar tu sesión. Iniciá sesión nuevamente."
+        "permission denied" in message || "http 403" in message ||
+            "42501" in message ->
+            "No se pudo autorizar la solicitud. Revisá tus datos de paciente."
+        "http 503" in message || "dispatch_service_unavailable" in message ->
+            "El servicio de consultas no está disponible temporalmente. Intentá más tarde."
+        "unable to resolve host" in message || "unknownhost" in message ||
+            "socket" in message || "timeout" in message ||
+            "connection" in message || "network" in message ->
+            "No pudimos crear la solicitud. Verificá tu conexión e intentá nuevamente."
+        else ->
+            "No pudimos registrar tu consulta. Intentá nuevamente o contactá soporte."
     }
 }
