@@ -19,6 +19,7 @@ DECLARE
   v_payment uuid := gen_random_uuid();
   v_first_digest text := repeat('a',64); -- synthetic HMAC-like test only
   v_other_digest text := repeat('b',64);
+  v_err text;
 BEGIN
   SELECT id INTO STRICT v_partner FROM public.commercial_referral_partners
   WHERE code='JORDAN' AND active;
@@ -47,6 +48,20 @@ BEGIN
              WHERE dispatch_request_id=v_first) THEN
     RAISE EXCEPTION 'Unverified Jordan guest was awarded commission';
   END IF;
+
+  -- A privileged direct SQL insert must NOT bypass the verified identity gate.
+  BEGIN
+    INSERT INTO public.commercial_referral_commissions
+      (dispatch_request_id,dispatch_payment_id,referral_partner_id,
+       amount_minor,currency,status)
+    VALUES(v_first,v_payment,v_partner,1000,'BRL','eligible');
+    RAISE EXCEPTION 'unverified_direct_ledger_write_was_accepted';
+  EXCEPTION WHEN SQLSTATE '23514' THEN
+    GET STACKED DIAGNOSTICS v_err=MESSAGE_TEXT;
+    IF v_err<>'jordan_verified_payment_and_subject_required' THEN
+      RAISE EXCEPTION 'unexpected direct ledger rejection: %',v_err;
+    END IF;
+  END;
 
   -- KYC proof arriving AFTER payment must reconcile exactly once.
   INSERT INTO public.commercial_referral_identity_proofs
@@ -94,6 +109,19 @@ BEGIN
       WHERE dispatch_request_id=v_first)<>'reversed' THEN
     RAISE EXCEPTION 'Refund did not reverse Jordan commission';
   END IF;
+
+  -- Reversed is a terminal state: no admin webhook may reopen payout status.
+  BEGIN
+    UPDATE public.commercial_referral_commissions
+    SET status='eligible',reversed_at=NULL
+    WHERE dispatch_request_id=v_first;
+    RAISE EXCEPTION 'reversed_commission_was_reopened';
+  EXCEPTION WHEN SQLSTATE '42501' THEN
+    GET STACKED DIAGNOSTICS v_err=MESSAGE_TEXT;
+    IF v_err<>'reversed_commission_is_terminal' THEN
+      RAISE EXCEPTION 'unexpected reversal guard: %',v_err;
+    END IF;
+  END;
 
   INSERT INTO public.commercial_referral_identity_proofs
     (dispatch_request_id,referral_partner_id,subject_digest,
