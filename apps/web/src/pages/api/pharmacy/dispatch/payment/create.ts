@@ -4,7 +4,7 @@ import { badRequest, internalError, jsonOk, serviceUnavailable, unauthorized } f
 import { createAstroAdminClient } from '@/lib/supabase'
 import { getRuntimeEnvValue } from '@/lib/runtime-env'
 import { authorizePharmacyPaymentRequest, hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payment-access'
-import { GENERAL_PHARMACY_BR_PRICE_CENTS } from '@/lib/pharmacy/payments/referral-finance'
+import { GENERAL_PHARMACY_BR_PRICE_CENTS, JORDAN_DOCTOR_FEE_CENTS } from '@/lib/pharmacy/payments/referral-finance'
 import { logger } from '@autamedica/shared'
 
 interface CheckoutPreference {
@@ -47,6 +47,32 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const partner = source?.commercial_referral_partners as { code?: string; active?: boolean } | null
     if (partner?.code !== 'JORDAN' || partner.active !== true) {
       return badRequest('jordan_qr_required_for_this_checkout')
+    }
+
+    // Never charge when the doctor's accepted offer still uses the ordinary
+    // R$50 or legacy pricing. Jordan BR must be R$79 patient / R$40 doctor.
+    const { data: quote, error: quoteError } = await admin
+      .from('pharmacy_dispatch_requests')
+      .select('assigned_doctor_id,doctor_fee_brl,price_brl')
+      .eq('id', dispatch.id)
+      .maybeSingle()
+    if (quoteError) throw quoteError
+    if (!quote?.assigned_doctor_id ||
+        Number(quote.doctor_fee_brl) !== JORDAN_DOCTOR_FEE_CENTS / 100 ||
+        Number(quote.price_brl) !== GENERAL_PHARMACY_BR_PRICE_CENTS / 100) {
+      return serviceUnavailable('jordan_medical_quote_not_verified')
+    }
+
+    const { data: offer, error: offerError } = await admin
+      .from('dispatch_offers')
+      .select('price_brl,status')
+      .eq('dispatch_request_id', dispatch.id)
+      .eq('doctor_id', quote.assigned_doctor_id)
+      .maybeSingle()
+    if (offerError) throw offerError
+    if (!offer || offer.status !== 'accepted' ||
+        Number(offer.price_brl) !== JORDAN_DOCTOR_FEE_CENTS / 100) {
+      return serviceUnavailable('jordan_doctor_offer_not_accepted_at_40')
     }
 
     const amountCents = GENERAL_PHARMACY_BR_PRICE_CENTS
