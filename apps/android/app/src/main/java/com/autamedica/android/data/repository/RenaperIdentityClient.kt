@@ -107,13 +107,20 @@ internal fun parseRenaperResponse(raw: String, json: Json = Json): RenaperIdenti
     fun field(name: String): String =
         form[name]?.jsonPrimitive?.contentOrNull.orEmpty().take(180)
 
+    // Defensive masking: even a faulty backend response must not display
+    // complete personal names or coverage when hasPaid=false.
+    fun maskIfUnpaid(value: String): String {
+        if (hasPaid || value.isBlank() || '*' in value) return value
+        return value.take(1) + "*".repeat((value.length - 1).coerceAtMost(40))
+    }
+
     return RenaperIdentity(
         checkedAt = data["checkedAt"]?.jsonPrimitive?.contentOrNull.orEmpty().take(64),
         hasPaid = hasPaid,
-        firstName = field("firstName"),
-        lastName = field("lastName"),
-        birthDate = field("birthDate"),
+        firstName = maskIfUnpaid(field("firstName")),
+        lastName = maskIfUnpaid(field("lastName")),
+        birthDate = maskIfUnpaid(field("birthDate")),
         gender = field("gender"),
-        coverageName = coverage?.get("name")?.jsonPrimitive?.contentOrNull?.take(180),
+        coverageName = coverage?.get("name")?.jsonPrimitive?.contentOrNull?.take(180)?.let(::maskIfUnpaid),
     )
 }
