@@ -70,6 +70,22 @@ class ClinicalDocumentAvailabilityTest {
     }
 
     @Test
+    fun activeButUnsignedPrescriptionNeverExposesQrOrPdf() {
+        for (status in listOf("active", "activa", "sent")) {
+            val record = draftPrescription.copy(
+                status = status,
+                signedPdfUrl = "https://example.invalid/unverified.pdf",
+                qrCodeContent = "https://example.invalid/verify/AR-TEST-123",
+            )
+            assertThat(record.isActive).isFalse()
+            assertThat(record.effectivePdfUrl).isNull()
+            assertThat(record.effectiveQrContent).isEmpty()
+        }
+        val signed = draftPrescription.copy(status = "firmada", signedPdfUrl = "https://example.invalid/signed.pdf")
+        assertThat(signed.isActive).isTrue()
+    }
+
+    @Test
     fun unsignedCertificateNeverExposesQrOrPdf() {
         val signedWithoutPdf = draftCertificate.copy(
             status = "signed",
