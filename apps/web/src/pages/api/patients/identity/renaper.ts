@@ -233,9 +233,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
   } catch (error) {
     const code = error instanceof Error ? (error as Error & { code?: string }).code : null;
-    if (code === 'BUS_NON_FHIR_CREDENTIALS_MISSING') {
-      logger.error('[patients/identity/renaper] missing credentials', error);
-      return serviceUnavailable('La consulta oficial todavía no está configurada.');
+    if (
+      code === 'BUS_NON_FHIR_CREDENTIALS_MISSING' ||
+      code === 'BUS_NON_FHIR_SUPABASE_CREDENTIALS_MISSING' ||
+      code === 'RENAPER_PROXY_UNAVAILABLE'
+    ) {
+      // Do not log the upstream request: it carries DNI and privileged headers.
+      logger.error('[patients/identity/renaper] server integration unavailable');
+      return serviceUnavailable('La consulta oficial no está disponible en este momento.');
     }
     if (code === 'RENAPER_PERSON_NOT_FOUND') {
       return badRequest('No encontramos datos oficiales para ese DNI y sexo registral.');
