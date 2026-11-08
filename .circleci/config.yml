@@ -1,0 +1,303 @@
+# AutaMedica — CircleCI Free. No automatic production publishing.
+# Smoke/web/Android test workflows remain manual and use placeholder secrets.
+# A separate GitHub release-tag workflow creates an INTERNAL-TRACK DRAFT only.
+version: 2.1
+
+parameters:
+  run_smoke:
+    type: boolean
+    default: false
+  run_web:
+    type: boolean
+    default: false
+  run_android:
+    type: boolean
+    default: false
+
+jobs:
+  smoke:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Offline clinical privacy and Memed configuration guards
+          command: |
+            node --version
+            node --test scripts/security/service-worker-privacy.test.mjs
+            node --test scripts/ops/sync-memed-secrets.test.mjs
+            node --test .circleci/scripts/android-release-policy.test.mjs
+
+  web:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: medium
+    environment:
+      CI: "true"
+      HUSKY: "0"
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+    steps:
+      - checkout
+      - run:
+          name: Install locked workspace dependencies
+          command: |
+            corepack enable
+            corepack prepare pnpm@9.15.2 --activate
+            pnpm install --frozen-lockfile
+          no_output_timeout: 15m
+      - run:
+          name: Build workspace dependencies required by Vitest
+          command: |
+            # Workspace packages export dist/ files, which a fresh pnpm install does not generate.
+            # Build only the transitive dependencies of the web package, not the Astro web app itself.
+            pnpm --filter '@autamedica/web^...' run build
+          no_output_timeout: 15m
+      - run:
+          name: Verify clinical dispatch and optional signed-QR regression
+          command: |
+            pnpm --filter @autamedica/web exec vitest run 'src/pages/api/pharmacy/dispatch/request.test.ts'
+            if [ -f 'apps/web/src/pages/api/verify/[cuir].test.ts' ]; then
+              pnpm --filter @autamedica/web exec vitest run 'src/pages/api/verify/[cuir].test.ts'
+            else
+              echo 'VERIFY TEST NOT PRESENT ON THIS BRANCH: QR signature verification NOT validated by this job.'
+            fi
+          no_output_timeout: 10m
+
+  android:
+    docker:
+      - image: cimg/android:2026.10
+    resource_class: medium
+    environment:
+      CI: "true"
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8"
+      JAVA_HOME: "/usr/lib/jvm/java-17-openjdk-amd64"
+    steps:
+      - checkout
+      - run:
+          name: Check JDK and Android toolchain (no production secrets)
+          command: |
+            test -x "$JAVA_HOME/bin/java"
+            "$JAVA_HOME/bin/java" -version
+            test -f apps/android/gradlew
+            printf '%s\n' 'SUPABASE_URL=https://placeholder.supabase.co' 'SUPABASE_ANON_KEY=placeholder-key' 'SIGNALING_URL=wss://placeholder.autamedica.invalid/signaling' 'GOOGLE_WEB_CLIENT_ID=placeholder-client-id' > apps/android/local.properties
+            if [ ! -f apps/android/app/google-services.json ]; then
+              printf '%s\n' '{"project_info":{"project_number":"653971537811","project_id":"autamedica-e54fa","storage_bucket":"autamedica-e54fa.firebasestorage.app"},"client":[{"client_info":{"mobilesdk_app_id":"1:653971537811:android:dummy","android_client_info":{"package_name":"com.autamedica.android"}},"oauth_client":[],"api_key":[{"current_key":"dummy"}],"services":{}}],"configuration_version":"1"}' > apps/android/app/google-services.json
+            fi
+      - run:
+          name: Compile Android debug Kotlin (synthetic CI)
+          command: |
+            cd apps/android
+            chmod +x ./gradlew
+            # Isolate the Kotlin compiler failure before running tests or R8/bundling.
+            # Repository Kotlin heap defaults to 3072m; override for Docker medium (4 GB).
+            ./gradlew :app:compileDebugKotlin -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+          no_output_timeout: 25m
+      - run:
+          name: JVM tests and Android test source compilation (synthetic CI)
+          command: |
+            cd apps/android
+            ./gradlew testDebugUnitTest compileDebugAndroidTestSources -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+          no_output_timeout: 25m
+      - run:
+          name: Unsigned release bundle (synthetic CI; no Crashlytics upload)
+          command: |
+            cd apps/android
+            # Synthetic placeholders: skip external mapping upload ONLY on manual CI.
+            # Signed tag builds below keep the Crashlytics mapping upload enabled.
+            ./gradlew bundleRelease -x :app:uploadCrashlyticsMappingFileRelease -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+            test -n "$(find app/build/outputs/bundle/release -maxdepth 1 -type f -name '*.aab' -size +0c -print -quit)"
+            echo 'UNSIGNED RELEASE BUNDLE COMPILED — NOT FOR PLAY UPLOAD'
+          no_output_timeout: 25m
+      - run:
+          name: Android failure diagnostics (cgroup memory only; no secrets)
+          when: on_fail
+          command: |
+            echo 'Android build failed. Consult the Gradle error above.'
+            for path in /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.peak /sys/fs/cgroup/memory.max; do
+              if [ -r "$path" ]; then
+                printf '%s\n' "$path"
+                cat "$path"
+              fi
+            done
+
+  # Tag-triggered release only. Secrets are injected from restricted CircleCI contexts.
+  # This workflow NEVER touches production Play track or auto-publishes to users.
+  android_release_bundle:
+    docker:
+      - image: cimg/android:2026.10
+    resource_class: medium
+    working_directory: ~/project
+    environment:
+      CI: "true"
+      JAVA_HOME: "/usr/lib/jvm/java-17-openjdk-amd64"
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8"
+      CIRCLE_RELEASE_TAG: << pipeline.git.tag >>
+      CIRCLE_RELEASE_SHA: << pipeline.git.revision >>
+      CIRCLE_RELEASE_TRIGGER: << pipeline.trigger.type >>
+      CIRCLE_RELEASE_EVENT: << pipeline.event.name >>
+      CIRCLE_RELEASE_CONFIG_REF: << pipeline.config.ref >>
+      CIRCLE_RELEASE_CONFIG_SHA: << pipeline.config.sha >>
+      CIRCLE_RELEASE_CONFIG_REPO: << pipeline.config.repository.name >>
+      CIRCLE_RELEASE_OWNER: << pipeline.git.repo_owner >>
+      CIRCLE_RELEASE_REPO: << pipeline.git.repo_name >>
+    steps:
+      - checkout
+      - run:
+          name: Validate release tag, version and mainline ancestry
+          command: |
+            set -euo pipefail
+            tag="${CIRCLE_RELEASE_TAG:-}"
+            test "${CIRCLE_RELEASE_TRIGGER:-}" = "github_app"
+            test "${CIRCLE_RELEASE_EVENT:-}" = "push"
+            test "${CIRCLE_RELEASE_OWNER:-}" = "ecucondorSA"
+            test "${CIRCLE_RELEASE_REPO:-}" = "Autamedica"
+            test "${CIRCLE_RELEASE_CONFIG_REF:-}" = "refs/tags/$tag"
+            test "${CIRCLE_RELEASE_CONFIG_REPO:-}" = "ecucondorSA/Autamedica"
+            test -n "${CIRCLE_RELEASE_SHA:-}"
+            test "${CIRCLE_RELEASE_CONFIG_SHA:-}" = "$CIRCLE_RELEASE_SHA"
+            test "$(git rev-parse HEAD)" = "$CIRCLE_RELEASE_SHA"
+            echo "$tag" | grep -Eq '^android-v[0-9]+\.[0-9]+\.[0-9]+(-rc[1-9][0-9]*)?$'
+            version="$(sed -nE 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' apps/android/app/build.gradle.kts | head -1)"
+            test -n "$version"
+            tag_version="${tag#android-v}"
+            tag_version="${tag_version%%-rc*}"
+            test "$tag_version" = "$version"
+            git fetch origin main
+            git merge-base --is-ancestor "$CIRCLE_RELEASE_SHA" FETCH_HEAD || {
+              echo 'Release tag must reference a commit already on main'; exit 1;
+            }
+            echo "Validated release tag: $tag"
+      - run:
+          name: Prepare real signing and Firebase inputs (restricted context)
+          command: |
+            set -euo pipefail
+            python3 .circleci/scripts/prepare_android_release.py
+      - run:
+          name: Compile Android Kotlin for signed release
+          command: |
+            set -euo pipefail
+            cd apps/android
+            chmod +x ./gradlew
+            # Kotlin compiler uses same bounded memory verified in synthetic Android CI.
+            ./gradlew :app:compileDebugKotlin -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+          no_output_timeout: 25m
+      - run:
+          name: Validate Android JVM tests and AndroidTest sources for signed release
+          command: |
+            set -euo pipefail
+            cd apps/android
+            ./gradlew testDebugUnitTest compileDebugAndroidTestSources -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+          no_output_timeout: 25m
+      - run:
+          name: Build and verify SIGNED release AAB (Crashlytics enabled)
+          command: |
+            set -euo pipefail
+            cd apps/android
+            # No Crashlytics task exclusions on real signed releases.
+            ./gradlew bundleRelease -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+            aab="$(find app/build/outputs/bundle/release -maxdepth 1 -type f -name '*.aab' -size +0c -print -quit)"
+            test -n "$aab"
+            jarsigner -verify "$aab" | grep -F 'jar verified.'
+            sha256sum "$aab"
+          no_output_timeout: 25m
+      - run:
+          name: Android failure diagnostics (cgroup memory only; no secrets)
+          when: on_fail
+          command: |
+            echo 'Android build failed. Consult the Gradle error above.'
+            for path in /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.peak /sys/fs/cgroup/memory.max; do
+              if [ -r "$path" ]; then
+                printf '%s\n' "$path"
+                cat "$path"
+              fi
+            done
+      - persist_to_workspace:
+          root: .
+          paths:
+            - apps/android/app/build/outputs/bundle/release
+
+  android_play_internal_draft:
+    docker:
+      - image: cimg/ruby:3.3
+    resource_class: small
+    working_directory: ~/project
+    environment:
+      CI: "true"
+      FASTLANE_SKIP_UPDATE_CHECK: "1"
+      FASTLANE_DISABLE_COLORS: "1"
+      CIRCLE_RELEASE_TAG: << pipeline.git.tag >>
+      CIRCLE_RELEASE_TRIGGER: << pipeline.trigger.type >>
+      CIRCLE_RELEASE_EVENT: << pipeline.event.name >>
+      CIRCLE_RELEASE_CONFIG_SHA: << pipeline.config.sha >>
+      CIRCLE_RELEASE_CONFIG_REPO: << pipeline.config.repository.name >>
+      CIRCLE_RELEASE_SHA: << pipeline.git.revision >>
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Upload signed AAB as INTERNAL DRAFT only (never production)
+          command: |
+            set -euo pipefail
+            test "${CIRCLE_RELEASE_TRIGGER:-}" = "github_app"
+            test "${CIRCLE_RELEASE_EVENT:-}" = "push"
+            test "${CIRCLE_RELEASE_CONFIG_REPO:-}" = "ecucondorSA/Autamedica"
+            test -n "${CIRCLE_RELEASE_TAG:-}"
+            test -n "${CIRCLE_RELEASE_SHA:-}"
+            test "${CIRCLE_RELEASE_CONFIG_SHA:-}" = "$CIRCLE_RELEASE_SHA"
+            test "$(git rev-parse HEAD)" = "$CIRCLE_RELEASE_SHA"
+            echo "$CIRCLE_RELEASE_TAG" | grep -Eq '^android-v[0-9]+\.[0-9]+\.[0-9]+(-rc[1-9][0-9]*)?$'
+            aab="$(find apps/android/app/build/outputs/bundle/release -maxdepth 1 -type f -name '*.aab' -size +0c -print -quit)"
+            test -n "$aab"
+            test -n "${AUTAMEDICA_GOOGLE_PLAY_SERVICE_ACCOUNT:-}"
+            json_key="$(mktemp)"
+            trap 'rm -f "$json_key"' EXIT
+            chmod 600 "$json_key"
+            printf '%s' "$AUTAMEDICA_GOOGLE_PLAY_SERVICE_ACCOUNT" > "$json_key"
+            ruby -rjson -e 'key=JSON.parse(File.read(ARGV.fetch(0))); abort "Invalid Play service account" unless key["type"]=="service_account" && key["client_email"] && key["private_key"]' "$json_key"
+            gem install fastlane -v 2.241.2 --no-document
+            fastlane supply \
+              --aab "$aab" \
+              --package_name "com.autamedica.android" \
+              --json_key "$json_key" \
+              --track "internal" \
+              --release_status "draft" \
+              --skip_upload_metadata \
+              --skip_upload_changelogs \
+              --skip_upload_images \
+              --skip_upload_screenshots
+          no_output_timeout: 20m
+
+workflows:
+  smoke_manual:
+    when: << pipeline.parameters.run_smoke >>
+    jobs:
+      - smoke
+
+  web_manual:
+    when: << pipeline.parameters.run_web >>
+    jobs:
+      - web
+
+  android_manual:
+    when: << pipeline.parameters.run_android >>
+    jobs:
+      - android
+
+  # GitHub App must have a 'Tag pushes' trigger configured in CircleCI project settings.
+  # All regular branch pushes remain opt-in / job-free.
+  android_release_internal_draft:
+    jobs:
+      - android_release_bundle:
+          context: autamedica-android-signing
+          filters: &android_release_tag_filter
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^android-v[0-9]+\.[0-9]+\.[0-9]+(-rc[1-9][0-9]*)?$/
+      - android_play_internal_draft:
+          context: autamedica-google-play-internal
+          requires:
+            - android_release_bundle
+          filters: *android_release_tag_filter
