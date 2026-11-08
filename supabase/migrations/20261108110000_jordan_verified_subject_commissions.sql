@@ -158,6 +158,69 @@ REVOKE ALL ON FUNCTION app_private.try_credit_verified_jordan(uuid)
 FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION app_private.try_credit_verified_jordan(uuid) TO service_role;
 
+-- No caller may manufacture an eligible Jordan commission without BOTH the
+-- verified first-person proof and independently reconciled provider payment.
+-- The trigger is intentionally SECURITY INVOKER; the service-role connection
+-- writes the ledger, but cannot bypass the evidence predicate.
+CREATE OR REPLACE FUNCTION app_private.guard_jordan_verified_commission()
+RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER
+SET search_path TO '' AS $ledger_guard$
+DECLARE
+  v_code text;
+BEGIN
+  IF TG_OP='UPDATE' THEN
+    IF OLD.status='reversed' AND NEW.status<>'reversed' THEN
+      RAISE EXCEPTION 'reversed_commission_is_terminal' USING ERRCODE='42501';
+    END IF;
+    IF NEW.dispatch_request_id IS DISTINCT FROM OLD.dispatch_request_id
+       OR NEW.dispatch_payment_id IS DISTINCT FROM OLD.dispatch_payment_id
+       OR NEW.referral_partner_id IS DISTINCT FROM OLD.referral_partner_id
+       OR NEW.verified_subject_hash IS DISTINCT FROM OLD.verified_subject_hash
+       OR NEW.amount_minor IS DISTINCT FROM OLD.amount_minor
+       OR NEW.currency IS DISTINCT FROM OLD.currency
+    THEN
+      RAISE EXCEPTION 'commission_evidence_immutable' USING ERRCODE='42501';
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  SELECT p.code INTO v_code
+  FROM public.commercial_referral_partners p
+  WHERE p.id=NEW.referral_partner_id;
+
+  IF v_code='JORDAN' AND (
+    NEW.verified_subject_hash IS NULL
+    OR NOT EXISTS (
+      SELECT 1 FROM public.commercial_referral_identity_proofs proof
+      JOIN public.pharmacy_dispatch_payments pay
+        ON pay.id=NEW.dispatch_payment_id
+      WHERE proof.dispatch_request_id=NEW.dispatch_request_id
+        AND proof.referral_partner_id=NEW.referral_partner_id
+        AND proof.subject_digest=NEW.verified_subject_hash
+        AND pay.dispatch_request_id=NEW.dispatch_request_id
+        AND pay.status='approved'
+        AND pay.provider='mercadopago'
+        AND pay.amount_minor=7900
+        AND pay.currency='BRL'
+        AND pay.provider_payment_id ~ '^[0-9]{1,20}$'
+        AND pay.paid_at IS NOT NULL
+    )
+  ) THEN
+    RAISE EXCEPTION 'jordan_verified_payment_and_subject_required'
+      USING ERRCODE='23514';
+  END IF;
+  RETURN NEW;
+END;
+$ledger_guard$;
+
+REVOKE ALL ON FUNCTION app_private.guard_jordan_verified_commission()
+  FROM PUBLIC,anon,authenticated;
+DROP TRIGGER IF EXISTS trg_guard_jordan_verified_commission
+  ON public.commercial_referral_commissions;
+CREATE TRIGGER trg_guard_jordan_verified_commission
+BEFORE INSERT OR UPDATE ON public.commercial_referral_commissions
+FOR EACH ROW EXECUTE FUNCTION app_private.guard_jordan_verified_commission();
+
 CREATE OR REPLACE FUNCTION public.sync_pharmacy_referral_commission()
 RETURNS trigger LANGUAGE plpgsql
 SET search_path = pg_catalog,public AS $sync$
