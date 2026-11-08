@@ -1,6 +1,5 @@
 package com.autamedica.android.data.repository
 
-import com.autamedica.android.BuildConfig
 import com.autamedica.android.domain.model.RenaperIdentity
 import com.autamedica.android.domain.model.RenaperLookupException
 import com.autamedica.android.domain.model.RenaperSexId
@@ -44,13 +43,15 @@ class RenaperIdentityClient @Inject constructor(
     }.build()
 
     suspend fun lookup(dni: String, sex: RenaperSexId): Result<RenaperIdentity> = runCatching {
-        val origin = BuildConfig.WEB_API_URL.trimEnd('/')
+        // Separate Cloudflare Patients deployment; the generic WEB_API_URL points
+        // to the public marketing site and cannot be assumed to expose this API.
+        val origin = "https://paciente.autamedica.com"
         val parsed = URI(origin)
         require(
             parsed.scheme == "https" &&
-                (parsed.host == "autamedica.com" || parsed.host == "www.autamedica.com") &&
+                parsed.host == "paciente.autamedica.com" &&
                 parsed.userInfo == null && parsed.path.isNullOrEmpty()
-        ) { "Invalid RENAPER API origin" }
+        ) { "Invalid RENAPER Patients origin" }
 
         supabaseClient.auth.awaitInitialization()
         val session = supabaseClient.auth.currentSessionOrNull()
