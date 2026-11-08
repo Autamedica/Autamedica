@@ -141,6 +141,71 @@ export async function handler(req: Request): Promise<Response> {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
+    // Jordan is a BR-only commercial referral. A signed user JWT or
+    // assigned doctor is not proof of a paid consultation. This check runs
+    // BEFORE the ordinary 'calls' lookup so both normal and dispatch-backed
+    // room paths are covered, including doctor entry.
+    const { data: mediaDispatch, error: mediaDispatchError } = await supabaseAdmin
+      .from('pharmacy_dispatch_requests')
+      .select('id,care_country,referral_partner_id')
+      .eq('cloudflare_room_id', roomId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (mediaDispatchError) {
+      return new Response(JSON.stringify({ error: 'Media authorization unavailable' }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (mediaDispatch?.referral_partner_id) {
+      const { data: partner, error: partnerError } = await supabaseAdmin
+        .from('commercial_referral_partners')
+        .select('code,active')
+        .eq('id', mediaDispatch.referral_partner_id)
+        .maybeSingle()
+
+      // Never treat failed partner resolution as an ordinary, free consultation.
+      if (partnerError || !partner) {
+        return new Response(JSON.stringify({ error: 'Media authorization unavailable' }), {
+          status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      if (partner.code === 'JORDAN') {
+        if (mediaDispatch.care_country !== 'BR' || partner.active !== true) {
+          return new Response(JSON.stringify({ error: 'Jordan is limited to Brazil' }), {
+            status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+
+        const { data: payment, error: paymentError } = await supabaseAdmin
+          .from('pharmacy_dispatch_payments')
+          .select('status,provider,provider_payment_id,paid_at,amount_minor,currency')
+          .eq('dispatch_request_id', mediaDispatch.id)
+          .maybeSingle()
+
+        if (paymentError) {
+          return new Response(JSON.stringify({ error: 'Media authorization unavailable' }), {
+            status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+        const approved = payment?.status === 'approved'
+          && payment.provider === 'mercadopago'
+          && typeof payment.provider_payment_id === 'string'
+          && /^\d{1,20}$/.test(payment.provider_payment_id)
+          && Boolean(payment.paid_at)
+          && payment.amount_minor === 7900
+          && payment.currency === 'BRL'
+        if (!approved) {
+          return new Response(JSON.stringify({ error: 'jordan_payment_required' }), {
+            status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+      }
+    }
+
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(roomId)
     let callQuery = supabaseAdmin
       .from('calls')

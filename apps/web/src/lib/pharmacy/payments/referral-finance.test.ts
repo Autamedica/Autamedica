@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   classifyVerifiedPharmacyPayment, GENERAL_PHARMACY_BR_PRICE_CENTS,
-  JORDAN_REFERRAL_CENTS, type LocalPharmacyPayment, type VerifiedPharmacyProviderPayment,
+  JORDAN_REFERRAL_CENTS, JORDAN_DOCTOR_FEE_CENTS, JORDAN_PRE_COST_MARGIN_CENTS,
+  type LocalPharmacyPayment, type VerifiedPharmacyProviderPayment,
 } from './referral-finance'
 
 const REQUEST = '11111111-1111-4111-8111-111111111111'
@@ -28,6 +29,8 @@ describe('Jordan commercial payment proof', () => {
   it('fixes the proposed accounting amount at R$10 and checkout at R$79', () => {
     expect(GENERAL_PHARMACY_BR_PRICE_CENTS).toBe(7900)
     expect(JORDAN_REFERRAL_CENTS).toBe(1000)
+    expect(JORDAN_DOCTOR_FEE_CENTS).toBe(4000)
+    expect(JORDAN_PRE_COST_MARGIN_CENTS).toBe(2900)
   })
   it('accepts only PSP-approved payments with a date and exact dispatch ID', () => {
     expect(classifyVerifiedPharmacyPayment(local, approved)).toBe('approved')

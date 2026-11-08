@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { logger } from '@autamedica/shared'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { badRequest, conflict, forbidden, internalError, jsonOk, notFound, unauthorized } from '@/lib/api-helpers'
@@ -6,6 +7,7 @@ import { withAuth, isAuthed } from '@/lib/api-auth'
 import { callSessionBackendService } from '@/lib/calls/services/call-session.backend'
 import { verifyGuestToken } from '@/lib/calls/lib/guest-token'
 import { resolveGuestSecret } from '@/lib/runtime-env'
+import { checkJordanMediaAccess } from '@/lib/pharmacy/payments/jordan-media-access'
 
 
 
@@ -33,12 +35,16 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
       const guest = await verifyGuestToken(bearerToken, secret)
       if (!guest) return unauthorized()
 
+      if (guest.roomId !== roomId) return forbidden('call_access_denied')
       const admin = createAstroAdminClient(locals.runtime?.env)
       const result = await callSessionBackendService.getGuestBootstrap(admin, roomId, guest, bearerToken)
 
       if (result.kind === 'not_found') return notFound('call_not_found')
       if (result.kind === 'conflict') return conflict(result.message)
       if (result.kind === 'forbidden') return forbidden('call_access_denied')
+      if (await checkJordanMediaAccess(admin as unknown as SupabaseClient, roomId) !== 'allowed') {
+        return conflict('jordan_payment_required')
+      }
 
       return jsonOk(result.data)
     }
@@ -53,6 +59,9 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
     if (result.kind === 'not_found') return notFound('call_not_found')
     if (result.kind === 'conflict') return conflict(result.message)
     if (result.kind === 'forbidden') return forbidden('call_access_denied')
+    if (await checkJordanMediaAccess(admin as unknown as SupabaseClient, roomId) !== 'allowed') {
+      return conflict('jordan_payment_required')
+    }
 
     return jsonOk(result.data)
   } catch (err) {

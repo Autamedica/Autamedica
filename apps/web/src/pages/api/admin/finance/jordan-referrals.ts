@@ -4,7 +4,7 @@ import { logger } from '@autamedica/shared'
 import { isAuthed, withAuthRole } from '@/lib/api-auth'
 import { internalError, jsonOk } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
-import { JORDAN_REFERRAL_CENTS } from '@/lib/pharmacy/payments/referral-finance'
+import { GENERAL_PHARMACY_BR_PRICE_CENTS, JORDAN_REFERRAL_CENTS, JORDAN_DOCTOR_FEE_CENTS, JORDAN_PRE_COST_MARGIN_CENTS } from '@/lib/pharmacy/payments/referral-finance'
 
 /**
  * ADMIN only: aggregated commercial counts, zero individual patients,
@@ -49,6 +49,13 @@ export const GET: APIRoute = async ({ request, locals }) => {
       actualTransferCents: null,
       transfersAutomated: false,
       providerConfirmedIsNotBankSettled: true,
+      indicativeUnitEconomics: {
+        consultationPriceCents: GENERAL_PHARMACY_BR_PRICE_CENTS,
+        jordanCommissionCents: JORDAN_REFERRAL_CENTS,
+        doctorFeeCents: JORDAN_DOCTOR_FEE_CENTS,
+        marginBeforeProcessingTaxSupportCents: JORDAN_PRE_COST_MARGIN_CENTS,
+        doctorFeeIsNotAccruedPayout: true,
+      },
       reportGeneratedAt: new Date().toISOString(),
     })
     response.headers.set('Cache-Control','private, no-store')

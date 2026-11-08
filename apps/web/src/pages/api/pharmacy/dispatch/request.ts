@@ -6,6 +6,7 @@ import { generateCloudflareRoomId, type DispatchTierCategory } from '@/lib/pharm
 import { signGuestToken } from '@/lib/calls/lib/guest-token'
 import { createGuestQueueRecoveryToken, hashGuestQueueRecoveryToken } from '@/lib/pharmacy/guest-queue-recovery'
 import { resolveGuestSecret } from '@/lib/runtime-env'
+import { hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payment-access'
 import { logger } from '@autamedica/shared'
 
 const VALID_TIERS: DispatchTierCategory[] = [
@@ -38,6 +39,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // determine clinical jurisdiction or grant access to an existing patient.
     if (careCountry !== 'AR' && careCountry !== 'BR') {
       return badRequest('Seleccioná Argentina o Brasil como país de atención')
+    }
+
+    // Do not send a referred Jordan patient into a clinical queue without
+    // a checkout that's explicitly live and secured server-side.
+    if (referralCode === 'JORDAN') {
+      if (careCountry !== 'BR') return badRequest('jordan_referral_brazil_only')
+      if (tier && tier !== 'general') return badRequest('jordan_general_consultation_only')
+      const flag = (locals.runtime?.env?.ENABLE_JORDAN_PAYMENTS as string | undefined)
+        ?? import.meta.env.ENABLE_JORDAN_PAYMENTS
+      if (flag !== 'true' || !hasSecureGuestPaymentSecret(locals.runtime?.env)) {
+        return serviceUnavailable('jordan_checkout_not_ready')
+      }
     }
 
     const rawDocument = careCountry === 'BR' ? (patientCpf ?? patientDni) : patientDni
