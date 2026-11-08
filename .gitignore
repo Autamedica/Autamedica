@@ -17,6 +17,9 @@ node_modules
 
 # Testing
 coverage
+# CircleCI Smarter Testing local doctor state (never commit generated impact data)
+.circleci/state*
+.circleci/impact-*.json
 test-results/
 playwright-report/
 
