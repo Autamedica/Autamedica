@@ -65,6 +65,8 @@ private class FakeAuthRepo(
 }
 
 private class FakeDoctorRepo : DoctorRepository {
+    var statsReads = 0
+    var patientReads = 0
     override suspend fun getDoctorProfile(userId: String): Result<DoctorProfile> = Result.success(
         DoctorProfile(
             id = "doctor-456",
@@ -73,13 +75,23 @@ private class FakeDoctorRepo : DoctorRepository {
             licenseNumber = "MN-12345",
         )
     )
-    override suspend fun getDoctorStats(doctorId: String): Result<DoctorStats> = Result.success(DoctorStats())
-    override suspend fun getDoctorPatients(doctorId: String): Result<List<PatientSummary>> = Result.success(emptyList())
+    override suspend fun getDoctorStats(doctorId: String): Result<DoctorStats> {
+        statsReads++
+        return Result.success(DoctorStats())
+    }
+    override suspend fun getDoctorPatients(doctorId: String): Result<List<PatientSummary>> {
+        patientReads++
+        return Result.success(emptyList())
+    }
     override suspend fun getPatientDetail(doctorId: String, patientId: String): Result<PatientDetail> = Result.failure(NotImplementedError())
 }
 
 private class FakeAppointmentRepo : AppointmentRepository {
-    override suspend fun getUpcomingAppointments(): Result<List<Appointment>> = Result.success(emptyList())
+    var appointmentReads = 0
+    override suspend fun getUpcomingAppointments(): Result<List<Appointment>> {
+        appointmentReads++
+        return Result.success(emptyList())
+    }
     override suspend fun getAppointmentById(id: String): Result<Appointment> = Result.failure(NotImplementedError())
     override suspend fun updateAppointmentNotes(id: String, notes: String): Result<Unit> = Result.success(Unit)
     override suspend fun clearCachedAppointmentsForCurrentUser(): Result<Unit> = Result.success(Unit)
@@ -109,15 +121,15 @@ private class FakeChatRepo : ChatRepository {
 }
 
 private class FakePharmacyDispatchRepo : PharmacyDispatchRepository {
-    // These fixtures represent an administratively APPROVED clinical doctor.
-    // Unapproved doctors must fail closed in production.
-    override suspend fun getMyGuardApproval(): Result<DoctorGuardApproval> =
-        Result.success(DoctorGuardApproval(
+    var approvalResult: Result<DoctorGuardApproval> = Result.success(
+        DoctorGuardApproval(
             approved = true,
             code = "CLINICALLY_APPROVED",
             country = "AR",
             verificationStatus = "valid",
-        ))
+        )
+    )
+    override suspend fun getMyGuardApproval(): Result<DoctorGuardApproval> = approvalResult
 
     var dutyStatus = DoctorDutyStatus(
         doctorId = "doctor-456",
@@ -197,6 +209,78 @@ class DoctorDashboardViewModelTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+    }
+
+    @Test
+    fun `pending clinician cannot load patient data or subscribe to duty`() = runTest(testDispatcher) {
+        dispatchRepo.approvalResult = Result.success(
+            DoctorGuardApproval(approved = false, code = "DOCTOR_PENDING_CLINICAL_APPROVAL",
+                country = "AR", verificationStatus = "pending")
+        )
+        val vm = DoctorDashboardViewModel(
+            doctorRepository = doctorRepo, appointmentRepository = appointmentRepo,
+            authRepository = authRepo, telemedicineRepository = telemedicineRepo,
+            chatRepository = chatRepo, pharmacyDispatchRepository = dispatchRepo,
+            connectivityObserver = connectivityObserver, ioDispatcher = testDispatcher,
+        )
+        testScheduler.runCurrent()
+
+        assertThat(vm.uiState.value.guardApproved).isFalse()
+        assertThat(vm.uiState.value.approvalCheckFailed).isFalse()
+        assertThat(vm.uiState.value.isLoading).isFalse()
+        assertThat(doctorRepo.statsReads).isEqualTo(0)
+        assertThat(doctorRepo.patientReads).isEqualTo(0)
+        assertThat(appointmentRepo.appointmentReads).isEqualTo(0)
+        assertThat(dispatchRepo.heartbeatInvocations).isEmpty()
+        vm.viewModelScope.cancel()
+    }
+
+    @Test
+    fun `failed approval RPC reports technical error without clinical reads`() = runTest(testDispatcher) {
+        dispatchRepo.approvalResult = Result.failure(IOException("Permission denied"))
+        val vm = DoctorDashboardViewModel(
+            doctorRepository = doctorRepo, appointmentRepository = appointmentRepo,
+            authRepository = authRepo, telemedicineRepository = telemedicineRepo,
+            chatRepository = chatRepo, pharmacyDispatchRepository = dispatchRepo,
+            connectivityObserver = connectivityObserver, ioDispatcher = testDispatcher,
+        )
+        testScheduler.runCurrent()
+
+        assertThat(vm.uiState.value.guardApproved).isNull()
+        assertThat(vm.uiState.value.approvalCheckFailed).isTrue()
+        assertThat(vm.uiState.value.error).contains("comprobar")
+        assertThat(doctorRepo.statsReads).isEqualTo(0)
+        assertThat(doctorRepo.patientReads).isEqualTo(0)
+        assertThat(appointmentRepo.appointmentReads).isEqualTo(0)
+        assertThat(dispatchRepo.heartbeatInvocations).isEmpty()
+        vm.viewModelScope.cancel()
+    }
+
+    @Test
+    fun `refresh clears previously approved clinical data when approval is revoked`() = runTest(testDispatcher) {
+        val vm = DoctorDashboardViewModel(
+            doctorRepository = doctorRepo, appointmentRepository = appointmentRepo,
+            authRepository = authRepo, telemedicineRepository = telemedicineRepo,
+            chatRepository = chatRepo, pharmacyDispatchRepository = dispatchRepo,
+            connectivityObserver = connectivityObserver, ioDispatcher = testDispatcher,
+        )
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.guardApproved).isTrue()
+        assertThat(doctorRepo.statsReads).isEqualTo(1)
+        val clinicalReadsBeforeRevocation = doctorRepo.statsReads
+
+        dispatchRepo.approvalResult = Result.success(
+            DoctorGuardApproval(approved = false, code = "DOCTOR_PENDING_CLINICAL_APPROVAL",
+                country = "AR", verificationStatus = "pending")
+        )
+        vm.refresh()
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.guardApproved).isFalse()
+        assertThat(vm.uiState.value.statsAvailable).isFalse()
+        assertThat(vm.uiState.value.patientsMap).isEmpty()
+        assertThat(vm.uiState.value.liveWaitingQueue).isEmpty()
+        assertThat(doctorRepo.statsReads).isEqualTo(clinicalReadsBeforeRevocation)
+        vm.viewModelScope.cancel()
     }
 
     @Test
