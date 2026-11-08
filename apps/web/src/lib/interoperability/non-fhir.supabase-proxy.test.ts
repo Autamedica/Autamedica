@@ -23,7 +23,7 @@ describe('RENAPER protected Supabase proxy (synthetic fixtures only)', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('uses the existing active function when Cloudflare lacks BUS credentials', async () => {
-    const fetchSpy = vi.fn(async () => new Response(JSON.stringify({
+    const fetchSpy = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) => new Response(JSON.stringify({
       success: true,
       data: {
         person: { numeroDocumento: '12345678', nombres: 'TEST', apellido: 'PATIENT', sexo: 'F' },
@@ -36,9 +36,10 @@ describe('RENAPER protected Supabase proxy (synthetic fixtures only)', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     const [url, init] = fetchSpy.mock.calls[0]!;
     expect(url).toBe('https://qxjjrpksmwwrmubhvjew.supabase.co/functions/v1/patient-identity-renaper');
-    expect(init.method).toBe('POST');
-    expect(init.headers.Authorization).toBe('Bearer SYNTHETIC_SERVER_KEY');
-    expect(JSON.parse(init.body)).toEqual({ dni: '12345678', sexId: 1 });
+    expect(init?.method).toBe('POST');
+    const headers = init?.headers as Record<string, string>;
+    expect(headers.Authorization).toBe('Bearer SYNTHETIC_SERVER_KEY');
+    expect(JSON.parse(String(init?.body))).toEqual({ dni: '12345678', sexId: 1 });
     expect(identity.person.numeroDocumento).toBe('12345678');
     expect(identity.coverages[0]?.cobertura).toBe('SYNTHETIC COVERAGE');
   });
