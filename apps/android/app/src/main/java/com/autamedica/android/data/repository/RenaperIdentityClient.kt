@@ -61,6 +61,51 @@ class RenaperIdentityClient @Inject constructor(
         postLookup(origin, dni, sex, session.accessToken)
     }
 
+    /**
+     * Explicit patient attestation. This route must not be enabled until
+     * the server's identity-lock RPC/triggers pass staging.
+     * Android sends no official person data: the server re-queries RENAPER.
+     */
+    suspend fun confirm(sex: RenaperSexId): Result<Boolean> = runCatching {
+        val origin = "https://paciente.autamedica.com"
+        supabaseClient.auth.awaitInitialization()
+        val session = supabaseClient.auth.currentSessionOrNull()
+            ?: throw RenaperLookupException(401)
+        requireNotNull(session.user?.id) { "Authenticated patient required" }
+        confirmOnServer(origin, sex, session.accessToken)
+    }
+
+    /** Internal for MockWebServer tests. Never used with arbitrary origins in production. */
+    internal suspend fun confirmOnServer(
+        origin: String,
+        sex: RenaperSexId,
+        bearer: String,
+    ): Boolean = withContext(Dispatchers.IO) {
+        require(bearer.isNotBlank()) { "Authenticated patient required" }
+        val body = buildJsonObject {
+            put("acknowledge", true)
+            put("sexId", sex.providerId)
+        }.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+        val request = Request.Builder()
+            .url("${origin.trimEnd('/')}/api/patients/identity/renaper/confirm")
+            .header("Authorization", "Bearer $bearer")
+            .header("Cache-Control", "no-store")
+            .header("Accept", "application/json")
+            .post(body)
+            .build()
+        privateHttp.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) throw RenaperLookupException(response.code)
+            val root = json.parseToJsonElement(response.body?.string().orEmpty()).jsonObject
+            val data = root["data"]?.jsonObject ?: throw RenaperLookupException(502)
+            if (root["success"]?.jsonPrimitive?.booleanOrNull != true ||
+                data["confirmed"]?.jsonPrimitive?.booleanOrNull != true ||
+                data["biometricVerified"]?.jsonPrimitive?.booleanOrNull != false) {
+                throw RenaperLookupException(502)
+            }
+            true
+        }
+    }
+
     /** Internal for MockWebServer regression tests. No production call uses its URL. */
     internal suspend fun postLookup(
         origin: String,
