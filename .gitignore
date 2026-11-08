@@ -194,3 +194,12 @@ apps/web/scratch/
 # YouTube tool scraping cache and pycache
 tools/obs/scraped_videos.json
 tools/obs/__pycache__/
+
+# AutaMedica TV and local media exports — do not commit PII or large renders
+video_exports/
+tools/obs/images/
+tools/obs/content_engine/video_exports/
+
+# Local clinical and videocall verification scripts — may contain sensitive fixtures
+apps/web/verify_*.mjs
+apps/web/test_web_to_web.mjs
