@@ -96,7 +96,7 @@ export async function handler(req: Request): Promise<Response> {
 
   const roomId = typeof payload.roomId === 'string' ? payload.roomId.trim() : ''
   const method = typeof payload.method === 'string' ? payload.method.toUpperCase() : 'POST'
-  const path = payload.path
+  const path = typeof payload.path === 'string' ? payload.path : ''
 
   if (!roomId) {
     return new Response(
