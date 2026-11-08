@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro'
-import { badRequest, forbidden, internalError, jsonOk, serviceUnavailable } from '@/lib/api-helpers'
+import { badRequest, forbidden, internalError, jsonOk, serviceUnavailable, unauthorized } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { generateCloudflareRoomId, type DispatchTierCategory } from '@/lib/pharmacy/pharmacy-on-demand.service'
@@ -86,6 +86,24 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const supabase = createAstroAdminClient(locals.runtime?.env)
 
+    // Native Android bearer must be verified by Supabase Auth, never parsed
+    // without signature checks. Malformed or expired bearer cannot become a
+    // new anonymous guest record by silently falling back.
+    const authorization = request.headers.get('authorization')?.trim() ?? ''
+    let mobileUserId: string | null = null
+    if (authorization) {
+      const match = /^Bearer\s+([A-Za-z0-9._-]+)$/i.exec(authorization)
+      if (!match) return unauthorized('invalid_mobile_session')
+      const { data: bearerIdentity, error: bearerError } = await supabase.auth.getUser(match[1])
+      if (bearerError || !bearerIdentity.user) return unauthorized('invalid_mobile_session')
+      mobileUserId = bearerIdentity.user.id
+    }
+    const sessionUser = (locals as { user?: { id: string } }).user ?? locals.session?.user
+    if (sessionUser?.id && mobileUserId && sessionUser.id !== mobileUserId) {
+      return forbidden('mobile_session_conflicts_with_cookie_session')
+    }
+    const requestedByUserId = mobileUserId || sessionUser?.id || null
+
     // 2. Validar pertenencia a kiosco registrado si kioskId viene provisto
     let resolvedKioskId: string | null = null
     let resolvedPharmacyId: string | null = null
@@ -162,11 +180,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const cloudflareRoomId = generateCloudflareRoomId(selectedTier, normalizedDocument)
 
-    // Asociar usuario dueño si la petición proviene de un usuario autenticado
-    const sessionUser = (locals as { user?: { id: string } }).user ?? locals.session?.user
-    const requestedByUserId = sessionUser?.id || null
-
-    const secret = resolveGuestSecret(locals.runtime?.env)
+     const secret = resolveGuestSecret(locals.runtime?.env)
     if (!secret) {
       logger.error('[api/pharmacy/dispatch/request] GUEST_TOKEN_SECRET not configured')
       return serviceUnavailable('guest_token_not_configured')
@@ -215,11 +229,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       secret,
     )
 
-    // A guest's queue must survive Android process death and the 2-hour
-    // clinical JWT expiry. Recovery secret is random, request-scoped and
-    // saved only as a digest on the server (never in logs or a URL).
+    // Browser guests and authenticated native patients require a stable
+    // recovery secret to survive app process death. The resume endpoint must
+    // check both bearer user and scoped secret for authenticated native users.
     let recoveryToken: string | null = null
-    if (!requestedByUserId) {
+    if (!requestedByUserId || mobileUserId) {
       recoveryToken = createGuestQueueRecoveryToken()
       const digest = await hashGuestQueueRecoveryToken(recoveryToken)
       const { error: recoveryError } = await (supabase as unknown as SupabaseClient)
