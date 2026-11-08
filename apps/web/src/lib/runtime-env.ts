@@ -162,6 +162,7 @@ export function resolveCloudflareCallsEnv(runtimeEnv?: RuntimeEnvRecord): {
   return { appId, appSecret, turnKeyId, turnToken };
 }
 
+/** Never sign clinical guest tokens with a predictable fallback. Missing secret fails closed. */
 export function resolveGuestSecret(runtimeEnv?: RuntimeEnvRecord): string | undefined {
   primeRuntimeEnv(runtimeEnv);
 
@@ -169,8 +170,7 @@ export function resolveGuestSecret(runtimeEnv?: RuntimeEnvRecord): string | unde
     readFirst(runtimeEnv, ['GUEST_TOKEN_SECRET']) ??
     readCached(['GUEST_TOKEN_SECRET']) ??
     import.meta.env.GUEST_TOKEN_SECRET ??
-    readProcess(['GUEST_TOKEN_SECRET']) ??
-    'am-guest-default-fallback-secret-2026'
+    readProcess(['GUEST_TOKEN_SECRET'])
   );
 }
 
