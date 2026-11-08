@@ -45,6 +45,23 @@ describe('Memed SDK lifecycle', () => {
     expect(current).toHaveBeenCalledTimes(1);
     await sdk.ensureMemedScript('synthetic-token', 'https://partners.memed.com.br/integration.js', 'doctor-user');
   });
+  it('uses the Memed REST prescription ID from a saved full document, not its UUID', async () => {
+    const sdk = await ready();
+    const onIssued = vi.fn();
+    sdk.setMemedCallbacks(onIssued, vi.fn());
+    events.prescricaoImpressa({
+      prescricao: {
+        prescriptionUuid: 'rx-uuid-only-for-reference',
+        documents: [
+          { type: 'individual', status: 'saved', prescription_id: 901 },
+          { type: 'full', status: 'saved', prescription_id: 902 },
+        ],
+      },
+    });
+    expect(onIssued).toHaveBeenCalledExactlyOnceWith('902');
+    events.prescricaoImpressa({ prescricao: { id: 903, prescriptionUuid: 'rx-another-uuid' } });
+    expect(onIssued).toHaveBeenLastCalledWith('903');
+  });
   it('clears provider storage on actual logout and blocks reuse until reload', async () => {
     const sdk = await ready(); authChanged('SIGNED_OUT', null);
     expect(command).toHaveBeenCalledWith('plataforma.sdk', 'logout');
