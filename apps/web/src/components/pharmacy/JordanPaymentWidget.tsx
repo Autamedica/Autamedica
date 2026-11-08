@@ -10,9 +10,11 @@ type PaymentStatus = 'not_started' | 'initializing' | 'pending' | 'approved' | '
 export function JordanPaymentWidget({
   dispatchId,
   guestToken,
+  onStatusChange,
 }: {
   dispatchId: string
   guestToken: string
+  onStatusChange?: (status: PaymentStatus) => void
 }) {
   const [status, setStatus] = useState<PaymentStatus>('not_started')
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null)
@@ -28,14 +30,16 @@ export function JordanPaymentWidget({
         },
       )
       setStatus(result.status)
+      onStatusChange?.(result.status)
       if (result.status === 'approved') {
         setCheckoutUrl(null)
         setError(null)
       }
     } catch {
-      // No status result means unknown, NEVER assume "paid".
+      // No status result means unknown; close any previously opened UI gate.
+      onStatusChange?.('not_started')
     }
-  }, [dispatchId, guestToken])
+  }, [dispatchId, guestToken, onStatusChange])
 
   useEffect(() => {
     void refreshStatus()
