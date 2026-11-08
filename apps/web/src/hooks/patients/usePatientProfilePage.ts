@@ -160,6 +160,11 @@ export function usePatientProfilePage(
   }, [accountFullName, anamnesisBirthDate, patient, profile, resetStatus, user?.email]);
 
     const lookupOfficialIdentity = useCallback(async (): Promise<boolean> => {
+      // Hide/deny RENAPER outside explicit Argentine care context.
+      if (patient?.careCountry !== 'AR') {
+        setIdentityLookupError('RENAPER está disponible únicamente para pacientes del circuito argentino.');
+        return false;
+      }
       const dni = form.dni.replace(/\D/g, '');
     if (!dni) {
       setIdentityLookupError('Ingresá tu DNI para completar la verificación.');
@@ -230,7 +235,7 @@ export function usePatientProfilePage(
       } finally {
         setIsLookingUpIdentity(false);
       }
-    }, [form.dni, form.gender, refresh]);
+    }, [form.dni, form.gender, patient?.careCountry, refresh]);
 
   const saveProfile = useCallback(async (): Promise<boolean> => {
     if (!user) {
