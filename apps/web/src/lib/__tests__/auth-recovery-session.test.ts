@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
     auth: {
       onAuthStateChange: vi.fn(),
       getSession: vi.fn(),
+      verifyOtp: vi.fn(),
     },
   },
   resetAuthCircuitBreaker: vi.fn(),
@@ -30,7 +31,10 @@ vi.mock('../auth/browser-storage', () => ({
   markManualSignout: vi.fn(),
 }));
 
-import { initializePasswordRecoverySession } from '../auth/service';
+import {
+  initializePasswordRecoverySession,
+  verifyPasswordRecoveryToken,
+} from '../auth/service';
 
 describe('initializePasswordRecoverySession', () => {
   beforeEach(() => {
@@ -45,6 +49,43 @@ describe('initializePasswordRecoverySession', () => {
     mocks.authClient.auth.getSession.mockResolvedValue({
       data: { session: mocks.session },
       error: null,
+    });
+    mocks.authClient.auth.verifyOtp.mockResolvedValue({
+      data: { session: mocks.session, user: mocks.session.user },
+      error: null,
+    });
+  });
+
+  it('redeems a recovery token hash only through the recovery OTP type', async () => {
+    await expect(verifyPasswordRecoveryToken('  opaque-hash  ')).resolves.toEqual({
+      ok: true,
+      errorMessage: null,
+    });
+    expect(mocks.authClient.auth.verifyOtp).toHaveBeenCalledWith({
+      token_hash: 'opaque-hash',
+      type: 'recovery',
+    });
+  });
+
+  it('does not accept a verified token response without a session', async () => {
+    mocks.authClient.auth.verifyOtp.mockResolvedValue({
+      data: { session: null, user: null },
+      error: null,
+    });
+    await expect(verifyPasswordRecoveryToken('opaque-hash')).resolves.toEqual({
+      ok: false,
+      errorMessage: 'Password recovery session could not be established',
+    });
+  });
+
+  it('returns a rejected or expired recovery token error', async () => {
+    mocks.authClient.auth.verifyOtp.mockResolvedValue({
+      data: { session: null, user: null },
+      error: { message: 'Token has expired or is invalid' },
+    });
+    await expect(verifyPasswordRecoveryToken('expired-hash')).resolves.toEqual({
+      ok: false,
+      errorMessage: 'Token has expired or is invalid',
     });
   });
 
