@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const state = vi.hoisted(() => ({
   tokenSecret: 'test-only', domainUrl: 'https://test.invalid', role: 'admin', sessionUser: true, authHeader: 'Bearer test-user',
   firstName: 'Nombre', lastName: 'Prueba', validatorConfig: vi.fn(),
-  createAdmin: vi.fn(), verify: vi.fn(), updateProfile: vi.fn(), updateDoctor: vi.fn(),
+  createAdmin: vi.fn(), verify: vi.fn(), updateProfile: vi.fn(), updateDoctor: vi.fn(), updateLicense: vi.fn(),
 }));
 vi.mock('@autamedica/shared', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
 vi.mock('@/lib/supabase', () => ({ createAstroAdminClient: state.createAdmin }));
@@ -27,7 +27,8 @@ beforeEach(() => {
   state.tokenSecret = 'test-only'; state.domainUrl = 'https://test.invalid';
   state.firstName = 'Nombre'; state.lastName = 'Prueba'; state.validatorConfig.mockReset();
   state.role = 'admin'; state.sessionUser = true; state.authHeader = 'Bearer test-user';
-  state.verify.mockReset(); state.updateProfile.mockReset(); state.updateDoctor.mockReset();
+  state.verify.mockReset(); state.updateProfile.mockReset(); state.updateDoctor.mockReset(); state.updateLicense.mockReset();
+  state.updateLicense.mockResolvedValue({ error: null });
   state.createAdmin.mockReset();
   state.updateProfile.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
   state.updateDoctor.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
@@ -39,7 +40,7 @@ beforeEach(() => {
         enrollment_jurisdiction: 'CABA', enrollment_entity: 'Ministerio de Salud', refeps_id: '541000000001' }),
       update: state.updateDoctor,
     };
-    return { upsert: vi.fn().mockResolvedValue({ error: null }) };
+    return { upsert: state.updateLicense };
   } });
 });
 
@@ -180,6 +181,16 @@ describe('administrative official license verification', () => {
     state.verify.mockResolvedValue({ isValid: true, source: 'local_database_fallback', registrationStatus: 'active' });
     expect((await call('www.autamedica.com', { doctorId: 'test-doctor', persist: true })).status).toBe(503);
     expect(state.updateProfile).not.toHaveBeenCalled();
+  });
+  it('does not mark SSS valid when the required verified license fails to persist', async () => {
+    state.verify.mockResolvedValue({ isValid: true, source: 'national_refeps_api', registrationStatus: 'active',
+      matriculaNumber: '123456', practitionerId: '541000000001' });
+    state.updateLicense.mockResolvedValue({ error: { message: 'simulated doctor_licenses write failure' } });
+    const response = await call('www.autamedica.com', { doctorId: 'test-doctor', persist: true });
+    expect(response.status).toBe(500);
+    expect(state.updateLicense).toHaveBeenCalledOnce();
+    expect(state.updateProfile).not.toHaveBeenCalled();
+    expect(state.updateDoctor).not.toHaveBeenCalled();
   });
   it('persists a valid official result only when requested', async () => {
     state.verify.mockResolvedValue({ isValid: true, source: 'national_refeps_api', registrationStatus: 'active',
