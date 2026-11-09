@@ -1,0 +1,145 @@
+name: Staging Preview Deploy
+
+on:
+  push:
+    branches:
+      - infra/staging-recovery-20261109
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'worker/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
+      - '.github/workflows/deploy-staging.yml'
+      - 'docs/operations/staging-environment.md'
+  workflow_dispatch:
+
+concurrency:
+  group: autamedica-staging-preview
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  HUSKY: "0"
+  NODE_VERSION: "22"
+  PNPM_VERSION: "9.15.2"
+  CF_PREVIEW_BRANCH: staging-recovery
+
+jobs:
+  validate-build-deploy:
+    name: Validate, build and deploy isolated Preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment:
+      name: staging
+    steps:
+      - name: Guard branch and isolated credentials
+        shell: bash
+        env:
+          STAGING_PUBLIC_SUPABASE_URL: ${{ secrets.STAGING_PUBLIC_SUPABASE_URL }}
+          STAGING_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.STAGING_PUBLIC_SUPABASE_ANON_KEY }}
+          STAGING_PUBLIC_SIGNALING_URL: ${{ secrets.STAGING_PUBLIC_SIGNALING_URL }}
+          STAGING_CLOUDFLARE_API_TOKEN: ${{ secrets.STAGING_CLOUDFLARE_API_TOKEN }}
+          STAGING_CLOUDFLARE_ACCOUNT_ID: ${{ secrets.STAGING_CLOUDFLARE_ACCOUNT_ID }}
+          STAGING_CALLS_TURN_KEY_ID: ${{ secrets.STAGING_CALLS_TURN_KEY_ID }}
+          STAGING_CALLS_TURN_TOKEN: ${{ secrets.STAGING_CALLS_TURN_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF}" != "refs/heads/infra/staging-recovery-20261109" ]]; then
+            echo "::error::Staging deployment is restricted to infra/staging-recovery-20261109."
+            exit 1
+          fi
+          expected="https://qqevyncgnanpmvauehys.supabase.co"
+          if [[ "${STAGING_PUBLIC_SUPABASE_URL}" != "${expected}" ]]; then
+            echo "::error::STAGING_PUBLIC_SUPABASE_URL must point to the dedicated AutaMedica Staging project."
+            exit 1
+          fi
+          for key in STAGING_PUBLIC_SUPABASE_ANON_KEY STAGING_PUBLIC_SIGNALING_URL STAGING_CLOUDFLARE_API_TOKEN STAGING_CLOUDFLARE_ACCOUNT_ID STAGING_CALLS_TURN_KEY_ID STAGING_CALLS_TURN_TOKEN; do
+            if [[ -z "${!key}" ]]; then
+              echo "::error::Missing required staging environment secret: ${key}"
+              exit 1
+            fi
+          done
+          echo "Staging isolation guard passed."
+
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-pnpm
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          pnpm-version: ${{ env.PNPM_VERSION }}
+
+      - name: Static validation
+        run: |
+          pnpm typecheck
+          pnpm lint
+          pnpm hardcode:check
+
+      - name: Build workspace packages
+        run: pnpm build:packages:core
+
+      - name: Unit tests
+        run: pnpm test:unit
+
+      - name: Build web application against staging
+        working-directory: apps/web
+        env:
+          PUBLIC_SUPABASE_URL: ${{ secrets.STAGING_PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.STAGING_PUBLIC_SUPABASE_ANON_KEY }}
+          PUBLIC_SIGNALING_URL: ${{ secrets.STAGING_PUBLIC_SIGNALING_URL }}
+          PUBLIC_APP_URL: https://staging-recovery.autamedica-web.pages.dev
+          PUBLIC_PATIENTS_URL: https://staging-recovery.autamedica-patients.pages.dev
+          PUBLIC_DOCTORS_URL: https://staging-recovery.autamedica-doctors.pages.dev
+          PUBLIC_COMPANIES_URL: https://staging-recovery.autamedica-companies.pages.dev
+          PUBLIC_ADMIN_URL: https://staging-recovery.autamedica-admin.pages.dev
+          PUBLIC_GA4_MEASUREMENT_ID: ${{ vars.STAGING_GA4_MEASUREMENT_ID }}
+          CLOUDFLARE_CALLS_TURN_KEY_ID: ${{ secrets.STAGING_CALLS_TURN_KEY_ID }}
+          CLOUDFLARE_CALLS_TURN_TOKEN: ${{ secrets.STAGING_CALLS_TURN_TOKEN }}
+        run: pnpm build
+
+      - name: Deploy Preview to all five isolated Pages projects
+        working-directory: apps/web
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.STAGING_CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.STAGING_CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          projects=(autamedica-web autamedica-doctors autamedica-patients autamedica-companies autamedica-admin)
+          for project in "${projects[@]}"; do
+            echo "Deploying ${project} to Preview branch ${CF_PREVIEW_BRANCH}"
+            pnpm dlx wrangler pages deploy dist \
+              --project-name="${project}" \
+              --branch="${CF_PREVIEW_BRANCH}"
+          done
+
+      - name: Verify all Preview surfaces and Supabase staging endpoint
+        env:
+          STAGING_PUBLIC_SUPABASE_URL: ${{ secrets.STAGING_PUBLIC_SUPABASE_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sleep 15
+          projects=(autamedica-web autamedica-doctors autamedica-patients autamedica-companies autamedica-admin)
+          for project in "${projects[@]}"; do
+            url="https://${CF_PREVIEW_BRANCH}.${project}.pages.dev"
+            status=$(curl --silent --show-error --location --output /dev/null --write-out '%{http_code}' --max-time 30 "${url}")
+            echo "${url}: HTTP ${status}"
+            if [[ "${status}" != "200" && "${status}" != "302" ]]; then
+              echo "::error::Preview surface failed: ${url} returned HTTP ${status}"
+              exit 1
+            fi
+          done
+          db_status=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 30 "${STAGING_PUBLIC_SUPABASE_URL}/rest/v1/")
+          echo "Dedicated Supabase staging REST endpoint: HTTP ${db_status}"
+          if [[ "${db_status}" != "200" && "${db_status}" != "401" ]]; then
+            echo "::error::Supabase staging endpoint returned HTTP ${db_status}"
+            exit 1
+          fi
