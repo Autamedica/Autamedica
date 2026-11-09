@@ -163,7 +163,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // 1. Fetch the target doctor's details from the database
     const doctorQuery = admin
       .from('doctors')
-      .select('id, user_id, license_number, enrollment_jurisdiction, enrollment_entity, specialty, refeps_id');
+      .select('id, user_id, license_type, license_number, enrollment_jurisdiction, enrollment_entity, specialty, refeps_id');
 
     const targetUserId = body.userId?.trim();
     const targetDoctorId = body.doctorId?.trim();
@@ -195,7 +195,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const province = provinceKey && ['caba', 'capital federal', 'ciudad autonoma de buenos aires'].includes(provinceKey)
       ? 'CABA' : requestedProvince;
     const isProvincial = isNonEmptyString(province) && province !== 'CABA';
-    const type: 'MN' | 'MP' = isProvincial ? 'MP' : 'MN';
+    // An explicit MN/MP prefix takes precedence over jurisdiction and legacy
+    // fields (which can disagree with the registration actually being checked).
+    const prefix = matricula.trim().toUpperCase().match(/^(MN|MP)(?=\\s*[-.:/]?\\s*\\d)/)?.[1];
+    const recordedType = doctor.license_type === 'MN' || doctor.license_type === 'MP'
+      ? doctor.license_type : null;
+    const type: 'MN' | 'MP' = prefix === 'MN' || prefix === 'MP'
+      ? prefix : recordedType ?? (isProvincial ? 'MP' : 'MN');
 
     // 2. Resolve credentials for the Bus de Interoperabilidad
     logger.info('[license-verify-live] Running verification', {
@@ -279,11 +285,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
         );
       }
 
-      if (practitionerId) {
+      if (finalStatus === 'valid') {
         const { error: doctorUpdateError } = await admin
           .from('doctors')
           .update({
-            refeps_id: practitionerId,
+            license_type: type,
+            ...(practitionerId ? { refeps_id: practitionerId } : {}),
             ...(validatedLicense ? { license_number: validatedLicense } : {}),
             ...(province ? { enrollment_jurisdiction: province } : {}),
           })
