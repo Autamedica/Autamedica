@@ -57,3 +57,24 @@ Jordan SQL integration tests must use synthetic fixtures and rollback. Keep `ENA
 - https://staging-recovery.autamedica-admin.pages.dev
 
 A successful workflow run is required before treating these URLs as a verified staging deployment. Cloudflare Preview runtime bindings/secrets must also be configured in the Preview environment if any Pages Functions require them.
+
+## CircleCI deployment
+
+The CircleCI fallback uses a separate, explicit manual pipeline parameter. It does not deploy on ordinary pushes:
+
+- Create a restricted CircleCI context named `autamedica-staging-deploy`.
+- Add only dedicated staging credentials to that context; never reuse the project-level `AUTAMEDICA_SUPABASE_URL` or `AUTAMEDICA_SUPABASE_ANON_KEY` values because their environment is not established here.
+- Required context variables:
+  - `STAGING_PUBLIC_SUPABASE_URL` — exactly `https://qqevyncgnanpmvauehys.supabase.co`
+  - `STAGING_PUBLIC_SUPABASE_ANON_KEY`
+  - `STAGING_PUBLIC_SIGNALING_URL`
+  - `STAGING_CLOUDFLARE_API_TOKEN`
+  - `STAGING_CLOUDFLARE_ACCOUNT_ID`
+  - `STAGING_CALLS_TURN_KEY_ID`
+  - `STAGING_CALLS_TURN_TOKEN`
+- Optional context variable: `STAGING_GA4_MEASUREMENT_ID` (a separate staging analytics stream).
+
+After the context is configured and its credentials are independently verified, run the CircleCI pipeline on `infra/staging-recovery-20261109` with boolean parameter `run_staging_deploy=true`. The parameter defaults to `false`; regular pushes run validation only. The deploy job repeats the branch, checkout SHA and exact Supabase project guard, then runs locked install, core build, typecheck, lint, hardcode checks and unit tests before building and deploying the five Pages Preview surfaces.
+
+The CircleCI deploy job does not run migrations, seeds, SQL fixtures, resets, or `supabase db push`. Preview runtime bindings/secrets for Cloudflare Pages Functions still need to be configured in Cloudflare's Preview environment where required. Do not treat staging as deployed until the manual workflow succeeds and all five Preview URLs and the dedicated Supabase endpoint are verified.
+
