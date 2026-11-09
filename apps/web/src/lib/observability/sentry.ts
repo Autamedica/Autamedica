@@ -75,11 +75,42 @@ function getSentryDsn(runtimeEnv?: RuntimeEnvRecord): string | undefined {
   )
 }
 
-function redactMemedText(value: string): string {
-  return value.replace(/https?:\/\/(?:[a-z0-9-]+\.)*memed\.com\.br[^\s"'<>]*/gi, '[Memed URL redacted]')
-    .replace(/((?:api-key|secret-key|token)=)[^&\s]+/gi, '$1[Redacted]');
+const SENSITIVE_AUTH_QUERY_KEY = /^(?:code|token|token_hash|access_token|refresh_token|id_token|otp|otp_hash|recovery_token|password|secret|api[_-]?key)$/i;
+const SENSITIVE_AUTH_PATH = /\/auth\/reset-password\/?$/i;
+
+function redactSensitiveUrl(value: string): string {
+  try {
+    const url = new URL(value);
+    if (SENSITIVE_AUTH_PATH.test(url.pathname)) {
+      // Reset links may contain single-use OTP hashes or PKCE codes.
+      // Keep only the origin and path in telemetry.
+      return url.origin + url.pathname;
+    }
+
+    for (const key of Array.from(url.searchParams.keys())) {
+      if (SENSITIVE_AUTH_QUERY_KEY.test(key) || /(?:token|secret|password)/i.test(key)) {
+        url.searchParams.set(key, '[Redacted]');
+      }
+    }
+
+    const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
+    if (Array.from(hashParams.keys()).some((key) =>
+      SENSITIVE_AUTH_QUERY_KEY.test(key) || /(?:token|secret|password)/i.test(key),
+    )) {
+      url.hash = '';
+    }
+
+    return url.toString();
+  } catch {
+    return value.replace(/([?&#](?:code|token(?:_hash)?|access_token|refresh_token|id_token|otp(?:_hash)?|recovery_token|password|secret|api[_-]?key)=)[^&#\s"'<>]*/gi, '$1[Redacted]');
+  }
 }
 
+function redactMemedText(value: string): string {
+  return value
+    .replace(/https?:\/\/(?:[a-z0-9-]+\.)*memed\.com\.br[^\s"'<>]*/gi, '[Memed URL redacted]')
+    .replace(/([?&#](?:api-key|secret-key|token|token_hash|access_token|refresh_token|code|otp_hash|password|secret)=)[^&#\s"'<>]*/gi, '$1[Redacted]');
+}
 function redactTelemetry(value: unknown): unknown {
   if (typeof value === 'string') return redactMemedText(value);
   if (Array.isArray(value)) return value.map((item) => redactTelemetry(item));
@@ -149,7 +180,7 @@ function sanitizeEvent<T>(event: T): T {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Sentry event structure requires dynamic property access for sanitization
   const mutableEvent = event as Record<string, any>
 
-  if (typeof mutableEvent.request?.url === 'string') mutableEvent.request.url = redactMemedText(mutableEvent.request.url);
+  if (typeof mutableEvent.request?.url === 'string') mutableEvent.request.url = redactSensitiveUrl(mutableEvent.request.url);
   if (Array.isArray(mutableEvent.spans)) {
     mutableEvent.spans = mutableEvent.spans.map((span: Record<string, unknown>) => redactTelemetry(span));
   }
