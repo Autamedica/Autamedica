@@ -82,9 +82,6 @@ jobs:
           pnpm lint
           pnpm hardcode:check
 
-      - name: Build workspace packages
-        run: pnpm build:packages:core
-
       - name: Unit tests
         run: pnpm test:unit
 
