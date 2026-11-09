@@ -446,7 +446,7 @@ jobs:
           no_output_timeout: 20m
       - run:
           name: Build web application against isolated staging
-          working_directory: apps/web
+          working_directory: ~/project/apps/web
           command: |
             export PUBLIC_SUPABASE_URL="$STAGING_PUBLIC_SUPABASE_URL"
             export PUBLIC_SUPABASE_ANON_KEY="$STAGING_PUBLIC_SUPABASE_ANON_KEY"
@@ -463,7 +463,7 @@ jobs:
           no_output_timeout: 20m
       - run:
           name: Deploy all five isolated Cloudflare Pages Preview surfaces
-          working_directory: apps/web
+          working_directory: ~/project/apps/web
           command: |
             set -euo pipefail
             export CLOUDFLARE_API_TOKEN="$STAGING_CLOUDFLARE_API_TOKEN"
