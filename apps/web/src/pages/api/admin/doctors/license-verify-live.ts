@@ -189,7 +189,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     // Determine matrícula type (MN vs MP)
-    // If the enrollment entity or jurisdiction suggests a provincial registration, it is MP, otherwise MN
+    // Reconcile the explicitly entered prefix, stored license type, and jurisdiction.
     const requestedProvince = body.jurisdiction ?? doctor.enrollment_jurisdiction ?? undefined;
     const provinceKey = requestedProvince?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
     const province = provinceKey && ['caba', 'capital federal', 'ciudad autonoma de buenos aires'].includes(provinceKey)
@@ -197,7 +197,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const isProvincial = isNonEmptyString(province) && province !== 'CABA';
     // An explicit MN/MP prefix takes precedence over jurisdiction and legacy
     // fields (which can disagree with the registration actually being checked).
-    const prefix = matricula.trim().toUpperCase().match(/^(MN|MP)(?=\\s*[-.:/]?\\s*\\d)/)?.[1];
+    const prefix = matricula.trim().toUpperCase().match(/^(MN|MP)(?=\s*[-.:/]?\s*\d)/)?.[1];
     const recordedType = doctor.license_type === 'MN' || doctor.license_type === 'MP'
       ? doctor.license_type : null;
     const type: 'MN' | 'MP' = prefix === 'MN' || prefix === 'MP'
