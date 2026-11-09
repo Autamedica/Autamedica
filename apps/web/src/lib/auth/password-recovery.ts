@@ -1,24 +1,37 @@
 /**
  * Recognizes callback payloads supported by the password-recovery screen.
  *
- * Supabase PKCE redirects with ?code=..., while older implicit-flow links
- * may carry access_token in the query string or URL fragment.
+ * PKCE callbacks use ?code=..., older implicit-flow links may carry
+ * access_token, and scanner-safe email templates use token_hash + type.
  */
-export function hasPasswordRecoveryCallback(url: URL): boolean {
+function hasAuthError(url: URL): boolean {
   const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
-  const params = [url.searchParams, hashParams];
-  const hasAuthError = params.some((searchParams) =>
+  return [url.searchParams, hashParams].some((params) =>
     ['error', 'error_code', 'error_description'].some((key) => {
-      const value = searchParams.get(key);
+      const value = params.get(key);
       return typeof value === 'string' && value.trim().length > 0;
     }),
   );
+}
 
-  if (hasAuthError) return false;
+/** Returns a recovery token hash only for an explicit recovery callback. */
+export function getPasswordRecoveryTokenHash(url: URL): string | null {
+  if (hasAuthError(url) || url.searchParams.get('type') !== 'recovery') {
+    return null;
+  }
 
+  const tokenHash = url.searchParams.get('token_hash')?.trim();
+  return tokenHash || null;
+}
+
+export function hasPasswordRecoveryCallback(url: URL): boolean {
+  if (hasAuthError(url)) return false;
+  if (getPasswordRecoveryTokenHash(url)) return true;
+
+  const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
   const hasPkceCode = Boolean(url.searchParams.get('code')?.trim());
-  const hasAccessToken = params.some((searchParams) =>
-    Boolean(searchParams.get('access_token')?.trim()),
+  const hasAccessToken = [url.searchParams, hashParams].some((params) =>
+    Boolean(params.get('access_token')?.trim()),
   );
 
   return hasPkceCode || hasAccessToken;
