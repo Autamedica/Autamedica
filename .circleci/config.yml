@@ -101,6 +101,7 @@ jobs:
               src/lib/__tests__/password-recovery.test.ts \
               src/lib/__tests__/auth-recovery-session.test.ts \
               src/lib/__tests__/password-policy.test.ts
+              src/lib/__tests__/sentry-url-redaction.test.ts
           no_output_timeout: 10m
       - run:
           name: Web typecheck and non-deploying production build
