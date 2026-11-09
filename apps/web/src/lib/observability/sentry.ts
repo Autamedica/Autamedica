@@ -18,6 +18,14 @@ const BLOCKED_FIELD_NAMES = new Set([
   'authorization',
   'cpf',
   'token',
+  'token_hash',
+  'access_token',
+  'refresh_token',
+  'id_token',
+  'otp',
+  'otp_hash',
+  'recovery_token',
+  'password',
   'api-key',
   'secret-key',
   'data_nascimento',
@@ -109,14 +117,14 @@ function redactSensitiveUrl(value: string): string {
 function redactMemedText(value: string): string {
   return value
     .replace(/https?:\/\/(?:[a-z0-9-]+\.)*memed\.com\.br[^\s"'<>]*/gi, '[Memed URL redacted]')
-    .replace(/([?&#](?:api-key|secret-key|token|token_hash|access_token|refresh_token|code|otp_hash|password|secret)=)[^&#\s"'<>]*/gi, '$1[Redacted]');
+    .replace(/([?&#](?:api-key|secret-key|token|token_hash|access_token|refresh_token|id_token|code|otp|otp_hash|recovery_token|password|secret)=)[^&#\s"'<>]*/gi, '$1[Redacted]');
 }
 function redactTelemetry(value: unknown): unknown {
   if (typeof value === 'string') return redactMemedText(value);
   if (Array.isArray(value)) return value.map((item) => redactTelemetry(item));
   if (value && typeof value === 'object') {
     return Object.fromEntries(Object.entries(value).map(([key, item]) => [key,
-      ['cpf', 'api-key', 'secret-key', 'token', 'data_nascimento'].includes(key.toLowerCase())
+      ['cpf', 'api-key', 'secret-key', 'token', 'token_hash', 'access_token', 'refresh_token', 'id_token', 'otp', 'otp_hash', 'recovery_token', 'password', 'data_nascimento'].includes(key.toLowerCase())
         ? (typeof item === 'number' ? 0 : '[Redacted]') : redactTelemetry(item)]));
   }
   return value;
