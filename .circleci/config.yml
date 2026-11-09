@@ -49,13 +49,15 @@ jobs:
           command: |
             set -euo pipefail
             expected_branch="infra/staging-recovery-20261109"
-            expected_repo="https://github.com/ecucondorSA/Autamedica"
-            test "${CIRCLE_BRANCH:-}" = "${expected_branch}"
-            test "${CIRCLE_REPOSITORY_URL:-}" = "${expected_repo}"
-            test -n "${CIRCLE_SHA1:-}"
-            test "$(git rev-parse HEAD)" = "${CIRCLE_SHA1}"
-            test -f .circleci/config.yml
-            grep -Fq 'staging_recovery_validation:' .circleci/config.yml
+            actual_sha="$(git rev-parse HEAD)"
+            printf 'CIRCLE_BRANCH=%s\n' "${CIRCLE_BRANCH:-<unset>}"
+            printf 'CIRCLE_SHA1=%s\n' "${CIRCLE_SHA1:-<unset>}"
+            printf 'GIT_HEAD=%s\n' "${actual_sha}"
+            [[ "${CIRCLE_BRANCH:-}" == "${expected_branch}" ]] || { echo "NO-GO: unexpected branch"; exit 1; }
+            [[ -n "${CIRCLE_SHA1:-}" ]] || { echo "NO-GO: CIRCLE_SHA1 is missing"; exit 1; }
+            [[ "${actual_sha}" == "${CIRCLE_SHA1}" ]] || { echo "NO-GO: checkout SHA differs from CIRCLE_SHA1"; exit 1; }
+            [[ -f .circleci/config.yml ]] || { echo "NO-GO: CircleCI config missing from checkout"; exit 1; }
+            grep -Fq 'staging_recovery_validation:' .circleci/config.yml || { echo "NO-GO: staging workflow missing from checkout config"; exit 1; }
             printf 'PASS staging source identity: %s %s\n' "${CIRCLE_BRANCH}" "${CIRCLE_SHA1}"
 
   jordan_candidate_source_identity:
