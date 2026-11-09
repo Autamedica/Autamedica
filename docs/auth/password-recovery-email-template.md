@@ -7,7 +7,7 @@ In Supabase Dashboard → Authentication → Email Templates → Reset Password,
 ```html
 <h2>Recuperar senha da Autamedica</h2>
 <p>Recebemos uma solicitação para redefinir sua senha.</p>
-<p><a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery">Continuar para redefinir a senha</a></p>
+<p><a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=recovery">Continuar para redefinir a senha</a></p>
 <p>Se você não solicitou esta alteração, ignore este e-mail.</p>
 ```
 
