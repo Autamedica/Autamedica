@@ -55,6 +55,62 @@ jobs:
           name: Non-main candidate branch source and configuration fingerprint
           command: bash scripts/ci/verify-jordan-candidate-source.sh
 
+  auth_recovery_source_identity:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: small
+    environment:
+      AUTH_CI_CHECKOUT_SHA: "<< pipeline.git.revision >>"
+      AUTH_CI_CHECKOUT_BRANCH: "<< pipeline.git.branch >>"
+    steps:
+      - checkout
+      - run:
+          name: Verify isolated password-recovery source
+          command: |
+            set -euo pipefail
+            test "$AUTH_CI_CHECKOUT_BRANCH" = "fix/password-reset-pkce-flow-20261109"
+            test -n "$AUTH_CI_CHECKOUT_SHA"
+            test "$(git rev-parse HEAD)" = "$AUTH_CI_CHECKOUT_SHA"
+            echo "Validated password recovery candidate $AUTH_CI_CHECKOUT_SHA"
+
+  auth_recovery_web:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: medium
+    environment:
+      CI: "true"
+      HUSKY: "0"
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+    steps:
+      - checkout
+      - run:
+          name: Install locked workspace dependencies
+          command: |
+            corepack enable
+            corepack prepare pnpm@9.15.2 --activate
+            pnpm install --frozen-lockfile
+          no_output_timeout: 15m
+      - run:
+          name: Build workspace dependencies required by Vitest
+          command: pnpm --filter '@autamedica/web^...' run build
+          no_output_timeout: 15m
+      - run:
+          name: Password recovery PKCE and policy regressions
+          command: |
+            pnpm --filter @autamedica/web exec vitest run \
+              src/lib/__tests__/password-recovery.test.ts \
+              src/lib/__tests__/auth-recovery-session.test.ts \
+              src/lib/__tests__/password-policy.test.ts \
+              src/lib/__tests__/sentry-url-redaction.test.ts \
+              src/lib/__tests__/safe-auth-navigation.test.ts
+          no_output_timeout: 10m
+      - run:
+          name: Web typecheck and non-deploying production build
+          command: |
+            pnpm --filter @autamedica/web check
+            pnpm --filter @autamedica/web build
+          no_output_timeout: 15m
+
   smoke:
     docker:
       - image: cimg/node:22.15.0
@@ -462,3 +518,16 @@ workflows:
           requires:
             - android_release_bundle
           filters: *android_release_tag_filter
+
+  # Isolated, non-production validation for the PKCE password recovery fix.
+  # This workflow runs only on the dedicated PR branch and never deploys.
+  auth_recovery_validation:
+    jobs:
+      - auth_recovery_source_identity:
+          filters: &auth_recovery_branch_filter
+            branches:
+              only: fix/password-reset-pkce-flow-20261109
+      - auth_recovery_web:
+          requires:
+            - auth_recovery_source_identity
+          filters: *auth_recovery_branch_filter
