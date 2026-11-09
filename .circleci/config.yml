@@ -19,6 +19,9 @@ parameters:
   run_jordan_candidate:
     type: boolean
     default: false
+  run_staging_deploy:
+    type: boolean
+    default: false
 
 jobs:
   jordan_source_identity:
@@ -394,6 +397,103 @@ jobs:
               --skip_upload_screenshots
           no_output_timeout: 20m
 
+  staging_preview_deploy:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: medium
+    environment:
+      CI: "true"
+      HUSKY: "0"
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+    steps:
+      - checkout
+      - run:
+          name: Fail-closed staging credentials and project isolation guard
+          command: |
+            set -euo pipefail
+            expected="https://qqevyncgnanpmvauehys.supabase.co"
+            [[ "${STAGING_PUBLIC_SUPABASE_URL:-}" == "${expected}" ]] || {
+              echo "NO-GO: STAGING_PUBLIC_SUPABASE_URL must target the dedicated staging project"; exit 1;
+            }
+            for key in STAGING_PUBLIC_SUPABASE_ANON_KEY STAGING_PUBLIC_SIGNALING_URL STAGING_CLOUDFLARE_API_TOKEN STAGING_CLOUDFLARE_ACCOUNT_ID STAGING_CALLS_TURN_KEY_ID STAGING_CALLS_TURN_TOKEN; do
+              [[ -n "${!key:-}" ]] || { echo "NO-GO: missing required CircleCI staging context variable: ${key}"; exit 1; }
+            done
+            [[ "${CIRCLE_BRANCH:-}" == "infra/staging-recovery-20261109" ]] || {
+              echo "NO-GO: staging deployment is restricted to the recovery branch"; exit 1;
+            }
+            [[ "$(git rev-parse HEAD)" == "${CIRCLE_SHA1:-}" ]] || {
+              echo "NO-GO: checkout SHA does not match CircleCI pipeline SHA"; exit 1;
+            }
+            echo "Staging isolation guard passed; secret values were not printed."
+      - run:
+          name: Install locked workspace dependencies
+          command: |
+            corepack enable
+            corepack prepare pnpm@9.15.2 --activate
+            pnpm install --frozen-lockfile
+          no_output_timeout: 15m
+      - run:
+          name: Static validation and core package build
+          command: |
+            pnpm build:packages:core
+            pnpm typecheck
+            pnpm lint
+            pnpm hardcode:check
+          no_output_timeout: 20m
+      - run:
+          name: Unit tests
+          command: pnpm test:unit
+          no_output_timeout: 20m
+      - run:
+          name: Build web application against isolated staging
+          working_directory: apps/web
+          command: |
+            export PUBLIC_SUPABASE_URL="$STAGING_PUBLIC_SUPABASE_URL"
+            export PUBLIC_SUPABASE_ANON_KEY="$STAGING_PUBLIC_SUPABASE_ANON_KEY"
+            export PUBLIC_SIGNALING_URL="$STAGING_PUBLIC_SIGNALING_URL"
+            export PUBLIC_APP_URL="https://staging-recovery.autamedica-web.pages.dev"
+            export PUBLIC_PATIENTS_URL="https://staging-recovery.autamedica-patients.pages.dev"
+            export PUBLIC_DOCTORS_URL="https://staging-recovery.autamedica-doctors.pages.dev"
+            export PUBLIC_COMPANIES_URL="https://staging-recovery.autamedica-companies.pages.dev"
+            export PUBLIC_ADMIN_URL="https://staging-recovery.autamedica-admin.pages.dev"
+            export PUBLIC_GA4_MEASUREMENT_ID="${STAGING_GA4_MEASUREMENT_ID:-}"
+            export CLOUDFLARE_CALLS_TURN_KEY_ID="$STAGING_CALLS_TURN_KEY_ID"
+            export CLOUDFLARE_CALLS_TURN_TOKEN="$STAGING_CALLS_TURN_TOKEN"
+            pnpm build
+          no_output_timeout: 20m
+      - run:
+          name: Deploy all five isolated Cloudflare Pages Preview surfaces
+          working_directory: apps/web
+          command: |
+            set -euo pipefail
+            export CLOUDFLARE_API_TOKEN="$STAGING_CLOUDFLARE_API_TOKEN"
+            export CLOUDFLARE_ACCOUNT_ID="$STAGING_CLOUDFLARE_ACCOUNT_ID"
+            projects=(autamedica-web autamedica-doctors autamedica-patients autamedica-companies autamedica-admin)
+            for project in "${projects[@]}"; do
+              echo "Deploying ${project} to Preview branch staging-recovery"
+              pnpm dlx wrangler pages deploy dist --project-name="${project}" --branch="staging-recovery"
+            done
+          no_output_timeout: 20m
+      - run:
+          name: Verify Preview surfaces and dedicated Supabase staging endpoint
+          command: |
+            set -euo pipefail
+            sleep 15
+            projects=(autamedica-web autamedica-doctors autamedica-patients autamedica-companies autamedica-admin)
+            for project in "${projects[@]}"; do
+              url="https://staging-recovery.${project}.pages.dev"
+              status=$(curl --silent --show-error --location --output /dev/null --write-out '%{http_code}' --max-time 30 "${url}")
+              echo "${url}: HTTP ${status}"
+              [[ "${status}" == "200" || "${status}" == "302" ]] || {
+                echo "NO-GO: Preview verification failed for ${url}"; exit 1;
+              }
+            done
+            db_status=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 30 "${STAGING_PUBLIC_SUPABASE_URL}/rest/v1/")
+            echo "Dedicated staging REST endpoint: HTTP ${db_status}"
+            [[ "${db_status}" == "200" || "${db_status}" == "401" ]] || {
+              echo "NO-GO: dedicated staging REST endpoint returned HTTP ${db_status}"; exit 1;
+            }
+
 workflows:
   # Isolated staging recovery CI. This validates the candidate commit only;
   # it does not deploy or access Supabase/Cloudflare secrets.
@@ -404,6 +504,22 @@ workflows:
             branches:
               only: infra/staging-recovery-20261109
       - web:
+          requires:
+            - staging_source_identity
+          filters:
+            branches:
+              only: infra/staging-recovery-20261109
+
+  # Explicit manual staging deploy. Disabled by default and isolated to the recovery branch.
+  staging_preview_deploy_manual:
+    when: << pipeline.parameters.run_staging_deploy >>
+    jobs:
+      - staging_source_identity:
+          filters:
+            branches:
+              only: infra/staging-recovery-20261109
+      - staging_preview_deploy:
+          context: autamedica-staging-deploy
           requires:
             - staging_source_identity
           filters:
