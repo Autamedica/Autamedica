@@ -373,6 +373,27 @@ jobs:
           no_output_timeout: 20m
 
 workflows:
+  # Isolated staging recovery CI. This validates the candidate commit only;
+  # it does not deploy or access Supabase/Cloudflare secrets.
+  staging_recovery_validation:
+    jobs:
+      - jordan_candidate_source_identity:
+          filters:
+            branches:
+              only: infra/staging-recovery-20261109
+      - jordan_sql_contract:
+          requires:
+            - jordan_candidate_source_identity
+          filters:
+            branches:
+              only: infra/staging-recovery-20261109
+      - web:
+          requires:
+            - jordan_sql_contract
+          filters:
+            branches:
+              only: infra/staging-recovery-20261109
+
   # Release evidence must refer to exactly the chosen reviewed main commit.
   # Explicitly triggered with run_jordan_gate=true: no unattended credits,
   # production deployment, payment toggles or signed Play release.
