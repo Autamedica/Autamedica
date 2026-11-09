@@ -161,6 +161,17 @@ jobs:
             fi
           no_output_timeout: 10m
       - run:
+          name: RENAPER Argentina - patient scope, masked address, photo privacy and protected proxy
+          command: |
+            set -euo pipefail
+            pnpm --filter @autamedica/web exec vitest run \
+              src/lib/patients/services/renaper-identity-scope.test.ts \
+              src/lib/patients/services/renaper-display-privacy.test.ts \
+              src/lib/interoperability/non-fhir.supabase-proxy.test.ts \
+              src/lib/patients/lib/zod/patients-country-renaper.test.ts
+          no_output_timeout: 10m
+
+      - run:
           name: Web Astro typecheck and non-deploying production build
           command: |
             pnpm --filter @autamedica/web check
