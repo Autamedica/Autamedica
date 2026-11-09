@@ -403,15 +403,9 @@ workflows:
           filters:
             branches:
               only: infra/staging-recovery-20261109
-      - jordan_sql_contract:
-          requires:
-            - staging_source_identity
-          filters:
-            branches:
-              only: infra/staging-recovery-20261109
       - web:
           requires:
-            - jordan_sql_contract
+            - staging_source_identity
           filters:
             branches:
               only: infra/staging-recovery-20261109
