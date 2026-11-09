@@ -1,3 +1,5 @@
+import type { Json } from '@autamedica/types';
+
 /**
  * Cross-platform RENAPER scope: the caller can ask only for data linked to
  * their authenticated AutaMedica patient row in Argentina.
@@ -56,10 +58,10 @@ export function returnedRenaperDocumentMatches(
  * patients plus the existing per-account lookup counter.
  */
 export function buildMinimalRenaperAudit(
-  insuranceInfo: Record<string, unknown>,
+  insuranceInfo: Record<string, Json | undefined>,
   requestedDni: string,
   previousLookupCount: number,
-): Record<string, unknown> {
+): Record<string, Json | undefined> {
   // Purge previously injected raw official records when an account is
   // consulted again; historical rows need an independently reviewed cleanup.
   const { official_data: _discardSensitiveOfficialData, ...other } = insuranceInfo;
