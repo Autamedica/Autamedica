@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import type { Json } from '@autamedica/types';
 import { getUserIdFromRequest } from '@/lib/patients/api/auth';
 import { badRequest, internalError, jsonFail, jsonOk, serviceUnavailable, unauthorized } from '@/lib/api-helpers';
 import { checkRateLimit } from '@/lib/rate-limit';
@@ -93,9 +94,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return badRequest('No se encontró el registro de paciente correspondiente.');
   }
 
-  const insuranceInfo = (patient.insurance_info && typeof patient.insurance_info === 'object')
-    ? patient.insurance_info as Record<string, unknown>
-    : {};
+  // Supabase returns Json; accept only its object shape, never arbitrary unknown.
+  const insuranceInfo: Record<string, Json | undefined> =
+    patient.insurance_info && typeof patient.insurance_info === 'object' &&
+    !Array.isArray(patient.insurance_info)
+      ? patient.insurance_info as Record<string, Json | undefined>
+      : {};
 
   const lookupCount = typeof insuranceInfo['identity_lookup_count'] === 'number'
     ? insuranceInfo['identity_lookup_count'] as number
