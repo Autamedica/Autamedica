@@ -1,7 +1,35 @@
 import { describe, expect, it } from 'vitest';
-import { hasPasswordRecoveryCallback } from '../auth/password-recovery';
+import {
+  getPasswordRecoveryTokenHash,
+  hasPasswordRecoveryCallback,
+} from '../auth/password-recovery';
 
 describe('hasPasswordRecoveryCallback', () => {
+  it('recognizes a scanner-safe recovery token hash without redeeming it', () => {
+    const url = new URL(
+      'https://www.autamedica.com/auth/reset-password?token_hash=opaque-hash&type=recovery',
+    );
+
+    expect(hasPasswordRecoveryCallback(url)).toBe(true);
+    expect(getPasswordRecoveryTokenHash(url)).toBe('opaque-hash');
+  });
+
+  it('does not treat a token hash for another email action as password recovery', () => {
+    expect(
+      getPasswordRecoveryTokenHash(
+        new URL('https://www.autamedica.com/auth/reset-password?token_hash=hash&type=email'),
+      ),
+    ).toBeNull();
+  });
+
+  it('rejects an empty recovery token hash', () => {
+    expect(
+      getPasswordRecoveryTokenHash(
+        new URL('https://www.autamedica.com/auth/reset-password?token_hash=%20&type=recovery'),
+      ),
+    ).toBeNull();
+  });
+
   it('recognizes a Supabase PKCE recovery callback with a code query parameter', () => {
     expect(
       hasPasswordRecoveryCallback(
