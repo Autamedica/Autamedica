@@ -73,8 +73,8 @@ export function ResetPasswordForm({ locale = 'es' }: { locale?: Locale }) {
       return;
     }
 
-    if (password.length < 6) {
-      setError(t('auth.minPasswordLength'));
+    if (password.length < 12) {
+      setError(t('auth.resetPasswordMinLength'));
       setIsLoading(false);
       return;
     }
@@ -145,12 +145,12 @@ export function ResetPasswordForm({ locale = 'es' }: { locale?: Locale }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={12}
                 autoComplete="new-password"
                 disabled={isLoading}
-                aria-invalid={password.length > 0 && password.length < 6}
+                aria-invalid={password.length > 0 && password.length < 12}
                 className="w-full px-4 py-3 pr-12 bg-[var(--au-hover)] border-2 border-[var(--au-border)] rounded-xl text-[var(--au-text-primary)] placeholder:text-[var(--au-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--au-accent)] focus:border-transparent transition-all disabled:opacity-50"
-                placeholder={t('auth.passwordMinHint')}
+                placeholder={t('auth.resetPasswordMinHint')}
               />
               <button
                 type="button"
@@ -172,12 +172,12 @@ export function ResetPasswordForm({ locale = 'es' }: { locale?: Locale }) {
                 )}
               </button>
             </div>
-            {password.length > 0 && password.length < 6 && (
+            {password.length > 0 && password.length < 12 && (
               <p className="mt-2 text-xs text-yellow-400 flex items-center">
                 <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
-                {t('auth.needMinPassword')}
+                {t('auth.resetPasswordNeedMin')}
               </p>
             )}
           </div>
@@ -193,7 +193,7 @@ export function ResetPasswordForm({ locale = 'es' }: { locale?: Locale }) {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={12}
                 autoComplete="new-password"
                 disabled={isLoading}
                 aria-invalid={confirmPassword.length > 0 && password !== confirmPassword}
@@ -231,7 +231,7 @@ export function ResetPasswordForm({ locale = 'es' }: { locale?: Locale }) {
           </div>
 
           <AuthButton
-            disabled={isLoading || password.length < 6 || password !== confirmPassword}
+            disabled={isLoading || password.length < 12 || password !== confirmPassword}
             loading={isLoading}
             variant="primary"
             fullWidth
