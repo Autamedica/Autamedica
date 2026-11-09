@@ -38,6 +38,26 @@ jobs:
           name: Reject cross-branch, cross-commit or wrong-config Jordan builds
           command: bash scripts/ci/verify-jordan-main-source.sh
 
+  staging_source_identity:
+    docker:
+      - image: cimg/base:2025.02
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Verify isolated staging branch, repository and checkout SHA
+          command: |
+            set -euo pipefail
+            expected_branch="infra/staging-recovery-20261109"
+            expected_repo="https://github.com/ecucondorSA/Autamedica"
+            test "${CIRCLE_BRANCH:-}" = "${expected_branch}"
+            test "${CIRCLE_REPOSITORY_URL:-}" = "${expected_repo}"
+            test -n "${CIRCLE_SHA1:-}"
+            test "$(git rev-parse HEAD)" = "${CIRCLE_SHA1}"
+            test -f .circleci/config.yml
+            grep -Fq 'staging_recovery_validation:' .circleci/config.yml
+            printf 'PASS staging source identity: %s %s\n' "${CIRCLE_BRANCH}" "${CIRCLE_SHA1}"
+
   jordan_candidate_source_identity:
     docker:
       - image: cimg/node:22.15.0
@@ -377,13 +397,13 @@ workflows:
   # it does not deploy or access Supabase/Cloudflare secrets.
   staging_recovery_validation:
     jobs:
-      - jordan_candidate_source_identity:
+      - staging_source_identity:
           filters:
             branches:
               only: infra/staging-recovery-20261109
       - jordan_sql_contract:
           requires:
-            - jordan_candidate_source_identity
+            - staging_source_identity
           filters:
             branches:
               only: infra/staging-recovery-20261109
