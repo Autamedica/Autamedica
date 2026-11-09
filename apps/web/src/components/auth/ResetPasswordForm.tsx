@@ -1,8 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { initializePasswordRecoverySession, updatePassword } from '../../lib/auth/service';
-import { hasPasswordRecoveryCallback } from '../../lib/auth/password-recovery';
+import {
+  initializePasswordRecoverySession,
+  updatePassword,
+  verifyPasswordRecoveryToken,
+} from '../../lib/auth/service';
+import {
+  getPasswordRecoveryTokenHash,
+  hasPasswordRecoveryCallback,
+} from '../../lib/auth/password-recovery';
 import { meetsPasswordMinimum, MIN_PASSWORD_LENGTH } from '../../lib/auth/password-policy';
 import { AuthLogo } from './AuthLogo';
 import { AuthButton } from './AuthButton';
@@ -16,7 +23,9 @@ export function ResetPasswordForm({ locale = 'es' }: { locale?: Locale }) {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [linkStatus, setLinkStatus] = useState<'checking' | 'valid' | 'invalid'>('checking');
+  const [linkStatus, setLinkStatus] = useState<'checking' | 'awaiting_confirmation' | 'valid' | 'invalid'>('checking');
+  const [recoveryTokenHash, setRecoveryTokenHash] = useState<string | null>(null);
+  const [isVerifyingRecovery, setIsVerifyingRecovery] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -25,6 +34,17 @@ export function ResetPasswordForm({ locale = 'es' }: { locale?: Locale }) {
   useEffect(() => {
     let isMounted = true;
     const callbackUrl = new URL(window.location.href);
+
+    const tokenHash = getPasswordRecoveryTokenHash(callbackUrl);
+    if (tokenHash) {
+      // Do not redeem the single-use token on page load: email security
+      // scanners may prefetch this URL. Verify only after the user taps.
+      setRecoveryTokenHash(tokenHash);
+      setLinkStatus('awaiting_confirmation');
+      return () => {
+        isMounted = false;
+      };
+    }
 
     if (!hasPasswordRecoveryCallback(callbackUrl)) {
       setLinkStatus('invalid');
@@ -61,6 +81,38 @@ export function ResetPasswordForm({ locale = 'es' }: { locale?: Locale }) {
       isMounted = false;
     };
   }, []);
+
+  const handleConfirmRecoveryLink = async () => {
+    if (!recoveryTokenHash || isVerifyingRecovery) return;
+
+    setIsVerifyingRecovery(true);
+    setError(null);
+
+    try {
+      const result = await verifyPasswordRecoveryToken(recoveryTokenHash);
+      if (!result.ok) {
+        setLinkStatus('invalid');
+        setError(t('auth.invalidLink'));
+        return;
+      }
+
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('token_hash');
+      cleanUrl.searchParams.delete('type');
+      window.history.replaceState(
+        {},
+        document.title,
+        `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`,
+      );
+      setRecoveryTokenHash(null);
+      setLinkStatus('valid');
+    } catch {
+      setLinkStatus('invalid');
+      setError(t('auth.invalidLink'));
+    } finally {
+      setIsVerifyingRecovery(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,6 +175,22 @@ export function ResetPasswordForm({ locale = 'es' }: { locale?: Locale }) {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
+        </div>
+      )}
+
+      {linkStatus === 'awaiting_confirmation' && (
+        <div className="space-y-4">
+          <p className="text-sm text-center text-[var(--au-text-secondary)]">
+            {t('auth.recoveryLinkReady')}
+          </p>
+          <AuthButton
+            onClick={handleConfirmRecoveryLink}
+            loading={isVerifyingRecovery}
+            disabled={isVerifyingRecovery}
+            fullWidth
+          >
+            {isVerifyingRecovery ? t('auth.verifyingRecoveryLink') : t('auth.confirmRecoveryLink')}
+          </AuthButton>
         </div>
       )}
 
