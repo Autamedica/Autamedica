@@ -358,8 +358,8 @@ jobs:
               response=$(curl --fail --silent --show-error --max-time 30 \
                 "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${project}" \
                 -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-              prev_id=$(jq -er 'select(.success == true) | .result.canonical_deployment.id | select(type == "string" and length > 0)' <<< "${response}")
-              snapshots=$(jq -c --arg project "${project}" --arg id "${prev_id}" '. + {($project): $id}' <<< "${snapshots}")
+              prev_id=$(printf '%s' "${response}" | jq -er 'select(.success == true) | .result.canonical_deployment.id | select(type == "string" and length > 0)')
+              snapshots=$(printf '%s' "${snapshots}" | jq -c --arg project "${project}" --arg id "${prev_id}" '. + {($project): $id}')
               echo "Snapshot ${project} previous canonical deployment: ${prev_id}"
             done
             for project in "${projects[@]}"; do
@@ -368,7 +368,7 @@ jobs:
               response=$(curl --fail --silent --show-error --max-time 30 \
                 "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${project}" \
                 -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-              new_id=$(jq -er 'select(.success == true) | .result.canonical_deployment.id | select(type == "string" and length > 0)' <<< "${response}")
+              new_id=$(printf '%s' "${response}" | jq -er 'select(.success == true) | .result.canonical_deployment.id | select(type == "string" and length > 0)')
               echo "DEPLOYED_PROJECT=${project} DEPLOYMENT_ID=${new_id} COMMIT=${CIRCLE_SHA1}"
             done
           no_output_timeout: 20m
