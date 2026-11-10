@@ -349,7 +349,7 @@ jobs:
           no_output_timeout: 20m
       - run:
           name: Deploy all five Cloudflare Pages production projects via Wrangler
-          working_directory: ~/project/apps/web
+          working_directory: apps/web
           command: |
             set -euo pipefail
             snapshots='{}'
