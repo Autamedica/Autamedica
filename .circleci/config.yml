@@ -223,6 +223,25 @@ jobs:
             pnpm --filter @autamedica/web build
           no_output_timeout: 15m
 
+  # Parse/configuration probe for the CircleCI syntax-fix PR.
+  # The pipeline must parse this complete config before this branch-only job can start.
+  circleci_config_pr_probe:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Confirm CircleCI parsed the candidate config
+          command: |
+            set -euo pipefail
+            test -s .circleci/config.yml
+            if grep -nF '<<<' .circleci/config.yml; then
+              echo "NO-GO: Bash here-string remains in CircleCI YAML"
+              exit 1
+            fi
+            echo "PASS: CircleCI parsed this config and the forbidden here-string is absent."
+
   production_source_identity:
     docker:
       - image: cimg/node:22.15.0
@@ -717,6 +736,14 @@ workflows:
           requires:
             - auth_recovery_source_identity
           filters: *auth_recovery_branch_filter
+
+  # Run a non-deploying validation on the CI-fix PR branch itself.
+  circleci_config_pr_validation:
+    jobs:
+      - circleci_config_pr_probe:
+          filters:
+            branches:
+              only: fix/circleci-config-heredoc-escape-20261110
 
   # Production validation and Cloudflare Pages deployment for main.
   # Runs exclusively on main after smoke and web validation jobs succeed.
