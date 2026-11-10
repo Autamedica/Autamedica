@@ -401,12 +401,12 @@ jobs:
               [[ "${lic_status}" == "401" ]]
             done
             reset_html=$(curl --fail --silent --show-error -L --max-time 30 "https://www.autamedica.com/auth/reset-password")
-            reset_js_path=$(printf '%s' "${reset_html}" | grep -oE '/_astro/ResetPasswordForm\.[A-Za-z0-9_-]+\.js' | head -1)
+            reset_js_path=$(printf '%s' "${reset_html}" | grep -oE '/_astro/ResetPasswordForm\.[A-Za-z0-9_-]+\.js' | sed -n '1p')
             echo "Live ResetPasswordForm bundle: ${reset_js_path}"
             test -n "${reset_js_path}"
             reset_js=$(curl --fail --silent --show-error -L --max-time 30 "https://www.autamedica.com${reset_js_path}")
-            printf '%s' "${reset_js}" | grep -Fq "token_hash"
-            printf '%s' "${reset_js}" | grep -Fq "verifyOtp"
+            printf '%s' "${reset_js}" | grep -F "token_hash" >/dev/null
+            printf '%s' "${reset_js}" | grep -F "verifyOtp" >/dev/null
             echo "VERIFIED: Live production ResetPasswordForm bundle includes PKCE and scanner-safe token_hash recovery."
 
   android:
