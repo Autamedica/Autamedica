@@ -236,7 +236,7 @@ jobs:
           command: |
             set -euo pipefail
             test -s .circleci/config.yml
-            if grep -nF '<<<' .circleci/config.yml; then
+            if grep -nE '<{3}' .circleci/config.yml; then
               echo "NO-GO: Bash here-string remains in CircleCI YAML"
               exit 1
             fi
