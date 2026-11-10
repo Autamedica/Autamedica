@@ -223,6 +223,192 @@ jobs:
             pnpm --filter @autamedica/web build
           no_output_timeout: 15m
 
+  production_source_identity:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Verify main branch, repository and checkout SHA
+          command: |
+            set -euo pipefail
+            actual_sha="$(git rev-parse HEAD)"
+            printf 'CIRCLE_BRANCH=%s\n' "${CIRCLE_BRANCH:-<unset>}"
+            printf 'CIRCLE_SHA1=%s\n' "${CIRCLE_SHA1:-<unset>}"
+            printf 'GIT_HEAD=%s\n' "${actual_sha}"
+            [[ "${CIRCLE_BRANCH:-}" == "main" ]] || { echo "NO-GO: production deploy is restricted to main"; exit 1; }
+            [[ -n "${CIRCLE_SHA1:-}" ]] || { echo "NO-GO: CIRCLE_SHA1 is missing"; exit 1; }
+            [[ "${actual_sha}" == "${CIRCLE_SHA1}" ]] || { echo "NO-GO: checkout SHA differs from CIRCLE_SHA1"; exit 1; }
+            # Verify PR #747 commit (a331c1ff1cbfb417a885b7512db5bb6558c27827) is an ancestor of HEAD
+            git merge-base --is-ancestor a331c1ff1cbfb417a885b7512db5bb6558c27827 "${actual_sha}" || {
+              echo "NO-GO: HEAD does not include required commit a331c1ff1cbfb417a885b7512db5bb6558c27827"; exit 1;
+            }
+            printf 'PASS production source identity: main @ %s\n' "${actual_sha}"
+
+  production_validate_and_test:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: medium
+    environment:
+      CI: "true"
+      HUSKY: "0"
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+    steps:
+      - checkout
+      - run:
+          name: Install locked workspace dependencies
+          command: |
+            corepack enable
+            corepack prepare pnpm@9.15.2 --activate
+            pnpm install --frozen-lockfile
+          no_output_timeout: 15m
+      - run:
+          name: Build workspace core packages and run static validations
+          command: |
+            pnpm build:packages:core
+            pnpm typecheck
+            pnpm lint
+            pnpm hardcode:check
+          no_output_timeout: 20m
+      - run:
+          name: Password recovery PKCE, clinical dispatch and unit test suites
+          command: |
+            pnpm --filter @autamedica/web exec vitest run \
+              src/lib/__tests__/password-recovery.test.ts \
+              src/lib/__tests__/auth-recovery-session.test.ts \
+              src/lib/__tests__/password-policy.test.ts \
+              src/lib/__tests__/sentry-url-redaction.test.ts \
+              src/lib/__tests__/safe-auth-navigation.test.ts \
+              src/pages/api/pharmacy/dispatch/request.test.ts
+            pnpm test:unit
+          no_output_timeout: 20m
+
+  production_pages_deploy:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: medium
+    environment:
+      CI: "true"
+      HUSKY: "0"
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+    steps:
+      - checkout
+      - run:
+          name: Verify production credentials and main branch guard (without printing secrets)
+          command: |
+            set -euo pipefail
+            [[ "${CIRCLE_BRANCH:-}" == "main" ]] || {
+              echo "NO-GO: production deployment is restricted to main"; exit 1;
+            }
+            [[ "$(git rev-parse HEAD)" == "${CIRCLE_SHA1:-}" ]] || {
+              echo "NO-GO: checkout SHA does not match CircleCI pipeline SHA"; exit 1;
+            }
+            export PUBLIC_SUPABASE_URL="${PUBLIC_SUPABASE_URL:-${AUTAMEDICA_SUPABASE_URL:-https://qxjjrpksmwwrmubhvjew.supabase.co}}"
+            export PUBLIC_SUPABASE_ANON_KEY="${PUBLIC_SUPABASE_ANON_KEY:-${AUTAMEDICA_SUPABASE_ANON_KEY:-}}"
+            export PUBLIC_SIGNALING_URL="${PUBLIC_SIGNALING_URL:-wss://autamedica-http-signaling-server.marques-eduardo95466020.workers.dev/signaling}"
+            export PUBLIC_APP_URL="${PUBLIC_APP_URL:-https://www.autamedica.com}"
+            export RENAPDIS_RL_NUMBER="${RENAPDIS_RL_NUMBER:-RL-2026-47574120-APN-SSVEIYES#MS}"
+            missing=0
+            for key in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID PUBLIC_SUPABASE_URL PUBLIC_SUPABASE_ANON_KEY; do
+              if [[ -z "${!key:-}" ]]; then
+                echo "MISSING_REQUIRED_VARIABLE: ${key}"
+                missing=1
+              else
+                echo "PRESENT_VARIABLE: ${key}"
+              fi
+            done
+            if [[ "${missing}" -ne 0 ]]; then
+              echo "NO-GO: One or more required CircleCI environment variables are missing. Configure them in CircleCI Project Settings -> Environment Variables."
+              exit 1
+            fi
+      - run:
+          name: Install locked workspace dependencies
+          command: |
+            corepack enable
+            corepack prepare pnpm@9.15.2 --activate
+            pnpm install --frozen-lockfile
+          no_output_timeout: 15m
+      - run:
+          name: Build workspace core packages and @autamedica/web (apps/web -> dist)
+          command: |
+            export PUBLIC_GA4_MEASUREMENT_ID="G-YRN6QY3BTY"
+            export PUBLIC_SUPABASE_URL="${PUBLIC_SUPABASE_URL:-${AUTAMEDICA_SUPABASE_URL:-https://qxjjrpksmwwrmubhvjew.supabase.co}}"
+            export PUBLIC_SUPABASE_ANON_KEY="${PUBLIC_SUPABASE_ANON_KEY:-${AUTAMEDICA_SUPABASE_ANON_KEY:-}}"
+            export PUBLIC_SIGNALING_URL="${PUBLIC_SIGNALING_URL:-wss://autamedica-http-signaling-server.marques-eduardo95466020.workers.dev/signaling}"
+            export PUBLIC_APP_URL="${PUBLIC_APP_URL:-https://www.autamedica.com}"
+            export PUBLIC_PATIENTS_URL="https://paciente.autamedica.com"
+            export PUBLIC_DOCTORS_URL="https://doctor.autamedica.com"
+            export PUBLIC_COMPANIES_URL="https://empresa.autamedica.com"
+            export PUBLIC_ADMIN_URL="https://autamedica-admin.pages.dev"
+            export RENAPDIS_RL_NUMBER="${RENAPDIS_RL_NUMBER:-RL-2026-47574120-APN-SSVEIYES#MS}"
+            pnpm build:packages:core
+            pnpm --filter @autamedica/web build
+            test -d apps/web/dist
+            test -f apps/web/dist/_worker.js/index.js -o -d apps/web/dist/_astro
+          no_output_timeout: 20m
+      - run:
+          name: Deploy all five Cloudflare Pages production projects via Wrangler
+          working_directory: ~/project/apps/web
+          command: |
+            set -euo pipefail
+            snapshots='{}'
+            projects=(autamedica-web autamedica-doctors autamedica-patients autamedica-companies autamedica-admin)
+            for project in "${projects[@]}"; do
+              response=$(curl --fail --silent --show-error --max-time 30 \
+                "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${project}" \
+                -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+              prev_id=$(jq -er 'select(.success == true) | .result.canonical_deployment.id | select(type == "string" and length > 0)' <<< "${response}")
+              snapshots=$(jq -c --arg project "${project}" --arg id "${prev_id}" '. + {($project): $id}' <<< "${snapshots}")
+              echo "Snapshot ${project} previous canonical deployment: ${prev_id}"
+            done
+            for project in "${projects[@]}"; do
+              echo "Deploying ${project} from apps/web/dist to branch main..."
+              npx wrangler pages deploy dist --project-name="${project}" --branch=main --commit-hash="${CIRCLE_SHA1}" --commit-dirty=false
+              response=$(curl --fail --silent --show-error --max-time 30 \
+                "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${project}" \
+                -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+              new_id=$(jq -er 'select(.success == true) | .result.canonical_deployment.id | select(type == "string" and length > 0)' <<< "${response}")
+              echo "DEPLOYED_PROJECT=${project} DEPLOYMENT_ID=${new_id} COMMIT=${CIRCLE_SHA1}"
+            done
+          no_output_timeout: 20m
+      - run:
+          name: Post-deploy smoke verification of all production domains and PKCE bundle
+          command: |
+            set -euo pipefail
+            sleep 15
+            for url in \
+              https://www.autamedica.com \
+              https://autamedica.com \
+              https://auth.autamedica.com \
+              https://paciente.autamedica.com \
+              https://doctor.autamedica.com \
+              https://empresa.autamedica.com \
+              https://autamedica-admin.pages.dev
+            do
+              status=$(curl -so /dev/null -w '%{http_code}' -L --max-time 30 "${url}")
+              echo "${url}: HTTP ${status}"
+              [[ "${status}" == "200" || "${status}" == "302" ]]
+            done
+            status_404=$(curl -so /dev/null -w '%{http_code}' --max-time 30 "https://www.autamedica.com/nonexistent-$(date +%s).js")
+            [[ "${status_404}" == "404" ]]
+            for origin in https://www.autamedica.com https://autamedica-admin-5r9.pages.dev; do
+              lic_status=$(curl --silent --show-error --max-time 30 -o /dev/null -w '%{http_code}' \
+                -X POST -H 'Content-Type: application/json' \
+                --data '{"doctorId":"00000000-0000-0000-0000-000000000000","persist":false}' \
+                "${origin}/api/admin/doctors/license-verify-live")
+              echo "${origin} license verification: HTTP ${lic_status}"
+              [[ "${lic_status}" == "401" ]]
+            done
+            reset_html=$(curl --fail --silent --show-error -L --max-time 30 "https://www.autamedica.com/auth/reset-password")
+            reset_js_path=$(grep -oE '/_astro/ResetPasswordForm\.[A-Za-z0-9_-]+\.js' <<< "${reset_html}" | head -1)
+            echo "Live ResetPasswordForm bundle: ${reset_js_path}"
+            test -n "${reset_js_path}"
+            reset_js=$(curl --fail --silent --show-error -L --max-time 30 "https://www.autamedica.com${reset_js_path}")
+            grep -Fq "token_hash" <<< "${reset_js}"
+            grep -Fq "verifyOtp" <<< "${reset_js}"
+            echo "VERIFIED: Live production ResetPasswordForm bundle includes PKCE and scanner-safe token_hash recovery."
+
   android:
     docker:
       - image: cimg/android:2026.10
@@ -531,3 +717,26 @@ workflows:
           requires:
             - auth_recovery_source_identity
           filters: *auth_recovery_branch_filter
+
+  # Production validation and Cloudflare Pages deployment for main.
+  # Runs exclusively on main after smoke and web validation jobs succeed.
+  production_deploy_main:
+    jobs:
+      - production_source_identity:
+          filters: &production_main_branch_filter
+            branches:
+              only: main
+      - smoke:
+          requires:
+            - production_source_identity
+          filters: *production_main_branch_filter
+      - production_validate_and_test:
+          requires:
+            - production_source_identity
+          filters: *production_main_branch_filter
+      - production_pages_deploy:
+          requires:
+            - smoke
+            - production_validate_and_test
+          filters: *production_main_branch_filter
+
