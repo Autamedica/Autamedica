@@ -522,7 +522,7 @@ jobs:
             test "${CIRCLE_RELEASE_CONFIG_SHA:-}" = "$CIRCLE_RELEASE_SHA"
             test "$(git rev-parse HEAD)" = "$CIRCLE_RELEASE_SHA"
             echo "$tag" | grep -Eq '^android-v[0-9]+\.[0-9]+\.[0-9]+(-rc[1-9][0-9]*)?$'
-            version="$(sed -nE 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' apps/android/app/build.gradle.kts | head -1)"
+            version="$(sed -nE 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' apps/android/app/build.gradle.kts | sed -n '1p')"
             test -n "$version"
             tag_version="${tag#android-v}"
             tag_version="${tag_version%%-rc*}"
