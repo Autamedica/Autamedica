@@ -12,11 +12,12 @@ const SFU_SESSION_ACTION = /^sessions\/([A-Za-z0-9._-]{1,200})\/(tracks\/new|tra
 export async function authorizeEdgeSfuBinding(
   admin: SupabaseClient,
   roomId: string,
-  authenticatedUserId: string,
+  principalKey: string,
   path: string,
   body: unknown,
 ): Promise<boolean> {
-  if (roomId.length < 1 || roomId.length > 200 || !authenticatedUserId) return false
+  if (roomId.length < 1 || roomId.length > 200 ||
+      !/^(user|guest):[A-Za-z0-9._-]{8,200}$/.test(principalKey)) return false
   if (path === 'sessions/new') return true
   const match = SFU_SESSION_ACTION.exec(path)
   if (!match) return false
@@ -30,7 +31,7 @@ export async function authorizeEdgeSfuBinding(
     .maybeSingle()
   if (error) throw error
   if (!binding || binding.room_id !== roomId ||
-      binding.principal_key !== `user:${authenticatedUserId}`) return false
+      binding.principal_key !== principalKey) return false
 
   if (match[2] !== 'tracks/new') return true
   const tracks = (body as { tracks?: unknown } | null)?.tracks
@@ -64,18 +65,18 @@ export async function authorizeEdgeSfuBinding(
 export async function recordEdgeSfuSession(
   admin: SupabaseClient,
   roomId: string,
-  userId: string,
+  principalKey: string,
   upstream: unknown,
 ): Promise<boolean> {
   const sessionId = (upstream as { sessionId?: unknown } | null)?.sessionId
-  if (!userId || !roomId || typeof sessionId !== 'string' ||
-      !SFU_SESSION_ID.test(sessionId)) return false
+  if (!/^(user|guest):[A-Za-z0-9._-]{8,200}$/.test(principalKey) ||
+      !roomId || typeof sessionId !== 'string' || !SFU_SESSION_ID.test(sessionId)) return false
 
   const { error } = await admin.from('sfu_room_session_bindings')
     .insert({
       session_id: sessionId,
       room_id: roomId,
-      principal_key: `user:${userId}`,
+      principal_key: principalKey,
     })
   if (error) throw error
   return true
