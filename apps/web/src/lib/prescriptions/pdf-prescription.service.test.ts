@@ -300,6 +300,10 @@ describe('generatePrescriptionPdf', () => {
       expect(pdfText).toContain('SIN FIRMA - TEST');
       expect(pdfText).toContain('NO ASIGNADO - TEST');
       expect(pdfText).toContain('CUIR: NO ASIGNADO - TEST');
+      expect(pdfText).toContain('Sistema Nacional de Trazabilidad de Actos (RCTA)');
+      expect(pdfText).not.toContain('AUTAMEDICA - FARMALINK TEST');
+      expect(pdfText).not.toContain('NO APTA PARA DISPENSA');
+      expect(pdfText).not.toContain('SOLO TEST: sin firma, CUIR o QR');
       expect(pdfText).toContain('RL-2026-47574120-APN-SSVEIYES#MS');
       expect(pdfText).not.toContain('MODALIDAD GENERICO=');
       expect(pdfText).not.toContain('Sugerido:');
