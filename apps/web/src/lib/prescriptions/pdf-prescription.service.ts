@@ -764,39 +764,6 @@ export async function generatePrescriptionPdf(
     }
   }
 
-  // Firma Digital
-  const signatureY = 245;
-
-  if (!isHomologationTest && input.prescriber.signatureImageUrl) {
-    // Stamp visual signature image
-    try {
-      const sigResponse = await fetch(input.prescriber.signatureImageUrl);
-      const sigArrayBuf = await sigResponse.arrayBuffer();
-      const sigBase64 = arrayBufferToBase64(sigArrayBuf);
-      const sigFormat = input.prescriber.signatureImageUrl.includes('.webp') ? 'WEBP' : 'PNG';
-      const sigDataUrl = `data:image/${sigFormat.toLowerCase()};base64,${sigBase64}`;
-      doc.addImage(sigDataUrl, sigFormat, marginLeft, signatureY, 35, 20);
-    } catch {
-      // Fallback: draw placeholder if image fetch fails
-      doc.setFillColor(patientBgColor[0], patientBgColor[1], patientBgColor[2]);
-      doc.rect(marginLeft, signatureY, 35, 20, 'F');
-    }
-  }
-
-  if (!isHomologationTest && input.prescriber.stampImageUrl) {
-    // Stamp professional seal image
-    try {
-      const stampResponse = await fetch(input.prescriber.stampImageUrl);
-      const stampArrayBuf = await stampResponse.arrayBuffer();
-      const stampBase64 = arrayBufferToBase64(stampArrayBuf);
-      const stampFormat = input.prescriber.stampImageUrl.includes('.webp') ? 'WEBP' : 'PNG';
-      const stampDataUrl = `data:image/${stampFormat.toLowerCase()};base64,${stampBase64}`;
-      doc.addImage(stampDataUrl, stampFormat, marginLeft + 40, signatureY, 35, 20);
-    } catch {
-      // Silently skip stamp if fetch fails
-    }
-  }
-
   // Digital signature info box (next to visual signature)
   const infoBoxX = input.prescriber.stampImageUrl ? marginLeft + 80 : marginLeft + 40;
   const infoBoxWidth = pageWidth - 20 - infoBoxX;
