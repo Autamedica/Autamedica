@@ -799,7 +799,7 @@ export async function generatePrescriptionPdf(
   );
   doc.text(signatureLegend, infoBoxX + 3, signatureY + 10);
   const validatorY = signatureY + 10 + signatureLegend.length * 3.5;
-  if (isHomologationTest && !cuir) {
+  if (isHomologationTest && !input.existingCuir) {
     doc.text('Sin registro RCTA ni QR verificado.', infoBoxX + 3, validatorY);
     doc.text('Entorno: Farmalink TEST.', infoBoxX + 3, validatorY + 4);
   } else {
