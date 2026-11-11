@@ -287,7 +287,7 @@ describe('generatePrescriptionPdf', () => {
           instructions: '',
         },
       });
-      expect(artifacts.cuir).toBe('NO ASIGNADO - TEST');
+      expect(artifacts.cuir).toBe('');
       expect(artifacts.qrContent).toBe('');
       const pdfText = Buffer.from(artifacts.pdfBuffer).toString('latin1');
       expect(pdfText).toContain('GLICOLICOAC.ASOC.');
@@ -297,9 +297,6 @@ describe('generatePrescriptionPdf', () => {
       expect(pdfText).toContain('Plan: NO POSEE');
       expect(pdfText).toContain('CUIL PACIENTE');
       expect(pdfText).toContain(`RECETA FARMALINK: ${scenario.number}`);
-      expect(pdfText).toContain('SIN FIRMA - TEST');
-      expect(pdfText).toContain('NO ASIGNADO - TEST');
-      expect(pdfText).toContain('CUIR: NO ASIGNADO - TEST');
       expect(pdfText).toContain('Sistema Nacional de Trazabilidad de Actos (RCTA)');
       expect(pdfText).not.toContain('AUTAMEDICA - FARMALINK TEST');
       expect(pdfText).not.toContain('NO APTA PARA DISPENSA');
@@ -307,6 +304,14 @@ describe('generatePrescriptionPdf', () => {
       expect(pdfText).toContain('RL-2026-47574120-APN-SSVEIYES#MS');
       expect(pdfText).not.toContain('MODALIDAD GENERICO=');
       expect(pdfText).not.toContain('Sugerido:');
+      expect(pdfText).not.toContain('CUIR:');
+      expect(pdfText).not.toContain('SIN FIRMA - TEST');
+      expect(pdfText).not.toContain('Documento técnico DEMO');
+      expect(pdfText).not.toContain('Sin registro RCTA ni QR verificado');
+      expect(pdfText).not.toContain('Entorno: Farmalink TEST');
+      expect(pdfText).not.toContain('AUTAMEDICA - FARMALINK TEST');
+      expect(pdfText).not.toContain('NO APTA PARA DISPENSA');
+      expect(pdfText).not.toContain('SOLO TEST: sin firma, CUIR o QR');
       expect(pdfText).not.toContain('PREDNISOLONA');
       expect(pdfText).not.toContain('Validador RCTA');
       if (scenario.mode === 'S') expect(pdfText).not.toContain('ESFUMEL');
