@@ -3,6 +3,7 @@ package com.autamedica.android.presentation.videocall.webrtc.sfu
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.functions.functions
+import io.github.jan.supabase.exceptions.RestException
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.Headers
 import io.ktor.http.headersOf
@@ -66,11 +67,20 @@ class SupabaseCloudflareCallsApi(
         }
 
         com.autamedica.android.logging.SecureLog.info("[SFU-API] -> $method $path (roomId=$roomId)")
-        val response = supabaseClient.functions.invoke(
-            function = "cloudflare-calls",
-            body = payload,
-            headers = headers,
-        )
+        val response = try {
+            supabaseClient.functions.invoke(
+                function = "cloudflare-calls",
+                body = payload,
+                headers = headers,
+            )
+        } catch (error: RestException) {
+            // supabase-kt converts non-2xx function responses to RestException.
+            // Keep the original HTTP code (not its generic exception subclass).
+            val errorCode = runCatching {
+                json.parseToJsonElement(error.error).jsonObject["error"]?.jsonPrimitive?.contentOrNull
+            }.getOrNull()
+            throw CloudflareCallsApiException(error.statusCode, error.error, errorCode)
+        }
         val text = response.bodyAsText()
         if (response.status.value !in 200..299) {
             val errorCode = runCatching {
