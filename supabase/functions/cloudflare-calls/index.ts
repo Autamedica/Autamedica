@@ -178,10 +178,6 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   try {
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
-
     // Supabase Functions may attach the public anon key as its default bearer.
     // That key is not a user identity; only a verified access token is.
     const authorization = authHeader?.trim() ?? ''
