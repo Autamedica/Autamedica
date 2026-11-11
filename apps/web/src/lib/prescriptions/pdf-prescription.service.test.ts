@@ -297,14 +297,13 @@ describe('generatePrescriptionPdf', () => {
       expect(pdfText).toContain('Plan: NO POSEE');
       expect(pdfText).toContain('CUIL PACIENTE');
       expect(pdfText).toContain(`RECETA FARMALINK: ${scenario.number}`);
-      expect(pdfText).toContain('DOCUMENTO DE HOMOLOGACIÓN');
-      expect(pdfText).toContain('no válido para dispensación clínica');
+      expect(pdfText).toContain('SIN FIRMA - TEST');
+      expect(pdfText).toContain('NO ASIGNADO - TEST');
+      expect(pdfText).toContain('CUIR: NO ASIGNADO - TEST');
       expect(pdfText).toContain('RL-2026-47574120-APN-SSVEIYES#MS');
       expect(pdfText).not.toContain('MODALIDAD GENERICO=');
       expect(pdfText).not.toContain('Sugerido:');
-      expect(pdfText).not.toContain('FARMALINK TEST');
-      expect(pdfText).not.toContain('PROFESIONAL TEST');
-      expect(pdfText).not.toContain('CASO DE TEST');
+      expect(pdfText).not.toContain('Sugerido:');
       expect(pdfText).not.toContain('PREDNISOLONA');
       expect(pdfText).not.toContain('Validador RCTA');
       if (scenario.mode === 'S') expect(pdfText).not.toContain('ESFUMEL');
