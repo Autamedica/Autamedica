@@ -34,6 +34,7 @@ describe('Farmalink PDF affiliate reconciliation', () => {
     });
     const pdf = Buffer.from(output.pdfBuffer).toString('latin1');
     expect(pdf).toContain('Nro. afiliado / Credencial: 20123456786');
+    expect(pdf).toContain('Plan: NO POSEE');
     expect(pdf).toContain('Entidad: 7110');
     expect(pdf).toContain('Plan: 100');
     expect(pdf).toContain('CUIL: 27123456780');
@@ -57,7 +58,7 @@ describe('Farmalink PDF affiliate reconciliation', () => {
         presentation: 'Crema x 20 g', quantity: 1, instructions: 'Fixture TEST',
       },
       patient: { name: 'Demo Demo', dni: '12345678', cuil: '27123456780',
-        affiliateCredential: '20123456786', insuranceEntityCode: 7110, insurancePlan: '100' },
+        affiliateCredential: '20123456786', insuranceEntityCode: 7110, insurancePlan: 'NO POSEE' },
       prescriber: { name: 'Demo Demo', license: 'MN 11111' },
     });
     const pdf = Buffer.from(output.pdfBuffer).toString('latin1');
