@@ -267,7 +267,7 @@ describe('generatePrescriptionPdf', () => {
         patient: {
           name: 'Demo Demo', dni: '12345678', cuil: '27123456780',
           dateOfBirth: '2025-01-01', sex: 'Masculino',
-          insurancePlan: 'NO POSEE',
+          insurancePlan: '100',
           affiliateCredential: '20123456786',
           insuranceEntityCode: 7110,
         },
