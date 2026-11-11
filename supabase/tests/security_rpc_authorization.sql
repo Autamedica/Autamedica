@@ -16,6 +16,24 @@ BEGIN
     RAISE EXCEPTION 'patient self-read privileges were removed';
   END IF;
 
+  IF has_table_privilege('anon','public.clinic_financial_metrics','SELECT')
+     OR has_table_privilege('authenticated','public.clinic_financial_metrics','SELECT')
+     OR has_table_privilege('anon','public.telemedicine_sessions_canonical','SELECT')
+     OR has_table_privilege('authenticated','public.telemedicine_sessions_canonical','SELECT')
+     OR has_table_privilege('anon','public.v_db_health','SELECT')
+     OR has_table_privilege('authenticated','public.v_db_health','SELECT')
+     OR has_table_privilege('anon','public.user_identifiers','SELECT')
+     OR has_table_privilege('authenticated','public.user_identifiers','SELECT')
+     OR has_table_privilege('anon','public.clinical_gold_seasonal_metrics','SELECT')
+     OR has_table_privilege('authenticated','public.clinical_gold_seasonal_metrics','SELECT') THEN
+    RAISE EXCEPTION 'private clinical/financial projections are accessible to client roles';
+  END IF;
+  IF NOT has_table_privilege('service_role','public.clinic_financial_metrics','SELECT')
+     OR NOT has_table_privilege('service_role','public.telemedicine_sessions_canonical','SELECT')
+     OR NOT has_table_privilege('service_role','public.v_db_health','SELECT') THEN
+    RAISE EXCEPTION 'service_role projection access was removed';
+  END IF;
+
   PERFORM set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
   PERFORM set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 
