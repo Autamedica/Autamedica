@@ -80,6 +80,7 @@ data class VideoCallUiState(
     val isWaitingRoom: Boolean = true,
     val isPreviewOnlyMode: Boolean = false,
     val sessionStatusMessage: String? = "Esperando al médico...",
+    val isAuthorizationBlocked: Boolean = false,
     val isDoctor: Boolean = false,
     val appointmentNotes: String? = null,
     val consultationNotes: String = "",
@@ -179,6 +180,7 @@ class VideoCallViewModel @Inject constructor(
                     it.copy(
                         connectionState = ConnectionState.FAILED,
                         isWaitingRoom = true,
+                        isAuthorizationBlocked = true,
                         sessionStatusMessage = message,
                     )
                 }
@@ -249,6 +251,7 @@ class VideoCallViewModel @Inject constructor(
             it.copy(
                 connectionState = if (it.isDoctor || isIncomingCall) ConnectionState.CONNECTING else ConnectionState.DISCONNECTED,
                 isWaitingRoom = !it.isDoctor,
+                isAuthorizationBlocked = false,
                 sessionStatusMessage = when {
                     it.isDoctor -> "Conectando consultorio..."
                     isIncomingCall -> "Conectando con tu consulta..."
@@ -810,6 +813,7 @@ class VideoCallViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 connectionState = ConnectionState.CONNECTING,
+                isAuthorizationBlocked = false,
                 sessionStatusMessage = "Llamando al médico...",
             )
         }
@@ -1283,6 +1287,7 @@ class VideoCallViewModel @Inject constructor(
         _uiState.update { current ->
             current.copy(
                 connectionState = ConnectionState.CONNECTING,
+                isAuthorizationBlocked = false,
                 isPreviewOnlyMode = false,
                 isWaitingRoom = !current.isDoctor && !isPharmacyRoom,
                 sessionStatusMessage = if (!current.isDoctor) {

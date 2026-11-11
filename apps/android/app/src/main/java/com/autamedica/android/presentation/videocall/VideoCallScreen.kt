@@ -183,8 +183,10 @@ fun VideoCallScreen(
     )
 
     // Handle call end or abrupt failure after call was active
-    val isCallEndedOrFailed = uiState.connectionState == ConnectionState.DISCONNECTED ||
-        uiState.connectionState == ConnectionState.FAILED
+    val isCallEndedOrFailed = !uiState.isAuthorizationBlocked && (
+        uiState.connectionState == ConnectionState.DISCONNECTED ||
+            uiState.connectionState == ConnectionState.FAILED
+    )
 
     val hadActiveSession = uiState.callDurationSeconds > 0 ||
         uiState.activeCallId != null ||
@@ -342,6 +344,8 @@ fun VideoCallScreen(
                     else -> uiState.doctorName.ifBlank { "Médico de Guardia" }
                 }
                 val subtitleText = when {
+                    uiState.isAuthorizationBlocked && !uiState.sessionStatusMessage.isNullOrBlank() ->
+                        uiState.sessionStatusMessage.orEmpty()
                     uiState.connectionState == ConnectionState.FAILED -> "Error de conexión con la sala"
                     uiState.connectionState == ConnectionState.RECONNECTING -> "Reconectando..."
                     isPatientWaitingForDoctor -> "Buscando médico de guardia... Aguarde en línea mientras un profesional toma su consulta."
