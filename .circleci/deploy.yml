@@ -10,6 +10,15 @@ jobs:
       CI: "true"
       JAVA_HOME: "/usr/lib/jvm/java-17-openjdk-amd64"
       GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8"
+      CIRCLE_RELEASE_TAG: << pipeline.git.tag >>
+      CIRCLE_RELEASE_SHA: << pipeline.git.revision >>
+      CIRCLE_RELEASE_TRIGGER: << pipeline.trigger.type >>
+      CIRCLE_RELEASE_EVENT: << pipeline.event.name >>
+      CIRCLE_RELEASE_CONFIG_REF: << pipeline.config.ref >>
+      CIRCLE_RELEASE_CONFIG_SHA: << pipeline.config.sha >>
+      CIRCLE_RELEASE_CONFIG_REPO: << pipeline.config.repository.name >>
+      CIRCLE_RELEASE_OWNER: << pipeline.git.repo_owner >>
+      CIRCLE_RELEASE_REPO: << pipeline.git.repo_name >>
       COMPONENT_NAME: "<< pipeline.deploy.component_name >>"
       ENVIRONMENT_NAME: "<< pipeline.deploy.environment_name >>"
       NAMESPACE: "<< pipeline.deploy.namespace >>"
@@ -83,9 +92,9 @@ jobs:
             sha256sum "$aab"
           no_output_timeout: 25m
       - run:
-          name: Update deployment status to failed
-          command: circleci run release update --status=FAILED
-          when: on_fail
+          name: Perform deployment
+          command: |
+            # TODO: add deployment logic inferred from deploy job
       - run:
           name: Android failure diagnostics (cgroup memory only; no secrets)
           when: on_fail
@@ -97,6 +106,10 @@ jobs:
                 cat "$path"
               fi
             done
+      - run:
+          name: Update deployment status to failed
+          command: circleci run release update --status=FAILED
+          when: on_fail
       - persist_to_workspace:
           root: .
           paths:
@@ -187,8 +200,7 @@ jobs:
               --component-name=${COMPONENT_NAME} \
               --target-version=${TARGET_VERSION}
       - run:
-          name: Deploy all five Cloudflare Pages production projects via Wrangler
-          working_directory: apps/web
+          name: Perform deployment
           command: |
             set -euo pipefail
             snapshots='{}'
@@ -203,7 +215,9 @@ jobs:
             done
             for project in "${projects[@]}"; do
               echo "Deploying ${project} from apps/web/dist to branch main..."
+              cd apps/web
               npx wrangler pages deploy dist --project-name="${project}" --branch=main --commit-hash="${CIRCLE_SHA1}" --commit-dirty=false
+              cd - >/dev/null
               response=$(curl --fail --silent --show-error --max-time 30 \
                 "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${project}" \
                 -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
@@ -260,15 +274,15 @@ jobs:
           command: |
             circleci run release update production_pages_deploy \
               --status=CANCELED
-  production_pages_deploy-release:
-    type: release
-    plan_name: production_pages_deploy
-    validation:
-      enabled: true
-      auto_rollback_on_failure: true
   android_release_bundle-release:
     type: release
     plan_name: android_release_bundle
+    validation:
+      enabled: true
+      auto_rollback_on_failure: true
+  production_pages_deploy-release:
+    type: release
+    plan_name: production_pages_deploy
     validation:
       enabled: true
       auto_rollback_on_failure: true
