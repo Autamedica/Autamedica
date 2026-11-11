@@ -787,18 +787,20 @@ export async function generatePrescriptionPdf(
     doc.setFontSize(7);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
-    doc.text(isHomologationTest ? 'SIN FIRMA - TEST' : 'VERIFICACIÓN DE FIRMA', infoBoxX + sigInfoOffset, signatureY + 5);
+    const hasPrescriberSignature = Boolean(input.prescriber.signatureImageUrl);
+    const isUnsignedHomologation = isHomologationTest && !hasPrescriberSignature;
+    doc.text(isUnsignedHomologation ? 'SIN FIRMA - TEST' : 'VERIFICACIÓN DE FIRMA', infoBoxX + sigInfoOffset, signatureY + 5);
     doc.setFontSize(5.5);
     doc.setFont('helvetica', 'normal');
     const signatureLegend = doc.splitTextToSize(
-      isHomologationTest
+      isUnsignedHomologation
         ? 'Documento técnico DEMO: no está firmado por un profesional.'
         : 'Verificar la firma en el certificado PDF o registro del emisor.',
       infoBoxWidth - 6,
     );
     doc.text(signatureLegend, infoBoxX + 3, signatureY + 10);
     const validatorY = signatureY + 10 + signatureLegend.length * 3.5;
-    if (isHomologationTest) {
+    if (isHomologationTest && !cuir) {
       doc.text('Sin registro RCTA ni QR verificado.', infoBoxX + 3, validatorY);
       doc.text('Entorno: Farmalink TEST.', infoBoxX + 3, validatorY + 4);
     } else {
