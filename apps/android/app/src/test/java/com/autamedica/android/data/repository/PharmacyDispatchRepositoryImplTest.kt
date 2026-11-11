@@ -94,7 +94,7 @@ class PharmacyDispatchRepositoryImplTest {
                       "success": true,
                       "data": {
                         "request": {
-                          "id": "guest-cancel-1",
+                          "id": "11111111-1111-4111-8111-111111111111",
                           "patient_dni": "00000000",
                           "patient_phone": "000000000",
                           "patient_name": "Synthetic Example",
@@ -130,7 +130,7 @@ class PharmacyDispatchRepositoryImplTest {
         assertThat(repository.getGuestAccessTokenForRoom("synthetic-room-cancel"))
             .isEqualTo("synthetic-signed-cancel-token")
         assertThat(repository.getGuestAccessTokenForRoom("different-room")).isNull()
-        assertThat(requestId).isEqualTo("guest-cancel-1")
+        assertThat(requestId).isEqualTo("11111111-1111-4111-8111-111111111111")
     }
 
     @Test

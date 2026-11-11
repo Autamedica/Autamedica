@@ -2,7 +2,6 @@ package com.autamedica.android.presentation.videocall.webrtc.sfu
 
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.auth.currentSessionOrNull
 import io.github.jan.supabase.functions.functions
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.Headers
