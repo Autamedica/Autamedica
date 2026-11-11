@@ -58,7 +58,7 @@ describe('Farmalink PDF affiliate reconciliation', () => {
         presentation: 'Crema x 20 g', quantity: 1, instructions: 'Fixture TEST',
       },
       patient: { name: 'Demo Demo', dni: '12345678', cuil: '27123456780',
-        affiliateCredential: '20123456786', insuranceEntityCode: 7110, insurancePlan: 'NO POSEE' },
+        affiliateCredential: '20123456786', insuranceEntityCode: 7110, insurancePlan: '100' },
       prescriber: { name: 'Demo Demo', license: 'MN 11111' },
     });
     const pdf = Buffer.from(output.pdfBuffer).toString('latin1');
