@@ -469,7 +469,7 @@ const TEST_GUEST_SECRET = "autamedica-jordan-test-secret";
 
 function base64UrlEncode(bytes: Uint8Array): string {
   return btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join(""))
-    .replace(/\\+/g, "-").replace(/\\//g, "_").replace(/=+$/, "");
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 async function makeGuestToken(overrides: Partial<{

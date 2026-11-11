@@ -86,7 +86,7 @@ export async function verifyGuestToken(token: string, secret: string): Promise<G
   }
 }
 
-const TERMINAL_CALL_STATUSES = new Set(['declined', 'canceled', 'ended'])
+const TERMINAL_CALL_STATUSES = new Set(['declined', 'canceled', 'cancelled', 'ended', 'completed', 'expired'])
 
 const ALLOWED_PATHS = new RegExp(
   '^sessions/new$'
@@ -311,7 +311,7 @@ export async function handler(req: Request): Promise<Response> {
       room_id: string
       doctor_id: string | null
       patient_id: string | null
-      appointment_id: null
+      appointment_id: string | null
       status: string
     } | null = null
 
