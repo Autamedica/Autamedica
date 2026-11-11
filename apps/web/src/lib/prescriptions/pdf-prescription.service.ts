@@ -45,7 +45,7 @@ export interface PrescriptionPdfInput {
   // expiresAt is now derived but can be overridden
   expiresAt?: string;
   existingCuir?: string;
-  /** Explicitly unsigned TEST PDF: no RCTA/CUIR claim, no QR and no clinical signing. */
+  /** Homologation rendering reuses a supplied CUIR and skips external RCTA registration. */
   homologationTest?: boolean;
   homologationMode?: 'S' | 'N';
   externalPrescription?: {
@@ -958,8 +958,8 @@ export async function generatePrescriptionPdf(
 
   }
   const pdfBuffer = new Uint8Array(doc.output('arraybuffer'));
-  const pdfFilename = isHomologationTest
-    ? `farmalink-test-${input.externalPrescription?.number}.pdf`
+  const pdfFilename = input.externalPrescription?.provider === 'farmalink'
+    ? `farmalink-${input.externalPrescription.number}.pdf`
     : `receta-ar-${cuir}.pdf`;
 
   return { cuir, pdfBuffer, pdfFilename, qrDataUrl, qrContent };
