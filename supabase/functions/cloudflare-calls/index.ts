@@ -78,7 +78,7 @@ export async function verifyGuestToken(token: string, secret: string): Promise<G
         typeof payload.iat !== 'number' || !Number.isFinite(payload.iat) ||
         typeof payload.exp !== 'number' || !Number.isFinite(payload.exp)) return null
     const now = Math.floor(Date.now() / 1000)
-    if (now > payload.exp || payload.iat > now + 60 ||
+    if (now >= payload.exp || payload.iat > now + 60 ||
         payload.exp <= payload.iat || payload.exp - payload.iat > GUEST_TOKEN_TTL_SECONDS) return null
     return payload
   } catch {

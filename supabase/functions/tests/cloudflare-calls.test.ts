@@ -823,3 +823,26 @@ Deno.test("cloudflare-calls - invalid bearer JWT never falls back to a valid gue
     assertEquals(cloudflareCalls, 0);
   } finally { globalThis.fetch = originalFetch; }
 });
+
+
+Deno.test("cloudflare-calls - expired guest HMAC is rejected before dispatch lookup", async () => {
+  setEnv();
+  const token = await makeGuestToken({ exp: Math.floor(Date.now() / 1000) - 1 });
+  const response = await handler(new Request("http://localhost/cloudflare-calls", {
+    method: "POST", headers: { "x-guest-token": token },
+    body: JSON.stringify({ roomId: JORDAN_ROOM, method: "POST", path: "sessions/new", body: {} }),
+  }));
+  assertEquals(response.status, 401);
+});
+
+Deno.test("cloudflare-calls - tampered guest HMAC is rejected before dispatch lookup", async () => {
+  setEnv();
+  const token = await makeGuestToken();
+  const parts = token.split(".");
+  parts[1] = parts[1].slice(0, -1) + (parts[1].endsWith("A") ? "B" : "A");
+  const response = await handler(new Request("http://localhost/cloudflare-calls", {
+    method: "POST", headers: { "x-guest-token": parts.join(".") },
+    body: JSON.stringify({ roomId: JORDAN_ROOM, method: "POST", path: "sessions/new", body: {} }),
+  }));
+  assertEquals(response.status, 401);
+});

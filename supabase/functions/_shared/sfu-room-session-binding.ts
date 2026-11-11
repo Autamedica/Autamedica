@@ -5,8 +5,8 @@ const SFU_SESSION_ACTION = /^sessions\/([A-Za-z0-9._-]{1,200})\/(tracks\/new|tra
 
 /**
  * Edge function's service-role connection uses the SAME RLS-restricted session
- * registry as Astro web. Authorization of the actual authenticated participant
- * and the actual room MUST occur in the calling handler first.
+ * registry as Astro web. Authorization of the actual JWT user or signed guest
+ * principal, and the actual room MUST occur in the calling handler first.
  * Returns false on unregistered, expired, cross-room or cross-owner sessions.
  */
 export async function authorizeEdgeSfuBinding(
