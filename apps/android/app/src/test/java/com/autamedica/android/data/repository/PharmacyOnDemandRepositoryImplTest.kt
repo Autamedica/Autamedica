@@ -5,6 +5,7 @@ import com.google.common.truth.Truth.assertThat
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -35,7 +36,7 @@ class PharmacyOnDemandRepositoryImplTest {
     fun `cancelRequest uses request-scoped RPC and propagates network failures`() = runTest {
         val postgrest = mockk<Postgrest>(relaxed = true)
         every { supabaseClient.postgrest } returns postgrest
-        every { postgrest.rpc(any(), any()) } throws RuntimeException("Network timeout")
+        coEvery { postgrest.rpc(any(), any()) } throws RuntimeException("Network timeout")
 
         val result = repository.cancelRequest("req-123")
 
