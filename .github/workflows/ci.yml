@@ -46,8 +46,7 @@ env:
 
 jobs:
   build-gate:
-    if: >-
-      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]'
     name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -77,8 +76,7 @@ jobs:
           RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}
 
   lint-gate:
-    if: >-
-      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]'
     name: Lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -108,8 +106,7 @@ jobs:
           if grep -rnE "eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|sbp_[A-Za-z0-9]{20,}|SUPABASE_SERVICE_ROLE_KEY[[:space:]]*[:=][[:space:]]*['\"]|SUPABASE_ACCESS_TOKEN[[:space:]]*[:=][[:space:]]*['\"]" --include="*.ts" --include="*.js" --include="*.mjs" --include="*.sh" --include="*.yml" --include="*.yaml" --exclude="*.test.ts" --exclude="*.spec.ts" . --exclude-dir=".github" --exclude-dir="node_modules" | grep -vE "process\.env|import\.meta\.env|secrets\.|<token>|placeholder|REPLACE_WITH"; then FOUND=1; fi
           if [ "$FOUND" = "1" ]; then echo "::error::Hardcoded secrets detected"; exit 1; fi
   unit-tests:
-    if: >-
-      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]'
     name: Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -125,8 +122,7 @@ jobs:
           RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}
 
   clinical-edge-prescription:
-    if: >-
-      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]'
     name: Clinical Edge RX (Deno)
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -145,8 +141,7 @@ jobs:
         run: deno test --no-lock --allow-env --allow-net supabase/functions/tests/issue-prescription.test.ts
 
   database-tests:
-    if: >-
-      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]'
     name: Database & RLS
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -202,9 +197,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     needs: [build-gate, lint-gate, unit-tests, database-tests]
-    if: >-
-      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) &&
-      (always())
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && always()
     steps:
       - name: Evaluate gates
         run: |

@@ -7,6 +7,10 @@ on:
     paths:
       - '.github/workflows/farmalink-read-two-test.yml'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
