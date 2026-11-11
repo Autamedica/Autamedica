@@ -258,36 +258,33 @@ describe('generatePrescriptionPdf', () => {
         externalPrescription: {
           provider: 'farmalink',
           number: scenario.number,
-          barcodeTitle: 'FARMALINK TEST',
-          displayLabel: 'FARMALINK',
-          legend: 'Validacion Farmalink TEST',
+          barcodeTitle: 'RECETA FARMALINK',
+          displayLabel: 'RECETA FARMALINK',
+          legend: 'Número de receta para validación en farmacia',
         },
         issuedAt: '2026-11-03',
         expiresAt: '2026-11-19',
         patient: {
           name: 'Demo Demo', dni: '12345678', cuil: '27123456780',
           dateOfBirth: '2025-01-01', sex: 'Masculino',
-          insurancePlan: '100',
+          insurancePlan: 'NO POSEE',
           affiliateCredential: '20123456786',
           insuranceEntityCode: 7110,
-          address: 'Paciente de prueba, sin domicilio real',
         },
         prescriber: {
-          name: 'Demo Demo - PROFESIONAL TEST',
+          name: 'Demo Demo',
           license: 'MN 11111', licenseJurisdiction: 'MN',
-          licenseEntity: 'TEST', refeps: '123456789012',
-          specialty: 'Medico clinico (TEST)',
-          professionalAddress: 'Consultorio DEMO - Calle 11 Nro 2300',
+          specialty: 'Medico clinico',
+          professionalAddress: 'Consultorio particular CALLE 11 Nro 2300',
         },
-        diagnosis: 'I20.9 (codigo del ejemplo DEMO, sin indicacion clinica)',
-        notes: 'Prueba tecnica sin firma clinica; no dispensar.',
+        diagnosis: 'I20.9',
         medication: {
           genericName: 'GLICOLICOAC.ASOC.',
           commercialName: scenario.commercialName,
-          dosage: 'Presentacion TEST',
-          presentation: 'Crema x 20 g (segun producto 56800)',
+          dosage: '',
+          presentation: 'Crema x 20 g',
           quantity: 1,
-          instructions: 'Sin indicaciones clinicas: solo homologacion TEST',
+          instructions: '',
         },
       });
       expect(artifacts.cuir).toBe('NO ASIGNADO - TEST');
@@ -295,12 +292,19 @@ describe('generatePrescriptionPdf', () => {
       const pdfText = Buffer.from(artifacts.pdfBuffer).toString('latin1');
       expect(pdfText).toContain('GLICOLICOAC.ASOC.');
       expect(pdfText).toContain(scenario.number);
-      expect(pdfText).toContain('SIN FIRMA - TEST');
       expect(pdfText).toContain('Nro. afiliado / Credencial: 20123456786');
+      expect(pdfText).toContain('Entidad: 7110');
+      expect(pdfText).toContain('Plan: NO POSEE');
       expect(pdfText).toContain('CUIL PACIENTE');
+      expect(pdfText).toContain(`RECETA FARMALINK: ${scenario.number}`);
+      expect(pdfText).toContain('DOCUMENTO DE HOMOLOGACIÓN');
+      expect(pdfText).toContain('no válido para dispensación clínica');
       expect(pdfText).toContain('RL-2026-47574120-APN-SSVEIYES#MS');
       expect(pdfText).not.toContain('MODALIDAD GENERICO=');
-      expect(pdfText).toContain('NO ASIGNADO - TEST');
+      expect(pdfText).not.toContain('Sugerido:');
+      expect(pdfText).not.toContain('FARMALINK TEST');
+      expect(pdfText).not.toContain('PROFESIONAL TEST');
+      expect(pdfText).not.toContain('CASO DE TEST');
       expect(pdfText).not.toContain('PREDNISOLONA');
       expect(pdfText).not.toContain('Validador RCTA');
       if (scenario.mode === 'S') expect(pdfText).not.toContain('ESFUMEL');
