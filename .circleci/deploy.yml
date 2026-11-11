@@ -10,15 +10,6 @@ jobs:
       CI: "true"
       JAVA_HOME: "/usr/lib/jvm/java-17-openjdk-amd64"
       GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8"
-      CIRCLE_RELEASE_TAG: << pipeline.git.tag >>
-      CIRCLE_RELEASE_SHA: << pipeline.git.revision >>
-      CIRCLE_RELEASE_TRIGGER: << pipeline.trigger.type >>
-      CIRCLE_RELEASE_EVENT: << pipeline.event.name >>
-      CIRCLE_RELEASE_CONFIG_REF: << pipeline.config.ref >>
-      CIRCLE_RELEASE_CONFIG_SHA: << pipeline.config.sha >>
-      CIRCLE_RELEASE_CONFIG_REPO: << pipeline.config.repository.name >>
-      CIRCLE_RELEASE_OWNER: << pipeline.git.repo_owner >>
-      CIRCLE_RELEASE_REPO: << pipeline.git.repo_name >>
       COMPONENT_NAME: "<< pipeline.deploy.component_name >>"
       ENVIRONMENT_NAME: "<< pipeline.deploy.environment_name >>"
       NAMESPACE: "<< pipeline.deploy.namespace >>"
@@ -92,9 +83,9 @@ jobs:
             sha256sum "$aab"
           no_output_timeout: 25m
       - run:
-          name: Perform deployment
-          command: |
-            # TODO: add deployment logic inferred from deploy job
+          name: Update deployment status to failed
+          command: circleci run release update --status=FAILED
+          when: on_fail
       - run:
           name: Android failure diagnostics (cgroup memory only; no secrets)
           when: on_fail
@@ -106,15 +97,10 @@ jobs:
                 cat "$path"
               fi
             done
-      - run:
-          name: Update deployment status to failed
-          command: circleci run release update --status=FAILED
-          when: on_fail
       - persist_to_workspace:
           root: .
           paths:
             - apps/android/app/build/outputs/bundle/release
-
   cancel-android_release_bundle:
     docker:
       - image: cimg/base:stable
@@ -265,7 +251,6 @@ jobs:
           name: Update deployment status to failed
           command: circleci run release update --status=FAILED
           when: on_fail
-
   cancel-production_pages_deploy:
     docker:
       - image: cimg/base:stable
@@ -275,20 +260,19 @@ jobs:
           command: |
             circleci run release update production_pages_deploy \
               --status=CANCELED
-
   production_pages_deploy-release:
     type: release
     plan_name: production_pages_deploy
     validation:
       enabled: true
       auto_rollback_on_failure: true
-
   android_release_bundle-release:
     type: release
     plan_name: android_release_bundle
     validation:
       enabled: true
       auto_rollback_on_failure: true
+
 
 workflows:
   deploy:
@@ -310,30 +294,16 @@ workflows:
       - cancel-android_release_bundle:
           requires:
             - android_release_bundle
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^android-v[0-9]+\.[0-9]+\.[0-9]+(-rc[1-9][0-9]*)?$/
       - production_pages_deploy:
           filters:
             branches:
               only: main
-            tags:
-              ignore: /.*/
       - production_pages_deploy-release:
           requires:
             - production_pages_deploy
           filters:
             branches:
               only: main
-            tags:
-              ignore: /.*/
       - cancel-production_pages_deploy:
           requires:
             - production_pages_deploy
-          filters:
-            branches:
-              only: main
-            tags:
-              ignore: /.*/
