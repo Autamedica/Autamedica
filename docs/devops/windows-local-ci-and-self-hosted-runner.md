@@ -75,7 +75,7 @@ Start-Service -Name 'actions.runner.*'
 Stop-Service -Name 'actions.runner.*'
 ```
 
-Si no se configuró como servicio, el proceso interactivo se inicia desde el directorio del runner con `.`run.cmd`. No ejecutes `run.cmd` al mismo tiempo que el servicio.
+Si no se configuró como servicio, el proceso interactivo se inicia desde el directorio del runner con `.\run.cmd`. No ejecutes `run.cmd` al mismo tiempo que el servicio.
 
 ### Workflow de prueba aislado
 
