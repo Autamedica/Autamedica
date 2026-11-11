@@ -305,6 +305,7 @@ describe('generatePrescriptionPdf', () => {
       expect(pdfText).not.toContain('MODALIDAD GENERICO=');
       expect(pdfText).not.toContain('Sugerido:');
       expect(pdfText).not.toContain('CUIR:');
+      expect(pdfText).not.toContain('NO ASIGNADO - TEST');
       expect(pdfText).not.toContain('SIN FIRMA - TEST');
       expect(pdfText).not.toContain('Documento técnico DEMO');
       expect(pdfText).not.toContain('Sin registro RCTA ni QR verificado');
