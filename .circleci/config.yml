@@ -223,6 +223,25 @@ jobs:
             pnpm --filter @autamedica/web build
           no_output_timeout: 15m
 
+  # Parse/configuration probe for the CircleCI syntax-fix PR.
+  # The pipeline must parse this complete config before this branch-only job can start.
+  circleci_config_pr_probe:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Confirm CircleCI parsed the candidate config
+          command: |
+            set -euo pipefail
+            test -s .circleci/config.yml
+            if grep -nE '<{3}' .circleci/config.yml; then
+              echo "NO-GO: Bash here-string remains in CircleCI YAML"
+              exit 1
+            fi
+            echo "PASS: CircleCI parsed this config and the forbidden here-string is absent."
+
   production_source_identity:
     docker:
       - image: cimg/node:22.15.0
@@ -349,7 +368,7 @@ jobs:
           no_output_timeout: 20m
       - run:
           name: Deploy all five Cloudflare Pages production projects via Wrangler
-          working_directory: ~/project/apps/web
+          working_directory: apps/web
           command: |
             set -euo pipefail
             snapshots='{}'
@@ -358,8 +377,8 @@ jobs:
               response=$(curl --fail --silent --show-error --max-time 30 \
                 "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${project}" \
                 -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-              prev_id=$(jq -er 'select(.success == true) | .result.canonical_deployment.id | select(type == "string" and length > 0)' <<< "${response}")
-              snapshots=$(jq -c --arg project "${project}" --arg id "${prev_id}" '. + {($project): $id}' <<< "${snapshots}")
+              prev_id=$(printf '%s' "${response}" | jq -er 'select(.success == true) | .result.canonical_deployment.id | select(type == "string" and length > 0)')
+              snapshots=$(printf '%s' "${snapshots}" | jq -c --arg project "${project}" --arg id "${prev_id}" '. + {($project): $id}')
               echo "Snapshot ${project} previous canonical deployment: ${prev_id}"
             done
             for project in "${projects[@]}"; do
@@ -368,7 +387,7 @@ jobs:
               response=$(curl --fail --silent --show-error --max-time 30 \
                 "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${project}" \
                 -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-              new_id=$(jq -er 'select(.success == true) | .result.canonical_deployment.id | select(type == "string" and length > 0)' <<< "${response}")
+              new_id=$(printf '%s' "${response}" | jq -er 'select(.success == true) | .result.canonical_deployment.id | select(type == "string" and length > 0)')
               echo "DEPLOYED_PROJECT=${project} DEPLOYMENT_ID=${new_id} COMMIT=${CIRCLE_SHA1}"
             done
           no_output_timeout: 20m
@@ -401,12 +420,12 @@ jobs:
               [[ "${lic_status}" == "401" ]]
             done
             reset_html=$(curl --fail --silent --show-error -L --max-time 30 "https://www.autamedica.com/auth/reset-password")
-            reset_js_path=$(grep -oE '/_astro/ResetPasswordForm\.[A-Za-z0-9_-]+\.js' <<< "${reset_html}" | head -1)
+            reset_js_path=$(printf '%s' "${reset_html}" | grep -oE '/_astro/ResetPasswordForm\.[A-Za-z0-9_-]+\.js' | sed -n '1p')
             echo "Live ResetPasswordForm bundle: ${reset_js_path}"
             test -n "${reset_js_path}"
             reset_js=$(curl --fail --silent --show-error -L --max-time 30 "https://www.autamedica.com${reset_js_path}")
-            grep -Fq "token_hash" <<< "${reset_js}"
-            grep -Fq "verifyOtp" <<< "${reset_js}"
+            printf '%s' "${reset_js}" | grep -F "token_hash" >/dev/null
+            printf '%s' "${reset_js}" | grep -F "verifyOtp" >/dev/null
             echo "VERIFIED: Live production ResetPasswordForm bundle includes PKCE and scanner-safe token_hash recovery."
 
   android:
@@ -503,7 +522,7 @@ jobs:
             test "${CIRCLE_RELEASE_CONFIG_SHA:-}" = "$CIRCLE_RELEASE_SHA"
             test "$(git rev-parse HEAD)" = "$CIRCLE_RELEASE_SHA"
             echo "$tag" | grep -Eq '^android-v[0-9]+\.[0-9]+\.[0-9]+(-rc[1-9][0-9]*)?$'
-            version="$(sed -nE 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' apps/android/app/build.gradle.kts | head -1)"
+            version="$(sed -nE 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' apps/android/app/build.gradle.kts | sed -n '1p')"
             test -n "$version"
             tag_version="${tag#android-v}"
             tag_version="${tag_version%%-rc*}"
@@ -717,6 +736,14 @@ workflows:
           requires:
             - auth_recovery_source_identity
           filters: *auth_recovery_branch_filter
+
+  # Run a non-deploying validation on the CI-fix PR branch itself.
+  circleci_config_pr_validation:
+    jobs:
+      - circleci_config_pr_probe:
+          filters:
+            branches:
+              only: fix/circleci-config-heredoc-escape-20261110
 
   # Production validation and Cloudflare Pages deployment for main.
   # Runs exclusively on main after smoke and web validation jobs succeed.
