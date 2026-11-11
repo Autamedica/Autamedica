@@ -40,6 +40,13 @@ internal fun buildGuestTokenHeaders(hasJwtSession: Boolean, guestToken: String?)
     return headersOf("x-guest-token", token)
 }
 
+internal fun cloudflareAuthorizationMessage(httpStatus: Int): String? = when (httpStatus) {
+    401 -> "La autorización de invitado venció o no es válida. Volvé a iniciar el acceso a la consulta."
+    402 -> "El pago de R$79 todavía no está aprobado. Verificá el pago antes de ingresar a la consulta."
+    403 -> "Esta sala no corresponde a tu solicitud o no tenés permiso para acceder."
+    else -> null
+}
+
 class SupabaseCloudflareCallsApi(
     private val supabaseClient: SupabaseClient,
     private val json: Json,

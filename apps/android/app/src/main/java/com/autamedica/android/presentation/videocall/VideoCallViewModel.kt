@@ -172,6 +172,20 @@ class VideoCallViewModel @Inject constructor(
         guestTokenProvider = { roomId ->
             pharmacyDispatchRepository.getGuestAccessTokenForRoom(roomId)
         },
+        onAuthorizationError = { error ->
+            val message = cloudflareAuthorizationMessage(error.httpStatus)
+            if (message != null) {
+                _uiState.update {
+                    it.copy(
+                        connectionState = ConnectionState.FAILED,
+                        isWaitingRoom = true,
+                        sessionStatusMessage = message,
+                    )
+                }
+                videoCallStateHolder.setInVideoCall(false)
+                CallNotificationService.stop(context)
+            }
+        },
     )
 
     private val turnManager = TurnManager(

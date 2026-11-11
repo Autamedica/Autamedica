@@ -27,6 +27,17 @@ class CloudflareCallsApiTest {
     }
 
     @Test
+    fun `authorization errors have explicit user-facing messages for 401 402 and 403`() {
+        assertThat(cloudflareAuthorizationMessage(401))
+            .contains("autorización de invitado")
+        assertThat(cloudflareAuthorizationMessage(402))
+            .contains("R$79")
+        assertThat(cloudflareAuthorizationMessage(403))
+            .contains("no tenés permiso")
+        assertThat(cloudflareAuthorizationMessage(500)).isNull()
+    }
+
+    @Test
     fun `authorization errors preserve explicit HTTP status semantics`() {
         val unauthorized = CloudflareCallsApiException(401, "invalid_guest_token", "invalid_guest_token")
         val paymentRequired = CloudflareCallsApiException(402, "jordan_payment_required", "jordan_payment_required")
