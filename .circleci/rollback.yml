@@ -1,0 +1,84 @@
+version: 2.1
+
+jobs:
+  production_pages_deploy-rollback:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: medium
+    environment:
+      CI: "true"
+      HUSKY: "0"
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      COMPONENT_NAME: "<< pipeline.deploy.component_name >>"
+      ENVIRONMENT_NAME: "<< pipeline.deploy.environment_name >>"
+      NAMESPACE: "<< pipeline.deploy.namespace >>"
+      TARGET_VERSION: "<< pipeline.deploy.target_version >>"
+    steps:
+      - checkout
+      - run:
+          name: Plan rollback
+          command: |
+            circleci run release plan production_pages_deploy-rollback \
+              --environment-name=${ENVIRONMENT_NAME} \
+              --namespace=${NAMESPACE} \
+              --component-name=${COMPONENT_NAME} \
+              --target-version=${TARGET_VERSION} \
+              --rollback
+      - run:
+          name: Install locked workspace dependencies
+          command: |
+            corepack enable
+            corepack prepare pnpm@9.15.2 --activate
+            pnpm install --frozen-lockfile
+          no_output_timeout: 15m
+      - run:
+          name: Perform rollback to target version
+          command: |
+            set -euo pipefail
+            export PUBLIC_GA4_MEASUREMENT_ID="G-YRN6QY3BTY"
+            export PUBLIC_SUPABASE_URL="${PUBLIC_SUPABASE_URL:-${AUTAMEDICA_SUPABASE_URL:-https://qxjjrpksmwwrmubhvjew.supabase.co}}"
+            export PUBLIC_SUPABASE_ANON_KEY="${PUBLIC_SUPABASE_ANON_KEY:-${AUTAMEDICA_SUPABASE_ANON_KEY:-}}"
+            export PUBLIC_SIGNALING_URL="${PUBLIC_SIGNALING_URL:-wss://autamedica-http-signaling-server.marques-eduardo95466020.workers.dev/signaling}"
+            export PUBLIC_APP_URL="${PUBLIC_APP_URL:-https://www.autamedica.com}"
+            export PUBLIC_PATIENTS_URL="https://paciente.autamedica.com"
+            export PUBLIC_DOCTORS_URL="https://doctor.autamedica.com"
+            export PUBLIC_COMPANIES_URL="https://empresa.autamedica.com"
+            export PUBLIC_ADMIN_URL="https://autamedica-admin.pages.dev"
+            export RENAPDIS_RL_NUMBER="${RENAPDIS_RL_NUMBER:-RL-2026-47574120-APN-SSVEIYES#MS}"
+
+            # TODO: add rollback logic using ${TARGET_VERSION}
+            # The deploy job uses Wrangler to deploy from dist to Cloudflare Pages.
+            # Rollback requires retrieving the deployment artifact for ${TARGET_VERSION}
+            # and redeploying it, or using Cloudflare API to activate a previous deployment.
+            # Exact rollback mechanism depends on how TARGET_VERSION maps to Cloudflare deployment IDs.
+            echo "Rolling back to version: ${TARGET_VERSION}"
+      - run:
+          name: Update deployment status to failed
+          command: circleci run release update production_pages_deploy-rollback --status=FAILED
+          when: on_fail
+  cancel-production_pages_deploy-rollback:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - run:
+          name: Update planned release to CANCELED
+          command: |
+            circleci run release update production_pages_deploy-rollback \
+              --status=CANCELED
+  production_pages_deploy-rollback-release:
+    type: release
+    plan_name: production_pages_deploy-rollback
+    validation:
+      enabled: true
+
+workflows:
+  rollback:
+    jobs:
+      - production_pages_deploy-rollback
+      - production_pages_deploy-rollback-release:
+          requires:
+            - production_pages_deploy-rollback
+      - cancel-production_pages_deploy-rollback:
+          requires:
+            - production_pages_deploy-rollback:
+                when: canceled
