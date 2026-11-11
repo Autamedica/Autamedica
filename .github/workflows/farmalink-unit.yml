@@ -2,6 +2,7 @@ name: Farmalink contract + PDF regression tests (mock only)
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'apps/web/src/lib/prescriptions/**'
       - 'scripts/farmalink/**'
@@ -11,6 +12,10 @@ on:
       - test/farmalink-oauth-smoke-20261103
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ (github.actor == 'coderabbitai[bot]' || github.actor == 'circleci-app[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.draft)) && 'ignored' || 'active' }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -19,6 +24,8 @@ env:
 
 jobs:
   farmalink-unit:
+    if: >-
+      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     name: Farmalink Vitest + PDF smoke (offline)
     runs-on: ubuntu-latest
     timeout-minutes: 8

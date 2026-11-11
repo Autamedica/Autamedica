@@ -6,5 +6,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 2
     steps:
       - run: echo "Hello from ubuntu-latest"

@@ -2,6 +2,7 @@ name: Quality Gates
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches: [main]
     paths:
       - 'apps/**'
@@ -22,6 +23,10 @@ on:
   schedule:
     - cron: '0 6 * * 1'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ (github.actor == 'coderabbitai[bot]' || github.actor == 'circleci-app[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.draft)) && 'ignored' || 'active' }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -37,7 +42,10 @@ jobs:
   changes:
     name: Detect
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    timeout-minutes: 5
+    if: >-
+      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) &&
+      (github.event_name == 'pull_request')
     outputs:
       migrations: ${{ steps.filter.outputs.migrations }}
       functions: ${{ steps.filter.outputs.functions }}
@@ -72,10 +80,9 @@ jobs:
     name: DB Type Drift
     runs-on: ubuntu-latest
     needs: changes
-    if: |
-      github.event_name == 'schedule' ||
-      needs.changes.outputs.migrations == 'true' ||
-      needs.changes.outputs.types == 'true'
+    if: >-
+      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) &&
+      (github.event_name == 'schedule' || needs.changes.outputs.migrations == 'true' || needs.changes.outputs.types == 'true')
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -89,9 +96,9 @@ jobs:
     name: Architecture v2
     runs-on: ubuntu-latest
     needs: changes
-    if: |
-      github.event_name == 'schedule' ||
-      needs.changes.outputs.architecture == 'true'
+    if: >-
+      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) &&
+      (github.event_name == 'schedule' || needs.changes.outputs.architecture == 'true')
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -106,9 +113,9 @@ jobs:
     name: Edge Functions
     runs-on: ubuntu-latest
     needs: changes
-    if: |
-      github.event_name == 'schedule' ||
-      needs.changes.outputs.functions == 'true'
+    if: >-
+      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) &&
+      (github.event_name == 'schedule' || needs.changes.outputs.functions == 'true')
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -137,6 +144,8 @@ jobs:
           exit "$status"
 
   clinical-coherence:
+    if: >-
+      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     name: Clinical
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -153,6 +162,8 @@ jobs:
           fi
 
   policy:
+    if: >-
+      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     name: Policies
     runs-on: ubuntu-latest
     timeout-minutes: 5

@@ -2,11 +2,16 @@ name: Migration Replay - Disposable Database Audit
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'supabase/migrations/**'
       - 'supabase/config.toml'
       - '.github/workflows/migration-replay-audit.yml'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ (github.actor == 'coderabbitai[bot]' || github.actor == 'circleci-app[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.draft)) && 'ignored' || 'active' }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -14,6 +19,8 @@ permissions:
 
 jobs:
   fresh-schema-replay:
+    if: >-
+      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     name: Replay migrations in disposable local Supabase
     runs-on: ubuntu-24.04
     timeout-minutes: 25

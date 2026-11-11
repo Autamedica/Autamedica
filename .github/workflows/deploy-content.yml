@@ -8,7 +8,7 @@ on:
       - 'apps/web/src/pages/sitemap.xml.ts'
 
 concurrency:
-  group: deploy-content
+  group: ${{ github.workflow }}
   cancel-in-progress: false
 
 permissions:

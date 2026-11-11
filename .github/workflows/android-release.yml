@@ -29,8 +29,8 @@ on:
         default: false
 
 concurrency:
-  group: android-release-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -179,6 +179,7 @@ jobs:
           echo "- **Status:** ✅ Compilación y firma de release exitosas" >> $GITHUB_STEP_SUMMARY
 
   upload-play-store:
+    timeout-minutes: 15
     name: Deploy to Google Play Console
     runs-on: ubuntu-latest
     needs: build-release-aab
