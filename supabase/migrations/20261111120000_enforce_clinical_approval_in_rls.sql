@@ -22,7 +22,7 @@ $function$;
 REVOKE ALL ON FUNCTION public.is_clinically_approved_doctor()
   FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.is_clinically_approved_doctor()
-  TO authenticated, service_role;
+  TO anon, authenticated, service_role;
 
 -- doctor_has_patient_access is itself a clinical authorization helper. Do not
 -- let its SECURITY DEFINER context turn a technical doctor row into clearance.
