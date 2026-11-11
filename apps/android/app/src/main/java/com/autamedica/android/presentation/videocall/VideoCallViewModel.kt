@@ -27,6 +27,7 @@ import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.DoctorRepository
 import com.autamedica.android.domain.repository.MedicalCertificateRepository
 import com.autamedica.android.domain.repository.PrescriptionRepository
+import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.logging.SecureLog
 import com.autamedica.android.telemetry.CallTelemetry
@@ -79,6 +80,7 @@ data class VideoCallUiState(
     val isWaitingRoom: Boolean = true,
     val isPreviewOnlyMode: Boolean = false,
     val sessionStatusMessage: String? = "Esperando al médico...",
+    val isAuthorizationBlocked: Boolean = false,
     val isDoctor: Boolean = false,
     val appointmentNotes: String? = null,
     val consultationNotes: String = "",
@@ -151,6 +153,7 @@ class VideoCallViewModel @Inject constructor(
     private val supabaseClient: SupabaseClient,
     private val prescriptionRepository: PrescriptionRepository,
     private val medicalCertificateRepository: MedicalCertificateRepository,
+    private val pharmacyDispatchRepository: PharmacyDispatchRepository,
 ) : ViewModel() {
 
     val appointmentId: String = savedStateHandle["appointmentId"] ?: ""
@@ -167,6 +170,24 @@ class VideoCallViewModel @Inject constructor(
         supabaseClient = supabaseClient,
         scope = viewModelScope,
         json = json,
+        guestTokenProvider = { roomId ->
+            pharmacyDispatchRepository.getGuestAccessTokenForRoom(roomId)
+        },
+        onAuthorizationError = { error ->
+            val message = cloudflareAuthorizationMessage(error.httpStatus)
+            if (message != null) {
+                _uiState.update {
+                    it.copy(
+                        connectionState = ConnectionState.FAILED,
+                        isWaitingRoom = true,
+                        isAuthorizationBlocked = true,
+                        sessionStatusMessage = message,
+                    )
+                }
+                videoCallStateHolder.setInVideoCall(false)
+                CallNotificationService.stop(context)
+            }
+        },
     )
 
     private val turnManager = TurnManager(
@@ -230,6 +251,7 @@ class VideoCallViewModel @Inject constructor(
             it.copy(
                 connectionState = if (it.isDoctor || isIncomingCall) ConnectionState.CONNECTING else ConnectionState.DISCONNECTED,
                 isWaitingRoom = !it.isDoctor,
+                isAuthorizationBlocked = false,
                 sessionStatusMessage = when {
                     it.isDoctor -> "Conectando consultorio..."
                     isIncomingCall -> "Conectando con tu consulta..."
@@ -791,6 +813,7 @@ class VideoCallViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 connectionState = ConnectionState.CONNECTING,
+                isAuthorizationBlocked = false,
                 sessionStatusMessage = "Llamando al médico...",
             )
         }
@@ -1264,6 +1287,7 @@ class VideoCallViewModel @Inject constructor(
         _uiState.update { current ->
             current.copy(
                 connectionState = ConnectionState.CONNECTING,
+                isAuthorizationBlocked = false,
                 isPreviewOnlyMode = false,
                 isWaitingRoom = !current.isDoctor && !isPharmacyRoom,
                 sessionStatusMessage = if (!current.isDoctor) {

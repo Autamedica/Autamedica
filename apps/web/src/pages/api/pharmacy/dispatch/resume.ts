@@ -45,9 +45,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const { data: activeRequest, error: requestError } = await admin
       .from('pharmacy_dispatch_requests')
-      .select('id,cloudflare_room_id,patient_name,patient_dni,patient_cpf,patient_phone,tier_requested,symptom_summary,status,created_at,care_country,assigned_doctor_id')
+      .select('id,cloudflare_room_id,patient_name,patient_dni,patient_cpf,patient_phone,tier_requested,symptom_summary,status,created_at,care_country,assigned_doctor_id,referral_partner_id,requested_by_user_id')
       .eq('id', requestId)
-      .is('requested_by_user_id', null)
       .maybeSingle()
 
     if (requestError) {
@@ -55,6 +54,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return internalError('guest_recovery_unavailable')
     }
     if (!activeRequest) return unauthorized('guest_recovery_invalid')
+
+    // An authenticated mobile recovery token is not sufficient on its own.
+    // The user must still hold a valid Supabase session owning this request.
+    if (activeRequest.requested_by_user_id) {
+      const authorization = request.headers.get('authorization')?.trim() ?? ''
+      const bearer = /^Bearer\s+([A-Za-z0-9._-]+)$/i.exec(authorization)
+      if (!bearer) return unauthorized('guest_recovery_invalid')
+      const { data: identity, error: identityError } = await admin.auth.getUser(bearer[1])
+      if (identityError || identity.user?.id !== activeRequest.requested_by_user_id) {
+        return unauthorized('guest_recovery_invalid')
+      }
+    }
 
     const accessToken = await signGuestToken({
       callId: activeRequest.id as string,

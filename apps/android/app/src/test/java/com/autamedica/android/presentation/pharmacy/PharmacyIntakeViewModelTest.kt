@@ -10,6 +10,7 @@ import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.PharmacyDispatchRepository
+import com.autamedica.android.domain.repository.DispatchCheckoutResult
 import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.domain.repository.UserRegistrationResult
 import com.google.common.truth.Truth.assertThat
@@ -64,9 +65,20 @@ private class FakePharmacyDispatchRepository(
     var lastCreatedTier: String? = null
     var lastCreatedSummary: String? = null
     var lastCreatedCountry: String? = null
+    var lastReferralCode: String? = null
     val statusUpdates = mutableListOf<Pair<String, String>>()
     var cancelResult: Result<Boolean> = Result.success(true)
+    var checkoutResult: Result<DispatchCheckoutResult> = Result.success(DispatchCheckoutResult("pending","https://www.mercadopago.com.br/checkout"))
+    var paymentStatusResult: Result<String> = Result.success("not_started")
+    var paymentCheckCount: Int = 0
     val cancellationAttempts = mutableListOf<String>()
+
+    override suspend fun startDispatchCheckout(requestId: String): Result<DispatchCheckoutResult> = checkoutResult
+
+    override suspend fun getDispatchPaymentStatus(requestId: String): Result<String> {
+        paymentCheckCount++
+        return paymentStatusResult
+    }
 
     override suspend fun cancelPatientDispatchRequest(requestId: String): Result<Boolean> {
         cancellationAttempts.add(requestId)
@@ -114,6 +126,7 @@ private class FakePharmacyDispatchRepository(
         symptomSummary: String?,
         patientCpf: String?,
         careCountry: String?,
+        referralCode: String?,
     ): Result<PharmacyDispatchRequest> {
         lastCreatedDni = patientDni
         lastCreatedPhone = patientPhone
@@ -121,6 +134,7 @@ private class FakePharmacyDispatchRepository(
         lastCreatedTier = tierRequested
         lastCreatedSummary = symptomSummary
         lastCreatedCountry = careCountry
+        lastReferralCode = referralCode
         createResult.getOrNull()?.let { requestFlow.value = it }
         return createResult
     }
@@ -156,6 +170,53 @@ class PharmacyIntakeViewModelTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+    }
+
+    @Test
+    fun `intake failures distinguish profile session permission and network errors`() {
+        assertThat(classifyIntakeCreationFailure(
+            IllegalStateException("care_country_or_patient_profile_required")
+        )).contains("perfil de paciente")
+        assertThat(classifyIntakeCreationFailure(
+            IllegalStateException("care_country_dispatch_mismatch")
+        )).contains("país")
+        assertThat(classifyIntakeCreationFailure(
+            IllegalStateException("Guest dispatch API rejected intake (HTTP 401)")
+        )).contains("sesión")
+        assertThat(classifyIntakeCreationFailure(
+            IllegalStateException("permission denied for function")
+        )).contains("autorizar")
+        assertThat(classifyIntakeCreationFailure(
+            java.net.UnknownHostException("unable to resolve host")
+        )).contains("conexión")
+        assertThat(classifyIntakeCreationFailure(
+            IllegalStateException("Unexpected database rejection: private information")
+        )).doesNotContain("private information")
+    }
+
+    @Test
+    fun `intake submission exposes actionable profile error without submitting twice`() = runTest(testDispatcher) {
+        val vm = PharmacyIntakeViewModel(
+            savedStateHandle = SavedStateHandle(),
+            authRepository = authRepo, profileRepository = profileRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
+        )
+        advanceUntilIdle()
+        vm.onCountrySelected("AR")
+        vm.onPatientNameChanged("Paciente de prueba")
+        vm.onPatientDniChanged("12345678")
+        vm.onPatientPhoneChanged("+5491198765432")
+        vm.onReasonTextChanged("Consulta general")
+        pharmacyRepo.createResult = Result.failure(
+            IllegalStateException("care_country_or_patient_profile_required")
+        )
+        assertThat(vm.uiState.value.isFormValid).isTrue()
+        vm.submitRequest()
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.error).contains("perfil de paciente")
+        assertThat(vm.uiState.value.error).doesNotContain("conexión")
+        assertThat(vm.uiState.value.activeRequestId).isNull()
+        assertThat(vm.uiState.value.isSubmitting).isFalse()
     }
 
     @Test
@@ -214,6 +275,37 @@ class PharmacyIntakeViewModelTest {
         assertThat(state.patientPhone).isEmpty()
         assertThat(state.patientDni).isEmpty()
         assertThat(state.isLoadingProfile).isFalse()
+    }
+
+    @Test
+    fun `Jordan QR presets Brazil and forwards referral code to signed dispatch`() = runTest(testDispatcher) {
+        val vm = PharmacyIntakeViewModel(
+            savedStateHandle = SavedStateHandle(mapOf("referralCode" to "JORDAN")),
+            authRepository = authRepo,
+            profileRepository = profileRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
+        )
+        advanceUntilIdle()
+        assertThat(vm.uiState.value.careCountry).isEqualTo("BR")
+        vm.onCountrySelected("AR")
+        assertThat(vm.uiState.value.careCountry).isEqualTo("BR")
+        vm.onPatientNameChanged("Paciente brasileiro")
+        vm.onPatientPhoneChanged("+5551987654321")
+        vm.onPatientDniChanged("12345678909")
+        vm.onReasonTextChanged("Consulta geral")
+        pharmacyRepo.createResult = Result.success(
+            PharmacyDispatchRequest(
+                id = "guest-jordan-br", patientDni = "12345678909",
+                patientPhone = "+5551987654321", patientName = "Paciente brasileiro",
+                tierRequested = "general", status = "searching",
+                cloudflareRoomId = "cf-room-br", createdAt = "2026-11-05T18:00:00Z",
+                careCountry = "BR",
+            )
+        )
+        vm.submitRequest()
+        testScheduler.runCurrent()
+        assertThat(pharmacyRepo.lastCreatedCountry).isEqualTo("BR")
+        assertThat(pharmacyRepo.lastReferralCode).isEqualTo("JORDAN")
     }
 
     @Test
@@ -577,6 +669,45 @@ class PharmacyIntakeViewModelTest {
         assertThat(vm.uiState.value.error).contains("No pudimos cancelar")
         assertThat(vm.uiState.value.isSubmitting).isFalse()
         assertThat(pharmacyRepo.cancellationAttempts).containsExactly(created.id, created.id)
+    }
+
+    @Test
+    fun `Jordan consultation does not enter video until payment provider approves`() = runTest(testDispatcher) {
+        val req = PharmacyDispatchRequest(
+            id = "synthetic-jordan-br", careCountry = "BR", referralPartnerId = "partner-jordan-br",
+            patientDni = "12345678909", patientPhone = "+5551987654321",
+            patientName = "Paciente BR", status = "searching",
+            cloudflareRoomId = "cf-room-br-test", createdAt = "2026-11-05T18:00:00Z",
+        )
+        pharmacyRepo.createResult = Result.success(req)
+        pharmacyRepo.paymentStatusResult = Result.success("pending")
+        val vm = PharmacyIntakeViewModel(
+            savedStateHandle = SavedStateHandle(mapOf("referralCode" to "JORDAN")),
+            authRepository = authRepo, profileRepository = profileRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
+        )
+        advanceUntilIdle()
+        vm.onPatientNameChanged("Paciente BR")
+        vm.onPatientPhoneChanged("+5551987654321")
+        vm.onPatientDniChanged("12345678909")
+        vm.onReasonTextChanged("Consulta geral")
+        vm.submitRequest()
+        testScheduler.runCurrent()
+        pharmacyRepo.requestFlow.value = req.copy(status = "in_call")
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.requiresBrazilianPayment).isTrue()
+        assertThat(vm.uiState.value.readyToJoinCall).isFalse()
+        assertThat(vm.uiState.value.paymentStatus).isEqualTo("pending")
+        vm.beginBrazilianCheckout()
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.paymentCheckoutUrl).startsWith("https://")
+        assertThat(vm.uiState.value.readyToJoinCall).isFalse()
+        pharmacyRepo.paymentStatusResult = Result.success("approved")
+        pharmacyRepo.requestFlow.value = req.copy(status = "in_call", patientName = "Paciente BR aprovado")
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.paymentStatus).isEqualTo("approved")
+        assertThat(vm.uiState.value.readyToJoinCall).isTrue()
+        assertThat(pharmacyRepo.paymentCheckCount).isGreaterThan(0)
     }
 
     @Test

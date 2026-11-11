@@ -234,6 +234,22 @@ class NotificationRouteResolverTest {
     }
 
     @Test
+    fun `Brazil Jordan QR deep link retains partner without treating solicitar as pharmacy ID`() {
+        val route = NotificationRouteResolver.parseDeepLink(
+            "https://www.autamedica.com/farmacia/solicitar?ref=JORDAN"
+        )
+        assertThat(route).isEqualTo(Route.PharmacyIntake("", "JORDAN"))
+    }
+
+    @Test
+    fun `malformed referral is not trusted as partner`() {
+        val route = NotificationRouteResolver.parseDeepLink(
+            "https://www.autamedica.com/farmacia/solicitar?ref=JORDAN%0Ainvalid"
+        )
+        assertThat(route).isEqualTo(Route.PharmacyIntake("", ""))
+    }
+
+    @Test
     fun `pharmacy deep link without id resolves to PharmacyIntake with empty id`() {
         val route = NotificationRouteResolver.resolve(
             deepLink = "https://www.autamedica.com/farmacia/on-demand/entry"

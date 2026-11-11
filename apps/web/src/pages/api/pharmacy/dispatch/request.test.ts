@@ -8,8 +8,9 @@ vi.mock('@autamedica/shared', () => {
 })
 
 const { supabaseMock } = vi.hoisted(() => ({
-  supabaseMock: { from: vi.fn() } as {
+  supabaseMock: { from: vi.fn(), auth: { getUser: vi.fn() } } as {
     from: ReturnType<typeof vi.fn>
+    auth: { getUser: ReturnType<typeof vi.fn> }
   },
 }))
 
@@ -58,10 +59,14 @@ function makeContext(options?: {
   body?: unknown
   session?: { user: { id: string } } | null
   jordanEnabled?: boolean
+  bearerToken?: string
 }): Parameters<typeof POST>[0] {
   const request = new Request('http://localhost/api/pharmacy/dispatch/request', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: {
+      'content-type': 'application/json',
+      ...(options?.bearerToken ? { authorization: options.bearerToken } : {}),
+    },
     body: JSON.stringify(
       options?.body !== undefined
         ? options.body
@@ -94,6 +99,81 @@ describe('API: /api/pharmacy/dispatch/request', () => {
       body: { patientDni: '38123456', patientPhone: '+5491122334455', patientName: 'Solo demo' },
     }))
     expect(response.status).toBe(400)
+    expect(supabaseMock.from).not.toHaveBeenCalled()
+  })
+
+  it('binds signed-in native Brazilian QR intake to the verified bearer user and returns scoped recovery', async () => {
+    const ownerId = '11111111-1111-4111-8111-111111111111'
+    const partnerId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    supabaseMock.auth.getUser.mockResolvedValue({ data: { user: { id: ownerId } }, error: null })
+    const dispatchRow = {
+      id: '22222222-2222-4222-8222-222222222222',
+      cloudflare_room_id: 'cf-room-native-1', care_country: 'BR',
+      status: 'searching', patient_name: 'Paciente BR', requested_by_user_id: ownerId,
+      referral_partner_id: partnerId,
+    }
+    const dispatchTable = buildTableChain(dispatchRow)
+    const recoveryTable = buildTableChain(null)
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'commercial_referral_partners') return buildTableChain({ id: partnerId })
+      if (table === 'pharmacy_dispatch_requests') return dispatchTable
+      if (table === 'pharmacy_guest_dispatch_sessions') return recoveryTable
+      return buildTableChain(null)
+    })
+    const response = await POST(makeContext({
+      bearerToken: 'Bearer valid-native-patient-jwt',
+      jordanEnabled: true,
+      body: {
+        careCountry: 'BR', patientCpf: '12345678909',
+        patientPhone: '+5551987654321', patientName: 'Paciente BR',
+        referralCode: 'JORDAN',
+      },
+    }))
+    expect(response.status).toBe(200)
+    const payload = await response.json()
+    expect(payload.data.recoveryToken).toMatch(/^[0-9a-f]{64}$/)
+    expect(supabaseMock.auth.getUser).toHaveBeenCalledWith('valid-native-patient-jwt')
+    expect(dispatchTable.insert).toHaveBeenCalledWith(expect.objectContaining({
+      requested_by_user_id: ownerId, care_country: 'BR', referral_partner_id: partnerId,
+    }))
+    expect(recoveryTable.insert).toHaveBeenCalledWith(expect.objectContaining({
+      request_id: dispatchRow.id, token_sha256: expect.any(String),
+    }))
+  })
+
+  it('rejects an invalid native bearer before writing any clinical or referral data', async () => {
+    supabaseMock.auth.getUser.mockResolvedValue({
+      data: { user: null }, error: { message: 'invalid JWT' },
+    })
+    const response = await POST(makeContext({
+      bearerToken: 'Bearer forged-native-jwt',
+      jordanEnabled: true,
+      body: { careCountry: 'BR', patientCpf: '12345678909', patientPhone: '+5551987654321', referralCode: 'JORDAN' },
+    }))
+    expect(response.status).toBe(401)
+    expect(supabaseMock.from).not.toHaveBeenCalled()
+  })
+
+  it('denies conflicting browser session and native bearer ownership', async () => {
+    supabaseMock.auth.getUser.mockResolvedValue({
+      data: { user: { id: 'native-patient' } }, error: null,
+    })
+    const response = await POST(makeContext({
+      bearerToken: 'Bearer valid-native-jwt',
+      jordanEnabled: true,
+      session: { user: { id: 'different-browser-patient' } },
+      body: { careCountry: 'BR', patientCpf: '12345678909', patientPhone: '+5551987654321', referralCode: 'JORDAN' },
+    }))
+    expect(response.status).toBe(403)
+    expect(supabaseMock.from).not.toHaveBeenCalled()
+  })
+
+  it('rejects malformed Authorization headers rather than silently creating a guest', async () => {
+    const response = await POST(makeContext({
+      bearerToken: 'TokenNotBearer random',
+      body: { careCountry: 'BR', patientCpf: '12345678909', patientPhone: '+5551987654321' },
+    }))
+    expect(response.status).toBe(401)
     expect(supabaseMock.from).not.toHaveBeenCalled()
   })
 

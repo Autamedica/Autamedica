@@ -19,6 +19,12 @@ import javax.inject.Inject
 
 data class PharmacyIntakeUiState(
     val pharmacyId: String = "",
+    val referralCode: String = "",
+    val activeReferralPartnerId: String? = null,
+    val paymentStatus: String = "not_started",
+    val isPaymentLoading: Boolean = false,
+    val paymentCheckoutUrl: String? = null,
+    val paymentError: String? = null,
     val pharmacyName: String = "Farmacia de Turno",
     val patientName: String = "",
     val patientPhone: String = "",
@@ -46,6 +52,10 @@ data class PharmacyIntakeUiState(
     // Null means unavailable/unknown, not zero.
     val onlineDoctorsInMarket: Int? = null,
 ) {
+    /** The signed backend resolves partner provenance; recovery must not bypass payment. */
+    val requiresBrazilianPayment: Boolean
+        get() = careCountry == "BR" && (referralCode == "JORDAN" || activeReferralPartnerId != null)
+
     val effectiveReason: String
         get() = when {
             reasonText.isNotBlank() && selectedReasonChip != null && !reasonText.contains(selectedReasonChip) ->
@@ -74,9 +84,16 @@ class PharmacyIntakeViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val pharmacyIdParam: String = savedStateHandle["pharmacyId"] ?: ""
+    private val referralCodeParam: String = (savedStateHandle.get<String>("referralCode") ?: "")
+        .trim().uppercase(java.util.Locale.ROOT)
+        .takeIf { it.matches(Regex("^[A-Z0-9_-]{3,32}$")) } ?: ""
 
     private val _uiState = MutableStateFlow(
-        PharmacyIntakeUiState(pharmacyId = pharmacyIdParam)
+        PharmacyIntakeUiState(
+            pharmacyId = pharmacyIdParam,
+            referralCode = referralCodeParam,
+            careCountry = if (referralCodeParam == "JORDAN") "BR" else null,
+        )
     )
     val uiState: StateFlow<PharmacyIntakeUiState> = _uiState.asStateFlow()
 
@@ -187,6 +204,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                                 it.copy(
                                     activeRequestId = request.id,
                                     careCountry = request.careCountry,
+                                    activeReferralPartnerId = request.referralPartnerId,
                                     patientName = request.patientName ?: it.patientName,
                                     patientDni = request.patientDni,
                                     patientPhone = request.patientPhone,
@@ -226,6 +244,8 @@ class PharmacyIntakeViewModel @Inject constructor(
 
     fun onCountrySelected(country: String) {
         require(country == "AR" || country == "BR")
+        // Brazil-only QR partner may never be submitted as an Argentine intake.
+        if (_uiState.value.referralCode == "JORDAN" && country != "BR") return
         _uiState.update { state ->
             // Initial selection is not a switch between clinical markets.
             val countryChanged = state.careCountry != null && state.careCountry != country
@@ -296,6 +316,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                 symptomSummary = state.effectiveReason.trim(),
                 patientCpf = if (state.careCountry == "BR") state.patientDni.trim() else null,
                 careCountry = state.careCountry,
+                referralCode = state.referralCode.ifBlank { null },
             ).onSuccess { request ->
                 val hasRoom = request.cloudflareRoomId.isNotBlank()
                 _uiState.update {
@@ -303,6 +324,9 @@ class PharmacyIntakeViewModel @Inject constructor(
                         isSubmitting = false,
                         activeRequestId = request.id,
                         careCountry = request.careCountry ?: state.careCountry,
+                        activeReferralPartnerId = request.referralPartnerId,
+                        paymentStatus = "not_started",
+                        paymentCheckoutUrl = null,
                         status = PharmacyConsultationStatus.PENDING,
                         // Queue position and wait time have not been confirmed by the backend.
                         queuePosition = 0,
@@ -321,11 +345,43 @@ class PharmacyIntakeViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isSubmitting = false,
-                        error = "No pudimos crear la solicitud. Verificá tu conexión e intentá nuevamente."
+                        error = classifyIntakeCreationFailure(err),
                     )
                 }
             }
         }
+    }
+
+    fun beginBrazilianCheckout() {
+        val state = _uiState.value
+        val requestId = state.activeRequestId ?: return
+        if (!state.requiresBrazilianPayment || state.isPaymentLoading ||
+            state.status !in setOf(PharmacyConsultationStatus.ASSIGNED, PharmacyConsultationStatus.IN_CALL)) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isPaymentLoading = true, paymentError = null) }
+            pharmacyDispatchRepository.startDispatchCheckout(requestId)
+                .onSuccess { payment ->
+                    _uiState.update { current ->
+                        current.copy(
+                            isPaymentLoading = false,
+                            paymentStatus = payment.status,
+                            paymentCheckoutUrl = payment.checkoutUrl,
+                            // Only server-verified approval may unlock a joined call.
+                            readyToJoinCall = current.status == PharmacyConsultationStatus.IN_CALL &&
+                                !current.roomId.isNullOrBlank() && payment.status == "approved",
+                        )
+                    }
+                }.onFailure {
+                    _uiState.update { it.copy(
+                        isPaymentLoading = false,
+                        paymentError = "Não foi possível iniciar ou confirmar o pagamento. Tente novamente.",
+                    ) }
+                }
+        }
+    }
+
+    fun clearCheckoutUrl() {
+        _uiState.update { it.copy(paymentCheckoutUrl = null) }
     }
 
     private fun startStatusPolling(requestId: String) {
@@ -335,22 +391,37 @@ class PharmacyIntakeViewModel @Inject constructor(
                 val isJoinable = request.doctorAttendedCall
                 val isTerminalFailure = request.status == "cancelled" || request.status == "expired"
                 val hasRoom = request.cloudflareRoomId.isNotBlank()
+                val paymentRequired = (_uiState.value.referralCode == "JORDAN" ||
+                    request.referralPartnerId != null) && request.careCountry == "BR"
+                val verifiedPaymentStatus = if (paymentRequired &&
+                    request.status in setOf("matched", "in_call", "completed")) {
+                    // The PSP-backed endpoint is authoritative; never infer paid from
+                    // a redirect, a local callback or a clinician's presence.
+                    pharmacyDispatchRepository.getDispatchPaymentStatus(requestId).getOrNull()
+                } else null
                 if (request.status == "searching" || request.status == "matched") {
                     refreshCountryDoctorCount(_uiState.value.careCountry)
                 }
 
                 _uiState.update { state ->
+                    val confirmedPayment = if (paymentRequired &&
+                        request.status in setOf("matched", "in_call", "completed")) {
+                        verifiedPaymentStatus ?: "unknown"
+                    } else state.paymentStatus
                     state.copy(
                         status = mapDispatchStatus(request.status),
+                        activeReferralPartnerId = request.referralPartnerId ?: state.activeReferralPartnerId,
+                        paymentStatus = confirmedPayment,
                         // A dispatch status does not establish a verified rank or ETA.
                         queuePosition = 0,
                         estimatedMinutes = 0,
                         roomId = if (hasRoom) request.cloudflareRoomId else state.roomId,
-                        readyToJoinCall = isJoinable && hasRoom,
+                        readyToJoinCall = isJoinable && hasRoom &&
+                            (!paymentRequired || confirmedPayment == "approved"),
                     )
                 }
 
-                if (isJoinable && hasRoom) {
+                if (isJoinable && hasRoom && (!paymentRequired || verifiedPaymentStatus == "approved")) {
                     statusPollingJob?.cancel()
                 }
                 if (isTerminalFailure) {
@@ -417,6 +488,8 @@ class PharmacyIntakeViewModel @Inject constructor(
                                 assignedDoctorSpecialty = null,
                                 roomId = null,
                                 readyToJoinCall = false,
+                                paymentStatus = "not_started",
+                                paymentCheckoutUrl = null,
                                 error = null,
                             )
                         }
@@ -445,5 +518,34 @@ class PharmacyIntakeViewModel @Inject constructor(
         super.onCleared()
         statusPollingJob?.cancel()
         observeActiveDoctorsJob?.cancel()
+    }
+}
+
+/**
+ * Only public, allowlisted failure categories reach the UI. Never show
+ * PostgREST exception details: they can include patient documents or symptoms.
+ */
+internal fun classifyIntakeCreationFailure(error: Throwable): String {
+    val message = error.message.orEmpty().lowercase(java.util.Locale.ROOT)
+    return when {
+        "care_country_or_patient_profile_required" in message ->
+            "Necesitás completar tu perfil de paciente para solicitar una consulta."
+        "care_country_dispatch_mismatch" in message ||
+            "care_country_required_or_mismatched" in message ->
+            "El país de la consulta no coincide con tu perfil de paciente."
+        "invalid_mobile_session" in message || "dispatch_request_identity_denied" in message ||
+            "http 401" in message || "jwt expired" in message ->
+            "No pudimos validar tu sesión. Iniciá sesión nuevamente."
+        "permission denied" in message || "http 403" in message ||
+            "42501" in message ->
+            "No se pudo autorizar la solicitud. Revisá tus datos de paciente."
+        "http 503" in message || "dispatch_service_unavailable" in message ->
+            "El servicio de consultas no está disponible temporalmente. Intentá más tarde."
+        "unable to resolve host" in message || "unknownhost" in message ||
+            "socket" in message || "timeout" in message ||
+            "connection" in message || "network" in message ->
+            "No pudimos crear la solicitud. Verificá tu conexión e intentá nuevamente."
+        else ->
+            "No pudimos registrar tu consulta. Intentá nuevamente o contactá soporte."
     }
 }

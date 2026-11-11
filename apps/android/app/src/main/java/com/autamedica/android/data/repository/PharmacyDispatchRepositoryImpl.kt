@@ -20,6 +20,7 @@ import com.autamedica.android.domain.model.PharmacyDispatchRequest
 import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.PharmacyDispatchRepository
+import com.autamedica.android.domain.repository.DispatchCheckoutResult
 import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
@@ -69,9 +70,21 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 
     // Never write short-lived guest JWTs to logs, analytics or persistent storage.
     private val guestAccessTokens = ConcurrentHashMap<String, String>()
+    // Guest JWTs last two hours on the server. Refresh no later than one hour
+    // to avoid an unnecessary recovery POST (and DB write) every 3s poll.
+    private val guestTokenRefreshDeadline = ConcurrentHashMap<String, Long>()
+    private val guestRoomIds = ConcurrentHashMap<String, String>()
+    private fun rememberGuestToken(requestId: String, token: String, roomId: String) {
+        guestAccessTokens[requestId] = token
+        guestTokenRefreshDeadline[requestId] = System.currentTimeMillis() + 3_600_000L
+        guestRoomIds[requestId] = roomId
+    }
     // An opaque 256-bit RECOVERY secret (not the JWT) is Keystore-encrypted via
     // SecurePreferences. It restores the same guest request after process death.
     private val guestRecoveryKey = "pharmacy_guest_queue_recovery_v1"
+    // For referral guests created while signed in, bind local recovery to
+    // the same account. Never resurrect another person's queue after login.
+    private val guestRecoveryOwnerKey = "pharmacy_guest_queue_recovery_owner_v1"
 
     private fun savedGuestRecovery(): Pair<String, String>? {
         val saved = securePreferences?.getString(guestRecoveryKey) ?: return null
@@ -86,22 +99,33 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     private fun clearGuestRecovery(requestId: String) {
         if (savedGuestRecovery()?.first == requestId) {
             securePreferences?.remove(guestRecoveryKey)
+            securePreferences?.remove(guestRecoveryOwnerKey)
         }
         guestAccessTokens.remove(requestId)
+        guestTokenRefreshDeadline.remove(requestId)
+        guestRoomIds.remove(requestId)
     }
 
     private suspend fun resumeGuestRequestFromEncryptedDevice(requestId: String): PharmacyDispatchRequest? =
         withContext(ioDispatcher) {
+            val ownerId = securePreferences?.getString(guestRecoveryOwnerKey)
+            val activeUser = authRepository.getCurrentUser()?.id
+            if (ownerId != activeUser) return@withContext null
             val recovery = savedGuestRecovery()?.takeIf { it.first == requestId }
                 ?: return@withContext null
             val body = buildJsonObject {
                 put("requestId", requestId)
                 put("recoveryToken", recovery.second)
             }
-            val request = Request.Builder()
+            val requestBuilder = Request.Builder()
                 .url("$guestApiOrigin/api/pharmacy/dispatch/resume")
                 .post(body.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
-                .build()
+            if (ownerId != null) {
+                val accessToken = supabaseClient.auth.currentSessionOrNull()?.accessToken
+                    ?: error("Authenticated recovery requires an active session")
+                requestBuilder.header("Authorization", "Bearer $accessToken")
+            }
+            val request = requestBuilder.build()
 
             guestClient.newCall(request).execute().use { response ->
                 if (response.code == 401) {
@@ -120,7 +144,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                     data["request"] ?: error("Missing recovered guest request")
                 )
                 check(dto.id == requestId) { "Recovered guest request mismatch" }
-                guestAccessTokens[requestId] = freshJwt
+                rememberGuestToken(requestId, freshJwt, dto.cloudflareRoomId)
                 dto.toDomain()
             }
         }
@@ -135,12 +159,17 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     // Visible to the repository's MockWebServer tests; production defaults to WEB_API_URL.
     internal var guestApiOrigin = BuildConfig.WEB_API_URL.trimEnd('/')
 
-    private suspend fun createGuestRequestViaSignedApi(payload: kotlinx.serialization.json.JsonObject): PharmacyDispatchRequest =
+    private suspend fun createGuestRequestViaSignedApi(payload: kotlinx.serialization.json.JsonObject, ownerUserId: String? = null): PharmacyDispatchRequest =
         withContext(ioDispatcher) {
-            val request = Request.Builder()
+            val requestBuilder = Request.Builder()
                 .url("$guestApiOrigin/api/pharmacy/dispatch/request")
                 .post(payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
-                .build()
+            if (ownerUserId != null) {
+                val accessToken = supabaseClient.auth.currentSessionOrNull()?.accessToken
+                    ?: error("Authenticated referral requires an active session")
+                requestBuilder.header("Authorization", "Bearer $accessToken")
+            }
+            val request = requestBuilder.build()
 
             guestClient.newCall(request).execute().use { response ->
                 check(response.isSuccessful) { "Guest dispatch API rejected intake (HTTP ${response.code})" }
@@ -160,8 +189,40 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 }
                 // The originating device alone retains this opaque credential.
                 securePreferences.putString(guestRecoveryKey, "${dto.id}:$recoveryToken")
-                guestAccessTokens[dto.id] = token
+                if (ownerUserId != null) securePreferences.putString(guestRecoveryOwnerKey, ownerUserId)
+                else securePreferences.remove(guestRecoveryOwnerKey)
+                rememberGuestToken(dto.id, token, dto.cloudflareRoomId)
                 dto.toDomain()
+            }
+        }
+
+    override suspend fun getGuestAccessTokenForRoom(roomId: String): String? =
+        withContext(ioDispatcher) {
+            val expectedRoom = roomId.trim()
+            if (expectedRoom.isEmpty()) return@withContext null
+            val recovery = savedGuestRecovery() ?: return@withContext null
+            val requestId = recovery.first
+            val ownerId = securePreferences?.getString(guestRecoveryOwnerKey)
+            val activeUserId = authRepository.getCurrentUser()?.id
+            // The encrypted recovery credential is account-bound when the queue
+            // was created while signed in; never lend it to a different account.
+            if (ownerId != activeUserId) return@withContext null
+
+            val knownRoom = guestRoomIds[requestId]
+            // A known room mismatch is a hard deny, never a reason to refresh
+            // or recover a token for a different room.
+            if (knownRoom != null && knownRoom != expectedRoom) return@withContext null
+
+            var token = guestAccessTokens[requestId]
+            val deadline = guestTokenRefreshDeadline[requestId] ?: 0L
+            if (token.isNullOrBlank() || deadline <= System.currentTimeMillis() || knownRoom == null) {
+                val restored = resumeGuestRequestFromEncryptedDevice(requestId)
+                if (restored?.cloudflareRoomId != expectedRoom) return@withContext null
+                token = guestAccessTokens[requestId]
+            }
+
+            token?.takeIf {
+                it.isNotBlank() && guestRoomIds[requestId] == expectedRoom
             }
         }
 
@@ -303,7 +364,9 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
      */
     override suspend fun cancelPatientDispatchRequest(requestId: String): Result<Boolean> = runCatching {
         require(requestId.isNotBlank()) { "Missing request ID" }
-        val guestToken = guestAccessTokens[requestId]
+        val tokenOwner = securePreferences?.getString(guestRecoveryOwnerKey)
+        val activeUserId = authRepository.getCurrentUser()?.id
+        val guestToken = if (tokenOwner == activeUserId) guestAccessTokens[requestId] else null
         if (guestToken != null) {
             // The cancellation must work even after the clinical JWT's two-hour
             // lifetime. Renew from the encrypted scoped credential first.
@@ -402,6 +465,14 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 
     override suspend fun getActivePatientDispatchRequest(): Result<PharmacyDispatchRequest?> = runCatching {
         val currentUser = authRepository.getCurrentUser()
+        val recovery = savedGuestRecovery()
+        val recoveryOwner = securePreferences?.getString(guestRecoveryOwnerKey)
+        if (recovery != null && recoveryOwner == currentUser?.id) {
+            val restored = resumeGuestRequestFromEncryptedDevice(recovery.first)
+            if (restored != null && restored.status in setOf("searching", "matched", "in_call")) {
+                return@runCatching restored
+            }
+        }
         if (currentUser != null) {
             // Never reuse a previous guest's credential for a different
             // authenticated patient on a shared phone.
@@ -418,8 +489,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 .decodeSingleOrNull<DispatchRequestDto>()
                 ?.toDomain()
         }
-        val guestRequestId = savedGuestRecovery()?.first ?: return@runCatching null
-        resumeGuestRequestFromEncryptedDevice(guestRequestId)
+        null // Anonymous recovery was handled above, with an owner check.
     }.onFailure {
         SecureLog.error("[PharmacyDispatch] Failed recovering patient's active waiting request", it)
     }
@@ -432,6 +502,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         symptomSummary: String?,
         patientCpf: String?,
         careCountry: String?,
+        referralCode: String?,
     ): Result<PharmacyDispatchRequest> = runCatching {
         require(careCountry == "AR" || careCountry == "BR") {
             "Seleccioná Argentina o Brasil como país de atención"
@@ -443,7 +514,14 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             "Documento del paciente inválido para el país seleccionado"
         }
         val currentUser = authRepository.getCurrentUser()
-        if (currentUser == null) {
+        val commercialCode = referralCode?.trim()?.uppercase(java.util.Locale.ROOT)?.takeIf { it.isNotBlank() }
+        require(commercialCode == null || commercialCode.matches(Regex("^[A-Z0-9_-]{3,32}$"))) {
+            "Código de referencia inválido"
+        }
+        require(commercialCode != "JORDAN" || careCountry == "BR") {
+            "El código de Jordan solo corresponde a Brasil"
+        }
+        if (currentUser == null || commercialCode != null) {
             val guestPayload = buildJsonObject {
                 put("careCountry", careCountry)
                 if (careCountry == "BR") put("patientCpf", documentDigits)
@@ -452,10 +530,14 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 if (!patientName.isNullOrBlank()) put("patientName", patientName.trim())
                 put("tier", tierRequested.ifBlank { "general" })
                 if (!symptomSummary.isNullOrBlank()) put("symptomSummary", symptomSummary.trim())
+                if (commercialCode != null) put("referralCode", commercialCode)
             }
-            // Anonymous users have no direct SELECT/UPDATE on the clinical table.
+            // The signed server endpoint validates the commercial QR source.
+            // It also issues a room-scoped token and encrypted recovery material.
+            // Authenticated patients using a referral are handled as a locally
+            // account-bound guest until the backend supports authenticated QR binding.
             // The server creates the request and returns a scoped guest token.
-            return@runCatching createGuestRequestViaSignedApi(guestPayload)
+            return@runCatching createGuestRequestViaSignedApi(guestPayload, currentUser?.id)
         }
 
         // Room IDs are access-adjacent metadata, never embed DNI/CPF digits.
@@ -541,6 +623,58 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             launch { supabaseClient.realtime.removeChannel(channel) }
         }
     }
+
+    // Payment requests remain server-authorized and room-scoped. Never persist
+    // the short-lived token, never trust a browser redirect as paid, and never
+    // attach a payment to a different user's restored queue.
+    private suspend fun paymentGuestToken(requestId: String): String {
+        require(requestId.matches(Regex("^[0-9a-fA-F-]{36}$"))) { "Invalid payment request" }
+        val owner = securePreferences?.getString(guestRecoveryOwnerKey)
+        check(owner == authRepository.getCurrentUser()?.id) { "Payment credential belongs to another session" }
+        val now = System.currentTimeMillis()
+        if (guestAccessTokens[requestId] == null ||
+            (guestTokenRefreshDeadline[requestId] ?: 0L) <= now) {
+            check(savedGuestRecovery()?.first == requestId) {
+                "Encrypted payment recovery unavailable"
+            }
+            check(resumeGuestRequestFromEncryptedDevice(requestId) != null) {
+                "Cannot restore signed payment credential"
+            }
+        }
+        return guestAccessTokens[requestId] ?: error("Signed payment credential unavailable")
+    }
+
+    private suspend fun paymentRequest(requestId: String, endpoint: String): DispatchCheckoutResult =
+        withContext(ioDispatcher) {
+            val body = buildJsonObject {
+                put("requestId", requestId)
+                put("accessToken", paymentGuestToken(requestId))
+            }
+            val request = Request.Builder()
+                .url("$guestApiOrigin/api/pharmacy/dispatch/payment/$endpoint")
+                .post(body.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
+                .build()
+            guestClient.newCall(request).execute().use { response ->
+                check(response.isSuccessful) { "Payment API unavailable (HTTP ${response.code})" }
+                val raw = response.body?.string() ?: error("Empty payment response")
+                val payment = json.parseToJsonElement(raw).jsonObject["data"]?.jsonObject
+                    ?: error("Missing payment response data")
+                val status = payment["status"]?.jsonPrimitive?.content ?: error("Missing payment status")
+                check(status in setOf("not_started","initializing","pending","approved","refunded","cancelled","rejected","failed")) {
+                    "Unexpected payment status"
+                }
+                val url = payment["checkoutUrl"]?.jsonPrimitive?.content?.takeIf { it.startsWith("https://") }
+                DispatchCheckoutResult(status = status, checkoutUrl = url)
+            }
+        }
+
+    override suspend fun startDispatchCheckout(requestId: String): Result<DispatchCheckoutResult> = runCatching {
+        paymentRequest(requestId, "create")
+    }.onFailure { SecureLog.warn("[PharmacyDispatch] Secure Brazilian checkout unavailable") }
+
+    override suspend fun getDispatchPaymentStatus(requestId: String): Result<String> = runCatching {
+        paymentRequest(requestId, "status").status
+    }.onFailure { SecureLog.warn("[PharmacyDispatch] Payment confirmation not available") }
 
     override suspend fun getCountryOnDutyCapacity(careCountry: String): Result<Int> = runCatching {
         require(careCountry == "AR" || careCountry == "BR") { "Invalid care country" }
@@ -725,6 +859,7 @@ private data class DispatchRequestDto(
     @SerialName("cloudflare_room_id") val cloudflareRoomId: String,
     @SerialName("created_at") val createdAt: String,
     @SerialName("care_country") val careCountry: String? = null,
+    @SerialName("referral_partner_id") val referralPartnerId: String? = null,
     @SerialName("offer_id") val offerId: String? = null,
     @SerialName("offer_expires_at") val offerExpiresAt: String? = null,
 ) {
@@ -733,6 +868,7 @@ private data class DispatchRequestDto(
         offerId = offerId,
         offerExpiresAt = offerExpiresAt,
         careCountry = careCountry,
+        referralPartnerId = referralPartnerId,
         patientDni = if (careCountry == "BR") patientCpf.orEmpty() else patientDni.orEmpty(),
         patientPhone = patientPhone,
         patientName = patientName,
