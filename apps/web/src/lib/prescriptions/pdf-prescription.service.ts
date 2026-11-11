@@ -448,15 +448,15 @@ export async function generatePrescriptionPdf(
     safeAddImage(doc, logoImage.dataUrl, logoImage.format, marginLeft + 115, 10, 9, 9);
   }
 
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.text(isHomologationTest
-    ? 'AUTAMEDICA - FARMALINK TEST (NO APTA PARA DISPENSA)'
-    : 'Sistema Nacional de Trazabilidad de Actos (RCTA)', marginLeft, 26);
-  doc.setTextColor(headerAccentColor[0], headerAccentColor[1], headerAccentColor[2]);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`CUIR: ${cuir}`, marginLeft, 33);
-  
+  if (!isHomologationTest) {
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Sistema Nacional de Trazabilidad de Actos (RCTA)', marginLeft, 26);
+    doc.setTextColor(headerAccentColor[0], headerAccentColor[1], headerAccentColor[2]);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`CUIR: ${cuir}`, marginLeft, 33);
+  }
+
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'normal');
   doc.text(`Emitida: ${formatDate(input.issuedAt)}  |  Vence: ${formatDate(expiresAt)}`, marginLeft, 39);
@@ -558,19 +558,28 @@ export async function generatePrescriptionPdf(
     doc.setFontSize(10);
     doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Sugerido: ${input.medication.commercialName}`, marginLeft + medTextOffset, y + 23);
+    const commercialDisplayName = input.externalPrescription?.provider === 'farmalink'
+      ? input.medication.commercialName
+      : `Sugerido: ${input.medication.commercialName}`;
+    doc.text(commercialDisplayName, marginLeft + medTextOffset, y + 23);
   }
 
   doc.setFontSize(10);
   doc.setTextColor(mediumTextColor[0], mediumTextColor[1], mediumTextColor[2]);
   doc.setFont('helvetica', 'bold');
-  const medSpecs = `${input.medication.dosage} — ${input.medication.presentation}`;
-  doc.text(medSpecs, marginLeft + medTextOffset, y + 30);
+  const medSpecs = [input.medication.dosage, input.medication.presentation]
+    .filter(Boolean)
+    .join(' — ');
+  if (medSpecs) doc.text(medSpecs, marginLeft + medTextOffset, y + 30);
   doc.text(`Cantidad: ${input.medication.quantity} unidades`, marginLeft + medTextOffset, y + 36);
 
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'italic');
-  doc.text(input.medication.instructions, marginLeft + medTextOffset, y + 42, { maxWidth: contentWidth - (template === 'female' ? 12 : 8) });
+  if (input.medication.instructions) {
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'italic');
+    doc.text(input.medication.instructions, marginLeft + medTextOffset, y + 42, {
+      maxWidth: contentWidth - (template === 'female' ? 12 : 8),
+    });
+  }
   y += medBlockHeight + 8;
 
   // Diagnosis (IFA Prominence - Premium Medical Card)
@@ -758,46 +767,40 @@ export async function generatePrescriptionPdf(
     }
   }
 
-  // Digital signature info box (next to visual signature)
+  // The homologation PDF reserves the production signature area but leaves it empty.
+  // Demo data has no professional signature or CUIR: never synthesize either one.
   const infoBoxX = input.prescriber.stampImageUrl ? marginLeft + 80 : marginLeft + 40;
   const infoBoxWidth = pageWidth - 20 - infoBoxX;
   doc.setFillColor(patientBgColor[0], patientBgColor[1], patientBgColor[2]);
   doc.rect(infoBoxX, signatureY, infoBoxWidth, 25, 'F');
-  
   if (template === 'female') {
     doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
     doc.setLineWidth(0.3);
     doc.rect(infoBoxX, signatureY, infoBoxWidth, 25, 'S');
-    // Franja vertical de acento a la izquierda (ancho 2.5mm)
-    doc.setFillColor(headerBgColor[0], headerBgColor[1], headerBgColor[2]); // Teal médico
+    doc.setFillColor(headerBgColor[0], headerBgColor[1], headerBgColor[2]);
     doc.rect(infoBoxX, signatureY, 2.5, 25, 'F');
   } else {
     doc.setDrawColor(15, 23, 42);
     doc.rect(infoBoxX, signatureY, infoBoxWidth, 25);
   }
 
-  const sigInfoOffset = template === 'female' ? 5 : 3;
-  doc.setFontSize(7);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
-  doc.text(isHomologationTest ? 'SIN FIRMA - TEST' : 'VERIFICACIÓN DE FIRMA', infoBoxX + sigInfoOffset, signatureY + 5);
-  doc.setFontSize(5.5);
-  doc.setFont('helvetica', 'normal');
-  const signatureLegend = doc.splitTextToSize(
-    isHomologationTest
-      ? 'Documento técnico DEMO: no está firmado por un profesional.'
-      : 'Verificar la firma en el certificado PDF o registro del emisor.',
-    infoBoxWidth - 6,
-  );
-  doc.text(signatureLegend, infoBoxX + 3, signatureY + 10);
-  const validatorY = signatureY + 10 + signatureLegend.length * 3.5;
-  if (isHomologationTest) {
-    doc.text('Sin registro RCTA ni QR verificado.', infoBoxX + 3, validatorY);
-    doc.text('Entorno: Farmalink TEST.', infoBoxX + 3, validatorY + 4);
-  } else {
+  if (!isHomologationTest) {
+    const sigInfoOffset = template === 'female' ? 5 : 3;
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
+    doc.text('VERIFICACIÓN DE FIRMA', infoBoxX + sigInfoOffset, signatureY + 5);
+    doc.setFontSize(5.5);
+    doc.setFont('helvetica', 'normal');
+    const signatureLegend = doc.splitTextToSize(
+      'Verificar la firma en el certificado PDF o registro del emisor.',
+      infoBoxWidth - 6,
+    );
+    doc.text(signatureLegend, infoBoxX + 3, signatureY + 10);
+    const validatorY = signatureY + 10 + signatureLegend.length * 3.5;
     doc.text(`Validador RCTA: ${cuir}`, infoBoxX + 3, validatorY);
     doc.text(`Fecha de registro: ${formatDate(input.issuedAt)}`, infoBoxX + 3, validatorY + 4);
-    doc.text(`Hash: verificable vía QR`, infoBoxX + 3, validatorY + 8);
+    doc.text('Hash: verificable vía QR', infoBoxX + 3, validatorY + 8);
   }
 
   // Footer (Compliance & Privacy)
@@ -805,8 +808,8 @@ export async function generatePrescriptionPdf(
   doc.setFontSize(7);
   doc.setTextColor(148, 163, 184);
   if (isHomologationTest) {
-    doc.text('SOLO TEST: sin firma, CUIR o QR; no válida para dispensación clínica.', marginLeft, footerY);
-    // ReNaPDiS recetario registration was notified by MSAL on 12/05/2026.
+    // Keep the official ReNaPDiS statement without a test/debug banner.
+    // The homologation document has no CUIR, QR or signature in its reserved areas.
     const testRenapdisLegajo =
       getRuntimeEnvValue('RENAPDIS_RL_NUMBER') ??
       getServerEnvOrDefault('RENAPDIS_RL_NUMBER', OFFICIAL_RENAPDIS_RL_NUMBER) ?? OFFICIAL_RENAPDIS_RL_NUMBER;
