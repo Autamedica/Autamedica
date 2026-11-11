@@ -298,9 +298,7 @@ describe('generatePrescriptionPdf', () => {
       expect(pdfText).toContain('CUIL PACIENTE');
       expect(pdfText).toContain(`RECETA FARMALINK: ${scenario.number}`);
       expect(pdfText).toContain('Sistema Nacional de Trazabilidad de Actos (RCTA)');
-      expect(pdfText).not.toContain('AUTAMEDICA - FARMALINK TEST');
-      expect(pdfText).not.toContain('NO APTA PARA DISPENSA');
-      expect(pdfText).not.toContain('SOLO TEST: sin firma, CUIR o QR');
+
       expect(pdfText).toContain('RL-2026-47574120-APN-SSVEIYES#MS');
       expect(pdfText).toContain('Esta prescripción tiene validez de documento público electrónico según Ley 27.553.');
       expect(pdfText).not.toContain('MODALIDAD GENERICO=');
@@ -308,11 +306,7 @@ describe('generatePrescriptionPdf', () => {
       expect(pdfText).toContain('CUIR: -');
       expect(pdfText).toContain('VERIFICACIÓN DE FIRMA');
       expect(pdfText).toContain('Verificar la firma en el certificado PDF o registro del emisor.');
-
-
-      expect(pdfText).not.toContain('AUTAMEDICA - FARMALINK TEST');
-      expect(pdfText).not.toContain('NO APTA PARA DISPENSA');
-      expect(pdfText).not.toContain('SOLO TEST: sin firma, CUIR o QR');
+      expect(pdfText).not.toMatch(/TEST|DEMO|NO ASIGNADO|NO APTA|SIN FIRMA/);
       expect(pdfText).not.toContain('PREDNISOLONA');
       expect(pdfText).not.toContain('Validador RCTA');
       if (scenario.mode === 'S') expect(pdfText).not.toContain('ESFUMEL');
