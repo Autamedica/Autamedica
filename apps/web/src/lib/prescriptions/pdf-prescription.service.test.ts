@@ -287,7 +287,7 @@ describe('generatePrescriptionPdf', () => {
           instructions: '',
         },
       });
-      expect(artifacts.cuir).toBe('NO ASIGNADO - TEST');
+      expect(artifacts.cuir).toBe('');
       expect(artifacts.qrContent).toBe('');
       const pdfText = Buffer.from(artifacts.pdfBuffer).toString('latin1');
       expect(pdfText).toContain('GLICOLICOAC.ASOC.');
@@ -302,13 +302,14 @@ describe('generatePrescriptionPdf', () => {
       expect(pdfText).not.toContain('NO APTA PARA DISPENSA');
       expect(pdfText).not.toContain('SOLO TEST: sin firma, CUIR o QR');
       expect(pdfText).toContain('RL-2026-47574120-APN-SSVEIYES#MS');
+      expect(pdfText).toContain('Esta prescripción tiene validez de documento público electrónico según Ley 27.553.');
       expect(pdfText).not.toContain('MODALIDAD GENERICO=');
       expect(pdfText).not.toContain('Sugerido:');
-      expect(pdfText).toContain('CUIR: NO ASIGNADO - TEST');
-      expect(pdfText).toContain('SIN FIRMA - TEST');
-      expect(pdfText).toContain('Documento técnico DEMO');
-      expect(pdfText).toContain('Sin registro RCTA ni QR verificado');
-      expect(pdfText).toContain('Entorno: Farmalink TEST');
+      expect(pdfText).toContain('CUIR: -');
+      expect(pdfText).toContain('VERIFICACIÓN DE FIRMA');
+      expect(pdfText).toContain('Verificar la firma en el certificado PDF o registro del emisor.');
+
+
       expect(pdfText).not.toContain('AUTAMEDICA - FARMALINK TEST');
       expect(pdfText).not.toContain('NO APTA PARA DISPENSA');
       expect(pdfText).not.toContain('SOLO TEST: sin firma, CUIR o QR');
