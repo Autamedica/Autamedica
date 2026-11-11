@@ -255,6 +255,16 @@ export async function handler(req: Request): Promise<Response> {
       })
     }
 
+    // Check the signed request scope before inspecting payment state. A token
+    // for another dispatch is always a 403, regardless of that dispatch's PSP.
+    if (guestClaims && (!mediaDispatch ||
+        mediaDispatch.id !== guestClaims.callId ||
+        mediaDispatch.cloudflare_room_id !== guestClaims.roomId)) {
+      return new Response(JSON.stringify({ error: 'guest_call_mismatch' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     let isJordanRoom = false
     if (mediaDispatch?.referral_partner_id) {
       const { data: partner, error: partnerError } = await supabaseAdmin

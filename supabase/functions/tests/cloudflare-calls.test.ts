@@ -751,7 +751,7 @@ Deno.test("cloudflare-calls - a guest token cannot be replayed against another d
   let cloudflareCalls = 0;
   const backend = mockSupabaseFetch({
     user: { id: "unused-for-guest" }, call: null, dispatch: JORDAN_DISPATCH,
-    partner: { code: "JORDAN", active: true }, payment: JORDAN_APPROVED,
+    partner: { code: "JORDAN", active: true }, payment: { ...JORDAN_APPROVED, status: "pending" },
   });
   globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     if (String(input).includes("rtc.live.cloudflare.com")) cloudflareCalls++;
