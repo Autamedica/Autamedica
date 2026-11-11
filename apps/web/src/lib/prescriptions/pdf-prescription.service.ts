@@ -799,9 +799,6 @@ export async function generatePrescriptionPdf(
     doc.text('Hash: verificable vía QR', infoBoxX + 3, validatorY + 8);
   }
 
-
-}
-
   // Footer (Compliance & Privacy)
   const footerY = 276;
   doc.setFontSize(7);
