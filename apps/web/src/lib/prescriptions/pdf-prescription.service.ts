@@ -450,9 +450,7 @@ export async function generatePrescriptionPdf(
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(isHomologationTest
-    ? 'AUTAMEDICA - FARMALINK TEST (NO APTA PARA DISPENSA)'
-    : 'Sistema Nacional de Trazabilidad de Actos (RCTA)', marginLeft, 26);
+  doc.text('Sistema Nacional de Trazabilidad de Actos (RCTA)', marginLeft, 26);
   doc.setTextColor(headerAccentColor[0], headerAccentColor[1], headerAccentColor[2]);
   doc.setFont('helvetica', 'bold');
   doc.text(`CUIR: ${cuir}`, marginLeft, 33);
@@ -811,8 +809,7 @@ export async function generatePrescriptionPdf(
   doc.setFontSize(7);
   doc.setTextColor(148, 163, 184);
   if (isHomologationTest) {
-    doc.text('SOLO TEST: sin firma, CUIR o QR; no válida para dispensación clínica.', marginLeft, footerY);
-    // ReNaPDiS recetario registration was notified by MSAL on 12/05/2026.
+    // Keep the existing ReNaPDiS registration legend and signature/CUIR fields unchanged.
     const testRenapdisLegajo =
       getRuntimeEnvValue('RENAPDIS_RL_NUMBER') ??
       getServerEnvOrDefault('RENAPDIS_RL_NUMBER', OFFICIAL_RENAPDIS_RL_NUMBER) ?? OFFICIAL_RENAPDIS_RL_NUMBER;
