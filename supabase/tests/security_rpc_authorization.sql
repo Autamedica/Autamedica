@@ -7,6 +7,15 @@ DECLARE
   n integer;
   summary jsonb;
 BEGIN
+  IF has_table_privilege('anon','public.clinical_patient_conditions','SELECT')
+     OR has_table_privilege('anon','public.clinical_symptom_observations','SELECT') THEN
+    RAISE EXCEPTION 'anon can still read clinical condition or symptom tables';
+  END IF;
+  IF NOT has_table_privilege('authenticated','public.clinical_patient_conditions','SELECT')
+     OR NOT has_table_privilege('authenticated','public.clinical_symptom_observations','SELECT') THEN
+    RAISE EXCEPTION 'patient self-read privileges were removed';
+  END IF;
+
   PERFORM set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
   PERFORM set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 
