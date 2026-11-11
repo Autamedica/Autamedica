@@ -342,7 +342,7 @@ export async function generatePrescriptionPdf(
     throw new Error('farmalink_homologation_requires_confirmed_numeric_vendor_id');
   }
   const registration = isHomologationTest
-    ? { cuir: 'NO ASIGNADO - TEST' }
+    ? { cuir: input.existingCuir ?? '' }
     : input.existingCuir
     ? { cuir: input.existingCuir }
     : await rctaService.registerPrescription(
@@ -357,7 +357,7 @@ export async function generatePrescriptionPdf(
     );
 
   const cuir = registration.cuir;
-  const qrContent = isHomologationTest ? '' : `https://www.autamedica.com/verify/${cuir}`;
+  const qrContent = cuir ? `https://www.autamedica.com/verify/${cuir}` : '';
   const expiresAt = input.expiresAt || calculateExpiry(input.issuedAt, input.medication.genericName);
   const barcodeValue = input.externalPrescription?.number || cuir;
   const barcodeTitle = input.externalPrescription?.barcodeTitle || 'CÓDIGO DE BARRAS';
@@ -453,14 +453,14 @@ export async function generatePrescriptionPdf(
   doc.text('Sistema Nacional de Trazabilidad de Actos (RCTA)', marginLeft, 26);
   doc.setTextColor(headerAccentColor[0], headerAccentColor[1], headerAccentColor[2]);
   doc.setFont('helvetica', 'bold');
-  doc.text(`CUIR: ${cuir}`, marginLeft, 33);
+  if (cuir) doc.text(`CUIR: ${cuir}`, marginLeft, 33);
   
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'normal');
   doc.text(`Emitida: ${formatDate(input.issuedAt)}  |  Vence: ${formatDate(expiresAt)}`, marginLeft, 39);
 
   // QR in header (pharmacy verification)
-  if (!isHomologationTest) drawQrCodeVector(doc, qrContent, pageWidth - 50, 8, 30);
+  if (qrContent) drawQrCodeVector(doc, qrContent, pageWidth - 50, 8, 30);
 
   // Never print an internal generic-mode debug flag on a pharmacy-facing PDF.
   y = 55;
@@ -732,7 +732,7 @@ export async function generatePrescriptionPdf(
   // Firma Digital
   const signatureY = 245;
 
-  if (!isHomologationTest && input.prescriber.signatureImageUrl) {
+  if (input.prescriber.signatureImageUrl) {
     // Stamp visual signature image
     try {
       const sigResponse = await fetch(input.prescriber.signatureImageUrl);
@@ -748,7 +748,7 @@ export async function generatePrescriptionPdf(
     }
   }
 
-  if (!isHomologationTest && input.prescriber.stampImageUrl) {
+  if (input.prescriber.stampImageUrl) {
     // Stamp professional seal image
     try {
       const stampResponse = await fetch(input.prescriber.stampImageUrl);
@@ -762,46 +762,52 @@ export async function generatePrescriptionPdf(
     }
   }
 
-  // Digital signature info box (next to visual signature)
-  const infoBoxX = input.prescriber.stampImageUrl ? marginLeft + 80 : marginLeft + 40;
-  const infoBoxWidth = pageWidth - 20 - infoBoxX;
-  doc.setFillColor(patientBgColor[0], patientBgColor[1], patientBgColor[2]);
-  doc.rect(infoBoxX, signatureY, infoBoxWidth, 25, 'F');
+  const shouldRenderSignatureBlock = !isHomologationTest
+    || Boolean(cuir || input.prescriber.signatureImageUrl || input.prescriber.stampImageUrl);
+  if (shouldRenderSignatureBlock) {
+    // Digital signature info box (next to visual signature)
+    const infoBoxX = input.prescriber.stampImageUrl ? marginLeft + 80 : marginLeft + 40;
+    const infoBoxWidth = pageWidth - 20 - infoBoxX;
+    doc.setFillColor(patientBgColor[0], patientBgColor[1], patientBgColor[2]);
+    doc.rect(infoBoxX, signatureY, infoBoxWidth, 25, 'F');
+    
+    if (template === 'female') {
+      doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+      doc.setLineWidth(0.3);
+      doc.rect(infoBoxX, signatureY, infoBoxWidth, 25, 'S');
+      // Franja vertical de acento a la izquierda (ancho 2.5mm)
+      doc.setFillColor(headerBgColor[0], headerBgColor[1], headerBgColor[2]); // Teal médico
+      doc.rect(infoBoxX, signatureY, 2.5, 25, 'F');
+    } else {
+      doc.setDrawColor(15, 23, 42);
+      doc.rect(infoBoxX, signatureY, infoBoxWidth, 25);
+    }
   
-  if (template === 'female') {
-    doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
-    doc.setLineWidth(0.3);
-    doc.rect(infoBoxX, signatureY, infoBoxWidth, 25, 'S');
-    // Franja vertical de acento a la izquierda (ancho 2.5mm)
-    doc.setFillColor(headerBgColor[0], headerBgColor[1], headerBgColor[2]); // Teal médico
-    doc.rect(infoBoxX, signatureY, 2.5, 25, 'F');
-  } else {
-    doc.setDrawColor(15, 23, 42);
-    doc.rect(infoBoxX, signatureY, infoBoxWidth, 25);
-  }
-
-  const sigInfoOffset = template === 'female' ? 5 : 3;
-  doc.setFontSize(7);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
-  doc.text(isHomologationTest ? 'SIN FIRMA - TEST' : 'VERIFICACIÓN DE FIRMA', infoBoxX + sigInfoOffset, signatureY + 5);
-  doc.setFontSize(5.5);
-  doc.setFont('helvetica', 'normal');
-  const signatureLegend = doc.splitTextToSize(
-    isHomologationTest
-      ? 'Documento técnico DEMO: no está firmado por un profesional.'
-      : 'Verificar la firma en el certificado PDF o registro del emisor.',
-    infoBoxWidth - 6,
-  );
-  doc.text(signatureLegend, infoBoxX + 3, signatureY + 10);
-  const validatorY = signatureY + 10 + signatureLegend.length * 3.5;
-  if (isHomologationTest) {
-    doc.text('Sin registro RCTA ni QR verificado.', infoBoxX + 3, validatorY);
-    doc.text('Entorno: Farmalink TEST.', infoBoxX + 3, validatorY + 4);
-  } else {
-    doc.text(`Validador RCTA: ${cuir}`, infoBoxX + 3, validatorY);
-    doc.text(`Fecha de registro: ${formatDate(input.issuedAt)}`, infoBoxX + 3, validatorY + 4);
-    doc.text(`Hash: verificable vía QR`, infoBoxX + 3, validatorY + 8);
+    const sigInfoOffset = template === 'female' ? 5 : 3;
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
+    doc.text(isHomologationTest ? 'SIN FIRMA - TEST' : 'VERIFICACIÓN DE FIRMA', infoBoxX + sigInfoOffset, signatureY + 5);
+    doc.setFontSize(5.5);
+    doc.setFont('helvetica', 'normal');
+    const signatureLegend = doc.splitTextToSize(
+      isHomologationTest
+        ? 'Documento técnico DEMO: no está firmado por un profesional.'
+        : 'Verificar la firma en el certificado PDF o registro del emisor.',
+      infoBoxWidth - 6,
+    );
+    doc.text(signatureLegend, infoBoxX + 3, signatureY + 10);
+    const validatorY = signatureY + 10 + signatureLegend.length * 3.5;
+    if (isHomologationTest) {
+      doc.text('Sin registro RCTA ni QR verificado.', infoBoxX + 3, validatorY);
+      doc.text('Entorno: Farmalink TEST.', infoBoxX + 3, validatorY + 4);
+    } else {
+      doc.text(`Validador RCTA: ${cuir}`, infoBoxX + 3, validatorY);
+      doc.text(`Fecha de registro: ${formatDate(input.issuedAt)}`, infoBoxX + 3, validatorY + 4);
+      doc.text(`Hash: verificable vía QR`, infoBoxX + 3, validatorY + 8);
+    }
+  
+  
   }
 
   // Footer (Compliance & Privacy)
