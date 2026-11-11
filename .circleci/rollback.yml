@@ -46,23 +46,12 @@ jobs:
             export PUBLIC_ADMIN_URL="https://autamedica-admin.pages.dev"
             export RENAPDIS_RL_NUMBER="${RENAPDIS_RL_NUMBER:-RL-2026-47574120-APN-SSVEIYES#MS}"
 
-            projects=(autamedica-web autamedica-doctors autamedica-patients autamedica-companies autamedica-admin)
-            for project in "${projects[@]}"; do
-              echo "Rolling back ${project} to commit ${TARGET_VERSION}..."
-              response=$(curl --fail --silent --show-error --max-time 30 \
-                "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${project}/deployments" \
-                -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-              target_deployment=$(printf '%s' "${response}" | jq -er "select(.success == true) | .result[] | select(.commit_hash == \"${TARGET_VERSION}\") | .id | select(type == \"string\" and length > 0)" | head -1)
-              if [[ -n "${target_deployment}" ]]; then
-                curl --fail --silent --show-error --max-time 30 \
-                  "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${project}/deployments/${target_deployment}/rollback" \
-                  -X POST \
-                  -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"
-                echo "ROLLED_BACK_PROJECT=${project} DEPLOYMENT_ID=${target_deployment} TARGET_COMMIT=${TARGET_VERSION}"
-              else
-                echo "WARNING: Could not find deployment for ${project} with commit ${TARGET_VERSION}"
-              fi
-            done
+            # TODO: add rollback logic using ${TARGET_VERSION}
+            # Cloudflare Pages does not support direct rollback to a specific deployment ID via Wrangler.
+            # Rollback requires either:
+            # 1. Re-deploying the target version from git history (git checkout ${TARGET_VERSION} && pnpm build && wrangler pages deploy)
+            # 2. Using Cloudflare API to promote a previous deployment to canonical
+            # Implement rollback by fetching the target deployment ID and promoting it via Cloudflare API.
       - run:
           name: Update deployment status to failed
           command: circleci run release update production_pages_deploy-rollback --status=FAILED
@@ -92,4 +81,4 @@ workflows:
       - cancel-production_pages_deploy-rollback:
           requires:
             - production_pages_deploy-rollback:
-                - canceled
+                when: canceled
