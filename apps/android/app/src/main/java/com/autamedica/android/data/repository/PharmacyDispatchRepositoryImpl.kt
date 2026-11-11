@@ -73,9 +73,11 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     // Guest JWTs last two hours on the server. Refresh no later than one hour
     // to avoid an unnecessary recovery POST (and DB write) every 3s poll.
     private val guestTokenRefreshDeadline = ConcurrentHashMap<String, Long>()
-    private fun rememberGuestToken(requestId: String, token: String) {
+    private val guestRoomIds = ConcurrentHashMap<String, String>()
+    private fun rememberGuestToken(requestId: String, token: String, roomId: String) {
         guestAccessTokens[requestId] = token
         guestTokenRefreshDeadline[requestId] = System.currentTimeMillis() + 3_600_000L
+        guestRoomIds[requestId] = roomId
     }
     // An opaque 256-bit RECOVERY secret (not the JWT) is Keystore-encrypted via
     // SecurePreferences. It restores the same guest request after process death.
@@ -101,6 +103,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         }
         guestAccessTokens.remove(requestId)
         guestTokenRefreshDeadline.remove(requestId)
+        guestRoomIds.remove(requestId)
     }
 
     private suspend fun resumeGuestRequestFromEncryptedDevice(requestId: String): PharmacyDispatchRequest? =
@@ -141,7 +144,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                     data["request"] ?: error("Missing recovered guest request")
                 )
                 check(dto.id == requestId) { "Recovered guest request mismatch" }
-                rememberGuestToken(requestId, freshJwt)
+                rememberGuestToken(requestId, freshJwt, dto.cloudflareRoomId)
                 dto.toDomain()
             }
         }
@@ -188,8 +191,33 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 securePreferences.putString(guestRecoveryKey, "${dto.id}:$recoveryToken")
                 if (ownerUserId != null) securePreferences.putString(guestRecoveryOwnerKey, ownerUserId)
                 else securePreferences.remove(guestRecoveryOwnerKey)
-                rememberGuestToken(dto.id, token)
+                rememberGuestToken(dto.id, token, dto.cloudflareRoomId)
                 dto.toDomain()
+            }
+        }
+
+    override suspend fun getGuestAccessTokenForRoom(roomId: String): String? =
+        withContext(ioDispatcher) {
+            val expectedRoom = roomId.trim()
+            if (expectedRoom.isEmpty()) return@withContext null
+            val recovery = savedGuestRecovery() ?: return@withContext null
+            val requestId = recovery.first
+            val ownerId = securePreferences?.getString(guestRecoveryOwnerKey)
+            val activeUserId = authRepository.getCurrentUser()?.id
+            // The encrypted recovery credential is account-bound when the queue
+            // was created while signed in; never lend it to a different account.
+            if (ownerId != activeUserId) return@withContext null
+
+            var token = guestAccessTokens[requestId]
+            val deadline = guestTokenRefreshDeadline[requestId] ?: 0L
+            if (token.isNullOrBlank() || deadline <= System.currentTimeMillis() ||
+                guestRoomIds[requestId] != expectedRoom) {
+                resumeGuestRequestFromEncryptedDevice(requestId)
+                token = guestAccessTokens[requestId]
+            }
+
+            token?.takeIf {
+                it.isNotBlank() && guestRoomIds[requestId] == expectedRoom
             }
         }
 

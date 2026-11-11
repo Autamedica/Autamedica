@@ -123,6 +123,16 @@ class PharmacyDispatchRepositoryImplTest {
         return id
     }
 
+
+    @Test
+    fun `guest SFU token is returned only for the matching stored room`() = runTest {
+        val requestId = createSyntheticGuestRequest()
+        assertThat(repository.getGuestAccessTokenForRoom("synthetic-room-cancel"))
+            .isEqualTo("synthetic-signed-cancel-token")
+        assertThat(repository.getGuestAccessTokenForRoom("different-room")).isNull()
+        assertThat(requestId).isEqualTo("guest-cancel-1")
+    }
+
     @Test
     fun `Brazilian QR payment requires signed scope and does not trust pending checkout as approved`() = runTest {
         val requestId = "12345678-1234-4234-8234-123456789012"

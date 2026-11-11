@@ -27,6 +27,7 @@ import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.DoctorRepository
 import com.autamedica.android.domain.repository.MedicalCertificateRepository
 import com.autamedica.android.domain.repository.PrescriptionRepository
+import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.logging.SecureLog
 import com.autamedica.android.telemetry.CallTelemetry
@@ -151,6 +152,7 @@ class VideoCallViewModel @Inject constructor(
     private val supabaseClient: SupabaseClient,
     private val prescriptionRepository: PrescriptionRepository,
     private val medicalCertificateRepository: MedicalCertificateRepository,
+    private val pharmacyDispatchRepository: PharmacyDispatchRepository,
 ) : ViewModel() {
 
     val appointmentId: String = savedStateHandle["appointmentId"] ?: ""
@@ -167,6 +169,9 @@ class VideoCallViewModel @Inject constructor(
         supabaseClient = supabaseClient,
         scope = viewModelScope,
         json = json,
+        guestTokenProvider = { roomId ->
+            pharmacyDispatchRepository.getGuestAccessTokenForRoom(roomId)
+        },
     )
 
     private val turnManager = TurnManager(

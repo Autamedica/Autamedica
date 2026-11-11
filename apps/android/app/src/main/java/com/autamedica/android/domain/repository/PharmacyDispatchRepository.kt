@@ -82,6 +82,9 @@ interface PharmacyDispatchRepository {
         referralCode: String? = null,
     ): Result<PharmacyDispatchRequest>
 
+    /** Short-lived HMAC JWT for the active device-owned guest request in this exact room. */
+    suspend fun getGuestAccessTokenForRoom(roomId: String): String? = null
+
     /** Patient side: cancel a still-searching request only after server confirmation. */
     suspend fun cancelPatientDispatchRequest(requestId: String): Result<Boolean> =
         Result.failure(UnsupportedOperationException("Patient cancellation not implemented"))

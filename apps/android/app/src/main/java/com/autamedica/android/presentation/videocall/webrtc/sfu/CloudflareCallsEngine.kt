@@ -57,6 +57,7 @@ class CloudflareCallsEngine(
     private val supabaseClient: SupabaseClient,
     private val scope: CoroutineScope,
     private val json: Json = Json { ignoreUnknownKeys = true },
+    private val guestTokenProvider: suspend (String) -> String? = { null },
 ) {
     data class Config(
         val iceServers: List<PeerConnection.IceServer> = emptyList(),
@@ -541,7 +542,9 @@ class CloudflareCallsEngine(
     private fun launchSfuSession() {
         val roomId = activeRoomId ?: return
         session = CloudflareCallsSession(
-            api = SupabaseCloudflareCallsApi(supabaseClient, json, roomId),
+            api = SupabaseCloudflareCallsApi(supabaseClient, json, roomId) {
+                guestTokenProvider(roomId)
+            },
             factory = peerConnectionFactory,
             scope = scope,
             iceServers = currentIceServers,
