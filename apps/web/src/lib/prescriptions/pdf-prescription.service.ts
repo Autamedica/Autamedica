@@ -808,7 +808,9 @@ export async function generatePrescriptionPdf(
   doc.setFontSize(7);
   doc.setTextColor(148, 163, 184);
   if (isHomologationTest) {
-    // Keep the official ReNaPDiS statement without a test/debug banner.
+    // A homologation copy must never be mistaken for a signed or dispensable prescription.
+    doc.text('DOCUMENTO DE HOMOLOGACIÓN: sin firma profesional ni CUIR; no válido para dispensación clínica.', marginLeft, footerY);
+    // Keep the official ReNaPDiS statement without internal fixture/debug labels.
     // The homologation document has no CUIR, QR or signature in its reserved areas.
     const testRenapdisLegajo =
       getRuntimeEnvValue('RENAPDIS_RL_NUMBER') ??
