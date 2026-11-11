@@ -367,6 +367,13 @@ jobs:
             test -f apps/web/dist/_worker.js/index.js -o -d apps/web/dist/_astro
           no_output_timeout: 20m
       - run:
+          name: Plan deployment
+          command: |
+            circleci run release plan production_pages_deploy \
+              --environment-name="production" \
+              --component-name="autamedica-web" \
+              --target-version="${CIRCLE_SHA1}"
+      - run:
           name: Deploy all five Cloudflare Pages production projects via Wrangler
           working_directory: apps/web
           command: |
@@ -393,7 +400,7 @@ jobs:
           no_output_timeout: 20m
       - run:
           name: Post-deploy smoke verification of all production domains and PKCE bundle
-          command: |
+          command: |-
             set -euo pipefail
             sleep 15
             for url in \
@@ -427,6 +434,10 @@ jobs:
             printf '%s' "${reset_js}" | grep -F "token_hash" >/dev/null
             printf '%s' "${reset_js}" | grep -F "verifyOtp" >/dev/null
             echo "VERIFIED: Live production ResetPasswordForm bundle includes PKCE and scanner-safe token_hash recovery."
+      - run:
+          name: Update deployment status to failed
+          command: circleci run release update production_pages_deploy --status=FAILED
+          when: on_fail
 
   android:
     docker:
@@ -632,6 +643,12 @@ jobs:
               --skip_upload_images \
               --skip_upload_screenshots
           no_output_timeout: 20m
+  production_pages_deploy-release:
+    type: release
+    plan_name: production_pages_deploy
+    validation:
+      enabled: true
+      auto_rollback_on_failure: true
 
 workflows:
   # Release evidence must refer to exactly the chosen reviewed main commit.
@@ -767,3 +784,8 @@ workflows:
             - production_validate_and_test
           filters: *production_main_branch_filter
 
+
+      - production_pages_deploy-release:
+          requires:
+            - production_pages_deploy
+          filters: production_main_branch_filter
