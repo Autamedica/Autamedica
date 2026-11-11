@@ -77,19 +77,14 @@ export class PharmacyOnDemandService {
       }
     }
 
-    const { data: inserted, error: insertErr } = await admin
-      .from('pharmacy_consultation_requests')
-      .insert({
-        pharmacy_id: input.pharmacyId || null,
-        pharmacy_name: resolvedPharmacyName,
-        patient_dni: input.patientDni.trim(),
-        patient_name: input.patientName.trim(),
-        patient_phone: input.patientPhone.trim(),
-        reason: input.reason.trim(),
-        status: 'pending',
-      })
-      .select('*')
-      .single()
+    const { data: inserted, error: insertErr } = await admin.rpc('create_pharmacy_consultation_request', {
+      p_pharmacy_id: input.pharmacyId || null,
+      p_pharmacy_name: resolvedPharmacyName,
+      p_patient_dni: input.patientDni.trim(),
+      p_patient_name: input.patientName.trim(),
+      p_patient_phone: input.patientPhone.trim(),
+      p_reason: input.reason.trim(),
+    })
 
     if (insertErr || !inserted) {
       logger.error('[PharmacyOnDemandService.createRequest] Insert failed', insertErr)

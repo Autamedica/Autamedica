@@ -194,3 +194,7 @@ apps/web/scratch/
 # YouTube tool scraping cache and pycache
 tools/obs/scraped_videos.json
 tools/obs/__pycache__/
+
+# Supabase production secrets (never commit)
+.env.supabase.production
+.env.supabase.*

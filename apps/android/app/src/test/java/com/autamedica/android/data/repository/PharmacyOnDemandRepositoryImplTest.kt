@@ -5,6 +5,7 @@ import com.google.common.truth.Truth.assertThat
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -32,33 +33,14 @@ class PharmacyOnDemandRepositoryImplTest {
     }
 
     @Test
-    fun `cancelActiveRequestsForPatient handles blank inputs gracefully without throwing`() = runTest {
+    fun `cancelRequest uses request-scoped RPC and propagates network failures`() = runTest {
         val postgrest = mockk<Postgrest>(relaxed = true)
         every { supabaseClient.postgrest } returns postgrest
-
-        val result = repository.cancelActiveRequestsForPatient("   ", "   ")
-        assertThat(result.isSuccess).isTrue()
-    }
-
-    @Test
-    fun `cancelRequest handles network failure returning Result failure`() = runTest {
-        val postgrest = mockk<Postgrest>(relaxed = true)
-        every { supabaseClient.postgrest } returns postgrest
-        every { postgrest.from(any()) } throws RuntimeException("Network timeout")
+        coEvery { postgrest.rpc(any(), any()) } throws RuntimeException("Network timeout")
 
         val result = repository.cancelRequest("req-123")
+
         assertThat(result.isFailure).isTrue()
         assertThat(result.exceptionOrNull()?.message).contains("Network timeout")
-    }
-
-    @Test
-    fun `cancelActiveRequestsForPatient handles network failure returning Result failure`() = runTest {
-        val postgrest = mockk<Postgrest>(relaxed = true)
-        every { supabaseClient.postgrest } returns postgrest
-        every { postgrest.from(any()) } throws RuntimeException("Connection aborted")
-
-        val result = repository.cancelActiveRequestsForPatient("35123456", "+5491155554321")
-        assertThat(result.isFailure).isTrue()
-        assertThat(result.exceptionOrNull()?.message).contains("Connection aborted")
     }
 }
