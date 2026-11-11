@@ -323,5 +323,49 @@ describe('generatePrescriptionPdf', () => {
     expect(rctaSpy).not.toHaveBeenCalled();
   });
 
+  it('preserves a supplied CUIR and QR in Farmalink homologation without registering a new one', async () => {
+    const existingCuir = '02680042020102000000000000000000000010106';
+    const registerSpy = vi.spyOn(rctaService, 'registerPrescription');
+    const artifacts = await generatePrescriptionPdf({
+      prescriptionId: 'farmalink-homologation-existing-cuir',
+      homologationTest: true,
+      homologationMode: 'S',
+      existingCuir,
+      externalPrescription: {
+        provider: 'farmalink',
+        number: '9600000421228',
+        displayLabel: 'RECETA FARMALINK',
+        legend: 'Número de receta para validación en farmacia',
+      },
+      issuedAt: '2026-11-03',
+      diagnosis: 'I20.9',
+      medication: {
+        genericName: 'GLICOLICOAC.ASOC.',
+        dosage: '',
+        instructions: '',
+        presentation: 'Crema x 20 g',
+        quantity: 1,
+      },
+      patient: {
+        name: 'Demo Demo',
+        dni: '12345678',
+        cuil: '27123456780',
+        affiliateCredential: '20123456786',
+        insuranceEntityCode: 7110,
+        insurancePlan: '100',
+      },
+      prescriber: {
+        name: 'Demo Demo',
+        license: 'MN 11111',
+      },
+    });
+
+    const pdfText = Buffer.from(artifacts.pdfBuffer).toString('latin1');
+    expect(registerSpy).not.toHaveBeenCalled();
+    expect(artifacts.cuir).toBe(existingCuir);
+    expect(artifacts.qrContent).toBe(`https://www.autamedica.com/verify/${existingCuir}`);
+    expect(pdfText).toContain(`CUIR: ${existingCuir}`);
+  });
+
 });
 
