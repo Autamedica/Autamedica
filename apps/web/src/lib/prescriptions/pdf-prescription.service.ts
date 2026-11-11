@@ -513,10 +513,13 @@ export async function generatePrescriptionPdf(
   }
   if (input.patient.affiliateCredential) {
     // The PAN must match the confirmed altaReceta, not the CUIL or local insurance metadata.
+    const displayedPlan = input.patient.insuranceEntityCode === 7110
+      ? 'No Posee'
+      : input.patient.insurancePlan;
     const affiliation = [
       input.patient.insuranceEntityCode ? `Entidad: ${input.patient.insuranceEntityCode}` : null,
       `Nro. afiliado / Credencial: ${input.patient.affiliateCredential}`,
-      input.patient.insurancePlan ? `Plan: ${input.patient.insurancePlan}` : null,
+      displayedPlan ? `Plan: ${displayedPlan}` : null,
     ].filter(Boolean).join('  |  ');
     doc.setFontSize(8);
     doc.setTextColor(infoTextColor[0], infoTextColor[1], infoTextColor[2]);
