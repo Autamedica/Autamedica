@@ -342,7 +342,7 @@ export async function generatePrescriptionPdf(
     throw new Error('farmalink_homologation_requires_confirmed_numeric_vendor_id');
   }
   const registration = isHomologationTest
-    ? { cuir: input.existingCuir ?? 'NO ASIGNADO - TEST' }
+    ? { cuir: input.existingCuir ?? '' }
     : input.existingCuir
     ? { cuir: input.existingCuir }
     : await rctaService.registerPrescription(
@@ -357,9 +357,7 @@ export async function generatePrescriptionPdf(
     );
 
   const cuir = registration.cuir;
-  const qrContent = isHomologationTest && !input.existingCuir
-    ? ''
-    : cuir ? `https://www.autamedica.com/verify/${cuir}` : '';
+  const qrContent = cuir ? `https://www.autamedica.com/verify/${cuir}` : '';
   const expiresAt = input.expiresAt || calculateExpiry(input.issuedAt, input.medication.genericName);
   const barcodeValue = input.externalPrescription?.number || cuir;
   const barcodeTitle = input.externalPrescription?.barcodeTitle || 'CÓDIGO DE BARRAS';
@@ -455,7 +453,7 @@ export async function generatePrescriptionPdf(
   doc.text('Sistema Nacional de Trazabilidad de Actos (RCTA)', marginLeft, 26);
   doc.setTextColor(headerAccentColor[0], headerAccentColor[1], headerAccentColor[2]);
   doc.setFont('helvetica', 'bold');
-  doc.text(`CUIR: ${cuir}`, marginLeft, 33);
+  doc.text(`CUIR: ${cuir || '-'}`, marginLeft, 33);
   
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'normal');
@@ -786,26 +784,19 @@ export async function generatePrescriptionPdf(
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
-  const hasPrescriberSignature = Boolean(input.prescriber.signatureImageUrl);
-  const isUnsignedHomologation = isHomologationTest && !hasPrescriberSignature;
-  doc.text(isUnsignedHomologation ? 'SIN FIRMA - TEST' : 'VERIFICACIÓN DE FIRMA', infoBoxX + sigInfoOffset, signatureY + 5);
+  doc.text('VERIFICACIÓN DE FIRMA', infoBoxX + sigInfoOffset, signatureY + 5);
   doc.setFontSize(5.5);
   doc.setFont('helvetica', 'normal');
   const signatureLegend = doc.splitTextToSize(
-    isUnsignedHomologation
-      ? 'Documento técnico DEMO: no está firmado por un profesional.'
-      : 'Verificar la firma en el certificado PDF o registro del emisor.',
+    'Verificar la firma en el certificado PDF o registro del emisor.',
     infoBoxWidth - 6,
   );
   doc.text(signatureLegend, infoBoxX + 3, signatureY + 10);
   const validatorY = signatureY + 10 + signatureLegend.length * 3.5;
-  if (isHomologationTest && !input.existingCuir) {
-    doc.text('Sin registro RCTA ni QR verificado.', infoBoxX + 3, validatorY);
-    doc.text('Entorno: Farmalink TEST.', infoBoxX + 3, validatorY + 4);
-  } else {
+  if (cuir) {
     doc.text(`Validador RCTA: ${cuir}`, infoBoxX + 3, validatorY);
     doc.text(`Fecha de registro: ${formatDate(input.issuedAt)}`, infoBoxX + 3, validatorY + 4);
-    doc.text(`Hash: verificable vía QR`, infoBoxX + 3, validatorY + 8);
+    doc.text('Hash: verificable vía QR', infoBoxX + 3, validatorY + 8);
   }
 
 
@@ -815,21 +806,13 @@ export async function generatePrescriptionPdf(
   const footerY = 276;
   doc.setFontSize(7);
   doc.setTextColor(148, 163, 184);
-  if (isHomologationTest) {
-    // Keep the existing ReNaPDiS registration legend and signature/CUIR fields unchanged.
-    const testRenapdisLegajo =
-      getRuntimeEnvValue('RENAPDIS_RL_NUMBER') ??
-      getServerEnvOrDefault('RENAPDIS_RL_NUMBER', OFFICIAL_RENAPDIS_RL_NUMBER) ?? OFFICIAL_RENAPDIS_RL_NUMBER;
-    doc.text('Esta receta fue creada por un emisor inscripto y validado en el Registro de Recetarios Electrónicos', marginLeft, footerY + 6);
-    doc.text(`del Ministerio de Salud de la Nación - ${testRenapdisLegajo}.`, marginLeft, footerY + 10);
-  } else {
   doc.text(
-    `Esta prescripción tiene validez de documento público electrónico según Ley 27.553.`,
-    marginLeft, footerY
+    'Esta prescripción tiene validez de documento público electrónico según Ley 27.553.',
+    marginLeft, footerY,
   );
   doc.text(
-    `AutaMedica garantiza el cumplimiento de la Ley 25.326 de Protección de Datos Personales.`,
-    marginLeft, footerY + 4
+    'AutaMedica garantiza el cumplimiento de la Ley 25.326 de Protección de Datos Personales.',
+    marginLeft, footerY + 4,
   );
 
   const renapdisLegajo =
@@ -846,7 +829,6 @@ export async function generatePrescriptionPdf(
     footerY + 14,
   );
 
-  }
   // ==========================================
   // PÁGINA 2: GUÍA DE ACOMPAÑAMIENTO AL PACIENTE
   // ==========================================
