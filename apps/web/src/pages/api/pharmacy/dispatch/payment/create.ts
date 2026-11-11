@@ -70,7 +70,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .eq('doctor_id', quote.assigned_doctor_id)
       .maybeSingle()
     if (offerError) throw offerError
-    if (!offer || offer.status !== 'accepted' ||
+    if (offer?.status !== 'accepted' ||
         Number(offer.price_brl) !== JORDAN_DOCTOR_FEE_CENTS / 100) {
       return serviceUnavailable('jordan_doctor_offer_not_accepted_at_40')
     }
