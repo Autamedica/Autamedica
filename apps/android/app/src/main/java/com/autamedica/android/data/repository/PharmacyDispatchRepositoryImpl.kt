@@ -208,11 +208,16 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             // was created while signed in; never lend it to a different account.
             if (ownerId != activeUserId) return@withContext null
 
+            val knownRoom = guestRoomIds[requestId]
+            // A known room mismatch is a hard deny, never a reason to refresh
+            // or recover a token for a different room.
+            if (knownRoom != null && knownRoom != expectedRoom) return@withContext null
+
             var token = guestAccessTokens[requestId]
             val deadline = guestTokenRefreshDeadline[requestId] ?: 0L
-            if (token.isNullOrBlank() || deadline <= System.currentTimeMillis() ||
-                guestRoomIds[requestId] != expectedRoom) {
-                resumeGuestRequestFromEncryptedDevice(requestId)
+            if (token.isNullOrBlank() || deadline <= System.currentTimeMillis() || knownRoom == null) {
+                val restored = resumeGuestRequestFromEncryptedDevice(requestId)
+                if (restored?.cloudflareRoomId != expectedRoom) return@withContext null
                 token = guestAccessTokens[requestId]
             }
 

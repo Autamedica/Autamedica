@@ -129,7 +129,9 @@ class PharmacyDispatchRepositoryImplTest {
         val requestId = createSyntheticGuestRequest()
         assertThat(repository.getGuestAccessTokenForRoom("synthetic-room-cancel"))
             .isEqualTo("synthetic-signed-cancel-token")
+        val requestsBeforeMismatch = mockWebServer.requestCount
         assertThat(repository.getGuestAccessTokenForRoom("different-room")).isNull()
+        assertThat(mockWebServer.requestCount).isEqualTo(requestsBeforeMismatch)
         assertThat(requestId).isEqualTo("11111111-1111-4111-8111-111111111111")
     }
 
