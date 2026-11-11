@@ -96,6 +96,7 @@ internal data class PharmacyRequestStatusDto(
 internal data class CancelPharmacyRequestDto(
     val success: Boolean = false,
     val error: String? = null,
+    @SerialName("request_id") val requestId: String? = null,
 )
 
 @Serializable
