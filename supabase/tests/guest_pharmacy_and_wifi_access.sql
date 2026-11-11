@@ -28,6 +28,26 @@ BEGIN
     RAISE EXCEPTION 'guest RPC grants are missing';
   END IF;
 
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='pharmacy_consultation_requests'
+      AND column_name='care_country'
+  ) THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_policies
+      WHERE schemaname='public' AND tablename='pharmacy_consultation_requests'
+        AND policyname='pharmacy_consultation_requests_select_confined'
+        AND qual ILIKE '%care_country%'
+    ) OR NOT EXISTS (
+      SELECT 1 FROM pg_policies
+      WHERE schemaname='public' AND tablename='pharmacy_consultation_requests'
+        AND policyname='pharmacy_consultation_requests_update_confined'
+        AND qual ILIKE '%care_country%'
+    ) THEN
+      RAISE EXCEPTION 'pharmacy request queue is not country-scoped';
+    END IF;
+  END IF;
+
   created:=public.create_pharmacy_consultation_request(
     NULL,'Farmacia QA','TEST-CPF-0001','Paciente QA','+55 11 90000-0000','Test de privacidad'
   );
