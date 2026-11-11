@@ -20,7 +20,7 @@ AS $function$
 $function$;
 
 REVOKE ALL ON FUNCTION public.is_clinically_approved_doctor()
-  FROM PUBLIC, anon;
+  FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.is_clinically_approved_doctor()
   TO anon, authenticated, service_role;
 
