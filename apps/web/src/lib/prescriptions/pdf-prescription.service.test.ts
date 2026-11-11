@@ -365,6 +365,8 @@ describe('generatePrescriptionPdf', () => {
     expect(artifacts.cuir).toBe(existingCuir);
     expect(artifacts.qrContent).toBe(`https://www.autamedica.com/verify/${existingCuir}`);
     expect(pdfText).toContain(`CUIR: ${existingCuir}`);
+    expect(pdfText).toContain(`Validador RCTA: ${existingCuir}`);
+    expect(pdfText).not.toContain('Sin registro RCTA ni QR verificado');
   });
 
 });
