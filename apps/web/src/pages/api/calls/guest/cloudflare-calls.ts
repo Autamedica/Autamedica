@@ -59,7 +59,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         .limit(1)
         .maybeSingle()
       if (callError) throw callError
-      if (!call || call.id !== guest.callId ||
+      if (call?.id !== guest.callId ||
           ['ended','declined','canceled','cancelled'].includes(call.status)) {
         return new Response(JSON.stringify({ error: 'call_access_denied' }), {
           status: 403, headers: { 'Content-Type': 'application/json' },
