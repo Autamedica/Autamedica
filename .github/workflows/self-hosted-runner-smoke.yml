@@ -1,0 +1,30 @@
+name: Self-hosted Runner Smoke Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-windows-runner:
+    name: Verify autamedica-win10-local-01
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 3
+    steps:
+      - name: Verify runner identity and execution
+        shell: powershell
+        run: |
+          Write-Host "Runner name: $env:GITHUB_RUNNER_NAME"
+          Write-Host "Runner OS: $env:GITHUB_RUNNER_OS"
+          Write-Host "Runner architecture: $env:GITHUB_RUNNER_ARCH"
+          Write-Host "Computer: $env:COMPUTERNAME"
+          if ($env:GITHUB_RUNNER_NAME -ne "autamedica-win10-local-01") {
+            throw "Unexpected runner: $env:GITHUB_RUNNER_NAME"
+          }
+          if ($env:GITHUB_RUNNER_OS -ne "Windows") {
+            throw "Expected a Windows runner"
+          }
+          "runner_name=$env:GITHUB_RUNNER_NAME" >> $env:GITHUB_OUTPUT
+          "computer=$env:COMPUTERNAME" >> $env:GITHUB_OUTPUT
+          Write-Host "SELF-HOSTED RUNNER SMOKE TEST PASSED"
