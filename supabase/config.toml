@@ -43,4 +43,8 @@ ip_version = "IPv4"
 
 [functions]
 
+# The handler verifies Supabase JWTs and a scoped HMAC guest token itself.
+[functions.cloudflare-calls]
+verify_jwt = false
+
 [analytics]
