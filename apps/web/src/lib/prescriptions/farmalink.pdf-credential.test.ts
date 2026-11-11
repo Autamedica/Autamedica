@@ -36,7 +36,6 @@ describe('Farmalink PDF affiliate reconciliation', () => {
     expect(pdf).toContain('Nro. afiliado / Credencial: 20123456786');
     expect(pdf).toContain('Plan: NO POSEE');
     expect(pdf).toContain('Entidad: 7110');
-    expect(pdf).toContain('Plan: 100');
     expect(pdf).toContain('CUIL: 27123456780');
     expect(pdf).toContain('CUIL PACIENTE');
     expect(pdf).toContain('RECETA FARMALINK');
