@@ -45,8 +45,10 @@ INSERT INTO public.doctor_licenses(doctor_id,license_type,license_number,provinc
 SELECT id,'MN','CI-'||id::text,'CABA','active'
 FROM country_fixture WHERE kind='doctor_ar';
 
-INSERT INTO public.doctor_licenses(doctor_id,license_type,license_number,uf_brazil,status,cfm_validation_status)
-SELECT id,'CRM','CI-'||id::text,'RS','active','valid'
+INSERT INTO public.doctor_licenses(doctor_id,license_type,license_number,uf_brazil,status,cfm_validation_status,
+  cfm_evidence_path,cfm_review_notes,cfm_reviewed_by,cfm_reviewed_at,cfm_last_checked_at)
+SELECT id,'CRM','CI-'||id::text,'RS','active','valid',
+  'ci/'||id::text||'/evidence.pdf','Synthetic CI administrative review',uid,now(),now()
 FROM country_fixture WHERE kind='doctor_br';
 
 -- An active AR doctor with a current licence but no Admin approval
