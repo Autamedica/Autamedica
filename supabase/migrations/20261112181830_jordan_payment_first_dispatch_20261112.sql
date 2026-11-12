@@ -81,3 +81,8 @@ CREATE TRIGGER trg_jordan_dispatch_after_payment_approval
 AFTER INSERT OR UPDATE OF status ON public.pharmacy_dispatch_payments
 FOR EACH ROW
 EXECUTE FUNCTION public.dispatch_jordan_after_payment_approval();
+-- Trigger entry points remain callable by PostgreSQL's trigger executor, not clients.
+REVOKE ALL ON FUNCTION public.trigger_match_dispatch_doctors() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.trigger_match_dispatch_doctors() TO service_role;
+REVOKE ALL ON FUNCTION public.dispatch_jordan_after_payment_approval() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.dispatch_jordan_after_payment_approval() TO service_role;
