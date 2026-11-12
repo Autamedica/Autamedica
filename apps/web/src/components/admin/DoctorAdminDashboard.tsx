@@ -1133,7 +1133,7 @@ export function DoctorAdminDashboard() {
                   </div>
                 </fieldset>
 
-                {/* 🛡️ SISA / REFEPS Validation (Crucial para Receta Electrónica) */}
+{getDoctorCountry(selectedDoctor) === 'AR' && (
                 <fieldset disabled={isVerifyingSisa} className="space-y-3 pt-2 border-t border-slate-100">
                   <legend className="text-xs font-bold uppercase tracking-wider text-slate-500">Validación SISA / REFEPS</legend>
                   
@@ -1195,6 +1195,7 @@ export function DoctorAdminDashboard() {
                     />
                   </div>
                 </fieldset>
+                )}
 
                 {/* 💼 Matrícula & Domicilio */}
                 <fieldset disabled={isVerifyingSisa} className="space-y-3 pt-2 border-t border-slate-100">
