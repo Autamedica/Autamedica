@@ -99,8 +99,7 @@ export async function handleRoomBoundCloudflareProxy(
         .maybeSingle()
 
       if (error) throw error
-      if (!binding || binding.room_id !== roomId ||
-          binding.principal_key !== principalKey) {
+      if (binding?.room_id !== roomId || binding?.principal_key !== principalKey) {
         return deny(403, 'sfu_session_owner_or_room_mismatch')
       }
 

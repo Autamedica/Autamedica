@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from '@supabase/supabase-js'
 import { corsHeaders } from '../_shared/cors.ts'
 
 console.info('Send Push Notification function started')
@@ -39,12 +39,15 @@ function base64UrlDecodeToBinary(input: string): Uint8Array {
   return bytes
 }
 
-function pemToBinary(pem: string): Uint8Array {
+function pemToBinary(pem: string): ArrayBuffer {
   const body = pem
     .replace(/-----BEGIN [A-Z ]+-----/g, '')
     .replace(/-----END [A-Z ]+-----/g, '')
     .replace(/\s+/g, '')
-  return base64UrlDecodeToBinary(body)
+  const bytes = base64UrlDecodeToBinary(body)
+  const buffer = new ArrayBuffer(bytes.byteLength)
+  new Uint8Array(buffer).set(bytes)
+  return buffer
 }
 
 async function signJwt(

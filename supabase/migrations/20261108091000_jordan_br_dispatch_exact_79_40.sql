@@ -7,6 +7,12 @@
 -- DOES NOT enable payment flags, settle commissions, or rewrite existing offers.
 BEGIN;
 
+-- Reconcile the production hotfix with clean migration replays.
+-- Production already has this nullable NUMERIC(6,2) column; IF NOT EXISTS
+-- keeps deployment idempotent while ensuring fresh databases have it too.
+ALTER TABLE public.pharmacy_dispatch_requests
+  ADD COLUMN IF NOT EXISTS doctor_fee_brl NUMERIC(6,2);
+
 -- Quote at intake: the persisted patient price is R$79, doctor fee R$40.
 -- BEFORE INSERT sees NEW before the AFTER INSERT matching trigger executes.
 -- Existing channel prices and all AR dispatches remain untouched.

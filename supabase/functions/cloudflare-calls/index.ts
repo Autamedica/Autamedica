@@ -70,7 +70,12 @@ export async function verifyGuestToken(token: string, secret: string): Promise<G
       { name: 'HMAC', hash: 'SHA-256' }, false, ['verify'],
     )
     const signingInput = new TextEncoder().encode(`${headerPart}.${payloadPart}`)
-    if (!await crypto.subtle.verify('HMAC', key, signature, signingInput)) return null
+    // Deno's WebCrypto BufferSource typing requires ArrayBuffer-backed views.
+    const signatureBuffer = new ArrayBuffer(signature.byteLength)
+    new Uint8Array(signatureBuffer).set(signature)
+    const signingInputBuffer = new ArrayBuffer(signingInput.byteLength)
+    new Uint8Array(signingInputBuffer).set(signingInput)
+    if (!await crypto.subtle.verify('HMAC', key, signatureBuffer, signingInputBuffer)) return null
     const payload = JSON.parse(new TextDecoder().decode(payloadBytes)) as GuestTokenPayload
     if (payload.role !== 'guest' || typeof payload.callId !== 'string' || !payload.callId ||
         typeof payload.roomId !== 'string' || !payload.roomId ||
