@@ -10,6 +10,8 @@ import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.logging.SecureLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -98,6 +100,7 @@ class PharmacyIntakeViewModel @Inject constructor(
     val uiState: StateFlow<PharmacyIntakeUiState> = _uiState.asStateFlow()
 
     private var statusPollingJob: Job? = null
+    private var paymentPollingJob: Job? = null
     private var observeActiveDoctorsJob: Job? = null
     private var marketCapacityJob: Job? = null
 
@@ -211,14 +214,21 @@ class PharmacyIntakeViewModel @Inject constructor(
                                     reasonText = request.symptomSummary ?: it.reasonText,
                                     status = mapDispatchStatus(request.status),
                                     roomId = request.cloudflareRoomId.takeIf(String::isNotBlank),
-                                    readyToJoinCall = request.doctorAttendedCall && request.cloudflareRoomId.isNotBlank(),
+                                    // Dispatch state alone never authorizes a Jordan video call after process death.
+                                    readyToJoinCall = request.doctorAttendedCall &&
+                                        request.cloudflareRoomId.isNotBlank() &&
+                                        !(request.careCountry == "BR" &&
+                                            (referralCodeParam == "JORDAN" || request.referralPartnerId != null)),
                                     error = null,
                                     statusNotice = null,
                                 )
                             }
                             refreshCountryDoctorCount(request.careCountry)
-                            if (!request.doctorAttendedCall) {
-                                startStatusPolling(request.id)
+                            // Observe the request even if the doctor already attended: payment is independent.
+                            startStatusPolling(request.id)
+                            if (request.careCountry == "BR" && request.status in setOf("matched", "in_call") &&
+                                (referralCodeParam == "JORDAN" || request.referralPartnerId != null)) {
+                                startPaymentStatusPolling(request.id)
                             }
                         }
                     }
@@ -384,6 +394,31 @@ class PharmacyIntakeViewModel @Inject constructor(
         _uiState.update { it.copy(paymentCheckoutUrl = null) }
     }
 
+    /** Poll the PSP independently of dispatch events after process restoration. */
+    private fun startPaymentStatusPolling(requestId: String) {
+        paymentPollingJob?.cancel()
+        paymentPollingJob = viewModelScope.launch {
+            while (isActive) {
+                val current = _uiState.value
+                if (current.activeRequestId != requestId || !current.requiresBrazilianPayment) break
+
+                val verifiedStatus = pharmacyDispatchRepository.getDispatchPaymentStatus(requestId).getOrNull()
+                if (verifiedStatus != null) {
+                    _uiState.update { state ->
+                        if (state.activeRequestId != requestId) return@update state
+                        state.copy(
+                            paymentStatus = verifiedStatus,
+                            readyToJoinCall = state.status == PharmacyConsultationStatus.IN_CALL &&
+                                !state.roomId.isNullOrBlank() && verifiedStatus == "approved",
+                        )
+                    }
+                    if (verifiedStatus in setOf("approved", "rejected", "refunded", "cancelled", "expired")) break
+                }
+                delay(5_000)
+            }
+        }
+    }
+
     private fun startStatusPolling(requestId: String) {
         statusPollingJob?.cancel()
         statusPollingJob = viewModelScope.launch {
@@ -517,6 +552,7 @@ class PharmacyIntakeViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         statusPollingJob?.cancel()
+        paymentPollingJob?.cancel()
         observeActiveDoctorsJob?.cancel()
     }
 }

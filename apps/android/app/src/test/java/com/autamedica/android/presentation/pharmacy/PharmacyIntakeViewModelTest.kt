@@ -71,9 +71,12 @@ private class FakePharmacyDispatchRepository(
     var checkoutResult: Result<DispatchCheckoutResult> = Result.success(DispatchCheckoutResult("pending","https://www.mercadopago.com.br/checkout"))
     var paymentStatusResult: Result<String> = Result.success("not_started")
     var paymentCheckCount: Int = 0
+    var activeRequestResult: Result<PharmacyDispatchRequest?> = Result.success(null)
     val cancellationAttempts = mutableListOf<String>()
 
     override suspend fun startDispatchCheckout(requestId: String): Result<DispatchCheckoutResult> = checkoutResult
+
+    override suspend fun getActivePatientDispatchRequest(): Result<PharmacyDispatchRequest?> = activeRequestResult
 
     override suspend fun getDispatchPaymentStatus(requestId: String): Result<String> {
         paymentCheckCount++
@@ -707,6 +710,77 @@ class PharmacyIntakeViewModelTest {
         testScheduler.runCurrent()
         assertThat(vm.uiState.value.paymentStatus).isEqualTo("approved")
         assertThat(vm.uiState.value.readyToJoinCall).isTrue()
+        assertThat(pharmacyRepo.paymentCheckCount).isGreaterThan(0)
+    }
+
+    @Test
+    fun `Jordan app restore keeps in-call patient on checkout while payment is pending and polls PSP`() = runTest(testDispatcher) {
+        val restored = PharmacyDispatchRequest(
+            id = "restored-jordan-pending", careCountry = "BR", referralPartnerId = "partner-jordan-br",
+            patientDni = "12345678909", patientPhone = "+5551987654321", patientName = "Paciente BR",
+            status = "in_call", cloudflareRoomId = "cf-room-restored-jordan",
+            createdAt = "2026-11-12T00:00:00Z",
+        )
+        pharmacyRepo.activeRequestResult = Result.success(restored)
+        pharmacyRepo.requestFlow.value = restored
+        pharmacyRepo.paymentStatusResult = Result.success("pending")
+        val vm = PharmacyIntakeViewModel(
+            savedStateHandle = SavedStateHandle(mapOf("referralCode" to "JORDAN")),
+            authRepository = authRepo, profileRepository = profileRepo, pharmacyDispatchRepository = pharmacyRepo,
+        )
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.activeRequestId).isEqualTo(restored.id)
+        assertThat(vm.uiState.value.status).isEqualTo(PharmacyConsultationStatus.IN_CALL)
+        assertThat(vm.uiState.value.requiresBrazilianPayment).isTrue()
+        assertThat(vm.uiState.value.paymentStatus).isEqualTo("pending")
+        assertThat(vm.uiState.value.readyToJoinCall).isFalse()
+        val initialChecks = pharmacyRepo.paymentCheckCount
+        assertThat(initialChecks).isGreaterThan(0)
+        advanceTimeBy(5_000)
+        testScheduler.runCurrent()
+        assertThat(pharmacyRepo.paymentCheckCount).isGreaterThan(initialChecks)
+        assertThat(vm.uiState.value.readyToJoinCall).isFalse()
+    }
+
+    @Test
+    fun `Jordan app restore unlocks in-call navigation only after PSP approval`() = runTest(testDispatcher) {
+        val restored = PharmacyDispatchRequest(
+            id = "restored-jordan-approved", careCountry = "BR", referralPartnerId = "partner-jordan-br",
+            patientDni = "12345678909", patientPhone = "+5551987654321", patientName = "Paciente BR",
+            status = "in_call", cloudflareRoomId = "cf-room-restored-approved",
+            createdAt = "2026-11-12T00:00:00Z",
+        )
+        pharmacyRepo.activeRequestResult = Result.success(restored)
+        pharmacyRepo.requestFlow.value = restored
+        pharmacyRepo.paymentStatusResult = Result.success("approved")
+        val vm = PharmacyIntakeViewModel(
+            savedStateHandle = SavedStateHandle(mapOf("referralCode" to "JORDAN")),
+            authRepository = authRepo, profileRepository = profileRepo, pharmacyDispatchRepository = pharmacyRepo,
+        )
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.paymentStatus).isEqualTo("approved")
+        assertThat(vm.uiState.value.readyToJoinCall).isTrue()
+        assertThat(pharmacyRepo.paymentCheckCount).isGreaterThan(0)
+    }
+
+    @Test
+    fun `Jordan app restore never unlocks in-call navigation for refunded payment`() = runTest(testDispatcher) {
+        val restored = PharmacyDispatchRequest(
+            id = "restored-jordan-refunded", careCountry = "BR", referralPartnerId = "partner-jordan-br",
+            patientDni = "12345678909", patientPhone = "+5551987654321", patientName = "Paciente BR",
+            status = "in_call", cloudflareRoomId = "cf-room-restored-refunded",
+            createdAt = "2026-11-12T00:00:00Z",
+        )
+        pharmacyRepo.activeRequestResult = Result.success(restored)
+        pharmacyRepo.requestFlow.value = restored
+        pharmacyRepo.paymentStatusResult = Result.success("refunded")
+        val vm = PharmacyIntakeViewModel(
+            savedStateHandle = SavedStateHandle(mapOf("referralCode" to "JORDAN")),
+            authRepository = authRepo, profileRepository = profileRepo, pharmacyDispatchRepository = pharmacyRepo,
+        )
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.paymentStatus).isEqualTo("refunded")
+        assertThat(vm.uiState.value.readyToJoinCall).isFalse()
         assertThat(pharmacyRepo.paymentCheckCount).isGreaterThan(0)
     }
 
