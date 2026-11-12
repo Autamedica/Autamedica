@@ -919,6 +919,7 @@ export function DoctorAdminDashboard() {
                 </div>
               </div>
 
+{getDoctorCountry(selectedDoctor) === 'BR' && (
               <section className="rounded-xl border border-sky-200 bg-sky-50/60 p-4 space-y-4">
                 <div>
                   <h5 className="text-sm font-bold text-slate-900">Revisión manual de matrículas brasileñas (CFM)</h5>
@@ -1007,6 +1008,7 @@ export function DoctorAdminDashboard() {
                     ))
                 )}
               </section>
+              )}
 
               <form onSubmit={handleEditSubmit} className="space-y-5 text-slate-700">
                 {/* 🧑 Info Personal */}
