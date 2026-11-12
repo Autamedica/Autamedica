@@ -24,7 +24,7 @@ const BRAZILIAN_UFS = new Set([
 function normalize(value: string | null | undefined): string {
   return (value ?? '')
     .normalize('NFD')
-    .replace(/[\\u0300-\\u036f]/g, '')
+    .replace(/\\p{Diacritic}/gu, '')
     .trim()
     .toUpperCase();
 }
