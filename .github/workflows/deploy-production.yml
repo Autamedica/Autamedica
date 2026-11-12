@@ -112,6 +112,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           clean: true
+          fetch-depth: 0
       - uses: ./.github/actions/setup-pnpm
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -162,6 +163,9 @@ jobs:
         env:
           # Public GA4 web stream ID; required at Astro compile time.
           PUBLIC_GA4_MEASUREMENT_ID: G-YRN6QY3BTY
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: autamedica
+          SENTRY_PROJECT: javascript-astro
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
           PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
           PUBLIC_SIGNALING_URL: ${{ secrets.PUBLIC_SIGNALING_URL }}
@@ -215,6 +219,7 @@ jobs:
 
       - name: Create Sentry Release
         if: success()
+        continue-on-error: true
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: autamedica
@@ -224,12 +229,23 @@ jobs:
             echo "Sentry token not found, skipping release... (Not an error)"
             exit 0
           fi
+          # Sentry metadata is best-effort: never fail the deploy or trigger Pages rollback.
+          set +e
           curl -sL https://sentry.io/get-cli/ | bash
+          if [[ "$?" -ne 0 ]]; then
+            echo "::warning::Could not install sentry-cli; continuing with deployed sites."
+            exit 0
+          fi
           VERSION=$(sentry-cli releases propose-version)
+          if [[ -z "$VERSION" ]]; then
+            echo "::warning::Could not determine Sentry release version; continuing."
+            exit 0
+          fi
           echo "Finalizing Sentry release: $VERSION"
-          sentry-cli releases new "$VERSION"
-          sentry-cli releases set-commits "$VERSION" --auto
-          sentry-cli releases finalize "$VERSION"
+          sentry-cli releases new "$VERSION" || echo "::notice::Sentry release already exists or could not be created."
+          sentry-cli releases set-commits "$VERSION" --auto --ignore-missing || echo "::warning::Sentry commit association failed; continuing."
+          sentry-cli releases finalize "$VERSION" || echo "::warning::Sentry release finalization failed; continuing."
+          exit 0
 
   smoke-tests:
     name: Smoke Tests
