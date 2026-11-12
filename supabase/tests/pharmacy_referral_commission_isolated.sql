@@ -51,8 +51,22 @@ BEGIN
   UPDATE public.pharmacy_dispatch_payments SET
     status='approved',provider_payment_id='111111111111',paid_at=now()
   WHERE id=payment_br;
-  IF (SELECT count(*) FROM public.commercial_referral_commissions WHERE dispatch_request_id=dispatch_br AND status='eligible' AND amount_minor=1000)<>1
-  THEN RAISE EXCEPTION 'Jordan BR paid consultation did not create R$10 eligibility'; END IF;
+  -- An approved payment is not a verified FIRST person conversion.
+  IF EXISTS (SELECT 1 FROM public.commercial_referral_commissions
+             WHERE dispatch_request_id=dispatch_br) THEN
+    RAISE EXCEPTION 'Unverified guest payment created a Jordan commission';
+  END IF;
+
+  -- Synthetic trusted verifier event, never an unverified phone or raw CPF.
+  INSERT INTO public.commercial_referral_identity_proofs
+    (dispatch_request_id,referral_partner_id,subject_digest,
+     verification_method,verification_receipt_id,verified_at)
+  VALUES(dispatch_br,partner,repeat('c',64),'cpf_kyc','CI-PROOF-REFERRAL-01',now());
+
+  IF (SELECT count(*) FROM public.commercial_referral_commissions
+      WHERE dispatch_request_id=dispatch_br AND status='eligible'
+        AND amount_minor=1000 AND verified_subject_hash=repeat('c',64))<>1
+  THEN RAISE EXCEPTION 'Verified first Jordan BR payment did not create one R$10 eligibility'; END IF;
 
   -- Replayed webhook cannot create another commission.
   UPDATE public.pharmacy_dispatch_payments SET status='approved' WHERE id=payment_br;
@@ -90,9 +104,7 @@ BEGIN
     RAISE EXCEPTION 'ar_jordan_was_accepted';
   EXCEPTION WHEN SQLSTATE '23514' THEN
     GET STACKED DIAGNOSTICS err=MESSAGE_TEXT;
-    -- Both independent BEFORE INSERT guards must reject AR/Jordan. Postgres
-    -- executes same-kind triggers by name, so the first denial may come from
-    -- the quote trigger or the explicit BR-only attribution trigger.
+    -- The quote-intake and BR-only guards both reject, with different codes.
     IF err NOT IN ('jordan_referral_brazil_only','jordan_br_general_only') THEN
       RAISE EXCEPTION 'unexpected AR rejection: %',err;
     END IF;
