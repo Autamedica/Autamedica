@@ -625,7 +625,7 @@ export const pt: DeepPartial<Widen<TranslationDict>> = {
       },
       cta: 'Solicitar atendimento agora',
       hint: 'Sem agendamento · Médico disponível',
-      scheduledCta: 'Consulta agendada · Agendar horário',
+      scheduledCta: 'Consulta agendada · Reservar horário',
     },
     subscription: {
       planCuidadoActive: 'Plano Cuidado • Ativo',
