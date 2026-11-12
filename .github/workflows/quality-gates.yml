@@ -140,7 +140,7 @@ jobs:
           status=0
           for fn in supabase/functions/*/index.ts; do
             [[ ! -f "$fn" ]] && continue
-            deno check --no-lock "$fn" || status=1
+            deno check --config supabase/functions/deno.json --no-lock "$fn" || status=1
           done
           exit "$status"
 
