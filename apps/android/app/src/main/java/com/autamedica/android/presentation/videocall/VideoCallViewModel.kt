@@ -37,6 +37,7 @@ import com.autamedica.android.presentation.common.UiErrorMapper
 import com.autamedica.android.presentation.dashboard.cleanPatientName
 import com.autamedica.android.presentation.videocall.webrtc.TurnManager
 import com.autamedica.android.presentation.videocall.webrtc.sfu.CloudflareCallsEngine
+import com.autamedica.android.presentation.videocall.webrtc.sfu.cloudflareAuthorizationMessage
 import com.autamedica.android.service.CallNotificationService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
