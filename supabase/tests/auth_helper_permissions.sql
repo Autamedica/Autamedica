@@ -23,15 +23,31 @@ BEGIN
         AND (0=ANY(p.polroles) OR 'anon'::regrole::oid=ANY(p.polroles))
     ) THEN RAISE EXCEPTION 'Anonymous policy still depends on %',signature; END IF;
   END LOOP;
+
   FOREACH signature IN ARRAY ARRAY['public.get_active_on_duty_doctors()','public.get_content_mode()','public.get_doctor_busy_slots(uuid,date,date)','public.get_duty_doctors_summary()','public.get_pharmacy_tiers_status()'] LOOP
     target:=to_regprocedure(signature);
-    -- These legacy RPCs have no CREATE definition in versioned migrations.
-    -- They remain checked in hosted databases; all versioned APIs are mandatory.
-    IF target IS NULL AND signature IN ('public.get_content_mode()', 'public.get_pharmacy_tiers_status()') THEN
-      CONTINUE;
+    -- get_content_mode remains a public helper. The four guard RPCs have
+    -- anonymous execution revoked by the hardening migration; authenticated
+    -- and service-role access remain available. Two optional legacy helpers
+    -- may be absent when a deployment never installed their definitions.
+    IF target IS NULL THEN
+      IF signature IN ('public.get_content_mode()', 'public.get_pharmacy_tiers_status()') THEN
+        CONTINUE;
+      END IF;
+      RAISE EXCEPTION 'Guard RPC unavailable: %',signature;
     END IF;
-    IF target IS NULL OR NOT has_function_privilege('anon',target,'EXECUTE') THEN
-      RAISE EXCEPTION 'Intentional public function unavailable: %',signature;
+    IF signature='public.get_content_mode()' THEN
+      IF NOT has_function_privilege('anon',target,'EXECUTE')
+        OR NOT has_function_privilege('authenticated',target,'EXECUTE')
+        OR NOT has_function_privilege('service_role',target,'EXECUTE') THEN
+        RAISE EXCEPTION 'Public content mode ACL violation: %',signature;
+      END IF;
+    ELSE
+      IF has_function_privilege('anon',target,'EXECUTE')
+        OR NOT has_function_privilege('authenticated',target,'EXECUTE')
+        OR NOT has_function_privilege('service_role',target,'EXECUTE') THEN
+        RAISE EXCEPTION 'Anonymous guard RPC ACL violation: %',signature;
+      END IF;
     END IF;
   END LOOP;
 END;
