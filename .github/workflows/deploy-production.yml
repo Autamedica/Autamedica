@@ -229,12 +229,23 @@ jobs:
             echo "Sentry token not found, skipping release... (Not an error)"
             exit 0
           fi
+          # Sentry metadata is best-effort: never fail the deploy or trigger Pages rollback.
+          set +e
           curl -sL https://sentry.io/get-cli/ | bash
+          if [[ "$?" -ne 0 ]]; then
+            echo "::warning::Could not install sentry-cli; continuing with deployed sites."
+            exit 0
+          fi
           VERSION=$(sentry-cli releases propose-version)
+          if [[ -z "$VERSION" ]]; then
+            echo "::warning::Could not determine Sentry release version; continuing."
+            exit 0
+          fi
           echo "Finalizing Sentry release: $VERSION"
-          sentry-cli releases new "$VERSION"
+          sentry-cli releases new "$VERSION" || echo "::notice::Sentry release already exists or could not be created."
           sentry-cli releases set-commits "$VERSION" --auto --ignore-missing || echo "::warning::Sentry commit association failed; continuing."
           sentry-cli releases finalize "$VERSION" || echo "::warning::Sentry release finalization failed; continuing."
+          exit 0
 
   smoke-tests:
     name: Smoke Tests
