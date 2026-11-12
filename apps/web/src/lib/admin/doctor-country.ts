@@ -2,7 +2,6 @@ export type DoctorCountry = 'AR' | 'BR' | 'UNKNOWN';
 
 export interface DoctorCountryLicense {
   license_type?: string | null;
-  license_jurisdiction?: string | null;
   uf_brazil?: string | null;
   province?: string | null;
 }
@@ -46,10 +45,7 @@ export function getDoctorCountry(doctor: DoctorCountrySource): DoctorCountry {
   if (explicitCountry) return explicitCountry;
 
   const licenses = doctor.doctor_licenses ?? [];
-  const jurisdictions = [
-    doctor.enrollment_jurisdiction,
-    ...licenses.map((license) => license.license_jurisdiction),
-  ];
+  const jurisdictions = [doctor.enrollment_jurisdiction];
 
   for (const jurisdiction of jurisdictions) {
     const country = countryFromLabel(jurisdiction);
