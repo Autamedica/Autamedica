@@ -76,9 +76,16 @@ jobs:
       - name: Compile and Run JVM Unit Tests
         run: |
           cd apps/android
-          ./gradlew testDebugUnitTest -PfirebasePerformanceInstrumentationEnabled=false
+          ./gradlew clean testDebugUnitTest -PfirebasePerformanceInstrumentationEnabled=false
 
       - name: Compile Instrumented Tests
         run: |
           cd apps/android
           ./gradlew compileDebugAndroidTestSources -PfirebasePerformanceInstrumentationEnabled=false
+
+      - name: Build unsigned release AAB (no Crashlytics mapping upload)
+        run: |
+          cd apps/android
+          ./gradlew bundleRelease -x :app:uploadCrashlyticsMappingFileRelease -PfirebasePerformanceInstrumentationEnabled=false
+          test -s app/build/outputs/bundle/release/app-release.aab
+          echo 'UNSIGNED AAB BUILT — not uploaded to Google Play'
