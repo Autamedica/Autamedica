@@ -89,6 +89,9 @@ export const GET: APIRoute = async ({ request, locals }) => {
         bio,
         languages,
         active,
+        care_country,
+        license_type,
+        uf_brazil,
         created_at,
         updated_at,
         profile:profiles!inner(
@@ -413,6 +416,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
         bio,
         languages,
         active,
+        care_country,
+        license_type,
+        uf_brazil,
         created_at,
         updated_at,
         profile:profiles!inner(
