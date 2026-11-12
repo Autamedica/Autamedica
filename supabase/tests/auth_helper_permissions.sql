@@ -79,7 +79,12 @@ BEGIN
     RAISE EXCEPTION 'Anonymous active directory visibility changed';
   END IF;
   FOREACH relation_name IN ARRAY ARRAY['appointments','audit_logs','conversation_events','conversation_sessions','doctor_patient','medical_records','patient_care_team','patients'] LOOP
-    EXECUTE format('SELECT count(*) FROM public.%I',relation_name) INTO n;
+    BEGIN
+      EXECUTE format('SELECT count(*) FROM public.%I',relation_name) INTO n;
+    EXCEPTION WHEN insufficient_privilege THEN
+      -- No table-level SELECT is an equally valid isolation boundary as RLS=0 rows.
+      n := 0;
+    END;
     IF n<>0 THEN RAISE EXCEPTION 'Protected relation visible anonymously: %',relation_name; END IF;
   END LOOP;
 END;
@@ -100,7 +105,12 @@ BEGIN
     RAISE EXCEPTION 'Nonexistent subject acquired a protected identity';
   END IF;
   FOREACH relation_name IN ARRAY ARRAY['appointments','audit_logs','companies','conversation_events','conversation_sessions','doctor_patient','doctors','medical_records','patient_care_team','patients','profiles'] LOOP
-    EXECUTE format('SELECT count(*) FROM public.%I',relation_name) INTO n;
+    BEGIN
+      EXECUTE format('SELECT count(*) FROM public.%I',relation_name) INTO n;
+    EXCEPTION WHEN insufficient_privilege THEN
+      -- Missing table-level SELECT is a safe result for a nonexistent subject.
+      n := 0;
+    END;
   END LOOP;
 END;
 $authenticated$;

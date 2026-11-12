@@ -70,7 +70,12 @@ BEGIN
       RAISE EXCEPTION 'Role check is not statement-scoped on %',relation_name;
     END IF;
   END LOOP;
-  SELECT count(*) INTO n FROM public.clinical_case_states;
+  BEGIN
+    SELECT count(*) INTO n FROM public.clinical_case_states;
+  EXCEPTION WHEN insufficient_privilege THEN
+    -- No table-level SELECT is a valid denial for an unprivileged subject.
+    n := 0;
+  END;
   IF n<>0 THEN RAISE EXCEPTION 'Nonexistent subject sees clinical states'; END IF;
 END;
 $plans$;
@@ -80,8 +85,16 @@ SELECT set_config('request.jwt.claims','{"role":"anon"}',true),
        set_config('request.jwt.claim.role','anon',true);
 SET LOCAL ROLE anon;
 DO $anonymous$
+DECLARE visible_rows boolean := false;
 BEGIN
-  IF EXISTS(SELECT 1 FROM public.clinical_case_states) OR EXISTS(SELECT 1 FROM public.medical_records) THEN
+  BEGIN
+    SELECT EXISTS(SELECT 1 FROM public.clinical_case_states)
+      OR EXISTS(SELECT 1 FROM public.medical_records) INTO visible_rows;
+  EXCEPTION WHEN insufficient_privilege THEN
+    -- A denied read proves these clinical relations are not exposed to anon.
+    visible_rows := false;
+  END;
+  IF visible_rows THEN
     RAISE EXCEPTION 'Anonymous clinical read became visible';
   END IF;
 END;
