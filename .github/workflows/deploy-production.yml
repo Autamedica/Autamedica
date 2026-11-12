@@ -151,6 +151,8 @@ jobs:
           MEMED_SECRET_KEY: ${{ secrets.MEMED_SECRET_KEY }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        # Memed is optional; provider credential rejection must not block unrelated production releases.
+        continue-on-error: true
         run: node scripts/ops/sync-memed-secrets.mjs
       - name: Build workspace packages
         run: pnpm build:packages:core
