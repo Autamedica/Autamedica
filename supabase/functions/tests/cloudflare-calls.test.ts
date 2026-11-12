@@ -115,7 +115,7 @@ Deno.test("cloudflare-calls - Missing Authorization Header", async () => {
   const res = await handler(req);
   assertEquals(res.status, 401);
   const data = await res.json();
-  assertEquals(data.error, "Missing authorization header");
+  assertEquals(data.error, "Missing authorization or guest token");
 });
 
 Deno.test("cloudflare-calls - Missing roomId", async () => {
