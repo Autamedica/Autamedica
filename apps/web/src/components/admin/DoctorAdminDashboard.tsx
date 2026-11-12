@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { createLicenseVerificationLock } from '@/lib/admin/license-verification-lock';
 import { ApiError, fetchApi } from '@/lib/api-client';
+import { getDoctorCountry, type DoctorCountry } from '@/lib/admin/doctor-country';
 
 type Profile = {
   user_id: string;
@@ -22,6 +23,7 @@ type DoctorLicense = {
   license_type: string;
   province: string | null;
   uf_brazil: string | null;
+  license_jurisdiction: string | null;
   status: 'active' | 'inactive' | 'suspended';
   cfm_validation_status: 'valid' | 'pending' | 'suspended' | 'cassado' | 'exempt' | null;
   cfm_last_checked_at: string | null;
@@ -37,6 +39,9 @@ type Doctor = {
   specialty: string;
   subspecialty: string | null;
   license_number: string;
+  care_country: string | null;
+  license_type: string | null;
+  uf_brazil: string | null;
   years_experience: number;
   consultation_fee: number;
   refeps_id: string | null;
@@ -70,6 +75,167 @@ type DeleteDoctorResponse = {
   mode: 'soft' | 'hard';
   message: string;
 };
+
+
+type DoctorCountryListProps = {
+  country: DoctorCountry;
+  doctors: Doctor[];
+  selectedDoctorId: string | null;
+  onSelect: (doctor: Doctor) => void;
+};
+
+function DoctorCountryList({ country, doctors, selectedDoctorId, onSelect }: DoctorCountryListProps) {
+  const heading = country === 'AR'
+    ? '🇦🇷 Médicos argentinos'
+    : country === 'BR'
+      ? '🇧🇷 Médicos brasileños'
+      : '🌎 Médicos sin país identificado';
+  const subtitle = country === 'AR'
+    ? 'Matrículas MN / MP · SISA / REFEPS'
+    : country === 'BR'
+      ? 'Matrículas CRM · revisión CFM'
+      : 'Revisar país y jurisdicción de matrícula';
+  const validationHeading = country === 'BR' ? 'CFM' : country === 'AR' ? 'SISA' : 'Validación';
+
+  return (
+    <section className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white" aria-label={heading}>
+      <header className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
+        <div className="min-w-0">
+          <h4 className="font-semibold text-slate-900">{heading}</h4>
+          <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>
+        </div>
+        <span className="shrink-0 rounded-full bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700" aria-label={doctors.length + ' médicos'}>
+          {doctors.length}
+        </span>
+      </header>
+
+      {doctors.length === 0 ? (
+        <p className="px-4 py-8 text-center text-sm text-slate-500">
+          No hay médicos que coincidan con los filtros actuales.
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-[690px] divide-y divide-slate-100 text-sm">
+            <thead className="bg-white text-xs font-bold uppercase tracking-wider text-slate-500">
+              <tr>
+                <th className="px-4 py-3 text-left">Médico</th>
+                <th className="px-4 py-3 text-left">Especialidad</th>
+                <th className="px-4 py-3 text-left">Matrícula</th>
+                <th className="px-4 py-3 text-left">{validationHeading}</th>
+                <th className="px-4 py-3 text-center">Estado</th>
+                <th className="px-4 py-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {doctors.map((doctor) => {
+                const profile = doctor.profile || {} as Profile;
+                const selected = selectedDoctorId === doctor.id;
+                const crmLicense = (doctor.doctor_licenses ?? []).find((license) => license.license_type === 'CRM');
+                let validationLabel = 'Sin verificar';
+                let validationClass = 'border-slate-200 bg-slate-50 text-slate-600';
+
+                if (country === 'BR') {
+                  if (crmLicense && hasCfmReviewEvidence(crmLicense)) {
+                    validationLabel = 'CFM validado';
+                    validationClass = 'border-emerald-200 bg-emerald-50 text-emerald-700';
+                  } else if (crmLicense?.cfm_validation_status === 'valid') {
+                    validationLabel = 'Falta evidencia';
+                    validationClass = 'border-amber-200 bg-amber-50 text-amber-700';
+                  } else if (crmLicense?.cfm_validation_status === 'suspended' || crmLicense?.cfm_validation_status === 'cassado') {
+                    validationLabel = 'Suspendido';
+                    validationClass = 'border-red-200 bg-red-50 text-red-700';
+                  } else if (crmLicense?.cfm_validation_status === 'exempt') {
+                    validationLabel = 'Exceptuado';
+                  } else {
+                    validationLabel = 'Pendiente';
+                    validationClass = 'border-amber-200 bg-amber-50 text-amber-700';
+                  }
+                } else if (country === 'AR') {
+                  const sisaStatus = profile.sss_validation_status;
+                  if (sisaStatus === 'valid') {
+                    validationLabel = 'Validado';
+                    validationClass = 'border-emerald-200 bg-emerald-50 text-emerald-700';
+                  } else if (sisaStatus === 'pending_review') {
+                    validationLabel = 'En revisión';
+                    validationClass = 'border-amber-200 bg-amber-50 text-amber-700';
+                  } else if (sisaStatus === 'rejected') {
+                    validationLabel = 'Rechazado';
+                    validationClass = 'border-red-200 bg-red-50 text-red-700';
+                  } else if (sisaStatus === 'exempt') {
+                    validationLabel = 'Exceptuado';
+                  }
+                } else {
+                  validationLabel = 'País pendiente';
+                }
+
+                const jurisdiction = country === 'BR'
+                  ? crmLicense?.uf_brazil || doctor.uf_brazil || crmLicense?.province || '-'
+                  : doctor.enrollment_jurisdiction || '-';
+
+                return (
+                  <tr
+                    key={doctor.id}
+                    className={'cursor-pointer transition hover:bg-slate-50/80 ' + (selected ? 'bg-sky-50/70' : '')}
+                    onClick={() => onSelect(doctor)}
+                    aria-selected={selected}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100">
+                          {profile.avatar_url ? (
+                            <img src={profile.avatar_url} alt={profile.first_name + ' avatar'} className="h-full w-full object-cover" />
+                          ) : (
+                            <span className="text-xs font-bold text-slate-500">{profile.first_name?.[0]}{profile.last_name?.[0]}</span>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5 font-semibold text-slate-900">
+                            {profile.first_name} {profile.last_name}
+                            {doctor.has_active_plan && (
+                              <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700" title="Médico con plan premium activo">★ Destacado</span>
+                            )}
+                          </div>
+                          <div className="text-xs text-slate-500">{profile.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-slate-800">{doctor.specialty}</div>
+                      {doctor.subspecialty && <div className="text-xs text-slate-500">{doctor.subspecialty}</div>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-slate-800">{doctor.license_number || '-'}</div>
+                      <div className="text-xs text-slate-500">{jurisdiction}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={'inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ' + validationClass}>
+                        {validationLabel}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={'inline-flex h-2 w-2 rounded-full ' + (doctor.active ? 'bg-emerald-500' : 'bg-slate-300')} />
+                      <span className="ml-1.5 text-xs font-medium text-slate-600">{doctor.active ? 'Activo' : 'Inactivo'}</span>
+                    </td>
+                    <td className="px-4 py-3 text-right" onClick={(event) => event.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => onSelect(doctor)}
+                        aria-label={'Abrir ficha de ' + (profile.first_name || 'médico')}
+                        className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-sky-500 hover:text-sky-700"
+                      >
+                        Ver ficha
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
 
 export function DoctorAdminDashboard() {
   const licenseVerificationLock = useRef(createLicenseVerificationLock());
@@ -185,6 +351,12 @@ export function DoctorAdminDashboard() {
       return matchesSearch && matchesSisa && matchesStatus;
     });
   }, [doctors, searchQuery, sisaFilter, statusFilter]);
+
+  const countryGroups = useMemo(() => ({
+    AR: filteredDoctors.filter((doctor) => getDoctorCountry(doctor) === 'AR'),
+    BR: filteredDoctors.filter((doctor) => getDoctorCountry(doctor) === 'BR'),
+    UNKNOWN: filteredDoctors.filter((doctor) => getDoctorCountry(doctor) === 'UNKNOWN'),
+  }), [filteredDoctors]);
 
   // Statistics calculated in real-time
   const stats = useMemo(() => {
@@ -637,12 +809,15 @@ export function DoctorAdminDashboard() {
 
       {/* 📋 Doctors List & Detail Slide-Over Layout */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Main List */}
-        <section className={`lg:col-span-2 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm ${selectedDoctor ? 'hidden lg:block' : ''}`}>
-          <div className="border-b border-slate-200 px-5 py-4 flex items-center justify-between bg-slate-50/50">
-            <h3 className="font-semibold text-slate-800">Médicos de la Plataforma</h3>
-            <span className="rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
-              {filteredDoctors.length} {filteredDoctors.length === 1 ? 'médico' : 'médicos'} en vista
+        {/* Country-separated doctor directories */}
+        <section className={'lg:col-span-2 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/50 shadow-sm ' + (selectedDoctor ? 'hidden lg:block' : '')}>
+          <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-5 py-4">
+            <div>
+              <h3 className="font-semibold text-slate-900">Directorio médico por país</h3>
+              <p className="mt-0.5 text-xs text-slate-500">Argentina y Brasil se administran en listas independientes.</p>
+            </div>
+            <span className="shrink-0 rounded-full bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700">
+              {filteredDoctors.length} en vista
             </span>
           </div>
 
@@ -653,120 +828,33 @@ export function DoctorAdminDashboard() {
             </div>
           ) : filteredDoctors.length === 0 ? (
             <div className="py-20 text-center text-slate-500">
-              <svg className="mx-auto h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-              <h4 className="mt-4 text-lg font-medium text-slate-900">Ningún médico coincide</h4>
-              <p className="mt-2 text-sm text-slate-500">Prueba ajustando los filtros de búsqueda o el estado SISA.</p>
+              <h4 className="text-lg font-medium text-slate-900">Ningún médico coincide</h4>
+              <p className="mt-2 text-sm text-slate-500">Prueba ajustando los filtros de búsqueda o el estado de validación.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-100 text-sm">
-                <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500">
-                  <tr>
-                    <th className="px-5 py-3 text-left">Médico</th>
-                    <th className="px-5 py-3 text-left">Especialidad</th>
-                    <th className="px-5 py-3 text-left">Matrícula</th>
-                    <th className="px-5 py-3 text-left">SISA</th>
-                    <th className="px-5 py-3 text-center">Estado</th>
-                    <th className="px-5 py-3 text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {filteredDoctors.map((doctor) => {
-                    const p = doctor.profile || {} as Profile;
-                    const isSelected = selectedDoctor?.id === doctor.id;
-                    return (
-                      <tr
-                        key={doctor.id}
-                        className={`transition hover:bg-slate-50/80 cursor-pointer ${isSelected ? 'bg-sky-50/50 hover:bg-sky-50' : ''}`}
-                        onClick={() => handleEditClick(doctor)}
-                      >
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center">
-                              {p.avatar_url ? (
-                                <img src={p.avatar_url} alt={`${p.first_name} avatar`} className="h-full w-full object-cover" />
-                              ) : (
-                                <span className="text-sm font-bold text-slate-500">
-                                  {p.first_name?.[0]}{p.last_name?.[0]}
-                                </span>
-                              )}
-                            </div>
-                            <div>
-                              <div className="font-semibold text-slate-900 flex flex-wrap items-center gap-1.5">
-                                {p.first_name} {p.last_name}
-                                {(p.sss_validation_status === 'valid' || p.sss_validation_status === 'exempt') && doctor.has_availability && (
-                                  <svg className="h-4 w-4 text-emerald-600 shrink-0 inline-block align-middle" viewBox="0 0 24 24" fill="currentColor">
-                                    <title>Profesional verificado en SISA/REFEPS y con agenda activa</title>
-                                    <path d="M23 12l-2.44-2.78.34-3.68-3.61-.82-1.89-3.18L12 3 8.6 1.54 6.71 4.72l-3.61.81.34 3.68L1 12l2.44 2.78-.34 3.69 3.61.82 1.89 3.18L12 21l3.4 1.46 1.89-3.18 3.61-.82-.34-3.68L23 12zm-13 5l-4-4 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                                  </svg>
-                                )}
-                                {doctor.has_active_plan && (
-                                  <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/10" title="Médico con plan premium activo">
-                                    ★ Destacado
-                                  </span>
-                                )}
-                                {doctor.signature_image_url && doctor.stamp_image_url ? (
-                                  <span className="inline-flex items-center rounded-md bg-sky-50 px-1.5 py-0.5 text-xs font-semibold text-sky-700 ring-1 ring-inset ring-sky-600/10" title="Firma y Sello digital cargados correctamente para emitir recetas">
-                                    ✓ Receta
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center rounded-md bg-rose-50 px-1.5 py-0.5 text-xs font-semibold text-rose-700 ring-1 ring-inset ring-rose-600/10" title="Falta subir firma y/o sello digital para habilitar emisión de recetas">
-                                    ⚠ Sin Firma
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-xs text-slate-500">{p.email}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-5 py-4">
-                          <div className="font-medium text-slate-800">{doctor.specialty}</div>
-                          {doctor.subspecialty && (
-                            <div className="text-xs text-slate-500">{doctor.subspecialty}</div>
-                          )}
-                        </td>
-                        <td className="px-5 py-4">
-                          <div className="font-medium text-slate-800">{doctor.license_number || '-'}</div>
-                          {doctor.enrollment_jurisdiction && (
-                            <div className="text-xs text-slate-500">{doctor.enrollment_jurisdiction}</div>
-                          )}
-                        </td>
-                        <td className="px-5 py-4">
-                          <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold border ${
-                            p.sss_validation_status === 'valid'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : p.sss_validation_status === 'pending_review'
-                              ? 'bg-amber-50 text-amber-700 border-amber-200'
-                              : p.sss_validation_status === 'rejected'
-                              ? 'bg-red-50 text-red-700 border-red-200'
-                              : 'bg-slate-50 text-slate-600 border-slate-200'
-                          }`}>
-                            {p.sss_validation_status === 'valid' && 'Validado'}
-                            {p.sss_validation_status === 'pending_review' && 'En Revisión'}
-                            {p.sss_validation_status === 'rejected' && 'Rechazado'}
-                            {p.sss_validation_status === 'exempt' && 'Exceptuado'}
-                            {!p.sss_validation_status && 'Sin verificar'}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 text-center">
-                          <span className={`inline-flex rounded-full h-2 w-2 ${doctor.active ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
-                          <span className="ml-1.5 text-xs font-medium text-slate-600">{doctor.active ? 'Activo' : 'Inactivo'}</span>
-                        </td>
-                        <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => handleEditClick(doctor)}
-                            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-sky-500 hover:text-sky-700"
-                          >
-                            Control total
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <div className="grid gap-4 p-4 xl:grid-cols-2">
+              <DoctorCountryList
+                country="AR"
+                doctors={countryGroups.AR}
+                selectedDoctorId={selectedDoctor?.id ?? null}
+                onSelect={handleEditClick}
+              />
+              <DoctorCountryList
+                country="BR"
+                doctors={countryGroups.BR}
+                selectedDoctorId={selectedDoctor?.id ?? null}
+                onSelect={handleEditClick}
+              />
+              {countryGroups.UNKNOWN.length > 0 && (
+                <div className="xl:col-span-2">
+                  <DoctorCountryList
+                    country="UNKNOWN"
+                    doctors={countryGroups.UNKNOWN}
+                    selectedDoctorId={selectedDoctor?.id ?? null}
+                    onSelect={handleEditClick}
+                  />
+                </div>
+              )}
             </div>
           )}
         </section>
