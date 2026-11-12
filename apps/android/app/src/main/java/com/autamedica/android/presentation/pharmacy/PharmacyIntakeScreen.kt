@@ -605,7 +605,8 @@ private fun PharmacyWaitingRoomView(
                     Text("Consulta médica · R$ 79,00", style = MaterialTheme.typography.titleMedium,
                         color = AuTextPrimary, fontWeight = FontWeight.Bold)
                     val confirmed = uiState.paymentStatus == "approved"
-                    val canStartCheckout = uiState.status == PharmacyConsultationStatus.ASSIGNED ||
+                    val canStartCheckout = uiState.status == PharmacyConsultationStatus.PENDING ||
+                        uiState.status == PharmacyConsultationStatus.ASSIGNED ||
                         uiState.status == PharmacyConsultationStatus.IN_CALL
                     Text(
                         text = when {

@@ -34,8 +34,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (dispatch.care_country !== 'BR' || dispatch.tier_requested !== 'general') {
       return badRequest('pharmacy_payment_available_for_brazil_general_only')
     }
-    if (!['matched','in_call','completed'].includes(dispatch.status)) {
-      return badRequest('pharmacy_payment_requires_assigned_consultation')
+    if (!['searching','matched','in_call'].includes(dispatch.status)) {
+      return badRequest('pharmacy_payment_request_not_payable')
     }
 
     // Initial rollout deliberately scoped to Jordan's commercial QR.
@@ -49,32 +49,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return badRequest('jordan_qr_required_for_this_checkout')
     }
 
-    // Never charge when the doctor's accepted offer still uses the ordinary
-    // R$50 or legacy pricing. Jordan BR must be R$79 patient / R$40 doctor.
+    // Charge before dispatch. The server-owned request quote is fixed by the
+    // Jordan partner policy; no doctor assignment or accepted offer is required.
     const { data: quote, error: quoteError } = await admin
       .from('pharmacy_dispatch_requests')
-      .select('assigned_doctor_id,doctor_fee_brl,price_brl')
+      .select('doctor_fee_brl,price_brl')
       .eq('id', dispatch.id)
       .maybeSingle()
     if (quoteError) throw quoteError
-    if (!quote?.assigned_doctor_id ||
-        Number(quote.doctor_fee_brl) !== JORDAN_DOCTOR_FEE_CENTS / 100 ||
-        Number(quote.price_brl) !== GENERAL_PHARMACY_BR_PRICE_CENTS / 100) {
+    if (Number(quote?.doctor_fee_brl) !== JORDAN_DOCTOR_FEE_CENTS / 100 ||
+        Number(quote?.price_brl) !== GENERAL_PHARMACY_BR_PRICE_CENTS / 100) {
       return serviceUnavailable('jordan_medical_quote_not_verified')
     }
-
-    const { data: offer, error: offerError } = await admin
-      .from('dispatch_offers')
-      .select('price_brl,status')
-      .eq('dispatch_request_id', dispatch.id)
-      .eq('doctor_id', quote.assigned_doctor_id)
-      .maybeSingle()
-    if (offerError) throw offerError
-    if (offer?.status !== 'accepted' ||
-        Number(offer.price_brl) !== JORDAN_DOCTOR_FEE_CENTS / 100) {
-      return serviceUnavailable('jordan_doctor_offer_not_accepted_at_40')
-    }
-
     const amountCents = GENERAL_PHARMACY_BR_PRICE_CENTS
     const { data: old, error: oldError } = await admin.from('pharmacy_dispatch_payments')
       .select('id,status,checkout_url,amount_minor,currency').eq('dispatch_request_id',dispatch.id).maybeSingle()
