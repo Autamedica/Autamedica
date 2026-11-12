@@ -696,21 +696,29 @@ class PharmacyIntakeViewModelTest {
         vm.onReasonTextChanged("Consulta geral")
         vm.submitRequest()
         testScheduler.runCurrent()
-        pharmacyRepo.requestFlow.value = req.copy(status = "in_call")
-        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.status).isEqualTo(PharmacyConsultationStatus.PENDING)
         assertThat(vm.uiState.value.requiresBrazilianPayment).isTrue()
         assertThat(vm.uiState.value.readyToJoinCall).isFalse()
         assertThat(vm.uiState.value.paymentStatus).isEqualTo("pending")
+        // Pay-first: the patient can open checkout while the dispatch is still searching.
         vm.beginBrazilianCheckout()
         testScheduler.runCurrent()
         assertThat(vm.uiState.value.paymentCheckoutUrl).startsWith("https://")
         assertThat(vm.uiState.value.readyToJoinCall).isFalse()
+        assertThat(pharmacyRepo.paymentCheckCount).isGreaterThan(0)
+
+        // PSP approval alone does not enter the call while no doctor has accepted.
         pharmacyRepo.paymentStatusResult = Result.success("approved")
-        pharmacyRepo.requestFlow.value = req.copy(status = "in_call", patientName = "Paciente BR aprovado")
+        // The PSP is polled independently every five seconds while dispatch is searching.
+        advanceTimeBy(5_000)
         testScheduler.runCurrent()
         assertThat(vm.uiState.value.paymentStatus).isEqualTo("approved")
+        assertThat(vm.uiState.value.readyToJoinCall).isFalse()
+
+        // A later physician assignment/call state may unlock media only with PSP approval.
+        pharmacyRepo.requestFlow.value = req.copy(status = "in_call", patientName = "Paciente BR aprovado")
+        testScheduler.runCurrent()
         assertThat(vm.uiState.value.readyToJoinCall).isTrue()
-        assertThat(pharmacyRepo.paymentCheckCount).isGreaterThan(0)
     }
 
     @Test

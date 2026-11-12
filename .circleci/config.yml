@@ -201,6 +201,7 @@ jobs:
           command: |
             pnpm --filter @autamedica/web exec vitest run \
               src/pages/api/pharmacy/dispatch/request.test.ts \
+              src/pages/api/pharmacy/dispatch/payment/create.test.ts \
               src/lib/pharmacy/payments/referral-finance.test.ts \
               src/lib/pharmacy/payments/jordan-media-access.test.ts \
               src/lib/calls/web-cloudflare-media-authorization.test.ts

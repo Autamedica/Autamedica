@@ -226,7 +226,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                             refreshCountryDoctorCount(request.careCountry)
                             // Observe the request even if the doctor already attended: payment is independent.
                             startStatusPolling(request.id)
-                            if (request.careCountry == "BR" && request.status in setOf("matched", "in_call") &&
+                            if (request.careCountry == "BR" && request.status in setOf("searching", "matched", "in_call") &&
                                 (referralCodeParam == "JORDAN" || request.referralPartnerId != null)) {
                                 startPaymentStatusPolling(request.id)
                             }
@@ -349,6 +349,10 @@ class PharmacyIntakeViewModel @Inject constructor(
                 // La espera queda activa (radar) mientras el request está searching/matched.
                 // readyToJoinCall solo se enciende cuando el médico atiende (in_call) y la sala existe.
                 startStatusPolling(request.id)
+                if ((request.careCountry ?: state.careCountry) == "BR" &&
+                    (state.referralCode == "JORDAN" || request.referralPartnerId != null)) {
+                    startPaymentStatusPolling(request.id)
+                }
                 refreshCountryDoctorCount(request.careCountry ?: state.careCountry)
             }.onFailure { err ->
                 SecureLog.error("[PharmacyIntakeVM] Failed creating request", err)
@@ -366,7 +370,7 @@ class PharmacyIntakeViewModel @Inject constructor(
         val state = _uiState.value
         val requestId = state.activeRequestId ?: return
         if (!state.requiresBrazilianPayment || state.isPaymentLoading ||
-            state.status !in setOf(PharmacyConsultationStatus.ASSIGNED, PharmacyConsultationStatus.IN_CALL)) return
+            state.status !in setOf(PharmacyConsultationStatus.PENDING, PharmacyConsultationStatus.ASSIGNED, PharmacyConsultationStatus.IN_CALL)) return
         viewModelScope.launch {
             _uiState.update { it.copy(isPaymentLoading = true, paymentError = null) }
             pharmacyDispatchRepository.startDispatchCheckout(requestId)
@@ -429,7 +433,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                 val paymentRequired = (_uiState.value.referralCode == "JORDAN" ||
                     request.referralPartnerId != null) && request.careCountry == "BR"
                 val verifiedPaymentStatus = if (paymentRequired &&
-                    request.status in setOf("matched", "in_call", "completed")) {
+                    request.status in setOf("searching", "matched", "in_call", "completed")) {
                     // The PSP-backed endpoint is authoritative; never infer paid from
                     // a redirect, a local callback or a clinician's presence.
                     pharmacyDispatchRepository.getDispatchPaymentStatus(requestId).getOrNull()
@@ -440,7 +444,7 @@ class PharmacyIntakeViewModel @Inject constructor(
 
                 _uiState.update { state ->
                     val confirmedPayment = if (paymentRequired &&
-                        request.status in setOf("matched", "in_call", "completed")) {
+                        request.status in setOf("searching", "matched", "in_call", "completed")) {
                         verifiedPaymentStatus ?: "unknown"
                     } else state.paymentStatus
                     state.copy(
