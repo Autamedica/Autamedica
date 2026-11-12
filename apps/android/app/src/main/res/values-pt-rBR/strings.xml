@@ -268,4 +268,13 @@
     <string name="hero_plan_health">Plano de Saúde</string>
     <string name="hero_plan_see_credits">Ver créditos e benefícios do seu plano</string>
     <string name="hero_plan_learn_benefits">Conhecer benefícios do plano</string>
+    <string name="patient_home_immediate_tag">Atendimento sem agendamento</string>
+    <string name="patient_home_immediate_title">Atendimento médico imediato</string>
+    <string name="patient_home_immediate_subtitle">Consultas médicas, atestados e receitas na hora, onde você estiver ou direto do balcão da farmácia.</string>
+    <string name="patient_home_chip_consultation">Consulta médica</string>
+    <string name="patient_home_chip_documents">Atestados e receitas</string>
+    <string name="patient_home_chip_pharmacy">Direto da farmácia</string>
+    <string name="patient_home_immediate_cta">Solicitar atendimento agora</string>
+    <string name="patient_home_immediate_hint">Sem agendamento · Médico disponível</string>
+    <string name="patient_home_scheduled_cta">Agendar consulta</string>
 </resources>

@@ -594,6 +594,19 @@ export const es = {
       evening: 'Buenas noches',
       hello: 'Hola',
     },
+    immediateCare: {
+      tag: 'Atención sin turno',
+      title: 'Atención médica inmediata',
+      subtitle: 'Consultas médicas, certificados y recetas al instante, donde estés o desde el mostrador de tu farmacia.',
+      chips: {
+        consultation: 'Consulta médica',
+        documents: 'Certificados y recetas',
+        pharmacy: 'Desde la farmacia',
+      },
+      cta: 'Solicitar atención ahora',
+      hint: 'Sin reservar turno · Médico disponible',
+      scheduledCta: 'Consulta programada · Reservar turno',
+    },
     subscription: {
       planCuidadoActive: 'Plano Cuidado • Activo',
       planCuidadoPastDue: 'Plano Cuidado • Pago pendiente',
