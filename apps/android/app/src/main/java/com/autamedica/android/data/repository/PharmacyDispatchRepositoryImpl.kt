@@ -368,10 +368,18 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         val activeUserId = authRepository.getCurrentUser()?.id
         val guestToken = if (tokenOwner == activeUserId) guestAccessTokens[requestId] else null
         if (guestToken != null) {
-            // The cancellation must work even after the clinical JWT's two-hour
-            // lifetime. Renew from the encrypted scoped credential first.
-            if (savedGuestRecovery()?.first == requestId) {
-                resumeGuestRequestFromEncryptedDevice(requestId)
+            // Renew only when the in-memory guest JWT reaches its refresh
+            // deadline. An unnecessary resume POST on every cancellation can
+            // fail closed when the API is temporarily unavailable, even though
+            // the current scoped token is still valid.
+            val refreshDeadline = guestTokenRefreshDeadline[requestId] ?: 0L
+            if (refreshDeadline <= System.currentTimeMillis()) {
+                check(savedGuestRecovery()?.first == requestId) {
+                    "Encrypted guest recovery unavailable"
+                }
+                check(resumeGuestRequestFromEncryptedDevice(requestId) != null) {
+                    "Missing renewed guest access token"
+                }
             }
             val currentToken = guestAccessTokens[requestId] ?: guestToken
             val payload = buildJsonObject {
