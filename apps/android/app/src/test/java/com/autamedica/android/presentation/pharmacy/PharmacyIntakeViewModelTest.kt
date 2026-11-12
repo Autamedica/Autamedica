@@ -709,7 +709,8 @@ class PharmacyIntakeViewModelTest {
 
         // PSP approval alone does not enter the call while no doctor has accepted.
         pharmacyRepo.paymentStatusResult = Result.success("approved")
-        pharmacyRepo.requestFlow.value = req.copy(status = "searching")
+        // The PSP is polled independently every five seconds while dispatch is searching.
+        advanceTimeBy(5_000)
         testScheduler.runCurrent()
         assertThat(vm.uiState.value.paymentStatus).isEqualTo("approved")
         assertThat(vm.uiState.value.readyToJoinCall).isFalse()
