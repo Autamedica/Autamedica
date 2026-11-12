@@ -1,6 +1,7 @@
 {
   "imports": {
-    "@supabase/supabase-js": "jsr:@supabase/supabase-js@2",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.98.0",
+    "@sentry/deno": "npm:@sentry/deno@10.42.0",
     "jspdf": "npm:jspdf@2.5.2",
     "qrcode": "npm:qrcode@1.5.4"
   },

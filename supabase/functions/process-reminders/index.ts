@@ -22,6 +22,9 @@ const MAX_REMINDER_RETRIES = 3
 const BASE_RETRY_MINUTES = 5
 const MAX_RETRY_MINUTES = 60
 
+// deno-lint-ignore no-explicit-any -- this function uses dynamic PostgREST selects without generated database types.
+type ReminderSupabaseClient = ReturnType<typeof createClient<any>>
+
 interface WorkerResult {
   processed: number
   sent: number
@@ -126,7 +129,7 @@ Deno.serve(async (req) => {
 })
 
 async function processOneReminder(
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReminderSupabaseClient,
   reminder: Reminder,
 ): Promise<void> {
   const { data: appt, error: apptErr } = await supabase
@@ -198,7 +201,7 @@ async function processOneReminder(
 }
 
 async function processUnsentWaitlistOffers(
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReminderSupabaseClient,
 ): Promise<{ sent: number; errors: string[] }> {
   const now = new Date().toISOString()
   const { data, error } = await supabase
@@ -295,7 +298,7 @@ async function processUnsentWaitlistOffers(
 }
 
 async function scheduleReminderRetry(
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReminderSupabaseClient,
   reminder: Reminder,
   errorMessage: string,
 ) {
@@ -319,7 +322,7 @@ async function scheduleReminderRetry(
 }
 
 async function markReminderSent(
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReminderSupabaseClient,
   id: string,
 ) {
   await supabase
