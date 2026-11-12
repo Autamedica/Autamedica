@@ -461,6 +461,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                 }
                 if (isTerminalFailure) {
                     statusPollingJob?.cancel()
+                    paymentPollingJob?.cancel()
                     _uiState.update {
                         it.copy(
                             // A completed/closed legacy request must not be mislabeled
@@ -482,6 +483,7 @@ class PharmacyIntakeViewModel @Inject constructor(
 
     fun onCallNavigated() {
         statusPollingJob?.cancel()
+        paymentPollingJob?.cancel()
         _uiState.update {
             it.copy(
                 readyToJoinCall = false,
@@ -512,6 +514,8 @@ class PharmacyIntakeViewModel @Inject constructor(
                     if (cancelled) {
                         statusPollingJob?.cancel()
                         statusPollingJob = null
+                        paymentPollingJob?.cancel()
+                        paymentPollingJob = null
                         _uiState.update {
                             it.copy(
                                 isSubmitting = false,

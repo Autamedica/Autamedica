@@ -740,6 +740,14 @@ class PharmacyIntakeViewModelTest {
         testScheduler.runCurrent()
         assertThat(pharmacyRepo.paymentCheckCount).isGreaterThan(initialChecks)
         assertThat(vm.uiState.value.readyToJoinCall).isFalse()
+
+        // Ending/canceling the recovered request must stop the independent PSP poller.
+        vm.cancelActiveRequest()
+        testScheduler.runCurrent()
+        val checksAfterCancel = pharmacyRepo.paymentCheckCount
+        advanceTimeBy(10_000)
+        testScheduler.runCurrent()
+        assertThat(pharmacyRepo.paymentCheckCount).isEqualTo(checksAfterCancel)
     }
 
     @Test
