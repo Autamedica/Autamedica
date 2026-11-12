@@ -614,6 +614,19 @@ export const pt: DeepPartial<Widen<TranslationDict>> = {
       evening: 'Boa noite',
       hello: 'Olá',
     },
+    immediateCare: {
+      tag: 'Atendimento sem agendamento',
+      title: 'Atendimento médico imediato',
+      subtitle: 'Consultas médicas, atestados e receitas na hora, onde você estiver ou direto do balcão da farmácia.',
+      chips: {
+        consultation: 'Consulta médica',
+        documents: 'Atestados e receitas',
+        pharmacy: 'Direto da farmácia',
+      },
+      cta: 'Solicitar atendimento agora',
+      hint: 'Sem agendamento · Médico disponível',
+      scheduledCta: 'Consulta agendada · Agendar horário',
+    },
     subscription: {
       planCuidadoActive: 'Plano Cuidado • Ativo',
       planCuidadoPastDue: 'Plano Cuidado • Pagamento pendente',
