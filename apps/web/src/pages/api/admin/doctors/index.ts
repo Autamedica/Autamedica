@@ -10,6 +10,7 @@ type AdminDoctorLicenseRecord = {
   license_type: string;
   province: string | null;
   uf_brazil: string | null;
+  license_jurisdiction: string | null;
   status: string;
   cfm_validation_status: string | null;
   cfm_last_checked_at: string | null;
@@ -89,6 +90,9 @@ export const GET: APIRoute = async ({ request, locals }) => {
         bio,
         languages,
         active,
+        care_country,
+        license_type,
+        uf_brazil,
         created_at,
         updated_at,
         profile:profiles!inner(
@@ -128,7 +132,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
           .eq('status', 'active'),
         admin
           .from('doctor_licenses')
-          .select('id, doctor_id, license_number, license_type, province, uf_brazil, status, cfm_validation_status, cfm_last_checked_at, cfm_evidence_path, cfm_review_notes, cfm_reviewed_by, cfm_reviewed_at')
+          .select('id, doctor_id, license_number, license_type, province, uf_brazil, license_jurisdiction, status, cfm_validation_status, cfm_last_checked_at, cfm_evidence_path, cfm_review_notes, cfm_reviewed_by, cfm_reviewed_at')
           .in('doctor_id', doctorIds),
       ]);
 
@@ -413,6 +417,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
         bio,
         languages,
         active,
+        care_country,
+        license_type,
+        uf_brazil,
         created_at,
         updated_at,
         profile:profiles!inner(
