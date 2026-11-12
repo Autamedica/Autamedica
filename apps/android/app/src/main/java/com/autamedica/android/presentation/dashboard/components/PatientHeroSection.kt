@@ -3,6 +3,7 @@ package com.autamedica.android.presentation.dashboard.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -30,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.autamedica.android.R
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PatientHeroSection(
     onBookConsultation: () -> Unit,
