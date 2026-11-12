@@ -14,7 +14,7 @@ describe('getDoctorCountry', () => {
 
   it('classifies Brazilian doctors by CRM, jurisdiction or UF', () => {
     expect(getDoctorCountry({ license_type: 'CRM' })).toBe('BR');
-    expect(getDoctorCountry({ doctor_licenses: [{ license_jurisdiction: 'BR' }] })).toBe('BR');
+    expect(getDoctorCountry({ enrollment_jurisdiction: 'RS' })).toBe('BR');
     expect(getDoctorCountry({ doctor_licenses: [{ uf_brazil: 'RS' }] })).toBe('BR');
   });
 
