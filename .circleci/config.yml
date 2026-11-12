@@ -461,7 +461,7 @@ jobs:
           name: JVM tests and Android test source compilation (synthetic CI)
           command: |
             cd apps/android
-            ./gradlew testDebugUnitTest compileDebugAndroidTestSources -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+            ./gradlew clean testDebugUnitTest compileDebugAndroidTestSources -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
           no_output_timeout: 25m
       - run:
           name: Unsigned release bundle (synthetic CI; no Crashlytics upload)
@@ -691,6 +691,13 @@ workflows:
     jobs:
       - web
 
+  # Only execute Android stack-upgrade validation on its dedicated branch.
+  android_stack_upgrade_candidate:
+    jobs:
+      - android:
+          filters:
+            branches:
+              only: chore/upgrade-kotlin-2.4.21
   android_manual:
     when: << pipeline.parameters.run_android >>
     jobs:

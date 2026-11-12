@@ -10,6 +10,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
+import kotlinx.serialization.json.JsonObject
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -36,7 +37,7 @@ class PharmacyOnDemandRepositoryImplTest {
     fun `cancelRequest uses request-scoped RPC and propagates network failures`() = runTest {
         val postgrest = mockk<Postgrest>(relaxed = true)
         every { supabaseClient.postgrest } returns postgrest
-        coEvery { postgrest.rpc(any(), any()) } throws RuntimeException("Network timeout")
+        coEvery { postgrest.rpc(any<String>(), any<JsonObject>()) } throws RuntimeException("Network timeout")
 
         val result = repository.cancelRequest("req-123")
 
