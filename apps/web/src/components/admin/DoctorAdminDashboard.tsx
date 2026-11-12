@@ -23,7 +23,6 @@ type DoctorLicense = {
   license_type: string;
   province: string | null;
   uf_brazil: string | null;
-  license_jurisdiction: string | null;
   status: 'active' | 'inactive' | 'suspended';
   cfm_validation_status: 'valid' | 'pending' | 'suspended' | 'cassado' | 'exempt' | null;
   cfm_last_checked_at: string | null;
