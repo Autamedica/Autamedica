@@ -191,6 +191,14 @@ function DoctorCountryList({ country, doctors, selectedDoctorId, onSelect }: Doc
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-1.5 font-semibold text-slate-900">
                             {profile.first_name} {profile.last_name}
+                            {country === 'AR' && (profile.sss_validation_status === 'valid' || profile.sss_validation_status === 'exempt') && doctor.has_availability && (
+                              <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700" title="Validación SISA/REFEPS y agenda activa">✓ SISA</span>
+                            )}
+                            {doctor.signature_image_url && doctor.stamp_image_url ? (
+                              <span className="rounded-md bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700" title="Firma y sello digital cargados">✓ Receta</span>
+                            ) : (
+                              <span className="rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700" title="Falta firma y/o sello digital">⚠ Sin firma</span>
+                            )}
                             {doctor.has_active_plan && (
                               <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700" title="Médico con plan premium activo">★ Destacado</span>
                             )}
@@ -365,8 +373,9 @@ export function DoctorAdminDashboard() {
     }
     const total = doctors.length;
     const active = doctors.filter((d) => d.active).length;
-    const pendingSisa = doctors.filter((d) => d.profile?.sss_validation_status === 'pending_review').length;
-    const validSisa = doctors.filter((d) => d.profile?.sss_validation_status === 'valid').length;
+    const argentineDoctors = doctors.filter((doctor) => getDoctorCountry(doctor) === 'AR');
+    const pendingSisa = argentineDoctors.filter((doctor) => doctor.profile?.sss_validation_status === 'pending_review').length;
+    const validSisa = argentineDoctors.filter((doctor) => doctor.profile?.sss_validation_status === 'valid').length;
     return { total, active, pendingSisa, validSisa };
   }, [doctors]);
 
@@ -707,7 +716,7 @@ export function DoctorAdminDashboard() {
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Validación SISA Pendiente</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Validación SISA Pendiente · Argentina</p>
           <div className="mt-2 flex items-baseline justify-between">
             <span className="text-3xl font-bold tracking-tight text-amber-600">{stats.pendingSisa}</span>
             <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">Revisión</span>
@@ -715,7 +724,7 @@ export function DoctorAdminDashboard() {
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Validación SISA registrada</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Validación SISA registrada · Argentina</p>
           <div className="mt-2 flex items-baseline justify-between">
             <span className="text-3xl font-bold tracking-tight text-emerald-600">{stats.validSisa}</span>
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800">Validación AR</span>
