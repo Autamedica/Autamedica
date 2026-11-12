@@ -37,7 +37,7 @@ beforeEach(() => {
   mocks.admin.mockReturnValue({ from: (table: string) => {
     const rows: Record<string, unknown> = { doctors: doctor, prescriptions: existing,
       profiles: { first_name: 'Synthetic', last_name: 'Doctor' },
-      doctor_licenses: [{ license_number: '9236', uf_brazil: 'RS' }] };
+      doctor_licenses: [{ license_number: '9236', uf_brazil: 'RS', cfm_evidence_path: 'ci/doctor/evidence.pdf', cfm_review_notes: 'Synthetic CI review evidence', cfm_reviewed_by: '00000000-0000-4000-8000-000000000001', cfm_reviewed_at: '2026-11-12T00:00:00Z', cfm_last_checked_at: '2026-11-12T00:00:00Z' }] };
     const chain = { select: vi.fn(), eq: vi.fn(), limit: vi.fn(), or: vi.fn(), insert: mocks.insert,
       maybeSingle: vi.fn(async () => ({ data: rows[table], error: null })) };
     chain.select.mockReturnValue(chain); chain.eq.mockReturnValue(chain); chain.or.mockReturnValue(chain);

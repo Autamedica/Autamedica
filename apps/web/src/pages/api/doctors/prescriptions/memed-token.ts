@@ -56,7 +56,7 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
     // verified and active CFM license matching the CRM and UF being sent to Memed.
     const { data: licenseRows, error: licenseError } = await admin
       .from('doctor_licenses')
-      .select('license_number, uf_brazil')
+      .select('license_number, uf_brazil, cfm_evidence_path, cfm_review_notes, cfm_reviewed_by, cfm_reviewed_at, cfm_last_checked_at')
       .eq('doctor_id', doctor.id)
       .eq('license_type', 'CRM')
       .eq('status', 'active')
@@ -69,6 +69,9 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
     const verifiedLicense = licenseRows?.some((item) =>
       crmDigits(item.license_number) === crmDigits(doctor.license_number)
       && item.uf_brazil?.toUpperCase() === doctor.uf_brazil?.toUpperCase()
+      && Boolean(item.cfm_evidence_path?.trim())
+      && (item.cfm_review_notes?.trim().length ?? 0) >= 10
+      && Boolean(item.cfm_reviewed_by && item.cfm_reviewed_at && item.cfm_last_checked_at)
     );
     if (!verifiedLicense) return forbidden('verified_brazilian_license_required');
 

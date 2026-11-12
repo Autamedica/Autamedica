@@ -14,6 +14,11 @@ export interface MemedPilotLicense {
   uf_brazil: string | null;
   status: string | null;
   cfm_validation_status: string | null;
+  cfm_evidence_path: string | null;
+  cfm_review_notes: string | null;
+  cfm_reviewed_by: string | null;
+  cfm_reviewed_at: string | null;
+  cfm_last_checked_at: string | null;
   license_type: string | null;
 }
 
@@ -52,6 +57,9 @@ export function assessMemedPilotReadiness(input: {
   const cfmLicenseVerified = activeBrazilianDoctor && input.licenses.some(license =>
     license.license_type === 'CRM' &&
     license.status === 'active' && license.cfm_validation_status === 'valid' &&
+    Boolean(license.cfm_evidence_path?.trim()) &&
+    (license.cfm_review_notes?.trim().length ?? 0) >= 10 &&
+    Boolean(license.cfm_reviewed_by && license.cfm_reviewed_at && license.cfm_last_checked_at) &&
     digits(license.license_number) === digits(doctor?.license_number) &&
     license.uf_brazil?.toUpperCase() === doctor?.uf_brazil?.toUpperCase(),
   );

@@ -35,7 +35,7 @@ beforeEach(() => {
   mocks.patient.mockResolvedValue({ idExterno: 'authorized-patient', cpf: '52998224725' });
   mocks.token.mockResolvedValue({ token: 'synthetic-token' });
   rows = { doctors: doctor, profiles: { first_name: 'Synthetic', last_name: 'Doctor' },
-    doctor_licenses: [{ license_number: '9236', uf_brazil: 'RS' }] };
+    doctor_licenses: [{ license_number: '9236', uf_brazil: 'RS', cfm_evidence_path: 'ci/doctor/evidence.pdf', cfm_review_notes: 'Synthetic CI review evidence', cfm_reviewed_by: '00000000-0000-4000-8000-000000000001', cfm_reviewed_at: '2026-11-12T00:00:00Z', cfm_last_checked_at: '2026-11-12T00:00:00Z' }] };
   mocks.admin.mockReturnValue({ from: (table: string) => {
     const chain = { select: vi.fn(), eq: vi.fn(), limit: vi.fn(),
       maybeSingle: vi.fn(async () => ({ data: rows[table], error: null })) };
@@ -64,7 +64,7 @@ describe('Memed token boundary', () => {
   });
   it.each([{ cpf: '' }, { cpf: '00000000000' }, { license_number: '' }, { uf_brazil: 'XX' }])('rejects incomplete physician identity %j', async (change) => {
     rows.doctors = { ...doctor, ...change };
-    rows.doctor_licenses = [{ license_number: change.license_number ?? '9236', uf_brazil: change.uf_brazil ?? 'RS' }];
+    rows.doctor_licenses = [{ license_number: change.license_number ?? '9236', uf_brazil: change.uf_brazil ?? 'RS', cfm_evidence_path: 'ci/doctor/evidence.pdf', cfm_review_notes: 'Synthetic CI review evidence', cfm_reviewed_by: '00000000-0000-4000-8000-000000000001', cfm_reviewed_at: '2026-11-12T00:00:00Z', cfm_last_checked_at: '2026-11-12T00:00:00Z' }];
     expect((await POST(context())).status).toBe(400);
     expect(mocks.token).not.toHaveBeenCalled();
   });

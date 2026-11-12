@@ -52,7 +52,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     if (doctor) {
       const [licensesResult, profileResult, privateCpf] = await Promise.all([
         admin.from('doctor_licenses')
-          .select('license_number, uf_brazil, license_type, status, cfm_validation_status')
+          .select('license_number, uf_brazil, license_type, status, cfm_validation_status, cfm_evidence_path, cfm_review_notes, cfm_reviewed_by, cfm_reviewed_at, cfm_last_checked_at')
           .eq('doctor_id', doctor.id).eq('license_type', 'CRM').limit(20),
         admin.from('profiles').select('first_name, last_name, cpf')
           .eq('user_id', doctor.user_id).maybeSingle(),
