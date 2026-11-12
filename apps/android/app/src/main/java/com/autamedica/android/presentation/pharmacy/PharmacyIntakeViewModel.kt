@@ -349,6 +349,10 @@ class PharmacyIntakeViewModel @Inject constructor(
                 // La espera queda activa (radar) mientras el request está searching/matched.
                 // readyToJoinCall solo se enciende cuando el médico atiende (in_call) y la sala existe.
                 startStatusPolling(request.id)
+                if ((request.careCountry ?: state.careCountry) == "BR" &&
+                    (state.referralCode == "JORDAN" || request.referralPartnerId != null)) {
+                    startPaymentStatusPolling(request.id)
+                }
                 refreshCountryDoctorCount(request.careCountry ?: state.careCountry)
             }.onFailure { err ->
                 SecureLog.error("[PharmacyIntakeVM] Failed creating request", err)
