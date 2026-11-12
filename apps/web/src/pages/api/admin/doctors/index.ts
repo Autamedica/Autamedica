@@ -3,6 +3,23 @@ import { logger } from '@autamedica/shared';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { badRequest, internalError, jsonOk, unauthorized } from '@/lib/api-helpers';
 
+type AdminDoctorLicenseRecord = {
+  id: string;
+  doctor_id: string;
+  license_number: string;
+  license_type: string;
+  province: string | null;
+  uf_brazil: string | null;
+  status: string;
+  cfm_validation_status: string | null;
+  cfm_last_checked_at: string | null;
+  cfm_evidence_path: string | null;
+  cfm_review_notes: string | null;
+  cfm_reviewed_by: string | null;
+  cfm_reviewed_at: string | null;
+  cfm_evidence_url?: string | null;
+};
+
 async function assertAdmin(
   request: Request,
   admin: ReturnType<typeof createAstroAdminClient>,
@@ -95,9 +112,10 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const doctorIds = (doctors || []).map((doc) => doc.id);
     const doctorsWithAvailability = new Set<string>();
     const doctorsWithActiveSubscription = new Set<string>();
+    const licensesByDoctor = new Map<string, AdminDoctorLicenseRecord[]>();
 
     if (doctorIds.length > 0) {
-      const [availRes, subRes] = await Promise.all([
+      const [availRes, subRes, licensesRes] = await Promise.all([
         admin
           .from('doctor_availability')
           .select('doctor_id, start_time, end_time')
@@ -107,7 +125,11 @@ export const GET: APIRoute = async ({ request, locals }) => {
           .from('doctor_subscriptions')
           .select('doctor_id')
           .in('doctor_id', doctorIds)
-          .eq('status', 'active')
+          .eq('status', 'active'),
+        admin
+          .from('doctor_licenses')
+          .select('id, doctor_id, license_number, license_type, province, uf_brazil, status, cfm_validation_status, cfm_last_checked_at, cfm_evidence_path, cfm_review_notes, cfm_reviewed_by, cfm_reviewed_at')
+          .in('doctor_id', doctorIds),
       ]);
 
       if (availRes.error) {
@@ -137,10 +159,36 @@ export const GET: APIRoute = async ({ request, locals }) => {
           doctorsWithActiveSubscription.add(row.doctor_id);
         }
       }
+
+      if (licensesRes.error) {
+        logger.error('[api/admin/doctors] license lookup failed', licensesRes.error);
+      } else {
+        const signedLicenses = await Promise.all((licensesRes.data ?? []).map(async (license) => {
+          let evidenceUrl: string | null = null;
+          if (license.cfm_evidence_path) {
+            const { data: signed, error: signedError } = await admin.storage
+              .from('doctor-credential-evidence')
+              .createSignedUrl(license.cfm_evidence_path, 10 * 60);
+            if (signedError) {
+              logger.warn('[api/admin/doctors] CFM evidence link could not be signed', { licenseId: license.id });
+            } else {
+              evidenceUrl = signed.signedUrl;
+            }
+          }
+          return { ...license, cfm_evidence_url: evidenceUrl };
+        }));
+
+        for (const license of signedLicenses) {
+          const list = licensesByDoctor.get(license.doctor_id) ?? [];
+          list.push(license);
+          licensesByDoctor.set(license.doctor_id, list);
+        }
+      }
     }
 
     const enrichedDoctors = (doctors || []).map((doc) => ({
       ...doc,
+      doctor_licenses: licensesByDoctor.get(doc.id) ?? [],
       has_availability: doctorsWithAvailability.has(doc.id),
       has_active_plan: doctorsWithActiveSubscription.has(doc.id),
     }));

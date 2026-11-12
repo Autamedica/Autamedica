@@ -73,6 +73,11 @@ function resetState() {
   state.license = {
     doctor_id: doctorId, license_number: fakeCrm, license_type: 'CRM',
     uf_brazil: 'RS', status: 'active', cfm_validation_status: 'valid',
+    cfm_evidence_path: 'demo/license/cfm-proof.pdf',
+    cfm_review_notes: 'Consulta CFM ficticia para pruebas automatizadas.',
+    cfm_reviewed_by: 'demo-reviewer',
+    cfm_reviewed_at: '2026-11-12T18:00:00.000Z',
+    cfm_last_checked_at: '2026-11-12T18:00:00.000Z',
   };
   state.careLink = true;
   state.providerDoctorCpf = fakeDoctorCpf;
@@ -276,6 +281,14 @@ describe('Memed DEMO flow: synthetic doctor + synthetic patient, no real provide
     expect(duplicate.status).toBe(200);
     expect(duplicate.data).toMatchObject({ duplicate: true, status: 'draft' });
     expect(state.rows).toHaveLength(1);
+  });
+
+  it('blocks both Memed routes when a legacy valid CRM has no manual review evidence', async () => {
+    state.license.cfm_evidence_path = null;
+    expect((await callToken()).status).toBe(403);
+    expect((await callEvent()).status).toBe(403);
+    expect(state.requests).toEqual([]);
+    expect(state.rows).toHaveLength(0);
   });
 
   it('onboards a first-time DEMO doctor with DOB + CPF, then verifies a DEMO prescription event', async () => {

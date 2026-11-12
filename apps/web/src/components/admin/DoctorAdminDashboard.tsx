@@ -16,6 +16,21 @@ type Profile = {
   matricula_nacional: string | null;
 };
 
+type DoctorLicense = {
+  id: string;
+  license_number: string;
+  license_type: string;
+  province: string | null;
+  uf_brazil: string | null;
+  status: 'active' | 'inactive' | 'suspended';
+  cfm_validation_status: 'valid' | 'pending' | 'suspended' | 'cassado' | 'exempt' | null;
+  cfm_last_checked_at: string | null;
+  cfm_evidence_url: string | null;
+  cfm_review_notes: string | null;
+  cfm_reviewed_by: string | null;
+  cfm_reviewed_at: string | null;
+};
+
 type Doctor = {
   id: string;
   user_id: string;
@@ -38,9 +53,17 @@ type Doctor = {
   created_at: string;
   updated_at: string;
   profile: Profile;
+  doctor_licenses?: DoctorLicense[];
   has_availability?: boolean;
   has_active_plan?: boolean;
 };
+
+function hasCfmReviewEvidence(license: DoctorLicense): boolean {
+  return license.cfm_validation_status === 'valid'
+    && Boolean(license.cfm_evidence_url)
+    && Boolean(license.cfm_reviewed_by && license.cfm_reviewed_at && license.cfm_last_checked_at)
+    && (license.cfm_review_notes?.trim().length ?? 0) >= 10;
+}
 
 type DeleteDoctorResponse = {
   success: true;
@@ -65,6 +88,9 @@ export function DoctorAdminDashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isVerifyingSisa, setIsVerifyingSisa] = useState(false);
+  const [cfmEvidenceFiles, setCfmEvidenceFiles] = useState<Record<string, File | null>>({});
+  const [cfmReviewNotes, setCfmReviewNotes] = useState<Record<string, string>>({});
+  const [reviewingCfmLicenseId, setReviewingCfmLicenseId] = useState<string | null>(null);
 
   // Form states for New / Edit doctor
   const [editForm, setEditForm] = useState<Partial<Doctor & Profile & {
@@ -325,6 +351,63 @@ export function DoctorAdminDashboard() {
     } finally {
       licenseVerificationLock.current.finish();
       setIsVerifyingSisa(false);
+    }
+  }
+
+  async function handleCfmManualReview(license: DoctorLicense, status: 'valid' | 'pending') {
+    if (!selectedDoctor || reviewingCfmLicenseId) return;
+
+    const evidence = cfmEvidenceFiles[license.id] ?? null;
+    const notes = (cfmReviewNotes[license.id] ?? '').trim();
+    if (notes.length < 10) {
+      setError('Escribe una nota de revisión de al menos 10 caracteres.');
+      return;
+    }
+    if (status === 'valid' && !evidence) {
+      setError('Adjunta el comprobante oficial o la documentación comprobada para aprobar.');
+      return;
+    }
+
+    setReviewingCfmLicenseId(license.id);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('licenseId', license.id);
+      formData.append('status', status);
+      formData.append('reviewNotes', notes);
+      if (evidence) formData.append('evidence', evidence);
+
+      const response = await fetch('/api/admin/doctors/cfm-review', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.success || !payload?.data?.license) {
+        const message = payload?.error?.message ?? payload?.error ?? `No se pudo guardar la revisión (HTTP ${response.status}).`;
+        throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+      }
+
+      const updatedLicense = payload.data.license as DoctorLicense;
+      const updateDoctor = (doctor: Doctor): Doctor => ({
+        ...doctor,
+        doctor_licenses: (doctor.doctor_licenses ?? []).map((item) =>
+          item.id === updatedLicense.id ? updatedLicense : item,
+        ),
+      });
+      setDoctors((prev) => prev.map((doctor) => doctor.id === selectedDoctor.id ? updateDoctor(doctor) : doctor));
+      setSelectedDoctor((prev) => prev ? updateDoctor(prev) : null);
+      setCfmEvidenceFiles((prev) => ({ ...prev, [license.id]: null }));
+      setCfmReviewNotes((prev) => ({ ...prev, [license.id]: '' }));
+      setSuccessMessage(status === 'valid'
+        ? 'Matrícula CRM aprobada con evidencia y revisión registrada.'
+        : 'Matrícula CRM quedó pendiente; no habilita el despacho clínico.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo guardar la revisión manual CFM.');
+    } finally {
+      setReviewingCfmLicenseId(null);
     }
   }
 
@@ -747,6 +830,95 @@ export function DoctorAdminDashboard() {
                   <p className="text-xs text-slate-400">Creado el {new Date(selectedDoctor.created_at).toLocaleDateString()}</p>
                 </div>
               </div>
+
+              <section className="rounded-xl border border-sky-200 bg-sky-50/60 p-4 space-y-4">
+                <div>
+                  <h5 className="text-sm font-bold text-slate-900">Revisión manual de matrículas brasileñas (CFM)</h5>
+                  <p className="mt-1 text-xs text-slate-600">
+                    El atendiente consulta el registro oficial o comprueba la documentación y adjunta el comprobante antes de aprobar.
+                  </p>
+                </div>
+                {(selectedDoctor.doctor_licenses ?? []).filter((license) => license.license_type === 'CRM').length === 0 ? (
+                  <p className="rounded-lg bg-white p-3 text-xs text-slate-600">
+                    Este profesional todavía no tiene una matrícula CRM cargada para revisar.
+                  </p>
+                ) : (
+                  (selectedDoctor.doctor_licenses ?? [])
+                    .filter((license) => license.license_type === 'CRM')
+                    .map((license) => (
+                      <div key={license.id} className="rounded-lg border border-slate-200 bg-white p-3 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900">CRM {license.license_number} · {license.uf_brazil ?? license.province ?? 'UF não informada'}</p>
+                            <p className="text-xs text-slate-500">
+                              {hasCfmReviewEvidence(license) ? 'Aprobada con evidencia' : license.cfm_validation_status === 'valid' ? 'Aprobación previa sin evidencia; requiere revisión' : license.cfm_validation_status === 'suspended' ? 'Suspendida' : license.cfm_validation_status === 'cassado' ? 'Cancelada' : 'Pendiente de revisión'}
+                              {license.cfm_reviewed_at ? ` · revisada ${new Date(license.cfm_reviewed_at).toLocaleString()}` : ''}
+                            </p>
+                          </div>
+                          <span className={`rounded-full px-2 py-1 text-xs font-semibold ${hasCfmReviewEvidence(license) ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                            {hasCfmReviewEvidence(license) ? 'CFM validado' : license.cfm_validation_status === 'valid' ? 'Falta evidencia' : 'CFM pendiente'}
+                          </span>
+                        </div>
+
+                        {license.cfm_evidence_url ? (
+                          <a href={license.cfm_evidence_url} target="_blank" rel="noreferrer" className="inline-flex text-xs font-semibold text-sky-700 underline">
+                            Ver comprobante guardado
+                          </a>
+                        ) : (
+                          <p className="text-xs text-slate-500">No hay comprobante de revisión adjunto.</p>
+                        )}
+                        {license.cfm_review_notes && (
+                          <p className="rounded-md bg-slate-50 p-2 text-xs text-slate-600">{license.cfm_review_notes}</p>
+                        )}
+
+                        <div>
+                          <label htmlFor={`cfm-evidence-${license.id}`} className="block text-xs font-semibold text-slate-700">
+                            Comprobante oficial o documento revisado (PDF, JPG o PNG; máximo 10 MB)
+                          </label>
+                          <input
+                            id={`cfm-evidence-${license.id}`}
+                            type="file"
+                            accept="application/pdf,image/jpeg,image/png"
+                            onChange={(event) => setCfmEvidenceFiles((prev) => ({ ...prev, [license.id]: event.target.files?.[0] ?? null }))}
+                            className="mt-1 block w-full text-xs text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-slate-700"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor={`cfm-notes-${license.id}`} className="block text-xs font-semibold text-slate-700">
+                            Nota del atendiente (fuente consultada, fecha y resultado)
+                          </label>
+                          <textarea
+                            id={`cfm-notes-${license.id}`}
+                            value={cfmReviewNotes[license.id] ?? ''}
+                            onChange={(event) => setCfmReviewNotes((prev) => ({ ...prev, [license.id]: event.target.value }))}
+                            rows={2}
+                            maxLength={2000}
+                            placeholder="Ej.: consulta pública CFM, CRM y UF coinciden con el documento presentado..."
+                            className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs text-slate-700 outline-none focus:border-sky-500"
+                          />
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            disabled={reviewingCfmLicenseId !== null}
+                            onClick={() => void handleCfmManualReview(license, 'valid')}
+                            className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                          >
+                            {reviewingCfmLicenseId === license.id ? 'Guardando...' : 'Aprobar con evidencia'}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={reviewingCfmLicenseId !== null}
+                            onClick={() => void handleCfmManualReview(license, 'pending')}
+                            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                          >
+                            Mantener pendiente
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                )}
+              </section>
 
               <form onSubmit={handleEditSubmit} className="space-y-5 text-slate-700">
                 {/* 🧑 Info Personal */}

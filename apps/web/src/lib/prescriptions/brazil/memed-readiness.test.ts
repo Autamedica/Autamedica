@@ -9,6 +9,10 @@ const doctor = {
 const license = {
   license_number: '123456', license_type: 'CRM', uf_brazil: 'RS',
   status: 'active', cfm_validation_status: 'valid',
+  cfm_evidence_path: 'doctor-1/license-1/cfm-proof.pdf',
+  cfm_review_notes: 'Consulta oficial CFM, CRM y UF confirmados.',
+  cfm_reviewed_by: 'reviewer-1', cfm_reviewed_at: '2026-11-12T18:00:00.000Z',
+  cfm_last_checked_at: '2026-11-12T18:00:00.000Z',
 };
 const profile = { first_name: 'Medico', last_name: 'Teste', cpf: null };
 const standard = {
@@ -40,6 +44,8 @@ describe('Memed pilot readiness is no-PII and fail-closed', () => {
     [{ ...license, uf_brazil: 'SP' }, 'wrong UF'],
     [{ ...license, cfm_validation_status: 'pending' }, 'unverified CFM'],
     [{ ...license, status: 'inactive' }, 'inactive license'],
+    [{ ...license, cfm_evidence_path: null }, 'missing evidence'],
+    [{ ...license, cfm_reviewed_by: null }, 'missing reviewer'],
   ])('rejects license mismatch (%s, %s)', (changed) => {
     expect(assessMemedPilotReadiness({ ...standard, licenses: [changed] }).cfmLicenseVerified).toBe(false);
   });
