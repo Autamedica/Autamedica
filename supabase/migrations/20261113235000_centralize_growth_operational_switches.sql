@@ -1,8 +1,8 @@
 -- Centralize live operational authority in public.platform_operational_switches.
 -- Growth workers must read this row immediately before outbound delivery.
 alter table public.platform_operational_switches
-  add column if not exists whatsapp_send_enabled boolean not null default true,
-  add column if not exists email_send_enabled boolean not null default true,
+  add column if not exists whatsapp_send_enabled boolean not null default false,
+  add column if not exists email_send_enabled boolean not null default false,
   add column if not exists dry_run_enabled boolean not null default true;
 
 comment on column public.platform_operational_switches.whatsapp_send_enabled is
