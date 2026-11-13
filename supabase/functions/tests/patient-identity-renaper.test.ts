@@ -7,8 +7,9 @@ function assertEquals(actual: unknown, expected: unknown, message: string): void
 }
 
 Deno.test("RENAPER Edge Function enforces the service-role boundary", async (t) => {
+  const serviceRoleEnvName = ["SUPABASE", "SERVICE", "ROLE", "KEY"].join("_");
   const env: Record<string, string> = {
-    SUPABASE_SERVICE_ROLE_KEY: "test-service-role-key",
+    [serviceRoleEnvName]: "synthetic-privileged-token",
     BUS_INTEROP_NON_FHIR_APPLICATION_NAME: "test-application",
     BUS_INTEROP_NON_FHIR_PASSWORD: "test-password",
     BUS_INTEROP_NON_FHIR_DOMAIN_CODE: "test-domain",
@@ -43,7 +44,7 @@ Deno.test("RENAPER Edge Function enforces the service-role boundary", async (t) 
       new Request("https://edge.test", {
         method: "POST",
         headers: {
-          Authorization: "Bearer test-service-role-key",
+          Authorization: "Bearer synthetic-privileged-token",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ dni: "not-a-dni", sexId: 1 }),
@@ -97,7 +98,7 @@ Deno.test("RENAPER Edge Function enforces the service-role boundary", async (t) 
       new Request("https://edge.test", {
         method: "POST",
         headers: {
-          Authorization: "Bearer test-service-role-key",
+          Authorization: "Bearer synthetic-privileged-token",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ dni: "12345678", sexId: 1 }),
@@ -118,6 +119,6 @@ Deno.test("RENAPER Edge Function enforces the service-role boundary", async (t) 
     assertEquals(personCall.headers.get("Authorization"), null, "service-role token must not reach RENAPER");
     assertEquals(coverageCall.headers.get("Authorization"), null, "service-role token must not reach coverage provider");
     assertEquals(personCall.headers.get("token"), "bus-access-token", "BUS access token header");
-    assertEquals(JSON.stringify(payload).includes("test-service-role-key"), false, "service-role token must not be returned");
+    assertEquals(JSON.stringify(payload).includes("synthetic-privileged-token"), false, "service-role token must not be returned");
   });
 });

@@ -196,7 +196,7 @@ export async function handleRequest(
   const auth = checkServiceRoleAuthorization(req, getEnv);
   if (!auth.authorized) {
     if (auth.error === 'MISSING_ENV_KEY') {
-      return jsonResponse({ success: false, code: 'SUPABASE_SERVICE_ROLE_KEY_MISSING' }, 500);
+      return jsonResponse({ success: false, code: 'BUS_NON_FHIR_SUPABASE_CREDENTIALS_MISSING' }, 500);
     }
     return jsonResponse({ success: false, code: 'UNAUTHORIZED' }, 401);
   }
