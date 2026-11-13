@@ -192,6 +192,14 @@ BEGIN
       paid_at=now()
   WHERE id=v_payment;
 
+  -- The approval trigger must have dispatched the paid request. A direct
+  -- matcher probe now returns OFFER_ALREADY_PENDING if the trigger worked;
+  -- otherwise it exposes whether dispatch was queued or newly emitted.
+  SELECT public.match_dispatch_doctors(v_jordan) INTO v_claim;
+  IF v_claim->>'code' IS DISTINCT FROM 'OFFER_ALREADY_PENDING' THEN
+    RAISE EXCEPTION 'Jordan PSP approval trigger did not leave a pending offer; matcher retry returned %', v_claim;
+  END IF;
+
   SELECT o.price_brl INTO v_offer FROM public.dispatch_offers o
   WHERE o.dispatch_request_id=v_jordan AND o.doctor_id=v_doc AND o.status='pending';
   IF v_offer IS DISTINCT FROM 40.00 THEN
