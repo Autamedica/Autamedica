@@ -5,7 +5,7 @@ import type { FirmArVerifiedReceiptStore } from './firmar-verified-callback-proc
 
 const token = '0123456789abcdef'.repeat(4);
 const source = new TextEncoder().encode('%PDF-1.7\nUnsigned snapshot');
-const signed = new TextEncoder().encode('%PDF-1.7\nSigned test only; NOT cryptographic PAdES');
+const signed = new Uint8Array([...source, ...new TextEncoder().encode('\\n% incremental mock PAdES update')]);
 const certificateId = '00000000-0000-4000-8000-000000000001';
 const fp = 'a'.repeat(64);
 async function hexSha(bytes: Uint8Array) {
@@ -55,6 +55,7 @@ describe('FirmAR receipt pipeline (mocked PAdES verifier only)', () => {
     });
     expect(result.status).toBe('signed');
     expect(verify).toHaveBeenCalledOnce();
+    expect(verify).toHaveBeenCalledWith(signed, expect.objectContaining({ doctorCuil: '20123456786' }), source);
     expect(store.persistSignedPdf).toHaveBeenCalledOnce();
     expect(store.finalizeVerifiedDocument).toHaveBeenCalledOnce();
   });
@@ -74,6 +75,19 @@ describe('FirmAR receipt pipeline (mocked PAdES verifier only)', () => {
     await expect(processVerifiedFirmArCallback({
       payload, store, verifyPades: async () => ({ ...verification, certificateNotRevoked: false }),
     })).rejects.toThrow('firmar_unverified_signed_document');
+    expect(store.persistSignedPdf).not.toHaveBeenCalled();
+    expect(store.finalizeVerifiedDocument).not.toHaveBeenCalled();
+  });
+
+
+  it('refuses a signed PDF that rewrites the doctor-reviewed clinical snapshot', async () => {
+    const { store } = await fixture();
+    const rewritten = new TextEncoder().encode('%PDF-1.7\\nEntirely different document');
+    const replacement = { ...payload, documento: btoa(String.fromCharCode(...rewritten)) };
+    const verifier = vi.fn(async () => verification);
+    await expect(processVerifiedFirmArCallback({ payload: replacement, store, verifyPades: verifier }))
+      .rejects.toThrow('firmar_signed_pdf_source_revision_mismatch');
+    expect(verifier).not.toHaveBeenCalled();
     expect(store.persistSignedPdf).not.toHaveBeenCalled();
     expect(store.finalizeVerifiedDocument).not.toHaveBeenCalled();
   });

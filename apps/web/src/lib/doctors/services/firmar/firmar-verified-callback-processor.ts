@@ -8,7 +8,7 @@ import {
   parseFirmArCallback,
   validateFirmArSignedDocument,
 } from './firmar-callback';
-import type { IndependentPadesVerifier, PendingFirmArRequest } from './firmar-callback';
+import type { PadesVerificationEvidence, PendingFirmArRequest } from './firmar-callback';
 
 export interface FirmArStoredSession extends PendingFirmArRequest {
   id: string;
@@ -36,9 +36,13 @@ async function digestSha256(bytes: Uint8Array): Promise<string> {
 export async function processVerifiedFirmArCallback(input: {
   payload: unknown;
   store: FirmArVerifiedReceiptStore;
-  verifyPades: IndependentPadesVerifier;
+  verifyPades: (
+    signedPdf: Uint8Array,
+    request: Pick<PendingFirmArRequest, 'doctorCuil' | 'draftPdfSha256'>,
+    frozenSource: Uint8Array,
+  ) => Promise<PadesVerificationEvidence>;
 }): Promise<{ certificateId: string; signedPdfSha256: string; status: 'signed' }> {
-  const { token } = parseFirmArCallback(input.payload);
+  const { token, pdf } = parseFirmArCallback(input.payload);
   const tokenHash = await hashFirmArToken(token);
   const pending = await input.store.findByTokenHash(tokenHash);
   if (pending?.status !== 'awaiting_doctor_authorization') {
@@ -51,11 +55,20 @@ export async function processVerifiedFirmArCallback(input: {
     throw new Error('firmar_source_pdf_integrity_mismatch');
   }
 
+  // Require signing as an incremental update of the exact approved bytes.
+  // Rewriting the original clinical snapshot is not accepted, even if a PDF
+  // contains a cryptographically valid signature over different contents.
+  if (pdf.byteLength <= source.byteLength ||
+      source.some((byte, index) => byte !== pdf[index])) {
+    throw new Error('firmar_signed_pdf_source_revision_mismatch');
+  }
+
   // verifyPades must verify actual PDF CMS signatures, Argentine trust
   // anchors, revocation, signer CUIL, authorized document and signing time.
   // It MUST NOT be a JSON flag check, PDF marker check, or image comparison.
   const evidence = await validateFirmArSignedDocument(
-    input.payload, pending, input.verifyPades,
+    input.payload, pending,
+    (signedPdf, expected) => input.verifyPades(signedPdf, expected, source),
   );
 
   // Private bucket with upsert=false. Public reads must still require
