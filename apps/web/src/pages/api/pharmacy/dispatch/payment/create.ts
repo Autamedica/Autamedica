@@ -18,16 +18,23 @@ export const POST: APIRoute = async ({ request, locals }) => {
   let initializedPaymentId: string | null = null
   let admin: SupabaseClient | null = null
   try {
+    admin = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient
+    const { data: operationalSwitches } = await admin
+      .from('platform_operational_switches')
+      .select('jordan_qr_payments_enabled')
+      .eq('id', 'global')
+      .maybeSingle()
     const rolloutFlag = (locals.runtime?.env?.ENABLE_JORDAN_PAYMENTS as string | undefined)
       ?? getRuntimeEnvValue('ENABLE_JORDAN_PAYMENTS')
       ?? import.meta.env.ENABLE_JORDAN_PAYMENTS
-    if (rolloutFlag !== 'true') return serviceUnavailable('pharmacy_checkout_not_enabled')
+    if (operationalSwitches ? operationalSwitches.jordan_qr_payments_enabled !== true : rolloutFlag !== 'true') {
+      return serviceUnavailable('pharmacy_checkout_not_enabled')
+    }
     if (!hasSecureGuestPaymentSecret(locals.runtime?.env)) return serviceUnavailable('pharmacy_checkout_guest_security_not_configured')
 
     const body = await request.json().catch(() => null)
     const requestId = body?.requestId
     const token = body?.accessToken
-    admin = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient
 
     const dispatch = await authorizePharmacyPaymentRequest(admin, requestId, token, locals.runtime?.env)
     if (!dispatch) return unauthorized('pharmacy_request_token_required')
