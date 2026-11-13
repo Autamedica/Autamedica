@@ -29,10 +29,10 @@ BEGIN
   UPDATE public.profiles SET role='doctor',active=true WHERE user_id=v_doctor_user;
   UPDATE public.profiles SET role='pharmacist',active=true WHERE user_id=v_pharmacist_user;
   UPDATE public.profiles SET role='admin',active=true WHERE user_id=v_reviewer_user;
-  INSERT INTO public.doctors(id,user_id,license_number,license_type,uf_brazil,specialty,active,care_country)
-    VALUES(v_doctor,v_doctor_user,'CI-SYNTHETIC-NO-REAL-CRM','CRM','RS','Synthetic BR general',true,'BR')
+  INSERT INTO public.doctors(id,user_id,license_number,license_type,uf_brazil,specialty,active)
+    VALUES(v_doctor,v_doctor_user,'CI-SYNTHETIC-NO-REAL-CRM','CRM','RS','Synthetic BR general',true)
     ON CONFLICT(user_id) DO UPDATE SET license_number=excluded.license_number,
-      license_type='CRM',uf_brazil='RS',active=true,care_country='BR';
+      license_type='CRM',uf_brazil='RS',active=true;
   SELECT id INTO STRICT v_doctor FROM public.doctors WHERE user_id=v_doctor_user;
   INSERT INTO public.doctor_licenses(
     doctor_id,license_type,license_number,uf_brazil,status,cfm_validation_status,

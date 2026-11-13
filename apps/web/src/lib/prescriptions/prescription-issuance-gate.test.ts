@@ -54,8 +54,10 @@ describe('proof-of-issuance clinical gate', () => {
 
   it('never emits Brazilian internal PDF/CUIR instead of Memed', () => {
     expect(check({
-      prescriptionCountry: 'BR', doctorCountry: 'BR', patientCountry: 'BR',
-      argentinaProductionApproved: true,
+      ...approvedAR,
+      prescriptionCountry: 'BR',
+      doctorCountry: 'BR',
+      patientCountry: 'BR',
     })).toEqual({ ok: false, code: 'br_requires_memed_provider' });
   });
 
