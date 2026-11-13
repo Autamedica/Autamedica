@@ -183,7 +183,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         message: error instanceof Error ? error.message : 'unknown',
       });
     }
-    const { error } = await context.admin.from('memed_prescriptions').upsert({
+    const { error } = await memedDb.from('memed_prescriptions').upsert({
       memed_id: memedId, doctor_id: context.doctor.id, patient_id: patientId,
       status: 'verified_at_provider', provider_data: remote, digital_link_data: digitalLink,
       updated_at: new Date().toISOString(),
