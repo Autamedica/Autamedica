@@ -1,5 +1,9 @@
 # Jordan — release evidence and production gates
 
+## Autoridad única de interruptores operativos
+
+La única autoridad sobre el estado activo/inactivo de cualquier flujo es la fila global de `public.platform_operational_switches`, gobernada desde `/admin`. Ningún estado estático de este documento ni de otro Markdown representa configuración operativa vigente. Queda prohibido bloquear PRs, merges, CI o despliegues basándose en estados estáticos de documentos Markdown. Los checklists de este archivo documentan evidencia y procedimientos, no interruptores ejecutables.
+
 This is a **NO-GO** checklist until each gate has executed successfully on the exact reviewed/merged `main` SHA. Keep `ENABLE_JORDAN_PAYMENTS` disabled. Do not accept live Mercado Pago payments, distribute commercial QR codes, or transfer commissions while any gate remains open.
 
 ## Integrated changes
