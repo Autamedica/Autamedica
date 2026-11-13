@@ -9,6 +9,7 @@ import com.autamedica.android.MainActivity
 import com.autamedica.android.R
 import com.autamedica.android.domain.model.NotificationType
 import com.autamedica.android.domain.model.PushPayload
+import com.google.firebase.messaging.RemoteMessage
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -36,12 +37,30 @@ class DispatchIncomingAlertTest {
     }
 
     @Test
+    fun fcmDispatchPayloadPreservesOfferIdForServerVerifiedDecline() {
+        val message = RemoteMessage.Builder("autamedica-test-token")
+            .addData("type", "pharmacy_dispatch_incoming")
+            .addData("request_id", "request-123")
+            .addData("offer_id", "offer-123")
+            .addData("room_id", "cf-room-test")
+            .build()
+
+        val payload = PushNotificationService().parsePayload(message)
+
+        assertEquals(NotificationType.PHARMACY_DISPATCH_INCOMING, payload.type)
+        assertEquals("request-123", payload.appointmentId)
+        assertEquals("offer-123", payload.offerId)
+        assertEquals("cf-room-test", payload.roomId)
+    }
+
+    @Test
     fun dispatchOfferBuildsFullScreenCallAlertWithRingtoneVibrationAndWakeLock() {
         val payload = PushPayload(
             type = NotificationType.PHARMACY_DISPATCH_INCOMING,
             title = "Sensitive patient name must not be displayed",
             body = "Sensitive symptom details must not be displayed",
             appointmentId = "request-123",
+            offerId = "offer-123",
         )
 
         IncomingCallNotificationManager.showDispatchIncoming(context, payload)
@@ -112,6 +131,10 @@ class DispatchIncomingAlertTest {
         assertEquals(
             IncomingCallNotificationManager.ACTION_DECLINE_DISPATCH,
             declineIntent.action,
+        )
+        assertEquals(
+            "offer-123",
+            declineIntent.getStringExtra(IncomingCallNotificationManager.EXTRA_DISPATCH_OFFER_ID),
         )
 
         val channel = notificationManager.getNotificationChannel(

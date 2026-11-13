@@ -3,6 +3,7 @@ package com.autamedica.android.service
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -21,6 +22,9 @@ class CallActionReceiver : BroadcastReceiver() {
     @Inject
     lateinit var telemedicineRepository: TelemedicineRepository
 
+    @Inject
+    lateinit var pharmacyDispatchRepository: PharmacyDispatchRepository
+
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action ?: return
         val appointmentId = intent.getStringExtra(IncomingCallNotificationManager.EXTRA_APPOINTMENT_ID).orEmpty()
@@ -34,10 +38,39 @@ class CallActionReceiver : BroadcastReceiver() {
 
         when (action) {
             IncomingCallNotificationManager.ACTION_DECLINE_DISPATCH -> {
-                // A dispatch refusal only dismisses this local alert. It must not
-                // mutate a video-call appointment or expose patient details.
+                // Silence immediately, then let the server verify that this offer
+                // belongs to the authenticated clinician before advancing the queue.
                 IncomingCallNotificationManager.dismissDispatchAlert(context)
-                Timber.i("[CallActionReceiver] Pharmacy dispatch alert dismissed by clinician")
+                val offerId = intent.getStringExtra(
+                    IncomingCallNotificationManager.EXTRA_DISPATCH_OFFER_ID,
+                ).orEmpty()
+                if (offerId.isBlank()) {
+                    // Older/legacy FCM payloads may lack offer_id. Never guess an offer
+                    // from a request ID; the server-side decline requires the exact offer.
+                    Timber.w("[CallActionReceiver] Dispatch alert had no offer ID; dismissed locally")
+                    return
+                }
+
+                val pendingResult = goAsync()
+                CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                    try {
+                        pharmacyDispatchRepository.declinePharmacyOffer(offerId)
+                            .onSuccess { declined ->
+                                if (declined) {
+                                    Timber.i("[CallActionReceiver] Pharmacy offer declined and queue advanced")
+                                } else {
+                                    Timber.w("[CallActionReceiver] Pharmacy offer was no longer active or not owned")
+                                }
+                            }
+                            .onFailure {
+                                Timber.e(it, "[CallActionReceiver] Server did not confirm pharmacy offer refusal")
+                            }
+                    } catch (e: Exception) {
+                        Timber.e(e, "[CallActionReceiver] Failed declining pharmacy dispatch offer")
+                    } finally {
+                        pendingResult.finish()
+                    }
+                }
             }
 
             IncomingCallNotificationManager.ACTION_ANSWER_CALL -> {
