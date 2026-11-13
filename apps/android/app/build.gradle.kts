@@ -264,7 +264,10 @@ dependencies {
 
 tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
     testLogging {
-        events(org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED)
+        events(
+            org.gradle.api.tasks.testing.logging.TestLogEvent.STARTED,
+            org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED,
+        )
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
 }

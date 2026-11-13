@@ -529,34 +529,46 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
         aria-labelledby="patient-home-immediate-title"
         className="max-w-7xl mx-auto px-6 lg:px-12 pt-5 md:pt-8"
       >
-        <div className="relative isolate overflow-hidden rounded-[2rem] border border-sky-100 bg-gradient-to-br from-white via-white to-sky-50 shadow-sm">
-          <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-20 size-64 rounded-full bg-sky-100/80 blur-3xl" />
+        <div
+          className="relative isolate overflow-hidden rounded-[2rem] border bg-white shadow-sm"
+          style={{ borderColor: 'color-mix(in srgb, var(--portal-patients) 22%, transparent)' }}
+        >
+          <div className="relative h-24 overflow-hidden sm:h-32" aria-hidden="true">
+            <img
+              src="/images/hero_doctor.webp"
+              alt=""
+              loading="eager"
+              decoding="async"
+              className="h-full w-full object-cover object-[center_35%]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/20 to-white/50" />
+          </div>
           <div className="relative flex flex-col gap-5 p-6 sm:p-8 lg:p-10">
-            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3.5 py-2 text-xs font-bold tracking-wide text-sky-800">
+            <span className="inline-flex w-fit items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-bold tracking-wide" style={{ borderColor: 'color-mix(in srgb, var(--portal-patients) 24%, transparent)', backgroundColor: 'color-mix(in srgb, var(--portal-patients) 10%, white)', color: 'var(--portal-patients-action)' }}>
               <Zap aria-hidden="true" className="size-3.5" />
               {dict.patientPortal.immediateCare.tag}
             </span>
 
             <div className="max-w-3xl space-y-3">
-              <h1 id="patient-home-immediate-title" className="text-3xl font-bold leading-tight tracking-tight text-neutral-950 sm:text-4xl lg:text-5xl">
+              <h1 id="patient-home-immediate-title" className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-5xl" style={{ color: "var(--au-text-primary)" }}>
                 {dict.patientPortal.immediateCare.title}
               </h1>
-              <p className="max-w-2xl text-sm leading-6 text-neutral-600 sm:text-base sm:leading-7">
+              <p className="max-w-2xl text-sm leading-6 sm:text-base sm:leading-7" style={{ color: "var(--au-text-secondary)" }}>
                 {dict.patientPortal.immediateCare.subtitle}
               </p>
             </div>
 
             <div className="flex flex-wrap gap-2" aria-label={dict.patientPortal.immediateCare.title}>
-              <span className="inline-flex items-center gap-2 rounded-full border border-sky-100 bg-white/90 px-3 py-2 text-xs font-semibold text-sky-900 shadow-sm sm:text-sm">
-                <Stethoscope aria-hidden="true" className="size-4 text-sky-700" />
+              <span className="inline-flex items-center gap-2 rounded-full border bg-white/90 px-3 py-2 text-xs font-semibold shadow-sm sm:text-sm" style={{ borderColor: 'color-mix(in srgb, var(--portal-patients) 18%, transparent)', color: 'var(--portal-patients-action)' }}>
+                <Stethoscope aria-hidden="true" className="size-4" style={{ color: "var(--portal-patients-action)" }} />
                 {dict.patientPortal.immediateCare.chips.consultation}
               </span>
-              <span className="inline-flex items-center gap-2 rounded-full border border-sky-100 bg-white/90 px-3 py-2 text-xs font-semibold text-sky-900 shadow-sm sm:text-sm">
-                <FileText aria-hidden="true" className="size-4 text-sky-700" />
+              <span className="inline-flex items-center gap-2 rounded-full border bg-white/90 px-3 py-2 text-xs font-semibold shadow-sm sm:text-sm" style={{ borderColor: 'color-mix(in srgb, var(--portal-patients) 18%, transparent)', color: 'var(--portal-patients-action)' }}>
+                <FileText aria-hidden="true" className="size-4" style={{ color: "var(--portal-patients-action)" }} />
                 {dict.patientPortal.immediateCare.chips.documents}
               </span>
-              <span className="inline-flex items-center gap-2 rounded-full border border-sky-100 bg-white/90 px-3 py-2 text-xs font-semibold text-sky-900 shadow-sm sm:text-sm">
-                <MapPin aria-hidden="true" className="size-4 text-sky-700" />
+              <span className="inline-flex items-center gap-2 rounded-full border bg-white/90 px-3 py-2 text-xs font-semibold shadow-sm sm:text-sm" style={{ borderColor: 'color-mix(in srgb, var(--portal-patients) 18%, transparent)', color: 'var(--portal-patients-action)' }}>
+                <MapPin aria-hidden="true" className="size-4" style={{ color: "var(--portal-patients-action)" }} />
                 {dict.patientPortal.immediateCare.chips.pharmacy}
               </span>
             </div>
@@ -575,7 +587,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               </p>
               <a
                 href="/patients/appointments"
-                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-sky-200 bg-white px-5 py-3 text-sm font-semibold text-sky-800 transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100"
+                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border bg-white px-5 py-3 text-sm font-semibold transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100" style={{ borderColor: 'color-mix(in srgb, var(--portal-patients) 28%, transparent)', color: 'var(--portal-patients-action)' }}
               >
                 <Calendar aria-hidden="true" className="size-4" />
                 {dict.patientPortal.immediateCare.scheduledCta}

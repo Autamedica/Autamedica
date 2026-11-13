@@ -133,6 +133,7 @@ class ConventionValidator {
           'TO', 'AT', 'ZONE', 'INTERVAL', 'ARRAY', 'CAST', 'NEXT', 'VALUE',
           'ENABLE', 'DISABLE', 'NOTICE', 'WARNING', 'INFO', 'DEBUG', 'LOG',
           'ERROR', 'OPEN', 'CLOSE', 'FETCH', 'MOVE', 'CURSOR', 'SCROLL',
+          'GENERATED', 'ALWAYS',
           'BTREE', 'HASH', 'GIN', 'GIST', 'BRIN', 'SPGIST', 'TABLESPACE',
           'INCLUDE', 'NULLS', 'FIRST', 'LAST', 'ASC', 'DESC', 'STRICT',
           'VOLATILE', 'STABLE', 'IMMUTABLE', 'COST', 'ROWS', 'PARALLEL',
