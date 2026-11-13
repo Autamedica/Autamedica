@@ -164,13 +164,13 @@ BEGIN
  IF public.doctor_has_patient_access(v_patient_user_id) THEN RAISE EXCEPTION 'Legacy write access retained'; END IF;
  IF NOT public.doctor_has_patient_read_access(v_patient_user_id) THEN RAISE EXCEPTION 'Patient-specific read bridge missing'; END IF;
  IF public.doctor_has_patient_read_access('a1100000-0000-4000-8000-000000000003') THEN RAISE EXCEPTION 'Unassigned patient read access leaked'; END IF;
- IF public.is_clinically_authorized_doctor_read_for_patient((SELECT id FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000001')) THEN
+ IF public.is_clinically_authorized_doctor_read_for_patient(public.get_my_patient_id()) THEN
    RAISE EXCEPTION 'Unassigned dual-role doctor patient row received a legacy grant';
  END IF;
  BEGIN
    UPDATE public.appointments SET status='completed'
    WHERE doctor_id=public.get_my_doctor_id()
-     AND patient_id=(SELECT id FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000001');
+     AND patient_id=public.get_my_patient_id();
    IF FOUND THEN RAISE EXCEPTION 'Unapproved dual-role doctor bypassed approval via patient branch'; END IF;
  EXCEPTION WHEN insufficient_privilege THEN NULL;
  END;
