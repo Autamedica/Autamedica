@@ -33,9 +33,7 @@ BEGIN
   END IF;
   INSERT INTO public.doctors(id,user_id,license_number,specialty,active)
   VALUES(v_doctor,v_doctor_user,'CI-ACTOR-'||v_doctor,'General',true);
-  UPDATE public.doctors
-  SET care_country='AR',license_type='MN'
-  WHERE id=v_doctor;
+  UPDATE public.doctors SET license_type='MN' WHERE id=v_doctor;
   UPDATE public.profiles
   SET active=true,sss_validation_status='valid'
   WHERE user_id=v_doctor_user;
