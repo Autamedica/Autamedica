@@ -27,7 +27,9 @@ GRANT SELECT,INSERT ON pharmacy_ci_concurrency.results TO authenticated;
 INSERT INTO auth.users(id,email)
 SELECT value,'isolated-pharmacy-'||key||'-'||value||'@example.invalid'
 FROM pharmacy_ci_concurrency.fixture WHERE key LIKE 'user_%';
-UPDATE public.profiles SET role='doctor',active=true WHERE user_id=pharmacy_ci_concurrency.id('user_d');
+UPDATE public.profiles
+SET role='doctor',active=true,sss_validation_status='valid'
+WHERE user_id=pharmacy_ci_concurrency.id('user_d');
 UPDATE public.profiles SET role='pharmacist',active=true
 WHERE user_id IN(pharmacy_ci_concurrency.id('user_a'),pharmacy_ci_concurrency.id('user_b'));
 INSERT INTO public.doctors(id,user_id,license_number,license_type,specialty,active)
@@ -35,6 +37,11 @@ VALUES(pharmacy_ci_concurrency.id('doctor'),pharmacy_ci_concurrency.id('user_d')
 ON CONFLICT(user_id) DO UPDATE SET license_type='MN',license_number='CI-SYNTHETIC-NO-LICENSE',active=true;
 UPDATE pharmacy_ci_concurrency.fixture SET value=(SELECT id FROM public.doctors
 WHERE user_id=pharmacy_ci_concurrency.id('user_d')) WHERE key='doctor';
+INSERT INTO public.doctor_licenses(
+  doctor_id,license_type,license_number,province,status
+) VALUES(
+  pharmacy_ci_concurrency.id('doctor'),'MN','CI-SYNTHETIC-MN','CABA','active'
+);
 UPDATE public.patients SET care_country='AR',active=true WHERE user_id=pharmacy_ci_concurrency.id('user_p');
 UPDATE pharmacy_ci_concurrency.fixture SET value=(SELECT id FROM public.patients
 WHERE user_id=pharmacy_ci_concurrency.id('user_p')) WHERE key='patient';
