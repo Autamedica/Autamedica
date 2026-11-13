@@ -39,7 +39,7 @@ export async function verifyGuestDispatchAccess(
     (guest.callId !== dispatch.id && guest.callId !== dispatch.call_id)) {
     return { kind: 'forbidden' }
   }
-  if (dispatch.status !== 'in_call' || !dispatch.assigned_doctor_id || !dispatch.call_id) {
+  if (!['matched', 'in_call'].includes(dispatch.status) || !dispatch.assigned_doctor_id || !dispatch.call_id) {
     return { kind: 'conflict', message: 'dispatch_not_ready' }
   }
 

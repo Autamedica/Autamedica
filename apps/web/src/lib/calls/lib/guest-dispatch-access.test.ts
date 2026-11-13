@@ -53,11 +53,18 @@ describe('signed guest dispatch video authorization', () => {
     expect(from).not.toHaveBeenCalledWith('pharmacy_dispatch_payments')
   })
 
-  it('rejects a QR intake before an actual doctor begins the call', async () => {
-    const { admin, from } = buildAdmin(request({ status: 'matched' }))
+  it('rejects a QR intake while the request is still searching', async () => {
+    const { admin, from } = buildAdmin(request({ status: 'searching' }))
     expect(await verifyGuestDispatchAccess(admin, { callId: dispatchId, roomId: room }))
       .toEqual({ kind: 'conflict', message: 'dispatch_not_ready' })
     expect(from).not.toHaveBeenCalledWith('pharmacy_dispatch_payments')
+  })
+
+  it('accepts a matched request after the doctor has claimed the offer', async () => {
+    const { admin, from } = buildAdmin(request({ status: 'matched' }), { id: 'payment-approved-synthetic' })
+    expect(await verifyGuestDispatchAccess(admin, { callId: dispatchId, roomId: room }))
+      .toEqual({ kind: 'ok', dispatchRequestId: dispatchId })
+    expect(from).toHaveBeenCalledWith('pharmacy_dispatch_payments')
   })
 
   it('rejects an unpaid Brazilian partner session even if the doctor is already connected', async () => {
