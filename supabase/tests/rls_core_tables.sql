@@ -77,7 +77,7 @@ BEGIN
   -- authorization gate: active AR credential, administrator-validated profile,
   -- and a matching active doctor_licenses row.
   UPDATE public.doctors
-  SET license_type = 'MN', care_country = 'AR'
+  SET license_type = 'MN'
   WHERE id = doctor_a_id;
   UPDATE public.profiles
   SET active = true, sss_validation_status = 'valid'
