@@ -171,7 +171,10 @@ VALUES('a1100000-0000-4000-8000-000000000002','00000000-0000-0000-0000-000000000
 INSERT INTO public.patients(user_id,active,care_country)
 VALUES('a1100000-0000-4000-8000-000000000002',true,'AR')
 ON CONFLICT (user_id) DO UPDATE SET active=EXCLUDED.active,care_country=EXCLUDED.care_country;
-INSERT INTO public.patients(user_id,active) SELECT 'a1100000-0000-4000-8000-000000000001',true WHERE NOT EXISTS(SELECT 1 FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000001');
+INSERT INTO public.patients(user_id,active,care_country)
+VALUES('a1100000-0000-4000-8000-000000000001',true,'AR')
+ON CONFLICT (user_id) DO UPDATE
+SET active=EXCLUDED.active,care_country=EXCLUDED.care_country;
 INSERT INTO auth.users(id,instance_id,aud,role,email,raw_user_meta_data,raw_app_meta_data)
 VALUES('a1100000-0000-4000-8000-000000000003','00000000-0000-0000-0000-000000000000','authenticated','authenticated',
 'synthetic-unassigned-patient@example.invalid','{"role":"patient"}'::jsonb,'{}'::jsonb);
