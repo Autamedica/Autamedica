@@ -207,7 +207,7 @@ export function PharmacyExpressConsultation({
     try {
       const result = await fetchApi<{ cancelled: boolean }>(
         `/api/pharmacy/dispatch/${encodeURIComponent(requestId)}`,
-        { method: 'DELETE' },
+        { method: 'DELETE', headers: { 'x-guest-token': accessToken } },
       )
       if (!result.cancelled) {
         setFormError('La consulta ya fue asignada o no pudo cancelarse.')
