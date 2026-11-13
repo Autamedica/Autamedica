@@ -113,6 +113,16 @@ BEGIN
   ) VALUES (
     v_doc,v_user,'CRM','CI-'||v_doc::text,'RS','Medicina General',true
   );
+  -- Service tiers are privileged operational permissions. Enable the synthetic
+  -- generalist as the synthetic administrator, never as the doctor itself.
+  PERFORM set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub',v_reviewer,'role','authenticated')::text,
+    true
+  );
+  UPDATE public.doctors SET enabled_service_tiers=ARRAY['general'] WHERE id=v_doc;
+  PERFORM set_config('request.jwt.claims','{"role":"service_role"}',true);
+
   INSERT INTO public.doctor_licenses(
     doctor_id,license_type,license_number,uf_brazil,status,cfm_validation_status,
     cfm_evidence_path,cfm_review_notes,cfm_reviewed_by,cfm_reviewed_at,cfm_last_checked_at
@@ -127,8 +137,8 @@ BEGIN
     RAISE EXCEPTION 'Synthetic BR doctor must be CRM-approved';
   END IF;
   INSERT INTO public.doctor_duty_status(
-    doctor_id,is_on_duty,last_heartbeat_at,duty_started_at
-  ) VALUES(v_doc,true,now(),now());
+    doctor_id,is_on_duty,last_heartbeat_at,duty_started_at,active_tiers
+  ) VALUES(v_doc,true,now(),now(),ARRAY['general']);
 
   -- Presence/heartbeat dispatch must not bypass the matcher payment gate.
   IF EXISTS (
