@@ -75,4 +75,9 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/persistent_pharmacy_queue_behavior.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/clinical_admin_approval_authority.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/clinical_approval_rls_contract.sql
+          psql -X -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/pharmacy_country_isolation.sql
+          psql -X -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/pharmacy_brazil_lifecycle.sql
+
+          AUTAMEDICA_ISOLATED_TEST=on bash scripts/db/test-pharmacy-concurrency.sh
+          AUTAMEDICA_ISOLATED_TEST=on bash scripts/db/test-pharmacy-legacy-migration.sh
 

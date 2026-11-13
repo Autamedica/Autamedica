@@ -168,6 +168,9 @@ jobs:
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/ar_electronic_certificate_demo_smoke.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/pharmacy_guest_identity_isolation.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/pharmacy_referral_commission_isolated.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/pharmacy_country_isolation.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/jordan_br_79_40_dispatch_isolated.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/pharmacy_brazil_lifecycle.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls_core_tables.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/farmalink_once_only_issue.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/memed_provider_integrity_smoke.sql
@@ -189,6 +192,16 @@ jobs:
         env:
           SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
         run: python3 scripts/farmalink/test_once_only_concurrency.py
+      - name: Verify legacy pharmacy rows are preserved and quarantined
+        env:
+          SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+          AUTAMEDICA_ISOLATED_TEST: 'on'
+        run: bash scripts/db/test-pharmacy-legacy-migration.sh
+      - name: Verify pharmacy claim and delivery concurrency
+        env:
+          SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+          AUTAMEDICA_ISOLATED_TEST: 'on'
+        run: bash scripts/db/test-pharmacy-concurrency.sh
       - name: Stop local Supabase
         if: always()
         run: supabase stop --no-backup

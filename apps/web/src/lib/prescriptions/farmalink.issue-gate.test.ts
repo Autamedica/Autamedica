@@ -224,15 +224,15 @@ describe('Farmalink once-only persistent issue guard', () => {
     Object.assign(supabase, {
       from: vi.fn((table: string) => {
         const rows: Record<string, unknown> = {
-          doctors: { ...clinical.doctor, license_type: 'MN', care_country: 'AR' },
+          doctors: { ...clinical.doctor, active: true, license_type: 'MN', care_country: 'AR' },
           prescriptions: {
             id: RX, doctor_id: clinical.doctor.id, patient_id: 'test-patient',
             status: 'draft', cuir: null, country_code: 'AR',
             clinical_data: { diagnosis: 'Control', items: [clinical.item] },
           },
-          profiles: { sss_validation_status: 'valid' },
+          profiles: { role: 'doctor', active: true, sss_validation_status: 'valid' },
           patients: {
-            ...clinical.patient, care_country: 'AR', user_id: 'test-patient-user',
+            ...clinical.patient, active: true, care_country: 'AR', user_id: 'test-patient-user',
             address: 'Fixture CABA',
           },
         };

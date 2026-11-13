@@ -612,7 +612,7 @@ private fun PharmacyWaitingRoomView(
                         text = when {
                             confirmed -> "Pagamento confirmado. Acesso liberado quando o médico iniciar a consulta."
                             uiState.paymentStatus == "pending" -> "Aguardando confirmação do Mercado Pago."
-                            canStartCheckout -> "O médico aceitou o pedido. Confirme o pagamento para continuar."
+                            canStartCheckout -> stringResource(R.string.jordan_payment_start_message)
                             else -> "Aguardando um médico disponível antes do pagamento."
                         },
                         style = MaterialTheme.typography.bodySmall,

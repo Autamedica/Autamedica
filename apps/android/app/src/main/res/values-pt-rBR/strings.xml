@@ -281,4 +281,5 @@
     <string name="notification_dispatch_offer_text">Paciente aguardando no plantão da farmácia</string>
     <string name="notification_dispatch_accept">Ver / Aceitar plantão</string>
     <string name="notification_dispatch_decline">Recusar</string>
+    <string name="jordan_payment_start_message">Confirme o pagamento de R$ 79 para iniciar sua videoconsulta agora.</string>
 </resources>

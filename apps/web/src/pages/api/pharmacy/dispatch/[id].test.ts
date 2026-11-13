@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { GET } from './[id]'
+import { DELETE, GET } from './[id]'
 import { signGuestToken } from '@/lib/calls/lib/guest-token'
 
 vi.mock('@autamedica/shared', () => {
@@ -8,15 +8,20 @@ vi.mock('@autamedica/shared', () => {
   return { logger: logMock }
 })
 
-const { supabaseMock } = vi.hoisted(() => ({
+const { supabaseMock, patientContextMock } = vi.hoisted(() => ({
   supabaseMock: { from: vi.fn(), rpc: vi.fn() } as {
     from: ReturnType<typeof vi.fn>
     rpc: ReturnType<typeof vi.fn>
   },
+  patientContextMock: { resolve: vi.fn() },
 }))
 
 vi.mock('@/lib/supabase', () => ({
   createAstroAdminClient: vi.fn(() => supabaseMock),
+}))
+
+vi.mock('@/lib/patients/api/patient-context', () => ({
+  resolvePatientContext: patientContextMock.resolve,
 }))
 
 const TEST_SECRET = 'test-guest-secret-super-secure-at-least-32-chars!'
@@ -60,6 +65,7 @@ type TableChain = {
   gt: ReturnType<typeof vi.fn>
   maybeSingle: ReturnType<typeof vi.fn>
   single: ReturnType<typeof vi.fn>
+  update: ReturnType<typeof vi.fn>
 }
 
 function buildTableChain(data: unknown, error: unknown = null): TableChain {
@@ -72,12 +78,14 @@ function buildTableChain(data: unknown, error: unknown = null): TableChain {
     gt: vi.fn(),
     maybeSingle: vi.fn(),
     single: vi.fn(),
+    update: vi.fn(),
   }
   chain.select.mockReturnValue(chain)
   chain.eq.mockReturnValue(chain)
   chain.gt.mockReturnValue(chain)
   chain.maybeSingle.mockReturnValue(chain)
   chain.single.mockReturnValue(chain)
+  chain.update.mockReturnValue(chain)
   return chain
 }
 
@@ -86,10 +94,11 @@ function makeContext(options?: {
   url?: string
   headers?: Record<string, string>
   session?: { user: { id: string } } | null
+  method?: string
 }): Parameters<typeof GET>[0] {
   const reqUrl = options?.url || 'http://localhost/api/pharmacy/dispatch/req-1'
   const request = new Request(reqUrl, {
-    method: 'GET',
+    method: options?.method || 'GET',
     headers: options?.headers || {},
   })
 
@@ -107,6 +116,42 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     supabaseMock.rpc.mockResolvedValue({ data: true, error: null })
+    patientContextMock.resolve.mockResolvedValue({
+      careCountry: 'AR',
+      patientId: 'patient-row-1',
+      userId: 'patient-user-1',
+    })
+  })
+
+  it('cancela solo la solicitud searching del paciente autenticado', async () => {
+    const chain = buildTableChain({ id: 'req-1' })
+    supabaseMock.from.mockReturnValue(chain)
+
+    const response = await DELETE(makeContext({ method: 'DELETE' }))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.data.cancelled).toBe(true)
+    expect(supabaseMock.from).toHaveBeenCalledWith('pharmacy_dispatch_requests')
+    expect(chain.update).toHaveBeenCalledWith({ status: 'cancelled' })
+    expect(chain.eq).toHaveBeenCalledWith('id', 'req-1')
+    expect(chain.eq).toHaveBeenCalledWith('patient_id', 'patient-row-1')
+    expect(chain.eq).toHaveBeenCalledWith('requested_by_user_id', 'patient-user-1')
+    expect(chain.eq).toHaveBeenCalledWith('care_country', 'AR')
+    expect(chain.eq).toHaveBeenCalledWith('status', 'searching')
+  })
+
+  it('no cancela si no hay contexto de paciente autenticado', async () => {
+    patientContextMock.resolve.mockResolvedValue(null)
+    const response = await DELETE(makeContext({ method: 'DELETE' }))
+    expect(response.status).toBe(401)
+    expect(supabaseMock.from).not.toHaveBeenCalled()
+  })
+
+  it('devuelve conflicto cuando la solicitud ya no está en searching', async () => {
+    supabaseMock.from.mockReturnValue(buildTableChain(null))
+    const response = await DELETE(makeContext({ method: 'DELETE' }))
+    expect(response.status).toBe(409)
   })
 
   it('devuelve 404 si falta el id', async () => {

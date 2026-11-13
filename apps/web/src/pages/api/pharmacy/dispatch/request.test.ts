@@ -1,8 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { POST } from './request'
+import { resolvePatientContext } from '@/lib/patients/api/patient-context'
+
+vi.mock('@/lib/patients/api/patient-context', () => ({ resolvePatientContext: vi.fn() }))
 
 vi.mock('@autamedica/shared', () => {
-  const logMock = { warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn(), child: vi.fn() }
+  const logMock = { warn: vi.fn(), error: vi.fn((...args: unknown[]) => console.error('[test logger]', ...args)), info: vi.fn(), debug: vi.fn(), child: vi.fn() }
   logMock.child.mockReturnValue(logMock)
   return { logger: logMock }
 })
@@ -22,6 +25,12 @@ const TEST_SECRET = 'test-guest-secret-super-secure-at-least-32-chars!'
 
 vi.mock('@/lib/runtime-env', () => ({
   resolveGuestSecret: vi.fn(() => TEST_SECRET),
+}))
+
+// Keep API tests deterministic; recovery-token cryptography has its own unit tests.
+vi.mock('@/lib/pharmacy/guest-queue-recovery', () => ({
+  createGuestQueueRecoveryToken: vi.fn(() => 'a'.repeat(64)),
+  hashGuestQueueRecoveryToken: vi.fn(async () => 'b'.repeat(64)),
 }))
 
 const VALID_KIOSK_ID = '11111111-1111-4111-8111-111111111111'
@@ -92,6 +101,16 @@ function makeContext(options?: {
 describe('API: /api/pharmacy/dispatch/request', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(resolvePatientContext).mockImplementation(async (request, locals) => {
+      const body = await request.clone().json().catch(() => null) as { careCountry?: string } | null
+      const sessionUserId = (locals as { session?: { user?: { id?: string } } } | undefined)?.session?.user?.id
+      const bearerUserId = request.headers.get('authorization') ? '11111111-1111-4111-8111-111111111111' : null
+      return {
+        userId: sessionUserId ?? bearerUserId ?? 'patient-auth-user-99',
+        patientId: 'patient-row-99',
+        careCountry: body?.careCountry === 'BR' ? 'BR' : 'AR',
+      }
+    })
   })
 
   it('rechaza una solicitud sin país explícito antes de consultar la base', async () => {
@@ -122,6 +141,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     })
     const response = await POST(makeContext({
       bearerToken: 'Bearer valid-native-patient-jwt',
+      session: null,
       jordanEnabled: true,
       body: {
         careCountry: 'BR', patientCpf: '12345678909',
@@ -202,7 +222,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
       care_country: 'BR',
       patient_cpf: '12345678909',
       patient_dni: null,
-      requested_by_user_id: null,
+      requested_by_user_id: 'patient-auth-user-99',
     }))
   })
 
@@ -439,6 +459,27 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     }))
     expect(specialist.status).toBe(400)
     expect(supabaseMock.from).not.toHaveBeenCalled()
+  })
+
+  it('requires authenticated patient identity before creating a clinical request', async () => {
+    vi.mocked(resolvePatientContext).mockResolvedValue(null)
+    const response = await POST(makeContext())
+    expect(response.status).toBe(401)
+    expect(supabaseMock.from).not.toHaveBeenCalledWith('pharmacy_dispatch_requests')
+  })
+
+  it('does not infer a missing patient care country', async () => {
+    vi.mocked(resolvePatientContext).mockResolvedValue({ userId: 'p', patientId: 'p-row', careCountry: null })
+    const response = await POST(makeContext())
+    expect(response.status).toBe(409)
+    expect(supabaseMock.from).not.toHaveBeenCalledWith('pharmacy_dispatch_requests')
+  })
+
+  it('rejects a request country that differs from the authenticated patient country', async () => {
+    vi.mocked(resolvePatientContext).mockResolvedValue({ userId: 'p', patientId: 'p-row', careCountry: 'AR' })
+    const response = await POST(makeContext({ body: { careCountry: 'BR', patientCpf: '12345678909', patientPhone: '+5551987654321' } }))
+    expect(response.status).toBe(403)
+    expect(supabaseMock.from).not.toHaveBeenCalledWith('pharmacy_dispatch_requests')
   })
 
   it('no acredita origen de Jordan si no existe código QR', async () => {

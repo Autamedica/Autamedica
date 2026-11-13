@@ -1,13 +1,14 @@
 import type { APIRoute } from 'astro'
-import { badRequest, forbidden, internalError, jsonOk, serviceUnavailable, unauthorized } from '@/lib/api-helpers'
+import { badRequest, conflict, forbidden, internalError, jsonOk, serviceUnavailable, unauthorized } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { generateCloudflareRoomId, type DispatchTierCategory } from '@/lib/pharmacy/pharmacy-on-demand.service'
+import type { DispatchTierCategory } from '@/lib/pharmacy/pharmacy-on-demand.service'
 import { signGuestToken } from '@/lib/calls/lib/guest-token'
 import { createGuestQueueRecoveryToken, hashGuestQueueRecoveryToken } from '@/lib/pharmacy/guest-queue-recovery'
 import { resolveGuestSecret } from '@/lib/runtime-env'
 import { hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payment-access'
 import { logger } from '@autamedica/shared'
+import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 
 const VALID_TIERS: DispatchTierCategory[] = [
   'general',
@@ -145,14 +146,40 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
       const { data: pharmacy, error: pharmErr } = await supabase
         .from('pharmacies')
-        .select('id')
+        .select('id, active, deleted_at, care_country')
         .eq('id', cleanPharmacyId)
         .maybeSingle()
 
-      if (pharmErr || !pharmacy) {
+      if (pharmErr || !pharmacy?.active || pharmacy.deleted_at) {
         return badRequest('Farmacia no registrada o inválida')
       }
       resolvedPharmacyId = pharmacy.id
+    }
+
+    const context = await resolvePatientContext(request, locals)
+    if (!context) return unauthorized('Inicia sesión como paciente para solicitar atención')
+    if (!context.careCountry) {
+      return conflict('Selecciona tu país de atención en el portal del paciente antes de continuar')
+    }
+    if (careCountry !== context.careCountry) {
+      return forbidden('patient_inactive_or_country_mismatch')
+    }
+    // Resolve the establishment from persisted data, never from the QR payload.
+    if (resolvedPharmacyId) {
+      const { data: origin, error: originError } = await supabase.from('pharmacies')
+        .select('id, active, deleted_at, care_country').eq('id', resolvedPharmacyId).maybeSingle()
+      if (originError) return internalError()
+      if (!origin?.active || origin.deleted_at || origin.care_country !== context.careCountry) {
+        return forbidden('La farmacia y tu país de atención no coinciden. Usa el acceso de tu país')
+      }
+    } else if (resolvedKioskId) {
+      return forbidden('kiosk_country_not_configured')
+    }
+
+    // Jordan is a Brazil-only commercial referral source, never an Argentina channel.
+    // Reject before registration so AR requests cannot contaminate partner reporting.
+    if (referralCode === 'JORDAN' && careCountry !== 'BR') {
+      return badRequest('jordan_referral_brazil_only')
     }
 
     // Attribution only at creation time, resolving the QR code on the server.
@@ -178,7 +205,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       referralPartnerId = partner.id
     }
 
-    const cloudflareRoomId = generateCloudflareRoomId(selectedTier, normalizedDocument)
+    const cloudflareRoomId = `cf-room-${selectedTier}-${crypto.randomUUID()}`
 
      const secret = resolveGuestSecret(locals.runtime?.env)
     if (!secret) {
@@ -187,7 +214,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     const insertPayload = {
-      care_country: careCountry,
+      care_country: context.careCountry,
+      patient_id: context.patientId,
       patient_dni: sanitizedDni,
       patient_cpf: sanitizedCpf,
       patient_phone: sanitizedPhone,
@@ -199,7 +227,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       symptom_summary: sanitizedSymptoms,
       cloudflare_room_id: cloudflareRoomId,
       status: 'searching' as const,
-      requested_by_user_id: requestedByUserId,
+      requested_by_user_id: context.userId,
     }
 
     const { data, error } = await supabase
@@ -259,8 +287,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       accessToken,
       ...(recoveryToken ? { recoveryToken } : {}),
     })
-  } catch {
-    logger.error('[api/pharmacy/dispatch/request] unexpected_failure')
+  } catch (error) {
+    // Keep clinical payloads out of logs while preserving a safe stack hint
+    // for diagnosing unexpected server-side failures.
+    logger.error('[api/pharmacy/dispatch/request] unexpected_failure', {
+      name: error instanceof Error ? error.name : typeof error,
+      stack: error instanceof Error ? error.stack?.split('\n').slice(0, 4).join('\n') : undefined,
+    })
     return internalError('dispatch_request_failed')
   }
 }

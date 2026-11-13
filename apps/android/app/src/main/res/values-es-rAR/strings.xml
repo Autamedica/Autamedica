@@ -13,4 +13,5 @@
     <string name="notification_dispatch_offer_text">Paciente esperando en guardia de farmacia</string>
     <string name="notification_dispatch_accept">Ver / Aceptar guardia</string>
     <string name="notification_dispatch_decline">Rechazar</string>
+    <string name="jordan_payment_start_message">Confirmá el pago para iniciar tu videoconsulta ahora.</string>
 </resources>
