@@ -9,6 +9,7 @@ DECLARE
   v_expected_gate text;
   v_patient_fk text;
   v_prescriber_policy boolean;
+  v_country_guard boolean;
   v_tables text[] := ARRAY[
     'appointment_followups','appointment_history','appointment_reminders',
     'appointment_waitlist','appointments','calls','care_episodes',
@@ -37,7 +38,7 @@ BEGIN
   END IF;
 
   FOR v_policy IN
-    SELECT c.relname, p.polname, p.polcmd,
+    SELECT c.relname, p.polname, p.polcmd, p.polpermissive,
            pg_get_expr(p.polqual,p.polrelid) AS using_expr,
            pg_get_expr(p.polwithcheck,p.polrelid) AS check_expr
     FROM pg_policy p
@@ -48,6 +49,12 @@ BEGIN
     v_expr := concat_ws(' ',v_policy.using_expr,v_policy.check_expr);
     v_prescriber_policy := v_policy.relname='dispensation_orders'
       AND v_policy.polname IN ('pharmacy_prescriber_update','pharmacy_prescriber_insert');
+    -- This is a restrictive jurisdiction predicate, not a doctor-identity
+    -- grant. It must remain country-bound and cannot replace any permissive RLS
+    -- policy that authorizes access.
+    v_country_guard := NOT v_policy.polpermissive
+      AND v_policy.polname='pharmacy_country_known'
+      AND v_policy.relname IN ('pharmacies','pharmacists','dispensation_orders');
     IF v_policy.polcmd='r' THEN
       v_patient_fk := NULL;
       SELECT ccu.table_name INTO v_patient_fk
@@ -68,8 +75,16 @@ BEGIN
     IF regexp_replace(v_expr, 'NOT (public\.)?is_doctor\(\)', '', 'gi') ~* '(^|[^a-z_])is_doctor\(\)' THEN
       RAISE EXCEPTION 'Legacy is_doctor() still authorizes %.%',v_policy.relname,v_policy.polname;
     END IF;
-    IF NOT v_prescriber_policy AND v_expr !~* 'NOT (public\.)?is_doctor\(\)' THEN
+    IF NOT v_prescriber_policy AND NOT v_country_guard
+       AND v_expr !~* 'NOT (public\.)?is_doctor\(\)' THEN
       RAISE EXCEPTION 'Global dual-role doctor gate missing: %.%',v_policy.relname,v_policy.polname;
+    END IF;
+    IF v_country_guard AND (
+      position('care_country' IN v_expr)=0
+      OR position('AR' IN v_expr)=0
+      OR position('BR' IN v_expr)=0
+    ) THEN
+      RAISE EXCEPTION 'Restrictive pharmacy country predicate is incomplete: %.%',v_policy.relname,v_policy.polname;
     END IF;
     IF v_prescriber_policy AND position('is_clinically_approved_doctor()' IN v_expr)=0 THEN
       RAISE EXCEPTION 'Prescriber policy lacks clinical approval: %.%',v_policy.relname,v_policy.polname;

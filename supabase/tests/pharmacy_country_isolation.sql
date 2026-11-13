@@ -196,6 +196,14 @@ BEGIN
     RAISE EXCEPTION 'AR doctor credential not classified AR';
   END IF;
 
+  -- The prescriber policy requires a complete, independently approved AR
+  -- credential; an active technical profile alone is intentionally not enough.
+  UPDATE public.profiles SET sss_validation_status='valid' WHERE user_id=v_ar_doctor_user;
+  INSERT INTO public.doctor_licenses(doctor_id,license_number,license_type,province,status)
+  VALUES(v_ar_doctor,'CI-'||v_ar_doctor::text,'MN','CABA','active')
+  ON CONFLICT(doctor_id,province,license_number)
+  DO UPDATE SET status='active';
+
   INSERT INTO public.pharmacies(name,license_number,care_country)
     VALUES ('CI AR farmacia', 'CI-AR-'||gen_random_uuid(),'AR')
     RETURNING id INTO v_ar_pharmacy;
