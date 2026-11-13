@@ -3,8 +3,13 @@ import { PharmacyExpressConsultation } from './PharmacyExpressConsultation';
 import { resolvePatientContext } from '@/lib/patients/api/patient-context';
 import { createAstroAdminClient } from '@/lib/supabase';
 
-interface Props { pharmacyId?: string | null; pharmacyName?: string }
-const { pharmacyId = null } = Astro.props;
+interface Props {
+  pharmacyId?: string | null
+  referralCode?: string | null
+  referralPartnerName?: string | null
+  jordanPaymentsEnabled?: boolean
+}
+const { pharmacyId = null, referralCode = null, referralPartnerName = null, jordanPaymentsEnabled = false } = Astro.props;
 const context = await resolvePatientContext(Astro.request, Astro.locals);
 let pharmacyName = 'AutaMedica';
 let originCountry: string | null = null;
@@ -53,7 +58,14 @@ Astro.response.headers.set('Cache-Control', 'private, no-store');
     <a href="/farmacia/solicitar">Usar el acceso de mi país</a>
   </section>
 ) : (
-  <PharmacyExpressConsultation client:load pharmacyId={pharmacyId} pharmacyName={pharmacyName} />
+  <PharmacyExpressConsultation
+    client:load
+    pharmacyId={pharmacyId}
+    pharmacyName={pharmacyName}
+    referralCode={referralCode}
+    referralPartnerName={referralPartnerName}
+    jordanPaymentsEnabled={jordanPaymentsEnabled}
+  />
 )}
 
 <style>
