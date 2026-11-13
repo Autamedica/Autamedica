@@ -146,7 +146,7 @@ fun CreatePrescriptionScreen(
                             .height(50.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PortalDoctors),
-                        enabled = !uiState.isSubmitting,
+                        enabled = !uiState.isSubmitting && !uiState.isLoadingEligibility && uiState.doctorEligibility?.isEligible == true,
                     ) {
                         if (uiState.isSubmitting) {
                             CircularProgressIndicator(
@@ -175,7 +175,7 @@ fun CreatePrescriptionScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // 1. SISA / REFEPS Regulatory Verification Status Banner
-            DoctorRegulatoryBanner(uiState.doctorEligibility)
+            DoctorRegulatoryBanner(uiState.doctorEligibility, uiState.isLoadingEligibility, viewModel::loadEligibility)
 
             // 2. Patient Selector Card
             PatientSelectorSection(
@@ -350,8 +350,8 @@ fun CreatePrescriptionScreen(
 }
 
 @Composable
-private fun DoctorRegulatoryBanner(eligibility: com.autamedica.android.domain.model.DoctorEligibility?) {
-    val isEligible = eligibility?.isEligible ?: true
+private fun DoctorRegulatoryBanner(eligibility: com.autamedica.android.domain.model.DoctorEligibility?, isLoading: Boolean, onRetry: () -> Unit) {
+    val isEligible = eligibility?.isEligible == true
     val license = eligibility?.doctorLicense ?: stringResource(R.string.doctor_create_rx_regulatory_registered)
 
     Surface(
@@ -387,6 +387,11 @@ private fun DoctorRegulatoryBanner(eligibility: com.autamedica.android.domain.mo
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary
                 )
+                if (!isEligible) {
+                    TextButton(onClick = onRetry, enabled = !isLoading) {
+                        Text(stringResource(R.string.clinical_ops_refresh))
+                    }
+                }
             }
         }
     }

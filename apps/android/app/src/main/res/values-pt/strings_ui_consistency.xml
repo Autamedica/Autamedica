@@ -53,9 +53,14 @@
     <string name="ui_doctor_duty_disconnected">Plantão desconectado</string>
     <string name="ui_doctor_approval_checking">Verificando autorização médica</string>
     <string name="ui_doctor_approval_pending">Autorização médica pendente</string>
+    <string name="ui_doctor_approval_country_missing">País de atendimento médico não configurado</string>
+    <string name="ui_doctor_approval_country_missing_body">Seu cadastro médico não tem país de atendimento definido. Solicite ao administrador a revisão da jurisdição e do registro profissional antes de atender pacientes.</string>
     <string name="ui_doctor_approval_checking_body">Estamos consultando a aprovação pelo administrador.</string>
     <string name="ui_doctor_approval_pending_body">Seu cadastro existe, mas você ainda não está autorizado a atender pacientes. Complete seu perfil e consulte o administrador.</string>
     <string name="ui_doctor_approval_refresh">Atualizar autorização</string>
+    <string name="ui_doctor_approval_unavailable">Não foi possível verificar a autorização</string>
+    <string name="ui_doctor_approval_unavailable_body">A verificação técnica falhou. O atendimento permanece bloqueado por segurança, mas isso não significa que seu cadastro foi recusado.</string>
+    <string name="ui_doctor_approval_retry">Tentar novamente</string>
     <string name="ui_ondemand_title">Consultas imediatas</string>
     <string name="ui_ondemand_subtitle">Plantão médico em farmácias</string>
     <string name="ui_ondemand_back">Voltar</string>

@@ -69,6 +69,7 @@ import com.autamedica.android.presentation.appointments.AppointmentsScreen
 import com.autamedica.android.presentation.consultation.ConsultationHubScreen
 import com.autamedica.android.presentation.dashboard.DashboardScreen
 import com.autamedica.android.presentation.dashboard.DoctorDashboardScreen
+import com.autamedica.android.presentation.dashboard.DoctorDashboardViewModel
 import com.autamedica.android.presentation.patients.PatientsScreen
 import com.autamedica.android.presentation.profile.ProfileScreen
 import com.autamedica.android.presentation.theme.AuAccent
@@ -170,6 +171,16 @@ fun MainScreen(
         return
     }
 
+    // Same Hilt ViewModelStoreOwner as DoctorDashboardScreen: no second,
+    // independent eligibility cache is introduced. Unknown/error = no access.
+    val doctorGuardApproved = if (isDoctor) {
+        val approvalViewModel: DoctorDashboardViewModel = hiltViewModel()
+        val approvalUiState by approvalViewModel.uiState.collectAsStateWithLifecycle()
+        approvalUiState.guardApproved == true
+    } else false
+    // Saved tab state must not display a clinical page after access is revoked.
+    val visibleDoctorTab = if (isDoctor && !isDoctorTabAllowed(selectedTab, doctorGuardApproved)) 0 else selectedTab
+
     // ── Android 13+ notification permission ──
     val context = LocalContext.current
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -247,10 +258,12 @@ fun MainScreen(
                 ) {
                     if (isDoctor) {
                         doctorTabs.forEachIndexed { index, tab ->
-                            val isSelected = selectedTab == index
+                            val isSelected = visibleDoctorTab == index
+                            val tabAllowed = isDoctorTabAllowed(index, doctorGuardApproved)
                             NavigationBarItem(
                                 selected = isSelected,
-                                onClick = { selectedTab = index },
+                                enabled = tabAllowed,
+                                onClick = { if (tabAllowed) selectedTab = index },
                                 icon = {
                                     Icon(
                                         painter = painterResource(id = tab.iconRes),
@@ -318,11 +331,14 @@ fun MainScreen(
     ) { contentPadding ->
         Box(modifier = Modifier.padding(bottom = contentPadding.calculateBottomPadding())) {
             if (isDoctor) {
-                // Doctor experience
-                when (selectedTab) {
+                // Doctor experience. Never mount patient, chat or agenda screens
+                // until approval is explicitly confirmed, even from a restored tab.
+                when (visibleDoctorTab) {
                     0 -> DoctorDashboardScreen(
                         onNavigateToVideoCall = onNavigateToVideoCall,
-                        onNavigateToTab = { selectedTab = it },
+                        onNavigateToTab = { target ->
+                            if (isDoctorTabAllowed(target, doctorGuardApproved)) selectedTab = target
+                        },
                         onNavigateToDoctorSignature = onNavigateToDoctorSignature,
                         onNavigateToDoctorPrescriptions = onNavigateToDoctorPrescriptions,
                         onNavigateToDoctorCertificates = onNavigateToDoctorCertificates,

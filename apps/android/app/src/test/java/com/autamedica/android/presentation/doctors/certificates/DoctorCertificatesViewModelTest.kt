@@ -45,7 +45,7 @@ class DoctorCertificatesViewModelTest {
             doctorLicense = "MP006402",
             patientName = "Maximiliano Gutierrez",
             patientDni = "95123456",
-            signedPdfUrl = null,
+            signedPdfUrl = "https://example.invalid/test-cert-1.pdf",
             qrCodeContent = "https://autamedica.com/verify/AR-CERT-20260912-001091",
             countryCode = "AR",
             createdAt = "2026-09-12T00:00:00Z",
@@ -65,7 +65,7 @@ class DoctorCertificatesViewModelTest {
             doctorLicense = "MP006402",
             patientName = "Ana Gómez",
             patientDni = "34567890",
-            signedPdfUrl = null,
+            signedPdfUrl = "https://example.invalid/test-cert-2.pdf",
             qrCodeContent = "https://autamedica.com/verify/AR-CERT-20260910-002488",
             countryCode = "AR",
             createdAt = "2026-09-10T00:00:00Z",
@@ -184,6 +184,47 @@ class DoctorCertificatesViewModelTest {
         assertThat(viewModel.uiState.value.createdCertificate).isNull()
     }
 
+
+    @Test
+    fun signedStatusWithoutPdfIsNotAvailable() = runTest {
+        val missingPdf = sampleCertificates.map { cert ->
+            if (cert.id == "cert-1") cert.copy(signedPdfUrl = null) else cert
+        }
+        val vm = DoctorCertificatesViewModel(
+            FakeDoctorCertificateRepository(missingPdf, samplePatients),
+            fakePrescriptionRepo,
+        )
+        assertThat(vm.uiState.value.validCount).isEqualTo(1)
+        vm.onSelectStatusFilter("validos")
+        assertThat(vm.uiState.value.filteredCertificates.map { it.id }).containsExactly("cert-2")
+    }
+
+    @Test
+    fun unapprovedDoctorCannotCreateCertificateEvenWithLicense() = runTest {
+        fakePrescriptionRepo.eligibilityResult =
+            Result.success(DoctorEligibility(false, "MP006402", "pending", "Validación pendiente"))
+        viewModel.loadEligibility()
+        viewModel.initCreateCertificate("pat-1")
+        viewModel.onDiagnosisChange("Bronquitis aguda")
+        viewModel.onSubmitCertificate()
+
+        assertThat(viewModel.uiState.value.createError).contains("pendiente")
+        assertThat(viewModel.uiState.value.createdCertificate).isNull()
+        assertThat(fakeCertRepo.createAttempts).isEqualTo(0)
+    }
+
+    @Test
+    fun verificationFailureCannotCreateCertificate() = runTest {
+        fakePrescriptionRepo.eligibilityResult = Result.failure(IllegalStateException("offline"))
+        viewModel.loadEligibility()
+        viewModel.initCreateCertificate("pat-1")
+        viewModel.onDiagnosisChange("Bronquitis aguda")
+        viewModel.onSubmitCertificate()
+
+        assertThat(viewModel.uiState.value.createError).contains("verificar")
+        assertThat(fakeCertRepo.createAttempts).isEqualTo(0)
+    }
+
     @Test
     fun submitSucceedsWithValidDataAndRespectsHideDiagnosis() = runTest {
         viewModel.initCreateCertificate("pat-1")
@@ -206,6 +247,8 @@ private class FakeDoctorCertificateRepository(
     private val certificates: List<MedicalCertificate>,
     private val patients: List<PrescriptionPatientItem>,
 ) : MedicalCertificateRepository {
+    var createAttempts: Int = 0
+
     override suspend fun getPatientCertificates(): Result<List<MedicalCertificate>> =
         Result.success(certificates)
 
@@ -216,6 +259,7 @@ private class FakeDoctorCertificateRepository(
         Result.success(certificates)
 
     override suspend fun createCertificate(request: CreateCertificateRequest): Result<MedicalCertificate> {
+        createAttempts++
         val cert = MedicalCertificate(
             id = "new-cert",
             cuir = "AR-CERT-20260912-TEST01",
@@ -246,12 +290,14 @@ private class FakeDoctorCertificateRepository(
 private class FakeDoctorPrescriptionRepository(
     private val patients: List<PrescriptionPatientItem>,
 ) : PrescriptionRepository {
+    var eligibilityResult: Result<DoctorEligibility> =
+        Result.success(DoctorEligibility(true, "MP006402", "valid"))
+
     override suspend fun getPatientPrescriptions(): Result<List<Prescription>> = Result.success(emptyList())
     override suspend fun getPrescriptionById(id: String): Result<Prescription> = Result.failure(NoSuchElementException())
     override suspend fun getDoctorPrescriptions(patientId: String?, status: String?): Result<List<Prescription>> = Result.success(emptyList())
     override suspend fun createPrescription(request: com.autamedica.android.domain.model.CreatePrescriptionRequest): Result<Prescription> = Result.failure(NotImplementedError())
     override suspend fun cancelPrescription(prescriptionId: String, reason: String): Result<Unit> = Result.success(Unit)
     override suspend fun getEligiblePatients(): Result<List<PrescriptionPatientItem>> = Result.success(patients)
-    override suspend fun getDoctorEligibility(): Result<DoctorEligibility> =
-        Result.success(DoctorEligibility(true, "MP006402", "valid"))
+    override suspend fun getDoctorEligibility(): Result<DoctorEligibility> = eligibilityResult
 }

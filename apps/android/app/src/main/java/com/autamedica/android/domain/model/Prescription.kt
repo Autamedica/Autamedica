@@ -24,15 +24,19 @@ data class Prescription(
     val items: List<PrescriptionItem> = emptyList(),
 ) {
     /**
-     * Determines whether this prescription is currently active and valid.
+     * UI availability only: accepted signed status and HTTPS PDF are required.
+     * Neither condition proves independent provider or cryptographic verification.
+     * Unsigned 'active'/'activa' must never expose a pharmacy-facing QR.
      */
     val isActive: Boolean
-        get() = !signedPdfUrl.isNullOrBlank() && (
-            status.equals("activa", ignoreCase = true) ||
-            status.equals("active", ignoreCase = true) ||
+        get() = hasHttpsDocumentUrl(signedPdfUrl) && (
             status.equals("signed", ignoreCase = true) ||
             status.equals("firmada", ignoreCase = true)
         )
+
+    /** A server-supplied HTTPS PDF with an accepted signed status, not legal verification. */
+    val effectivePdfUrl: String?
+        get() = signedPdfUrl?.takeIf { isActive }
 
     /**
      * Determines whether this prescription was already dispensed by a pharmacy.
@@ -68,7 +72,7 @@ data class Prescription(
      * Effective QR content for pharmacy scanning (falls back to verification URL if cuir is present).
      */
     val effectiveQrContent: String
-        get() = if (status.equals("draft", ignoreCase = true)) "" else (
+        get() = if (!isActive) "" else (
             qrCodeContent?.takeIf { it.isNotBlank() }
                 ?: cuir?.let { "https://autamedica.com/verify/$it" }
                 ?: ""

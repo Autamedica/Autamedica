@@ -50,19 +50,19 @@
     <string name="report_saved_success">Relatório guardado com sucesso.</string>
 
     <!-- 4. Certificados Médicos / Atestados (DoctorCertificates & CreateCertificate) -->
-    <string name="cert_screen_title">Atestados Médicos Emitidos</string>
-    <string name="cert_header_counts">%1$d registados · %2$d documentos</string>
+    <string name="cert_screen_title">Atestados médicos</string>
+    <string name="cert_header_counts">PDF disponíveis: %1$d de %2$d registos</string>
     <string name="cert_action_new_certificate">Novo Atestado</string>
     <string name="cert_search_placeholder">Pesquisar por paciente, documento, código ou diagnóstico...</string>
     <string name="cert_filter_all">Todos (%1$d)</string>
-    <string name="cert_filter_valid">Válidos (%1$d)</string>
+    <string name="cert_filter_valid">Com PDF (%1$d)</string>
     <string name="cert_filter_cancelled">Cancelados (%1$d)</string>
     <string name="cert_empty_search_title">Não foram encontrados resultados para a pesquisa</string>
     <string name="cert_empty_list_title">Sem atestados médicos emitidos</string>
     <string name="cert_empty_list_subtitle">Prima o botão \'Novo Atestado\' para emitir a sua primeira certificação médica digital.</string>
     <string name="cert_toast_open_pdf_error">Não foi possível abrir o atestado oficial.</string>
     <string name="cert_toast_cuir_copied">Código de validação copiado</string>
-    <string name="cert_qr_validation_content_desc">Código QR de Validação Institucional</string>
+    <string name="cert_qr_validation_content_desc">QR de consulta, sujeito a validação do emissor</string>
     <string name="cert_detail_cuir_label">Código: %1$s</string>
     <string name="cert_detail_patient">Paciente: %1$s</string>
     <string name="cert_detail_patient_with_dni">Paciente: %1$s (%2$s)</string>
@@ -73,7 +73,8 @@
     <string name="cert_card_default_patient_name">Paciente Atribuído</string>
     <string name="cert_card_dni_label">Doc: %1$s</string>
     <string name="cert_status_draft">Rascunho sem assinatura</string>
-    <string name="cert_status_valid">Registado</string>
+    <string name="cert_status_valid">PDF disponível</string>
+    <string name="cert_status_unverified">Assinatura por verificar</string>
     <string name="cert_status_cancelled">Cancelado</string>
     <string name="cert_days_of_rest_count">%1$d dias de repouso</string>
     <string name="cert_days_of_rest_one">1 dia de repouso</string>
@@ -83,7 +84,7 @@
     <!-- 5. Emisión de Certificado (CreateCertificateScreen) -->
     <string name="cert_create_title">Preparar atestado (rascunho)</string>
     <string name="cert_create_legal_basis">Referência interna AutaMedica · Assinatura pendente</string>
-    <string name="cert_create_submitting">A assinar e selar digitalmente...</string>
+    <string name="cert_create_submitting">A guardar rascunho...</string>
     <string name="cert_create_submit_button">Guardar rascunho sem assinatura</string>
     <string name="cert_reg_active_title">Habilitação Profissional Ativa</string>
     <string name="cert_reg_pending_title">Verificação Pendente</string>

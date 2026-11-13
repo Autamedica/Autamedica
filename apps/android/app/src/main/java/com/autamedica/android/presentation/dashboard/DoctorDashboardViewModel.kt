@@ -51,6 +51,9 @@ data class DoctorDashboardUiState(
     val pharmacyOnDutyState: DoctorOnDutyPharmacyState = DoctorOnDutyPharmacyState(),
     val guardApproved: Boolean? = null,
     val guardVerificationStatus: String? = null,
+    val guardCareCountry: String? = null,
+    // A failed RPC must never be presented as an actual rejected/pending approval.
+    val approvalCheckFailed: Boolean = false,
     val claimingPharmacyRequestId: String? = null,
     val claimErrorMessage: String? = null,
     val acceptedDispatchRequestId: String? = null,
@@ -87,10 +90,15 @@ class DoctorDashboardViewModel @Inject constructor(
     private val _isOnDuty = MutableStateFlow(false)
     private var incomingOffersJob: Job? = null
 
+    private var loadJob: Job? = null
+    private var chatSummaryJob: Job? = null
+    private var claimJob: Job? = null
+    private var retryCallJob: Job? = null
+    private var dutyToggleJob: Job? = null
+    private var authorizationVersion = 0L
+
     init {
         loadAll()
-        observeChatSummary()
-        observeIncomingOffers()
     }
 
     fun refresh() {
@@ -99,14 +107,67 @@ class DoctorDashboardViewModel @Inject constructor(
     }
 
     private fun loadAll() {
-        viewModelScope.launch {
+        // Revoke cached clinical state before any refresh or account transition.
+        // Never retain patient data or incoming offers while approval is unknown.
+        authorizationVersion++
+        loadJob?.cancel()
+        claimJob?.cancel()
+        claimJob = null
+        retryCallJob?.cancel()
+        retryCallJob = null
+        dutyToggleJob?.cancel()
+        dutyToggleJob = null
+        stopHeartbeat()
+        _dismissedRequestIds.value = emptySet()
+        incomingOffersJob?.cancel()
+        incomingOffersJob = null
+        chatSummaryJob?.cancel()
+        chatSummaryJob = null
+        _isOnDuty.value = false
+        _uiState.update { state ->
+            state.copy(
+                doctorProfile = null,
+                doctorId = "",
+                stats = DoctorStats(),
+                statsAvailable = false,
+                todayAppointments = emptyList(),
+                joinableAppointmentIds = emptySet(),
+                unreadMessagesCount = 0,
+                urgentChats = emptyList(),
+                recentPatients = emptyList(),
+                patientNames = emptyMap(),
+                patientsMap = emptyMap(),
+                pharmacyOnDutyState = DoctorOnDutyPharmacyState(),
+                guardApproved = null,
+                guardVerificationStatus = null,
+                guardCareCountry = null,
+                approvalCheckFailed = false,
+                claimingPharmacyRequestId = null,
+                claimErrorMessage = null,
+                acceptedDispatchRequestId = null,
+                acceptedDispatchRoomId = null,
+                dismissedRequestIds = emptySet(),
+                simulatedDispatchAlert = null,
+                activelyDispatchedPatientId = null,
+                liveWaitingQueue = emptyList(),
+                isLoading = true,
+                userId = "",
+                userName = "",
+                error = null,
+                telemedicineError = null,
+            )
+        }
+        val loadVersion = authorizationVersion
+        loadJob = viewModelScope.launch {
             val user = authRepository.getCurrentUser()
+            if (loadVersion != authorizationVersion) return@launch
             if (user == null) {
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         isRefreshing = false,
-                        error = "Error de autenticacion",
+                        approvalCheckFailed = true,
+                        error = "No se pudo verificar la sesión médica.",
                     )
                 }
                 return@launch
@@ -120,10 +181,45 @@ class DoctorDashboardViewModel @Inject constructor(
                 )
             }
 
-            // Load doctor profile to get doctor record ID
             val profileResult = doctorRepository.getDoctorProfile(user.id)
+            if (loadVersion != authorizationVersion) return@launch
             profileResult.onSuccess { profile ->
                 _uiState.update { it.copy(doctorProfile = profile, doctorId = profile.id) }
+
+                // Guard eligibility is server-authoritative, including country and licence.
+                // Check BEFORE any stats, patient, appointment, chat or offer read.
+                val approvalResult = pharmacyDispatchRepository.getMyGuardApproval()
+                if (loadVersion != authorizationVersion) return@onSuccess
+                val approval = approvalResult.getOrNull()
+                if (approval == null) {
+                    approvalResult.exceptionOrNull()?.let {
+                        SecureLog.error("[DoctorDashboard] Approval verification failed", it)
+                    }
+                    _uiState.update {
+                        it.copy(
+                            guardApproved = null,
+                            approvalCheckFailed = true,
+                            isLoading = false,
+                            isRefreshing = false,
+                            error = "No se pudo comprobar la habilitación médica.",
+                        )
+                    }
+                    return@onSuccess
+                }
+                _uiState.update {
+                    it.copy(
+                        guardApproved = approval.approved,
+                        guardVerificationStatus = approval.verificationStatus,
+                        guardCareCountry = approval.country,
+                        approvalCheckFailed = false,
+                    )
+                }
+                if (!approval.approved) {
+                    _uiState.update {
+                        it.copy(isLoading = false, isRefreshing = false, error = null)
+                    }
+                    return@onSuccess
+                }
 
                 // Load stats, appointments and patients in parallel
                 val statsDeferred = async { doctorRepository.getDoctorStats(profile.id) }
@@ -133,6 +229,7 @@ class DoctorDashboardViewModel @Inject constructor(
                 val stats = statsDeferred.await()
                 val appointments = appointmentsDeferred.await()
                 val patients = patientsDeferred.await()
+                if (loadVersion != authorizationVersion) return@onSuccess
                 val allAppointments = appointments.getOrDefault(emptyList())
                 val patientsList = patients.getOrDefault(emptyList())
 
@@ -156,6 +253,7 @@ class DoctorDashboardViewModel @Inject constructor(
                     "${p.firstName} ${p.lastName}".trim()
                 }
                 val joinableResult = resolveJoinableAppointmentIds(allAppointments)
+                if (loadVersion != authorizationVersion) return@onSuccess
 
                 _uiState.update { state ->
                     state.copy(
@@ -172,15 +270,19 @@ class DoctorDashboardViewModel @Inject constructor(
                         telemedicineError = joinableResult.second,
                     )
                 }
-                // Load pharmacy on duty status
+                // Only an explicitly approved doctor can subscribe to clinical data.
+                observeChatSummary()
+                observeIncomingOffers()
                 loadPharmacyDuty(profile.id)
             }.onFailure { error ->
+                if (loadVersion != authorizationVersion) return@onFailure
                 SecureLog.error("[DoctorDashboard] Failed loading doctor profile", error)
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         isRefreshing = false,
-                        error = "No se pudo cargar el perfil del doctor",
+                        approvalCheckFailed = true,
+                        error = "No se pudo cargar el perfil del médico.",
                     )
                 }
             }
@@ -266,6 +368,7 @@ class DoctorDashboardViewModel @Inject constructor(
             ) { requests, dismissed, onDuty ->
                 Triple(requests.filter { "${it.id}:${it.offerExpiresAt}" !in dismissed }, dismissed, onDuty)
             }.collect { (activeOffers, _, onDuty) ->
+                if (_uiState.value.guardApproved != true) return@collect
                 val nextAlert = if (onDuty) activeOffers.firstOrNull() else null
                 val mappedQueue = activeOffers.map { it.toQueuedPatient() }
                 val mappedConsultations = activeOffers.map { it.toConsultationRequest() }
@@ -316,30 +419,41 @@ class DoctorDashboardViewModel @Inject constructor(
         val doctorId = _uiState.value.doctorId
         if (doctorId.isBlank()) return
 
-        viewModelScope.launch {
+        val permissionVersion = authorizationVersion
+        dutyToggleJob?.cancel()
+        dutyToggleJob = viewModelScope.launch {
             _uiState.update { it.copy(pharmacyOnDutyState = it.pharmacyOnDutyState.copy(isLoading = true)) }
             if (onDuty) {
-                val approval = pharmacyDispatchRepository.getMyGuardApproval().getOrNull()
+                val approvalResult = pharmacyDispatchRepository.getMyGuardApproval()
+                if (permissionVersion != authorizationVersion || _uiState.value.doctorId != doctorId) return@launch
+                val approval = approvalResult.getOrNull()
                 if (approval?.approved != true) {
                     stopHeartbeat()
                     _isOnDuty.value = false
                     _uiState.update { state ->
                         state.copy(
-                            guardApproved = false,
-                            guardVerificationStatus = approval?.verificationStatus ?: "pending",
+                            guardApproved = if (approval == null) null else false,
+                            guardVerificationStatus = approval?.verificationStatus,
+                            guardCareCountry = approval?.country,
+                            approvalCheckFailed = approval == null,
                             pharmacyOnDutyState = state.pharmacyOnDutyState.copy(isOnDuty = false, isLoading = false),
-                            error = "La guardia necesita aprobación administrativa de la matrícula.",
+                            error = if (approval == null)
+                                "No se pudo comprobar la habilitación médica."
+                            else
+                                "La guardia necesita aprobación administrativa de la matrícula.",
                         )
                     }
                     return@launch
                 }
-                _uiState.update { it.copy(guardApproved=true,guardVerificationStatus=approval.verificationStatus) }
+                _uiState.update { it.copy(guardApproved = true, guardVerificationStatus = approval.verificationStatus, guardCareCountry = approval.country, approvalCheckFailed = false) }
             }
             pharmacyDispatchRepository.setDoctorDutyStatus(
                 doctorId = doctorId,
                 isOnDuty = onDuty,
                 activeTiers = listOf("general"),
             ).onSuccess {
+                if (permissionVersion != authorizationVersion || _uiState.value.guardApproved != true ||
+                    _uiState.value.doctorId != doctorId) return@onSuccess
                 _isOnDuty.value = onDuty
                 _uiState.update { state ->
                     state.copy(
@@ -355,6 +469,7 @@ class DoctorDashboardViewModel @Inject constructor(
                     stopHeartbeat()
                 }
             }.onFailure { error ->
+                if (permissionVersion != authorizationVersion) return@onFailure
                 SecureLog.error("[DoctorDashboard] Error toggling pharmacy duty", error)
                 // Keep the previously confirmed server state. Never start a false heartbeat.
                 _uiState.update { state ->
@@ -378,7 +493,7 @@ class DoctorDashboardViewModel @Inject constructor(
         }
         if (_uiState.value.claimingPharmacyRequestId != null) return
         val incoming = _uiState.value.simulatedDispatchAlert
-        if (!_uiState.value.pharmacyOnDutyState.isOnDuty
+        if (_uiState.value.guardApproved != true || !_uiState.value.pharmacyOnDutyState.isOnDuty
             || incoming?.id != requestId || incoming.offerId.isNullOrBlank()) {
             _uiState.update { it.copy(claimErrorMessage = "La oferta no está vigente. Revisá el radar.") }
             return
@@ -389,9 +504,13 @@ class DoctorDashboardViewModel @Inject constructor(
         _uiState.update { it.copy(claimingPharmacyRequestId = requestId, claimErrorMessage = null) }
 
         // Claim atomically first. Never open a call for unconfirmed/synthetic offers.
-        viewModelScope.launch {
+        val permissionVersion = authorizationVersion
+        claimJob?.cancel()
+        claimJob = viewModelScope.launch {
             pharmacyDispatchRepository.claimPharmacyRequest(requestId, doctorId)
                 .onSuccess { claim ->
+                    if (permissionVersion != authorizationVersion || _uiState.value.guardApproved != true ||
+                        _uiState.value.doctorId != doctorId) return@onSuccess
                     val roomId = claim.cloudflareRoomId?.takeIf { it.isNotBlank() }
                     if (claim.success && roomId != null) {
                         _dismissedRequestIds.update { it + "${incoming.id}:${incoming.offerExpiresAt}" }
@@ -410,7 +529,9 @@ class DoctorDashboardViewModel @Inject constructor(
                         // Both phones must observe the same authoritative status
                         // before opening the call. A failed update is not success.
                         pharmacyDispatchRepository.updateDispatchRequestStatus(requestId, "in_call")
-                            .onSuccess {
+                            .onSuccess confirmedCall@{
+                                if (permissionVersion != authorizationVersion || _uiState.value.guardApproved != true ||
+                                    _uiState.value.doctorId != doctorId) return@confirmedCall
                                 com.autamedica.android.telemetry.CallTelemetry.recordMilestone(
                                     traceId, "T1_BACKEND_CLAIM", mapOf("success" to true)
                                 )
@@ -418,6 +539,7 @@ class DoctorDashboardViewModel @Inject constructor(
                                 onNavigateToVideoCall(roomId)
                             }
                             .onFailure { error ->
+                                if (permissionVersion != authorizationVersion) return@onFailure
                                 SecureLog.error("[DoctorDashboard] Cannot confirm in_call", error)
                                 _uiState.update {
                                     it.copy(claimErrorMessage = "Consulta aceptada. Reintentá el ingreso a la videollamada.")
@@ -432,6 +554,7 @@ class DoctorDashboardViewModel @Inject constructor(
                     }
                 }
                 .onFailure { error ->
+                    if (permissionVersion != authorizationVersion) return@onFailure
                     SecureLog.error("[DoctorDashboard] Error claiming pharmacy request", error)
                     _uiState.update {
                         it.copy(
@@ -444,15 +567,21 @@ class DoctorDashboardViewModel @Inject constructor(
     }
 
     fun retryAcceptedVideo(onNavigateToVideoCall: (String) -> Unit) {
+        if (_uiState.value.guardApproved != true) return
         val requestId = _uiState.value.acceptedDispatchRequestId ?: return
         val roomId = _uiState.value.acceptedDispatchRoomId ?: return
-        viewModelScope.launch {
+        val permissionVersion = authorizationVersion
+        retryCallJob?.cancel()
+        retryCallJob = viewModelScope.launch {
             pharmacyDispatchRepository.updateDispatchRequestStatus(requestId, "in_call")
                 .onSuccess {
+                    if (permissionVersion != authorizationVersion || _uiState.value.guardApproved != true ||
+                        _uiState.value.acceptedDispatchRequestId != requestId) return@onSuccess
                     _uiState.update { it.copy(claimErrorMessage = null) }
                     onNavigateToVideoCall(roomId)
                 }
                 .onFailure {
+                    if (permissionVersion != authorizationVersion) return@onFailure
                     _uiState.update { state ->
                         state.copy(claimErrorMessage = "No se confirmó el ingreso. Volvé a intentarlo.")
                     }
@@ -462,33 +591,23 @@ class DoctorDashboardViewModel @Inject constructor(
 
     private fun loadPharmacyDuty(doctorIdParam: String? = null) {
         val doctorId = doctorIdParam?.takeIf { it.isNotBlank() } ?: _uiState.value.doctorId
-        if (doctorId.isBlank()) return
+        if (doctorId.isBlank() || _uiState.value.guardApproved != true) return
 
         viewModelScope.launch {
-            val approval = pharmacyDispatchRepository.getMyGuardApproval().getOrNull()
-            val authorized = approval?.approved == true
-            _uiState.update { state ->
-                state.copy(
-                    guardApproved = authorized,
-                    guardVerificationStatus = approval?.verificationStatus ?: "pending",
-                )
-            }
             pharmacyDispatchRepository.getDoctorDutyStatus(doctorId)
                 .onSuccess { duty ->
-                    _isOnDuty.value = duty.isOnDuty && authorized
+                    // Refresh or account changes may have revoked access while awaiting I/O.
+                    if (_uiState.value.guardApproved != true || _uiState.value.doctorId != doctorId) return@onSuccess
+                    _isOnDuty.value = duty.isOnDuty
                     _uiState.update { state ->
                         state.copy(
                             pharmacyOnDutyState = state.pharmacyOnDutyState.copy(
-                                isOnDuty = duty.isOnDuty && authorized,
+                                isOnDuty = duty.isOnDuty,
                                 isLoading = false,
                             ),
                         )
                     }
-                    if (duty.isOnDuty && authorized) {
-                        startHeartbeat(doctorId)
-                    } else {
-                        stopHeartbeat()
-                    }
+                    if (duty.isOnDuty) startHeartbeat(doctorId) else stopHeartbeat()
                 }
                 .onFailure { error ->
                     SecureLog.warn("[DoctorDashboard] Failed loading pharmacy duty status: ${error.message}")
@@ -497,12 +616,14 @@ class DoctorDashboardViewModel @Inject constructor(
     }
 
     private fun observeChatSummary() {
-        viewModelScope.launch {
+        chatSummaryJob?.cancel()
+        chatSummaryJob = viewModelScope.launch {
             chatRepository.observeChats()
                 .catch { error ->
                     SecureLog.error("[DoctorDashboard] Error observing chats", error)
                 }
                 .collect { chats ->
+                    if (_uiState.value.guardApproved != true) return@collect
                     _uiState.update { state ->
                         state.copy(
                             unreadMessagesCount = chats.sumOf { it.unreadCount },

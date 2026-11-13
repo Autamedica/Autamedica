@@ -50,19 +50,19 @@
     <string name="report_saved_success">Reporte guardado exitosamente.</string>
 
     <!-- 4. Certificados Médicos / Atestados (DoctorCertificates & CreateCertificate) -->
-    <string name="cert_screen_title">Atestados Médicos Emitidos</string>
-    <string name="cert_header_counts">%1$d registrados · %2$d documentos</string>
+    <string name="cert_screen_title">Atestados médicos</string>
+    <string name="cert_header_counts">PDF disponibles: %1$d de %2$d registros</string>
     <string name="cert_action_new_certificate">Nuevo Atestado</string>
     <string name="cert_search_placeholder">Buscar por paciente, DNI, CUIR o diagnóstico...</string>
     <string name="cert_filter_all">Todos (%1$d)</string>
-    <string name="cert_filter_valid">Válidos (%1$d)</string>
+    <string name="cert_filter_valid">Con PDF (%1$d)</string>
     <string name="cert_filter_cancelled">Cancelados (%1$d)</string>
     <string name="cert_empty_search_title">No hay resultados para la búsqueda</string>
     <string name="cert_empty_list_title">Sin atestados médicos emitidos</string>
     <string name="cert_empty_list_subtitle">Presione el botón \'Nuevo Atestado\' para emitir su primera certificación médica digital.</string>
     <string name="cert_toast_open_pdf_error">No se pudo abrir el atestado oficial.</string>
     <string name="cert_toast_cuir_copied">CUIR copiado</string>
-    <string name="cert_qr_validation_content_desc">Código QR de Validación Institucional</string>
+    <string name="cert_qr_validation_content_desc">QR de consulta, sujeto a validación del emisor</string>
     <string name="cert_detail_cuir_label">CUIR: %1$s</string>
     <string name="cert_detail_patient">Paciente: %1$s</string>
     <string name="cert_detail_patient_with_dni">Paciente: %1$s (%2$s)</string>
@@ -73,7 +73,8 @@
     <string name="cert_card_default_patient_name">Paciente Asignado</string>
     <string name="cert_card_dni_label">DNI: %1$s</string>
     <string name="cert_status_draft">Borrador sin firma</string>
-    <string name="cert_status_valid">Registrado</string>
+    <string name="cert_status_valid">PDF disponible</string>
+    <string name="cert_status_unverified">Firma por verificar</string>
     <string name="cert_status_cancelled">Cancelado</string>
     <string name="cert_days_of_rest_count">%1$d días de reposo</string>
     <string name="cert_days_of_rest_one">1 día de reposo</string>
@@ -83,7 +84,7 @@
     <!-- 5. Emisión de Certificado (CreateCertificateScreen) -->
     <string name="cert_create_title">Preparar certificado médico (borrador)</string>
     <string name="cert_create_legal_basis">Referencia interna de AutaMedica · Pendiente de firma</string>
-    <string name="cert_create_submitting">Firmando y Sellando Digitalmente...</string>
+    <string name="cert_create_submitting">Guardando borrador...</string>
     <string name="cert_create_submit_button">Guardar borrador sin firma</string>
     <string name="cert_reg_active_title">Habilitación Profesional Activa</string>
     <string name="cert_reg_pending_title">Verificación Pendiente</string>

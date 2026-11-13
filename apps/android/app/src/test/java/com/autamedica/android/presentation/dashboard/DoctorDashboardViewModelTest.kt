@@ -18,6 +18,7 @@ import com.autamedica.android.domain.model.PharmacyDispatchRequest
 import com.autamedica.android.domain.model.RequestStatusResponse
 import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.model.UserRole
+import com.autamedica.android.presentation.main.isDoctorTabAllowed
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.ChatRepository
@@ -65,6 +66,8 @@ private class FakeAuthRepo(
 }
 
 private class FakeDoctorRepo : DoctorRepository {
+    var statsReads = 0
+    var patientReads = 0
     override suspend fun getDoctorProfile(userId: String): Result<DoctorProfile> = Result.success(
         DoctorProfile(
             id = "doctor-456",
@@ -73,13 +76,23 @@ private class FakeDoctorRepo : DoctorRepository {
             licenseNumber = "MN-12345",
         )
     )
-    override suspend fun getDoctorStats(doctorId: String): Result<DoctorStats> = Result.success(DoctorStats())
-    override suspend fun getDoctorPatients(doctorId: String): Result<List<PatientSummary>> = Result.success(emptyList())
+    override suspend fun getDoctorStats(doctorId: String): Result<DoctorStats> {
+        statsReads++
+        return Result.success(DoctorStats())
+    }
+    override suspend fun getDoctorPatients(doctorId: String): Result<List<PatientSummary>> {
+        patientReads++
+        return Result.success(emptyList())
+    }
     override suspend fun getPatientDetail(doctorId: String, patientId: String): Result<PatientDetail> = Result.failure(NotImplementedError())
 }
 
 private class FakeAppointmentRepo : AppointmentRepository {
-    override suspend fun getUpcomingAppointments(): Result<List<Appointment>> = Result.success(emptyList())
+    var appointmentReads = 0
+    override suspend fun getUpcomingAppointments(): Result<List<Appointment>> {
+        appointmentReads++
+        return Result.success(emptyList())
+    }
     override suspend fun getAppointmentById(id: String): Result<Appointment> = Result.failure(NotImplementedError())
     override suspend fun updateAppointmentNotes(id: String, notes: String): Result<Unit> = Result.success(Unit)
     override suspend fun clearCachedAppointmentsForCurrentUser(): Result<Unit> = Result.success(Unit)
@@ -100,7 +113,11 @@ private class FakeTelemedicineRepo : TelemedicineRepository {
 }
 
 private class FakeChatRepo : ChatRepository {
-    override fun observeChats(): Flow<List<MedicalChat>> = flowOf(emptyList())
+    var chatReads = 0
+    override fun observeChats(): Flow<List<MedicalChat>> {
+        chatReads++
+        return flowOf(emptyList())
+    }
     override fun observeMessages(chatId: String): Flow<List<MedicalMessage>> = flowOf(emptyList())
     override suspend fun sendMessage(chatId: String, content: String, contentType: String): Result<Unit> = Result.success(Unit)
     override suspend fun markAsRead(chatId: String): Result<Unit> = Result.success(Unit)
@@ -109,15 +126,15 @@ private class FakeChatRepo : ChatRepository {
 }
 
 private class FakePharmacyDispatchRepo : PharmacyDispatchRepository {
-    // These fixtures represent an administratively APPROVED clinical doctor.
-    // Unapproved doctors must fail closed in production.
-    override suspend fun getMyGuardApproval(): Result<DoctorGuardApproval> =
-        Result.success(DoctorGuardApproval(
+    var approvalResult: Result<DoctorGuardApproval> = Result.success(
+        DoctorGuardApproval(
             approved = true,
             code = "CLINICALLY_APPROVED",
             country = "AR",
             verificationStatus = "valid",
-        ))
+        )
+    )
+    override suspend fun getMyGuardApproval(): Result<DoctorGuardApproval> = approvalResult
 
     var dutyStatus = DoctorDutyStatus(
         doctorId = "doctor-456",
@@ -198,6 +215,178 @@ class DoctorDashboardViewModelTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+    }
+
+    @Test
+    fun `doctor clinical tabs remain disabled without positive approval`() {
+        for (approved in listOf(false, true)) {
+            assertThat(isDoctorTabAllowed(0, approved)).isTrue()
+            assertThat(isDoctorTabAllowed(4, approved)).isTrue()
+            for (index in 1..3) {
+                assertThat(isDoctorTabAllowed(index, approved)).isEqualTo(approved)
+            }
+        }
+        assertThat(isDoctorTabAllowed(-1, true)).isFalse()
+        assertThat(isDoctorTabAllowed(5, true)).isFalse()
+    }
+
+    @Test
+    fun `approved clinician can load patients appointments and messages`() = runTest(testDispatcher) {
+        val vm = DoctorDashboardViewModel(
+            doctorRepository = doctorRepo, appointmentRepository = appointmentRepo,
+            authRepository = authRepo, telemedicineRepository = telemedicineRepo,
+            chatRepository = chatRepo, pharmacyDispatchRepository = dispatchRepo,
+            connectivityObserver = connectivityObserver, ioDispatcher = testDispatcher,
+        )
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.guardApproved).isTrue()
+        assertThat(doctorRepo.statsReads).isEqualTo(1)
+        assertThat(doctorRepo.patientReads).isEqualTo(1)
+        assertThat(appointmentRepo.appointmentReads).isEqualTo(1)
+        assertThat(chatRepo.chatReads).isEqualTo(1)
+        vm.viewModelScope.cancel()
+    }
+
+    @Test
+    fun `pending clinician cannot load patient data or subscribe to duty`() = runTest(testDispatcher) {
+        dispatchRepo.approvalResult = Result.success(
+            DoctorGuardApproval(approved = false, code = "DOCTOR_PENDING_CLINICAL_APPROVAL",
+                country = "AR", verificationStatus = "pending")
+        )
+        val vm = DoctorDashboardViewModel(
+            doctorRepository = doctorRepo, appointmentRepository = appointmentRepo,
+            authRepository = authRepo, telemedicineRepository = telemedicineRepo,
+            chatRepository = chatRepo, pharmacyDispatchRepository = dispatchRepo,
+            connectivityObserver = connectivityObserver, ioDispatcher = testDispatcher,
+        )
+        testScheduler.runCurrent()
+
+        assertThat(vm.uiState.value.guardApproved).isFalse()
+        assertThat(vm.uiState.value.approvalCheckFailed).isFalse()
+        assertThat(vm.uiState.value.isLoading).isFalse()
+        assertThat(doctorRepo.statsReads).isEqualTo(0)
+        assertThat(doctorRepo.patientReads).isEqualTo(0)
+        assertThat(appointmentRepo.appointmentReads).isEqualTo(0)
+        assertThat(chatRepo.chatReads).isEqualTo(0)
+        assertThat(dispatchRepo.heartbeatInvocations).isEmpty()
+        vm.viewModelScope.cancel()
+    }
+
+    @Test
+    fun `missing jurisdiction is not confused with a pending registration review`() = runTest(testDispatcher) {
+        dispatchRepo.approvalResult = Result.success(
+            DoctorGuardApproval(approved = false, code = "DOCTOR_PENDING_CLINICAL_APPROVAL",
+                country = null, verificationStatus = "pending")
+        )
+        val vm = DoctorDashboardViewModel(
+            doctorRepository = doctorRepo, appointmentRepository = appointmentRepo,
+            authRepository = authRepo, telemedicineRepository = telemedicineRepo,
+            chatRepository = chatRepo, pharmacyDispatchRepository = dispatchRepo,
+            connectivityObserver = connectivityObserver, ioDispatcher = testDispatcher,
+        )
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.guardApproved).isFalse()
+        assertThat(vm.uiState.value.guardCareCountry).isNull()
+        assertThat(vm.uiState.value.approvalCheckFailed).isFalse()
+        assertThat(doctorRepo.patientReads).isEqualTo(0)
+        vm.viewModelScope.cancel()
+    }
+
+    @Test
+    fun `failed approval RPC reports technical error without clinical reads`() = runTest(testDispatcher) {
+        dispatchRepo.approvalResult = Result.failure(IOException("Permission denied"))
+        val vm = DoctorDashboardViewModel(
+            doctorRepository = doctorRepo, appointmentRepository = appointmentRepo,
+            authRepository = authRepo, telemedicineRepository = telemedicineRepo,
+            chatRepository = chatRepo, pharmacyDispatchRepository = dispatchRepo,
+            connectivityObserver = connectivityObserver, ioDispatcher = testDispatcher,
+        )
+        testScheduler.runCurrent()
+
+        assertThat(vm.uiState.value.guardApproved).isNull()
+        assertThat(vm.uiState.value.approvalCheckFailed).isTrue()
+        assertThat(vm.uiState.value.error).contains("comprobar")
+        assertThat(doctorRepo.statsReads).isEqualTo(0)
+        assertThat(doctorRepo.patientReads).isEqualTo(0)
+        assertThat(appointmentRepo.appointmentReads).isEqualTo(0)
+        assertThat(chatRepo.chatReads).isEqualTo(0)
+        assertThat(dispatchRepo.heartbeatInvocations).isEmpty()
+        vm.viewModelScope.cancel()
+    }
+
+    @Test
+    fun `refresh clears previously approved clinical data when approval is revoked`() = runTest(testDispatcher) {
+        val vm = DoctorDashboardViewModel(
+            doctorRepository = doctorRepo, appointmentRepository = appointmentRepo,
+            authRepository = authRepo, telemedicineRepository = telemedicineRepo,
+            chatRepository = chatRepo, pharmacyDispatchRepository = dispatchRepo,
+            connectivityObserver = connectivityObserver, ioDispatcher = testDispatcher,
+        )
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.guardApproved).isTrue()
+        assertThat(doctorRepo.statsReads).isEqualTo(1)
+        val clinicalReadsBeforeRevocation = doctorRepo.statsReads
+
+        dispatchRepo.approvalResult = Result.success(
+            DoctorGuardApproval(approved = false, code = "DOCTOR_PENDING_CLINICAL_APPROVAL",
+                country = "AR", verificationStatus = "pending")
+        )
+        vm.refresh()
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.guardApproved).isFalse()
+        assertThat(vm.uiState.value.statsAvailable).isFalse()
+        assertThat(vm.uiState.value.patientsMap).isEmpty()
+        assertThat(vm.uiState.value.liveWaitingQueue).isEmpty()
+        assertThat(doctorRepo.statsReads).isEqualTo(clinicalReadsBeforeRevocation)
+        vm.viewModelScope.cancel()
+    }
+
+    @Test
+    fun `refresh removes accepted room and prevents video retry after approval loss`() = runTest(testDispatcher) {
+        val vm = DoctorDashboardViewModel(
+            doctorRepository = doctorRepo, appointmentRepository = appointmentRepo,
+            authRepository = authRepo, telemedicineRepository = telemedicineRepo,
+            chatRepository = chatRepo, pharmacyDispatchRepository = dispatchRepo,
+            connectivityObserver = connectivityObserver, ioDispatcher = testDispatcher,
+        )
+        testScheduler.runCurrent()
+        val offer = PharmacyDispatchRequest(
+            id = "req-approval-revoked",
+            offerId = "offer-approval-revoked",
+            offerExpiresAt = java.time.OffsetDateTime.now().plusSeconds(30).toString(),
+            careCountry = "AR",
+            patientDni = "30111222",
+            patientPhone = "+5491199887766",
+            patientName = "Paciente de prueba",
+            tierRequested = "general",
+            symptomSummary = "Consulta general",
+            status = "searching",
+            cloudflareRoomId = "cf-room-approval-revoked",
+            createdAt = java.time.OffsetDateTime.now().toString(),
+        )
+        dispatchRepo.searchingRequestsFlow.value = listOf(offer)
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.simulatedDispatchAlert).isNotNull()
+        var navigationCount = 0
+        vm.claimPharmacyRequest(offer.id) { navigationCount++ }
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.acceptedDispatchRequestId).isEqualTo(offer.id)
+        assertThat(vm.uiState.value.acceptedDispatchRoomId).isNotNull()
+        assertThat(navigationCount).isEqualTo(1)
+
+        dispatchRepo.approvalResult = Result.failure(IOException("Authorization server unavailable"))
+        vm.refresh()
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.guardApproved).isNull()
+        assertThat(vm.uiState.value.acceptedDispatchRequestId).isNull()
+        assertThat(vm.uiState.value.acceptedDispatchRoomId).isNull()
+        assertThat(vm.uiState.value.claimingPharmacyRequestId).isNull()
+        assertThat(vm.uiState.value.dismissedRequestIds).isEmpty()
+
+        vm.retryAcceptedVideo { navigationCount++ }
+        testScheduler.runCurrent()
+        assertThat(navigationCount).isEqualTo(1)
+        vm.viewModelScope.cancel()
     }
 
     @Test

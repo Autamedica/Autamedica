@@ -48,7 +48,7 @@ class PrescriptionAndClinicalDocumentTest {
 
         assertThat(dispensed.isActive).isFalse()
         assertThat(dispensed.isDispensed).isTrue()
-        assertThat(dispensed.effectiveQrContent).isEqualTo("CUSTOM_QR_PAYLOAD_123")
+        assertThat(dispensed.effectiveQrContent).isEmpty()
     }
 
     @Test

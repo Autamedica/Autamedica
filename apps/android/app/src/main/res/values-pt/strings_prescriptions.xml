@@ -6,9 +6,9 @@
     <string name="prescriptions_active_count_one">%1$d ativa para farmácia</string>
     <string name="prescriptions_active_count_many">%1$d ativas para farmácia</string>
     <string name="prescriptions_no_pending">Sem prescrições pendentes</string>
-    <string name="prescriptions_cert_valid_count_one">%1$d atestado válido</string>
-    <string name="prescriptions_cert_valid_count_many">%1$d atestados válidos</string>
-    <string name="prescriptions_cert_none_issued">Sem atestados emitidos</string>
+    <string name="prescriptions_cert_valid_count_one">%1$d atestado com PDF</string>
+    <string name="prescriptions_cert_valid_count_many">%1$d atestados com PDF</string>
+    <string name="prescriptions_cert_none_issued">Sem atestados com PDF disponível</string>
     <string name="prescriptions_tab_recipes">Prescrições (%1$d)</string>
     <string name="prescriptions_tab_certificates">Atestados (%1$d)</string>
 
@@ -40,8 +40,8 @@
     <string name="prescriptions_qr_pharmacy">QR Farmácia</string>
     <string name="prescriptions_download_pdf_cd">Baixar PDF</string>
     <string name="prescriptions_pdf_badge">PDF</string>
-    <string name="prescriptions_present_code_pharmacy">APRESENTE ESTE CÓDIGO NA FARMÁCIA</string>
-    <string name="prescriptions_official_validation">Validação oficial CFM nº 2.314/2022 / ICP-Brasil</string>
+    <string name="prescriptions_present_code_pharmacy">CÓDIGO DE CONSULTA. CONFIRME A ASSINATURA ANTES DE UTILIZAR</string>
+    <string name="prescriptions_official_validation">QR de consulta; confirme a assinatura junto do emissor</string>
     <string name="prescriptions_cuir_code_label">CÓDIGO CUIR:</string>
     <string name="prescriptions_download_recipe_pdf">Baixar Prescrição (PDF)</string>
     <string name="prescriptions_how_to_take_title">COMO TOMAR (INSTRUÇÕES MÉDICAS)</string>
@@ -68,13 +68,17 @@
     <string name="prescriptions_cert_empty_title">Sem atestados médicos</string>
     <string name="prescriptions_cert_empty_desc">Os atestados de repouso laboral, escolar ou aptidão física emitidos em suas consultas aparecerão aqui.</string>
     <string name="prescriptions_cert_consult_doctor">Consultar um médico</string>
-    <string name="prescriptions_cert_status_valid">Válido</string>
+    <string name="prescriptions_cert_status_valid">PDF disponível</string>
+    <string name="prescriptions_unverified_document">Documento pendente de assinatura ou verificação; não o apresente como válido.</string>
+    <string name="prescriptions_cert_status_draft">Rascunho sem assinatura</string>
+    <string name="prescriptions_cert_status_unverified">Assinatura não verificada</string>
+    <string name="prescriptions_cert_status_cancelled">Cancelado</string>
     <string name="prescriptions_cert_status_expired">Vencido</string>
     <string name="prescriptions_cert_period_from">%1$s · A partir de %2$s</string>
     <string name="prescriptions_cert_issued_on">Emitido em %1$s</string>
-    <string name="prescriptions_cert_issued_format">Emitido: %1$s</string>
+    <string name="prescriptions_cert_issued_format">Registado: %1$s</string>
     <string name="prescriptions_cert_qr_card">QR Atestado</string>
-    <string name="prescriptions_cert_present_code_institution">APRESENTE ESTE CÓDIGO NA SUA INSTITUIÇÃO</string>
+    <string name="prescriptions_cert_present_code_institution">CÓDIGO DE CONSULTA. CONFIRME A ASSINATURA ANTES DE APRESENTAR</string>
     <string name="prescriptions_cert_qr_content_desc">Código QR de Validação Institucional</string>
     <string name="prescriptions_cert_download_pdf">Baixar Atestado (PDF)</string>
     <string name="prescriptions_cert_detail_title">DETALHE DO REPOUSO / ATESTADO</string>

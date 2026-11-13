@@ -119,7 +119,7 @@ class DoctorPrescriptionsViewModel @Inject constructor(
 
     fun loadEligibility() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingEligibility = true) }
+            _uiState.update { it.copy(isLoadingEligibility = true, doctorEligibility = null) }
             prescriptionRepository.getDoctorEligibility()
                 .onSuccess { eligibility ->
                     _uiState.update {
@@ -130,7 +130,7 @@ class DoctorPrescriptionsViewModel @Inject constructor(
                     }
                 }
                 .onFailure {
-                    _uiState.update { it.copy(isLoadingEligibility = false) }
+                    _uiState.update { it.copy(isLoadingEligibility = false, doctorEligibility = null) }
                 }
         }
     }
@@ -391,13 +391,13 @@ class DoctorPrescriptionsViewModel @Inject constructor(
             return
         }
 
-        // Regulatory check warning
+        // A registered license does not imply approval; unknown and rejected states fail closed.
         val eligibility = state.doctorEligibility
-        if (eligibility != null && !eligibility.isEligible && eligibility.doctorLicense.isNullOrBlank()) {
+        if (eligibility?.isEligible != true) {
             _uiState.update {
                 it.copy(
-                    createError = "Debe configurar su matrícula médica antes de emitir recetas",
-                    createErrorResId = R.string.doctor_rx_val_license_required,
+                    createError = eligibility?.reason ?: "No fue posible verificar la habilitación profesional. Actualizá e intentá nuevamente.",
+                    createErrorResId = null,
                     createErrorArgs = emptyList(),
                 )
             }
@@ -440,7 +440,7 @@ class DoctorPrescriptionsViewModel @Inject constructor(
                         it.copy(
                             isSubmitting = false,
                             createdPrescription = created,
-                            userMessage = "Receta emitida con éxito: CUIR $cuirOrId",
+                            userMessage = "Receta registrada: referencia $cuirOrId. Verificá la firma antes de utilizarla.",
                             userMessageResId = R.string.doctor_rx_val_issued_success,
                             userMessageArgs = listOf(cuirOrId),
                         )

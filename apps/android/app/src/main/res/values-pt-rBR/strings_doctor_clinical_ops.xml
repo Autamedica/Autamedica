@@ -50,19 +50,19 @@
     <string name="report_saved_success">Evolução clínica registrada no prontuário com sucesso.</string>
 
     <!-- 4. Certificados Médicos / Atestados (DoctorCertificates & CreateCertificate) -->
-    <string name="cert_screen_title">Atestados Médicos Emitidos</string>
-    <string name="cert_header_counts">%1$d registrados · %2$d documentos</string>
+    <string name="cert_screen_title">Atestados médicos</string>
+    <string name="cert_header_counts">PDFs disponíveis: %1$d de %2$d registros</string>
     <string name="cert_action_new_certificate">Emitir Novo Atestado</string>
     <string name="cert_search_placeholder">Buscar por paciente, CPF, código validador ou CID...</string>
     <string name="cert_filter_all">Todos (%1$d)</string>
-    <string name="cert_filter_valid">Ativos (%1$d)</string>
+    <string name="cert_filter_valid">Com PDF (%1$d)</string>
     <string name="cert_filter_cancelled">Cancelados (%1$d)</string>
     <string name="cert_empty_search_title">Nenhum atestado encontrado para esta busca</string>
     <string name="cert_empty_list_title">Nenhum atestado médico emitido ainda</string>
     <string name="cert_empty_list_subtitle">Toque em \'Emitir Novo Atestado\' para gerar seu primeiro documento clínico com assinatura digital.</string>
     <string name="cert_toast_open_pdf_error">Não foi possível abrir o documento oficial em PDF.</string>
     <string name="cert_toast_cuir_copied">Código de autenticidade copiado</string>
-    <string name="cert_qr_validation_content_desc">QR Code de Validação Oficial e Autenticidade</string>
+    <string name="cert_qr_validation_content_desc">QR de consulta, sujeito à validação do emissor</string>
     <string name="cert_detail_cuir_label">Código Validador: %1$s</string>
     <string name="cert_detail_patient">Paciente: %1$s</string>
     <string name="cert_detail_patient_with_dni">Paciente: %1$s (%2$s)</string>
@@ -73,7 +73,8 @@
     <string name="cert_card_default_patient_name">Paciente Atendido</string>
     <string name="cert_card_dni_label">CPF: %1$s</string>
     <string name="cert_status_draft">Rascunho sem assinatura</string>
-    <string name="cert_status_valid">Registrado</string>
+    <string name="cert_status_valid">PDF disponível</string>
+    <string name="cert_status_unverified">Assinatura não verificada</string>
     <string name="cert_status_cancelled">Cancelado</string>
     <string name="cert_days_of_rest_count">%1$d dias de afastamento</string>
     <string name="cert_days_of_rest_one">1 dia de afastamento</string>
@@ -83,7 +84,7 @@
     <!-- 5. Emisión de Certificado (CreateCertificateScreen) -->
     <string name="cert_create_title">Preparar atestado (rascunho)</string>
     <string name="cert_create_legal_basis">Referência interna AutaMedica · Assinatura pendente</string>
-    <string name="cert_create_submitting">Assinando com Certificado ICP-Brasil...</string>
+    <string name="cert_create_submitting">Salvando rascunho...</string>
     <string name="cert_create_submit_button">Salvar rascunho sem assinatura</string>
     <string name="cert_reg_active_title">Habilitação Médica Ativa</string>
     <string name="cert_reg_pending_title">Verificação de CRM Pendente</string>

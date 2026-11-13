@@ -188,6 +188,12 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
         check(doctorCountry == request.countryCode && doctorCountry != null) {
             "El país del certificado no coincide con la matrícula médica"
         }
+        val professionalEligibility = prescriptionRepository.getDoctorEligibility().getOrElse {
+            throw IllegalStateException("No se pudo verificar la habilitación profesional", it)
+        }
+        check(professionalEligibility.isEligible) {
+            professionalEligibility.reason ?: "El profesional no está habilitado para registrar certificados"
+        }
         val eligiblePatients = prescriptionRepository.getEligiblePatients().getOrElse {
             throw IllegalStateException("No se pudo verificar la relación médico-paciente", it)
         }

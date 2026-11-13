@@ -246,6 +246,40 @@ class DoctorPrescriptionsViewModelTest {
         assertThat(viewModel.uiState.value.items).hasSize(2)
     }
 
+
+    @Test
+    fun pendingDoctorCannotCreatePrescriptionEvenWithLicense() = runTest {
+        fakeRepository.eligibilityResult =
+            Result.success(DoctorEligibility(false, "MN 12345", "pending", "Validación pendiente"))
+        viewModel.loadEligibility()
+        prepareValidPrescription()
+        viewModel.onSubmitPrescription()
+
+        assertThat(viewModel.uiState.value.createError).contains("pendiente")
+        assertThat(viewModel.uiState.value.createdPrescription).isNull()
+        assertThat(fakeRepository.createAttempts).isEqualTo(0)
+    }
+
+    @Test
+    fun eligibilityLookupFailureBlocksPrescriptionCreation() = runTest {
+        fakeRepository.eligibilityResult = Result.failure(IllegalStateException("offline"))
+        viewModel.loadEligibility()
+        prepareValidPrescription()
+        viewModel.onSubmitPrescription()
+
+        assertThat(viewModel.uiState.value.createError).contains("verificar")
+        assertThat(fakeRepository.createAttempts).isEqualTo(0)
+    }
+
+    private fun prepareValidPrescription() {
+        viewModel.initCreatePrescription(samplePatients.first().patientId)
+        viewModel.onSelectPatient(samplePatients.first())
+        viewModel.onMedicationNameChanged(0, "Enalapril 10 mg")
+        viewModel.onDosageChanged(0, "10 mg")
+        viewModel.onFrequencyChanged(0, "Cada 24 horas")
+        viewModel.onDiagnosisChanged("Hipertensión esencial", "I10")
+    }
+
     @Test
     fun createPrescriptionSuccessEmitsOfficialCuir() = runTest {
         viewModel.initCreatePrescription(samplePatients.first().patientId)
@@ -275,6 +309,9 @@ private class FakeDoctorPrescriptionRepository(
     private val patients: List<PrescriptionPatientItem> = emptyList(),
 ) : PrescriptionRepository {
 
+    var eligibilityResult: Result<DoctorEligibility> =
+        Result.success(DoctorEligibility(isEligible = true, doctorLicense = "MN 12345", validationStatus = "valid"))
+    var createAttempts: Int = 0
     var lastCancelledId: String? = null
     var lastCancellationReason: String? = null
 
@@ -303,6 +340,7 @@ private class FakeDoctorPrescriptionRepository(
     }
 
     override suspend fun createPrescription(request: CreatePrescriptionRequest): Result<Prescription> {
+        createAttempts++
         val cuir = "AR-MD-${System.currentTimeMillis().toString(16).uppercase()}-112233"
         val firstItem = request.items.first()
         val created = Prescription(
@@ -344,6 +382,5 @@ private class FakeDoctorPrescriptionRepository(
     override suspend fun getEligiblePatients(): Result<List<PrescriptionPatientItem>> =
         Result.success(patients)
 
-    override suspend fun getDoctorEligibility(): Result<DoctorEligibility> =
-        Result.success(DoctorEligibility(isEligible = true, doctorLicense = "MN 12345", validationStatus = "valid"))
+    override suspend fun getDoctorEligibility(): Result<DoctorEligibility> = eligibilityResult
 }

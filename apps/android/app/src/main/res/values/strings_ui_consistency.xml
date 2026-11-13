@@ -49,9 +49,14 @@
     <string name="ui_doctor_duty_disconnected">Guardia desconectada</string>
     <string name="ui_doctor_approval_checking">Verificando habilitación médica</string>
     <string name="ui_doctor_approval_pending">Habilitación médica pendiente</string>
+    <string name="ui_doctor_approval_country_missing">País de atención médica sin configurar</string>
+    <string name="ui_doctor_approval_country_missing_body">Tu ficha médica no tiene país de atención asignado. Solicitá al administrador que revise tu jurisdicción y matrícula antes de habilitar consultas.</string>
     <string name="ui_doctor_approval_checking_body">Estamos consultando el estado de aprobación del administrador.</string>
     <string name="ui_doctor_approval_pending_body">Tu registro existe, pero todavía no estás autorizado para atender pacientes. Completá tu perfil y consultá al administrador.</string>
     <string name="ui_doctor_approval_refresh">Actualizar habilitación</string>
+    <string name="ui_doctor_approval_unavailable">No se pudo verificar la habilitación</string>
+    <string name="ui_doctor_approval_unavailable_body">Falló la verificación técnica. La atención permanece bloqueada por seguridad, pero esto no significa que tu registro haya sido rechazado.</string>
+    <string name="ui_doctor_approval_retry">Reintentar verificación</string>
     <string name="ui_ondemand_title">Consultas inmediatas</string>
     <string name="ui_ondemand_subtitle">Guardia médica en farmacias</string>
     <string name="ui_ondemand_back">Volver</string>

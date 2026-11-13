@@ -152,7 +152,7 @@ fun CreateCertificateScreen(
                             .height(50.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PortalDoctors),
-                        enabled = !uiState.isSubmitting,
+                        enabled = !uiState.isSubmitting && !uiState.isLoadingEligibility && uiState.doctorEligibility?.isEligible == true,
                     ) {
                         if (uiState.isSubmitting) {
                             CircularProgressIndicator(
@@ -181,7 +181,7 @@ fun CreateCertificateScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // 1. Regulatory Verification Status Banner
-            DoctorRegulatoryBanner(uiState.doctorEligibility)
+            DoctorRegulatoryBanner(uiState.doctorEligibility, uiState.isLoadingEligibility, viewModel::loadEligibility)
 
             // 2. Patient Selector Card
             PatientSelectorSection(
@@ -328,12 +328,14 @@ fun CreateCertificateScreen(
                         }
                     }
 
-                    // QR Preview
-                    QrCodeView(
-                        content = created.effectiveQrContent,
-                        modifier = Modifier.size(140.dp),
-                        contentDescription = stringResource(R.string.cert_qr_validation_content_desc),
-                    )
+                    // Drafts must never display a QR that looks like a public verification token.
+                    if (created.effectiveQrContent.isNotBlank()) {
+                        QrCodeView(
+                            content = created.effectiveQrContent,
+                            modifier = Modifier.size(140.dp),
+                            contentDescription = stringResource(R.string.cert_qr_validation_content_desc),
+                        )
+                    }
 
                     Text(
                         text = stringResource(R.string.cert_success_dialog_footer),
@@ -359,8 +361,8 @@ fun CreateCertificateScreen(
 }
 
 @Composable
-private fun DoctorRegulatoryBanner(eligibility: DoctorEligibility?) {
-    val isEligible = eligibility?.isEligible ?: true
+private fun DoctorRegulatoryBanner(eligibility: DoctorEligibility?, isLoading: Boolean, onRetry: () -> Unit) {
+    val isEligible = eligibility?.isEligible == true
     val license = eligibility?.doctorLicense ?: stringResource(R.string.cert_reg_registered)
 
     Surface(
@@ -396,6 +398,11 @@ private fun DoctorRegulatoryBanner(eligibility: DoctorEligibility?) {
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary
                 )
+                if (!isEligible) {
+                    TextButton(onClick = onRetry, enabled = !isLoading) {
+                        Text(stringResource(R.string.clinical_ops_refresh))
+                    }
+                }
             }
         }
     }

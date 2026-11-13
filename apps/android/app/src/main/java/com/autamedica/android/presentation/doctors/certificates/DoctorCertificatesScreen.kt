@@ -294,11 +294,13 @@ fun DoctorCertificatesScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    QrCodeView(
-                        content = cert.effectiveQrContent,
-                        modifier = Modifier.size(160.dp),
-                        contentDescription = stringResource(R.string.cert_qr_validation_content_desc),
-                    )
+                    if (cert.effectiveQrContent.isNotBlank()) {
+                        QrCodeView(
+                            content = cert.effectiveQrContent,
+                            modifier = Modifier.size(160.dp),
+                            contentDescription = stringResource(R.string.cert_qr_validation_content_desc),
+                        )
+                    }
                     Text(
                         text = stringResource(R.string.cert_detail_cuir_label, cert.cuir),
                         style = MaterialTheme.typography.labelMedium,
@@ -340,8 +342,7 @@ fun DoctorCertificatesScreen(
                 }
             },
             confirmButton = {
-                val pdfUrl = cert.signedPdfUrl?.takeIf { it.isNotBlank() }
-                    ?: "https://autamedica.com/verify/${cert.cuir}"
+                val pdfUrl = cert.effectivePdfUrl
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -349,9 +350,9 @@ fun DoctorCertificatesScreen(
                     Button(
                         onClick = {
                             selectedCertForDetail = null
-                            onOpenPdf(pdfUrl)
+                            pdfUrl?.let(onOpenPdf)
                         },
-                        enabled = cert.status == "signed" && cert.signedPdfUrl?.isNotBlank() == true,
+                        enabled = pdfUrl != null,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF0F766E),
                             contentColor = Color.White
@@ -378,7 +379,8 @@ private fun DoctorCertificateCard(
     onCopyCuir: () -> Unit,
     onOpenDetail: () -> Unit,
 ) {
-    val isValid = certificate.status == "signed"
+    // Status alone does not establish a downloadable or verifiably signed document.
+    val hasServerPdf = certificate.isActive
 
     Surface(
         shape = RoundedCornerShape(16.dp),
@@ -436,17 +438,17 @@ private fun DoctorCertificateCard(
 
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = if (isValid) Color(0xFFDCFCE7) else if (certificate.status == "draft") Color(0xFFFEF3C7) else Color(0xFFFEE2E2),
+                    color = if (hasServerPdf) Color(0xFFDCFCE7) else if (certificate.status == "draft") Color(0xFFFEF3C7) else Color(0xFFFEE2E2),
                 ) {
                     Text(
                         text = when (certificate.status) {
                             "draft" -> stringResource(R.string.cert_status_draft)
-                            "signed" -> stringResource(R.string.cert_status_valid)
+                            "signed" -> if (hasServerPdf) stringResource(R.string.cert_status_valid) else stringResource(R.string.cert_status_unverified)
                             else -> stringResource(R.string.cert_status_cancelled)
                         },
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = if (isValid) Color(0xFF16A34A) else if (certificate.status == "draft") Color(0xFF92400E) else Color(0xFFDC2626),
+                        color = if (hasServerPdf) Color(0xFF16A34A) else if (certificate.status == "draft") Color(0xFF92400E) else Color(0xFFDC2626),
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                 }
@@ -527,12 +529,11 @@ private fun DoctorCertificateCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    val pdfUrl = certificate.signedPdfUrl?.takeIf { it.isNotBlank() }
-                        ?: "https://autamedica.com/verify/${certificate.cuir}"
+                    val pdfUrl = certificate.effectivePdfUrl
 
                     Button(
-                        onClick = { onOpenPdf(pdfUrl) },
-                        enabled = isValid && certificate.signedPdfUrl?.isNotBlank() == true,
+                        onClick = { pdfUrl?.let(onOpenPdf) },
+                        enabled = pdfUrl != null,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF0F766E),
                             contentColor = Color.White

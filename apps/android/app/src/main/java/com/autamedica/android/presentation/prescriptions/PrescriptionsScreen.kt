@@ -437,7 +437,7 @@ private fun PrescriptionCard(
 ) {
     val doctorText = formatDoctorName(prescription.doctorName)
     val dateStr = formatPrescriptionDate(prescription.prescribedDate ?: prescription.createdAt)
-    val downloadablePdfUrl = getDownloadablePdfUrl(prescription.signedPdfUrl, prescription.cuir)
+    val downloadablePdfUrl = prescription.effectivePdfUrl
     val formattedMedication = formatMedicationName(prescription.medicationName)
     val formattedPosology = formatPosologySummary(prescription.dosage, prescription.frequency, prescription.duration)
 
@@ -521,7 +521,11 @@ private fun PrescriptionCard(
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            text = stringResource(R.string.prescriptions_qr_pharmacy),
+                            text = if (prescription.isActive && prescription.effectiveQrContent.isNotBlank()) {
+                                stringResource(R.string.prescriptions_qr_pharmacy)
+                            } else {
+                                stringResource(R.string.prescriptions_unverified_document)
+                            },
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF0F172A),
@@ -700,7 +704,7 @@ private fun PrescriptionDetailBottomSheet(
     val doctorText = formatDoctorName(prescription.doctorName)
     val dateStr = formatPrescriptionDate(prescription.prescribedDate ?: prescription.createdAt)
     val formattedMedication = formatMedicationName(prescription.medicationName)
-    val downloadablePdfUrl = getDownloadablePdfUrl(prescription.signedPdfUrl, prescription.cuir)
+    val downloadablePdfUrl = prescription.effectivePdfUrl
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -781,6 +785,7 @@ private fun PrescriptionDetailBottomSheet(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.padding(16.dp),
                 ) {
+                    if (prescription.isActive && prescription.effectiveQrContent.isNotBlank()) {
                     Text(
                         text = stringResource(R.string.prescriptions_present_code_pharmacy),
                         style = MaterialTheme.typography.labelSmall,
@@ -823,6 +828,15 @@ private fun PrescriptionDetailBottomSheet(
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFF1E293B),
+                        )
+                    }
+
+                    } else {
+                        Text(
+                            text = stringResource(R.string.prescriptions_unverified_document),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = AuTextSecondary,
+                            textAlign = TextAlign.Center,
                         )
                     }
 
@@ -1180,17 +1194,6 @@ private fun formatPrescriptionDate(dateStr: String?): String {
     }
 }
 
-private fun getDownloadablePdfUrl(signedPdfUrl: String?, cuir: String?): String? {
-    if (!signedPdfUrl.isNullOrBlank()) {
-        return signedPdfUrl
-    }
-    // Fallback: if CUIR exists, provide online verification and PDF portal
-    if (!cuir.isNullOrBlank()) {
-        return "https://autamedica.com/verify/$cuir"
-    }
-    return null
-}
-
 @Composable
 private fun DocumentTabSelector(
     selectedTab: DocumentTab,
@@ -1479,7 +1482,12 @@ private fun CertificateCard(
                     color = if (certificate.isActive) Color(0xFFDCFCE7) else Color(0xFFF1F5F9),
                 ) {
                     Text(
-                        text = if (certificate.isActive) stringResource(R.string.prescriptions_cert_status_valid) else stringResource(R.string.prescriptions_cert_status_expired),
+                        text = when {
+                            certificate.isActive -> stringResource(R.string.prescriptions_cert_status_valid)
+                            certificate.status == "draft" -> stringResource(R.string.prescriptions_cert_status_draft)
+                            certificate.status == "cancelled" -> stringResource(R.string.prescriptions_cert_status_cancelled)
+                            else -> stringResource(R.string.prescriptions_cert_status_unverified)
+                        },
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = if (certificate.isActive) Color(0xFF15803D) else Color(0xFF64748B),
@@ -1630,7 +1638,12 @@ private fun CertificateDetailBottomSheet(
                             color = if (certificate.isActive) Color(0xFFDCFCE7) else Color(0xFFF1F5F9),
                         ) {
                             Text(
-                                text = if (certificate.isActive) stringResource(R.string.prescriptions_cert_status_valid) else stringResource(R.string.prescriptions_cert_status_expired),
+                                text = when {
+                            certificate.isActive -> stringResource(R.string.prescriptions_cert_status_valid)
+                            certificate.status == "draft" -> stringResource(R.string.prescriptions_cert_status_draft)
+                            certificate.status == "cancelled" -> stringResource(R.string.prescriptions_cert_status_cancelled)
+                            else -> stringResource(R.string.prescriptions_cert_status_unverified)
+                        },
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = if (certificate.isActive) Color(0xFF15803D) else Color(0xFF64748B),
@@ -1668,7 +1681,11 @@ private fun CertificateDetailBottomSheet(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = stringResource(R.string.prescriptions_cert_present_code_institution),
+                        text = if (certificate.effectiveQrContent.isNotBlank()) {
+                            stringResource(R.string.prescriptions_cert_present_code_institution)
+                        } else {
+                            stringResource(R.string.prescriptions_unverified_document)
+                        },
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF0284C7),
@@ -1676,16 +1693,19 @@ private fun CertificateDetailBottomSheet(
                     )
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    QrCodeView(
-                        content = certificate.effectiveQrContent,
-                        modifier = Modifier
-                            .size(210.dp)
-                            .background(Color.White, RoundedCornerShape(12.dp)),
-                        contentDescription = stringResource(R.string.prescriptions_cert_qr_content_desc),
-                    )
+                    if (certificate.effectiveQrContent.isNotBlank()) {
+                        QrCodeView(
+                            content = certificate.effectiveQrContent,
+                            modifier = Modifier
+                                .size(210.dp)
+                                .background(Color.White, RoundedCornerShape(12.dp)),
+                            contentDescription = stringResource(R.string.prescriptions_cert_qr_content_desc),
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    if (certificate.effectiveQrContent.isNotBlank()) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1702,6 +1722,8 @@ private fun CertificateDetailBottomSheet(
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFF1E293B),
                         )
+                    }
+
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))
