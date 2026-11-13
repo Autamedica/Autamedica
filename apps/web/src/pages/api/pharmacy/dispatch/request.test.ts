@@ -74,6 +74,7 @@ function makeContext(options?: {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
+      'x-test-care-country': typeof options?.body === 'object' && options.body !== null && 'careCountry' in options.body ? String((options.body as { careCountry?: string }).careCountry ?? '') : 'AR',
       ...(options?.bearerToken ? { authorization: options.bearerToken } : {}),
     },
     body: JSON.stringify(
@@ -102,13 +103,13 @@ describe('API: /api/pharmacy/dispatch/request', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(resolvePatientContext).mockImplementation(async (request, locals) => {
-      const body = await request.clone().json().catch(() => null) as { careCountry?: string } | null
+      const careCountry = request.headers.get('x-test-care-country')
       const sessionUserId = (locals as { session?: { user?: { id?: string } } } | undefined)?.session?.user?.id
       const bearerUserId = request.headers.get('authorization') ? '11111111-1111-4111-8111-111111111111' : null
       return {
         userId: sessionUserId ?? bearerUserId ?? 'patient-auth-user-99',
         patientId: 'patient-row-99',
-        careCountry: body?.careCountry === 'BR' ? 'BR' : 'AR',
+        careCountry: careCountry === 'BR' ? 'BR' : 'AR',
       }
     })
   })
