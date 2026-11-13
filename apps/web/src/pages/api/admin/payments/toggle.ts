@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro'
-import { withAuthRole, ADMIN_ROLES, isAuthed } from '@/lib/api-auth'
+import { withAuthRole, isAuthed } from '@/lib/api-auth'
 import { badRequest, internalError, jsonOk } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
 
@@ -8,7 +8,7 @@ const ALLOWED = ['jordan_qr_payments_enabled','pharmacy_express_payments_enabled
 type SwitchName = typeof ALLOWED[number]
 
 export const GET: APIRoute = async ({ request, locals }) => {
-  const auth = await withAuthRole(request, ADMIN_ROLES, locals)
+  const auth = await withAuthRole(request, ['admin'], locals)
   if (!isAuthed(auth)) return auth
   const db = createAstroAdminClient(locals.runtime?.env) as any
   const { data, error } = await db.from('platform_operational_switches').select('*').eq('id','global').maybeSingle()
