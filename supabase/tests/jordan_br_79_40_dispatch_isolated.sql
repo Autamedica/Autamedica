@@ -105,6 +105,9 @@ BEGIN
   VALUES(v_user,'jordan-tariff-ci-'||v_user||'@example.invalid');
   INSERT INTO auth.users(id,email)
   VALUES(v_reviewer,'jordan-cfm-reviewer-ci-'||v_reviewer||'@example.invalid');
+  -- Dispatch guard requires an active doctor profile, independently from
+  -- CRM validation and the administrator who grants service-tier access.
+  UPDATE public.profiles SET role='doctor',active=true WHERE user_id=v_user;
   UPDATE public.profiles SET role='admin',active=true WHERE user_id=v_reviewer;
   -- care_country is generated from the persisted CRM jurisdiction and UF.
   -- Do not write the generated column in an isolated fixture.
