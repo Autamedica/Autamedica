@@ -31,6 +31,7 @@ function request(overrides: Record<string, unknown> = {}) {
     cloudflare_room_id: room,
     care_country: 'BR',
     referral_partner_id: '33333333-3333-4333-8333-333333333333',
+    commercial_referral_partners: { code: 'JORDAN', active: true },
     assigned_doctor_id: '44444444-4444-4444-8444-444444444444',
     status: 'in_call',
     ...overrides,
