@@ -106,12 +106,12 @@ BEGIN
   INSERT INTO auth.users(id,email)
   VALUES(v_reviewer,'jordan-cfm-reviewer-ci-'||v_reviewer||'@example.invalid');
   UPDATE public.profiles SET role='admin',active=true WHERE user_id=v_reviewer;
-  -- The dispatch approval RPC requires explicit BR jurisdiction; doctors.care_country
-  -- has NULL as its default and is not inferred from CRM on INSERT.
+  -- care_country is generated from the persisted CRM jurisdiction and UF.
+  -- Do not write the generated column in an isolated fixture.
   INSERT INTO public.doctors(
-    id,user_id,care_country,license_type,license_number,uf_brazil,specialty,active
+    id,user_id,license_type,license_number,uf_brazil,specialty,active
   ) VALUES (
-    v_doc,v_user,'BR','CRM','CI-'||v_doc::text,'RS','Medicina General',true
+    v_doc,v_user,'CRM','CI-'||v_doc::text,'RS','Medicina General',true
   );
   INSERT INTO public.doctor_licenses(
     doctor_id,license_type,license_number,uf_brazil,status,cfm_validation_status,
