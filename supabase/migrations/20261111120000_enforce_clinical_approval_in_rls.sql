@@ -46,7 +46,9 @@ WITH links AS (
  WHERE a.doctor_id IS NOT NULL AND a.patient_id IS NOT NULL AND a.deleted_at IS NULL
 ), eligible AS (
  SELECT l.doctor_id,l.patient_id,(array_agg(l.source ORDER BY l.source))[1] source
- FROM links l JOIN public.doctors d ON d.id=l.doctor_id
+ FROM links l
+ JOIN public.doctors d ON d.id=l.doctor_id
+ JOIN public.patients p ON p.id=l.patient_id AND p.active IS TRUE
  WHERE d.active IS TRUE AND NOT app_private.is_doctor_dispatch_approved(d.id)
    AND d.care_country IN ('AR','BR') AND p.care_country=d.care_country
  GROUP BY l.doctor_id,l.patient_id
