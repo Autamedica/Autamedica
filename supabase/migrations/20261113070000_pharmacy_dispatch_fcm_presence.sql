@@ -53,6 +53,24 @@ BEGIN
          OR v_req.doctor_fee_brl IS DISTINCT FROM 40.00 THEN
         RAISE EXCEPTION 'jordan_quote_missing_or_mismatch' USING ERRCODE='23514';
       END IF;
+
+      -- Payment-first is enforced inside the matcher itself, not only by the
+      -- insert/payment triggers. Presence retries and direct RPC calls must
+      -- never emit a Jordan offer before Mercado Pago approves the BRL 79 fee.
+      IF NOT EXISTS (
+        SELECT 1
+        FROM public.pharmacy_dispatch_payments pay
+        WHERE pay.dispatch_request_id = v_req.id
+          AND pay.status = 'approved'
+          AND pay.provider = 'mercadopago'
+          AND pay.currency = 'BRL'
+          AND pay.amount_minor = 7900
+      ) THEN
+        RETURN jsonb_build_object(
+          'success', false,
+          'code', 'JORDAN_PAYMENT_REQUIRED'
+        );
+      END IF;
     END IF;
   END IF;
 
@@ -255,6 +273,24 @@ BEGIN
   WHERE r.status = 'searching'
     AND r.care_country = v_country
     AND (r.search_timeout_at IS NULL OR r.search_timeout_at > NOW())
+    -- Doctor-presence retries must preserve Jordan's payment-first contract.
+    AND (
+      NOT EXISTS (
+        SELECT 1
+        FROM public.commercial_referral_partners partner
+        WHERE partner.id = r.referral_partner_id
+          AND partner.code = 'JORDAN'
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM public.pharmacy_dispatch_payments pay
+        WHERE pay.dispatch_request_id = r.id
+          AND pay.status = 'approved'
+          AND pay.provider = 'mercadopago'
+          AND pay.currency = 'BRL'
+          AND pay.amount_minor = 7900
+      )
+    )
     AND NOT EXISTS (
       SELECT 1 FROM public.dispatch_offers o
       WHERE o.dispatch_request_id = r.id

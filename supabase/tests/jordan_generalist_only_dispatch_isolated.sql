@@ -57,6 +57,29 @@ BEGIN
     RAISE EXCEPTION 'Jordan must persist exact R$79/R$40 quotes';
   END IF;
 
+  -- Jordan requests in this fixture must pass the same payment-first gate as
+  -- production before the doctor-presence trigger can emit R$40 offers.
+  INSERT INTO public.commercial_referral_identity_proofs(
+    dispatch_request_id,referral_partner_id,subject_digest,
+    verification_method,verification_receipt_id,verified_at
+  ) VALUES
+    (v_request_specialist,v_partner,repeat('b',64),'cpf_kyc',
+      'ci-jordan-specialist-paid-'||v_request_specialist::text,now()),
+    (v_request_generalist,v_partner,repeat('c',64),'cpf_kyc',
+      'ci-jordan-generalist-paid-'||v_request_generalist::text,now());
+
+  INSERT INTO public.pharmacy_dispatch_payments(
+    dispatch_request_id,amount_minor,currency,provider,status
+  ) VALUES
+    (v_request_specialist,7900,'BRL','mercadopago','pending'),
+    (v_request_generalist,7900,'BRL','mercadopago','pending');
+
+  UPDATE public.pharmacy_dispatch_payments
+  SET status='approved',
+      provider_payment_id='ci-jordan-specialist-approved-'||dispatch_request_id::text,
+      paid_at=now()
+  WHERE dispatch_request_id IN (v_request_specialist,v_request_generalist);
+
   -- Create synthetic verified medical profiles.
   FOR v_user IN SELECT unnest(ARRAY[
     v_psychiatrist,v_cardiologist,v_generalist,v_ar_general

@@ -145,7 +145,11 @@ BEGIN
     doctor_id,is_on_duty,last_heartbeat_at,duty_started_at,active_tiers
   ) VALUES(v_doc,true,now(),now(),ARRAY['general']::public.dispatch_tier_category[]);
 
-  -- Presence/heartbeat dispatch must not bypass the matcher payment gate.
+  -- Neither the presence trigger nor a direct RPC may bypass the PSP gate.
+  SELECT public.match_dispatch_doctors(v_jordan) INTO v_claim;
+  IF v_claim->>'code' IS DISTINCT FROM 'JORDAN_PAYMENT_REQUIRED' THEN
+    RAISE EXCEPTION 'Unpaid Jordan request must remain queued: %', v_claim;
+  END IF;
   IF EXISTS (
     SELECT 1 FROM public.dispatch_offers
     WHERE dispatch_request_id=v_jordan AND doctor_id=v_doc
