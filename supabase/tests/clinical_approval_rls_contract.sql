@@ -53,8 +53,16 @@ BEGIN
     -- grant. It must remain country-bound and cannot replace any permissive RLS
     -- policy that authorizes access.
     v_country_guard := NOT v_policy.polpermissive
-      AND v_policy.polname='pharmacy_country_known'
-      AND v_policy.relname IN ('pharmacies','pharmacists','dispensation_orders');
+      AND (
+        (v_policy.polname='pharmacy_country_known'
+          AND v_policy.relname IN ('pharmacies','pharmacists','dispensation_orders'))
+        OR
+        (v_policy.polname='pharmacy_order_country_known'
+          AND v_policy.relname IN (
+            'dispensation_validations','dispensation_events',
+            'dispensation_clarifications','pharmacy_audit_events'
+          ))
+      );
     IF v_policy.polcmd='r' THEN
       v_patient_fk := NULL;
       SELECT ccu.table_name INTO v_patient_fk
