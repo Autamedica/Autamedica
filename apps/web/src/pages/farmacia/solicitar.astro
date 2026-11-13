@@ -1,30 +1,13 @@
 ---
 import CallLayout from '@/layouts/CallLayout.astro';
-import { PharmacyExpressConsultation } from '@/components/pharmacy/PharmacyExpressConsultation';
+import PharmacyCareAccess from '@/components/pharmacy/PharmacyCareAccess.astro';
 import { createAstroAdminClient } from '@/lib/supabase';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payment-access';
-import { resolvePatientContext } from '@/lib/patients/api/patient-context';
 
 export const prerender = false;
 
 const pharmacyId = Astro.url.searchParams.get('pharmacyId');
-let pharmacyName = 'Punto de Farmacia';
-
-if (pharmacyId) {
-  try {
-    const admin = createAstroAdminClient(Astro.locals.runtime?.env);
-    const { data } = await admin
-      .from('pharmacies')
-      .select('name')
-      .eq('id', pharmacyId)
-      .maybeSingle();
-    if (data?.name) pharmacyName = data.name;
-  } catch {
-    // Keep the verified generic pharmacy label.
-  }
-}
-
 const requestedReferral = Astro.url.searchParams.get('ref')?.trim().toUpperCase() ?? null;
 let referralCode: string | null = null;
 let referralPartnerName: string | null = null;
@@ -53,38 +36,15 @@ const jordanPaymentsEnabled = (
   ?? import.meta.env.ENABLE_JORDAN_PAYMENTS
 ) === 'true' && hasSecureGuestPaymentSecret(Astro.locals.runtime?.env);
 
-const patientContext = await resolvePatientContext(Astro.request, Astro.locals);
-const patientLoginHref = `/auth/login?role=patient&returnTo=${encodeURIComponent(`${Astro.url.pathname}${Astro.url.search}`)}`;
-
 const title = 'Consulta Exprés en Farmacia • Red AutaMedica';
 const description = 'Punto de atención de telemedicina de AutaMedica. Los documentos médicos dependen del profesional y de la habilitación correspondiente al país de atención.';
 ---
 
 <CallLayout title={title} description={description}>
-  {patientContext ? (
-    <PharmacyExpressConsultation
-      client:load
-      pharmacyId={pharmacyId}
-      pharmacyName={pharmacyName}
-      initialCareCountry={patientContext.careCountry}
-      referralCode={referralCode}
-      referralPartnerName={referralPartnerName}
-      jordanPaymentsEnabled={jordanPaymentsEnabled}
-    />
-  ) : (
-    <section class="min-h-[70dvh] flex items-center justify-center bg-am-surface-900 px-5 py-12">
-      <div class="w-full max-w-lg rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-2xl">
-        <div class="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-am-primary-500/15 text-am-primary-300">
-          <span aria-hidden="true" class="text-2xl">♙</span>
-        </div>
-        <h1 class="text-2xl font-semibold tracking-tight text-white">Identifica tu cuenta para recibir atención</h1>
-        <p class="mt-3 text-sm leading-6 text-am-surface-300">
-          Ingresá con tu cuenta de paciente para iniciar una consulta segura desde esta farmacia.
-        </p>
-        <a href={patientLoginHref} class="mt-7 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-am-primary-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-am-primary-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
-          Ingresar como paciente
-        </a>
-      </div>
-    </section>
-  )}
+  <PharmacyCareAccess
+    pharmacyId={pharmacyId}
+    referralCode={referralCode}
+    referralPartnerName={referralPartnerName}
+    jordanPaymentsEnabled={jordanPaymentsEnabled}
+  />
 </CallLayout>
