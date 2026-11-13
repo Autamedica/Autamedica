@@ -15,7 +15,7 @@ let referralPartnerName: string | null = null;
 // URL text alone is never accepted as proof of a registered referral partner.
 if (requestedReferral && /^[A-Z0-9_-]{3,32}$/.test(requestedReferral)) {
   try {
-    const admin = createAstroAdminClient(Astro.locals.runtime?.env);
+    const admin = createAstroAdminClient(Astro.locals.runtime?.env) as any;
     const { data: partner } = await (admin as unknown as SupabaseClient)
       .from('commercial_referral_partners')
       .select('code, display_name')
@@ -49,11 +49,23 @@ if (pharmacyId) {
   }
 }
 
-// Checkout is intentionally disabled until synthetic PSP verification succeeds.
-const jordanPaymentsEnabled = (
-  (Astro.locals.runtime?.env?.ENABLE_JORDAN_PAYMENTS as string | undefined)
-  ?? import.meta.env.ENABLE_JORDAN_PAYMENTS
-) === 'true' && hasSecureGuestPaymentSecret(Astro.locals.runtime?.env);
+let jordanPaymentsEnabled = false;
+try {
+  const admin = createAstroAdminClient(Astro.locals.runtime?.env);
+  const { data: switches, error } = await admin
+    .from('platform_operational_switches')
+    .select('jordan_qr_payments_enabled, pharmacy_express_payments_enabled')
+    .eq('id', 'global')
+    .maybeSingle();
+  const envEnabled = ((Astro.locals.runtime?.env?.ENABLE_JORDAN_PAYMENTS as string | undefined)
+    ?? import.meta.env.ENABLE_JORDAN_PAYMENTS) === 'true';
+  jordanPaymentsEnabled = ((!error && (switches?.jordan_qr_payments_enabled === true || switches?.pharmacy_express_payments_enabled === true)) || envEnabled)
+    && hasSecureGuestPaymentSecret(Astro.locals.runtime?.env);
+} catch {
+  jordanPaymentsEnabled = ((Astro.locals.runtime?.env?.ENABLE_JORDAN_PAYMENTS as string | undefined)
+    ?? import.meta.env.ENABLE_JORDAN_PAYMENTS) === 'true'
+    && hasSecureGuestPaymentSecret(Astro.locals.runtime?.env);
+}
 
 const title = 'Consulta Exprés en Farmacia • Red AutaMedica';
 const description = 'Punto de atención de telemedicina de AutaMedica. Los documentos médicos dependen del profesional y de la habilitación correspondiente al país de atención.';
