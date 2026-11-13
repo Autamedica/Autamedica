@@ -160,6 +160,11 @@ export function usePatientProfilePage(
   }, [accountFullName, anamnesisBirthDate, patient, profile, resetStatus, user?.email]);
 
     const lookupOfficialIdentity = useCallback(async (): Promise<boolean> => {
+      // Hide/deny RENAPER outside explicit Argentine care context.
+      if (patient?.careCountry !== 'AR') {
+        setIdentityLookupError('RENAPER está disponible únicamente para pacientes del circuito argentino.');
+        return false;
+      }
       const dni = form.dni.replace(/\D/g, '');
     if (!dni) {
       setIdentityLookupError('Ingresá tu DNI para completar la verificación.');
@@ -204,8 +209,8 @@ export function usePatientProfilePage(
           }));
           setIdentityLookupSuccess(
             data.coverage?.name
-              ? `Perfil actualizado. Cobertura: ${data.coverage.name}.`
-              : 'Perfil actualizado.',
+              ? `Consulta oficial completada. Cobertura informada: ${data.coverage.name}.`
+              : 'Consulta oficial completada; no prueba titularidad del DNI.',
           );
         } else {
         setForm((current) => ({
@@ -214,7 +219,7 @@ export function usePatientProfilePage(
           gender: data.form.gender || current.gender,
           }));
           setIdentityLookupSuccess(
-            'Verificación lista. Para completar el perfil y las recetas, activá tu primera consulta.'
+            'Consulta oficial registrada; no acredita que quien usa la cuenta sea titular del DNI.'
           );
         }
 
@@ -230,7 +235,7 @@ export function usePatientProfilePage(
       } finally {
         setIsLookingUpIdentity(false);
       }
-    }, [form.dni, form.gender, refresh]);
+    }, [form.dni, form.gender, patient?.careCountry, refresh]);
 
   const saveProfile = useCallback(async (): Promise<boolean> => {
     if (!user) {
