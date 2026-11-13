@@ -1,6 +1,6 @@
 ---
 import CallLayout from '@/layouts/CallLayout.astro';
-import PharmacyCareAccess from '@/components/pharmacy/PharmacyCareAccess.astro';
+import { PharmacyExpressConsultation } from '@/components/pharmacy/PharmacyExpressConsultation';
 import { createAstroAdminClient } from '@/lib/supabase';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payment-access';
@@ -8,6 +8,22 @@ import { hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payme
 export const prerender = false;
 
 const pharmacyId = Astro.url.searchParams.get('pharmacyId');
+let pharmacyName = 'Punto de Farmacia';
+
+if (pharmacyId) {
+  try {
+    const admin = createAstroAdminClient(Astro.locals.runtime?.env);
+    const { data } = await admin
+      .from('pharmacies')
+      .select('name')
+      .eq('id', pharmacyId)
+      .maybeSingle();
+    if (data?.name) pharmacyName = data.name;
+  } catch {
+    // Keep the verified generic pharmacy label.
+  }
+}
+
 const requestedReferral = Astro.url.searchParams.get('ref')?.trim().toUpperCase() ?? null;
 let referralCode: string | null = null;
 let referralPartnerName: string | null = null;
@@ -41,8 +57,10 @@ const description = 'Punto de atención de telemedicina de AutaMedica. Los docum
 ---
 
 <CallLayout title={title} description={description}>
-  <PharmacyCareAccess
+  <PharmacyExpressConsultation
+    client:load
     pharmacyId={pharmacyId}
+    pharmacyName={pharmacyName}
     referralCode={referralCode}
     referralPartnerName={referralPartnerName}
     jordanPaymentsEnabled={jordanPaymentsEnabled}

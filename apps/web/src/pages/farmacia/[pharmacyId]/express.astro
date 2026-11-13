@@ -1,14 +1,33 @@
 ---
 import CallLayout from '@/layouts/CallLayout.astro';
-import PharmacyCareAccess from '@/components/pharmacy/PharmacyCareAccess.astro';
+import { PharmacyExpressConsultation } from '@/components/pharmacy/PharmacyExpressConsultation';
+import { createAstroAdminClient } from '@/lib/supabase';
 
 export const prerender = false;
 
 const { pharmacyId } = Astro.params;
+let pharmacyName = 'Farmacia Adherida';
+if (pharmacyId) {
+  try {
+    const admin = createAstroAdminClient(Astro.locals.runtime?.env);
+    const { data } = await admin
+      .from('pharmacies')
+      .select('name')
+      .eq('id', pharmacyId)
+      .maybeSingle();
+    if (data?.name) pharmacyName = data.name;
+  } catch {
+    // Keep the generic label when the QR has no verified pharmacy name.
+  }
+}
 const title = 'Consulta Exprés en Farmacia • AutaMedica';
 const description = 'Videoconsulta bajo demanda según tu país de atención y evaluación médica.';
 ---
 
 <CallLayout title={title} description={description}>
-  <PharmacyCareAccess pharmacyId={pharmacyId} />
+  <PharmacyExpressConsultation
+    client:load
+    pharmacyId={pharmacyId}
+    pharmacyName={pharmacyName}
+  />
 </CallLayout>

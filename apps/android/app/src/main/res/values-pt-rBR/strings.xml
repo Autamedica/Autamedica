@@ -284,9 +284,5 @@
     <string name="doctor_guard_notification_channel">Plantão médico ativo</string>
     <string name="doctor_guard_notification_title">Plantão ativo</string>
     <string name="doctor_guard_notification_text">Aguardando pacientes</string>
-    <string name="notification_dispatch_channel">Consultas de plantão</string>
-    <string name="notification_dispatch_text">Nova consulta de farmácia disponível</string>
-    <string name="notification_dispatch_title">Nova consulta de plantão</string>
-    <string name="notification_dispatch_title_default">Nova consulta de farmácia</string>
     <string name="jordan_payment_start_message">Confirme o pagamento para iniciar sua videoconsulta agora.</string>
 </resources>

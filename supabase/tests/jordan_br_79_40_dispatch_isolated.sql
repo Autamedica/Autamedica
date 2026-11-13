@@ -115,7 +115,14 @@ BEGIN
     id,user_id,license_type,license_number,uf_brazil,specialty,active
   ) VALUES (
     v_doc,v_user,'CRM','CI-'||v_doc::text,'RS','Medicina General',true
-  );
+  )
+  ON CONFLICT (user_id) DO UPDATE SET
+    license_type=EXCLUDED.license_type,
+    license_number=EXCLUDED.license_number,
+    uf_brazil=EXCLUDED.uf_brazil,
+    specialty=EXCLUDED.specialty,
+    active=EXCLUDED.active
+  RETURNING id INTO v_doc;
   -- Service tiers are privileged operational permissions. Enable the synthetic
   -- generalist as the synthetic administrator, never as the doctor itself.
   PERFORM set_config(
