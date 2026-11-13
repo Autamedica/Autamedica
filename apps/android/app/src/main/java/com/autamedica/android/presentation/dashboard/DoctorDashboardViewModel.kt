@@ -216,6 +216,7 @@ class DoctorDashboardViewModel @Inject constructor(
     private var dispatchEngineJob: Job? = null
     private var heartbeatJob: Job? = null
     private var networkObservationJob: Job? = null
+    private var fcmRegistrationJob: Job? = null
     private val heartbeatTrigger = kotlinx.coroutines.channels.Channel<Unit>(kotlinx.coroutines.channels.Channel.CONFLATED)
 
     private fun startHeartbeat(doctorIdParam: String? = null) {
@@ -278,14 +279,43 @@ class DoctorDashboardViewModel @Inject constructor(
 
     private suspend fun registerGuardFcmToken() {
         // Tests without an Android application context keep the existing pure-VM path.
-        val context = applicationContext ?: return
+        applicationContext ?: return
         val notifications = notificationRepository
             ?: error("NotificationRepository unavailable for guard activation")
-        val token = FirebaseMessaging.getInstance().token.await()
-            .takeIf { it.isNotBlank() }
+        val token = kotlinx.coroutines.withTimeout(10_000L) {
+            FirebaseMessaging.getInstance().token.await()
+        }.takeIf { it.isNotBlank() }
             ?: error("Firebase did not return a usable registration token")
         notifications.registerFcmToken(token).getOrThrow()
         SecureLog.info("[DoctorDashboard] Guard FCM destination registered")
+    }
+
+    /** FCM is optional for activation; retry transient failures while the foreground service maintains heartbeat. */
+    private fun scheduleGuardFcmRegistration() {
+        if (applicationContext == null || notificationRepository == null) return
+        fcmRegistrationJob?.cancel()
+        fcmRegistrationJob = viewModelScope.launch(ioDispatcher) {
+            var attempt = 0
+            while (isActive && _isOnDuty.value) {
+                runCatching { registerGuardFcmToken() }
+                    .onSuccess {
+                        SecureLog.info("[DoctorDashboard] Background guard FCM registration succeeded")
+                        return@launch
+                    }
+                    .onFailure { error ->
+                        attempt++
+                        val waitMs = (3_000L * (1L shl (attempt - 1).coerceAtMost(3)))
+                            .coerceAtMost(15_000L)
+                        SecureLog.warn("[DoctorDashboard] Guard remains active; FCM retry #$attempt in ${waitMs}ms: ${error.message}")
+                        delay(waitMs)
+                    }
+            }
+        }
+    }
+
+    private fun stopGuardFcmRegistration() {
+        fcmRegistrationJob?.cancel()
+        fcmRegistrationJob = null
     }
 
     private fun startPersistentGuardHeartbeat(doctorId: String) {
@@ -387,9 +417,6 @@ class DoctorDashboardViewModel @Inject constructor(
                         )
                     }
 
-                    // Register the current FCM token before the backend makes the
-                    // doctor eligible and before the UI displays the green state.
-                    registerGuardFcmToken()
                 }
 
                 pharmacyDispatchRepository.setDoctorDutyStatus(
@@ -399,12 +426,18 @@ class DoctorDashboardViewModel @Inject constructor(
                 ).getOrThrow()
 
                 if (onDuty) {
-                    // The RPC atomically stamps last_heartbeat_at. Confirm an
-                    // immediate authenticated heartbeat before advertising readiness.
-                    pharmacyDispatchRepository.sendDoctorHeartbeat(doctorId).getOrThrow()
+                    // Activate first. The foreground service maintains the 30s heartbeat
+                    // independently while FCM registration retries in the background.
                     startPersistentGuardHeartbeat(doctorId)
                     startHeartbeat(doctorId)
+                    _isOnDuty.value = true
+                    runCatching { pharmacyDispatchRepository.sendDoctorHeartbeat(doctorId) }
+                        .onFailure { error ->
+                            SecureLog.warn("[DoctorDashboard] Initial heartbeat delegated to foreground service: ${error.message}")
+                        }
+                    scheduleGuardFcmRegistration()
                 } else {
+                    stopGuardFcmRegistration()
                     stopHeartbeat()
                     stopPersistentGuardHeartbeat()
                 }
@@ -422,8 +455,8 @@ class DoctorDashboardViewModel @Inject constructor(
             } catch (error: Exception) {
                 SecureLog.error("[DoctorDashboard] Error toggling pharmacy duty", error)
                 if (onDuty) {
-                    // Roll back an activation that could not establish both push
-                    // delivery and the initial heartbeat. Never show a false green.
+                    // Only failure to persist/start guard rolls it back. FCM is retried separately.
+                    stopGuardFcmRegistration()
                     runCatching {
                         pharmacyDispatchRepository.setDoctorDutyStatus(
                             doctorId = doctorId,
@@ -442,7 +475,7 @@ class DoctorDashboardViewModel @Inject constructor(
                             isLoading = false,
                         ),
                         error = if (onDuty) {
-                            "No se pudo activar la guardia. Verificá las notificaciones y volvé a intentar."
+                            "No se pudo activar la guardia. Volvé a intentar."
                         } else {
                             "No se pudo actualizar el estado de guardia."
                         },
@@ -561,19 +594,16 @@ class DoctorDashboardViewModel @Inject constructor(
                     val active = duty.isOnDuty && authorized
                     if (active && applicationContext != null) {
                         try {
-                            registerGuardFcmToken()
-                            pharmacyDispatchRepository.sendDoctorHeartbeat(doctorId).getOrThrow()
                             startPersistentGuardHeartbeat(doctorId)
                             startHeartbeat(doctorId)
+                            _isOnDuty.value = true
+                            runCatching { pharmacyDispatchRepository.sendDoctorHeartbeat(doctorId) }
+                                .onFailure { error ->
+                                    SecureLog.warn("[DoctorDashboard] Restored guard heartbeat delegated to foreground service: ${error.message}")
+                                }
+                            scheduleGuardFcmRegistration()
                         } catch (error: Exception) {
-                            SecureLog.error("[DoctorDashboard] Could not restore persistent guard presence", error)
-                            runCatching {
-                                pharmacyDispatchRepository.setDoctorDutyStatus(
-                                    doctorId = doctorId,
-                                    isOnDuty = false,
-                                    activeTiers = listOf("general"),
-                                )
-                            }
+                            SecureLog.error("[DoctorDashboard] Could not restore persistent guard heartbeat", error)
                             stopHeartbeat()
                             stopPersistentGuardHeartbeat()
                             _isOnDuty.value = false
@@ -583,7 +613,7 @@ class DoctorDashboardViewModel @Inject constructor(
                                         isOnDuty = false,
                                         isLoading = false,
                                     ),
-                                    error = "No se pudo restaurar la guardia. Volvé a conectarte para registrar las notificaciones.",
+                                    error = "No se pudo restaurar la guardia activa.",
                                 )
                             }
                             return@onSuccess
@@ -591,6 +621,7 @@ class DoctorDashboardViewModel @Inject constructor(
                     } else if (active) {
                         startHeartbeat(doctorId)
                     } else {
+                        stopGuardFcmRegistration()
                         stopHeartbeat()
                         stopPersistentGuardHeartbeat()
                     }
