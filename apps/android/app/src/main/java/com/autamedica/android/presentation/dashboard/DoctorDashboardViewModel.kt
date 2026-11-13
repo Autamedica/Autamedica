@@ -1,5 +1,11 @@
 package com.autamedica.android.presentation.dashboard
 
+import android.content.Context
+import com.autamedica.android.domain.repository.NotificationRepository
+import com.autamedica.android.service.DoctorDutyHeartbeatService
+import com.google.firebase.messaging.FirebaseMessaging
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.tasks.await
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autamedica.android.domain.model.Appointment
@@ -78,6 +84,8 @@ class DoctorDashboardViewModel @Inject constructor(
     private val pharmacyDispatchRepository: PharmacyDispatchRepository,
     private val connectivityObserver: com.autamedica.android.util.ConnectivityObserver,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    @ApplicationContext private val applicationContext: Context? = null,
+    private val notificationRepository: NotificationRepository? = null,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DoctorDashboardUiState())
@@ -256,6 +264,28 @@ class DoctorDashboardViewModel @Inject constructor(
         networkObservationJob = null
     }
 
+    private suspend fun registerGuardFcmToken() {
+        // Tests without an Android application context keep the existing pure-VM path.
+        val context = applicationContext ?: return
+        val notifications = notificationRepository
+            ?: error("NotificationRepository unavailable for guard activation")
+        val token = FirebaseMessaging.getInstance().token.await()
+            .takeIf { it.isNotBlank() }
+            ?: error("Firebase did not return a usable registration token")
+        notifications.registerFcmToken(token).getOrThrow()
+        SecureLog.info("[DoctorDashboard] Guard FCM destination registered")
+    }
+
+    private fun startPersistentGuardHeartbeat(doctorId: String) {
+        applicationContext?.let { context ->
+            DoctorDutyHeartbeatService.start(context, doctorId).getOrThrow()
+        }
+    }
+
+    private fun stopPersistentGuardHeartbeat() {
+        applicationContext?.let(DoctorDutyHeartbeatService::stop)
+    }
+
     private fun observeIncomingOffers() {
         incomingOffersJob?.cancel()
         incomingOffersJob = viewModelScope.launch {
@@ -318,28 +348,55 @@ class DoctorDashboardViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(pharmacyOnDutyState = it.pharmacyOnDutyState.copy(isLoading = true)) }
-            if (onDuty) {
-                val approval = pharmacyDispatchRepository.getMyGuardApproval().getOrNull()
-                if (approval?.approved != true) {
-                    stopHeartbeat()
-                    _isOnDuty.value = false
-                    _uiState.update { state ->
-                        state.copy(
-                            guardApproved = false,
-                            guardVerificationStatus = approval?.verificationStatus ?: "pending",
-                            pharmacyOnDutyState = state.pharmacyOnDutyState.copy(isOnDuty = false, isLoading = false),
-                            error = "La guardia necesita aprobación administrativa de la matrícula.",
+            try {
+                if (onDuty) {
+                    val approval = pharmacyDispatchRepository.getMyGuardApproval().getOrNull()
+                    if (approval?.approved != true) {
+                        stopHeartbeat()
+                        stopPersistentGuardHeartbeat()
+                        _isOnDuty.value = false
+                        _uiState.update { state ->
+                            state.copy(
+                                guardApproved = false,
+                                guardVerificationStatus = approval?.verificationStatus ?: "pending",
+                                pharmacyOnDutyState = state.pharmacyOnDutyState.copy(
+                                    isOnDuty = false,
+                                    isLoading = false,
+                                ),
+                                error = "La guardia necesita aprobación administrativa de la matrícula.",
+                            )
+                        }
+                        return@launch
+                    }
+                    _uiState.update {
+                        it.copy(
+                            guardApproved = true,
+                            guardVerificationStatus = approval.verificationStatus,
                         )
                     }
-                    return@launch
+
+                    // Register the current FCM token before the backend makes the
+                    // doctor eligible and before the UI displays the green state.
+                    registerGuardFcmToken()
                 }
-                _uiState.update { it.copy(guardApproved=true,guardVerificationStatus=approval.verificationStatus) }
-            }
-            pharmacyDispatchRepository.setDoctorDutyStatus(
-                doctorId = doctorId,
-                isOnDuty = onDuty,
-                activeTiers = listOf("general"),
-            ).onSuccess {
+
+                pharmacyDispatchRepository.setDoctorDutyStatus(
+                    doctorId = doctorId,
+                    isOnDuty = onDuty,
+                    activeTiers = listOf("general"),
+                ).getOrThrow()
+
+                if (onDuty) {
+                    // The RPC atomically stamps last_heartbeat_at. Confirm an
+                    // immediate authenticated heartbeat before advertising readiness.
+                    pharmacyDispatchRepository.sendDoctorHeartbeat(doctorId).getOrThrow()
+                    startPersistentGuardHeartbeat(doctorId)
+                    startHeartbeat(doctorId)
+                } else {
+                    stopHeartbeat()
+                    stopPersistentGuardHeartbeat()
+                }
+
                 _isOnDuty.value = onDuty
                 _uiState.update { state ->
                     state.copy(
@@ -347,25 +404,39 @@ class DoctorDashboardViewModel @Inject constructor(
                             isOnDuty = onDuty,
                             isLoading = false,
                         ),
+                        error = null,
                     )
                 }
-                if (onDuty) {
-                    startHeartbeat(doctorId)
-                } else {
-                    stopHeartbeat()
-                }
-            }.onFailure { error ->
+            } catch (error: Exception) {
                 SecureLog.error("[DoctorDashboard] Error toggling pharmacy duty", error)
-                // Keep the previously confirmed server state. Never start a false heartbeat.
+                if (onDuty) {
+                    // Roll back an activation that could not establish both push
+                    // delivery and the initial heartbeat. Never show a false green.
+                    runCatching {
+                        pharmacyDispatchRepository.setDoctorDutyStatus(
+                            doctorId = doctorId,
+                            isOnDuty = false,
+                            activeTiers = listOf("general"),
+                        )
+                    }
+                    stopHeartbeat()
+                    stopPersistentGuardHeartbeat()
+                    _isOnDuty.value = false
+                }
                 _uiState.update { state ->
                     state.copy(
                         pharmacyOnDutyState = state.pharmacyOnDutyState.copy(
+                            isOnDuty = if (onDuty) false else state.pharmacyOnDutyState.isOnDuty,
                             isLoading = false,
                         ),
-                        error = "No se pudo actualizar el estado de guardia.",
+                        error = if (onDuty) {
+                            "No se pudo activar la guardia. Verificá las notificaciones y volvé a intentar."
+                        } else {
+                            "No se pudo actualizar el estado de guardia."
+                        },
                     )
                 }
-                loadPharmacyDuty(doctorId)
+                if (!onDuty) loadPharmacyDuty(doctorId)
             }
         }
     }
@@ -475,23 +546,60 @@ class DoctorDashboardViewModel @Inject constructor(
             }
             pharmacyDispatchRepository.getDoctorDutyStatus(doctorId)
                 .onSuccess { duty ->
-                    _isOnDuty.value = duty.isOnDuty && authorized
+                    val active = duty.isOnDuty && authorized
+                    if (active && applicationContext != null) {
+                        try {
+                            registerGuardFcmToken()
+                            pharmacyDispatchRepository.sendDoctorHeartbeat(doctorId).getOrThrow()
+                            startPersistentGuardHeartbeat(doctorId)
+                            startHeartbeat(doctorId)
+                        } catch (error: Exception) {
+                            SecureLog.error("[DoctorDashboard] Could not restore persistent guard presence", error)
+                            runCatching {
+                                pharmacyDispatchRepository.setDoctorDutyStatus(
+                                    doctorId = doctorId,
+                                    isOnDuty = false,
+                                    activeTiers = listOf("general"),
+                                )
+                            }
+                            stopHeartbeat()
+                            stopPersistentGuardHeartbeat()
+                            _isOnDuty.value = false
+                            _uiState.update { state ->
+                                state.copy(
+                                    pharmacyOnDutyState = state.pharmacyOnDutyState.copy(
+                                        isOnDuty = false,
+                                        isLoading = false,
+                                    ),
+                                    error = "No se pudo restaurar la guardia. Volvé a conectarte para registrar las notificaciones.",
+                                )
+                            }
+                            return@onSuccess
+                        }
+                    } else if (active) {
+                        startHeartbeat(doctorId)
+                    } else {
+                        stopHeartbeat()
+                        stopPersistentGuardHeartbeat()
+                    }
+
+                    _isOnDuty.value = active
                     _uiState.update { state ->
                         state.copy(
                             pharmacyOnDutyState = state.pharmacyOnDutyState.copy(
-                                isOnDuty = duty.isOnDuty && authorized,
+                                isOnDuty = active,
                                 isLoading = false,
                             ),
                         )
                     }
-                    if (duty.isOnDuty && authorized) {
-                        startHeartbeat(doctorId)
-                    } else {
-                        stopHeartbeat()
-                    }
                 }
                 .onFailure { error ->
                     SecureLog.warn("[DoctorDashboard] Failed loading pharmacy duty status: ${error.message}")
+                    _uiState.update { state ->
+                        state.copy(
+                            pharmacyOnDutyState = state.pharmacyOnDutyState.copy(isLoading = false),
+                        )
+                    }
                 }
         }
     }

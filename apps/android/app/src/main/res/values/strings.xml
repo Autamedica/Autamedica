@@ -271,5 +271,7 @@
     <string name="patient_home_immediate_cta">Solicitar atención ahora</string>
     <string name="patient_home_immediate_hint">Sin reservar turno · Médico disponible</string>
     <string name="patient_home_scheduled_cta">Consulta programada · Reservar turno</string>
-    <string name="jordan_payment_start_message">Confirmá el pago para iniciar tu videoconsulta ahora.</string>
+    <string name="doctor_guard_notification_channel">Guardia médica activa</string>
+    <string name="doctor_guard_notification_title">Guardia activa</string>
+    <string name="doctor_guard_notification_text">Esperando pacientes</string>
 </resources>
