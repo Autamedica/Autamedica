@@ -12,6 +12,7 @@ import com.autamedica.android.service.NotificationHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.realtime.PostgresAction
@@ -61,12 +62,17 @@ class NotificationRepositoryImpl @Inject constructor(
             val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
                 ?: throw IllegalStateException("No user ID found — cannot register FCM token")
 
-            supabaseClient.postgrest
+            val persistedToken = supabaseClient.postgrest
                 .from("profiles")
                 .update(FcmTokenDto(fcmToken = token, platform = "android")) {
                     filter { eq("user_id", userId) }
+                    select(Columns.list("fcm_token", "device_platform"))
                 }
+                .decodeSingleOrNull<FcmTokenDto>()
 
+            check(persistedToken?.fcmToken == token && persistedToken.platform == "android") {
+                "Supabase did not confirm persistence of the active FCM token"
+            }
             securePreferences.putString(KEY_FCM_TOKEN, token)
             Timber.d("[Notifications] FCM token registered")
         }.onFailure {
