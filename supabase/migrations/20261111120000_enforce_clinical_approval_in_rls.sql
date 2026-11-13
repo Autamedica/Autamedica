@@ -210,7 +210,7 @@ DECLARE
   ];
 BEGIN
   FOR v_policy IN
-    SELECT p.polname, c.relname,
+    SELECT p.polname, c.relname, p.polcmd,
            pg_get_expr(p.polqual, p.polrelid) AS using_expr,
            pg_get_expr(p.polwithcheck, p.polrelid) AS check_expr
     FROM pg_policy p
