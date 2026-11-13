@@ -510,7 +510,7 @@ async function validateDeliveryReadiness(
   const channelEnabled = decision.channel === 'whatsapp_openclaw' || decision.channel === 'whatsapp_business_api'
     ? switches.whatsapp_send_enabled
     : switches.email_send_enabled;
-  if (!channelEnabled) {
+  if (!switches.dry_run_enabled && !channelEnabled) {
     return { ok: false, reason: `Channel disabled in Admin: ${decision.channel}` };
   }
 
