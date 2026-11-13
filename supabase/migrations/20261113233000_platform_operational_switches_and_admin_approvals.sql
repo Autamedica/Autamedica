@@ -20,8 +20,8 @@ alter table public.platform_operational_switches enable row level security;
 drop policy if exists platform_operational_switches_admin_all on public.platform_operational_switches;
 create policy platform_operational_switches_admin_all on public.platform_operational_switches
 for all to authenticated
-using (coalesce(auth.jwt()->'app_metadata'->>'role','') in ('admin','platform_admin','organization_admin'))
-with check (coalesce(auth.jwt()->'app_metadata'->>'role','') in ('admin','platform_admin','organization_admin'));
+using ((coalesce(auth.jwt()->>'role','') = 'admin' or coalesce(auth.jwt()->'app_metadata'->>'role','') = 'admin' or coalesce(auth.jwt()->'user_metadata'->>'role','') = 'admin'))
+with check ((coalesce(auth.jwt()->>'role','') = 'admin' or coalesce(auth.jwt()->'app_metadata'->>'role','') = 'admin' or coalesce(auth.jwt()->'user_metadata'->>'role','') = 'admin'));
 grant select, insert, update on public.platform_operational_switches to authenticated;
 grant all on public.platform_operational_switches to service_role;
 
@@ -47,7 +47,7 @@ alter table public.admin_approval_decisions enable row level security;
 drop policy if exists admin_approval_decisions_admin_all on public.admin_approval_decisions;
 create policy admin_approval_decisions_admin_all on public.admin_approval_decisions
 for all to authenticated
-using (coalesce(auth.jwt()->'app_metadata'->>'role','') in ('admin','platform_admin','organization_admin'))
-with check (coalesce(auth.jwt()->'app_metadata'->>'role','') in ('admin','platform_admin','organization_admin'));
+using ((coalesce(auth.jwt()->>'role','') = 'admin' or coalesce(auth.jwt()->'app_metadata'->>'role','') = 'admin' or coalesce(auth.jwt()->'user_metadata'->>'role','') = 'admin'))
+with check ((coalesce(auth.jwt()->>'role','') = 'admin' or coalesce(auth.jwt()->'app_metadata'->>'role','') = 'admin' or coalesce(auth.jwt()->'user_metadata'->>'role','') = 'admin'));
 grant select, insert, update on public.admin_approval_decisions to authenticated;
 grant all on public.admin_approval_decisions to service_role;
