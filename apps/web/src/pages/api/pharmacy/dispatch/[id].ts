@@ -1,9 +1,10 @@
 import type { APIRoute } from 'astro'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { internalError, jsonOk, notFound, unauthorized } from '@/lib/api-helpers'
+import { conflict, internalError, jsonOk, notFound, unauthorized } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { resolveGuestSecret } from '@/lib/runtime-env'
 import { verifyGuestToken } from '@/lib/calls/lib/guest-token'
+import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { logger } from '@autamedica/shared'
 
 /**
@@ -165,6 +166,39 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     return jsonOk({ request: requestRecord, doctor })
   } catch (err) {
     logger.error('[api/pharmacy/dispatch/[id]] Exception', { err })
+    return internalError()
+  }
+}
+
+/**
+ * DELETE /api/pharmacy/dispatch/[id]
+ * Cancels only the authenticated patient's own still-searching request.
+ * The legacy Gen 1 cancellation endpoint remains available for old clients.
+ */
+export const DELETE: APIRoute = async ({ params, request, locals }) => {
+  try {
+    const context = await resolvePatientContext(request, locals)
+    if (!context?.careCountry) return unauthorized()
+    const id = params.id?.trim()
+    if (!id) return notFound('missing_request_id')
+
+    const admin = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient
+    const { data, error } = await admin
+      .from('pharmacy_dispatch_requests')
+      .update({ status: 'cancelled' })
+      .eq('id', id)
+      .eq('patient_id', context.patientId)
+      .eq('requested_by_user_id', context.userId)
+      .eq('care_country', context.careCountry)
+      .eq('status', 'searching')
+      .select('id')
+      .maybeSingle()
+
+    if (error) return internalError()
+    if (!data) return conflict('request_cannot_be_cancelled')
+    return jsonOk({ cancelled: true })
+  } catch (err) {
+    logger.error('[api/pharmacy/dispatch/[id]] DELETE exception', { err })
     return internalError()
   }
 }
