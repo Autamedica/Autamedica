@@ -462,11 +462,45 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     expect(supabaseMock.from).not.toHaveBeenCalled()
   })
 
-  it('requires authenticated patient identity before creating a clinical request', async () => {
+  it('creates a guest QR request without an auth.users account and returns recovery credentials', async () => {
     vi.mocked(resolvePatientContext).mockResolvedValue(null)
+    const dispatchRow = {
+      id: 'guest-dispatch-qr-123',
+      care_country: 'AR',
+      patient_id: null,
+      requested_by_user_id: null,
+      patient_dni: '38123456',
+      patient_name: 'Ana Gomez',
+      patient_phone: '+5491122334455',
+      status: 'searching',
+    }
+    const dispatchTable = buildTableChain(dispatchRow)
+    const recoveryTable = buildTableChain(null)
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_requests') return dispatchTable
+      if (table === 'pharmacy_guest_dispatch_sessions') return recoveryTable
+      return buildTableChain(null)
+    })
+
     const response = await POST(makeContext())
-    expect(response.status).toBe(401)
-    expect(supabaseMock.from).not.toHaveBeenCalledWith('pharmacy_dispatch_requests')
+    expect(response.status).toBe(200)
+    const payload = await response.json()
+    expect(payload.data.request.id).toBe(dispatchRow.id)
+    expect(payload.data.accessToken).toBeDefined()
+    expect(payload.data.recoveryToken).toMatch(/^[0-9a-f]{64}$/)
+    expect(dispatchTable.insert).toHaveBeenCalledWith(expect.objectContaining({
+      care_country: 'AR',
+      patient_id: null,
+      requested_by_user_id: null,
+      patient_dni: '38123456',
+      patient_cpf: null,
+      patient_name: 'Ana Gomez',
+      patient_phone: '+5491122334455',
+    }))
+    expect(recoveryTable.insert).toHaveBeenCalledWith(expect.objectContaining({
+      request_id: dispatchRow.id,
+      token_sha256: expect.any(String),
+    }))
   })
 
   it('does not infer a missing patient care country', async () => {
