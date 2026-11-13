@@ -50,7 +50,10 @@ BEGIN
   -- precisely an AR offer and must NEVER target the BR request.
   INSERT INTO auth.users(id,email,raw_user_meta_data)
     VALUES(v_admin_user,'queue-admin-ci-'||v_admin_user||'@example.invalid','{"role":"admin"}'::jsonb);
-  UPDATE public.profiles SET active=true WHERE user_id=v_admin_user;
+  UPDATE public.profiles SET active=true, role='platform_admin' WHERE user_id=v_admin_user;
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE user_id=v_admin_user AND active IS TRUE AND role::text='platform_admin') THEN
+    RAISE EXCEPTION 'Synthetic platform administrator fixture was not created';
+  END IF;
 
   INSERT INTO auth.users(id,email)
     VALUES(v_doctor_user,'queue-ci-'||v_doctor_user||'@example.invalid');
@@ -65,6 +68,8 @@ BEGIN
   -- authenticated platform administrator may enable the doctor's tiers.
   PERFORM set_config('request.jwt.claim.sub',v_admin_user::text,true);
   PERFORM set_config('request.jwt.claim.role','authenticated',true);
+  PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_admin_user::text,'role','authenticated')::text,true);
+  IF auth.uid() IS DISTINCT FROM v_admin_user THEN RAISE EXCEPTION 'Synthetic admin JWT subject was not installed'; END IF;
   UPDATE public.doctors SET enabled_service_tiers=ARRAY['general']::text[] WHERE id=v_doctor;
   PERFORM set_config('request.jwt.claim.sub',v_doctor_user::text,true);
   PERFORM set_config('request.jwt.claim.role','service_role',true);
