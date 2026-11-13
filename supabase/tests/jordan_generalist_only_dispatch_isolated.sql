@@ -21,6 +21,7 @@ DECLARE
   v_cardiologist uuid := gen_random_uuid();
   v_generalist uuid := gen_random_uuid();
   v_ar_general uuid := gen_random_uuid();
+  v_reviewer uuid := gen_random_uuid();
   v_request_specialist uuid;
   v_request_generalist uuid;
   v_partner uuid;
@@ -64,6 +65,9 @@ BEGIN
     INSERT INTO auth.users(id,email)
     VALUES(v_user,'jordan-general-service-test-'||v_user||'@example.invalid');
   END LOOP;
+  INSERT INTO auth.users(id,email)
+  VALUES(v_reviewer,'jordan-general-cfm-reviewer-ci-'||v_reviewer||'@example.invalid');
+  UPDATE public.profiles SET role='admin',active=true WHERE user_id=v_reviewer;
 
   INSERT INTO public.doctors(
     id,user_id,license_type,license_number,uf_brazil,specialty,active,care_country
@@ -74,12 +78,20 @@ BEGIN
     (v_ar_general,v_ar_general,'MN','CI-'||v_ar_general::text,NULL,'Clínica Geral',true,'AR');
 
   INSERT INTO public.doctor_licenses(
-    doctor_id,license_type,license_number,uf_brazil,status,cfm_validation_status
+    doctor_id,license_type,license_number,uf_brazil,status,cfm_validation_status,
+    cfm_evidence_path,cfm_review_notes,cfm_reviewed_by,cfm_reviewed_at,cfm_last_checked_at
   ) VALUES
-    (v_psychiatrist,'CRM','CI-'||v_psychiatrist::text,'RS','active','valid'),
-    (v_cardiologist,'CRM','CI-'||v_cardiologist::text,'RS','active','valid'),
-    (v_generalist,'CRM','CI-'||v_generalist::text,'RS','active','valid'),
-    (v_ar_general,'MN','CI-'||v_ar_general::text,NULL,'active','valid');
+    (v_psychiatrist,'CRM','CI-'||v_psychiatrist::text,'RS','active','valid',
+      'ci/'||v_psychiatrist::text||'/synthetic-cfm-evidence.pdf',
+      'Synthetic manually reviewed CFM credential for isolated test',v_reviewer,now(),now()),
+    (v_cardiologist,'CRM','CI-'||v_cardiologist::text,'RS','active','valid',
+      'ci/'||v_cardiologist::text||'/synthetic-cfm-evidence.pdf',
+      'Synthetic manually reviewed CFM credential for isolated test',v_reviewer,now(),now()),
+    (v_generalist,'CRM','CI-'||v_generalist::text,'RS','active','valid',
+      'ci/'||v_generalist::text||'/synthetic-cfm-evidence.pdf',
+      'Synthetic manually reviewed CFM credential for isolated test',v_reviewer,now(),now()),
+    (v_ar_general,'MN','CI-'||v_ar_general::text,NULL,'active','pending',
+      NULL,NULL,NULL,NULL,NULL);
 
   IF NOT app_private.is_jordan_br_eligible_doctor(v_psychiatrist)
      OR NOT app_private.is_jordan_br_eligible_doctor(v_cardiologist)

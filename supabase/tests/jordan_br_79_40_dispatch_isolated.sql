@@ -23,6 +23,7 @@ DECLARE
   v_partner uuid;
   v_doc uuid := gen_random_uuid();
   v_user uuid := gen_random_uuid();
+  v_reviewer uuid := gen_random_uuid();
   v_offer numeric;
   v_payment uuid;
   v_claim jsonb;
@@ -102,6 +103,9 @@ BEGIN
 
   INSERT INTO auth.users(id,email)
   VALUES(v_user,'jordan-tariff-ci-'||v_user||'@example.invalid');
+  INSERT INTO auth.users(id,email)
+  VALUES(v_reviewer,'jordan-cfm-reviewer-ci-'||v_reviewer||'@example.invalid');
+  UPDATE public.profiles SET role='admin',active=true WHERE user_id=v_reviewer;
   -- The dispatch approval RPC requires explicit BR jurisdiction; doctors.care_country
   -- has NULL as its default and is not inferred from CRM on INSERT.
   INSERT INTO public.doctors(
@@ -110,8 +114,14 @@ BEGIN
     v_doc,v_user,'BR','CRM','CI-'||v_doc::text,'RS','Medicina General',true
   );
   INSERT INTO public.doctor_licenses(
-    doctor_id,license_type,license_number,uf_brazil,status,cfm_validation_status
-  ) VALUES(v_doc,'CRM','CI-'||v_doc::text,'RS','active','valid');
+    doctor_id,license_type,license_number,uf_brazil,status,cfm_validation_status,
+    cfm_evidence_path,cfm_review_notes,cfm_reviewed_by,cfm_reviewed_at,cfm_last_checked_at
+  ) VALUES(
+    v_doc,'CRM','CI-'||v_doc::text,'RS','active','valid',
+    'ci/'||v_doc::text||'/synthetic-cfm-evidence.pdf',
+    'Synthetic manually reviewed CFM credential for isolated test',
+    v_reviewer,now(),now()
+  );
 
   IF NOT app_private.is_doctor_dispatch_approved(v_doc) THEN
     RAISE EXCEPTION 'Synthetic BR doctor must be CRM-approved';
