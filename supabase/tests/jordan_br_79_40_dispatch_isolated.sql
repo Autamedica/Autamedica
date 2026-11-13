@@ -18,6 +18,7 @@ SET search_path TO '' AS $mock_push$ SELECT 1::bigint $mock_push$;
 DO $test$
 DECLARE
   v_jordan uuid;
+  v_jordan_unpaid_probe uuid;
   v_br uuid;
   v_ar uuid;
   v_partner uuid;
@@ -39,6 +40,17 @@ BEGIN
       '5551900000101','12345678909','SYNTHETIC JORDAN ONLY','general','BR',
       'ci-jordan-br-'||gen_random_uuid()::text,'searching',v_partner
   ) RETURNING id INTO v_jordan;
+
+  -- Separate unpaid request lets this fixture probe the matcher-level gate
+  -- without retaining a row lock on the request whose PSP approval trigger
+  -- must later dispatch the real synthetic offer.
+  INSERT INTO public.pharmacy_dispatch_requests(
+      patient_phone,patient_cpf,patient_name,tier_requested,care_country,
+      cloudflare_room_id,status,referral_partner_id
+  ) VALUES (
+      '5551900000199','12345678909','SYNTHETIC JORDAN UNPAID PROBE','general','BR',
+      'ci-jordan-unpaid-probe-'||gen_random_uuid()::text,'searching',v_partner
+  ) RETURNING id INTO v_jordan_unpaid_probe;
 
   IF NOT EXISTS(
     SELECT 1 FROM public.pharmacy_dispatch_requests
@@ -146,13 +158,14 @@ BEGIN
   ) VALUES(v_doc,true,now(),now(),ARRAY['general']::public.dispatch_tier_category[]);
 
   -- Neither the presence trigger nor a direct RPC may bypass the PSP gate.
-  SELECT public.match_dispatch_doctors(v_jordan) INTO v_claim;
+  SELECT public.match_dispatch_doctors(v_jordan_unpaid_probe) INTO v_claim;
   IF v_claim->>'code' IS DISTINCT FROM 'JORDAN_PAYMENT_REQUIRED' THEN
     RAISE EXCEPTION 'Unpaid Jordan request must remain queued: %', v_claim;
   END IF;
   IF EXISTS (
     SELECT 1 FROM public.dispatch_offers
-    WHERE dispatch_request_id=v_jordan AND doctor_id=v_doc
+    WHERE dispatch_request_id IN (v_jordan,v_jordan_unpaid_probe)
+      AND doctor_id=v_doc
       AND status IN ('pending','accepted')
   ) THEN
     RAISE EXCEPTION 'Jordan physician offer was emitted before payment approval';
