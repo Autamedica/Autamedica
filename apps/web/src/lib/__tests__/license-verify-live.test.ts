@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({
   tokenSecret: 'test-only', domainUrl: 'https://test.invalid', role: 'admin', sessionUser: true, authHeader: 'Bearer test-user',
-  firstName: 'Nombre', lastName: 'Prueba', validatorConfig: vi.fn(),
-  createAdmin: vi.fn(), verify: vi.fn(), updateProfile: vi.fn(), updateDoctor: vi.fn(), updateLicense: vi.fn(),
+  firstName: 'Nombre', lastName: 'Prueba', licenseNumber: '123456', licenseType: 'MN', province: 'CABA', validatorConfig: vi.fn(),
+  createAdmin: vi.fn(), verify: vi.fn(), updateProfile: vi.fn(), updateDoctor: vi.fn(), upsertLicense: vi.fn(),
 }));
 vi.mock('@autamedica/shared', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
 vi.mock('@/lib/supabase', () => ({ createAstroAdminClient: state.createAdmin }));
@@ -25,22 +25,23 @@ async function call(host = 'www.autamedica.com', body: unknown = { doctorId: 'te
 beforeEach(() => {
   vi.restoreAllMocks(); vi.unstubAllGlobals();
   state.tokenSecret = 'test-only'; state.domainUrl = 'https://test.invalid';
-  state.firstName = 'Nombre'; state.lastName = 'Prueba'; state.validatorConfig.mockReset();
+  state.firstName = 'Nombre'; state.lastName = 'Prueba'; state.licenseNumber = '123456'; state.licenseType = 'MN'; state.province = 'CABA'; state.validatorConfig.mockReset();
   state.role = 'admin'; state.sessionUser = true; state.authHeader = 'Bearer test-user';
-  state.verify.mockReset(); state.updateProfile.mockReset(); state.updateDoctor.mockReset(); state.updateLicense.mockReset();
-  state.updateLicense.mockResolvedValue({ error: null });
+  state.verify.mockReset(); state.updateProfile.mockReset(); state.updateDoctor.mockReset(); state.upsertLicense.mockReset();
   state.createAdmin.mockReset();
   state.updateProfile.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
   state.updateDoctor.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
+  state.upsertLicense.mockResolvedValue({ error: null });
   const query = (data: unknown) => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data, error: null }) }) }) });
   state.createAdmin.mockReturnValue({ auth: { getUser: async () => ({ data: { user: { id: 'test-user' } }, error: null }) }, from: (name: string) => {
     if (name === 'profiles') return { ...query({ role: state.role, first_name: state.firstName, last_name: state.lastName }), update: state.updateProfile };
     if (name === 'doctors') return {
-      ...query({ id: 'test-doctor', user_id: 'test-user', license_number: '123456',
-        enrollment_jurisdiction: 'CABA', enrollment_entity: 'Ministerio de Salud', refeps_id: '541000000001' }),
+      ...query({ id: 'test-doctor', user_id: 'test-user', license_number: state.licenseNumber, license_type: state.licenseType,
+        enrollment_jurisdiction: state.province, enrollment_entity: 'Ministerio de Salud', refeps_id: '541000000001' }),
       update: state.updateDoctor,
     };
-    return { upsert: state.updateLicense };
+    if (name === 'doctor_licenses') return { upsert: state.upsertLicense };
+    return { upsert: vi.fn().mockResolvedValue({ error: null }) };
   } });
 });
 
@@ -182,21 +183,52 @@ describe('administrative official license verification', () => {
     expect((await call('www.autamedica.com', { doctorId: 'test-doctor', persist: true })).status).toBe(503);
     expect(state.updateProfile).not.toHaveBeenCalled();
   });
-  it('does not mark SSS valid when the required verified license fails to persist', async () => {
+  it('never marks a profile valid when persisting its official license fails', async () => {
     state.verify.mockResolvedValue({ isValid: true, source: 'national_refeps_api', registrationStatus: 'active',
       matriculaNumber: '123456', practitionerId: '541000000001' });
-    state.updateLicense.mockResolvedValue({ error: { message: 'simulated doctor_licenses write failure' } });
+    state.upsertLicense.mockResolvedValue({ error: { message: 'license insert denied' } });
     const response = await call('www.autamedica.com', { doctorId: 'test-doctor', persist: true });
-    expect(response.status).toBe(500);
-    expect(state.updateLicense).toHaveBeenCalledOnce();
+    const payload = await response.json();
+    expect(response.status).toBe(503);
+    expect(payload.error.details.reason).toBe('REFEPS_LICENSE_PERSIST_FAILED');
+    expect(state.upsertLicense).toHaveBeenCalledOnce();
     expect(state.updateProfile).not.toHaveBeenCalled();
     expect(state.updateDoctor).not.toHaveBeenCalled();
+  });
+  it('persists the official license before recording SSS approval', async () => {
+    state.verify.mockResolvedValue({ isValid: true, source: 'national_refeps_api', registrationStatus: 'active',
+      matriculaNumber: '123456', practitionerId: '541000000001' });
+    expect((await call('www.autamedica.com', { doctorId: 'test-doctor', persist: true })).status).toBe(200);
+    expect(state.upsertLicense).toHaveBeenCalledWith(
+      expect.objectContaining({ license_number: '123456', license_type: 'MN', status: 'active' }),
+      expect.objectContaining({ onConflict: 'doctor_id,province,license_number' }),
+    );
+    expect(state.upsertLicense.mock.invocationCallOrder[0]).toBeLessThan(state.updateProfile.mock.invocationCallOrder[0]);
+  });
+  it('prefers an explicit MP prefix to a stale stored MN type', async () => {
+    state.licenseNumber = 'MP341139';
+    state.licenseType = 'MN';
+    state.province = 'Buenos Aires';
+    state.verify.mockResolvedValue({ isValid: true, source: 'national_refeps_api', registrationStatus: 'active',
+      matriculaNumber: '341139', practitionerId: '541000000001' });
+    expect((await call('www.autamedica.com', { doctorId: 'test-doctor', persist: true })).status).toBe(200);
+    expect(state.verify).toHaveBeenCalledWith('MP341139', 'MP', 'Buenos Aires');
+    expect(state.upsertLicense).toHaveBeenCalledWith(expect.objectContaining({ license_type: 'MP' }), expect.anything());
+    expect(state.updateDoctor).toHaveBeenCalledWith(expect.objectContaining({ license_type: 'MP' }));
+  });
+  it('uses an explicit stored MN type for an unprefixed matricula even in Buenos Aires', async () => {
+    state.licenseNumber = '164231';
+    state.licenseType = 'MN';
+    state.province = 'Buenos Aires';
+    state.verify.mockResolvedValue({ isValid: true, source: 'national_refeps_api', registrationStatus: 'active' });
+    expect((await call()).status).toBe(200);
+    expect(state.verify).toHaveBeenCalledWith('164231', 'MN', 'Buenos Aires');
   });
   it('persists a valid official result only when requested', async () => {
     state.verify.mockResolvedValue({ isValid: true, source: 'national_refeps_api', registrationStatus: 'active',
       matriculaNumber: '123456', practitionerId: '541000000001' });
     expect((await call('www.autamedica.com', { doctorId: 'test-doctor', persist: true })).status).toBe(200);
     expect(state.updateProfile).toHaveBeenCalledWith(expect.objectContaining({ sss_validation_status: 'valid' }));
-    expect(state.updateDoctor).toHaveBeenCalledWith({ refeps_id: '541000000001', license_number: '123456', enrollment_jurisdiction: 'CABA' });
+    expect(state.updateDoctor).toHaveBeenCalledWith({ license_type: 'MN', refeps_id: '541000000001', license_number: '123456', enrollment_jurisdiction: 'CABA' });
   });
 });
