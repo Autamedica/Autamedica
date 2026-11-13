@@ -5,7 +5,7 @@ import { useAuthenticatedUser } from "@/hooks/doctors/useAuthenticatedUser";
 import { useRealPatients } from "@/hooks/doctors/useRealPatients";
 import { useDoctorAppointments } from "@/hooks/doctors/useDoctorAppointments";
 import { getDisplayName } from "@/lib/doctors/lib/utils";
-import { ArrowLeft, ArrowRight, Calendar, FileText, Users, Video, MessageSquare } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calendar, FileText, Users, Video, MessageSquare, FileQuestion } from "lucide-react";
 import { useMemo } from "react";
 import { PatientChat } from "@/components/doctors/patients/PatientChat";
 
@@ -179,6 +179,23 @@ export function DoctorsConsultationsPage() {
           </div>
         </section>
       </div>
+
+      <section className="rounded-xl border border-amber-200/60 bg-amber-50/50 p-5">
+        <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-amber-500 text-white">
+          <FileQuestion className="h-5 w-5" strokeWidth={1.5} />
+        </div>
+        <h2 className="text-base font-medium text-neutral-900">Aclaraciones de farmacia</h2>
+        <p className="mt-2 text-[13px] leading-relaxed text-neutral-400">
+          Cuando una farmacia necesite confirmar una pauta antes de dispensar, la consulta llega acá para responderla y destrabar la receta.
+        </p>
+        <a
+          href="/doctors/clarifications"
+          className="mt-5 inline-flex items-center gap-2 rounded-full bg-neutral-900 px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-neutral-800"
+        >
+          Revisar aclaraciones
+          <ArrowRight className="h-3.5 w-3.5" />
+        </a>
+      </section>
     </DoctorsPortalFrame>
   );
 }
