@@ -20,7 +20,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
  if(!isAuthed(auth)) return auth
  const body=await request.json().catch(()=>null) as {id?:string;decision?:string;notes?:string}|null
  if(!body?.id || !['APPROVED','REJECTED'].includes(body.decision ?? '')) return badRequest('invalid_approval_decision')
- const db=createAstroAdminClient(locals.runtime?.env)
+ const db=createAstroAdminClient(locals.runtime?.env) as any
  const {data,error}=await db.from('admin_approval_decisions').update({
   status:body.decision, reviewed_by:auth.user.id, reviewed_at:new Date().toISOString(),
   review_notes:typeof body.notes==='string'?body.notes.slice(0,2000):null, updated_at:new Date().toISOString(),
