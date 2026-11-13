@@ -72,6 +72,18 @@ BEGIN
   INSERT INTO public.doctors (id, user_id, license_number, specialty, active)
   SELECT doctor_a_id, u_doctor_a, 'LIC-RLS-A-' || fixture_suffix, 'Cardiology', true
   WHERE NOT EXISTS (SELECT 1 FROM public.doctors WHERE user_id = u_doctor_a);
+
+  -- Doctor A must represent a currently approved clinician under the clinical
+  -- authorization gate: active AR credential, administrator-validated profile,
+  -- and a matching active doctor_licenses row.
+  UPDATE public.doctors
+  SET license_type = 'MN', care_country = 'AR'
+  WHERE id = doctor_a_id;
+  UPDATE public.profiles
+  SET active = true, sss_validation_status = 'valid'
+  WHERE user_id = u_doctor_a;
+  INSERT INTO public.doctor_licenses (doctor_id, license_number, license_type, status)
+  VALUES (doctor_a_id, 'LIC-RLS-A-' || fixture_suffix, 'MN', 'active');
   INSERT INTO public.doctors (id, user_id, license_number, specialty, active)
   SELECT doctor_b_id, u_doctor_b, 'LIC-RLS-B-' || fixture_suffix, 'Neurology', false
   WHERE NOT EXISTS (SELECT 1 FROM public.doctors WHERE user_id = u_doctor_b);
