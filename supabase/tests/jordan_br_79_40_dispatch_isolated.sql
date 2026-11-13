@@ -153,6 +153,13 @@ BEGIN
   IF NOT app_private.is_doctor_dispatch_approved(v_doc) THEN
     RAISE EXCEPTION 'Synthetic BR doctor must be CRM-approved';
   END IF;
+  -- Keep ordinary BR/AR smoke requests out of the live queue before the
+  -- doctor-presence trigger fires; otherwise the oldest ordinary BR request
+  -- legitimately claims the only synthetic doctor before the paid Jordan probe.
+  UPDATE public.pharmacy_dispatch_requests
+  SET status='cancelled'
+  WHERE id IN (v_br,v_ar);
+
   INSERT INTO public.doctor_duty_status(
     doctor_id,is_on_duty,last_heartbeat_at,duty_started_at,active_tiers
   ) VALUES(v_doc,true,now(),now(),ARRAY['general']::public.dispatch_tier_category[]);
