@@ -202,7 +202,8 @@ BEGIN
  INSERT INTO public.appointments(doctor_id,patient_id,start_time,status) VALUES(v_doctor_id,v_patient_id,now()-interval '1 day','completed');
  INSERT INTO app_private.clinical_legacy_read_grants(doctor_id,patient_id,source,expires_at) VALUES(v_doctor_id,v_patient_id,'patient_care_team',now()+interval '30 days');
  INSERT INTO public.doctor_patient(doctor_id,patient_id) VALUES(v_doctor_id,(SELECT id FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000004'));
- INSERT INTO public.doctor_patient(doctor_id,patient_id) SELECT v_doctor_id,id FROM public.patients WHERE user_id IN ('a1100000-0000-4000-8000-000000000005','a1100000-0000-4000-8000-000000000006');
+ -- Deliberately do not create legacy doctor-patient links for BR or unknown-country
+ -- patients. The care-country trigger must reject those cross-jurisdiction pairs.
  INSERT INTO app_private.clinical_legacy_read_grants(doctor_id,patient_id,source,expires_at)
  SELECT v_doctor_id,id,'doctor_patient',now()+interval '30 days' FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000004';
  INSERT INTO public.appointments(doctor_id,patient_id,start_time,status) VALUES(v_doctor_id,(SELECT id FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000001'),now()+interval '2 days','scheduled');
