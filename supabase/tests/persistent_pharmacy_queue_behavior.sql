@@ -14,6 +14,7 @@ DECLARE
   v_br uuid;
   v_doctor uuid := gen_random_uuid();
   v_doctor_user uuid := gen_random_uuid();
+  v_admin_user uuid := gen_random_uuid();
   v_result jsonb;
 BEGIN
   -- No clinician online: the INSERT/dispatch trigger must leave both patients
@@ -47,6 +48,10 @@ BEGIN
 
   -- Activate one synthetic AR physician; his live heartbeat must trigger
   -- precisely an AR offer and must NEVER target the BR request.
+  INSERT INTO auth.users(id,email,raw_user_meta_data)
+    VALUES(v_admin_user,'queue-admin-ci-'||v_admin_user||'@example.invalid','{"role":"admin"}'::jsonb);
+  UPDATE public.profiles SET active=true WHERE user_id=v_admin_user;
+
   INSERT INTO auth.users(id,email)
     VALUES(v_doctor_user,'queue-ci-'||v_doctor_user||'@example.invalid');
   INSERT INTO public.doctors(
@@ -55,6 +60,14 @@ BEGIN
   IF (SELECT care_country FROM public.doctors WHERE id=v_doctor) <> 'AR' THEN
     RAISE EXCEPTION 'Generated doctor country mismatch';
   END IF;
+
+  -- The new matcher requires explicit service-tier enrollment. Only an
+  -- authenticated platform administrator may enable the doctor's tiers.
+  PERFORM set_config('request.jwt.claim.sub',v_admin_user::text,true);
+  PERFORM set_config('request.jwt.claim.role','authenticated',true);
+  UPDATE public.doctors SET enabled_service_tiers=ARRAY['general']::text[] WHERE id=v_doctor;
+  PERFORM set_config('request.jwt.claim.sub',v_doctor_user::text,true);
+  PERFORM set_config('request.jwt.claim.role','service_role',true);
 
   INSERT INTO public.doctor_licenses (doctor_id,license_number,license_type,province,status)
   VALUES (v_doctor,'CI-TEST-123','MN','CABA','active');
@@ -88,8 +101,8 @@ BEGIN
   END IF;
 
   INSERT INTO public.doctor_duty_status(
-      doctor_id,is_on_duty,last_heartbeat_at,duty_started_at)
-    VALUES(v_doctor,true,NOW(),NOW());
+      doctor_id,is_on_duty,active_tiers,last_heartbeat_at,duty_started_at)
+    VALUES(v_doctor,true,ARRAY['general']::public.dispatch_tier_category[],NOW(),NOW());
 
   IF NOT EXISTS(
        SELECT 1 FROM public.dispatch_offers o
