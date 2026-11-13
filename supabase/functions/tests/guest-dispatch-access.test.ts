@@ -5,7 +5,7 @@ const dispatch = {
   call_id: "call-9",
   cloudflare_room_id: "room-abc",
   assigned_doctor_id: "doctor-7",
-  status: "in_call",
+  status: "matched",
 }
 const guest = { callId: "dispatch-1", roomId: "room-abc" }
 const call = { id: "call-9", room_id: "room-abc", doctor_id: "doctor-7" }
@@ -16,9 +16,21 @@ Deno.test("pharmacy guest token resolves dispatch id to linked calls.id", () => 
   }
 })
 
-Deno.test("pharmacy guest token cannot enter before dispatch is in_call", () => {
-  if (guestDispatchCallMatches({ ...dispatch, status: "matched" }, guest, call)) {
-    throw new Error("unconfirmed dispatch must not receive media access")
+Deno.test("accepted matched dispatch can enter the linked call", () => {
+  if (!guestDispatchCallMatches(dispatch, guest, call)) {
+    throw new Error("accepted matched dispatch must be allowed into its linked call")
+  }
+})
+
+Deno.test("in-call dispatch remains authorized", () => {
+  if (!guestDispatchCallMatches({ ...dispatch, status: "in_call" }, guest, call)) {
+    throw new Error("in-call dispatch must retain media access")
+  }
+})
+
+Deno.test("searching or unaccepted dispatch cannot enter media", () => {
+  if (guestDispatchCallMatches({ ...dispatch, status: "searching" }, guest, call)) {
+    throw new Error("searching dispatch must not receive media access")
   }
 })
 

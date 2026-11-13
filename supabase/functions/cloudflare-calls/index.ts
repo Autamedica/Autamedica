@@ -337,7 +337,7 @@ export async function handler(req: Request): Promise<Response> {
             status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           })
         }
-        if (mediaDispatch.status !== 'in_call' ||
+        if (!['matched', 'in_call'].includes(mediaDispatch.status) ||
             !mediaDispatch.assigned_doctor_id ||
             !mediaDispatch.call_id) {
           return new Response(JSON.stringify({ error: 'dispatch_not_ready' }), {

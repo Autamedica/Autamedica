@@ -24,7 +24,7 @@ export function guestDispatchCallMatches(
   return Boolean(
     call &&
     (dispatch.id === guest.callId || dispatch.call_id === guest.callId) &&
-    dispatch.status === "in_call" &&
+    ["matched", "in_call"].includes(dispatch.status) &&
     dispatch.assigned_doctor_id &&
     dispatch.call_id === call.id &&
     dispatch.cloudflare_room_id === guest.roomId &&
