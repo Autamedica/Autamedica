@@ -128,6 +128,18 @@ class DoctorDashboardViewModel @Inject constructor(
                 )
             }
 
+            // Register a fresh FCM destination as soon as the doctor signs in.
+            // Guard activation refreshes and confirms the same token again before
+            // the backend marks the device reachable/on duty.
+            if (applicationContext != null && notificationRepository != null) {
+                viewModelScope.launch {
+                    runCatching { registerGuardFcmToken() }
+                        .onFailure { error ->
+                            SecureLog.warn("[DoctorDashboard] Login FCM token registration failed: ${error.message}")
+                        }
+                }
+            }
+
             // Load doctor profile to get doctor record ID
             val profileResult = doctorRepository.getDoctorProfile(user.id)
             profileResult.onSuccess { profile ->

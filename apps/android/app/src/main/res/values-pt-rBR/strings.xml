@@ -277,8 +277,8 @@
     <string name="patient_home_immediate_cta">Solicitar atendimento agora</string>
     <string name="patient_home_immediate_hint">Sem agendamento · Médico disponível</string>
     <string name="patient_home_scheduled_cta">Consulta programada · Reservar horário</string>
-    <string name="notification_dispatch_offer_title">Nova solicitação de plantão (R$ 40)</string>
-    <string name="notification_dispatch_offer_text">Paciente aguardando no plantão da farmácia</string>
+    <string name="notification_dispatch_offer_title">Nova consulta de farmácia disponível</string>
+    <string name="notification_dispatch_offer_text">Há uma consulta aguardando no seu plantão.</string>
     <string name="notification_dispatch_accept">Ver / Aceitar plantão</string>
     <string name="notification_dispatch_decline">Recusar</string>
     <string name="doctor_guard_notification_channel">Plantão médico ativo</string>

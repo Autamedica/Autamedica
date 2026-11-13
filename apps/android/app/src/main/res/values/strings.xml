@@ -45,8 +45,8 @@
     <string name="notification_dispatch_title">%1$s te espera en la guardia</string>
     <string name="notification_dispatch_title_default">Alguien te espera en la guardia</string>
     <string name="notification_dispatch_text">Solicitud de guardia inmediata</string>
-    <string name="notification_dispatch_offer_title">Solicitud de guardia inmediata</string>
-    <string name="notification_dispatch_offer_text">Paciente esperando en guardia de farmacia</string>
+    <string name="notification_dispatch_offer_title">Nueva consulta de farmacia disponible</string>
+    <string name="notification_dispatch_offer_text">Hay una consulta esperando en tu guardia.</string>
     <string name="notification_dispatch_accept">Ver / Aceptar guardia</string>
     <string name="notification_dispatch_decline">Rechazar</string>
     <string name="notification_permission_title">Activar notificaciones</string>
