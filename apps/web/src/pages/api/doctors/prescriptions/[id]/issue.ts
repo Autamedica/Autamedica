@@ -19,7 +19,10 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     const { user } = auth;
     const admin = createAstroAdminClient(locals.runtime?.env);
 
-    const result = await issuePrescription(admin, prescriptionId, user.id);
+    const result = await issuePrescription(
+      admin, prescriptionId, user.id,
+      locals.runtime?.env as unknown as Record<string, unknown> | undefined,
+    );
 
     if (result.ok) {
       return jsonOk(result.data);
@@ -30,7 +33,17 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     if (code === 'doctor_not_found' || code === 'not_your_prescription') {
       return forbidden(code);
     }
-    if (code === 'farmalink_pending_reconciliation') {
+    if ([
+      'farmalink_pending_reconciliation',
+      'br_requires_memed_provider',
+      'ar_production_homologation_required',
+      'farmalink_registration_required',
+      'digital_signature_required',
+      'digital_signature_failed',
+      'doctor_country_mismatch',
+      'patient_country_required_or_mismatched',
+      'prescription_country_required',
+    ].includes(code)) {
       return conflict(code);
     }
     if (code === 'farmalink_idempotency_unavailable') {

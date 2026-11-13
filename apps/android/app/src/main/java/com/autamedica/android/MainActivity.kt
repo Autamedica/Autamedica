@@ -1,5 +1,6 @@
 package com.autamedica.android
 
+import android.content.Context
 import android.app.PictureInPictureParams
 import android.content.Intent
 import android.content.pm.ActivityInfo
@@ -14,6 +15,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.produceState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.compose.rememberNavController
 import com.autamedica.android.domain.repository.AuthRepository
@@ -21,7 +28,9 @@ import com.autamedica.android.domain.model.VideoCallStateHolder
 import com.autamedica.android.navigation.AppNavHost
 import com.autamedica.android.navigation.NotificationRouteResolver
 import com.autamedica.android.navigation.Route
+import com.autamedica.android.navigation.resolveStartupRoute
 import com.autamedica.android.presentation.theme.AutamedicaTheme
+import com.autamedica.android.util.CareCountryLocale
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -38,6 +47,10 @@ class MainActivity : ComponentActivity() {
         private set
     private var incomingIntent by mutableStateOf<Intent?>(null)
     private var pendingPostLoginRoute by mutableStateOf<Route?>(null)
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(CareCountryLocale.wrap(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -57,7 +70,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         incomingIntent = intent
         setContent {
-            val navController = rememberNavController()
+            // Never construct a protected navigation destination before Supabase has
+            // restored the session AND the server-authoritative profile role.
+            // getCurrentUser() awaits auth initialization and fails closed to null.
+            val initialRoute by produceState<Route?>(initialValue = null, authRepository) {
+                value = resolveStartupRoute { authRepository.getCurrentUser() }
+            }
             val activeIntent = incomingIntent
 
             LaunchedEffect(activeIntent) {
@@ -71,13 +89,22 @@ class MainActivity : ComponentActivity() {
             }
 
             AutamedicaTheme {
-                AppNavHost(
-                    startDestination = Route.Main,
-                    postLoginRoute = pendingPostLoginRoute,
-                    onPostLoginRouteConsumed = { pendingPostLoginRoute = null },
-                    isInPipMode = isInPipMode,
-                    navController = navController,
-                )
+                val destination = initialRoute
+                if (destination == null) {
+                    // Suspend navigation while the session is being restored.
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    val navController = rememberNavController()
+                    AppNavHost(
+                        startDestination = destination,
+                        postLoginRoute = pendingPostLoginRoute,
+                        onPostLoginRouteConsumed = { pendingPostLoginRoute = null },
+                        isInPipMode = isInPipMode,
+                        navController = navController,
+                    )
+                }
             }
         }
     }

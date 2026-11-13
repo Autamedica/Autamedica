@@ -56,6 +56,8 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.autamedica.android.R
+import com.autamedica.android.presentation.common.findHostActivity
 import com.autamedica.android.domain.model.ConnectionState
 import com.autamedica.android.navigation.VIDEO_PREVIEW_APPOINTMENT_ID
 import com.autamedica.android.presentation.videocall.components.CallActionsOverflowSheet
@@ -84,7 +86,7 @@ fun VideoCallScreen(
 ) {
     val isPreviewRoute = appointmentId == VIDEO_PREVIEW_APPOINTMENT_ID
     val context = LocalContext.current
-    val activity = context as? android.app.Activity
+    val activity = context.findHostActivity()
     val currentView = androidx.compose.ui.platform.LocalView.current
     DisposableEffect(Unit) {
         currentView.keepScreenOn = true
@@ -134,7 +136,7 @@ fun VideoCallScreen(
                     .padding(horizontal = 24.dp),
             ) {
                 Text(
-                    text = "Se requieren permisos de cámara y micrófono para iniciar la videollamada.",
+                    text = stringResource(R.string.ui_video_permissions_required),
                     color = Color.White,
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center,
@@ -181,8 +183,10 @@ fun VideoCallScreen(
     )
 
     // Handle call end or abrupt failure after call was active
-    val isCallEndedOrFailed = uiState.connectionState == ConnectionState.DISCONNECTED ||
-        uiState.connectionState == ConnectionState.FAILED
+    val isCallEndedOrFailed = !uiState.isAuthorizationBlocked && (
+        uiState.connectionState == ConnectionState.DISCONNECTED ||
+            uiState.connectionState == ConnectionState.FAILED
+    )
 
     val hadActiveSession = uiState.callDurationSeconds > 0 ||
         uiState.activeCallId != null ||
@@ -270,7 +274,7 @@ fun VideoCallScreen(
                             }
                         }
                         Text(
-                            text = "Cámara apagada",
+                            text = stringResource(R.string.ui_video_camera_off),
                             color = Color(0xFF94A3B8),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium,
@@ -340,6 +344,8 @@ fun VideoCallScreen(
                     else -> uiState.doctorName.ifBlank { "Médico de Guardia" }
                 }
                 val subtitleText = when {
+                    uiState.isAuthorizationBlocked && !uiState.sessionStatusMessage.isNullOrBlank() ->
+                        uiState.sessionStatusMessage.orEmpty()
                     uiState.connectionState == ConnectionState.FAILED -> "Error de conexión con la sala"
                     uiState.connectionState == ConnectionState.RECONNECTING -> "Reconectando..."
                     isPatientWaitingForDoctor -> "Buscando médico de guardia... Aguarde en línea mientras un profesional toma su consulta."
@@ -398,7 +404,7 @@ fun VideoCallScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Text(
-                                text = "Conexión débil: llamada en solo audio",
+                                text = stringResource(R.string.ui_video_connection_weak),
                                 color = Color.White,
                                 fontSize = 12.sp,
                                 modifier = Modifier.weight(1f),
@@ -407,7 +413,7 @@ fun VideoCallScreen(
                                 onClick = { viewModel.reactivateVideo() },
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                             ) {
-                                Text("Reactivar video", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text(stringResource(R.string.ui_video_reactivate), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             }
                         }
                     }

@@ -1,0 +1,366 @@
+﻿Ciudad,Farmacia,WhatsApp_Numero,WhatsApp_Link,Direccion,Tipo_Servicio,Categoria
+Uruguaiana,Farmácia São Lucas (Filial),5555999191281,https://wa.me/5555999191281,Uruguaiana,Tele-entrega (Contatada - Entregue em 01/10),Independente de Bairro
+Uruguaiana,Farmácias Associadas (Central Uruguaiana),5555984687724,https://wa.me/5555984687724,"Rua Duque de Caxias, 3332",Rede Associadas / Delivery (Contatada - Entregue em 01/10),Rede Associada / Franquia
+Alegrete,Farmidare (Rede Somar Centro),5555996302233,https://wa.me/5555996302233,"Av. Assis Brasil, 696 - Centro",Tele-entrega (Contatada - Entregue em 01/10),Independente de Bairro
+Alegrete,AVS Farmácias (Rede Somar),5555999745295,https://wa.me/5555999745295,"Av. Marechal Rondon, 387",Tele-entrega (Contatada - Entregue em 01/10),Independente de Bairro
+Alegrete,Sanar Farmácias (Ibirapuitã),5555996197879,https://wa.me/5555996197879,"Av. Caverá, 86 - Ibirapuitã",Tele-entrega (Contatada - Entregue em 01/10),Rede Associada / Franquia
+Alegrete,ArteFarma (Manipulação & Homeopatia),5555999804723,https://wa.me/5555999804723,Alegrete Centro,Manipulação e Receitas (Contatada - Entregue em 01/10),Manipulacao / Premium
+Alegrete,Farmácia Globo,5555999741944,https://wa.me/5555999741944,Alegrete Centro,Tele-entrega (Contatada - Entregue em 01/10),Independente de Bairro
+Alegrete,Manipulato (Farmácia de Manipulação),5555984288746,https://wa.me/5555984288746,Alegrete Centro,Manipulação e Fórmulas (Contatada - Entregue em 01/10),Manipulacao / Premium
+Alegrete,Drogaria Alegretefarma,5555999877991,https://wa.me/5555999877991,Alegrete,Tele-entrega (Contatada - Entregue em 01/10),Independente de Bairro
+Bagé,SorriFarma Bagé,5553997047848,https://wa.me/5553997047848,Bagé Centro,Tele-entrega (Contatada - Entregue em 01/10),Independente de Bairro
+São Borja,MB Farmácias,5555991149754,https://wa.me/5555991149754,Bairro Paraboi,Tele-entrega (Contatada - Entregue em 01/10),Independente de Bairro
+São Borja,Farmácias Fronteira (Central),5555996624120,https://wa.me/5555996624120,"Rua General Osório, 2229",Tele-entrega (Contatada - Entregue em 01/10),Independente de Bairro
+Rosário do Sul,Agafarma (Matriz),5555997338512,https://wa.me/5555997338512,"Rua Voluntários da Pátria, 1389",Tele-entrega (Contatada - Entregue em 01/10),Rede Associada / Franquia
+Rosário do Sul,Farma & Farma,5555992573636,https://wa.me/5555992573636,Área Central,Tele-entrega (Contatada - Entregue em 01/10),Independente de Bairro
+Rosário do Sul,Farmácia Brasil Poupa Lar,5555999693520,https://wa.me/5555999693520,"Rua Gen. David Canabarro, 651",Tele-entrega (Contatada - Entregue em 01/10),Rede Associada / Franquia
+São Gabriel,Drogaria Cidade (Matriz),5555991436734,https://wa.me/5555991436734,"Rua Duque de Caxias, 07",Tele-entrega até 23h (Contatada - Entregue em 02/10),Independente de Bairro
+Itaqui,Farmácias Fronteira (Central WhatsApp),5555996628808,https://wa.me/5555996628808,"Av. Independência, 796",Tele-entrega / Matriz (Contatada - Entregue em 02/10),Independente de Bairro
+Dom Pedrito,Farmácia Botifarma,5553999382604,https://wa.me/5553999382604,"Rua Barão de Upacarai, 1482",Tele-entrega (Contatada - Entregue em 02/10),Independente de Bairro
+Dom Pedrito,Farmácias Becker (Rede Somar Loja 1),5553999066154,https://wa.me/5553999066154,"Rua Moreira Cezar, 1228",Tele-entrega (Contatada - Entregue em 02/10),Independente de Bairro
+Dom Pedrito,Farmácias Becker (Rede Somar Loja 2),5553997000898,https://wa.me/5553997000898,"Av. Rio Branco, 1640",Tele-entrega (Contatada - Entregue em 02/10),Independente de Bairro
+Santiago,Farmácia Farbel,5555997223373,https://wa.me/5555997223373,"Rua Getúlio Vargas, 1362 – Centro",Farmácia Independente / Tele-entrega (Contatada - Entregue em 02/10),Independente de Bairro
+Santiago,Drogaria Guadalupe (Gaspar Dutra),5555999039847,https://wa.me/5555999039847,"Av. Padre Assis, 140 – Gaspar Dutra",Drogaria Comunitária / Tele-entrega (Contatada - Entregue em 02/10),Independente de Bairro
+Santiago,Drogaria Guadalupe (Centro),5555999066907,https://wa.me/5555999066907,"Rua Venâncio Aires, 1166 – Centro",Drogaria Comunitária / Tele-entrega (Contatada - Entregue em 03/10),Independente de Bairro
+Santiago,Farmácias Fronteira (Megaloja),5555999380998,https://wa.me/5555999380998,"Av. Getúlio Vargas, 1105 – Centro",Farmácia Comercial / Tele-entrega (Contatada - Entregue em 03/10),Independente de Bairro
+São Luiz Gonzaga,Pharmallis Farmácia de Manipulação,5555999355525,https://wa.me/5555999355525,"Rua Treze de Maio, 1107, Sala 01 – Centro",Farmácia de Manipulação e Homeopatia (Contatada - Entregue em 03/10),Manipulacao / Premium
+São Luiz Gonzaga,Dermosauer Farmácia de Manipulação,5555984347316,https://wa.me/5555984347316,"Rua Salvador Pinheiro Machado, 1219 – Centro",Farmácia de Manipulação / Fórmulas (Contatada - Entregue em 03/10),Manipulacao / Premium
+São Luiz Gonzaga,Farmácia Nova Esperança,5555999185319,https://wa.me/5555999185319,"Av. Senador Pinheiro Machado, 1690",Farmácia Comunitária / Tele-entrega (Contatada - Entregue em 03/10),Independente de Bairro
+Cacequi,Farmácia Nossa Senhora das Vitórias,5555996699975,https://wa.me/5555996699975,"Rua Duque de Caxias, 1013 – Centro",Farmácia Comunitária / Tele-entrega (Contatada - Entregue em 03/10),Independente de Bairro
+Manoel Viana,Sanar Farmácias (Centro),5555999421179,https://wa.me/5555999421179,"Av. Ibicuí, 504 – Centro",Farmácia Comercial / Tele-entrega (Contatada - Entregue em 03/10),Rede Associada / Franquia
+Lavras do Sul,Agafarma Lavras,5555996972770,https://wa.me/5555996972770,"Rua Dr. Pires Porto, 333 – Centro",Farmácia Comunitária / Tele-entrega (Contatada - Entregue em 03/10),Rede Associada / Franquia
+Lavras do Sul,Farmácias Nicola (Filial 6),5555999243597,https://wa.me/5555999243597,"Rua Dr. Pires Porto, 346 – Centro",Farmácia Comercial / Tele-entrega (Contatada - Entregue em 03/10),Independente de Bairro
+Lavras do Sul,Farmácias Nicola (Nova Popular),5555999529535,https://wa.me/5555999529535,"Rua Dr. Pires Porto, 120 – Centro",Farmácia Comercial / Tele-entrega (Contatada - Entregue em 03/10),Independente de Bairro
+Uruguaiana,Farmácia Fabella,5555999140202,https://wa.me/5555999140202,"Rua General Câmara, 1876 – Centro",Farmácia de Manipulação / Homeopatia (Contatada - Entregue em 03/10),Independente de Bairro
+Uruguaiana,Farmácias Fronteira (Filial Uruguaiana),5555999380761,https://wa.me/5555999380761,"Rua Domingos de Almeida, 1914 – Centro",Farmácia Regional / Tele-entrega (Contatada - Entregue em 03/10),Independente de Bairro
+Alegrete,Farmácias Fronteira (Filial 6),5555999380866,https://wa.me/5555999380866,"Rua dos Andradas, 439 – Centro",Farmácia Regional / Tele-entrega (Contatada - Entregue em 03/10),Independente de Bairro
+Bagé,Mistura da Terra Farmácia de Manipulação,5553999018258,https://wa.me/5553999018258,"Av. Sete de Setembro, 1117 – Centro",Farmácia de Manipulação e Dermocosméticos (Contatada - Entregue em 03/10),Manipulacao / Premium
+Bagé,Princípio Ativo Farmácia de Manipulação,5553999754405,https://wa.me/5553999754405,"Av. Sete de Setembro, 1281 – Centro",Farmácia de Manipulação / Homeopatia (Contatada - Entregue em 03/10),Manipulacao / Premium
+Bagé,Flor de Lótus Farmácia de Manipulação,5553999339393,https://wa.me/5553999339393,"Av. Sete de Setembro, 1011, Sala 01 – Centro",Farmácia de Manipulação / Fórmulas (Contatada - Entregue em 03/10),Manipulacao / Premium
+São Borja,Phórmula Central,5555991778747,https://wa.me/5555991778747,"Rua Cândido Falcão, 1155 – Centro",Farmácia de Manipulação / Fórmulas (Contatada - Entregue em 03/10),Independente de Bairro
+Rosário do Sul,Farmácia Brasil Poupa Lar (Filial Sabino),5555996187686,https://wa.me/5555996187686,"Av. Coronel Sabino de Araújo, 804",Farmácia Popular / Tele-entrega (Contatada - Entregue em 03/10),Rede Associada / Franquia
+Santo Ângelo,Pedrinho Farmácias,5555991059499,https://wa.me/5555991059499,Santo Ângelo Centro,Farmácia Comunitária / Tele-entrega (Contatada - Entregue em 03/10),Independente de Bairro
+Santa Rosa,Tchê Farmácias (Farmácia Isabel),5555999246257,https://wa.me/5555999246257,"Av. Coronel Braulio de Oliveira, 107",Drogaria Comunitária / Tele-entrega (Contatada - Entregue em 03/10),Independente de Bairro
+Santa Rosa,Tchê Farmácias (Farmácia Timbauva),5555996782660,https://wa.me/5555996782660,"Rua Dr. Francisco Timm, 2187",Drogaria Comunitária / Tele-entrega (Contatada - Entregue em 03/10),Independente de Bairro
+Ijuí,Farmácia Central Municipal SUS,5555991041418,https://wa.me/5555991041418,Ijuí Centro,Farmácia Municipal / Atendimento SUS (Contatada - Entregue em 03/10),Independente de Bairro
+Caxias do Sul,Agafarma - Dr. Montaury,5554981106101,https://wa.me/5554981106101,"Rua Dr. Montaury, 1441 - Centro",Red Local / Asociativista (Contatada - Entregue em 03/10),Rede Associada / Franquia
+Caxias do Sul,Farmácias Sanar - Unidade Cruzeiro,5554991823896,https://wa.me/5554991823896,"Rua Luiz Michelon, 629 - Cruzeiro",Red Local / Asociada (Contatada - Entregue em 03/10),Rede Associada / Franquia
+Caxias do Sul,Farmácias Sanar - Unidade Exposição,5554992685311,https://wa.me/5554992685311,"Rua Alfredo Chaves, 1401 - Exposição",Red Local / Asociada (Contatada - Entregue em 05/10),Rede Associada / Franquia
+Caxias do Sul,Farmellis Farmácia de Manipulação,5554992104571,https://wa.me/5554992104571,"Rua Borges de Medeiros, 814 - Centro",Manipulación y Homeopatía (Contatada - Entregue em 05/10),Manipulacao / Premium
+Bento Gonçalves,Farmácia Unimed Bento Gonçalves,5554996442322,https://wa.me/5554996442322,"Av. Presidente Costa e Silva, 340 - Planalto",Farmacia Cooperativa / Convenios (Contatada - Entregue em 05/10),Independente de Bairro
+Bento Gonçalves,Medicinalles Farmácia de Manipulação,5554991141566,https://wa.me/5554991141566,"Av. Planalto, 659 - São Bento",Manipulación y Homeopatía (Contatada - Entregue em 05/10),Manipulacao / Premium
+Farroupilha,Farmácia Naturallis Manipulação,5554984153530,https://wa.me/5554984153530,"Rua Rui Barbosa, 20-A, Sala 02 - Centro",Manipulación y Homeopatía (Contatada - Entregue em 05/10),Manipulacao / Premium
+Farroupilha,Farmácia Medicali,5554996763374,https://wa.me/5554996763374,"Rua Tiradentes, 76 - Centro",Manipulación y Homeopatía (Contatada - Entregue em 05/10),Independente de Bairro
+Farroupilha,Farmácia São Lucas,5554999765841,https://wa.me/5554999765841,"Rua Independência, 584 - Centro",Manipulación y Homeopatía (Contatada - Entregue em 05/10),Independente de Bairro
+Gramado,Farmácia Líder (Rede Associadas),5554997139801,https://wa.me/5554997139801,"Rua São Pedro, 664 - Centro",Red Local / Associadas (Contatada - Entregue em 05/10),Rede Associada / Franquia
+Gramado,Die Haut Farmácia de Manipulação,5554981143910,https://wa.me/5554981143910,"Rua João Petry, 110 - Centro",Manipulación y Homeopatía (Contatada - Entregue em 05/10),Manipulacao / Premium
+Canela,Farmácia Municipal de Canela,5554996218062,https://wa.me/5554996218062,"Av. João Pessoa, 622 - Centro",Farmacia Comunitaria / Pública (Contatada - Entregue em 05/10),Independente de Bairro
+Canela,Anis Farmácia de Manipulação,5554981490068,https://wa.me/5554981490068,"Rua Dona Carlinda, 563 - Centro",Manipulación y Homeopatía (Contatada - Entregue em 05/10),Manipulacao / Premium
+Vacaria,Pharma Pura Farmácia de Manipulação,5554984198302,https://wa.me/5554984198302,"Rua Júlio de Castilhos, 1416 - Centro",Manipulación y Homeopatía (Contatada - Entregue em 05/10),Manipulacao / Premium
+Erechim,Farmácias Unimed Erechim,5554992552806,https://wa.me/5554992552806,"Av. Sete de Setembro, 659 - Centro",Farmacia Cooperativa / Convenios (Contatada - Entregue em 05/10),Independente de Bairro
+Erechim,Farmácias Erechim,5554992136011,https://wa.me/5554992136011,"Av. Maurício Cardoso, 125 - Centro",Red Local / Drogaria (Contatada - Entregue em 05/10),Independente de Bairro
+Erechim,Farmácia Artesani,5554991776247,https://wa.me/5554991776247,"Rua Valentim Zambonatto, 520, Sala 1 - Centro",Manipulación y Homeopatía (Contatada - Entregue em 05/10),Independente de Bairro
+Carazinho,Farmácias Glória (Rede Associadas),5554996759980,https://wa.me/5554996759980,"Rua Venâncio Aires, 612 - Centro",Red Local / Associadas (Contatada - Entregue em 05/10),Rede Associada / Franquia
+Carazinho,Glória Farmácia de Manipulação,5554996854117,https://wa.me/5554996854117,"Av. Pátria, 801 - Centro",Manipulación y Homeopatía (Contatada - Entregue em 05/10),Manipulacao / Premium
+Passo Fundo,Natupharma Farmácia de Manipulação,5554996697175,https://wa.me/5554996697175,"Rua Paissandu, 1657 - Centro",Manipulación y Homeopatía (Contatada - Entregue em 05/10),Manipulacao / Premium
+Passo Fundo,Vitapharma Farmácia de Manipulação,5554996499110,https://wa.me/5554996499110,"Av. Presidente Vargas, 2038 - São Cristóvão",Manipulación y Homeopatía (Contatada - Entregue em 05/10),Manipulacao / Premium
+Frederico Westphalen,Farmácia Dehon (Manipulação),5555997219282,https://wa.me/5555997219282,"Rua Miguel Couto, 158, Sala 02 - Centro",Manipulación y Homeopatía (Contatada - Entregue em 05/10),Manipulacao / Premium
+Porto Alegre,Drogaria Menino Deus (Rede Agafarma),5551995529217,https://wa.me/5551995529217,"Av. Getúlio Vargas, 1177, Menino Deus",Red asociada / Tele-entrega,Rede Associada / Franquia
+Porto Alegre,Farmácia Sanar - Partenon I,5551995125590,https://wa.me/5551995125590,"Av. Bento Gonçalves, 2727, Loja 117, Partenon",Red asociada / Tele-entrega,Rede Associada / Franquia
+Porto Alegre,Farmácia Amazonense,5551992565860,https://wa.me/5551992565860,"Av. Bento Gonçalves, 4876, Partenon",Droguería de barrio / Tele-entrega,Independente de Bairro
+Porto Alegre,Agafarma Vila Nova,5551981700009,https://wa.me/5551981700009,"Av. Rodrigues da Fonseca, 1400, Vila Nova, Zona Sul",Red asociada / Tele-entrega,Rede Associada / Franquia
+Porto Alegre,Agafarma Nonoai,5551999986695,https://wa.me/5551999986695,"Av. Nonoai, Nonoai, Zona Sul",Red asociada / Tele-entrega,Rede Associada / Franquia
+Porto Alegre,Agafarma Restinga (Farmácia SM),5551995119798,https://wa.me/5551995119798,"Estrada João Antônio da Silveira, 2045, Restinga, Zona Sul",Red asociada / Tele-entrega,Rede Associada / Franquia
+Porto Alegre,Dermoflora Farmácia de Manipulação,5551991771976,https://wa.me/5551991771976,"Rua Ramiro Barcelos, 1981, Bom Fim",Farmacia de manipulación / Tele-entrega,Manipulacao / Premium
+Canoas,Agafarma Estância Velha,5551996541796,https://wa.me/5551996541796,"Av. A.J. Renner, 872, Estância Velha",Red asociada / Tele-entrega,Rede Associada / Franquia
+Canoas,Agafarma Rio Branco,5551999303968,https://wa.me/5551999303968,"Rua Boa Saúde, 49, Rio Branco",Red asociada / Tele-entrega,Rede Associada / Franquia
+Canoas,Medicallis Farmácia de Manipulação,5551999023421,https://wa.me/5551999023421,"Rua Muck, 204, Centro",Farmacia de manipulación / Tele-entrega,Manipulacao / Premium
+Novo Hamburgo,Agafarma Vila Nova (Pharmamedic),5551999052266,https://wa.me/5551999052266,"Rodovia RS-239, 2755, Vila Nova",Red asociada / Tele-entrega,Rede Associada / Franquia
+Novo Hamburgo,Farmácias Associadas Santo Afonso,5551981709999,https://wa.me/5551981709999,"Rua México, 315, Santo Afonso",Red asociada / Tele-entrega,Rede Associada / Franquia
+São Leopoldo,Agafarma Campina,5551981180326,https://wa.me/5551981180326,"Av. Henrique Bier, 842, Campina",Red asociada / Tele-entrega,Rede Associada / Franquia
+São Leopoldo,Agafarma São Miguel,5551985942451,https://wa.me/5551985942451,"Rua São Miguel, São Miguel",Red asociada / Tele-entrega,Rede Associada / Franquia
+São Leopoldo,Pharmavale Farmácia de Manipulação,5551981730800,https://wa.me/5551981730800,"Rua Primeiro de Março, 777, Sala 101, Centro",Farmacia de manipulación / Tele-entrega,Manipulacao / Premium
+Gravataí,Agafarma Santa Cruz (Unidade 79),5551995639493,https://wa.me/5551995639493,"Estrada Vânius Abílio dos Santos, 25, Santa Cruz",Red asociada / Tele-entrega,Rede Associada / Franquia
+Gravataí,Agafarma Bom Sucesso,5551984325649,https://wa.me/5551984325649,"Av. dos Estados, 407, Bom Sucesso",Red asociada / Tele-entrega,Rede Associada / Franquia
+Gravataí,Agafarma Cruzeiro (Unidade 66),5551998639493,https://wa.me/5551998639493,"Av. Dorival Cândido Luz de Oliveira, 5305, Cruzeiro",Red asociada / Tele-entrega,Rede Associada / Franquia
+Cachoeirinha,Agafarma Cachoeirinha,5551992002002,https://wa.me/5551992002002,"Av. General Flores da Cunha, 994, Centro",Red asociada / Tele-entrega,Rede Associada / Franquia
+Viamão,Agafarma Centro Viamão,5551998993031,https://wa.me/5551998993031,"Rua Julieta Pinto César, 314, Centro",Red asociada / Tele-entrega,Rede Associada / Franquia
+Viamão,Agafarma Morro Grande,5551995710309,https://wa.me/5551995710309,"Rodovia ERS-040, Parada 95, Morro Grande",Red asociada / Tele-entrega,Rede Associada / Franquia
+Viamão,Farmácias Associadas (Parada 45),5551993236061,https://wa.me/5551993236061,"Av. Senador Salgado Filho, Parada 45, São Lucas",Red asociada / Tele-entrega,Rede Associada / Franquia
+Sant'Ana do Livramento,Farmácias Associadas (Centro),555584421557,https://wa.me/555584421557,Centro – Sant'Ana do Livramento,Drogaria Comunitária (Contatada - Entregue),Rede Associada / Franquia
+Sant'Ana do Livramento,Farmácia Caduceu Verde,555584293213,https://wa.me/555584293213,Centro – Sant'Ana do Livramento,Drogaria Comunitária (Contatada - Entregue),Independente de Bairro
+Sant'Ana do Livramento,Drogaria Cidade (Disque Entrega),5555991572598,https://wa.me/5555991572598,Centro – Sant'Ana do Livramento,Disque Tele-entrega / Drogaria Comunitária,Independente de Bairro
+Sant'Ana do Livramento,Farmácia Armour,555584341646,https://wa.me/555584341646,"Av. Francisco Reverbel de Araújo Góes, 1932 – Bairro Umbu / Armour",Drogaria Comunitária (Contatada - Entregue),Independente de Bairro
+Sant'Ana do Livramento,Farmácia Santanense (Rede Tchê),555584540923,https://wa.me/555584540923,"Rua dos Andradas, 663 – Centro",Rede Tchê Farmácias (Contatada - Entregue),Independente de Bairro
+Sant'Ana do Livramento,Farmácia Piloto Campanha (WhatsApp 1),555599681210,https://wa.me/555599681210,Sant'Ana do Livramento Centro,Drogaria Comunitária / Ponto de Atendimento Digital,Independente de Bairro
+Sant'Ana do Livramento,Farmácia Piloto Campanha (WhatsApp 2),555597219092,https://wa.me/555597219092,Sant'Ana do Livramento Centro,Drogaria Comunitária / Ponto de Atendimento Digital,Independente de Bairro
+Sant'Ana do Livramento,Farmácia Piloto Campanha (WhatsApp 3),555599761673,https://wa.me/555599761673,Sant'Ana do Livramento Centro,Drogaria Comunitária / Ponto de Atendimento Digital,Independente de Bairro
+Sant'Ana do Livramento,Farmácia Piloto Campanha (WhatsApp 4),555499000704,https://wa.me/555499000704,Sant'Ana do Livramento Centro,Drogaria Comunitária / Ponto de Atendimento Digital,Independente de Bairro
+Sant'Ana do Livramento,Farmácia Piloto Campanha (WhatsApp 5),555499643347,https://wa.me/555499643347,Sant'Ana do Livramento Centro,Drogaria Comunitária / Ponto de Atendimento Digital,Independente de Bairro
+Sant'Ana do Livramento,Armazém das Fórmulas (Manipulação),555532413535,https://wa.me/555532413535,"Rua dos Andradas, 696/701 – Centro",Manipulação e Homeopatia (Contatada - Resposta: Sem interesse),Manipulacao / Premium
+Sant'Ana do Livramento,Drogaria Cidade (João Schmengler - Gestão),555599612301,https://wa.me/555599612301,Centro – Sant'Ana do Livramento,Gestão Comercial (Contatada - Entregue),Independente de Bairro
+Sant'Ana do Livramento,Drogaria Cidade (Filial 08),555591670603,https://wa.me/555591670603,Sant'Ana do Livramento,Drogaria Comunitária (Contatada - Entregue em 28/09),Independente de Bairro
+Sant'Ana do Livramento,Drogaria Cidade (Filial Centro II),555591643237,https://wa.me/555591643237,Sant'Ana do Livramento,Drogaria Comunitária (Contatada - Entregue em 28/09),Independente de Bairro
+Porto Alegre,Sanar Farmácias (Restinga - Farmácia Joabe),5551990165293,https://wa.me/5551990165293,"Rua Coronel Dastro Dutra, 418, Restinga",Farmácia e Tele-entrega,Rede Associada / Franquia
+Porto Alegre,Sanar Farmácias (Cidade Baixa I),5551982500183,https://wa.me/5551982500183,"Rua General Lima e Silva, 776, Cidade Baixa",Farmácia e Tele-entrega,Rede Associada / Franquia
+Porto Alegre,Sanar Farmácias (Cidade Baixa II),5551980401336,https://wa.me/5551980401336,"Rua da República, 333, Cidade Baixa",Farmácia e Tele-entrega,Rede Associada / Franquia
+Porto Alegre,Sanar Farmácias (Higienópolis),5551985950913,https://wa.me/5551985950913,"Av. Plínio Brasil Milano, 210, Higienópolis",Farmácia e Tele-entrega,Rede Associada / Franquia
+Porto Alegre,Sanar Farmácias (Lomba do Pinheiro II),5551995627248,https://wa.me/5551995627248,"Estrada João de Oliveira Remião, 4980, Lomba do Pinheiro",Farmácia e Tele-entrega,Rede Associada / Franquia
+Porto Alegre,Sanar Farmácias (Rio Branco),5551989095059,https://wa.me/5551989095059,"Av. Protásio Alves, 892, Rio Branco",Farmácia e Tele-entrega,Rede Associada / Franquia
+Porto Alegre,Sanar Farmácias (Rubem Berta III),5551996074482,https://wa.me/5551996074482,"Rua dos Maias, 840, Loja 102, Rubem Berta",Farmácia e Tele-entrega,Rede Associada / Franquia
+Cachoeirinha,Farmácia Sanar (Cohab),5551989715896,https://wa.me/5551989715896,"Av. General Flores da Cunha, 3890, Cohab",Farmácia e Tele-entrega,Rede Associada / Franquia
+Cachoeirinha,Sanar Farmácias (Granja da Esperança),5551984920023,https://wa.me/5551984920023,"Rua Juscelino Kubitschek de Oliveira, 1025, Granja da Esperança",Farmácia e Tele-entrega,Rede Associada / Franquia
+Cachoeirinha,Sanar Farmácias (Jardim Betânia),5551986078907,https://wa.me/5551986078907,"Rua Atlântida, 200, Loja 01, Jardim Betânia",Farmácia e Tele-entrega,Rede Associada / Franquia
+Gravataí,Sanar Farmácias (São Luiz),5551982370931,https://wa.me/5551982370931,"Rua São Luiz, 391, São Luiz",Farmácia e Tele-entrega,Rede Associada / Franquia
+Gravataí,Sanar Farmácias (Morada do Vale I),5551997543607,https://wa.me/5551997543607,"Av. Alexandrino de Alencar, 443, Morada do Vale I",Farmácia e Tele-entrega,Rede Associada / Franquia
+Gravataí,Sanar Farmácias (Morada do Vale II),5551997033827,https://wa.me/5551997033827,"Av. Alexandrino de Alencar, 1197, Morada do Vale II",Farmácia e Tele-entrega,Rede Associada / Franquia
+Alvorada,Farmácia Sanar Alvorada,5551991652701,https://wa.me/5551991652701,"Av. Piratini, 234, Centro",Farmácia e Tele-entrega,Rede Associada / Franquia
+Viamão,Sanar Farmácias (Capão da Porteira),5551996988435,https://wa.me/5551996988435,"Rod. Tapir Rocha, 28423, Sala 05, Capão da Porteira",Farmácia e Tele-entrega,Rede Associada / Franquia
+Viamão,Sanar Farmácias (Centro),5551998840025,https://wa.me/5551998840025,"Rua Julieta Pinto Cesar, 344, Centro",Farmácia e Tele-entrega,Rede Associada / Franquia
+Porto Alegre,Agafarma Hospital Vila Nova,5551999986697,https://wa.me/5551999986697,"Rua Catarino Andreatta, 157, Loja 1, Vila Nova",Farmácia e Tele-entrega,Rede Associada / Franquia
+Porto Alegre,Agafarma Baltazar,5551983163838,https://wa.me/5551983163838,"Av. Baltazar de Oliveira Garcia, 3539, Rubem Berta",Farmácia e Tele-entrega,Rede Associada / Franquia
+Canoas,Agafarma São José,5551994708814,https://wa.me/5551994708814,"Rua Araguaia, 901, São José",Farmácia e Tele-entrega,Rede Associada / Franquia
+Canoas,Agafarma Guajuviras,5551998866060,https://wa.me/5551998866060,"Av. 17 de Abril, 03, Loja 2, Guajuviras",Farmácia e Tele-entrega,Rede Associada / Franquia
+Alvorada,Agafarma Alvorada (Parada 47),5551999590358,https://wa.me/5551999590358,"Av. Pres. Getúlio Vargas, 1926, Bela Vista",Farmácia e Tele-entrega,Rede Associada / Franquia
+Viamão,Agafarma Ivone,5551991027480,https://wa.me/5551991027480,"Av. Plácido Mottin, 2284, Santa Cecília",Farmácia e Tele-entrega,Rede Associada / Franquia
+Porto Alegre,Farmácias Associadas (Atendimento Geral RS),5551989444818,https://wa.me/5551989444818,"Rua Santa Terezinha, 263, Santana",Farmácia e Tele-entrega,Rede Associada / Franquia
+Porto Alegre,Farmácias Associadas Prime,5551986287130,https://wa.me/5551986287130,"Av. Praia de Belas, 1181, Praia de Belas",Farmácia e Tele-entrega,Rede Associada / Franquia
+Guaíba,Farmácias Associadas (Rede LVD Loja 26),5551998540404,https://wa.me/5551998540404,"Av. Santa Maria, 622, Jardim dos Lagos",Farmácia e Tele-entrega,Rede Associada / Franquia
+Guaíba,Farmácias Associadas (Rede LVD Loja 28),5551986420028,https://wa.me/5551986420028,"Av. Cônego Estanislau Scherer, 525, Centro",Farmácia e Tele-entrega,Rede Associada / Franquia
+Porto Alegre,Rede Sul de Farmácias (Zona Norte),5551981873231,https://wa.me/5551981873231,"Av. Protásio Alves, 1081, Rio Branco",Farmácia e Tele-entrega,Independente de Bairro
+Porto Alegre,Rede Sul de Farmácias (Zona Sul),5551993938084,https://wa.me/5551993938084,"Est. Cristiano Kraemer, 1504, Vila Nova",Farmácia e Tele-entrega,Independente de Bairro
+Novo Hamburgo,Pharmabem Tchê Farmácias,5551996327055,https://wa.me/5551996327055,"Rua México, 429, Santo Afonso",Farmácia e Tele-entrega,Independente de Bairro
+São Leopoldo,Farmácia Nossa Francisca (Tchê Farmácias),5551984597475,https://wa.me/5551984597475,"Av. Imperatriz Leopoldina, 1860, Loja 7, Pinheiro",Farmácia e Tele-entrega,Independente de Bairro
+Porto Alegre,Dassette Pharma,5551995391497,https://wa.me/5551995391497,"Av. Independência, 933, Independência",Medicamentos Especiais e Tele-entrega,Independente de Bairro
+Porto Alegre,Dapelle Farmácia de Manipulação,5551993156337,https://wa.me/5551993156337,"Av. Edgar Pires de Castro, 343, Loja 102, Hípica",Farmácia de Manipulação,Manipulacao / Premium
+Porto Alegre,Pharmacia Theriaga,5551983687377,https://wa.me/5551983687377,"Av. Independência, 510, Sala 801, Independência",Farmácia de Manipulação,Independente de Bairro
+Porto Alegre,AlquiCia Farmácia de Manipulação,5551992685110,https://wa.me/5551992685110,"Rua Cel. Frederico Linck, 45, Rio Branco",Farmácia de Manipulação,Manipulacao / Premium
+Porto Alegre,Pró-Vida Farmácia de Manipulação,5551996901717,https://wa.me/5551996901717,"Rua Santana, 477, Santana",Farmácia de Manipulação,Manipulacao / Premium
+Porto Alegre,Bellacqua Farmácia de Manipulação,5551993426964,https://wa.me/5551993426964,"Rua Barão do Amazonas, 984, Petrópolis",Farmácia de Manipulação,Manipulacao / Premium
+Porto Alegre,Dermogral Farmácia de Manipulação,5551984060285,https://wa.me/5551984060285,"Rua Senhor dos Passos, 235, Centro Histórico",Farmácia de Manipulação,Manipulacao / Premium
+Porto Alegre,Scienza Farma Manipulação,5551999943031,https://wa.me/5551999943031,"Rua Silva Jardim, 151, Auxiliadora",Farmácia de Manipulação,Manipulacao / Premium
+Canoas,Animal Farma Manipulação Veterinária,5551999586885,https://wa.me/5551999586885,"Rua Doutor Barcelos, 1020, Centro",Farmácia de Manipulação Veterinária,Manipulacao / Premium
+Canoas,Farmácia Medianeira,5551997671142,https://wa.me/5551997671142,"Rua Venâncio Aires, 2510, Niterói",Farmácia Comunitária e Tele-entrega,Independente de Bairro
+Canoas,Globo New Medicamentos,5551999972595,https://wa.me/5551999972595,"Rua Pistoia, 915, Sala 05, Rio Branco",Medicamentos e Tele-entrega,Independente de Bairro
+São Leopoldo,Matriz Farmácia de Manipulação,5551989449630,https://wa.me/5551989449630,"Rua Primeiro de Março, 575, Loja 02, Centro",Farmácia de Manipulação,Manipulacao / Premium
+Novo Hamburgo,Apoteka Farmácia de Manipulação,5551993142036,https://wa.me/5551993142036,"Rua Bento Gonçalves, 2341, Centro",Farmácia de Manipulação,Manipulacao / Premium
+Novo Hamburgo,FUSERGS Farmácia,5551996935156,https://wa.me/5551996935156,"Rua 5 de Abril, 608, Centro",Farmácia e Convênios,Independente de Bairro
+Viamão,Farmácia Municipal Plantão 24h,5551995497345,https://wa.me/5551995497345,"Av. Senador Salgado Filho, 2090, Cecília",Farmácia e Plantão 24h,Independente de Bairro
+Porto Alegre,Farmácia Santa Terezinha,5551993925581,https://wa.me/5551993925581,"Av. dos Gaúchos, 1220, Sarandi",Farmácia Comunitária e Tele-entrega,Independente de Bairro
+Caxias do Sul,Farmácias Sanar - Unidade Forqueta,5554991836081,https://wa.me/5554991836081,"Avenida Arthur Perotoni, 1149 - Forqueta",Farmacia Comercial y Tele-entrega,Rede Associada / Franquia
+Caxias do Sul,Farmácias Sanar - Unidade N. S. das Graças,5554991319017,https://wa.me/5554991319017,"Avenida Dr. Renato Del Mese, 1492, Sala 01 - Nossa Sra. das Graças",Farmacia Comercial y Tele-entrega,Rede Associada / Franquia
+Caxias do Sul,Farmácias Sanar - Unidade Planalto,5554981479978,https://wa.me/5554981479978,"Rua Alberto Roese, 341 - Planalto",Farmacia Comercial y Tele-entrega,Rede Associada / Franquia
+Caxias do Sul,Farmácias Sanar - Unidade São Pelegrino,5554991669072,https://wa.me/5554991669072,"Rua Feijó Júnior, 414 - São Pelegrino",Farmacia Comercial y Tele-entrega,Rede Associada / Franquia
+Caxias do Sul,Farmácia do IPAM,5554997017689,https://wa.me/5554997017689,"Rua Pinheiro Machado, 2281 - Centro",Farmacia Asistencial e Institucional,Independente de Bairro
+Caxias do Sul,Farmácia do Trabalhador - Centro,5554999465565,https://wa.me/5554999465565,Rua Visconde de Pelotas - Centro,Farmacia Comercial y Popular,Independente de Bairro
+Caxias do Sul,Farmácia do Trabalhador - Cidade Nova,5554999462553,https://wa.me/5554999462553,Bairro Cidade Nova,Farmacia Comercial y Popular,Independente de Bairro
+Caxias do Sul,Farmec - Manipulação e Ervanária,5554991741711,https://wa.me/5554991741711,"Avenida Júlio de Castilhos, 1382 - Centro",Manipulación y Homeopatía,Manipulacao / Premium
+Caxias do Sul,Unice - Fórmulas Únicas,5554991557758,https://wa.me/5554991557758,"Rua Alfredo Chaves, 1208, Sala 17b - Exposição",Manipulación Magistral y Recetas,Manipulacao / Premium
+Caxias do Sul,Farmellis Manipulação - Matriz São Pelegrino,5554991007072,https://wa.me/5554991007072,"Rua Coronel Flores, 391, Térreo - São Pelegrino",Manipulación Magistral y Recetas,Manipulacao / Premium
+Caxias do Sul,Farmellis Manipulação - Filial Garibaldi,5554991165995,https://wa.me/5554991165995,"Rua Garibaldi, 800, Loja 2 - Centro",Manipulación Magistral y Recetas,Manipulacao / Premium
+Caxias do Sul,Natufarma - Matriz Homeopatia e Fitoterapia,5554991983365,https://wa.me/5554991983365,"Rua Visconde de Pelotas, 919 (fundos) - Centro","Manipulación, Homeopatía y Fitoterapia",Manipulacao / Premium
+Caxias do Sul,Natufarma - Filial 1 Fármacos Internos,5554991983146,https://wa.me/5554991983146,"Rua Sinimbu, 1501 - Centro",Manipulación Alopática y Recetas,Independente de Bairro
+Caxias do Sul,Natufarma - Filial 2 Cosméticos e Dermatologia,5554991983376,https://wa.me/5554991983376,"Rua Garibaldi, 670 - Centro",Manipulación Dermatológica y Cosméticos,Independente de Bairro
+Bento Gonçalves,Farmácia Flor Essência,5554999324196,https://wa.me/5554999324196,"Rua 13 de Maio, 116, Sala 07 - Centro",Manipulación y Homeopatía,Independente de Bairro
+Bento Gonçalves,Farmácias Associadas - Farmagi,5554999423400,https://wa.me/5554999423400,"Rua Goiânia, 631 - Botafogo",Farmacia Comercial y Tele-entrega,Rede Associada / Franquia
+Vacaria,Farmácia do Trabalhador - Vacaria,5554999474909,https://wa.me/5554999474909,"Rua Marechal Floriano, 365 - Centro",Farmacia Comercial y Popular,Independente de Bairro
+Carlos Barbosa,Biofórmula Farmácia de Manipulação,5554991816969,https://wa.me/5554991816969,"Rua Rio Branco, 654 - Planalto",Manipulación Magistral y Recetas,Manipulacao / Premium
+Carlos Barbosa,Farmex Farmácias,5554996537325,https://wa.me/5554996537325,"Rua Doutor Carlos Barbosa, 53 - Centro",Farmacia Comercial y Tele-entrega,Independente de Bairro
+Passo Fundo,Flora Ativa Farmácia de Manipulação,5554999029355,https://wa.me/5554999029355,"Rua Paissandu, 1644, Centro",Farmacia de Manipulacion,Manipulacao / Premium
+Erechim,Farmácias Erechim - Loja 12,5554996691661,https://wa.me/5554996691661,"Av. Sete de Setembro, 1128, Fátima",Farmacia / Drogueria,Independente de Bairro
+Erechim,Farmácia Unimed Erechim,5554991273141,https://wa.me/5554991273141,"Rua Valentim Zambonatto, 288, Centro",Farmacia / Tele-entrega,Independente de Bairro
+Erechim,Farmácia Medfarma Erechim,5554999116777,https://wa.me/5554999116777,"Rua Pedro Álvares Cabral, 77, Centro",Farmacia / Drogueria,Independente de Bairro
+Marau,Cervi Manipulação e Homeopatia,5554996443336,https://wa.me/5554996443336,"Av. Júlio Borella, 777, Centro",Farmacia de Manipulacion,Manipulacao / Premium
+Soledade,Agafarma Centro Soledade,5554992466245,https://wa.me/5554992466245,"Av. Júlio de Castilhos, 1120, Centro",Farmacia / Drogueria,Rede Associada / Franquia
+Soledade,Remédius Farmácia & Manipulação (Farmácias Associadas),5554999901705,https://wa.me/5554999901705,"Av. Pinheiro Machado, 867/01, Centro",Farmacia de Manipulacion,Manipulacao / Premium
+Ijuí,Farmácia e Manipulação Cotripal Ijuí,5555999411220,https://wa.me/5555999411220,"Rua Doutor Pestana, 526, Centro",Farmacia de Manipulacion,Manipulacao / Premium
+Ijuí,Agafarma CACON Ijuí,5555996960370,https://wa.me/5555996960370,"Rua João Perondi, 55, Centro",Farmacia / Drogueria,Rede Associada / Franquia
+Santo Ângelo,Farp Farmácia de Manipulação,5555997297715,https://wa.me/5555997297715,"Rua Vinte e Cinco de Julho, 584, Centro",Farmacia de Manipulacion,Manipulacao / Premium
+Santo Ângelo,Farmácia Tiaraju (Manipulação),5555984314748,https://wa.me/5555984314748,"Av. Brasil, 854, Sala 01, Centro",Farmacia de Manipulacion,Manipulacao / Premium
+Santo Ângelo,MB Farmácias Centro Santo Ângelo,5555991323063,https://wa.me/5555991323063,"Rua Vinte e Cinco de Julho, 31, Centro",Farmacia / Drogueria,Independente de Bairro
+Cruz Alta,Droga Bairro Cruz Alta,5555992338993,https://wa.me/5555992338993,"Rua Bento Gonçalves, 5, Bairro Schettert",Drogueria de Barrio,Independente de Bairro
+Frederico Westphalen,Cruz Azul Farmácias Frederico Westphalen,5555984691990,https://wa.me/5555984691990,"Rua Presidente Kennedy, 861, Centro",Farmacia / Drogueria,Independente de Bairro
+Frederico Westphalen,Farmácia Vida Mais Frederico Westphalen,5555999787800,https://wa.me/5555999787800,"Rua Maurício Cardoso, 500, Centro",Drogueria de Barrio,Independente de Bairro
+Frederico Westphalen,Farmácia Santa Economia Frederico Westphalen,5555984342916,https://wa.me/5555984342916,"Rua Maurício Cardoso, 630, Centro",Drogueria de Barrio,Independente de Bairro
+Frederico Westphalen,Farma Centro Frederico Westphalen,5555996274056,https://wa.me/5555996274056,"Rua Monsenhor Vitor Batistella, 350, Centro",Farmacia / Drogueria,Independente de Bairro
+Palmeira das Missões,Cruz Azul Farmácias Palmeira das Missões,5555984455699,https://wa.me/5555984455699,"Av. Independência, 1327, Centro",Farmacia / Drogueria,Independente de Bairro
+Santa Maria,Tchê Farmácias - Farmácia Dilermando Filial,5555999393330,https://wa.me/5555999393330,"Estrada Capitão Vasco Amaro da Cunha, 1027, Loja 102, Parque Pinheiro Machado, Santa Maria - RS",Red de farmacias / Tele-entrega,Independente de Bairro
+Santa Maria,Tchê Farmácias - Farmácia Dilermando Matriz,5555996819867,https://wa.me/5555996819867,"Rua Sete de Setembro, 409, Nossa Senhora do Perpétuo Socorro, Santa Maria - RS",Red de farmacias / Tele-entrega,Independente de Bairro
+Santa Maria,Tchê Farmácias - Farmácia Tropical,5555991584601,https://wa.me/5555991584601,"Av. Angelo Bolson, 2099, Sala A, Medianeira, Santa Maria - RS",Red de farmacias / Tele-entrega,Independente de Bairro
+Santa Maria,Nutri Vittá Nutrição e Farmácia,5555991039349,https://wa.me/5555991039349,"Rua Clarice Lispector, 125, Tomazetti, Santa Maria - RS",Farmacia especializada y nutrición clínica,Independente de Bairro
+Santa Maria,Agafarma Radialista Osvaldo Nobre,5555996164546,https://wa.me/5555996164546,"Rua Radialista Osvaldo Nobre, 545, Juscelino Kubitschek, Santa Maria - RS",Red Agafarma / Tele-entrega y espacio clínico,Rede Associada / Franquia
+Santa Maria,Dermapelle Farmácia de Manipulação,5555996838468,https://wa.me/5555996838468,"Rua do Acampamento, 192, Centro, Santa Maria - RS",Farmacia de manipulación y fórmulas magistrales,Manipulacao / Premium
+Santa Maria,A. Boa Farma,5555981078512,https://wa.me/5555981078512,"Rua Florianópolis, 984, Pinheiro Machado, Santa Maria - RS",Farmacia comunitaria / Tele-entrega,Independente de Bairro
+Santa Cruz do Sul,Agafarma Shopping Santa Cruz,5551997528907,https://wa.me/5551997528907,"Rua Senador Alberto Pasqualini, 18, Shopping Santa Cruz, Santa Cruz do Sul - RS",Red Agafarma / Tele-entrega y droguería,Rede Associada / Franquia
+Santa Cruz do Sul,Drogaria Santa Cruz da Tenente,5551981346077,https://wa.me/5551981346077,"Rua Tenente-Coronel Brito, 852, Centro, Santa Cruz do Sul - RS",Drogaria local / Tele-entrega,Independente de Bairro
+Santa Cruz do Sul,Vida Farmácias - Centro,5551999996679,https://wa.me/5551999996679,"Rua Senador Pinheiro Machado, 993, Centro, Santa Cruz do Sul - RS",Red Vida Farmácias / Medicamentos y perfumería,Independente de Bairro
+Santa Cruz do Sul,Farmácia Agafarma Arroio Grande,5551980112127,https://wa.me/5551980112127,"Av. Deputado Euclydes Nicolau Kliemann, Arroio Grande, Santa Cruz do Sul - RS",Red Agafarma / Medicamentos y convenios,Rede Associada / Franquia
+Santa Cruz do Sul,Farmácias UltraMed Popular - Ramiro Barcelos,5551920021302,https://wa.me/5551920021302,"Rua Ramiro Barcelos, 1170, Centro, Santa Cruz do Sul - RS",Farmacia popular / Genéricos y similares,Independente de Bairro
+Santa Cruz do Sul,Vida Farma - Farmácia Humaitá,5551980344569,https://wa.me/5551980344569,"Rua Dona Carlota, 708, Faxinal Menino Deus, Santa Cruz do Sul - RS",Drogaria local / Tele-entrega,Independente de Bairro
+Lajeado,Agafarma Conventos,5551995963400,https://wa.me/5551995963400,"Rua Pedro Theobaldo Breidenbach, 2448, Conventos, Lajeado - RS",Red Agafarma / Atención farmacéutica,Rede Associada / Franquia
+Lajeado,Agafarma Centro - Benjamin Constant,5551998289950,https://wa.me/5551998289950,"Av. Benjamin Constant, 1478, Centro, Lajeado - RS",Red Agafarma / Tele-entrega,Rede Associada / Franquia
+Lajeado,Gerhardt Farmácia de Manipulação,5551986221424,https://wa.me/5551986221424,"Av. Senador Alberto Pasqualini, 273, Americano, Lajeado - RS",Farmacia de manipulación y fórmulas personalizadas,Manipulacao / Premium
+Lajeado,Personallis Farmácia de Manipulação,5551985940899,https://wa.me/5551985940899,"Av. Benjamin Constant, 1010, Sala 103, Centro, Lajeado - RS",Farmacia de manipulación y cosméticos,Manipulacao / Premium
+Lajeado,Farmácia Conventos / Drogaria Vitae Plus,5551999646126,https://wa.me/5551999646126,"Rua Pedro Theobaldo Breidenbach, 2448, Conventos, Lajeado - RS",Drogaria y farmacia comunitaria,Independente de Bairro
+Venâncio Aires,Droga Liz Farmácias Associadas,5551989856214,https://wa.me/5551989856214,"Rua Gustavo Bullow, 3077, Coronel Brito, Venâncio Aires - RS",Farmácias Associadas / Tele-entrega,Rede Associada / Franquia
+Venâncio Aires,Farmácias UltraMed Popular - Unidade 1,5551997554679,https://wa.me/5551997554679,"Rua Osvaldo Aranha, 829, Centro, Venâncio Aires - RS",Red UltraMed Popular / Medicamentos económicos,Independente de Bairro
+Venâncio Aires,Farmácias UltraMed Popular - Unidade 2,5551981162992,https://wa.me/5551981162992,"Rua Osvaldo Aranha, 923, Centro, Venâncio Aires - RS",Red UltraMed Popular / Tele-entrega,Independente de Bairro
+Venâncio Aires,Farmácia Cruzeiro,5551997587367,https://wa.me/5551997587367,"Rua Voluntários da Pátria, 2553, Cruzeiro, Venâncio Aires - RS",Farmacia de barrio / Convenios y tele-entrega,Independente de Bairro
+Cachoeira do Sul,Farmácia Municipal de Cachoeira do Sul,5551997996315,https://wa.me/5551997996315,"Rua David Barcelos, Centro, Cachoeira do Sul - RS",Farmacia pública municipal / Dispensación de medicamentos,Independente de Bairro
+Cachoeira do Sul,Agafarma Farmanorte,5551996573690,https://wa.me/5551996573690,"Av. Brasil, 1591, Cachoeira do Sul - RS",Red Agafarma / Tele-entrega y convenios,Rede Associada / Franquia
+Cachoeira do Sul,Natuderme Farmácia de Manipulação,5551998506206,https://wa.me/5551998506206,"Rua Major Ouriques, 1450, Centro, Cachoeira do Sul - RS",Farmacia de manipulación y homeopatía,Manipulacao / Premium
+Cachoeira do Sul,Alquimia da Terra Farmácia de Manipulação,5551995638182,https://wa.me/5551995638182,"Rua Senador Pinheiro Machado, 1471, Centro, Cachoeira do Sul - RS",Farmacia de manipulación y fórmulas fitoterápicas,Manipulacao / Premium
+Cachoeira do Sul,Farmácia Saracura,5551997867698,https://wa.me/5551997867698,"Rua Sete de Setembro, 755, Centro, Cachoeira do Sul - RS",Farmacia tradicional y manipulación,Independente de Bairro
+Teutônia,Farmácia Canabarrense - Matriz,5551981550459,https://wa.me/5551981550459,"Rua Tiradentes, 745, Canabarro, Teutônia - RS",Farmacia comunitaria / Tele-entrega,Independente de Bairro
+Teutônia,Farmácia Canabarrense - Filial,5551998269154,https://wa.me/5551998269154,"Rua Capitão Schneider, Canabarro, Teutônia - RS",Farmacia comercial / Convenios,Independente de Bairro
+Teutônia,Sanar Farmácias - Alesgut,5551994519977,https://wa.me/5551994519977,"Rua Major Bandeira, 236, Alesgut, Teutônia - RS",Red Sanar Farmácias / Medicamentos genéricos,Rede Associada / Franquia
+Teutônia,Farma Sim Farmácias,5551993282120,https://wa.me/5551993282120,"Rua Dom Pedro II, 1370, Canabarro, Teutônia - RS",Farmacia comercial y tele-entrega,Independente de Bairro
+Teutônia,Farmácia Ouro Branco,5551999161884,https://wa.me/5551999161884,"Rua Santos Dumont, 979, Languiru, Teutônia - RS",Drogaria local / Atención al cliente,Independente de Bairro
+Teutônia,Drogaria Vitae Plus - Alesgut,5551981538229,https://wa.me/5551981538229,"Rua Major Bandeira, 673, Alesgut, Teutônia - RS",Drogaria local / Tele-entrega,Independente de Bairro
+Estrela,Farmativa - Rede Tchê Farmácias,5551981707919,https://wa.me/5551981707919,"Av. Rio Branco, 612, Oriental, Estrela - RS",Red Tchê Farmácias / Tele-entrega,Independente de Bairro
+Encantado,Farmácia Manipulares,5551988865284,https://wa.me/5551988865284,"Rua Pinheiro Machado, 167, Centro, Encantado - RS",Farmacia de manipulación y fórmulas magistrales,Manipulacao / Premium
+Pelotas,Farmácia São Francisco,5553981314820,https://wa.me/5553981314820,"Rua Dr. Amarante, 541 - Areal",Farmacia Comunitaria / Tele-entrega,Independente de Bairro
+Pelotas,Farmácias Associadas (Rede LVD Loja 07),5553999312644,https://wa.me/5553999312644,"Av. Marechal Deodoro, 569 - Centro",Rede / Tele-entrega,Rede Associada / Franquia
+Pelotas,Farmácias Associadas (Rede LVD Loja 08),5553999906190,https://wa.me/5553999906190,"Av. Domingos de Almeida, 1830 - Areal",Rede / Tele-entrega,Rede Associada / Franquia
+Pelotas,Farmácias Associadas (Rede LVD Loja 09),5553999217648,https://wa.me/5553999217648,"Av. Marechal Deodoro, 1099 - Centro",Rede / Tele-entrega,Rede Associada / Franquia
+Pelotas,Farmácias Associadas (Rede LVD Loja 24),5553997091121,https://wa.me/5553997091121,"Av. Adolfo Fetter, 1148 - Laranjal",Rede / Tele-entrega,Rede Associada / Franquia
+Pelotas,Farmácia Moura (Manipulação e Drogaria),5553991351269,https://wa.me/5553991351269,"Rua XV de Novembro, 610 - Centro",Farmacia de Manipulacao / Tele-entrega,Manipulacao / Premium
+Pelotas,Dose Exata Farmácia de Manipulação,5553981177171,https://wa.me/5553981177171,"Rua Marechal Deodoro, 702 - Centro",Farmacia de Manipulacao / Atendimento WhatsApp,Manipulacao / Premium
+Pelotas,FragaFarma,5553984076190,https://wa.me/5553984076190,"Av. Duque de Caxias, 620 - Fragata",Drogaria Local / Tele-entrega,Rede Associada / Franquia
+Pelotas,Farmácia Megamed (Rede Tchê Farmácias),5553984890571,https://wa.me/5553984890571,"Av. Rio Grande do Sul, 379 - Laranjal",Rede / Tele-entrega,Independente de Bairro
+Pelotas,Farmácia da Lagoa (Rede Tchê Farmácias),5553984000254,https://wa.me/5553984000254,"Praça Aratiba, 191 - Laranjal",Rede / Tele-entrega,Independente de Bairro
+Pelotas,Prontofarma (Rede Tchê Farmácias),5553981228027,https://wa.me/5553981228027,"Rua General Osório, 501 - Centro",Rede / Tele-entrega,Independente de Bairro
+Pelotas,Farmácia Prinsul (Rede Tchê Farmácias),5553991735408,https://wa.me/5553991735408,"Rua Dom Pedro II, 528 - Centro",Rede / Tele-entrega,Independente de Bairro
+Pelotas,Farmadez (Rede Tchê Farmácias),5553984290111,https://wa.me/5553984290111,"Rua Lázaro Zamenhoff, 468 - Navegantes II",Rede / Tele-entrega,Independente de Bairro
+Pelotas,Drogaria Santo Antônio (Tchê Farmácias Fragata),5553991485912,https://wa.me/5553991485912,"Rua Caetano Gotuzzo, 324 - Fragata",Rede / Tele-entrega,Independente de Bairro
+Pelotas,Drogaria Santo Antônio (Tchê Farmácias Areal),5553981256666,https://wa.me/5553981256666,"Av. Domingos José de Almeida, 2453 - Areal",Rede / Tele-entrega,Independente de Bairro
+Pelotas,Sanar Farmácias (Porto Pelotas),5553999544970,https://wa.me/5553999544970,"Rua Baldomero Trapaga, 390 - Porto",Rede / Tele-entrega,Rede Associada / Franquia
+Pelotas,Farmácias Associadas Farmalar,5553984163687,https://wa.me/5553984163687,"Rua Marechal Floriano, 182 - Centro",Rede / Tele-entrega,Rede Associada / Franquia
+Rio Grande,Tchê da Portugal (Rede Tchê Farmácias),5553999365595,https://wa.me/5553999365595,"Av. Portugal, 279 - Cidade Nova",Rede / Tele-entrega,Independente de Bairro
+Rio Grande,Farmácia do Sul,5553999485918,https://wa.me/5553999485918,"Rua Virgílio Porciúncula, 149 - Quinta",Drogaria Local / Tele-entrega,Independente de Bairro
+Rio Grande,Farmácias Associadas (Rede LVD Loja 17),5553981270051,https://wa.me/5553981270051,"Rua Aquidaban, 656 - Centro",Rede / Tele-entrega,Rede Associada / Franquia
+Rio Grande,Farmácias Associadas (Rede LVD Loja 16),5553981270044,https://wa.me/5553981270044,"Rua Luiz Lorea, 492 - Centro",Rede / Tele-entrega,Rede Associada / Franquia
+Camaquã,Farmácias Associadas (Rede LVD Loja 01 Matriz),5551995283283,https://wa.me/5551995283283,"Av. Capitão Adolfo Castro, 385 - Centro",Rede / Tele-entrega,Rede Associada / Franquia
+Camaquã,Farmácias Associadas (Rede LVD Loja 03 24h),5551981685882,https://wa.me/5551981685882,"Av. Presidente Vargas, 409 - Centro",Rede / Tele-entrega 24h,Rede Associada / Franquia
+Camaquã,Farmácias Associadas (Rede LVD Loja 04),5551995681898,https://wa.me/5551995681898,"Av. José Loureiro da Silva, 357 - Centro",Rede / Tele-entrega,Rede Associada / Franquia
+Camaquã,Farmácias Associadas (Rede LVD Loja 05),5551995681877,https://wa.me/5551995681877,"Av. Presidente Vargas, 739 - Centro",Rede / Tele-entrega,Rede Associada / Franquia
+Camaquã,Farmácias Associadas (Rede LVD Loja 06),5551995681924,https://wa.me/5551995681924,"Av. Júlio de Castilhos, 499 - Centro",Rede / Tele-entrega,Rede Associada / Franquia
+Camaquã,Farmácias Associadas (Rede LVD Loja 10 Viégas),5551996314481,https://wa.me/5551996314481,"Rua Cruz Alta, 985 - Viégas",Rede / Tele-entrega,Rede Associada / Franquia
+São Lourenço do Sul,Drogaria Lourenciana (Rede Tchê Barroso),5553984059396,https://wa.me/5553984059396,"Rua Almirante Barroso, 1913 - Centro",Rede / Tele-entrega,Independente de Bairro
+São Lourenço do Sul,Drogaria Lourenciana (Rede Tchê Born),5553999120188,https://wa.me/5553999120188,"Rua Cel. Alfredo Born, 559 - Centro",Rede / Tele-entrega,Independente de Bairro
+Jaguarão,Farmácia Anas (Rede Tchê Farmácias),5553984482812,https://wa.me/5553984482812,"Rua XV de Novembro, 163 - Centro",Rede / Tele-entrega,Independente de Bairro
+Jaguarão,Farmácia Anas (Filial Atendimento),5553999662302,https://wa.me/5553999662302,"Rua XV de Novembro, 163 - Centro",Rede / Tele-entrega,Independente de Bairro
+Tramandaí,Sanar Farmácias Nova Tramandaí,5551992206755,https://wa.me/5551992206755,"Av. Minas Gerais, 700 - Nova Tramandaí",Rede / Tele-entrega,Rede Associada / Franquia
+Capão da Canoa,Agafarma Santa Luzia,5551994402723,https://wa.me/5551994402723,"Av. Dom Luiz Guanella, 2773 - Santa Luzia",Rede / Tele-entrega,Rede Associada / Franquia
+Capão da Canoa,Farmácia do Paulinho,5551996901024,https://wa.me/5551996901024,"Rua Mário Totta, 500 - Zona Nova",Farmacia Comunitaria / Tele-entrega,Independente de Bairro
+Capão da Canoa,Farmácia do Paulinho (Atendimento 2),5551984084252,https://wa.me/5551984084252,"Rua Mário Totta, 500 - Zona Nova",Farmacia Comunitaria / Tele-entrega,Independente de Bairro
+Capão da Canoa,Farmácias Associadas Capão Novo,5551996818233,https://wa.me/5551996818233,"Av. Paraguassu, 4177 - Capão Novo",Rede / Tele-entrega,Rede Associada / Franquia
+Capão da Canoa,Farmácias Associadas (Zona Norte),5551993240297,https://wa.me/5551993240297,"Av. Paraguassu, 510 - Centro",Rede / Tele-entrega,Rede Associada / Franquia
+Capão da Canoa,Farmácia do Povo,5551991346455,https://wa.me/5551991346455,"Rua Gen. Osório, 744 - Santa Luzia",Farmacia Comunitaria / Tele-entrega,Independente de Bairro
+Torres,Sealife Farmácia de Manipulação,5551995234840,https://wa.me/5551995234840,"Rua Saldanha da Gama, 1017 - Praia Grande",Farmacia de Manipulacao / Tele-entrega,Manipulacao / Premium
+Torres,Bioderm Farmácia de Manipulação,5551986008567,https://wa.me/5551986008567,"Av. José Bonifácio, 471 Sala 4 - Centro",Farmacia de Manipulacao / Atendimento,Manipulacao / Premium
+Osório,Farmácia Globo Osório,5551981801624,https://wa.me/5551981801624,"Rua Costa Gama, 891 - Centro",Drogaria Local / Tele-entrega,Independente de Bairro
+Osório,Farmácia Líder II,5551999637045,https://wa.me/5551999637045,"Rua Machado de Assis, 407 Sala 2 - Centro",Farmacia Comunitaria / Tele-entrega,Independente de Bairro
+Imbé,Farmácia Vida & Saúde,5551980376942,https://wa.me/5551980376942,"Av. Paraguassu, 1553 - Centro",Farmacia Comunitaria / Tele-entrega,Independente de Bairro
+Dom Pedrito,Sanar Farmácias Centro Dom Pedrito,5553999962276,https://wa.me/5553999962276,"Av. Barão do Upacaraí, 1656 Sala 01 - Centro",Rede / Tele-entrega,Rede Associada / Franquia
+Dom Pedrito,MV Pharma (Rede Somar / Farmidare),5553999474645,https://wa.me/5553999474645,"Rua Barão do Upacaraí, 1699 - Centro",Rede / Tele-entrega,Independente de Bairro
+Caçapava do Sul,Nicola Farmácias (Matriz),5555997353004,https://wa.me/5555997353004,"Rua XV de Novembro, 320 - Centro",Rede / Tele-entrega,Independente de Bairro
+Caçapava do Sul,Nicola Farmácias (Filial Rótula),5555999424562,https://wa.me/5555999424562,"Av. Presidente Kennedy, 2200 - Centro",Rede / Tele-entrega,Independente de Bairro
+Caçapava do Sul,Nicola Farmácias (Filial Floricultura),5555997356213,https://wa.me/5555997356213,"Rua XV de Novembro, 584 - Centro",Rede / Tele-entrega,Independente de Bairro
+Caçapava do Sul,Nicola Farmácias (Filial Nova Popular),5555999442809,https://wa.me/5555999442809,"Rua XV de Novembro, 462 - Centro",Rede / Tele-entrega,Independente de Bairro
+Caçapava do Sul,Nicola Farmácias (Laboratório Manipulação),5555996770170,https://wa.me/5555996770170,"Rua XV de Novembro, 320 - Centro",Farmacia de Manipulacao,Manipulacao / Premium
+Caçapava do Sul,Farmácias Guaritas (Benjamin Constant),5555984212279,https://wa.me/5555984212279,"Rua Benjamin Constant, 1111 - Centro",Rede / Tele-entrega,Independente de Bairro
+Caçapava do Sul,Farmácias Guaritas (15 de Novembro),5555999586498,https://wa.me/5555999586498,"Rua 15 de Novembro, 470 - Centro",Rede / Tele-entrega,Independente de Bairro
+Caçapava do Sul,Farmácias Guaritas (Lima e Silva),5555999059290,https://wa.me/5555999059290,"Av. Lima e Silva, 952 - Centro",Rede / Tele-entrega,Independente de Bairro
+Caçapava do Sul,Droga Giro Matriz (DG1),5555999028093,https://wa.me/5555999028093,"Av. Cel. Coriolano de Castro, 1055 - Centro",Rede / Tele-entrega,Independente de Bairro
+Caçapava do Sul,Droga Giro 02 (DG2),5555999028096,https://wa.me/5555999028096,"Rua XV de Novembro, 514 - Centro",Rede / Tele-entrega,Independente de Bairro
+Caçapava do Sul,Droga Giro 03 (DG3),5555996130363,https://wa.me/5555996130363,"Av. Santos Dumont, 09 - Centro",Rede / Tele-entrega,Independente de Bairro
+Caçapava do Sul,Droga Giro 04 (DG4),5555999028094,https://wa.me/5555999028094,"Av. Pres. Kennedy, 1568 - Centro",Rede / Tele-entrega,Independente de Bairro
+Santiago,Farmácia Guerra (Rede Somar / Farmidare),5555999142746,https://wa.me/5555999142746,"Rua Tito Beccon, 1245 - Centro",Rede / Tele-entrega,Independente de Bairro
+Santiago,Farmácia São Jorge (Filial 01),5555996211373,https://wa.me/5555996211373,"Rua Tito Beccon, 1568 - Centro",Rede / Tele-entrega,Independente de Bairro
+Santiago,MB Farmácias Getúlio Vargas,5555992223908,https://wa.me/5555992223908,"Av. Getúlio Vargas, 1868 - Centro",Rede / Tele-entrega,Independente de Bairro
+São Gabriel,Agafarma Matriz São Gabriel,5555996702274,https://wa.me/5555996702274,"Rua 13 de Janeiro, 860 - Centro",Rede / Tele-entrega,Rede Associada / Franquia
+São Gabriel,Agafarma Filial São Gabriel,5555999668846,https://wa.me/5555999668846,"Rua 13 de Janeiro, 1609 - Centro",Rede / Tele-entrega,Rede Associada / Franquia
+São Gabriel,Farmácia Nunes (Rede Somar / Farmidare),5555999629547,https://wa.me/5555999629547,"Rua General Marques, 261 - Centro",Rede / Tele-entrega,Independente de Bairro
+Pelotas,FarmÃ¡cias Associadas (Rede LVD - Loja 11),5553999558029,https://wa.me/5553999558029,"Rua Andrade Neves, 2023, Centro",Rede de FarmÃ¡cias / Tele-entrega,Rede Associada / Franquia
+Pelotas,FarmÃ¡cias Associadas (Rede LVD - Loja 12),5553997059019,https://wa.me/5553997059019,"Rua Marechal Floriano, 115, Centro",Rede de FarmÃ¡cias / Tele-entrega,Rede Associada / Franquia
+Pelotas,FarmÃ¡cias Associadas (Rede LVD - Loja 13),5553999759604,https://wa.me/5553999759604,"Rua Andrade Neves, 1880, Centro",Rede de FarmÃ¡cias / Tele-entrega,Rede Associada / Franquia
+Pelotas,FarmÃ¡cias Associadas (Rede LVD - Loja 21),5553981494230,https://wa.me/5553981494230,"Rua Dr. Antonio Augusto de AssunÃ§Ã£o, 9347, Laranjal",Rede de FarmÃ¡cias / Tele-entrega,Rede Associada / Franquia
+Pelotas,FarmÃ¡cias Associadas (Rede LVD - APUFPEL),5553991614185,https://wa.me/5553991614185,"Rua Marechal Deodoro, 569, Centro",Rede de FarmÃ¡cias / ConvÃªnio,Rede Associada / Franquia
+Pelotas,TchÃª FarmÃ¡cias (Tiradentes),5553991262932,https://wa.me/5553991262932,"Rua Tiradentes, 1672, Centro",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Pelotas,TchÃª FarmÃ¡cias (Santo AntÃ´nio 3),5553999197397,https://wa.me/5553999197397,"Rua Professor Paulo Zanotta da Cruz, Fragata",Drogaria ComunitÃ¡ria / Tele-entrega,Independente de Bairro
+Pelotas,TchÃª FarmÃ¡cias (SimÃµes),5553981642929,https://wa.me/5553981642929,"Rua Sete de Abril, 105, Fragata",Drogaria ComunitÃ¡ria / Tele-entrega,Independente de Bairro
+Pelotas,TchÃª FarmÃ¡cias (RemediolÃ¢ndia),5553991454101,https://wa.me/5553991454101,"Av. Quatro, 2800, Sala 01, Vila Princesa",Drogaria ComunitÃ¡ria / Tele-entrega,Independente de Bairro
+Pelotas,TchÃª FarmÃ¡cias (Farmax),5553999900500,https://wa.me/5553999900500,"Rua Magda Costa, 382, Areal",Drogaria ComunitÃ¡ria / Tele-entrega,Independente de Bairro
+Pelotas,Essencial FarmÃ¡cia de ManipulaÃ§Ã£o,5553991458409,https://wa.me/5553991458409,"Rua XV de Novembro, 711, Centro",FarmÃ¡cia de ManipulaÃ§Ã£o,Manipulacao / Premium
+Pelotas,Uso Indicado (Matriz),5553981265455,https://wa.me/5553981265455,"Rua VoluntÃ¡rios da PÃ¡tria, 1050, Centro",FarmÃ¡cia de ManipulaÃ§Ã£o,Independente de Bairro
+Pelotas,Uso Indicado (Filial Uni),5553991579133,https://wa.me/5553991579133,"Rua Dom Pedro II, 665, Centro",FarmÃ¡cia de ManipulaÃ§Ã£o,Independente de Bairro
+Pelotas,Uso Indicado (Filial Una),5553991223131,https://wa.me/5553991223131,"Rua Suzana Cortez Balreira, 191, Centro",FarmÃ¡cia de ManipulaÃ§Ã£o,Independente de Bairro
+Pelotas,FarmÃ¡cia Curativa,5553991371688,https://wa.me/5553991371688,"Rua Andrade Neves, 1743, Centro",FarmÃ¡cia de ManipulaÃ§Ã£o e Drogaria,Independente de Bairro
+Pelotas,FarmÃ¡cia de ManipulaÃ§Ã£o Vida Nova,5553984361451,https://wa.me/5553984361451,"Rua General OsÃ³rio, 856 A, Centro",FarmÃ¡cia de ManipulaÃ§Ã£o,Manipulacao / Premium
+Pelotas,Acqua FarmÃ¡cia de ManipulaÃ§Ã£o,5553984115128,https://wa.me/5553984115128,"Rua Marechal Deodoro, 800, Sala 101, Centro",FarmÃ¡cia de ManipulaÃ§Ã£o,Manipulacao / Premium
+Pelotas,FarmÃ¡cias SÃ£o JoÃ£o (Pelotas 30 - Areal),5553997073359,https://wa.me/5553997073359,"Rua Rafael Pinto Bandeira, 1738, Areal",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Pelotas,FarmÃ¡cias SÃ£o JoÃ£o (Pelotas 31 - Centro),5553999795572,https://wa.me/5553999795572,"Rua Santos Dumont, 554, Centro",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Pelotas,FarmÃ¡cias SÃ£o JoÃ£o (Pelotas 32 - Centro),5553999714523,https://wa.me/5553999714523,"Rua Prof. Dr. AraÃºjo, 377, Centro",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Pelotas,FarmÃ¡cias SÃ£o JoÃ£o (Pelotas 33 - Areal),5553997071752,https://wa.me/5553997071752,"Av. Ferreira Viana, 551, Areal",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Pelotas,FarmÃ¡cias SÃ£o JoÃ£o (Pelotas 34 - Fragata),5553999064216,https://wa.me/5553999064216,"Av. Duque de Caxias, 384, Fragata",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Pelotas,FarmÃ¡cias SÃ£o JoÃ£o (Pelotas 1 - Centro),5554996634685,https://wa.me/5554996634685,"Rua Andrade Neves, 1669, Centro",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Pelotas,FarmÃ¡cias SÃ£o JoÃ£o (Pelotas 2 - Centro),5554999219854,https://wa.me/5554999219854,"Rua Quinze de Novembro, 601, Centro",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Pelotas,FarmÃ¡cias SÃ£o JoÃ£o (Pelotas 3 - Centro),5554996606525,https://wa.me/5554996606525,"Av. Bento GonÃ§alves, 3819, Centro",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Pelotas,FarmÃ¡cias SÃ£o JoÃ£o (Pelotas 4 - Centro),5554999043245,https://wa.me/5554999043245,"Rua Marechal Floriano, 123, Centro",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Pelotas,FarmÃ¡cias SÃ£o JoÃ£o (Pelotas 5 - Centro 24h),5554999424186,https://wa.me/5554999424186,"Av. Bento GonÃ§alves, 4193, Centro",Rede de FarmÃ¡cias / Tele-entrega 24h,Independente de Bairro
+Pelotas,FarmÃ¡cias SÃ£o JoÃ£o (Pelotas 6 - Fragata),5554996283517,https://wa.me/5554996283517,"Av. Duque de Caxias, 634, Fragata",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Pelotas,FarmÃ¡cias SÃ£o JoÃ£o (Pelotas 9 - TrÃªs Vendas),5554999496054,https://wa.me/5554999496054,"Rua Fernando OsÃ³rio, 1549, TrÃªs Vendas",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Pelotas,FarmÃ¡cias SÃ£o JoÃ£o (Pelotas 11 - TrÃªs Vendas),5554999047354,https://wa.me/5554999047354,"Av. Fernando OsÃ³rio, 2490, TrÃªs Vendas",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Pelotas,FarmÃ¡cias SÃ£o JoÃ£o (Pelotas 12 - Areal),5554997084123,https://wa.me/5554997084123,"Av. Domingos de Almeida, 825, Areal",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Pelotas,FarmÃ¡cias SÃ£o JoÃ£o (Pelotas 13 - Fragata),5554996717265,https://wa.me/5554996717265,"Av. Duque de Caxias, 572, Fragata",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Pelotas,FarmÃ¡cias SÃ£o JoÃ£o (Pelotas 15 - Laranjal),5554997084406,https://wa.me/5554997084406,"Av. Adolfo Fetter, 1420, Laranjal",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Pelotas,FarmÃ¡cias SÃ£o JoÃ£o (Pelotas 18 - TrÃªs Vendas),5554997084543,https://wa.me/5554997084543,"Av. Senador Salgado Filho, 483, TrÃªs Vendas",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Pelotas,FarmÃ¡cias SÃ£o JoÃ£o (Pelotas 20 - Fragata),5554991956647,https://wa.me/5554991956647,"Av. Theodoro Muller, 2806, Fragata",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Pelotas,FarmÃ¡cias SÃ£o JoÃ£o (Pelotas 23 - Areal),5554997051659,https://wa.me/5554997051659,"Rua Guararapes, 50, Areal",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Pelotas,FarmÃ¡cias SÃ£o JoÃ£o (Pelotas 27 - TrÃªs Vendas),5554996336186,https://wa.me/5554996336186,"Av. Senador Salgado Filho, 936, TrÃªs Vendas",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Pelotas,FarmÃ¡cias SÃ£o JoÃ£o (Pelotas 29 - Centro),5554999519844,https://wa.me/5554999519844,"Av. Dom Joaquim, 882, Centro",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Rio Grande,FarmÃ¡cias Associadas (Rede LVD - Loja 14),5553981270050,https://wa.me/5553981270050,"Rua Marechal Floriano Peixoto, 359, Centro",Rede de FarmÃ¡cias / Tele-entrega,Rede Associada / Franquia
+Rio Grande,FarmÃ¡cias Associadas (Rede LVD - Loja 15),5553981270052,https://wa.me/5553981270052,"Av. Cidade de Pelotas, 194, Cidade Nova",Rede de FarmÃ¡cias / Tele-entrega,Rede Associada / Franquia
+Rio Grande,Curavida FarmÃ¡cia de ManipulaÃ§Ã£o,5553981645180,https://wa.me/5553981645180,"Rua Marechal Floriano Peixoto, 371, Centro",FarmÃ¡cia de ManipulaÃ§Ã£o,Manipulacao / Premium
+Rio Grande,FarmÃ¡cia Rosa (Rosa Express),5553991503025,https://wa.me/5553991503025,"Rua das Fragatas, 155, Parque Marinha",Drogaria ComunitÃ¡ria / Tele-entrega,Independente de Bairro
+Rio Grande,Dermaco FarmÃ¡cia de ManipulaÃ§Ã£o,5553984260150,https://wa.me/5553984260150,"Rua 24 de Maio, 280, Centro",FarmÃ¡cia de ManipulaÃ§Ã£o,Manipulacao / Premium
+Rio Grande,FarmÃ¡cias SÃ£o JoÃ£o (Rio Grande 4 - Jardim do Sol),5553997095504,https://wa.me/5553997095504,"Av. JoÃ£o Oliveira, 330, Parque Residencial Jardim do Sol",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Rio Grande,FarmÃ¡cias SÃ£o JoÃ£o (Rio Grande 2 - Centro 24h),5554999108090,https://wa.me/5554999108090,"Rua Vinte e Quatro de Maio, 406, Centro",Rede de FarmÃ¡cias / Tele-entrega 24h,Independente de Bairro
+Rio Grande,FarmÃ¡cias SÃ£o JoÃ£o (Rio Grande 3 - Centro),5554999149676,https://wa.me/5554999149676,"Rua General Bacelar, 291, Centro",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Rio Grande,FarmÃ¡cias SÃ£o JoÃ£o (Rio Grande 5 - Cassino),5554996657534,https://wa.me/5554996657534,"Av. Rio Grande, 91 A, Cassino",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Rio Grande,FarmÃ¡cias SÃ£o JoÃ£o (Rio Grande 6 - Centro),5554999025137,https://wa.me/5554999025137,"Rua Vinte e Quatro de Maio, 250, Centro",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Rio Grande,FarmÃ¡cias SÃ£o JoÃ£o (Rio Grande 7 - JunÃ§Ã£o),5554999043240,https://wa.me/5554999043240,"Av. Presidente Vargas, 706, JunÃ§Ã£o",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Rio Grande,FarmÃ¡cias SÃ£o JoÃ£o (Rio Grande 10 - Centro),5554999819468,https://wa.me/5554999819468,"Rua Luiz Lorea, 498, Centro",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Rio Grande,FarmÃ¡cias SÃ£o JoÃ£o (Rio Grande 11 - SÃ£o Paulo),5554999936058,https://wa.me/5554999936058,"Av. Presidente Vargas, 400, SÃ£o Paulo",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Rio Grande,FarmÃ¡cias SÃ£o JoÃ£o (Rio Grande 13 - Cassino 24h),5554996731727,https://wa.me/5554996731727,"Av. Rio Grande, 315, Cassino",Rede de FarmÃ¡cias / Tele-entrega 24h,Independente de Bairro
+Rio Grande,FarmÃ¡cias SÃ£o JoÃ£o (Rio Grande 14 - JunÃ§Ã£o),5554996703844,https://wa.me/5554996703844,"Av. Presidente Vargas, 930, JunÃ§Ã£o",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Rio Grande,FarmÃ¡cias SÃ£o JoÃ£o (Rio Grande 15 - SÃ£o Jorge),5554996823468,https://wa.me/5554996823468,"Rua Padre Nilo Gollo, 6, Bairro SÃ£o Jorge",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Rio Grande,FarmÃ¡cias SÃ£o JoÃ£o (Rio Grande 16 - Vila JunÃ§Ã£o 24h),5554999010046,https://wa.me/5554999010046,"Rua Pinto Bandeira, 339, Vila JunÃ§Ã£o",Rede de FarmÃ¡cias / Tele-entrega 24h,Independente de Bairro
+Rio Grande,FarmÃ¡cias SÃ£o JoÃ£o (Rio Grande 17 - Cassino),5554996010311,https://wa.me/5554996010311,"Av. Rio Grande, 571, Cassino",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+SÃ£o JosÃ© do Norte,FarmÃ¡cias Associadas (Rede LVD - Loja 22),5553999017422,https://wa.me/5553999017422,"Rua Marechal Floriano, 248, Centro",Rede de FarmÃ¡cias / Tele-entrega,Rede Associada / Franquia
+SÃ£o LourenÃ§o do Sul,Farmavip (Rede TchÃª),5553984347041,https://wa.me/5553984347041,"Av. Santos Abreu, 1014, Centro",Drogaria ComunitÃ¡ria / Tele-entrega,Independente de Bairro
+CanguÃ§u,TchÃª FarmÃ¡cias (FarmÃ¡cia SÃ£o Carlos),5553984461232,https://wa.me/5553984461232,"Rua General OsÃ³rio, 878, Centro",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+CanguÃ§u,FarmÃ¡cias SÃ£o JoÃ£o (CanguÃ§u 1 - Centro 24h),5554997063719,https://wa.me/5554997063719,"Rua General OsÃ³rio, 1063, Centro",Rede de FarmÃ¡cias / Tele-entrega 24h,Independente de Bairro
+CanguÃ§u,FarmÃ¡cias SÃ£o JoÃ£o (CanguÃ§u 2 - Centro),5554996651032,https://wa.me/5554996651032,"Rua General OsÃ³rio, 898, Centro",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+CanguÃ§u,FarmÃ¡cias SÃ£o JoÃ£o (CanguÃ§u 4 - Centro),5554999004628,https://wa.me/5554999004628,"Av. 20 de Setembro, 263, Centro",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Piratini,FarmÃ¡cia Brasil Poupa Lar,5553997125468,https://wa.me/5553997125468,"Av. Bento GonÃ§alves, 73, Centro",Drogaria ComunitÃ¡ria / Tele-entrega,Rede Associada / Franquia
+Piratini,FarmÃ¡cias SÃ£o JoÃ£o (Loja 125 - Centro 24h),5554999360558,https://wa.me/5554999360558,"Av. Gomes Jardim, 162, Centro",Rede de FarmÃ¡cias / Tele-entrega 24h,Independente de Bairro
+Pinheiro Machado,FarmÃ¡cias SÃ£o JoÃ£o (Centro),5554996811667,https://wa.me/5554996811667,"Rua Dutra de Andrade, 776, Centro",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Santa VitÃ³ria do Palmar,TchÃª FarmÃ¡cias (Farmavida),5553999759080,https://wa.me/5553999759080,"Rua BarÃ£o do Rio Branco, 826, Centro",Drogaria ComunitÃ¡ria / Tele-entrega,Independente de Bairro
+Santa VitÃ³ria do Palmar,FarmÃ¡cias SÃ£o JoÃ£o (Centro),5554999362792,https://wa.me/5554999362792,"Rua BarÃ£o do Rio Branco, 587, Centro",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+JaguarÃ£o,FarmÃ¡cias SÃ£o JoÃ£o (JaguarÃ£o 1 - Centro 24h),5554996146501,https://wa.me/5554996146501,"Av. 27 de Janeiro, 484, Centro",Rede de FarmÃ¡cias / Tele-entrega 24h,Independente de Bairro
+JaguarÃ£o,FarmÃ¡cias SÃ£o JoÃ£o (JaguarÃ£o 2 - PraÃ§a),5554996671677,https://wa.me/5554996671677,"PraÃ§a Dr. Alcides Marques, 10, Centro",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Arroio Grande,FarmÃ¡cias SÃ£o JoÃ£o (Arroio Grande 1 - Centro 24h),5554999972513,https://wa.me/5554999972513,"Av. Visconde de MauÃ¡, 383, Centro",Rede de FarmÃ¡cias / Tele-entrega 24h,Independente de Bairro
+Arroio Grande,FarmÃ¡cias SÃ£o JoÃ£o (Arroio Grande 2 - Centro),5554996088586,https://wa.me/5554996088586,"Av. Visconde de MauÃ¡, 1054, Centro",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Dom Pedrito,FarmÃ¡cias SÃ£o JoÃ£o (Dom Pedrito 1 - Centro 24h),5554999354810,https://wa.me/5554999354810,"Rua BarÃ£o do Upacaray, 1297, Centro",Rede de FarmÃ¡cias / Tele-entrega 24h,Independente de Bairro
+BagÃ©,FarmÃ¡cias SÃ£o JoÃ£o (BagÃ© 6 - Estrela Dalva),5553999682733,https://wa.me/5553999682733,"Av. EmÃ­lio Guilain, 501, Estrela Dalva",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+CaÃ§apava do Sul,FarmÃ¡cias SÃ£o JoÃ£o (Vila Sul),5555999799948,https://wa.me/5555999799948,"Av. JoÃ£o Manoel de Lima e Silva, 525, Vila Sul",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+CaÃ§apava do Sul,FarmÃ¡cias SÃ£o JoÃ£o (Centro 24h),5554999126380,https://wa.me/5554999126380,"Rua Benjamin Constant, 1275, Centro",Rede de FarmÃ¡cias / Tele-entrega 24h,Independente de Bairro
+CaÃ§apava do Sul,FarmÃ¡cias SÃ£o JoÃ£o (Centro 2),5554996983307,https://wa.me/5554996983307,"Rua XV de Novembro, 400, Centro",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+CamaquÃ£,FarmÃ¡cias SÃ£o JoÃ£o (Centro 1 - Loja 24h),5551995358240,https://wa.me/5551995358240,"Rua Olavo Moraes, 824, Centro",Rede de FarmÃ¡cias / Tele-entrega 24h,Independente de Bairro
+CamaquÃ£,FarmÃ¡cias SÃ£o JoÃ£o (Centro 3 - Arroio Duro),5554996739906,https://wa.me/5554996739906,"Av. CÃ´nego Luiz Walter Hanquet, 299, Parque Residencial Arroio Duro",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+CamaquÃ£,FarmÃ¡cias SÃ£o JoÃ£o (Centro 4),5554999932550,https://wa.me/5554999932550,"Rua Bento GonÃ§alves, 1010, Centro",Rede de FarmÃ¡cias / Tele-entrega,Independente de Bairro
+Cristal,FarmÃ¡cias Associadas (Rede LVD - Loja 02),5551981685874,https://wa.me/5551981685874,"Av. EmancipaÃ§Ã£o, 191, Centro",Rede de FarmÃ¡cias / Tele-entrega,Rede Associada / Franquia
+ArambarÃ©,FarmÃ¡cias Associadas (Rede LVD - Loja 20),5551980812193,https://wa.me/5551980812193,"Centro, ArambarÃ©",Rede de FarmÃ¡cias / Tele-entrega,Rede Associada / Franquia
+Chuvisca,FarmÃ¡cias Associadas (Rede LVD - Loja 18),5551998223612,https://wa.me/5551998223612,"Centro, Chuvisca",Rede de FarmÃ¡cias / Tele-entrega,Rede Associada / Franquia

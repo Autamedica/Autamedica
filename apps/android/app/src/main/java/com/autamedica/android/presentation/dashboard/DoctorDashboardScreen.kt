@@ -238,23 +238,13 @@ fun DoctorDashboardScreen(
             )
         },
         bottomBar = {
-            val incomingAlert: PharmacyDispatchRequest? = uiState.simulatedDispatchAlert
-                ?: uiState.pharmacyOnDutyState.pendingRequests
-                    .firstOrNull { it.id !in uiState.dismissedRequestIds }
-                    ?.let { req ->
-                        PharmacyDispatchRequest(
-                            id = req.id,
-                            patientDni = req.patientDni,
-                            patientPhone = req.patientPhone,
-                            patientName = req.patientName,
-                            tierRequested = req.pharmacyName,
-                            symptomSummary = req.reason,
-                            status = req.status.name.lowercase(),
-                            assignedDoctorId = req.doctorId,
-                            cloudflareRoomId = req.roomId ?: req.id,
-                            createdAt = req.createdAt?.toString() ?: "",
-                        )
-                    }
+            // The server has explicitly offered this exact patient to this
+            // logged-in doctor. Never derive a room ID from a request ID.
+            val incomingAlert: PharmacyDispatchRequest? =
+                uiState.simulatedDispatchAlert?.takeIf {
+                    uiState.guardApproved == true &&
+                        uiState.pharmacyOnDutyState.isOnDuty && !it.offerId.isNullOrBlank()
+                }
             UberIncomingDispatchAlert(
                 request = incomingAlert,
                 isClaiming = uiState.claimingPharmacyRequestId == incomingAlert?.id,
@@ -288,6 +278,43 @@ fun DoctorDashboardScreen(
                     }
                 }
 
+                uiState.guardApproved != true -> {
+                    // A registered doctor is not automatically an approved
+                    // clinical practitioner. Keep profile/onboarding navigation
+                    // accessible, but no appointments, patient charts, queue
+                    // acceptance, video or other clinical shortcuts here.
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(24.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Text(
+                                text = if (uiState.guardApproved == null)
+                                    stringResource(R.string.ui_doctor_approval_checking)
+                                else
+                                    stringResource(R.string.ui_doctor_approval_pending),
+                                style = MaterialTheme.typography.titleLarge,
+                                color = AuTextPrimary,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                text = if (uiState.guardApproved == null)
+                                    stringResource(R.string.ui_doctor_approval_checking_body)
+                                else
+                                    stringResource(R.string.ui_doctor_approval_pending_body),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Slate500,
+                            )
+                            Button(onClick = viewModel::refresh) {
+                                Text(stringResource(R.string.ui_doctor_approval_refresh))
+                            }
+                        }
+                    }
+                }
+
                 else -> {
                     // The next patient must be an actual appointment, never a synthetic one.
                     val nextInQueue = uiState.todayAppointments.firstOrNull {
@@ -316,14 +343,29 @@ fun DoctorDashboardScreen(
                         verticalArrangement = Arrangement.spacedBy(22.dp),
                     ) {
                         // 1. COCKPIT HEADER & STATUS RING (Uber Driver + Epic Haiku)
+                        if (!uiState.acceptedDispatchRoomId.isNullOrBlank()) {
+                            item {
+                                Button(
+                                    onClick = { viewModel.retryAcceptedVideo(onNavigateToVideoCall) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text("Reintentar ingreso a la videoconsulta")
+                                }
+                            }
+                        }
+
                         item {
                             DoctorCockpitHeader(
                                 doctorName = uiState.userName,
                                 specialty = uiState.doctorProfile?.specialty,
                                 licenseNumber = uiState.doctorProfile?.licenseNumber,
+                                licenseType = uiState.doctorProfile?.licenseType,
+                                countryCode = uiState.doctorProfile?.countryCode,
+                                ufBrazil = uiState.doctorProfile?.ufBrazil,
                                 avatarUrl = null,
                                 isOnDuty = uiState.pharmacyOnDutyState.isOnDuty,
                                 isLoading = uiState.pharmacyOnDutyState.isLoading,
+                                guardApproved = uiState.guardApproved,
                                 onToggleOnDuty = viewModel::togglePharmacyOnDuty,
                             )
                         }
@@ -469,6 +511,7 @@ private fun DoctorGreetingHeader(
 private fun AutaMedicaOsDutyHero(
     isOnDuty: Boolean,
     isLoading: Boolean,
+    guardApproved: Boolean?,
     onToggleOnDuty: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -524,7 +567,11 @@ private fun AutaMedicaOsDutyHero(
                     Spacer(modifier = Modifier.width(14.dp))
                     Column {
                         Text(
-                            text = if (isOnDuty) "Guardia Médica Activa" else "Guardia en Pausa",
+                            text = when {
+                                guardApproved != true -> "Guardia pendiente de validación"
+                                isOnDuty -> "Guardia Médica Activa"
+                                else -> "Guardia en Pausa"
+                            },
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.ExtraBold,
@@ -533,7 +580,11 @@ private fun AutaMedicaOsDutyHero(
                             color = if (isOnDuty) Color(0xFF0F172A) else Color(0xFF475569),
                         )
                         Text(
-                            text = if (isOnDuty) "Recibiendo consultas on-demand" else "Toca para conectar con la red de farmacias",
+                            text = when {
+                                guardApproved != true -> "Requiere aprobación administrativa de matrícula"
+                                isOnDuty -> "Recibiendo consultas on-demand"
+                                else -> "Toca para conectar con la red de farmacias"
+                            },
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                             color = if (isOnDuty) AutaGreen else Slate500,
                         )
@@ -549,7 +600,7 @@ private fun AutaMedicaOsDutyHero(
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                         onToggleOnDuty(isChecked)
                     },
-                    enabled = !isLoading,
+                    enabled = !isLoading && (guardApproved == true || isOnDuty),
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
                         checkedTrackColor = AutaGreen,

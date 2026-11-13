@@ -20,11 +20,15 @@ import {
 import { fetchApi } from '@/lib/api-client'
 import type { DispatchRequest } from '@/lib/pharmacy/pharmacy-on-demand.service'
 import GuestCallPage from '@/components/calls/GuestCallPage'
+import { JordanPaymentWidget } from './JordanPaymentWidget'
 
 interface PharmacyExpressConsultationProps {
   pharmacyId?: string | null
   pharmacyName?: string
   initialDni?: string
+  referralCode?: string | null
+  referralPartnerName?: string | null
+  jordanPaymentsEnabled?: boolean
 }
 
 type Step = 'FORM' | 'WAITING' | 'CALL' | 'ENDED' | 'CANCELLED'
@@ -42,6 +46,9 @@ export function PharmacyExpressConsultation({
   pharmacyId = null,
   pharmacyName = 'Farmacia Adherida',
   initialDni = '',
+  referralCode = null,
+  referralPartnerName = null,
+  jordanPaymentsEnabled = false,
 }: PharmacyExpressConsultationProps) {
   const dniInputId = useId()
   const nameInputId = useId()
@@ -50,7 +57,7 @@ export function PharmacyExpressConsultation({
 
   const [step, setStep] = useState<Step>('FORM')
   const [formData, setFormData] = useState({
-    careCountry: '' as '' | 'AR' | 'BR',
+    careCountry: (referralCode === 'JORDAN' ? 'BR' : '') as '' | 'AR' | 'BR',
     dni: initialDni,
     name: '',
     phone: '',
@@ -63,7 +70,7 @@ export function PharmacyExpressConsultation({
   const [requestId, setRequestId] = useState<string | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [callRoomId, setCallRoomId] = useState<string | null>(null)
-  const [queuePosition] = useState<number>(1)
+  const [jordanPaymentApproved, setJordanPaymentApproved] = useState(false)
 
   // Polling / escucha para consultar GET /api/pharmacy/dispatch/${requestId}?token=${accessToken}
   const checkStatus = useCallback(async (id: string, token: string | null) => {
@@ -126,6 +133,14 @@ export function PharmacyExpressConsultation({
       setFormError('Seleccioná el país donde recibirás atención: Argentina o Brasil.')
       return
     }
+    if (referralCode === 'JORDAN' && formData.careCountry !== 'BR') {
+      setFormError('O canal Jordan atende exclusivamente no Brasil.')
+      return
+    }
+    if (referralCode === 'JORDAN' && !jordanPaymentsEnabled) {
+      setFormError('Este canal ainda não está disponível para atendimento. Nenhuma cobrança será feita.')
+      return
+    }
     const documentNumber = formData.dni.replace(/\D/g, '')
     if (formData.careCountry === 'BR' ? documentNumber.length !== 11 : documentNumber.length < 5 || documentNumber.length > 10) {
       setFormError(formData.careCountry === 'BR' ? 'Ingresá un CPF de 11 dígitos.' : 'Ingresá un DNI válido.')
@@ -161,6 +176,7 @@ export function PharmacyExpressConsultation({
           patientPhone: formData.phone.trim(),
           symptomSummary: formData.reason.trim(),
           pharmacyId: pharmacyId || undefined,
+          referralCode: referralCode || undefined,
           tier: 'general',
         },
       })
@@ -203,6 +219,8 @@ export function PharmacyExpressConsultation({
 
   // 1. STEP: CALL
   if (step === 'CALL' && callRoomId) {
+    const requiresJordanPayment = referralCode === 'JORDAN'
+    const paymentReady = jordanPaymentsEnabled && formData.careCountry === 'BR' && requestId && accessToken
     return (
       <div className="w-full h-full min-h-[100dvh] bg-am-surface-900">
         <div className="fixed top-3 left-4 z-50 flex items-center gap-2.5 bg-zinc-950/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10 shadow-2xl text-xs font-medium text-white">
@@ -214,9 +232,28 @@ export function PharmacyExpressConsultation({
             Guardia Exprés
           </span>
           <span className="text-zinc-500 hidden sm:inline">•</span>
-          <span className="text-zinc-300 hidden sm:inline font-normal">{pharmacyName}</span>
+          <span className="text-zinc-300 hidden sm:inline font-normal">{referralPartnerName ?? pharmacyName}</span>
         </div>
-        <GuestCallPage roomId={callRoomId} />
+        {(!requiresJordanPayment || jordanPaymentApproved) && <GuestCallPage roomId={callRoomId} />}
+        {requiresJordanPayment && !jordanPaymentApproved && (
+          <div className="min-h-[100dvh] flex items-center justify-center p-6 text-center text-white">
+            <div className="max-w-md">
+              <h2 className="text-xl font-semibold">Consulta médica · R$ 79,00</h2>
+              <p className="mt-3 text-sm text-zinc-300">
+                {paymentReady
+                  ? 'Confirme o pagamento para iniciar a videochamada com o médico.'
+                  : 'O pagamento desta consulta ainda não está disponível. Nenhuma cobrança será feita.'}
+              </p>
+            </div>
+          </div>
+        )}
+        {requiresJordanPayment && jordanPaymentsEnabled && formData.careCountry === 'BR' && requestId && accessToken && (
+          <JordanPaymentWidget
+            dispatchId={requestId}
+            guestToken={accessToken}
+            onStatusChange={(status) => setJordanPaymentApproved(status === 'approved')}
+          />
+        )}
       </div>
     )
   }
@@ -248,7 +285,7 @@ export function PharmacyExpressConsultation({
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-am-surface-800/90 border border-am-surface-700/60 text-xs font-medium mb-2 shadow-md">
             <span className="font-bold text-white tracking-wide">AutaMedica</span>
             <span className="text-am-surface-500">•</span>
-            <span className="text-emerald-400 font-medium">Red de Farmacias Asociadas</span>
+            <span className="text-emerald-400 font-medium">{referralPartnerName ? 'Canal de referidos' : 'Red de Farmacias Asociadas'}</span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
@@ -257,7 +294,7 @@ export function PharmacyExpressConsultation({
 
           <div className="flex items-center justify-center gap-2 mt-1.5 text-xs text-am-surface-300">
             <Building2 className="w-3.5 h-3.5 text-am-primary-400 shrink-0" />
-            <span>Punto de Atención Digital: <strong className="text-white font-semibold">{pharmacyName}</strong></span>
+            <span>{referralPartnerName ? 'Origen de referencia: ' : 'Punto de Atención Digital: '}<strong className="text-white font-semibold">{referralPartnerName ?? pharmacyName}</strong></span>
           </div>
           <p className="text-xs text-am-surface-400 mt-1 max-w-md">
             Atención médica por videollamada. La emisión de documentos depende del profesional y de las habilitaciones correspondientes a cada país.
@@ -293,6 +330,7 @@ export function PharmacyExpressConsultation({
                         name="careCountry"
                         required
                         checked={formData.careCountry === country}
+                        disabled={referralCode === 'JORDAN' && country === 'AR'}
                         onChange={() => setFormData({ ...formData, careCountry: country, dni: '' })}
                         className="accent-emerald-500"
                       />
@@ -405,7 +443,7 @@ export function PharmacyExpressConsultation({
               </div>
 
               <p className="text-[10px] text-center text-am-surface-400 pt-1">
-                Al solicitar la consulta aceptas la atención bajo la Ley 27.553 de Telemedicina y firma digital de prescripciones con validez oficial.
+                La atención y la eventual emisión de documentos dependen de la verificación profesional, del país elegido y de las integraciones habilitadas.
               </p>
 
               {/* Institutional Trust & Regulatory Seals */}
@@ -413,22 +451,22 @@ export function PharmacyExpressConsultation({
                 <div className="flex items-start gap-2 p-2.5 rounded-xl bg-am-surface-900/80 border border-am-surface-700/50">
                   <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[11px] font-semibold text-white">Plataforma Homologada</p>
-                    <p className="text-[10px] text-am-surface-400 leading-tight">Telemedicina y prescripción clínica oficial</p>
+                    <p className="text-[11px] font-semibold text-white">Consulta por Videollamada</p>
+                    <p className="text-[10px] text-am-surface-400 leading-tight">Atención remota con controles clínicos y de identidad</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2 p-2.5 rounded-xl bg-am-surface-900/80 border border-am-surface-700/50">
                   <FileCheck className="w-4 h-4 text-am-primary-400 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[11px] font-semibold text-white">Firma Digital Oficial</p>
-                    <p className="text-[10px] text-am-surface-400 leading-tight">Ley 27.553 y Decreto 63 • SISA / REFEPS</p>
+                    <p className="text-[11px] font-semibold text-white">Documentación Médica</p>
+                    <p className="text-[10px] text-am-surface-400 leading-tight">Emisión sujeta a habilitación y validación según país</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2 p-2.5 rounded-xl bg-am-surface-900/80 border border-am-surface-700/50">
                   <Lock className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                   <div>
                     <p className="text-[11px] font-semibold text-white">Protección de Datos</p>
-                    <p className="text-[10px] text-am-surface-400 leading-tight">Ley 25.326 • Cifrado clínico hospitalario</p>
+                    <p className="text-[10px] text-am-surface-400 leading-tight">Acceso controlado a información clínica</p>
                   </div>
                 </div>
               </div>
@@ -456,14 +494,14 @@ export function PharmacyExpressConsultation({
 
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-700/50 text-emerald-400 text-xs font-semibold mb-3">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Guardia Médica AutaMedica Asignando Profesional
+              Buscando un profesional disponible
             </span>
 
             <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">
               Sala de Espera Exprés AutaMedica
             </h2>
             <p className="text-sm text-am-surface-300 max-w-sm mb-6">
-              Por favor aguarda unos instantes frente a la pantalla. Un médico de la Red AutaMedica tomará tu consulta para <strong className="text-white">{pharmacyName}</strong>.
+              Estamos buscando un médico disponible para atender tu consulta de <strong className="text-white">{referralPartnerName ?? pharmacyName}</strong>.
             </p>
 
             <div className="w-full max-w-xs grid grid-cols-2 gap-3 mb-6">
@@ -472,7 +510,7 @@ export function PharmacyExpressConsultation({
                   <User className="w-3.5 h-3.5 text-am-surface-400" /> Posición en cola
                 </span>
                 <span className="text-xl font-bold text-white">
-                  #{queuePosition}
+                  Por confirmar
                 </span>
               </div>
               <div className="p-3.5 rounded-2xl bg-am-surface-900 border border-am-surface-700/60 flex flex-col items-center">
@@ -480,7 +518,7 @@ export function PharmacyExpressConsultation({
                   <Clock className="w-3.5 h-3.5 text-am-surface-400" /> Espera estimada
                 </span>
                 <span className="text-xl font-bold text-emerald-400">
-                  ~1-3 min
+                  Variable
                 </span>
               </div>
             </div>

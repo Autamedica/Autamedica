@@ -157,9 +157,10 @@ export function buildFarmalinkAltaRecetaRequest(
   const validFrom = dateOnly(input.validity.from, 'validity.from');
   const validTo = dateOnly(input.validity.to, 'validity.to');
   if (validTo < validFrom) throw new FarmalinkMappingError('validity.to');
-  if (input.organization.issuerPointId !== undefined) {
-    positiveNumber(input.organization.issuerPointId, 'organization.issuerPointId');
-  }
+  // Farmalink confirmed that AutaMedica's assigned organization is 182 (2026-11-03).
+  // Fail closed on stale organization configuration instead of issuing as another account.
+  const organizationId = assertText(input.organization.id, 'organization.id');
+  if (organizationId !== '182') throw new FarmalinkMappingError('organization.id');
   if (input.treatmentType !== undefined && !['N', 'P'].includes(input.treatmentType)) {
     throw new FarmalinkMappingError('treatmentType');
   }
@@ -193,12 +194,11 @@ export function buildFarmalinkAltaRecetaRequest(
   const request: FarmalinkAltaRecetaRequest = {
     altaRecetaElectRq: {
       infoCabeceraRq: {
-        idOrganizacion: assertText(input.organization.id, 'organization.id'),
+        idOrganizacion: organizationId,
         tipoOrganizacion: assertText(input.organization.type, 'organization.type'),
         ipOrigen: assertText(input.organization.ipOrigin, 'organization.ipOrigin'),
         infoBrowser: optionalText(input.organization.browserInfo) ?? '',
       },
-      puntoEmisor: input.organization.issuerPointId ? { id: input.organization.issuerPointId } : undefined,
       recElectronica: {
         tipoReceta: optionalText(input.prescriptionType),
         fechaVigenciaDesde: validFrom,

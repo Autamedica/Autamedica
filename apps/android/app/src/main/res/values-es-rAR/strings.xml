@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="patient_home_immediate_tag">Atención sin turno</string>
+    <string name="patient_home_immediate_title">Atención médica inmediata</string>
+    <string name="patient_home_immediate_subtitle">Consultas médicas, certificados y recetas al instante, donde estés o desde el mostrador de tu farmacia.</string>
+    <string name="patient_home_chip_consultation">Consulta médica</string>
+    <string name="patient_home_chip_documents">Certificados y recetas</string>
+    <string name="patient_home_chip_pharmacy">Desde la farmacia</string>
+    <string name="patient_home_immediate_cta">Solicitar atención ahora</string>
+    <string name="patient_home_immediate_hint">Sin reservar turno · Médico disponible</string>
+    <string name="patient_home_scheduled_cta">Consulta programada · Reservar turno</string>
+</resources>

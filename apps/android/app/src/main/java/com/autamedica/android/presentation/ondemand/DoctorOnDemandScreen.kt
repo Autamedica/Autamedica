@@ -71,6 +71,8 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
+import com.autamedica.android.R
+import androidx.compose.ui.res.stringResource
 import com.autamedica.android.domain.model.PharmacyDispatchRequest
 import com.autamedica.android.domain.model.dispatchTierLabel
 import com.autamedica.android.presentation.theme.AuAccent
@@ -88,6 +90,8 @@ import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
 import com.autamedica.android.presentation.theme.PortalDoctors
+import com.autamedica.android.presentation.theme.PortalDoctorsAction
+import com.autamedica.android.presentation.theme.PortalPharmacistsAction
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -124,7 +128,7 @@ fun DoctorOnDemandScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Consultas On-Demand",
+                            text = stringResource(R.string.ui_ondemand_title),
                             style = MaterialTheme.typography.titleLarge,
                             color = AuTextPrimary,
                             fontWeight = FontWeight.Bold,
@@ -133,7 +137,7 @@ fun DoctorOnDemandScreen(
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
-                            text = "Guardia en farmacias y vía pública",
+                            text = stringResource(R.string.ui_ondemand_subtitle),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextTertiary,
                             fontWeight = FontWeight.SemiBold,
@@ -146,7 +150,7 @@ fun DoctorOnDemandScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = "Volver",
+                            contentDescription = stringResource(R.string.ui_ondemand_back),
                             tint = AuTextPrimary,
                         )
                     }
@@ -181,6 +185,7 @@ fun DoctorOnDemandScreen(
                     DutyToggleCard(
                         isOnDuty = uiState.isOnDuty,
                         isLoading = uiState.isDutyLoading,
+                        guardApproved = uiState.guardApproved,
                         onToggle = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             viewModel.toggleDuty()
@@ -204,6 +209,16 @@ fun DoctorOnDemandScreen(
                         }
                     }
 
+                    if (!uiState.activeRoomId.isNullOrBlank() && !uiState.activeRequestId.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = viewModel::retryAcceptedCall,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(stringResource(R.string.ui_ondemand_retry_call))
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(20.dp))
 
                     Row(
@@ -212,7 +227,7 @@ fun DoctorOnDemandScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "Despachos en espera",
+                            text = stringResource(R.string.ui_ondemand_offers),
                             style = MaterialTheme.typography.titleSmall,
                             color = AuTextSecondary,
                             fontWeight = FontWeight.Bold,
@@ -233,7 +248,7 @@ fun DoctorOnDemandScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    if (uiState.searchingRequests.isEmpty()) {
+                    if (uiState.searchingRequests.isEmpty() || !uiState.isOnDuty) {
                         if (uiState.isOnDuty) {
                             DoctorOnDutyRadar()
                         } else {
@@ -279,6 +294,7 @@ fun DoctorOnDemandScreen(
 private fun DutyToggleCard(
     isOnDuty: Boolean,
     isLoading: Boolean,
+    guardApproved: Boolean?,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -320,7 +336,11 @@ private fun DutyToggleCard(
             Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (isOnDuty) "Guardia activa" else "Guardia en pausa",
+                    text = when {
+                        guardApproved != true -> "Guardia pendiente de aprobación"
+                        isOnDuty -> "Guardia activa"
+                        else -> "Guardia en pausa"
+                    },
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                     color = AuTextPrimary,
                     maxLines = 1,
@@ -328,7 +348,11 @@ private fun DutyToggleCard(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = if (isOnDuty) "Recibiendo consultas on-demand de farmacias" else "Tocá activar para recibir consultas",
+                    text = when {
+                        guardApproved != true -> "El administrador debe validar la matrícula antes de recibir consultas"
+                        isOnDuty -> "Recibiendo consultas on-demand de farmacias"
+                        else -> "Tocá activar para recibir consultas"
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary,
                     maxLines = 1,
@@ -337,7 +361,7 @@ private fun DutyToggleCard(
             }
             Button(
                 onClick = onToggle,
-                enabled = !isLoading,
+                enabled = !isLoading && (guardApproved == true || isOnDuty),
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isOnDuty) Color(0xFFE11D48) else PortalDoctors,
@@ -346,7 +370,11 @@ private fun DutyToggleCard(
                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
             ) {
                 Text(
-                    text = if (isOnDuty) "Pausar" else "Activar",
+                    text = when {
+                        isOnDuty -> "Pausar"
+                        guardApproved != true -> "Pendiente"
+                        else -> "Activar"
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                 )
@@ -363,15 +391,26 @@ private fun IncomingDispatchOfferCard(
     onDecline: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val initialSeconds = 30
-    var secondsLeft by remember(request.id) { mutableIntStateOf(initialSeconds) }
+    // Countdown uses server-issued offer expiration rather than 30 fictional
+    // seconds starting when Compose renders the card.
+    val expiresAt = remember(request.offerId, request.offerExpiresAt) {
+        runCatching {
+            java.time.OffsetDateTime.parse(requireNotNull(request.offerExpiresAt)).toInstant()
+        }.getOrNull()
+    }
+    var secondsLeft by remember(request.offerId, request.offerExpiresAt) { mutableIntStateOf(0) }
 
-    LaunchedEffect(request.id) {
-        while (secondsLeft > 0) {
+    LaunchedEffect(request.offerId, request.offerExpiresAt) {
+        while (true) {
+            secondsLeft = expiresAt?.let {
+                java.time.Duration.between(java.time.Instant.now(), it).seconds
+                    .coerceIn(0L, 30L).toInt()
+            } ?: 0
+            if (secondsLeft == 0) break
             delay(1000)
-            secondsLeft -= 1
         }
     }
+    val initialSeconds = 30
 
     val progress by animateFloatAsState(
         targetValue = secondsLeft.toFloat() / initialSeconds.toFloat(),
@@ -424,7 +463,7 @@ private fun IncomingDispatchOfferCard(
                     }
                 }
 
-                // Countdown Timer Ring
+                // Verified server offer expiration / age in queue.
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -476,7 +515,7 @@ private fun IncomingDispatchOfferCard(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = request.patientName?.takeIf { it.isNotBlank() } ?: "Paciente en farmacia",
+                        text = request.patientName?.takeIf { it.isNotBlank() } ?: stringResource(R.string.ui_ondemand_patient_fallback),
                         style = MaterialTheme.typography.titleMedium,
                         color = AuTextPrimary,
                         fontWeight = FontWeight.Bold,
@@ -515,7 +554,14 @@ private fun IncomingDispatchOfferCard(
                         modifier = Modifier.size(14.dp),
                     )
                     Text(
-                        text = "SLA Objetivo: Conexión en videoconsulta < 60 seg",
+                        text = stringResource(
+                            R.string.ui_ondemand_offer_assigned,
+                            when (request.careCountry) {
+                                "BR" -> "Brasil"
+                                "AR" -> "Argentina"
+                                else -> stringResource(R.string.ui_country_unknown)
+                            },
+                        ),
                         style = MaterialTheme.typography.labelSmall,
                         color = Color(0xFF065F46),
                         fontWeight = FontWeight.SemiBold,
@@ -531,6 +577,7 @@ private fun IncomingDispatchOfferCard(
                 // Rechazar / Pausar
                 OutlinedButton(
                     onClick = onDecline,
+                    enabled = !isClaiming && secondsLeft > 0,
                     modifier = Modifier
                         .weight(0.38f)
                         .height(52.dp),
@@ -547,7 +594,7 @@ private fun IncomingDispatchOfferCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Rechazar",
+                        text = stringResource(R.string.ui_ondemand_decline),
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.labelMedium,
                     )
@@ -556,13 +603,13 @@ private fun IncomingDispatchOfferCard(
                 // Aceptar Consulta (Dominante Esmeralda)
                 Button(
                     onClick = onAccept,
-                    enabled = !isClaiming,
+                    enabled = !isClaiming && secondsLeft > 0,
                     modifier = Modifier
                         .weight(0.62f)
                         .height(52.dp),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = AuEmerald,
+                        containerColor = PortalPharmacistsAction,
                         contentColor = Color.White,
                     ),
                 ) {
@@ -584,7 +631,7 @@ private fun IncomingDispatchOfferCard(
                                 modifier = Modifier.size(20.dp),
                             )
                             Text(
-                                text = "Aceptar",
+                                text = stringResource(R.string.ui_ondemand_accept),
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.titleSmall,
                             )
@@ -721,7 +768,7 @@ private fun DoctorOnDutyRadar(
                             .background(AuEmerald)
                     )
                     Text(
-                        text = "GUARDIA ACTIVA • EN LÍNEA",
+                        text = stringResource(R.string.ui_ondemand_active_title),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = AuEmerald,
@@ -729,14 +776,14 @@ private fun DoctorOnDutyRadar(
                     )
                 }
                 Text(
-                    text = "Monitoreando red de farmacias",
+                    text = stringResource(R.string.ui_ondemand_active_subtitle),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = AuTextPrimary,
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    text = "Tu presencia médica está transmitiéndose. Al ingresar una solicitud, tu teléfono vibrará y la consulta aparecerá al instante.",
+                    text = stringResource(R.string.ui_ondemand_active_body),
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary,
                     textAlign = TextAlign.Center,
@@ -780,17 +827,14 @@ private fun EmptyQueueCard(
                 )
             }
             Text(
-                text = if (isOnDuty) "Sin consultas en este momento" else "Guardia en pausa",
+                text = if (isOnDuty) stringResource(R.string.ui_ondemand_empty_active) else stringResource(R.string.ui_ondemand_empty_paused),
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                 color = AuTextPrimary,
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = if (isOnDuty) {
-                    "Cuando un paciente solicite atención desde una farmacia, la consulta aparecerá aquí."
-                } else {
-                    "Activa la guardia para comenzar a recibir solicitudes de despacho de farmacias asociadas."
-                },
+                text = if (isOnDuty) stringResource(R.string.ui_ondemand_empty_active_hint)
+                else stringResource(R.string.ui_ondemand_empty_paused_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = AuTextTertiary,
                 textAlign = TextAlign.Center,
@@ -801,13 +845,13 @@ private fun EmptyQueueCard(
                     onClick = onActivate,
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = PortalDoctors,
+                        containerColor = PortalDoctorsAction,
                         contentColor = Color.White,
                     ),
                     modifier = Modifier.height(44.dp),
                 ) {
                     Text(
-                        text = "Activar Guardia Ahora",
+                        text = stringResource(R.string.ui_ondemand_activate),
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.labelMedium,
                     )

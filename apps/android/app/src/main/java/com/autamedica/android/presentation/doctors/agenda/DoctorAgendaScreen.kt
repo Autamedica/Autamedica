@@ -47,8 +47,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.autamedica.android.R
-import com.autamedica.android.domain.model.PharmacyDispatchRequest
-import com.autamedica.android.presentation.dashboard.components.UberIncomingDispatchAlert
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -298,9 +296,9 @@ fun DoctorAgendaScreen(
                                 DoctorPharmacyOnDutyCard(
                                     state = uiState.pharmacyOnDutyState,
                                     onToggleDuty = viewModel::togglePharmacyOnDuty,
-                                    onClaimRequest = { reqId ->
-                                        viewModel.claimPharmacyRequest(reqId, onNavigateToVideoCall)
-                                    },
+                                    // Agenda is only a shortcut; the verified
+                                    // offer countdown/claim lives in DoctorOnDemand.
+                                    onClaimRequest = { _ -> onNavigateToDoctorOnDemand() },
                                     claimingRequestId = uiState.claimingPharmacyRequestId,
                                 )
                             }
@@ -476,37 +474,7 @@ fun DoctorAgendaScreen(
         )
     }
 
-    // 7. Alerta de Despacho On-Demand estilo Uber Driver con Cuenta Regresiva de 25s
-    var dismissedRequestId by remember { mutableStateOf<String?>(null) }
-    val incomingPendingRequest = if (uiState.pharmacyOnDutyState.isOnDuty) {
-        uiState.pharmacyOnDutyState.pendingRequests.firstOrNull { it.id != dismissedRequestId }
-    } else null
+    // Do not build a synthetic offer without offer_id/expires_at on Agenda.
+    // The clinician opens the verified radar from the on-duty card instead.
 
-    val dispatchRequestForAlert = incomingPendingRequest?.let { req ->
-        PharmacyDispatchRequest(
-            id = req.id,
-            patientDni = req.patientDni,
-            patientPhone = req.patientPhone,
-            patientName = req.patientName,
-            tierRequested = "general",
-            symptomSummary = req.reason,
-            status = "searching",
-            cloudflareRoomId = req.roomId ?: "",
-            createdAt = req.createdAt?.toString() ?: "",
-        )
-    }
-
-    if (dispatchRequestForAlert != null) {
-        UberIncomingDispatchAlert(
-            request = dispatchRequestForAlert,
-            isClaiming = uiState.claimingPharmacyRequestId == dispatchRequestForAlert.id,
-            errorMessage = null,
-            onAccept = { reqId ->
-                viewModel.claimPharmacyRequest(reqId, onNavigateToVideoCall)
-            },
-            onDismiss = {
-                dismissedRequestId = dispatchRequestForAlert.id
-            },
-        )
-    }
 }

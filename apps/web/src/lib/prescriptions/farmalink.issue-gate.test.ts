@@ -5,7 +5,6 @@ import { FarmalinkClient, FarmalinkHttpError } from './farmalink.client';
 import { claimFarmalinkIssue, recordFarmalinkIssue } from './farmalink.issue-gate';
 import { __testables, issuePrescription } from './issue-prescription.service';
 import * as pdfService from './pdf-prescription.service';
-import * as certificateQueries from '../doctors/services/certificate-query.service';
 
 const RX = 'bdbfd64b-4280-41b6-bb8c-630b09a0b9a5';
 const USER = 'cac6f6b3-dc8a-4f4f-8833-45207e063f65';
@@ -29,8 +28,8 @@ const clinical = {
   doctorName: 'Dr. Medico Prueba',
   item: { generic_name: 'AMOXICILINA', quantity: 1, dosage: '500 MG' },
   patient: {
-    dni: '30123456', birth_date: '1990-01-01', gender: 'female',
-    insurance_info: { farmalink: { codEntidad: 7100, pan: '12345678', plan: 'NO POSEE' } },
+    dni: '30123456', cuil: '27301234560', birth_date: '1990-01-01', gender: 'female',
+    insurance_info: { farmalink: { codEntidad: 7110, pan: '20123456786', plan: 'NO POSEE' } },
   },
   patientName: 'Paciente Prueba',
   now: '2026-11-03T09:00:00.000Z',
@@ -53,7 +52,7 @@ function setup() {
     FARMALINK_OAUTH_PASSWORD: 'fake-pass',
     FARMALINK_BASIC_USER: 'fake-client',
     FARMALINK_BASIC_PASSWORD: 'fake-pass',
-    FARMALINK_ORG_ID: '100',
+    FARMALINK_ORG_ID: '182',
     FARMALINK_IP_ORIGIN: '8.8.8.8',
     FARMALINK_DEFAULT_PRODUCT_CODE: '56800',
     FARMALINK_DEFAULT_DRUG_CODE: '01033',
@@ -218,47 +217,48 @@ describe('Farmalink once-only persistent issue guard', () => {
     expect(alta).not.toHaveBeenCalled();
   });
 
-  it.each(['generation','upload'] as const)('does not re-issue after actual orchestrator PDF %s failure', async (failure) => {
+  it('denies legacy issuance before Farmalink, PDF generation or upload when homologation is not approved', async () => {
     setup();
-    const supabase = db([
-      {data:{claimed:true,attempt_id:ATTEMPT,state:'reserved'},error:null},
-      {data:true,error:null},
-      {data:{claimed:false,attempt_id:ATTEMPT,state:'confirmed'},error:null},
-    ]);
-    const upload = vi.fn().mockResolvedValue({error:{message:'storage unavailable'}});
+    const supabase = db([]);
+    const upload = vi.fn();
     Object.assign(supabase, {
       from: vi.fn((table: string) => {
         const rows: Record<string, unknown> = {
-          doctors:{...clinical.doctor,license_type:'MN'},
-          prescriptions:{id:RX,doctor_id:clinical.doctor.id,patient_id:'test-patient',status:'draft',cuir:null,
-            country_code:'AR',clinical_data:{diagnosis:'Control',items:[clinical.item]}},
-          profiles:{sss_validation_status:'valid',first_name:'Test',last_name:'Person'},
-          patients:{...clinical.patient,user_id:'test-patient-user',address:'Fixture CABA'},
+          doctors: { ...clinical.doctor, license_type: 'MN', care_country: 'AR' },
+          prescriptions: {
+            id: RX, doctor_id: clinical.doctor.id, patient_id: 'test-patient',
+            status: 'draft', cuir: null, country_code: 'AR',
+            clinical_data: { diagnosis: 'Control', items: [clinical.item] },
+          },
+          profiles: { sss_validation_status: 'valid' },
+          patients: {
+            ...clinical.patient, care_country: 'AR', user_id: 'test-patient-user',
+            address: 'Fixture CABA',
+          },
         };
         const chain = {
-          select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),
-          single:vi.fn().mockResolvedValue({data:rows[table],error:null}),
-          maybeSingle:vi.fn().mockResolvedValue({data:rows[table],error:null}),
+          select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: rows[table], error: null }),
+          maybeSingle: vi.fn().mockResolvedValue({ data: rows[table], error: null }),
         };
         return chain;
       }),
-      storage:{from:vi.fn().mockReturnValue({upload})},
+      storage: { from: vi.fn().mockReturnValue({ upload }) },
     });
-    vi.spyOn(certificateQueries,'getActiveCertificate').mockResolvedValue(null);
-    const pdf = vi.spyOn(pdfService,'generatePrescriptionPdf');
-    if (failure === 'generation') pdf.mockRejectedValue(new Error('PDF unavailable'));
-    else pdf.mockResolvedValue({cuir:'AR-SYNTHETIC',pdfBuffer:new Uint8Array(8),pdfFilename:'test.pdf',qrDataUrl:'',qrContent:'test'});
-    const alta = vi.fn().mockResolvedValue({approved:true,nroRecElectronica:'9600000002991',responseCode:'00',raw:{}});
-    vi.spyOn(FarmalinkClient,'fromEnv').mockReturnValue({altaReceta:alta} as unknown as FarmalinkClient);
-    expect(await issuePrescription(supabase,RX,USER))
-      .toMatchObject({ok:false,error:{code:failure === 'generation' ? 'pdf_generation_failed' : 'pdf_upload_failed'}});
-    expect(await issuePrescription(supabase,RX,USER))
-      .toMatchObject({ok:false,error:{code:'farmalink_pending_reconciliation'}});
-    expect(alta).toHaveBeenCalledOnce();
-    expect(pdf).toHaveBeenCalledOnce();
-    expect(upload).toHaveBeenCalledTimes(failure === 'upload' ? 1 : 0);
-    expect((supabase as unknown as {rpc:ReturnType<typeof vi.fn>}).rpc.mock.calls[1][1])
-      .toMatchObject({p_state:'confirmed',p_vendor_id:'9600000002991'});
+    const pdf = vi.spyOn(pdfService, 'generatePrescriptionPdf');
+    const alta = vi.fn();
+    vi.spyOn(FarmalinkClient, 'fromEnv')
+      .mockReturnValue({ altaReceta: alta } as unknown as FarmalinkClient);
+
+    for (let i = 0; i < 2; i++) {
+      expect(await issuePrescription(supabase, RX, USER))
+        .toMatchObject({ ok: false, error: { code: 'ar_production_homologation_required' } });
+    }
+    expect(alta).not.toHaveBeenCalled();
+    expect(pdf).not.toHaveBeenCalled();
+    expect(upload).not.toHaveBeenCalled();
+    expect((supabase as unknown as {rpc: ReturnType<typeof vi.fn>}).rpc)
+      .not.toHaveBeenCalled();
   });
 
 });

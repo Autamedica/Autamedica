@@ -24,6 +24,9 @@ export interface PrescriptionPdfInput {
     dateOfBirth?: string;
     sex?: string;
     insurancePlan?: string;
+    // The accepted Farmalink PAN and entity are separate from the patient CUIL.
+    affiliateCredential?: string;
+    insuranceEntityCode?: number;
     address?: string;
   };
   prescriber: {
@@ -42,6 +45,9 @@ export interface PrescriptionPdfInput {
   // expiresAt is now derived but can be overridden
   expiresAt?: string;
   existingCuir?: string;
+  /** Explicitly unsigned TEST PDF: no RCTA/CUIR claim, no QR and no clinical signing. */
+  homologationTest?: boolean;
+  homologationMode?: 'S' | 'N';
   externalPrescription?: {
     provider: 'farmalink' | string;
     number: string;
@@ -304,6 +310,7 @@ export async function generatePrescriptionPdf(
       ...originalInput.patient,
       name: sanitizePdfText(originalInput.patient.name),
       insurancePlan: sanitizePdfText(originalInput.patient.insurancePlan),
+      affiliateCredential: sanitizePdfText(originalInput.patient.affiliateCredential),
       address: sanitizePdfText(originalInput.patient.address),
     },
     prescriber: {
@@ -321,7 +328,22 @@ export async function generatePrescriptionPdf(
     } : undefined,
   };
 
-  const registration = input.existingCuir
+  const isHomologationTest = input.homologationTest === true;
+  if (isHomologationTest && input.homologationMode !== 'S' && input.homologationMode !== 'N') {
+    throw new Error('farmalink_homologation_mode_required');
+  }
+  if (isHomologationTest && input.homologationMode === 'S' && input.medication.commercialName) {
+    throw new Error('farmalink_generic_pdf_must_not_show_brand');
+  }
+  if (isHomologationTest && input.homologationMode === 'N' && !input.medication.commercialName) {
+    throw new Error('farmalink_brand_pdf_requires_commercial_name');
+  }
+  if (isHomologationTest && !/^[0-9]+$/.test(input.externalPrescription?.number ?? '')) {
+    throw new Error('farmalink_homologation_requires_confirmed_numeric_vendor_id');
+  }
+  const registration = isHomologationTest
+    ? { cuir: 'NO ASIGNADO - TEST' }
+    : input.existingCuir
     ? { cuir: input.existingCuir }
     : await rctaService.registerPrescription(
       input.prescriber.license,
@@ -335,7 +357,7 @@ export async function generatePrescriptionPdf(
     );
 
   const cuir = registration.cuir;
-  const qrContent = `https://www.autamedica.com/verify/${cuir}`;
+  const qrContent = isHomologationTest ? '' : `https://www.autamedica.com/verify/${cuir}`;
   const expiresAt = input.expiresAt || calculateExpiry(input.issuedAt, input.medication.genericName);
   const barcodeValue = input.externalPrescription?.number || cuir;
   const barcodeTitle = input.externalPrescription?.barcodeTitle || 'CÓDIGO DE BARRAS';
@@ -428,7 +450,9 @@ export async function generatePrescriptionPdf(
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text('Sistema Nacional de Trazabilidad de Actos (RCTA)', marginLeft, 26);
+  doc.text(isHomologationTest
+    ? 'AUTAMEDICA - FARMALINK TEST (NO APTA PARA DISPENSA)'
+    : 'Sistema Nacional de Trazabilidad de Actos (RCTA)', marginLeft, 26);
   doc.setTextColor(headerAccentColor[0], headerAccentColor[1], headerAccentColor[2]);
   doc.setFont('helvetica', 'bold');
   doc.text(`CUIR: ${cuir}`, marginLeft, 33);
@@ -438,13 +462,14 @@ export async function generatePrescriptionPdf(
   doc.text(`Emitida: ${formatDate(input.issuedAt)}  |  Vence: ${formatDate(expiresAt)}`, marginLeft, 39);
 
   // QR in header (pharmacy verification)
-  drawQrCodeVector(doc, qrContent, pageWidth - 50, 8, 30);
+  if (!isHomologationTest) drawQrCodeVector(doc, qrContent, pageWidth - 50, 8, 30);
 
+  // Never print an internal generic-mode debug flag on a pharmacy-facing PDF.
   y = 55;
   doc.setTextColor(30, 41, 59);
 
   // Patient info (Compliance Block)
-  const patientBlockHeight = input.patient.address || input.patient.insurancePlan ? 40 : 32;
+  const patientBlockHeight = input.patient.address || input.patient.insurancePlan || input.patient.affiliateCredential ? 40 : 32;
   doc.setFillColor(patientBgColor[0], patientBgColor[1], patientBgColor[2]); 
   doc.rect(marginLeft, y, contentWidth, patientBlockHeight, 'F');
 
@@ -486,7 +511,17 @@ export async function generatePrescriptionPdf(
     doc.text(`Domicilio: ${input.patient.address}`, marginLeft + textOffset, y + 26);
     extraLine += 6;
   }
-  if (input.patient.insurancePlan) {
+  if (input.patient.affiliateCredential) {
+    // The PAN must match the confirmed altaReceta, not the CUIL or local insurance metadata.
+    const affiliation = [
+      input.patient.insuranceEntityCode ? `Entidad: ${input.patient.insuranceEntityCode}` : null,
+      `Nro. afiliado / Credencial: ${input.patient.affiliateCredential}`,
+      input.patient.insurancePlan ? `Plan: ${input.patient.insurancePlan}` : null,
+    ].filter(Boolean).join('  |  ');
+    doc.setFontSize(8);
+    doc.setTextColor(infoTextColor[0], infoTextColor[1], infoTextColor[2]);
+    doc.text(affiliation, marginLeft + textOffset, y + 26 + extraLine, { maxWidth: contentWidth - 8 });
+  } else if (input.patient.insurancePlan) {
     doc.setFontSize(8);
     doc.setTextColor(infoTextColor[0], infoTextColor[1], infoTextColor[2]);
     doc.text(`OOSS / Plan: ${input.patient.insurancePlan}`, marginLeft + textOffset, y + 26 + extraLine);
@@ -594,18 +629,39 @@ export async function generatePrescriptionPdf(
   }
 
   const barcodeOffset = template === 'female' ? 6 : 4;
-  doc.setFontSize(7);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
-  doc.text(barcodeTitle, marginLeft + barcodeOffset, barcodeY + 5);
-  drawCode128Barcode(doc, barcodeValue, marginLeft + 48, barcodeY + 3, 78, 8);
-  doc.setFontSize(7);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
-  doc.text(`${barcodeDisplayLabel}: ${barcodeValue}`, marginLeft + 48, barcodeY + 14);
-  doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
-  doc.text(barcodeLegend, marginLeft + 132, barcodeY + 9);
-
+  const submittedCuil = input.externalPrescription?.provider === 'farmalink'
+    ? input.patient.cuil?.replace(/\D/g, '')
+    : undefined;
+  if (input.externalPrescription?.provider === 'farmalink' && submittedCuil?.length === 11) {
+    // MSAL requires distinct scannable Code128 codes for Farmalink receipt ID and patient CUIL.
+    const leftX = marginLeft + barcodeOffset;
+    const rightX = marginLeft + 91;
+    doc.setFontSize(6.3);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
+    doc.text('RECETA FARMALINK', leftX, barcodeY + 3.8);
+    doc.text('CUIL PACIENTE', rightX, barcodeY + 3.8);
+    drawCode128Barcode(doc, barcodeValue, leftX + 2, barcodeY + 5.2, 69, 6.5);
+    drawCode128Barcode(doc, submittedCuil, rightX + 2, barcodeY + 5.2, 69, 6.5);
+    doc.setFontSize(7.2);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
+    doc.text(`${barcodeDisplayLabel}: ${barcodeValue}`, leftX + 2, barcodeY + 14.4);
+    doc.text(`CUIL: ${submittedCuil}`, rightX + 2, barcodeY + 14.4);
+  } else {
+    // Other countries and providers retain their pre-existing single-barcode PDF layout.
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
+    doc.text(barcodeTitle, marginLeft + barcodeOffset, barcodeY + 5);
+    drawCode128Barcode(doc, barcodeValue, marginLeft + 48, barcodeY + 3, 78, 8);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
+    doc.text(`${barcodeDisplayLabel}: ${barcodeValue}`, marginLeft + 48, barcodeY + 14);
+    doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
+    doc.text(barcodeLegend, marginLeft + 132, barcodeY + 9);
+  }
   // Prescriber (Regulatory Info Block - Premium Medical Card)
   y = 210; // Fixed position for footer block
   const prescriberBlockHeight = 30;
@@ -672,7 +728,7 @@ export async function generatePrescriptionPdf(
   // Firma Digital
   const signatureY = 245;
 
-  if (input.prescriber.signatureImageUrl) {
+  if (!isHomologationTest && input.prescriber.signatureImageUrl) {
     // Stamp visual signature image
     try {
       const sigResponse = await fetch(input.prescriber.signatureImageUrl);
@@ -688,7 +744,7 @@ export async function generatePrescriptionPdf(
     }
   }
 
-  if (input.prescriber.stampImageUrl) {
+  if (!isHomologationTest && input.prescriber.stampImageUrl) {
     // Stamp professional seal image
     try {
       const stampResponse = await fetch(input.prescriber.stampImageUrl);
@@ -724,23 +780,39 @@ export async function generatePrescriptionPdf(
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
-  doc.text('FIRMA ELECTRÓNICA', infoBoxX + sigInfoOffset, signatureY + 5);
+  doc.text(isHomologationTest ? 'SIN FIRMA - TEST' : 'VERIFICACIÓN DE FIRMA', infoBoxX + sigInfoOffset, signatureY + 5);
   doc.setFontSize(5.5);
   doc.setFont('helvetica', 'normal');
   const signatureLegend = doc.splitTextToSize(
-    `Este documento ha sido firmado -electrónica o digitalmente según corresponda- por ${input.prescriber.name}`,
+    isHomologationTest
+      ? 'Documento técnico DEMO: no está firmado por un profesional.'
+      : 'Verificar la firma en el certificado PDF o registro del emisor.',
     infoBoxWidth - 6,
   );
   doc.text(signatureLegend, infoBoxX + 3, signatureY + 10);
   const validatorY = signatureY + 10 + signatureLegend.length * 3.5;
-  doc.text(`Validador RCTA: ${cuir}`, infoBoxX + 3, validatorY);
-  doc.text(`Fecha de registro: ${formatDate(input.issuedAt)}`, infoBoxX + 3, validatorY + 4);
-  doc.text(`Hash: verificable vía QR`, infoBoxX + 3, validatorY + 8);
+  if (isHomologationTest) {
+    doc.text('Sin registro RCTA ni QR verificado.', infoBoxX + 3, validatorY);
+    doc.text('Entorno: Farmalink TEST.', infoBoxX + 3, validatorY + 4);
+  } else {
+    doc.text(`Validador RCTA: ${cuir}`, infoBoxX + 3, validatorY);
+    doc.text(`Fecha de registro: ${formatDate(input.issuedAt)}`, infoBoxX + 3, validatorY + 4);
+    doc.text(`Hash: verificable vía QR`, infoBoxX + 3, validatorY + 8);
+  }
 
   // Footer (Compliance & Privacy)
   const footerY = 276;
   doc.setFontSize(7);
   doc.setTextColor(148, 163, 184);
+  if (isHomologationTest) {
+    doc.text('SOLO TEST: sin firma, CUIR o QR; no válida para dispensación clínica.', marginLeft, footerY);
+    // ReNaPDiS recetario registration was notified by MSAL on 12/05/2026.
+    const testRenapdisLegajo =
+      getRuntimeEnvValue('RENAPDIS_RL_NUMBER') ??
+      getServerEnvOrDefault('RENAPDIS_RL_NUMBER', OFFICIAL_RENAPDIS_RL_NUMBER) ?? OFFICIAL_RENAPDIS_RL_NUMBER;
+    doc.text('Esta receta fue creada por un emisor inscripto y validado en el Registro de Recetarios Electrónicos', marginLeft, footerY + 6);
+    doc.text(`del Ministerio de Salud de la Nación - ${testRenapdisLegajo}.`, marginLeft, footerY + 10);
+  } else {
   doc.text(
     `Esta prescripción tiene validez de documento público electrónico según Ley 27.553.`,
     marginLeft, footerY
@@ -764,10 +836,12 @@ export async function generatePrescriptionPdf(
     footerY + 14,
   );
 
+  }
   // ==========================================
   // PÁGINA 2: GUÍA DE ACOMPAÑAMIENTO AL PACIENTE
   // ==========================================
   
+  if (!isHomologationTest) {
   const careTips = input.careGuide?.tips || 
     `Hola ${input.patient.name}, recordá tomar este medicamento respetando los intervalos de horas indicados por tu médico. Acompañalo con un vaso de agua y consultá las indicaciones de alimentación.`;
   const careForgotten = input.careGuide?.forgotten || 
@@ -893,8 +967,11 @@ export async function generatePrescriptionPdf(
   doc.setTextColor(careWelcomeTextColor[0], careWelcomeTextColor[1], careWelcomeTextColor[2]);
   doc.text('Tu médico de cabecera y el equipo de AutaMedica te desean una pronta y excelente recuperación.', marginLeft, py + 4);
 
+  }
   const pdfBuffer = new Uint8Array(doc.output('arraybuffer'));
-  const pdfFilename = `receta-ar-${cuir}.pdf`;
+  const pdfFilename = isHomologationTest
+    ? `farmalink-test-${input.externalPrescription?.number}.pdf`
+    : `receta-ar-${cuir}.pdf`;
 
   return { cuir, pdfBuffer, pdfFilename, qrDataUrl, qrContent };
 }

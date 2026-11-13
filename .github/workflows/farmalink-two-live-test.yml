@@ -1,0 +1,43 @@
+name: Farmalink two authorized TEST prescriptions (one shot)
+
+on:
+  push:
+    branches:
+      - fix/farmalink-org-182-homologacion-20261103
+    paths:
+      - '.github/workflows/farmalink-two-live-test.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: farmalink-test-two-prescriptions-20261103
+  cancel-in-progress: false
+
+jobs:
+  two-test-prescriptions:
+    # Only the first commit ADDING this workflow is allowed to emit.
+    if: "github.event.head_commit.message == 'ci(farmalink): execute two authorized test emissions'"
+    name: Two TEST altas + PDF receipts, no automatic retries
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    env:
+      FARMALINK_TEST_OAUTH_PASSWORD: ${{ secrets.FARMALINK_TEST_OAUTH_PASSWORD }}
+      FARMALINK_TEST_BASIC_PASSWORD: ${{ secrets.FARMALINK_TEST_BASIC_PASSWORD }}
+      FARMALINK_HOMOLOGATION_OUTPUT: /tmp/farmalink-homologacion-test
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - name: Install PDF dependency
+        run: python3 -m pip install --disable-pip-version-check 'reportlab==4.2.5'
+      - name: One shot generic S and brand N TEST calls
+        run: python3 scripts/farmalink/homologacion_two_live_test.py
+      - name: Preserve only provider-confirmed PDFs and redacted receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: farmalink-homologacion-test-20261103
+          path: /tmp/farmalink-homologacion-test/
+          if-no-files-found: ignore
+          retention-days: 30

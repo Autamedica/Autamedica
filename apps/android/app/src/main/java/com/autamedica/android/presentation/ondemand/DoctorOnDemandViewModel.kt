@@ -27,11 +27,14 @@ data class DoctorOnDemandUiState(
     val error: String? = null,
     val doctorId: String = "",
     val isOnDuty: Boolean = false,
+    val guardApproved: Boolean? = null,
+    val guardVerificationStatus: String? = null,
     val dutyActiveTiers: List<String> = listOf("general"),
     val isDutyLoading: Boolean = false,
     val searchingRequests: List<PharmacyDispatchRequest> = emptyList(),
     val claimingId: String? = null,
     val activeRequestId: String? = null,
+    val activeRoomId: String? = null,
 )
 
 @HiltViewModel
@@ -144,6 +147,27 @@ class DoctorOnDemandViewModel @Inject constructor(
         _uiState.update { it.copy(isDutyLoading = true) }
 
         viewModelScope.launch {
+            if (target) {
+                // Refresh at each activation: Admin may have revoked approval
+                // since this screen was opened.
+                val approval = pharmacyDispatchRepository.getMyGuardApproval().getOrNull()
+                if (approval?.approved != true) {
+                    stopHeartbeat()
+                    _uiState.update {
+                        it.copy(
+                            isOnDuty = false,
+                            guardApproved = false,
+                            guardVerificationStatus = approval?.verificationStatus ?: "pending",
+                            isDutyLoading = false,
+                            error = "La guardia no está habilitada. Tu matrícula requiere validación del administrador."
+                        )
+                    }
+                    return@launch
+                }
+                _uiState.update {
+                    it.copy(guardApproved = true, guardVerificationStatus = approval.verificationStatus)
+                }
+            }
             pharmacyDispatchRepository.setDoctorDutyStatus(
                 doctorId = doctorId,
                 isOnDuty = target,
@@ -166,7 +190,8 @@ class DoctorOnDemandViewModel @Inject constructor(
 
     fun accept(request: PharmacyDispatchRequest) {
         val doctorId = _uiState.value.doctorId
-        if (doctorId.isBlank() || _uiState.value.claimingId != null) return
+        if (doctorId.isBlank() || !_uiState.value.isOnDuty || request.offerId.isNullOrBlank()
+            || _uiState.value.claimingId != null) return
 
         _uiState.update { it.copy(claimingId = request.id) }
 
@@ -174,14 +199,26 @@ class DoctorOnDemandViewModel @Inject constructor(
             pharmacyDispatchRepository.claimPharmacyRequest(request.id, doctorId)
                 .onSuccess { claim ->
                     if (claim.success && !claim.cloudflareRoomId.isNullOrBlank()) {
-                        pharmacyDispatchRepository.updateDispatchRequestStatus(request.id, "in_call")
                         _uiState.update { state ->
                             state.copy(
                                 claimingId = null,
                                 activeRequestId = claim.requestId ?: request.id,
+                                activeRoomId = claim.cloudflareRoomId,
                             )
                         }
-                        _navigateToCall.value = claim
+                        // The patient only joins once the in_call state is
+                        // confirmed by the server. Preserve assigned room for
+                        // retry if a network failure occurs after claim.
+                        pharmacyDispatchRepository.updateDispatchRequestStatus(request.id, "in_call")
+                            .onSuccess {
+                                _navigateToCall.value = claim
+                            }
+                            .onFailure { error ->
+                                SecureLog.error("[DoctorOnDemand] Could not confirm video entry", error)
+                                _uiState.update {
+                                    it.copy(error = "Consulta aceptada. No pudimos confirmar la videollamada. Tocá Reintentar ingreso.")
+                                }
+                            }
                     } else {
                         _uiState.update {
                             it.copy(
@@ -208,7 +245,7 @@ class DoctorOnDemandViewModel @Inject constructor(
         viewModelScope.launch {
             pharmacyDispatchRepository.finishPharmacyRequest(doctorId, requestId)
                 .onSuccess {
-                    _uiState.update { it.copy(activeRequestId = null) }
+                    _uiState.update { it.copy(activeRequestId = null, activeRoomId = null) }
                 }
                 .onFailure { error ->
                     SecureLog.error("[DoctorOnDemand] Failed finishing request", error)
@@ -228,17 +265,28 @@ class DoctorOnDemandViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(doctorId = profile.id, isLoading = false, error = null)
                 }
+                val approval = pharmacyDispatchRepository.getMyGuardApproval().getOrNull()
+                val isAuthorized = approval?.approved == true
+                _uiState.update {
+                    it.copy(
+                        guardApproved = isAuthorized,
+                        guardVerificationStatus = approval?.verificationStatus ?: "pending",
+                        error = if (!isAuthorized) {
+                            "La matrícula todavía no está validada para atender consultas. Contactá al administrador."
+                        } else null,
+                    )
+                }
                 pharmacyDispatchRepository.getDoctorDutyStatus(profile.id)
                     .onSuccess { duty ->
                         _uiState.update {
                             it.copy(
-                                isOnDuty = duty.isOnDuty,
+                                isOnDuty = duty.isOnDuty && isAuthorized,
                                 dutyActiveTiers = duty.activeTiers,
                                 activeRequestId = duty.currentActiveRequestId,
                                 isLoading = false,
                             )
                         }
-                        if (duty.isOnDuty) {
+                        if (duty.isOnDuty && isAuthorized) {
                             startHeartbeat(profile.id)
                         } else {
                             stopHeartbeat()
@@ -257,8 +305,50 @@ class DoctorOnDemandViewModel @Inject constructor(
             }
     }
 
+    /** The clinician's rejection must be recorded on the one-time offer. */
     fun dismiss(request: PharmacyDispatchRequest) {
-        _dismissedRequestIds.update { it + request.id }
+        val offerId = request.offerId
+        if (offerId.isNullOrBlank()) {
+            _uiState.update { it.copy(error = "Oferta sin identificador válido. Actualizá la lista.") }
+            return
+        }
+        viewModelScope.launch {
+            pharmacyDispatchRepository.declinePharmacyOffer(offerId)
+                .onSuccess { declined ->
+                    if (declined) {
+                        _dismissedRequestIds.update { it + "${request.id}:${request.offerExpiresAt}" }
+                    } else {
+                        _uiState.update { it.copy(error = "Esta oferta ya no está disponible.") }
+                    }
+                }
+                .onFailure { error ->
+                    SecureLog.error("[DoctorOnDemand] Failed declining offer", error)
+                    _uiState.update { it.copy(error = "No se pudo rechazar la oferta. Intentá nuevamente.") }
+                }
+        }
+    }
+
+    fun retryAcceptedCall() {
+        val requestId = _uiState.value.activeRequestId ?: return
+        val roomId = _uiState.value.activeRoomId ?: return
+        if (_uiState.value.claimingId != null) return
+        viewModelScope.launch {
+            pharmacyDispatchRepository.updateDispatchRequestStatus(requestId, "in_call")
+                .onSuccess {
+                    _uiState.update { it.copy(error = null) }
+                    _navigateToCall.value = DispatchClaimResult(
+                        success = true,
+                        code = "CALL_RESUMED",
+                        requestId = requestId,
+                        cloudflareRoomId = roomId,
+                    )
+                }
+                .onFailure {
+                    _uiState.update { state ->
+                        state.copy(error = "La conexión aún no está confirmada. Podés volver a intentarlo.")
+                    }
+                }
+        }
     }
 
     private suspend fun observeSearchingQueue() {
@@ -267,7 +357,7 @@ class DoctorOnDemandViewModel @Inject constructor(
                 pharmacyDispatchRepository.observeSearchingRequests(),
                 _dismissedRequestIds,
             ) { requests, dismissed ->
-                requests.filter { it.id !in dismissed }
+                requests.filter { "${it.id}:${it.offerExpiresAt}" !in dismissed }
             }.collect { filteredRequests ->
                 _uiState.update { it.copy(searchingRequests = filteredRequests) }
             }

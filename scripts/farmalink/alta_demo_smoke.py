@@ -42,18 +42,20 @@ def safe(value):
 
 
 def demo_payload():
-    # Official SwaggerHub altaReceta 'example1': DEMO identity and codes.
-    # Date fields are the ONLY material changes from the published test example.
+    # Based on SwaggerHub DEMO; organization and affiliate credentials were
+    # corrected from Farmalink's response on 2026-11-03. Vendor consultaReceta for test numbers 9600000421228 and 9600000421242
+    # confirmed codDroga 01033 = GLICOLICOAC.ASOC. and codProducto 56800 =
+    # ESFUMEL blanqueadora cr. x 20 g (read-only workflow 41717111174).
+    # Other DEMO fields remain unverified and must be reviewed before clinical use.
     today = datetime.now(ZoneInfo("America/Argentina/Buenos_Aires")).date()
     return {
         "altaRecetaElectRq": {
             "infoCabeceraRq": {
-                "idOrganizacion": "100",
+                "idOrganizacion": "182",
                 "tipoOrganizacion": "NMD",
                 "ipOrigen": "8.8.8.8",
                 "infoBrowser": "Mozilla/5.0",
             },
-            "puntoEmisor": {"id": 100},
             "recElectronica": {
                 "tipoReceta": "1",
                 "fechaVigenciaDesde": today.isoformat(),
@@ -70,8 +72,8 @@ def demo_payload():
                     "numeroDocumento": 12345678,
                     "datosOfuscado": "N",
                     "credencial": {
-                        "codEntidad": 7100,
-                        "pan": "12345678",
+                        "codEntidad": 7110,
+                        "pan": "20123456786",
                         "plan": "100",
                         "token": "123456",
                     },
@@ -102,7 +104,7 @@ def demo_payload():
                         "cantidad": 10,
                         "codProducto": "56800",
                         "codDroga": "01033",
-                        "textoGenerico": "PREDNISOLONA",
+                        "textoGenerico": "GLICOLICOAC.ASOC.",
                         "generico": "N",
                         "recomendacionMedica": "S",
                         "ciclos": 1,
@@ -115,6 +117,11 @@ def demo_payload():
 
 
 def main():
+    # The prior TEST DEMO alta results were ambiguous (timeout / gateway 504).
+    # Block all new mutating calls until both have been reconciled with Farmalink.
+    if os.getenv("FARMALINK_DEMO_RECONCILED") != "yes":
+        print("RESULT=BLOCKED_PENDING_DEMO_RECONCILIATION")
+        return 6
     if not (os.getenv("FARMALINK_TEST_OAUTH_PASSWORD") and os.getenv("FARMALINK_TEST_BASIC_PASSWORD")):
         print("RESULT=NOT_CONFIGURED")
         return 2

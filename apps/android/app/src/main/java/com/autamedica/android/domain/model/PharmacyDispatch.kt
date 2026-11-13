@@ -2,6 +2,12 @@ package com.autamedica.android.domain.model
 
 data class PharmacyDispatchRequest(
     val id: String,
+    // Present only on a physician-specific offer, not in the global waiting queue.
+    val offerId: String? = null,
+    val offerExpiresAt: String? = null,
+    val careCountry: String? = null,
+    /** Server-resolved referral provenance; never a browser-claimed partner ID. */
+    val referralPartnerId: String? = null,
     val patientDni: String,
     val patientPhone: String,
     val patientName: String? = null,
@@ -15,6 +21,13 @@ data class PharmacyDispatchRequest(
     val doctorAttendedCall: Boolean
         get() = status == "in_call"
 }
+
+data class DoctorGuardApproval(
+    val approved: Boolean = false,
+    val code: String = "DOCTOR_PENDING_CLINICAL_APPROVAL",
+    val country: String? = null,
+    val verificationStatus: String = "pending",
+)
 
 data class DoctorDutyStatus(
     val doctorId: String,

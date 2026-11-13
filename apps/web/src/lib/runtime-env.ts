@@ -162,6 +162,8 @@ export function resolveCloudflareCallsEnv(runtimeEnv?: RuntimeEnvRecord): {
   return { appId, appSecret, turnKeyId, turnToken };
 }
 
+/** Never sign clinical guest tokens with a predictable fallback. Missing secret fails closed. */
+/** Never sign clinical guest tokens with a predictable fallback. Missing secret fails closed. */
 export function isStrongGuestSigningSecret(value: unknown): value is string {
   return typeof value === 'string' && /^[0-9a-f]{64,128}$/i.test(value);
 }

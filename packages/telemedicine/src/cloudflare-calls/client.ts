@@ -294,6 +294,7 @@ export class CloudflareCallsClient implements CallProvider {
 
       this.cfSession = new CloudflareCallsSession({
         apiProxyUrl: this.config.apiProxyUrl,
+        roomId: finalRoomId,
         iceServers: this.config.iceServers,
         onTrack: (event) => this.handleRemoteTrack(event),
         onConnectionStateChange: (state) => {

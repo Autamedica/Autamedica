@@ -196,6 +196,9 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
         bio,
         languages,
         active,
+        care_country,
+        license_type,
+        uf_brazil,
         created_at,
         updated_at,
         profile:profiles!inner(

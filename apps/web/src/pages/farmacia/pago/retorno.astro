@@ -1,0 +1,18 @@
+---
+import CallLayout from '@/layouts/CallLayout.astro';
+export const prerender = false;
+---
+<CallLayout title="Pagamento da consulta • AutaMedica" description="Retorno do checkout do Mercado Pago.">
+  <main class="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6">
+    <section class="max-w-lg rounded-2xl border border-zinc-700 bg-zinc-900 p-7 text-center">
+      <h1 class="text-2xl font-semibold">Retorno do pagamento</h1>
+      <p class="mt-3 text-zinc-300">
+        Volte à aba da consulta AutaMedica. A confirmação do pagamento depende da
+        verificação direta com o Mercado Pago, não deste redirecionamento.
+      </p>
+      <p class="mt-3 text-sm text-zinc-400">
+        Se o pagamento ainda estiver pendente, acompanhe o estado na própria consulta.
+      </p>
+    </section>
+  </main>
+</CallLayout>

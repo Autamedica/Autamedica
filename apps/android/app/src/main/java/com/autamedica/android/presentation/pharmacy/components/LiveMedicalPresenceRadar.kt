@@ -64,6 +64,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -121,6 +122,9 @@ val defaultOnDutyDoctors = emptyList<OnDutyDoctorInfo>()
 @Composable
 fun LiveMedicalPresenceRadar(
     doctors: List<OnDutyDoctorInfo> = defaultOnDutyDoctors,
+    // Anonymous market capacity: render generic signals without inventing or
+    // exposing individual doctor identities or another country's clinicians.
+    availableCount: Int? = null,
     modifier: Modifier = Modifier,
 ) {
     val availableDoctors = remember(doctors) { doctors.filter { it.isAvailable } }
@@ -329,10 +333,38 @@ fun LiveMedicalPresenceRadar(
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.logo_autamedica),
-                    contentDescription = "AutaMedica Guardia",
+                    contentDescription = stringResource(R.string.pharmacy_flow_header_title),
                     modifier = Modifier.size(40.dp),
                     contentScale = ContentScale.Fit,
                 )
+            }
+        }
+
+        // Aggregate-only presence signals for guests and country-selected
+        // patients. Exactly one signal per available doctor, capped at four
+        // for screen legibility. No synthetic names or professional IDs.
+        if (availableCount != null && availableCount > 0) {
+            Canvas(modifier = Modifier.matchParentSize()) {
+                val center = Offset(size.width / 2f, size.height / 2f)
+                val radius = 105.dp.toPx()
+                val shown = availableCount.coerceAtMost(4)
+                repeat(shown) { index ->
+                    val angle = Math.toRadians((-45.0 + index * (360.0 / shown)))
+                    val point = Offset(
+                        x = center.x + radius * cos(angle).toFloat(),
+                        y = center.y + radius * sin(angle).toFloat(),
+                    )
+                    drawCircle(
+                        color = AuEmerald.copy(alpha = 0.2f),
+                        radius = 12.dp.toPx() * greenDotPulse,
+                        center = point,
+                    )
+                    drawCircle(
+                        color = AuEmerald,
+                        radius = 5.dp.toPx(),
+                        center = point,
+                    )
+                }
             }
         }
 
@@ -458,7 +490,7 @@ fun ActiveMedicalNetworkPanel(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "MÉDICOS EN GUARDIA ACTIVOS",
+                    text = stringResource(R.string.pharmacy_flow_capacity_title),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 0.8.sp,
@@ -475,7 +507,8 @@ fun ActiveMedicalNetworkPanel(
                 ),
             ) {
                 Text(
-                    text = if (hasOnlineDoctors) "${onlineDoctors.size} en línea" else "En espera",
+                    text = if (hasOnlineDoctors) stringResource(R.string.pharmacy_flow_capacity_online, onlineDoctors.size)
+                        else stringResource(R.string.pharmacy_flow_capacity_waiting),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = if (hasOnlineDoctors) Primary else AuCyanDeep,
@@ -506,14 +539,14 @@ fun ActiveMedicalNetworkPanel(
                     )
                     Column {
                         Text(
-                            text = "Sin médicos de guardia en línea en este momento.",
+                            text = stringResource(R.string.pharmacy_flow_capacity_empty),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = AuTextPrimary,
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "La consulta quedará en espera hasta que un profesional se conecte.",
+                            text = stringResource(R.string.pharmacy_flow_capacity_empty_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = AuTextSecondary,
                         )
@@ -645,39 +678,27 @@ private fun DoctorDutyCard(
  */
 @Composable
 fun DispatchTelemetryTicker(
-    onlineDoctorCount: Int = 0,
+    onlineDoctorCount: Int? = null,
     modifier: Modifier = Modifier,
 ) {
-    val telemetryMessages = remember(onlineDoctorCount) {
-        val doctorMessage = if (onlineDoctorCount > 0) {
-            "$onlineDoctorCount médico${if (onlineDoctorCount > 1) "s" else ""} en línea"
-        } else {
-            "Esperando profesional de guardia"
-        }
-        val waitMessage = if (onlineDoctorCount > 0) {
-            "Tiempo de espera: ~2 min"
-        } else {
-            "En espera de conexión médica"
-        }
-        listOf(
-            TelemetryItem(
-                iconRes = R.drawable.ic_telemetry_broadcast,
-                message = "Conectando con guardia médica",
-            ),
-            TelemetryItem(
-                iconRes = R.drawable.ic_response_time,
-                message = waitMessage,
-            ),
-            TelemetryItem(
-                iconRes = R.drawable.ic_shield_priority,
-                message = "Prioridad: Farmacia de turno",
-            ),
-            TelemetryItem(
-                iconRes = R.drawable.ic_doctor_presence,
-                message = doctorMessage,
-            ),
-        )
+    // Resolve resources during composition so locale changes immediately update
+    // the ticker; never cache strings from the previous market in remember().
+    val doctorMessage = when {
+        onlineDoctorCount == null -> stringResource(R.string.pharmacy_flow_ticker_checking)
+        onlineDoctorCount > 0 -> stringResource(R.string.pharmacy_flow_ticker_available, onlineDoctorCount)
+        else -> stringResource(R.string.pharmacy_flow_ticker_waiting)
     }
+    val waitMessage = if (onlineDoctorCount != null && onlineDoctorCount > 0) {
+        stringResource(R.string.pharmacy_flow_ticker_await_accept)
+    } else {
+        stringResource(R.string.pharmacy_flow_ticker_queue)
+    }
+    val telemetryMessages = listOf(
+        TelemetryItem(R.drawable.ic_telemetry_broadcast, stringResource(R.string.pharmacy_flow_ticker_connect)),
+        TelemetryItem(R.drawable.ic_response_time, waitMessage),
+        TelemetryItem(R.drawable.ic_shield_priority, stringResource(R.string.pharmacy_flow_ticker_priority)),
+        TelemetryItem(R.drawable.ic_doctor_presence, doctorMessage),
+    )
 
     var currentIndex by remember { mutableIntStateOf(0) }
 

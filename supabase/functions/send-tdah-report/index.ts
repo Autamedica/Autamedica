@@ -82,14 +82,16 @@ Deno.serve(async (req) => {
       });
     } catch (err) {
       clearTimeout(timeoutId);
-      const isTimeout = err.name === 'AbortError';
-      return new Response(JSON.stringify({ error: isTimeout ? "Brevo request timed out" : err.message }), {
+      const error = err instanceof Error ? err : new Error(String(err));
+      const isTimeout = error.name === 'AbortError';
+      return new Response(JSON.stringify({ error: isTimeout ? "Brevo request timed out" : error.message }), {
         status: isTimeout ? 504 : 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    const error = err instanceof Error ? err : new Error(String(err));
+    return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -8,6 +8,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getServerEnvOrDefault, logger } from '@autamedica/shared';
 import { getRuntimeEnvValue } from '@/lib/runtime-env';
+import {
+  checkDirectPrescriptionIssuance,
+  hasEligibleProfessionalPadesCertificate,
+} from './prescription-issuance-gate';
 import { FarmalinkClient } from './farmalink.client';
 import { claimFarmalinkIssue, recordFarmalinkIssue } from './farmalink.issue-gate';
 import {
@@ -128,6 +132,15 @@ export type IssuanceError =
   | { code: 'missing_patient_address' }
   | { code: 'no_medication' }
   | { code: 'missing_cuir' }
+  | { code: 'prescription_country_required' }
+  | { code: 'doctor_country_mismatch' }
+  | { code: 'patient_country_required_or_mismatched' }
+  | { code: 'br_requires_memed_provider' }
+  | { code: 'ar_production_homologation_required' }
+  | { code: 'digital_signature_required' }
+  | { code: 'digital_signature_failed' }
+  | { code: 'reissue_requires_verified_signature' }
+  | { code: 'farmalink_registration_required' }
   | { code: 'pdf_generation_failed'; details?: string }
   | { code: 'pdf_upload_failed'; details?: string }
   | { code: 'update_failed'; details?: string }
@@ -149,37 +162,6 @@ async function sha256BytesHex(bytes: Uint8Array): Promise<string> {
 }
 
 function fail(error: IssuanceError): Result { return { ok: false, error }; }
-
-function getPrescriptionStoragePath(cuir: string, signedPdfUrl?: string | null): string {
-  if (signedPdfUrl) {
-    try {
-      const url = new URL(signedPdfUrl);
-      const marker = '/medical-documents/';
-      const index = url.pathname.indexOf(marker);
-      if (index >= 0) {
-        return decodeURIComponent(url.pathname.slice(index + marker.length));
-      }
-    } catch {
-      // Fall back to the canonical legacy path below.
-    }
-  }
-
-  return `prescriptions/${cuir}/receta-${cuir}.pdf`;
-}
-
-function resolveExternalPrescriptionForPdf(
-  vendorName?: string | null,
-  vendorId?: string | null,
-): Parameters<typeof generatePrescriptionPdf>[0]['externalPrescription'] {
-  if (vendorName !== 'farmalink' || !vendorId) return undefined;
-
-  return {
-    provider: 'farmalink',
-    number: vendorId,
-    displayLabel: 'RECETA FARMALINK',
-    legend: 'Número de receta para validación online en farmacia',
-  };
-}
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -211,7 +193,11 @@ function canIssueWithPrescriberValidationStatus(status?: string | null): boolean
 
 interface FarmalinkRegistration {
   vendorName: 'farmalink';
+  genericMode: 'S' | 'N';
   vendorId: string;
+  // PAN, CUIL and plan must be taken from the exact accepted Farmalink request.
+  affiliateCredential: { codEntidad: number; pan: string; plan: string };
+  affiliateCuil: string;
   result: FarmalinkAltaResult;
   externalPrescription: Parameters<typeof generatePrescriptionPdf>[0]['externalPrescription'];
 }
@@ -303,13 +289,18 @@ function buildFarmalinkPrescriptionMapInput(input: {
   const insurance = asRecord(input.patient.insurance_info);
   const insuranceFarmalink = readRecord(insurance, ['farmalink', 'farmalink_credential']);
   const credentialSource = credential ?? insuranceFarmalink ?? insurance;
+  const genericMode = readBoolean(itemConfig, ['generic', 'generico']) ?? true;
+  // If a clinician selected brand mode, do not send an alta that cannot render
+  // the required commercial product name on the resulting PDF.
+  if (!genericMode && !input.item.commercial_name?.trim()) {
+    throw new FarmalinkMappingError('items.0.commercialName');
+  }
 
   return {
     organization: {
-      id: firstText(
-        readString(organization, ['id', 'idOrganizacion', 'id_organizacion']),
-        readEnv(['FARMALINK_ORG_ID']),
-      ) ?? '',
+      // The vendor-assigned organization must come from server-side runtime config,
+      // not mutable prescription metadata (which may still contain the old demo ID 100).
+      id: readEnv(['FARMALINK_ORG_ID']) ?? '',
       type: firstText(
         readString(organization, ['type', 'tipoOrganizacion', 'tipo_organizacion']),
         readEnv(['FARMALINK_ORG_TYPE'], 'NMD'),
@@ -322,8 +313,6 @@ function buildFarmalinkPrescriptionMapInput(input: {
         readString(organization, ['browserInfo', 'infoBrowser', 'info_browser']),
         readEnv(['FARMALINK_BROWSER_INFO'], 'AutaMedica'),
       ),
-      issuerPointId: readNumber(organization, ['issuerPointId', 'issuer_point_id', 'puntoEmisorId', 'punto_emisor_id'])
-        ?? readEnvNumber(['FARMALINK_PUNTO_EMISOR_ID']),
     },
     validity: {
       from: input.now,
@@ -398,7 +387,7 @@ function buildFarmalinkPrescriptionMapInput(input: {
           readString(itemConfig, ['genericText', 'generic_text', 'textoGenerico', 'texto_generico']),
           [input.item.generic_name, input.item.dosage, input.item.presentation].filter(Boolean).join(' '),
         ) ?? input.item.generic_name ?? '',
-        generic: readBoolean(itemConfig, ['generic', 'generico']) ?? true,
+        generic: genericMode,
         brandRecommended: readBoolean(itemConfig, ['brandRecommended', 'brand_recommended', 'recomendacionMedica'])
           ?? Boolean(input.item.commercial_name),
       },
@@ -434,6 +423,12 @@ async function registerFarmalinkIfEnabled(input: {
   let request: FarmalinkAltaRecetaRequest;
   try {
     request = buildFarmalinkAltaRecetaRequest(buildFarmalinkPrescriptionMapInput(input));
+    // Before creating a durable claim or contacting Farmalink, guarantee that
+    // the PDF can show the patient's CUIL in a second scannable barcode.
+    const submittedCuil = String(request.altaRecetaElectRq.recElectronica.afiliado.cuil ?? '');
+    if (!/^\d{11}$/.test(submittedCuil)) {
+      throw new FarmalinkMappingError('affiliate.cuil');
+    }
   } catch (error) {
     logger.error('[issuePrescription] Farmalink mapping failed', {
       field: error instanceof FarmalinkMappingError ? error.field : undefined,
@@ -493,7 +488,10 @@ async function registerFarmalinkIfEnabled(input: {
       ok: true,
       registration: {
         vendorName: 'farmalink',
+        genericMode: request.altaRecetaElectRq.recElectronica.detalleRecElectronica.item[0]?.generico ?? 'S',
         vendorId: result.nroRecElectronica,
+        affiliateCredential: request.altaRecetaElectRq.recElectronica.afiliado.credencial,
+        affiliateCuil: String(request.altaRecetaElectRq.recElectronica.afiliado.cuil),
         result,
         externalPrescription: {
           provider: 'farmalink',
@@ -533,11 +531,12 @@ export async function issuePrescription(
   supabase: SupabaseClient,
   prescriptionId: string,
   userId: string,
+  runtimeEnv?: Record<string, unknown>,
 ): Promise<Result> {
   // 1. Resolve and validate doctor
   const { data: doctor } = await supabase
     .from('doctors')
-    .select('id, license_number, license_type, uf_brazil, rqe_number, cpf, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address, signature_image_url, stamp_image_url, care_guide_template')
+    .select('id, care_country, license_number, license_type, uf_brazil, rqe_number, cpf, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address, signature_image_url, stamp_image_url, care_guide_template')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -556,9 +555,9 @@ export async function issuePrescription(
   if (rx.doctor_id !== doctor.id) return fail({ code: 'not_your_prescription' });
   if (rx.cuir) return fail({ code: 'already_issued' });
 
-  // Determine country jurisdiction from prescription or doctor profile
-  const prescriptionCountry: string = (rx as { country_code?: string })?.country_code
-    || (doctor.license_type === 'CRM' || doctor.uf_brazil ? 'BR' : doctor.license_type === 'MSP' ? 'UY' : 'AR');
+  // Explicit country must be set by the actual clinical encounter. Never
+  // silently infer Argentina from an unknown doctor/patient/prescription.
+  const prescriptionCountry: string | null = rx.country_code ?? null;
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -579,11 +578,26 @@ export async function issuePrescription(
   // 3. Get and validate patient
   const { data: patient } = await supabase
     .from('patients')
-    .select('user_id, dni, cuil, cpf, cns, address, birth_date, gender, insurance_info')
+    .select('user_id, care_country, dni, cuil, cpf, cns, address, birth_date, gender, insurance_info')
     .eq('id', rx.patient_id)
     .single();
 
   if (!patient) return fail({ code: 'patient_not_found' });
+
+  const doctorCountry = doctor.care_country === 'AR' || doctor.care_country === 'BR'
+    ? doctor.care_country
+    : doctor.license_type === 'CRM' && doctor.uf_brazil ? 'BR'
+      : doctor.license_type === 'MN' || doctor.license_type === 'MP' ? 'AR'
+        : null;
+
+  const issuanceGate = checkDirectPrescriptionIssuance({
+    prescriptionCountry,
+    doctorCountry,
+    patientCountry: patient.care_country,
+    argentinaProductionApproved: runtimeEnv?.AR_RX_PRODUCTION_APPROVED === 'true',
+  });
+  if ('code' in issuanceGate) return fail({ code: issuanceGate.code });
+
   // 4. Parse clinical data
   const clinicalData = rx.clinical_data as ClinicalData;
   const externalPatient = clinicalData?.external_patient;
@@ -624,6 +638,27 @@ export async function issuePrescription(
     validityDays,
   );
 
+  // Preflight professional signing BEFORE any Farmalink AltaReceta.
+  // This does not constitute signature verification: the actual PDF must
+  // still be signed successfully before it can be stored as 'sent'.
+  const activeSigningCertificate = await getActiveCertificate(supabase, doctor.id);
+  // Never mistake a locally self-signed certificate for a verified
+  // professional signing certificate, even when its database status is active.
+  if (!activeSigningCertificate ||
+      !hasEligibleProfessionalPadesCertificate(activeSigningCertificate)) {
+    return fail({ code: 'digital_signature_required' });
+  }
+  try {
+    await loadSigningCredentials(supabase, doctor.id, activeSigningCertificate.certFingerprint);
+    await import('./pdf-signer.service');
+  } catch (error) {
+    logger.warn('[issuePrescription] Digital signing preflight unavailable', {
+      prescriptionId,
+      errorName: error instanceof Error ? error.name : 'unknown',
+    });
+    return fail({ code: 'digital_signature_required' });
+  }
+
   let externalRegistration: FarmalinkRegistration | undefined;
   if (prescriptionCountry === 'AR') {
     const farmalinkRegistration = await registerFarmalinkIfEnabled({
@@ -643,8 +678,10 @@ export async function issuePrescription(
     externalRegistration = farmalinkRegistration.registration;
   }
 
-  const vendorName = externalRegistration?.vendorName ?? 'autamedica_internal';
-  const vendorId = externalRegistration?.vendorId ?? `am-${Date.now()}`;
+  // A locally manufactured vendor identifier is NOT official registration.
+  if (!externalRegistration) return fail({ code: 'farmalink_registration_required' });
+  const vendorName = externalRegistration.vendorName;
+  const vendorId = externalRegistration.vendorId;
 
   // 6. Generate artifacts (PDF + QR + CUIR)
   let artifacts: PrescriptionArtifacts;
@@ -707,7 +744,8 @@ export async function issuePrescription(
         externalPrescription: externalRegistration?.externalPrescription,
         medication: {
           genericName: medicationName,
-          commercialName: item.commercial_name,
+          // Farmalink S (generic-only) must not display a commercial brand.
+          commercialName: externalRegistration?.genericMode === 'S' ? undefined : item.commercial_name,
           dosage: item.dosage ?? '',
           presentation: item.presentation ?? '',
           quantity: item.quantity ?? 0,
@@ -718,10 +756,13 @@ export async function issuePrescription(
         patient: {
           name: patientName,
           dni: patient.dni ?? externalPatient?.dni ?? (patient as { ci?: string }).ci ?? (externalPatient as { ci?: string })?.ci ?? undefined,
-          cuil: patient.cuil ?? externalPatient?.cuil ?? undefined,
+          // Never mix locally modified data with the CUIL accepted by Farmalink.
+          cuil: externalRegistration?.affiliateCuil ?? patient.cuil ?? externalPatient?.cuil ?? undefined,
           dateOfBirth: patient.birth_date ?? externalPatient?.birth_date ?? undefined,
           sex: patient.gender ?? externalPatient?.gender ?? undefined,
-          insurancePlan: resolveInsurancePlan(patient.insurance_info),
+          insurancePlan: externalRegistration?.affiliateCredential.plan ?? resolveInsurancePlan(patient.insurance_info),
+          affiliateCredential: externalRegistration?.affiliateCredential.pan,
+          insuranceEntityCode: externalRegistration?.affiliateCredential.codEntidad,
           address: patient.address ?? externalPatient?.address ?? undefined,
         },
         prescriber: {
@@ -755,39 +796,41 @@ export async function issuePrescription(
     return fail({ code: 'pdf_generation_failed', details });
   }
 
-  // 6b. Attempt PAdES digital signing if doctor has a certificate
-  let finalPdfBuffer = artifacts.pdfBuffer;
-  let signatureMethod = 'electronic_simple';
-  let certFingerprint: string | null = null;
-
+  // 6b. PAdES must actually succeed. A generated PDF or an image of a
+  // physician's signature is not evidence of a valid digital signature.
+  // Never emit an ACT_DIGITAL_SIGNATURE event for electronic_simple fallback.
+  let finalPdfBuffer: Uint8Array;
+  // Application classification only. Actual trust-chain/legal validation
+  // remains a separate production approval condition.
+  const signatureMethod = 'ac_external';
+  const certFingerprint = activeSigningCertificate.certFingerprint;
   try {
-    const activeCert = await getActiveCertificate(supabase, doctor.id);
-    if (activeCert) {
-      const { p12Buffer, password } = await loadSigningCredentials(
-        supabase,
-        doctor.id,
-        activeCert.certFingerprint,
-      );
-      // Dynamic import: @signpdf depends on Node.js APIs not available in Cloudflare Workers
-      const { signPdfWithP12 } = await import('./pdf-signer.service');
-      const signResult = await signPdfWithP12({
-        pdfBuffer: artifacts.pdfBuffer,
-        p12Buffer,
-        password,
-        signerName: doctorName,
-        reason: `Receta ${artifacts.cuir} - ${doctorName}`,
-        location: doctor.enrollment_jurisdiction ?? 'Argentina',
-      });
-      finalPdfBuffer = signResult.signedPdfBuffer;
-      signatureMethod = 'ac_external';
-      certFingerprint = activeCert.certFingerprint;
-      logger.info('[issuePrescription] PDF signed with PAdES', { cuir: artifacts.cuir });
-    }
+    const { p12Buffer, password } = await loadSigningCredentials(
+      supabase, doctor.id, certFingerprint,
+    );
+    const { signPdfWithP12 } = await import('./pdf-signer.service');
+    const signResult = await signPdfWithP12({
+      pdfBuffer: artifacts.pdfBuffer,
+      p12Buffer,
+      password,
+      signerName: doctorName,
+      reason: `Receta ${artifacts.cuir} - ${doctorName}`,
+      location: doctor.enrollment_jurisdiction ?? 'Argentina',
+    });
+    finalPdfBuffer = signResult.signedPdfBuffer;
+    if (!finalPdfBuffer?.byteLength) throw new Error('empty_signed_pdf');
+    logger.info('[issuePrescription] PDF signed with PAdES', { cuir: artifacts.cuir });
   } catch (signError) {
-    logger.warn('[issuePrescription] PAdES signing failed, using electronic_simple', signError);
+    // Farmalink Alta may already exist. Do not silently retry and create a
+    // second official registration. Never store the unsigned PDF as issued.
+    logger.error('[issuePrescription] PAdES failed after external registration', {
+      prescriptionId,
+      errorName: signError instanceof Error ? signError.name : 'unknown',
+    });
+    return fail({ code: 'farmalink_pending_reconciliation' });
   }
 
-  // 7. Store PDF (signed if PAdES succeeded, unsigned otherwise)
+  // 7. Store digitally signed PDF only
   const pdfPath = `prescriptions/${artifacts.cuir}/${artifacts.pdfFilename}`;
   const { error: uploadError } = await supabase.storage
     .from('medical-documents')
@@ -839,7 +882,8 @@ export async function issuePrescription(
     return fail({ code: 'update_failed', details: updateError.message || String(updateError) });
   }
 
-  // 9. Audit events (batched)
+  // 9. Audit only events supported by the actual PAdES and provider response.
+  // Never fabricate an official national registration identifier or COMPLIANT status.
   const signatureHash = await sha256BytesHex(finalPdfBuffer);
 
   await supabase.from('prescription_audit_events').insert([
@@ -849,24 +893,10 @@ export async function issuePrescription(
       user_id: userId,
       signature_hash: signatureHash,
       metadata: {
-        method: signatureMethod === 'ac_external' ? 'PAdES_SELF_SIGNED' : 'ELECTRONIC_SIMPLE',
+        method: 'PAdES_AC_EXTERNAL',
         document_hash: signatureHash,
         cert_fingerprint: certFingerprint,
         version: '2.0',
-      },
-    },
-    {
-      prescription_id: prescriptionId,
-      event_type: 'ACT_RCTA_REGISTRATION',
-      user_id: userId,
-      metadata: {
-        cuir: artifacts.cuir,
-        registration_id: `AR-RCTA-${artifacts.cuir}`,
-        jurisdiction: doctor.enrollment_jurisdiction || 'CENTRAL',
-        status: 'COMPLIANT',
-        drug_category: substanceCategory,
-        is_controlled_substance: isControlledSubstance,
-        validity_days: validityDays,
       },
     },
     {
@@ -941,160 +971,19 @@ export async function issuePrescription(
   };
 }
 
+/**
+ * Temporarily refuse regeneration of already-issued PDF artifacts.
+ * The previous implementation overwrote the stored signed_pdf_url target
+ * with a newly generated UNSIGNED PDF and retained the original CUIR.
+ * A future implementation must create an immutable, newly signed version
+ * and verify both provider registration and previous document lineage.
+ */
 export async function regenerateIssuedPrescriptionPdf(
-  supabase: SupabaseClient,
-  prescriptionRef: string,
-  userId: string,
+  _supabase: SupabaseClient,
+  _prescriptionRef: string,
+  _userId: string,
 ): Promise<Result> {
-  const { data: doctor } = await supabase
-    .from('doctors')
-    .select('id, license_number, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address, signature_image_url, stamp_image_url, care_guide_template')
-    .eq('user_id', userId)
-    .single();
-
-  if (!doctor) return fail({ code: 'doctor_not_found' });
-  if (!doctor.license_number) return fail({ code: 'missing_license_number' });
-  if (!doctor.refeps_id) return fail({ code: 'missing_refeps_id' });
-  if (!doctor.professional_address) return fail({ code: 'missing_professional_address' });
-
-  const prescriptionQuery = supabase
-    .from('prescriptions')
-    .select('id, doctor_id, patient_id, status, clinical_data, cuir, signed_pdf_url, vendor_name, vendor_id')
-    .limit(1);
-
-  const { data: rows } = prescriptionRef.startsWith('AM-') || prescriptionRef.startsWith('AR-')
-    ? await prescriptionQuery.eq('cuir', prescriptionRef)
-    : await prescriptionQuery.eq('id', prescriptionRef);
-  const rx = rows?.[0];
-
-  if (!rx) return fail({ code: 'prescription_not_found' });
-  if (rx.doctor_id !== doctor.id) return fail({ code: 'not_your_prescription' });
-  if (!rx.cuir) return fail({ code: 'missing_cuir' });
-
-  const { data: patient } = await supabase
-    .from('patients')
-    .select('user_id, dni, cuil, address, birth_date, gender, insurance_info')
-    .eq('id', rx.patient_id)
-    .single();
-
-  if (!patient) return fail({ code: 'patient_not_found' });
-
-  const clinicalData = rx.clinical_data as ClinicalData;
-  const externalPatient = clinicalData?.external_patient;
-  if (!patient.dni && !patient.cuil && !externalPatient?.dni && !externalPatient?.cuil) {
-    return fail({ code: 'missing_patient_identification' });
-  }
-  if (!patient.address && !externalPatient?.address) return fail({ code: 'missing_patient_address' });
-
-  const item = clinicalData?.items?.[0];
-  if (!item?.generic_name) return fail({ code: 'no_medication' });
-
-  const patientName = externalPatient?.name?.trim()
-    || (patient.user_id ? await resolveProfileName(supabase, patient.user_id, '') : 'Paciente');
-  const doctorName = await resolveProfileName(supabase, userId, 'Dr.');
-  const now = new Date().toISOString();
-  const validityDays = getValidityPeriodDays(item.generic_name);
-  const expiresAt = addDays(new Date(now), validityDays).toISOString();
-
-  const artifacts = await generatePrescriptionPdf({
-    prescriptionId: rx.id,
-    existingCuir: rx.cuir,
-    externalPrescription: resolveExternalPrescriptionForPdf(rx.vendor_name, rx.vendor_id),
-    medication: {
-      genericName: item.generic_name,
-      commercialName: item.commercial_name,
-      dosage: item.dosage ?? '',
-      presentation: item.presentation ?? '',
-      quantity: item.quantity ?? 0,
-      instructions: item.instructions ?? '',
-    },
-    diagnosis: clinicalData.diagnosis ?? '',
-    notes: clinicalData.notes,
-    patient: {
-      name: patientName,
-      dni: patient.dni ?? externalPatient?.dni ?? undefined,
-      cuil: patient.cuil ?? externalPatient?.cuil ?? undefined,
-      dateOfBirth: patient.birth_date ?? externalPatient?.birth_date ?? undefined,
-      sex: patient.gender ?? externalPatient?.gender ?? undefined,
-      insurancePlan: resolveInsurancePlan(patient.insurance_info),
-      address: patient.address ?? externalPatient?.address ?? undefined,
-    },
-    prescriber: {
-      name: doctorName,
-      license: doctor.license_number,
-      licenseJurisdiction: doctor.enrollment_jurisdiction ?? undefined,
-      licenseEntity: doctor.enrollment_entity ?? undefined,
-      refeps: doctor.refeps_id ?? undefined,
-      specialty: doctor.specialty ?? undefined,
-      professionalAddress: doctor.professional_address ?? undefined,
-      signatureImageUrl: doctor.signature_image_url ?? undefined,
-      stampImageUrl: doctor.stamp_image_url ?? undefined,
-    },
-    issuedAt: now,
-    expiresAt,
-    careGuide: {
-      tips: clinicalData.care_guide_tips,
-      forgotten: clinicalData.care_guide_forgotten,
-      warnings: clinicalData.care_guide_warnings,
-      lifestyle: clinicalData.care_guide_lifestyle,
-    },
-    template: doctor.care_guide_template ?? 'neutral',
-  });
-
-  const pdfPath = getPrescriptionStoragePath(rx.cuir, rx.signed_pdf_url);
-  const { error: uploadError } = await supabase.storage
-    .from('medical-documents')
-    .upload(pdfPath, artifacts.pdfBuffer, {
-      contentType: 'application/pdf',
-      upsert: true,
-    });
-
-  if (uploadError) {
-    logger.warn('[regenerateIssuedPrescriptionPdf] PDF upload failed', uploadError);
-    return fail({ code: 'pdf_upload_failed', details: uploadError.message || String(uploadError) });
-  }
-
-  const { data: urlData } = await supabase.storage
-    .from('medical-documents')
-    .createSignedUrl(pdfPath, 365 * 24 * 60 * 60);
-  const signedPdfUrl = urlData?.signedUrl ?? rx.signed_pdf_url ?? null;
-
-  const { error: updateError } = await supabase
-    .from('prescriptions')
-    .update({
-      qr_code_content: artifacts.qrContent,
-      signed_pdf_url: signedPdfUrl,
-    })
-    .eq('id', rx.id);
-
-  if (updateError) {
-    logger.error('[regenerateIssuedPrescriptionPdf] Update failed', updateError);
-    return fail({ code: 'update_failed', details: updateError.message || String(updateError) });
-  }
-
-  await supabase.from('prescription_audit_events').insert({
-    prescription_id: rx.id,
-    event_type: 'pdf_regenerated',
-    user_id: userId,
-    metadata: {
-      cuir: artifacts.cuir,
-      pdfPath,
-      reason: 'refresh_prescription_artifact_template',
-    },
-  });
-
-  return {
-    ok: true,
-    data: {
-      cuir: artifacts.cuir,
-      qrContent: artifacts.qrContent,
-      signedPdfUrl,
-      issuedAt: now,
-      expiresAt,
-      vendorName: rx.vendor_name,
-      vendorId: rx.vendor_id ?? '',
-    },
-  };
+  return fail({ code: 'reissue_requires_verified_signature' });
 }
 
 export const __testables = {

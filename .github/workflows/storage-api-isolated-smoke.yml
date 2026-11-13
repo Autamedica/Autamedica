@@ -3,6 +3,7 @@ name: Storage API isolated smoke (synthetic only)
 on:
   workflow_dispatch:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "scripts/db/test_storage_api_isolated.py"
       - "scripts/db/test_storage_api_isolated_unit.py"
@@ -11,11 +12,17 @@ on:
       - "docs/database/STORAGE_SERVICE_ISOLATED_CHECK.md"
       - ".github/workflows/storage-api-isolated-smoke.yml"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ (github.actor == 'coderabbitai[bot]' || github.actor == 'circleci-app[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.draft)) && 'ignored' || 'active' }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 jobs:
   isolated-storage-smoke:
+    if: >-
+      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:

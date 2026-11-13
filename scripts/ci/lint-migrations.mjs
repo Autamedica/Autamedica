@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 
 function getStagedMigrations() {
   const output = execSync(
-    "git diff --cached --name-only --diff-filter=ACM -- 'supabase/migrations/*.sql'",
+    "git diff --cached --name-only --diff-filter=ACM -- supabase/migrations",
     { encoding: 'utf8' }
   ).trim();
 

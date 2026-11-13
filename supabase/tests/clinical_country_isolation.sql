@@ -36,6 +36,46 @@ INSERT INTO public.doctor_licenses(doctor_id,license_type,license_number,uf_braz
 INSERT INTO public.doctor_licenses(doctor_id,license_type,license_number,status)
  SELECT id,'MN','765432','active' FROM country_fixture WHERE kind='doctor_br';
 
+-- Only Admin-approved clinicians may appear in the guard radar. Positive
+-- synthetic fixtures must carry their country's own verified credentials.
+UPDATE public.profiles p SET sss_validation_status='valid'
+FROM country_fixture f WHERE p.user_id=f.uid AND f.kind='doctor_ar';
+
+INSERT INTO public.doctor_licenses(doctor_id,license_type,license_number,province,status)
+SELECT id,'MN','CI-'||id::text,'CABA','active'
+FROM country_fixture WHERE kind='doctor_ar';
+
+INSERT INTO public.doctor_licenses(doctor_id,license_type,license_number,uf_brazil,status,cfm_validation_status,
+  cfm_evidence_path,cfm_review_notes,cfm_reviewed_by,cfm_reviewed_at,cfm_last_checked_at)
+SELECT id,'CRM','CI-'||id::text,'RS','active','valid',
+  'ci/'||id::text||'/evidence.pdf','Synthetic CI administrative review',uid,now(),now()
+FROM country_fixture WHERE kind='doctor_br';
+
+-- An active AR doctor with a current licence but no Admin approval
+-- must not be listed to patients.
+DO $pending_directory$
+DECLARE
+  v_uid uuid := gen_random_uuid();
+  v_doc_id uuid;
+BEGIN
+  INSERT INTO auth.users(id,email)
+  VALUES(v_uid,'pending-country-ci-'||v_uid||'@example.invalid');
+  UPDATE public.profiles SET role='doctor',active=true,
+    sss_validation_status='pending_review' WHERE user_id=v_uid;
+  SELECT id INTO v_doc_id FROM public.doctors WHERE user_id=v_uid LIMIT 1;
+  IF v_doc_id IS NULL THEN
+    INSERT INTO public.doctors(user_id,license_type,license_number,specialty,active)
+    VALUES(v_uid,'MN','CI-PENDING-NO-ADMIN','Synthetic',true)
+    RETURNING id INTO v_doc_id;
+  ELSE
+    UPDATE public.doctors SET license_type='MN',license_number='CI-PENDING-NO-ADMIN',active=true
+    WHERE id=v_doc_id;
+  END IF;
+  INSERT INTO public.doctor_licenses(doctor_id,license_type,license_number,province,status)
+  VALUES(v_doc_id,'MN','CI-PENDING-NO-ADMIN','CABA','active');
+END;
+$pending_directory$;
+
 -- Synthetic historical data only: verify country hardening preserves cleanup.
 ALTER TABLE public.doctor_patient DISABLE TRIGGER trg_country_pair;
 INSERT INTO public.doctor_patient(patient_id,doctor_id)
@@ -91,6 +131,10 @@ BEGIN
       SELECT 1 FROM jsonb_array_elements(public.get_patient_doctor_directory()) d
       JOIN country_fixture f ON f.id::text=d->>'id' WHERE f.kind='doctor_'||market
     ) THEN RAISE EXCEPTION 'Matching doctor hidden for %',market; END IF;
+    IF market='ar' AND EXISTS(
+      SELECT 1 FROM jsonb_array_elements(public.get_patient_doctor_directory()) d
+      WHERE d->>'license_number'='CI-PENDING-NO-ADMIN'
+    ) THEN RAISE EXCEPTION 'Pending unapproved doctor exposed in AR directory'; END IF;
     IF EXISTS(SELECT 1 FROM jsonb_array_elements(public.get_patient_doctor_directory()) d
       WHERE d->>'care_country' IS DISTINCT FROM v_country
          OR (v_country='BR' AND d#>>'{profile,matricula_nacional}' IS NOT NULL)
@@ -198,7 +242,8 @@ BEGIN
     END LOOP;
   END LOOP;
 END $service_checks$;
--- With only AR doctors live, a BR request must expire without an AR offer or push.
+-- With only AR doctors live, a BR request must remain queued without
+-- an AR offer or cross-border notification. No-doctor is not an error.
 UPDATE public.doctor_duty_status SET is_on_duty=false,last_heartbeat_at=now()-interval '1 day'
  WHERE doctor_id IN (SELECT id FROM public.doctors WHERE care_country='BR');
 DO $no_candidate$
@@ -211,9 +256,9 @@ BEGIN
   RETURNING id INTO v_request;
   -- Gen2 may invoke matching explicitly rather than through the legacy trigger.
   SELECT public.match_dispatch_doctors(v_request) INTO v_result;
-  IF NOT EXISTS(SELECT 1 FROM public.pharmacy_dispatch_requests WHERE id=v_request AND status='expired')
+  IF NOT EXISTS(SELECT 1 FROM public.pharmacy_dispatch_requests WHERE id=v_request AND status='searching' AND search_timeout_at IS NULL)
      OR EXISTS(SELECT 1 FROM public.dispatch_offers WHERE dispatch_request_id=v_request) THEN
-    RAISE EXCEPTION 'BR dispatch country/terminal-state failure: result %, status %, offers %',
+    RAISE EXCEPTION 'BR dispatch country/persistent-queue failure: result %, status %, offers %',
       v_result,(SELECT status FROM public.pharmacy_dispatch_requests WHERE id=v_request),
       (SELECT count(*) FROM public.dispatch_offers WHERE dispatch_request_id=v_request);
   END IF;

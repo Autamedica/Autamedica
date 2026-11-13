@@ -1,4 +1,5 @@
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
@@ -46,8 +47,8 @@ android {
         applicationId = "com.autamedica.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 29
-        versionName = "1.2.19"
+        versionCode = 32
+        versionName = "1.2.22"
 
         resourceConfigurations += listOf("es", "pt", "pt-rBR")
 
@@ -108,11 +109,16 @@ android {
     signingConfigs {
         create("release") {
             val ksFile = localProperties.getProperty("RELEASE_STORE_FILE")
+                ?: System.getenv("RELEASE_STORE_FILE")
             if (ksFile != null) {
                 storeFile = file(ksFile)
-                storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD", "")
-                keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS", "autamedica")
-                keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD", "")
+                storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD")
+                    ?: System.getenv("AUTAMEDICA_RELEASE_STORE_PASSWORD").orEmpty()
+                keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS")
+                    ?: System.getenv("AUTAMEDICA_RELEASE_KEY_ALIAS")
+                    ?: "autamedica"
+                keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD")
+                    ?: System.getenv("AUTAMEDICA_RELEASE_KEY_PASSWORD").orEmpty()
             }
         }
     }
@@ -143,13 +149,16 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
 
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
@@ -255,7 +264,10 @@ dependencies {
 
 tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
     testLogging {
-        events(org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED)
+        events(
+            org.gradle.api.tasks.testing.logging.TestLogEvent.STARTED,
+            org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED,
+        )
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
 }

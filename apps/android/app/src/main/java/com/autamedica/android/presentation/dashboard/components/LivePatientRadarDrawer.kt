@@ -51,6 +51,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -190,7 +192,7 @@ fun LivePatientRadarDrawer(
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "RADAR EN VIVO",
+                                text = stringResource(R.string.ui_medical_radar_title),
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.ExtraBold,
@@ -207,8 +209,8 @@ fun LivePatientRadarDrawer(
                             )
                         }
                         Text(
-                            text = if (liveWaitingQueue.isEmpty()) "Escaneando solicitudes de farmacia"
-                            else "${liveWaitingQueue.size} pacientes esperando en tiempo real",
+                            text = if (liveWaitingQueue.isEmpty()) stringResource(R.string.ui_medical_radar_scanning)
+                            else stringResource(R.string.ui_medical_radar_patient_waiting, liveWaitingQueue.size),
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                             color = Color(0xFF64748B),
                         )
@@ -226,7 +228,7 @@ fun LivePatientRadarDrawer(
                             border = BorderStroke(0.5.dp, AuEmerald.copy(alpha = 0.3f)),
                         ) {
                             Text(
-                                text = "${liveWaitingQueue.size} EN COLA",
+                                text = stringResource(R.string.ui_medical_radar_queue_count, liveWaitingQueue.size),
                                 color = AuEmerald,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
@@ -237,7 +239,7 @@ fun LivePatientRadarDrawer(
 
                     Icon(
                         imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = "Expandir o contraer radar",
+                        contentDescription = stringResource(R.string.ui_medical_radar_toggle),
                         tint = Color(0xFF64748B),
                         modifier = Modifier.size(22.dp),
                     )
@@ -289,7 +291,7 @@ fun LivePatientRadarDrawer(
 
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Radar activo • Sin derivaciones pendientes",
+                                    text = stringResource(R.string.ui_medical_radar_empty_title),
                                     style = MaterialTheme.typography.titleSmall.copy(
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
@@ -298,7 +300,7 @@ fun LivePatientRadarDrawer(
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = "Cuando una farmacia ingrese una solicitud, sonará la alerta clínica de 30s para aceptar.",
+                                    text = stringResource(R.string.ui_medical_radar_empty_body),
                                     style = MaterialTheme.typography.bodySmall.copy(
                                         fontSize = 12.sp,
                                         lineHeight = 16.sp,
@@ -504,7 +506,7 @@ private fun RadarPatientCard(
                             modifier = Modifier.size(13.dp),
                         )
                         Text(
-                            text = "Espera: ${patient.waitMinutes}m",
+                            text = stringResource(R.string.ui_medical_radar_wait_minutes, patient.waitMinutes),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF64748B),
@@ -529,7 +531,7 @@ private fun RadarPatientCard(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "FICHA 20s",
+                            text = stringResource(R.string.ui_medical_radar_open_chart),
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 10.sp,
                             color = PortalDoctors,

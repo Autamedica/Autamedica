@@ -40,6 +40,8 @@ interface NewTracksResponse {
 export interface CFSessionConfig {
   /** URL del proxy API en el app (e.g., /api/cloudflare-calls) */
   apiProxyUrl: string
+  /** Server-verified room scope for every SFU operation. */
+  roomId: string
   iceServers?: RTCIceServer[]
   onTrack: (event: RTCTrackEvent) => void
   onConnectionStateChange: (state: RTCPeerConnectionState) => void
@@ -495,7 +497,7 @@ export class CloudflareCallsSession {
     const res = await fetch(this.cfg.apiProxyUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ method, path, body }),
+      body: JSON.stringify({ roomId: this.cfg.roomId, method, path, body }),
     })
     if (!res.ok) {
       let detail = ''

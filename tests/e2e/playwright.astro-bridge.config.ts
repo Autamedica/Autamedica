@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './',
-  testMatch: '**/astro-bridge-routing.spec.ts',
+  testMatch: ['**/astro-bridge-routing.spec.ts', '**/clinical-pharmacy-intake.spec.ts'],
   timeout: 30 * 1000,
   expect: {
     timeout: 5000,

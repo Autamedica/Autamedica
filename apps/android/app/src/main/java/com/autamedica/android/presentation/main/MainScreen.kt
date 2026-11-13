@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -49,7 +48,6 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -61,8 +59,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.core.content.ContextCompat
@@ -237,14 +233,7 @@ fun MainScreen(
 
     Scaffold(
         bottomBar = {
-            val currentDensity = LocalDensity.current
-            CompositionLocalProvider(
-                LocalDensity provides Density(
-                    density = currentDensity.density,
-                    fontScale = currentDensity.fontScale.coerceAtMost(1.0f),
-                )
-            ) {
-                NavigationBar(
+            NavigationBar(
                     containerColor = Color.White,
                     modifier = Modifier.drawBehind {
                         drawLine(
@@ -272,7 +261,10 @@ fun MainScreen(
                                 label = {
                                     Text(
                                         text = stringResource(tab.labelRes),
-                                        fontSize = 11.sp,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        maxLines = 2,
+                                        textAlign = TextAlign.Center,
+                                        overflow = TextOverflow.Ellipsis,
                                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                                     )
                                 },
@@ -301,13 +293,12 @@ fun MainScreen(
                                 label = {
                                     Text(
                                         text = stringResource(tab.labelRes),
-                                        fontSize = 10.sp,
-                                        maxLines = 1,
-                                        softWrap = false,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        maxLines = 2,
+                                        softWrap = true,
+                                        textAlign = TextAlign.Center,
                                         overflow = TextOverflow.Ellipsis,
-                                        letterSpacing = (-0.2).sp,
                                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                        modifier = Modifier.wrapContentWidth(unbounded = true),
                                     )
                                 },
                                 colors = NavigationBarItemDefaults.colors(
@@ -321,7 +312,6 @@ fun MainScreen(
                         }
                     }
                 }
-            }
         },
         containerColor = AuBackground,
         modifier = modifier,
@@ -393,6 +383,9 @@ fun MainScreen(
                         2 -> ConsultationHubScreen(
                             onNavigateToVideoCall = onNavigateToVideoCall,
                             onNavigateToBookAppointment = { selectedTab = 1 },
+                            // Use the real country-isolated dispatch queue instead of
+                            // booking the first directory doctor as immediately on duty.
+                            onNavigateToPharmacyIntake = onNavigateToPharmacyIntake,
                         )
                         3 -> PrescriptionsScreen(
                             onBack = { selectedTab = 2 },

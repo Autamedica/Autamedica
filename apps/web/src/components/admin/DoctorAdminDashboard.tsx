@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { createLicenseVerificationLock } from '@/lib/admin/license-verification-lock';
 import { ApiError, fetchApi } from '@/lib/api-client';
+import { getDoctorCountry, type DoctorCountry } from '@/lib/admin/doctor-country';
 
 type Profile = {
   user_id: string;
@@ -16,12 +17,30 @@ type Profile = {
   matricula_nacional: string | null;
 };
 
+type DoctorLicense = {
+  id: string;
+  license_number: string;
+  license_type: string;
+  province: string | null;
+  uf_brazil: string | null;
+  status: 'active' | 'inactive' | 'suspended';
+  cfm_validation_status: 'valid' | 'pending' | 'suspended' | 'cassado' | 'exempt' | null;
+  cfm_last_checked_at: string | null;
+  cfm_evidence_url: string | null;
+  cfm_review_notes: string | null;
+  cfm_reviewed_by: string | null;
+  cfm_reviewed_at: string | null;
+};
+
 type Doctor = {
   id: string;
   user_id: string;
   specialty: string;
   subspecialty: string | null;
   license_number: string;
+  care_country: string | null;
+  license_type: string | null;
+  uf_brazil: string | null;
   years_experience: number;
   consultation_fee: number;
   refeps_id: string | null;
@@ -38,15 +57,192 @@ type Doctor = {
   created_at: string;
   updated_at: string;
   profile: Profile;
+  doctor_licenses?: DoctorLicense[];
   has_availability?: boolean;
   has_active_plan?: boolean;
 };
+
+function hasCfmReviewEvidence(license: DoctorLicense): boolean {
+  return license.cfm_validation_status === 'valid'
+    && Boolean(license.cfm_evidence_url)
+    && Boolean(license.cfm_reviewed_by && license.cfm_reviewed_at && license.cfm_last_checked_at)
+    && (license.cfm_review_notes?.trim().length ?? 0) >= 10;
+}
 
 type DeleteDoctorResponse = {
   success: true;
   mode: 'soft' | 'hard';
   message: string;
 };
+
+
+type DoctorCountryListProps = {
+  country: DoctorCountry;
+  doctors: Doctor[];
+  selectedDoctorId: string | null;
+  onSelect: (doctor: Doctor) => void;
+};
+
+function DoctorCountryList({ country, doctors, selectedDoctorId, onSelect }: DoctorCountryListProps) {
+  const heading = country === 'AR'
+    ? '🇦🇷 Médicos argentinos'
+    : country === 'BR'
+      ? '🇧🇷 Médicos brasileños'
+      : '🌎 Médicos sin país identificado';
+  const subtitle = country === 'AR'
+    ? 'Matrículas MN / MP · SISA / REFEPS'
+    : country === 'BR'
+      ? 'Matrículas CRM · revisión CFM'
+      : 'Revisar país y jurisdicción de matrícula';
+  const validationHeading = country === 'BR' ? 'CFM' : country === 'AR' ? 'SISA' : 'Validación';
+
+  return (
+    <section className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white" aria-label={heading}>
+      <header className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
+        <div className="min-w-0">
+          <h4 className="font-semibold text-slate-900">{heading}</h4>
+          <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>
+        </div>
+        <span className="shrink-0 rounded-full bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700" aria-label={doctors.length + ' médicos'}>
+          {doctors.length}
+        </span>
+      </header>
+
+      {doctors.length === 0 ? (
+        <p className="px-4 py-8 text-center text-sm text-slate-500">
+          No hay médicos que coincidan con los filtros actuales.
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-[690px] divide-y divide-slate-100 text-sm">
+            <thead className="bg-white text-xs font-bold uppercase tracking-wider text-slate-500">
+              <tr>
+                <th className="px-4 py-3 text-left">Médico</th>
+                <th className="px-4 py-3 text-left">Especialidad</th>
+                <th className="px-4 py-3 text-left">Matrícula</th>
+                <th className="px-4 py-3 text-left">{validationHeading}</th>
+                <th className="px-4 py-3 text-center">Estado</th>
+                <th className="px-4 py-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {doctors.map((doctor) => {
+                const profile = doctor.profile || {} as Profile;
+                const selected = selectedDoctorId === doctor.id;
+                const crmLicense = (doctor.doctor_licenses ?? []).find((license) => license.license_type === 'CRM');
+                let validationLabel = 'Sin verificar';
+                let validationClass = 'border-slate-200 bg-slate-50 text-slate-600';
+
+                if (country === 'BR') {
+                  if (crmLicense && hasCfmReviewEvidence(crmLicense)) {
+                    validationLabel = 'CFM validado';
+                    validationClass = 'border-emerald-200 bg-emerald-50 text-emerald-700';
+                  } else if (crmLicense?.cfm_validation_status === 'valid') {
+                    validationLabel = 'Falta evidencia';
+                    validationClass = 'border-amber-200 bg-amber-50 text-amber-700';
+                  } else if (crmLicense?.cfm_validation_status === 'suspended' || crmLicense?.cfm_validation_status === 'cassado') {
+                    validationLabel = 'Suspendido';
+                    validationClass = 'border-red-200 bg-red-50 text-red-700';
+                  } else if (crmLicense?.cfm_validation_status === 'exempt') {
+                    validationLabel = 'Exceptuado';
+                  } else {
+                    validationLabel = 'Pendiente';
+                    validationClass = 'border-amber-200 bg-amber-50 text-amber-700';
+                  }
+                } else if (country === 'AR') {
+                  const sisaStatus = profile.sss_validation_status;
+                  if (sisaStatus === 'valid') {
+                    validationLabel = 'Validado';
+                    validationClass = 'border-emerald-200 bg-emerald-50 text-emerald-700';
+                  } else if (sisaStatus === 'pending_review') {
+                    validationLabel = 'En revisión';
+                    validationClass = 'border-amber-200 bg-amber-50 text-amber-700';
+                  } else if (sisaStatus === 'rejected') {
+                    validationLabel = 'Rechazado';
+                    validationClass = 'border-red-200 bg-red-50 text-red-700';
+                  } else if (sisaStatus === 'exempt') {
+                    validationLabel = 'Exceptuado';
+                  }
+                } else {
+                  validationLabel = 'País pendiente';
+                }
+
+                const jurisdiction = country === 'BR'
+                  ? crmLicense?.uf_brazil || doctor.uf_brazil || crmLicense?.province || '-'
+                  : doctor.enrollment_jurisdiction || '-';
+
+                return (
+                  <tr
+                    key={doctor.id}
+                    className={'cursor-pointer transition hover:bg-slate-50/80 ' + (selected ? 'bg-sky-50/70' : '')}
+                    onClick={() => onSelect(doctor)}
+                    aria-selected={selected}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100">
+                          {profile.avatar_url ? (
+                            <img src={profile.avatar_url} alt={profile.first_name + ' avatar'} className="h-full w-full object-cover" />
+                          ) : (
+                            <span className="text-xs font-bold text-slate-500">{profile.first_name?.[0]}{profile.last_name?.[0]}</span>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5 font-semibold text-slate-900">
+                            {profile.first_name} {profile.last_name}
+                            {country === 'AR' && (profile.sss_validation_status === 'valid' || profile.sss_validation_status === 'exempt') && doctor.has_availability && (
+                              <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700" title="Validación SISA/REFEPS y agenda activa">✓ SISA</span>
+                            )}
+                            {doctor.signature_image_url && doctor.stamp_image_url ? (
+                              <span className="rounded-md bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700" title="Firma y sello digital cargados">✓ Receta</span>
+                            ) : (
+                              <span className="rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700" title="Falta firma y/o sello digital">⚠ Sin firma</span>
+                            )}
+                            {doctor.has_active_plan && (
+                              <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700" title="Médico con plan premium activo">★ Destacado</span>
+                            )}
+                          </div>
+                          <div className="text-xs text-slate-500">{profile.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-slate-800">{doctor.specialty}</div>
+                      {doctor.subspecialty && <div className="text-xs text-slate-500">{doctor.subspecialty}</div>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-slate-800">{doctor.license_number || '-'}</div>
+                      <div className="text-xs text-slate-500">{jurisdiction}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={'inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ' + validationClass}>
+                        {validationLabel}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={'inline-flex h-2 w-2 rounded-full ' + (doctor.active ? 'bg-emerald-500' : 'bg-slate-300')} />
+                      <span className="ml-1.5 text-xs font-medium text-slate-600">{doctor.active ? 'Activo' : 'Inactivo'}</span>
+                    </td>
+                    <td className="px-4 py-3 text-right" onClick={(event) => event.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => onSelect(doctor)}
+                        aria-label={'Abrir ficha de ' + (profile.first_name || 'médico')}
+                        className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-sky-500 hover:text-sky-700"
+                      >
+                        Ver ficha
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
 
 export function DoctorAdminDashboard() {
   const licenseVerificationLock = useRef(createLicenseVerificationLock());
@@ -65,6 +261,9 @@ export function DoctorAdminDashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isVerifyingSisa, setIsVerifyingSisa] = useState(false);
+  const [cfmEvidenceFiles, setCfmEvidenceFiles] = useState<Record<string, File | null>>({});
+  const [cfmReviewNotes, setCfmReviewNotes] = useState<Record<string, string>>({});
+  const [reviewingCfmLicenseId, setReviewingCfmLicenseId] = useState<string | null>(null);
 
   // Form states for New / Edit doctor
   const [editForm, setEditForm] = useState<Partial<Doctor & Profile & {
@@ -160,6 +359,12 @@ export function DoctorAdminDashboard() {
     });
   }, [doctors, searchQuery, sisaFilter, statusFilter]);
 
+  const countryGroups = useMemo(() => ({
+    AR: filteredDoctors.filter((doctor) => getDoctorCountry(doctor) === 'AR'),
+    BR: filteredDoctors.filter((doctor) => getDoctorCountry(doctor) === 'BR'),
+    UNKNOWN: filteredDoctors.filter((doctor) => getDoctorCountry(doctor) === 'UNKNOWN'),
+  }), [filteredDoctors]);
+
   // Statistics calculated in real-time
   const stats = useMemo(() => {
     if (!Array.isArray(doctors)) {
@@ -167,8 +372,9 @@ export function DoctorAdminDashboard() {
     }
     const total = doctors.length;
     const active = doctors.filter((d) => d.active).length;
-    const pendingSisa = doctors.filter((d) => d.profile?.sss_validation_status === 'pending_review').length;
-    const validSisa = doctors.filter((d) => d.profile?.sss_validation_status === 'valid').length;
+    const argentineDoctors = doctors.filter((doctor) => getDoctorCountry(doctor) === 'AR');
+    const pendingSisa = argentineDoctors.filter((doctor) => doctor.profile?.sss_validation_status === 'pending_review').length;
+    const validSisa = argentineDoctors.filter((doctor) => doctor.profile?.sss_validation_status === 'valid').length;
     return { total, active, pendingSisa, validSisa };
   }, [doctors]);
 
@@ -328,6 +534,63 @@ export function DoctorAdminDashboard() {
     }
   }
 
+  async function handleCfmManualReview(license: DoctorLicense, status: 'valid' | 'pending') {
+    if (!selectedDoctor || reviewingCfmLicenseId) return;
+
+    const evidence = cfmEvidenceFiles[license.id] ?? null;
+    const notes = (cfmReviewNotes[license.id] ?? '').trim();
+    if (notes.length < 10) {
+      setError('Escribe una nota de revisión de al menos 10 caracteres.');
+      return;
+    }
+    if (status === 'valid' && !evidence) {
+      setError('Adjunta el comprobante oficial o la documentación comprobada para aprobar.');
+      return;
+    }
+
+    setReviewingCfmLicenseId(license.id);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('licenseId', license.id);
+      formData.append('status', status);
+      formData.append('reviewNotes', notes);
+      if (evidence) formData.append('evidence', evidence);
+
+      const response = await fetch('/api/admin/doctors/cfm-review', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.success || !payload?.data?.license) {
+        const message = payload?.error?.message ?? payload?.error ?? `No se pudo guardar la revisión (HTTP ${response.status}).`;
+        throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+      }
+
+      const updatedLicense = payload.data.license as DoctorLicense;
+      const updateDoctor = (doctor: Doctor): Doctor => ({
+        ...doctor,
+        doctor_licenses: (doctor.doctor_licenses ?? []).map((item) =>
+          item.id === updatedLicense.id ? updatedLicense : item,
+        ),
+      });
+      setDoctors((prev) => prev.map((doctor) => doctor.id === selectedDoctor.id ? updateDoctor(doctor) : doctor));
+      setSelectedDoctor((prev) => prev ? updateDoctor(prev) : null);
+      setCfmEvidenceFiles((prev) => ({ ...prev, [license.id]: null }));
+      setCfmReviewNotes((prev) => ({ ...prev, [license.id]: '' }));
+      setSuccessMessage(status === 'valid'
+        ? 'Matrícula CRM aprobada con evidencia y revisión registrada.'
+        : 'Matrícula CRM quedó pendiente; no habilita el despacho clínico.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo guardar la revisión manual CFM.');
+    } finally {
+      setReviewingCfmLicenseId(null);
+    }
+  }
+
   // Handle Soft / Hard Delete
   async function handleDeleteDoctor(mode: 'soft' | 'hard') {
     if (!selectedDoctor || licenseVerificationLock.current.isRunning()) return;
@@ -442,7 +705,7 @@ export function DoctorAdminDashboard() {
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Médicos Activos</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Cuentas médicas activas (no implica habilitación)</p>
           <div className="mt-2 flex items-baseline justify-between">
             <span className="text-3xl font-bold tracking-tight text-slate-900">{stats.active}</span>
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
@@ -452,7 +715,7 @@ export function DoctorAdminDashboard() {
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Validación SISA Pendiente</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Validación SISA Pendiente · Argentina</p>
           <div className="mt-2 flex items-baseline justify-between">
             <span className="text-3xl font-bold tracking-tight text-amber-600">{stats.pendingSisa}</span>
             <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">Revisión</span>
@@ -460,10 +723,10 @@ export function DoctorAdminDashboard() {
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Validados SISA</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Validación SISA registrada · Argentina</p>
           <div className="mt-2 flex items-baseline justify-between">
             <span className="text-3xl font-bold tracking-tight text-emerald-600">{stats.validSisa}</span>
-            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800">Habilitados</span>
+            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800">Validación AR</span>
           </div>
         </div>
       </section>
@@ -554,12 +817,15 @@ export function DoctorAdminDashboard() {
 
       {/* 📋 Doctors List & Detail Slide-Over Layout */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Main List */}
-        <section className={`lg:col-span-2 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm ${selectedDoctor ? 'hidden lg:block' : ''}`}>
-          <div className="border-b border-slate-200 px-5 py-4 flex items-center justify-between bg-slate-50/50">
-            <h3 className="font-semibold text-slate-800">Médicos de la Plataforma</h3>
-            <span className="rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
-              {filteredDoctors.length} {filteredDoctors.length === 1 ? 'médico' : 'médicos'} en vista
+        {/* Country-separated doctor directories */}
+        <section className={'lg:col-span-2 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/50 shadow-sm ' + (selectedDoctor ? 'hidden lg:block' : '')}>
+          <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-5 py-4">
+            <div>
+              <h3 className="font-semibold text-slate-900">Directorio médico por país</h3>
+              <p className="mt-0.5 text-xs text-slate-500">Argentina y Brasil se administran en listas independientes.</p>
+            </div>
+            <span className="shrink-0 rounded-full bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700">
+              {filteredDoctors.length} en vista
             </span>
           </div>
 
@@ -570,120 +836,33 @@ export function DoctorAdminDashboard() {
             </div>
           ) : filteredDoctors.length === 0 ? (
             <div className="py-20 text-center text-slate-500">
-              <svg className="mx-auto h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-              <h4 className="mt-4 text-lg font-medium text-slate-900">Ningún médico coincide</h4>
-              <p className="mt-2 text-sm text-slate-500">Prueba ajustando los filtros de búsqueda o el estado SISA.</p>
+              <h4 className="text-lg font-medium text-slate-900">Ningún médico coincide</h4>
+              <p className="mt-2 text-sm text-slate-500">Prueba ajustando los filtros de búsqueda o el estado de validación.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-100 text-sm">
-                <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500">
-                  <tr>
-                    <th className="px-5 py-3 text-left">Médico</th>
-                    <th className="px-5 py-3 text-left">Especialidad</th>
-                    <th className="px-5 py-3 text-left">Matrícula</th>
-                    <th className="px-5 py-3 text-left">SISA</th>
-                    <th className="px-5 py-3 text-center">Estado</th>
-                    <th className="px-5 py-3 text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {filteredDoctors.map((doctor) => {
-                    const p = doctor.profile || {} as Profile;
-                    const isSelected = selectedDoctor?.id === doctor.id;
-                    return (
-                      <tr
-                        key={doctor.id}
-                        className={`transition hover:bg-slate-50/80 cursor-pointer ${isSelected ? 'bg-sky-50/50 hover:bg-sky-50' : ''}`}
-                        onClick={() => handleEditClick(doctor)}
-                      >
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center">
-                              {p.avatar_url ? (
-                                <img src={p.avatar_url} alt={`${p.first_name} avatar`} className="h-full w-full object-cover" />
-                              ) : (
-                                <span className="text-sm font-bold text-slate-500">
-                                  {p.first_name?.[0]}{p.last_name?.[0]}
-                                </span>
-                              )}
-                            </div>
-                            <div>
-                              <div className="font-semibold text-slate-900 flex flex-wrap items-center gap-1.5">
-                                {p.first_name} {p.last_name}
-                                {(p.sss_validation_status === 'valid' || p.sss_validation_status === 'exempt') && doctor.has_availability && (
-                                  <svg className="h-4 w-4 text-emerald-600 shrink-0 inline-block align-middle" viewBox="0 0 24 24" fill="currentColor">
-                                    <title>Profesional verificado en SISA/REFEPS y con agenda activa</title>
-                                    <path d="M23 12l-2.44-2.78.34-3.68-3.61-.82-1.89-3.18L12 3 8.6 1.54 6.71 4.72l-3.61.81.34 3.68L1 12l2.44 2.78-.34 3.69 3.61.82 1.89 3.18L12 21l3.4 1.46 1.89-3.18 3.61-.82-.34-3.68L23 12zm-13 5l-4-4 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                                  </svg>
-                                )}
-                                {doctor.has_active_plan && (
-                                  <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/10" title="Médico con plan premium activo">
-                                    ★ Destacado
-                                  </span>
-                                )}
-                                {doctor.signature_image_url && doctor.stamp_image_url ? (
-                                  <span className="inline-flex items-center rounded-md bg-sky-50 px-1.5 py-0.5 text-xs font-semibold text-sky-700 ring-1 ring-inset ring-sky-600/10" title="Firma y Sello digital cargados correctamente para emitir recetas">
-                                    ✓ Receta
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center rounded-md bg-rose-50 px-1.5 py-0.5 text-xs font-semibold text-rose-700 ring-1 ring-inset ring-rose-600/10" title="Falta subir firma y/o sello digital para habilitar emisión de recetas">
-                                    ⚠ Sin Firma
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-xs text-slate-500">{p.email}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-5 py-4">
-                          <div className="font-medium text-slate-800">{doctor.specialty}</div>
-                          {doctor.subspecialty && (
-                            <div className="text-xs text-slate-500">{doctor.subspecialty}</div>
-                          )}
-                        </td>
-                        <td className="px-5 py-4">
-                          <div className="font-medium text-slate-800">{doctor.license_number || '-'}</div>
-                          {doctor.enrollment_jurisdiction && (
-                            <div className="text-xs text-slate-500">{doctor.enrollment_jurisdiction}</div>
-                          )}
-                        </td>
-                        <td className="px-5 py-4">
-                          <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold border ${
-                            p.sss_validation_status === 'valid'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : p.sss_validation_status === 'pending_review'
-                              ? 'bg-amber-50 text-amber-700 border-amber-200'
-                              : p.sss_validation_status === 'rejected'
-                              ? 'bg-red-50 text-red-700 border-red-200'
-                              : 'bg-slate-50 text-slate-600 border-slate-200'
-                          }`}>
-                            {p.sss_validation_status === 'valid' && 'Validado'}
-                            {p.sss_validation_status === 'pending_review' && 'En Revisión'}
-                            {p.sss_validation_status === 'rejected' && 'Rechazado'}
-                            {p.sss_validation_status === 'exempt' && 'Exceptuado'}
-                            {!p.sss_validation_status && 'Sin verificar'}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 text-center">
-                          <span className={`inline-flex rounded-full h-2 w-2 ${doctor.active ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
-                          <span className="ml-1.5 text-xs font-medium text-slate-600">{doctor.active ? 'Activo' : 'Inactivo'}</span>
-                        </td>
-                        <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => handleEditClick(doctor)}
-                            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-sky-500 hover:text-sky-700"
-                          >
-                            Control total
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <div className="grid gap-4 p-4 xl:grid-cols-2">
+              <DoctorCountryList
+                country="AR"
+                doctors={countryGroups.AR}
+                selectedDoctorId={selectedDoctor?.id ?? null}
+                onSelect={handleEditClick}
+              />
+              <DoctorCountryList
+                country="BR"
+                doctors={countryGroups.BR}
+                selectedDoctorId={selectedDoctor?.id ?? null}
+                onSelect={handleEditClick}
+              />
+              {countryGroups.UNKNOWN.length > 0 && (
+                <div className="xl:col-span-2">
+                  <DoctorCountryList
+                    country="UNKNOWN"
+                    doctors={countryGroups.UNKNOWN}
+                    selectedDoctorId={selectedDoctor?.id ?? null}
+                    onSelect={handleEditClick}
+                  />
+                </div>
+              )}
             </div>
           )}
         </section>
@@ -747,6 +926,97 @@ export function DoctorAdminDashboard() {
                   <p className="text-xs text-slate-400">Creado el {new Date(selectedDoctor.created_at).toLocaleDateString()}</p>
                 </div>
               </div>
+
+{getDoctorCountry(selectedDoctor) === 'BR' && (
+              <section className="rounded-xl border border-sky-200 bg-sky-50/60 p-4 space-y-4">
+                <div>
+                  <h5 className="text-sm font-bold text-slate-900">Revisión manual de matrículas brasileñas (CFM)</h5>
+                  <p className="mt-1 text-xs text-slate-600">
+                    El atendiente consulta el registro oficial o comprueba la documentación y adjunta el comprobante antes de aprobar.
+                  </p>
+                </div>
+                {(selectedDoctor.doctor_licenses ?? []).filter((license) => license.license_type === 'CRM').length === 0 ? (
+                  <p className="rounded-lg bg-white p-3 text-xs text-slate-600">
+                    Este profesional todavía no tiene una matrícula CRM cargada para revisar.
+                  </p>
+                ) : (
+                  (selectedDoctor.doctor_licenses ?? [])
+                    .filter((license) => license.license_type === 'CRM')
+                    .map((license) => (
+                      <div key={license.id} className="rounded-lg border border-slate-200 bg-white p-3 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900">CRM {license.license_number} · {license.uf_brazil ?? license.province ?? 'UF não informada'}</p>
+                            <p className="text-xs text-slate-500">
+                              {hasCfmReviewEvidence(license) ? 'Aprobada con evidencia' : license.cfm_validation_status === 'valid' ? 'Aprobación previa sin evidencia; requiere revisión' : license.cfm_validation_status === 'suspended' ? 'Suspendida' : license.cfm_validation_status === 'cassado' ? 'Cancelada' : 'Pendiente de revisión'}
+                              {license.cfm_reviewed_at ? ` · revisada ${new Date(license.cfm_reviewed_at).toLocaleString()}` : ''}
+                            </p>
+                          </div>
+                          <span className={`rounded-full px-2 py-1 text-xs font-semibold ${hasCfmReviewEvidence(license) ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                            {hasCfmReviewEvidence(license) ? 'CFM validado' : license.cfm_validation_status === 'valid' ? 'Falta evidencia' : 'CFM pendiente'}
+                          </span>
+                        </div>
+
+                        {license.cfm_evidence_url ? (
+                          <a href={license.cfm_evidence_url} target="_blank" rel="noreferrer" className="inline-flex text-xs font-semibold text-sky-700 underline">
+                            Ver comprobante guardado
+                          </a>
+                        ) : (
+                          <p className="text-xs text-slate-500">No hay comprobante de revisión adjunto.</p>
+                        )}
+                        {license.cfm_review_notes && (
+                          <p className="rounded-md bg-slate-50 p-2 text-xs text-slate-600">{license.cfm_review_notes}</p>
+                        )}
+
+                        <div>
+                          <label htmlFor={`cfm-evidence-${license.id}`} className="block text-xs font-semibold text-slate-700">
+                            Comprobante oficial o documento revisado (PDF, JPG o PNG; máximo 10 MB)
+                          </label>
+                          <input
+                            id={`cfm-evidence-${license.id}`}
+                            type="file"
+                            accept="application/pdf,image/jpeg,image/png"
+                            onChange={(event) => setCfmEvidenceFiles((prev) => ({ ...prev, [license.id]: event.target.files?.[0] ?? null }))}
+                            className="mt-1 block w-full text-xs text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-slate-700"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor={`cfm-notes-${license.id}`} className="block text-xs font-semibold text-slate-700">
+                            Nota del atendiente (fuente consultada, fecha y resultado)
+                          </label>
+                          <textarea
+                            id={`cfm-notes-${license.id}`}
+                            value={cfmReviewNotes[license.id] ?? ''}
+                            onChange={(event) => setCfmReviewNotes((prev) => ({ ...prev, [license.id]: event.target.value }))}
+                            rows={2}
+                            maxLength={2000}
+                            placeholder="Ej.: consulta pública CFM, CRM y UF coinciden con el documento presentado..."
+                            className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs text-slate-700 outline-none focus:border-sky-500"
+                          />
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            disabled={reviewingCfmLicenseId !== null}
+                            onClick={() => void handleCfmManualReview(license, 'valid')}
+                            className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                          >
+                            {reviewingCfmLicenseId === license.id ? 'Guardando...' : 'Aprobar con evidencia'}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={reviewingCfmLicenseId !== null}
+                            onClick={() => void handleCfmManualReview(license, 'pending')}
+                            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                          >
+                            Mantener pendiente
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                )}
+              </section>
+              )}
 
               <form onSubmit={handleEditSubmit} className="space-y-5 text-slate-700">
                 {/* 🧑 Info Personal */}
@@ -862,7 +1132,7 @@ export function DoctorAdminDashboard() {
                   </div>
                 </fieldset>
 
-                {/* 🛡️ SISA / REFEPS Validation (Crucial para Receta Electrónica) */}
+{getDoctorCountry(selectedDoctor) === 'AR' && (
                 <fieldset disabled={isVerifyingSisa} className="space-y-3 pt-2 border-t border-slate-100">
                   <legend className="text-xs font-bold uppercase tracking-wider text-slate-500">Validación SISA / REFEPS</legend>
                   
@@ -924,6 +1194,7 @@ export function DoctorAdminDashboard() {
                     />
                   </div>
                 </fieldset>
+                )}
 
                 {/* 💼 Matrícula & Domicilio */}
                 <fieldset disabled={isVerifyingSisa} className="space-y-3 pt-2 border-t border-slate-100">

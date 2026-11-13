@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: deploy-newsletter-worker
+  group: ${{ github.workflow }}
   cancel-in-progress: false
 
 permissions:

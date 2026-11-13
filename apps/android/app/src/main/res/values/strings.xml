@@ -110,10 +110,10 @@
     <string name="pharmacy_on_demand_reason_label">Motivo:</string>
     <string name="pharmacy_on_demand_dni_label">DNI:</string>
     <string name="patient_pharmacy_express_button">Guardia Farmacia</string>
-    <string name="patient_pharmacy_express_desc">Atención inmediata con médico de guardia para recetas en mostrador</string>
+    <string name="patient_pharmacy_express_desc">Solicitá una videoconsulta médica desde la farmacia</string>
     <string name="patient_pharmacy_express_badge">Guardia activa</string>
     <string name="pharmacy_on_demand_network_badge">Red de Farmacias</string>
-    <string name="pharmacy_on_demand_compliance_footer">Plataforma Homologada SISA / REFEPS • Firma Digital Oficial</string>
+    <string name="pharmacy_on_demand_compliance_footer">Atención médica • Documentos sujetos a firma y validación</string>
 
     <!-- Added for compose UI localization -->
     <string name="greeting_morning">BUEN DÍA</string>
@@ -258,4 +258,13 @@
     <string name="waiting_room_symptoms_label">Describí tus síntomas</string>
     <string name="waiting_room_title">AutaMedica</string>
     <string name="welcome_feature_consultation_title">Videoconsulta directa</string>
+    <string name="patient_home_immediate_tag">Atención sin turno</string>
+    <string name="patient_home_immediate_title">Atención médica inmediata</string>
+    <string name="patient_home_immediate_subtitle">Consultas médicas, certificados y recetas al instante, donde estés o desde el mostrador de tu farmacia.</string>
+    <string name="patient_home_chip_consultation">Consulta médica</string>
+    <string name="patient_home_chip_documents">Certificados y recetas</string>
+    <string name="patient_home_chip_pharmacy">Desde la farmacia</string>
+    <string name="patient_home_immediate_cta">Solicitar atención ahora</string>
+    <string name="patient_home_immediate_hint">Sin reservar turno · Médico disponible</string>
+    <string name="patient_home_scheduled_cta">Consulta programada · Reservar turno</string>
 </resources>

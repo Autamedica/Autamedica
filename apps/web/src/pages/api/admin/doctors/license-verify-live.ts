@@ -254,6 +254,28 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // 5. Update the doctor's profile status in the database
     if (persist) {
+      // Persist the required license before setting SSS=valid; otherwise the
+      // clinical dispatch gate can stay closed while the admin reports success.
+      const { error: licenseError } = await admin
+        .from('doctor_licenses')
+        .upsert(
+          {
+            doctor_id: doctor.id,
+            license_number: validatedLicense ?? matricula,
+            license_type: type,
+            province: province ?? null,
+            status: verification.registrationStatus === 'suspended' ? 'suspended' : finalStatus === 'valid' ? 'active' : 'inactive',
+            issued_by: doctor.enrollment_entity ?? null,
+          },
+          { onConflict: 'doctor_id,province,license_number' },
+        );
+
+      if (licenseError) {
+        // Never report an official approval as persisted without its required license row.
+        logger.error('[license-verify-live] Structured license persistence failed', licenseError);
+        throw licenseError;
+      }
+
       const profileUpdates: Record<string, string | null> = {
         sss_validation_status: finalStatus,
         sss_last_checked_at: checkedAt,
@@ -282,23 +304,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
         if (doctorUpdateError) throw doctorUpdateError;
       }
 
-      const { error: licenseError } = await admin
-        .from('doctor_licenses')
-        .upsert(
-          {
-            doctor_id: doctor.id,
-            license_number: validatedLicense ?? matricula,
-            license_type: type,
-            province: province ?? null,
-            status: verification.registrationStatus === 'suspended' ? 'suspended' : finalStatus === 'valid' ? 'active' : 'inactive',
-            issued_by: doctor.enrollment_entity ?? null,
-          },
-          { onConflict: 'doctor_id,province,license_number' },
-        );
-
-      if (licenseError) {
-        logger.warn('[license-verify-live] structured license upsert skipped', licenseError);
-      }
 
       if (registeredSpecialty) {
         const { error: specialtyError } = await admin

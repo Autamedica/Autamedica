@@ -549,6 +549,8 @@ private data class DoctorDto(
         consultationFee = consultationFee,
         active = active,
         sssValidationStatus = sssValidationStatus,
+        licenseType = licenseType,
+        ufBrazil = ufBrazil,
         countryCode = InCallDocumentPolicy.doctorCountry(
             licenseType = licenseType,
             careCountry = careCountry,

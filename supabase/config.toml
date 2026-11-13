@@ -21,7 +21,7 @@ refresh_token_reuse_interval = 10
 enable_signup = true
 enable_manual_linking = false
 enable_anonymous_sign_ins = false
-minimum_password_length = 6
+minimum_password_length = 12
 
 [auth.email]
 enable_confirmations = true
@@ -42,5 +42,9 @@ enabled = true
 ip_version = "IPv4"
 
 [functions]
+
+# The handler verifies Supabase JWTs and a scoped HMAC guest token itself.
+[functions.cloudflare-calls]
+verify_jwt = false
 
 [analytics]

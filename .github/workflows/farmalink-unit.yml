@@ -1,10 +1,20 @@
 name: Farmalink contract + PDF regression tests (mock only)
 
 on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'apps/web/src/lib/prescriptions/**'
+      - 'scripts/farmalink/**'
+      - '.github/workflows/farmalink-unit.yml'
   push:
     branches:
       - test/farmalink-oauth-smoke-20261103
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ (github.actor == 'coderabbitai[bot]' || github.actor == 'circleci-app[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.draft)) && 'ignored' || 'active' }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -14,6 +24,8 @@ env:
 
 jobs:
   farmalink-unit:
+    if: >-
+      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     name: Farmalink Vitest + PDF smoke (offline)
     runs-on: ubuntu-latest
     timeout-minutes: 8
@@ -21,6 +33,8 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
+      - name: Validate confirmed test payload without making HTTP calls
+        run: python3 -m unittest discover -s scripts/farmalink -p test_homologation_contract_offline.py
       - uses: ./.github/actions/setup-pnpm
         with:
           node-version: '22'
@@ -34,6 +48,7 @@ jobs:
           src/lib/prescriptions/farmalink.issue-gate.test.ts
           src/lib/prescriptions/issue-prescription.service.test.ts
           src/lib/prescriptions/pdf-prescription.service.test.ts
+          src/lib/prescriptions/farmalink.pdf-credential.test.ts
 
       - name: Decode rendered PDF barcode independently
         run: |
@@ -41,3 +56,24 @@ jobs:
           sudo apt-get install -y -qq poppler-utils zbar-tools
           pdftoppm -singlefile -r 300 -png /tmp/autamedica-farmalink-barcode.pdf /tmp/autamedica-farmalink-barcode
           zbarimg --quiet --raw -Sdisable -Scode128.enable /tmp/autamedica-farmalink-barcode.png | grep -Fx '9600000002762'
+
+      - name: Independently decode both Farmalink TEST barcodes
+        run: |
+          for pair in "generica 9600000421228" "marca 9600000421242"; do
+            set -- $pair
+            pdftoppm -f 1 -l 1 -singlefile -r 300 -png "/tmp/farmalink-autamedica-$1-test.pdf" "/tmp/farmalink-autamedica-$1"
+            decoded="$(zbarimg --quiet --raw -Sdisable -Scode128.enable "/tmp/farmalink-autamedica-$1.png")"
+            printf '%s\n' "$decoded" | grep -Fx "$2"
+            printf '%s\n' "$decoded" | grep -Fx '27123456780'
+          done
+
+      - name: Upload app-rendered TEST homologation PDFs (no network issuance)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: farmalink-autamedica-app-pdfs-test
+          path: |
+            /tmp/farmalink-autamedica-generica-test.pdf
+            /tmp/farmalink-autamedica-marca-test.pdf
+          if-no-files-found: warn
+          retention-days: 30

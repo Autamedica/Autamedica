@@ -58,6 +58,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.autamedica.android.domain.model.formatDoctorCredentialLabel
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
+import com.autamedica.android.presentation.theme.PortalDoctorsAction
 import com.autamedica.android.presentation.theme.AuBorder
 import com.autamedica.android.presentation.theme.AuCyan
 import com.autamedica.android.presentation.theme.AuCyanSoft
@@ -84,14 +88,24 @@ fun DoctorCockpitHeader(
     doctorName: String,
     specialty: String?,
     licenseNumber: String?,
+    licenseType: String?,
+    countryCode: String?,
+    ufBrazil: String?,
     avatarUrl: String?,
     isOnDuty: Boolean,
     isLoading: Boolean,
+    guardApproved: Boolean? = null,
     onToggleOnDuty: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     onOpenProfile: (() -> Unit)? = null,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
+    val credentialLabel = formatDoctorCredentialLabel(
+        licenseNumber = licenseNumber,
+        licenseType = licenseType,
+        countryCode = countryCode,
+        ufBrazil = ufBrazil,
+    )
 
     // Micro-animación de respiración / glow cuando la guardia está activa
     val infiniteTransition = rememberInfiniteTransition(label = "doctorStatusRingPulse")
@@ -250,7 +264,7 @@ fun DoctorCockpitHeader(
             Spacer(modifier = Modifier.width(8.dp))
 
             // Pill Biocerámico de Matrícula Verificada
-            if (!licenseNumber.isNullOrBlank()) {
+            if (credentialLabel != null && guardApproved == true) {
                 Surface(
                     shape = RoundedCornerShape(10.dp),
                     color = Color(0xFFEBF1FF),
@@ -268,12 +282,12 @@ fun DoctorCockpitHeader(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "MN $licenseNumber",
+                            text = credentialLabel,
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 11.sp,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                             ),
-                            color = PortalDoctors,
+                            color = PortalDoctorsAction,
                         )
                     }
                 }
@@ -302,7 +316,7 @@ fun DoctorCockpitHeader(
                     spotColor = if (isOnDuty) AuEmerald.copy(alpha = 0.25f) else Color(0x15000000),
                 )
                 .clickable(
-                    enabled = !isLoading,
+                    enabled = !isLoading && (guardApproved == true || isOnDuty),
                     onClick = {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                         onToggleOnDuty(!isOnDuty)
@@ -351,7 +365,11 @@ fun DoctorCockpitHeader(
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = if (isOnDuty) "CONECTADO A GUARDIA" else "GUARDIA DESCONECTADA",
+                                    text = when {
+                                        guardApproved != true -> "GUARDIA PENDIENTE DE VALIDACIÓN"
+                                        isOnDuty -> "CONECTADO A GUARDIA"
+                                        else -> "GUARDIA DESCONECTADA"
+                                    },
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontSize = 15.sp,
                                         fontWeight = FontWeight.ExtraBold,
@@ -373,8 +391,11 @@ fun DoctorCockpitHeader(
                             Spacer(modifier = Modifier.height(2.dp))
 
                             Text(
-                                text = if (isOnDuty) "Recibiendo derivaciones de farmacia en tiempo real"
-                                else "Toca para activar disponibilidad y recibir consultas",
+                                text = when {
+                                    guardApproved != true -> "Esperando aprobación del administrador"
+                                    isOnDuty -> "Recibiendo derivaciones de farmacia en tiempo real"
+                                    else -> "Toca para activar disponibilidad y recibir consultas"
+                                },
                                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                                 color = if (isOnDuty) AuCyan else Color(0xFF64748B),
                                 maxLines = 1,
@@ -395,6 +416,7 @@ fun DoctorCockpitHeader(
                         // Switch táctil de escala Uber Driver (1.25f para comodidad de pulgar)
                         Switch(
                             checked = isOnDuty,
+                            enabled = guardApproved == true || isOnDuty,
                             onCheckedChange = { isChecked ->
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                                 onToggleOnDuty(isChecked)
@@ -434,8 +456,8 @@ fun DoctorCockpitHeader(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (isOnDuty) "Radar Activo • Heartbeat cada 30s • SLA de respuesta < 2 min"
-                            else "Telemetría en reposo • Desconectado de la red de farmacias",
+                            text = if (isOnDuty) stringResource(R.string.ui_doctor_duty_connected)
+                            else stringResource(R.string.ui_doctor_duty_disconnected),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = 11.sp,
                                 fontWeight = if (isOnDuty) FontWeight.SemiBold else FontWeight.Normal,

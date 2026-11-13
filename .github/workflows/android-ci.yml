@@ -2,6 +2,7 @@ name: Android CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches: [main]
     paths:
       - 'apps/android/**'
@@ -14,7 +15,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: android-ci-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ (github.actor == 'coderabbitai[bot]' || github.actor == 'circleci-app[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.draft)) && 'ignored' || 'active' }}
   cancel-in-progress: true
 
 permissions:
@@ -22,9 +23,11 @@ permissions:
 
 jobs:
   build-and-test:
+    if: >-
+      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     name: Build & Test Android
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
     
     steps:
       - name: Checkout repository
@@ -73,9 +76,16 @@ jobs:
       - name: Compile and Run JVM Unit Tests
         run: |
           cd apps/android
-          ./gradlew testDebugUnitTest -PfirebasePerformanceInstrumentationEnabled=false
+          ./gradlew testDebugUnitTest -PfirebasePerformanceInstrumentationEnabled=false --console=plain
 
       - name: Compile Instrumented Tests
         run: |
           cd apps/android
           ./gradlew compileDebugAndroidTestSources -PfirebasePerformanceInstrumentationEnabled=false
+
+      - name: Build unsigned release AAB (no Crashlytics mapping upload)
+        run: |
+          cd apps/android
+          ./gradlew bundleRelease -x :app:uploadCrashlyticsMappingFileRelease -PfirebasePerformanceInstrumentationEnabled=false
+          test -s app/build/outputs/bundle/release/app-release.aab
+          echo 'UNSIGNED AAB BUILT — not uploaded to Google Play'
