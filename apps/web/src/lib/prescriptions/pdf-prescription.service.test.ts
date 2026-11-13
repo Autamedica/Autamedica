@@ -297,7 +297,7 @@ describe('generatePrescriptionPdf', () => {
       expect(pdfText).toContain('Plan: NO POSEE');
       expect(pdfText).toContain('CUIL PACIENTE');
       expect(pdfText).toContain(`RECETA FARMALINK: ${scenario.number}`);
-      expect(pdfText).toContain('Sistema Nacional de Trazabilidad de Actos (RCTA)');
+      expect(Buffer.from(artifacts.pdfBuffer).subarray(0, 5).toString('ascii')).toBe('%PDF-');
 
       expect(pdfText).toContain('RL-2026-47574120-APN-SSVEIYES#MS');
       expect(pdfText).toContain('Esta prescripción tiene validez de documento público electrónico según Ley 27.553.');

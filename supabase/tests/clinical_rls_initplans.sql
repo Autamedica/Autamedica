@@ -37,8 +37,22 @@ BEGIN
        OR polrelid='public.clinical_case_states'::regclass AND polname='patients_update_own_clinical_states')
       AND polwithcheck IS NOT NULL
   ) THEN RAISE EXCEPTION 'Implicit UPDATE WITH CHECK changed'; END IF;
-  IF (SELECT pg_get_expr(polwithcheck,polrelid) FROM pg_policy WHERE polrelid='public.medical_records'::regclass AND polname='medical_records_soft_delete') IS DISTINCT FROM '(deleted_at IS NOT NULL)' THEN
-    RAISE EXCEPTION 'Soft-delete guard changed';
+  IF COALESCE(
+       (SELECT pg_get_expr(polwithcheck,polrelid)
+        FROM pg_policy
+        WHERE polrelid='public.medical_records'::regclass
+          AND polname='medical_records_soft_delete'),
+       ''
+     ) NOT LIKE '%deleted_at IS NOT NULL%'
+     OR COALESCE(
+       (SELECT pg_get_expr(polwithcheck,polrelid)
+        FROM pg_policy
+        WHERE polrelid='public.medical_records'::regclass
+          AND polname='medical_records_soft_delete'),
+       ''
+     ) NOT LIKE '%is_clinically_approved_doctor%'
+  THEN
+    RAISE EXCEPTION 'Soft-delete guard or clinical approval gate changed';
   END IF;
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='medical_records'
