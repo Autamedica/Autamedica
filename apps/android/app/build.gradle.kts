@@ -204,6 +204,9 @@ dependencies {
     // Ktor (required by supabase-kt)
     implementation(libs.ktor.client.okhttp)
 
+    // One-time Google Play install attribution (pinned library version)
+    implementation("com.android.installreferrer:installreferrer:2.2")
+
     // Network
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)

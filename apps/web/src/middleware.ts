@@ -55,6 +55,7 @@ const PUBLIC_ROUTES = [
   "/verify",
   "/doctors/pricing",
   "/reserva-saude",
+  "/j", // QR codes de socios: públicos, sin autenticación.
   "/planos",
   "/api/reserva-saude",
   "/call/join",
