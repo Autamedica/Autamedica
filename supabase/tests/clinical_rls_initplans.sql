@@ -28,7 +28,7 @@ BEGIN
     END IF;
     IF p.polname='service_role_full_access_clinical_states'
       AND (p.polroles <> ARRAY['service_role'::regrole::oid] OR p.qual IS DISTINCT FROM 'true' OR p.check_expr IS DISTINCT FROM 'true') THEN
-      RAISE EXCEPTION 'Clinical service policy contract changed';
+      RAISE EXCEPTION 'Clinical service policy contract changed: roles %, qual %, check %', p.polroles, p.qual, p.check_expr;
     END IF;
   END LOOP;
   IF EXISTS (
