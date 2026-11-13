@@ -125,15 +125,15 @@ INSERT INTO auth.users (
   '{}'::jsonb
 );
 
-INSERT INTO public.doctors(user_id,license_number,specialty,active,care_country)
-SELECT 'a1100000-0000-4000-8000-000000000001','PENDING-LEGACY','General Medicine',true,'BR'
+INSERT INTO public.doctors(user_id,license_number,specialty,active,license_type)
+SELECT 'a1100000-0000-4000-8000-000000000001','CI-LEGACY-AR','General Medicine',true,'MN'
 WHERE NOT EXISTS(SELECT 1 FROM public.doctors WHERE user_id='a1100000-0000-4000-8000-000000000001');
-UPDATE public.doctors SET active=true,license_number='PENDING-LEGACY',care_country='BR'
+UPDATE public.doctors SET active=true,license_number='CI-LEGACY-AR',license_type='MN'
 WHERE user_id='a1100000-0000-4000-8000-000000000001';
 INSERT INTO auth.users(id,instance_id,aud,role,email,raw_user_meta_data,raw_app_meta_data)
 VALUES('a1100000-0000-4000-8000-000000000002','00000000-0000-0000-0000-000000000000','authenticated','authenticated',
 'synthetic-legacy-patient@example.invalid','{"role":"patient"}'::jsonb,'{}'::jsonb);
-INSERT INTO public.patients(user_id,active) VALUES('a1100000-0000-4000-8000-000000000002',true);
+INSERT INTO public.patients(user_id,active,care_country) VALUES('a1100000-0000-4000-8000-000000000002',true,'AR');
 INSERT INTO public.patients(user_id,active) SELECT 'a1100000-0000-4000-8000-000000000001',true WHERE NOT EXISTS(SELECT 1 FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000001');
 INSERT INTO auth.users(id,instance_id,aud,role,email,raw_user_meta_data,raw_app_meta_data)
 VALUES('a1100000-0000-4000-8000-000000000003','00000000-0000-0000-0000-000000000000','authenticated','authenticated',
@@ -142,7 +142,13 @@ INSERT INTO public.patients(user_id,active) VALUES('a1100000-0000-4000-8000-0000
 INSERT INTO auth.users(id,instance_id,aud,role,email,raw_user_meta_data,raw_app_meta_data)
 VALUES('a1100000-0000-4000-8000-000000000004','00000000-0000-0000-0000-000000000000','authenticated','authenticated',
 'synthetic-doctor-patient-link@example.invalid','{"role":"patient"}'::jsonb,'{}'::jsonb);
-INSERT INTO public.patients(user_id,active) VALUES('a1100000-0000-4000-8000-000000000004',true);
+INSERT INTO public.patients(user_id,active,care_country) VALUES('a1100000-0000-4000-8000-000000000004',true,'AR');
+INSERT INTO auth.users(id,instance_id,aud,role,email,raw_user_meta_data,raw_app_meta_data)
+VALUES('a1100000-0000-4000-8000-000000000005','00000000-0000-0000-0000-000000000000','authenticated','authenticated','synthetic-cross-country-patient@example.invalid','{"role":"patient"}'::jsonb,'{}'::jsonb);
+INSERT INTO public.patients(user_id,active,care_country) VALUES('a1100000-0000-4000-8000-000000000005',true,'BR');
+INSERT INTO auth.users(id,instance_id,aud,role,email,raw_user_meta_data,raw_app_meta_data)
+VALUES('a1100000-0000-4000-8000-000000000006','00000000-0000-0000-0000-000000000000','authenticated','authenticated','synthetic-unknown-country-patient@example.invalid','{"role":"patient"}'::jsonb,'{}'::jsonb);
+INSERT INTO public.patients(user_id,active,care_country) VALUES('a1100000-0000-4000-8000-000000000006',true,NULL);
 DO $legacy_grant$
 DECLARE v_doctor_id uuid;v_patient_id uuid;
 BEGIN
@@ -152,6 +158,7 @@ BEGIN
  INSERT INTO public.appointments(doctor_id,patient_id,start_time,status) VALUES(v_doctor_id,v_patient_id,now()-interval '1 day','completed');
  INSERT INTO app_private.clinical_legacy_read_grants(doctor_id,patient_id,source,expires_at) VALUES(v_doctor_id,v_patient_id,'patient_care_team',now()+interval '30 days');
  INSERT INTO public.doctor_patient(doctor_id,patient_id) VALUES(v_doctor_id,(SELECT id FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000004'));
+ INSERT INTO public.doctor_patient(doctor_id,patient_id) SELECT v_doctor_id,id FROM public.patients WHERE user_id IN ('a1100000-0000-4000-8000-000000000005','a1100000-0000-4000-8000-000000000006');
  INSERT INTO app_private.clinical_legacy_read_grants(doctor_id,patient_id,source,expires_at)
  SELECT v_doctor_id,id,'doctor_patient',now()+interval '30 days' FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000004';
  INSERT INTO public.appointments(doctor_id,patient_id,start_time,status) VALUES(v_doctor_id,(SELECT id FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000001'),now()+interval '2 days','scheduled');
@@ -176,6 +183,10 @@ BEGIN
  IF NOT public.doctor_has_patient_read_access(v_patient_user_id) THEN RAISE EXCEPTION 'Patient-specific read bridge missing'; END IF;
  IF public.doctor_has_patient_read_access('a1100000-0000-4000-8000-000000000003') THEN RAISE EXCEPTION 'Unassigned patient read access leaked'; END IF;
  IF NOT public.has_clinical_legacy_patient_read_grant((SELECT id FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000004')) THEN RAISE EXCEPTION 'Doctor-patient legacy link was not granted'; END IF;
+ IF public.has_clinical_legacy_patient_read_grant((SELECT id FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000005')) THEN RAISE EXCEPTION 'Cross-country legacy link was granted'; END IF;
+ IF public.has_clinical_legacy_patient_read_grant((SELECT id FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000006')) THEN RAISE EXCEPTION 'Unknown-country legacy link was granted'; END IF;
+ SELECT count(*) INTO v_count FROM public.patients WHERE user_id IN ('a1100000-0000-4000-8000-000000000005','a1100000-0000-4000-8000-000000000006');
+ IF v_count<>0 THEN RAISE EXCEPTION 'Cross-country or unknown-country patient row leaked'; END IF;
  SELECT count(*) INTO v_count FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000004';
  IF v_count<>1 THEN RAISE EXCEPTION 'Legacy doctor_patient relationship is not readable through patients RLS'; END IF;
  IF public.is_clinically_authorized_doctor_read_for_patient(public.get_my_patient_id()) THEN

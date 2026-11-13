@@ -48,6 +48,7 @@ WITH links AS (
  SELECT l.doctor_id,l.patient_id,(array_agg(l.source ORDER BY l.source))[1] source
  FROM links l JOIN public.doctors d ON d.id=l.doctor_id
  WHERE d.active IS TRUE AND NOT app_private.is_doctor_dispatch_approved(d.id)
+   AND d.care_country IN ('AR','BR') AND p.care_country=d.care_country
  GROUP BY l.doctor_id,l.patient_id
 )
 INSERT INTO app_private.clinical_legacy_read_grants(doctor_id,patient_id,source,expires_at)
