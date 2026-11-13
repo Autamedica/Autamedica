@@ -19,7 +19,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   let admin: SupabaseClient | null = null
   try {
     admin = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient
-    const { data: operationalSwitches, error: switchesError } = await admin
+    const { data: operationalSwitches } = await admin
       .from('platform_operational_switches')
       .select('jordan_qr_payments_enabled')
       .eq('id', 'global')
