@@ -164,6 +164,15 @@ BEGIN
     doctor_id,is_on_duty,last_heartbeat_at,duty_started_at,active_tiers
   ) VALUES(v_doc,true,now(),now(),ARRAY['general']::public.dispatch_tier_category[]);
 
+  -- Explicit guest QR regression: patient_id is NULL, but BR care country and
+  -- approved Jordan payment are sufficient to match the active Brazilian doctor.
+  IF NOT EXISTS (
+    SELECT 1 FROM public.pharmacy_dispatch_requests
+    WHERE id=v_jordan AND patient_id IS NULL AND care_country='BR'
+  ) THEN
+    RAISE EXCEPTION 'Guest QR fixture must have patient_id NULL and care_country BR';
+  END IF;
+
   -- Neither the presence trigger nor a direct RPC may bypass the PSP gate.
   SELECT public.match_dispatch_doctors(v_jordan_unpaid_probe) INTO v_claim;
   IF v_claim->>'code' IS DISTINCT FROM 'JORDAN_PAYMENT_REQUIRED' THEN
@@ -204,7 +213,15 @@ BEGIN
   -- otherwise it exposes whether dispatch was queued or newly emitted.
   SELECT public.match_dispatch_doctors(v_jordan) INTO v_claim;
   IF v_claim->>'code' IS DISTINCT FROM 'OFFER_ALREADY_PENDING' THEN
-    RAISE EXCEPTION 'Jordan PSP approval trigger did not leave a pending offer; matcher retry returned %', v_claim;
+    RAISE EXCEPTION 'Guest QR matcher did not retain/assign the approved offer; matcher returned %', v_claim;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.dispatch_offers o
+    JOIN public.doctors d ON d.id=o.doctor_id
+    WHERE o.dispatch_request_id=v_jordan AND o.doctor_id=v_doc
+      AND o.status='pending' AND d.active IS TRUE AND d.care_country='BR'
+  ) THEN
+    RAISE EXCEPTION 'Guest QR request was not offered to the active Brazilian doctor';
   END IF;
 
   SELECT o.price_brl INTO v_offer FROM public.dispatch_offers o
