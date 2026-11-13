@@ -27,9 +27,11 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'code', 'NOT_SEARCHING');
   END IF;
 
-  IF v_req.care_country IS NULL OR NOT EXISTS (
-    SELECT 1 FROM public.patients p WHERE p.id=v_req.patient_id
-      AND p.active IS TRUE AND p.care_country=v_req.care_country
+  IF v_req.care_country IS NULL OR (
+    v_req.patient_id IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM public.patients p WHERE p.id=v_req.patient_id
+        AND p.active IS TRUE AND p.care_country=v_req.care_country
+    )
   ) THEN
     RETURN jsonb_build_object('success',false,'code','CARE_COUNTRY_REQUIRED');
   END IF;
