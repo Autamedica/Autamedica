@@ -162,7 +162,7 @@ BEGIN
     'doctor_id',  v_doctor_id
   );
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_country_on_duty_capacity(p_care_country text)
@@ -207,7 +207,7 @@ BEGIN
     );
   RETURN COALESCE(v_count,0);
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION app_private.dispatch_waiting_patient_on_doctor_presence()
@@ -282,7 +282,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$function$
+$function$;
 
 
 -- set_doctor_duty_status already writes last_heartbeat_at=NOW() atomically
