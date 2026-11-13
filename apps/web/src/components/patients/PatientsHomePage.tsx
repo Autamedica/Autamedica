@@ -24,6 +24,13 @@ import type { DoctorOption } from '@/components/patients/appointments/appointmen
 import { AvailableDoctorsCarousel } from '@/components/ui/available-doctors-carousel'
 import type { Doctor } from '@/components/ui/available-doctors-carousel/types'
 
+function getGreeting(dict: ReturnType<typeof getClientI18n>['dict']): string {
+  const hour = new Date().getHours()
+  if (hour < 12) return dict.patientPortal.greetings.morning
+  if (hour < 19) return dict.patientPortal.greetings.afternoon
+  return dict.patientPortal.greetings.evening
+}
+
 function getFirstName(
   profile: ReturnType<typeof usePatientSession>['profile'],
   user: ReturnType<typeof usePatientSession>['user']
@@ -167,6 +174,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   }
 
   const firstName = getFirstName(profile, user)
+  const greeting = hasHydrated ? getGreeting(dict) : (dict.patientPortal.greetings.hello ?? 'Hola')
   const freeConsults = patient?.freeConsultationsRemaining ?? 0
   const getWalletFabText = () => {
     if (freeConsults > 0) {
@@ -544,6 +552,18 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/20 to-white/50" />
           </div>
           <div className="relative flex flex-col gap-5 p-6 sm:p-8 lg:p-10">
+            <div className="max-w-3xl space-y-2">
+              <p className="text-xs font-bold uppercase tracking-[0.18em]" style={{ color: 'var(--portal-patients-action)' }}>
+                {greeting}
+              </p>
+              <h2 className="text-2xl font-bold leading-tight tracking-tight sm:text-3xl" style={{ color: 'var(--au-text-primary)' }}>
+                {firstName}, {dict.patientPortal.metrics.healthInControl}
+              </h2>
+              <p className="text-sm leading-6 sm:text-base" style={{ color: 'var(--au-text-secondary)' }}>
+                {dict.patientPortal.metrics.allReady}
+              </p>
+            </div>
+
             <span className="inline-flex w-fit items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-bold tracking-wide" style={{ borderColor: 'color-mix(in srgb, var(--portal-patients) 24%, transparent)', backgroundColor: 'color-mix(in srgb, var(--portal-patients) 10%, white)', color: 'var(--portal-patients-action)' }}>
               <Zap aria-hidden="true" className="size-3.5" />
               {dict.patientPortal.immediateCare.tag}

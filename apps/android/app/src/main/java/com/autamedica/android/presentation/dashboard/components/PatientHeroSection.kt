@@ -1,6 +1,7 @@
 package com.autamedica.android.presentation.dashboard.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -41,15 +42,29 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.painterResource
 import com.autamedica.android.R
 import com.autamedica.android.presentation.theme.PortalPatientsAction
+import java.util.Calendar
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PatientHeroSection(
+    userName: String,
+    subscriptionTier: String,
+    benefitBalanceCredits: Int,
     onBookConsultation: () -> Unit,
+    onOpenReserveDetails: () -> Unit,
     onPharmacyExpressClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
+    val firstName = userName.trim().split(Regex("\\s+")).firstOrNull()?.ifBlank { "Paciente" } ?: "Paciente"
+    val isCuidado = subscriptionTier.equals("cuidado", ignoreCase = true)
+    val greeting = stringResource(
+        when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
+            in 0..11 -> R.string.greeting_morning
+            in 12..18 -> R.string.greeting_afternoon
+            else -> R.string.greeting_evening
+        },
+    )
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -91,6 +106,56 @@ fun PatientHeroSection(
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+            Surface(
+                modifier = Modifier.clickable(onClick = onOpenReserveDetails),
+                shape = RoundedCornerShape(999.dp),
+                color = if (isCuidado) Color(0xFFE0F7FA) else colors.surfaceContainerHigh,
+                contentColor = if (isCuidado) Color(0xFF155E75) else colors.onSurfaceVariant,
+                border = BorderStroke(1.dp, if (isCuidado) Color(0xFF67E8F9) else colors.outlineVariant),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(7.dp),
+                ) {
+                    Icon(
+                        imageVector = if (isCuidado) Icons.Outlined.AutoAwesome else Icons.Outlined.MonetizationOn,
+                        contentDescription = null,
+                    )
+                    Text(
+                        text = if (isCuidado) {
+                            stringResource(R.string.hero_plan_care_credits, benefitBalanceCredits)
+                        } else {
+                            stringResource(R.string.hero_plan_benefits)
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                }
+            }
+
+            Text(
+                text = greeting,
+                style = MaterialTheme.typography.labelMedium,
+                color = colors.primary,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.2.sp,
+            )
+            Text(
+                text = stringResource(R.string.hero_health_on_track, firstName),
+                style = MaterialTheme.typography.headlineSmall,
+                color = colors.onSurface,
+                fontWeight = FontWeight.Bold,
+                lineHeight = 30.sp,
+            )
+            Text(
+                text = stringResource(R.string.hero_subtitle_no_waits),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurfaceVariant,
+                lineHeight = 21.sp,
+            )
+
             Surface(
                 shape = RoundedCornerShape(999.dp),
                 color = colors.primaryContainer,
