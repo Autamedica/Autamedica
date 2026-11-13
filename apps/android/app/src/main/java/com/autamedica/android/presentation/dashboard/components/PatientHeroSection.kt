@@ -118,10 +118,6 @@ fun PatientHeroSection(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(7.dp),
                 ) {
-                    Icon(
-                        imageVector = if (isCuidado) Icons.Outlined.AutoAwesome else Icons.Outlined.MonetizationOn,
-                        contentDescription = null,
-                    )
                     Text(
                         text = if (isCuidado) {
                             stringResource(R.string.hero_plan_care_credits, benefitBalanceCredits)
