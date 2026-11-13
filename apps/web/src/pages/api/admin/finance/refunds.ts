@@ -10,7 +10,7 @@ async function assertAdmin(request: Request, admin: ReturnType<typeof createAstr
     const { data: profile } = await admin.from('profiles').select('role').eq('user_id', userId).maybeSingle()
     if (profile?.role && ['admin', 'platform_admin', 'organization_admin'].includes(profile.role)) return { ok: true, userId, role: profile.role }
   }
-  const token = (request.headers.get('authorization') ?? '').replace(/^Bearer\\s+/i, '')
+  const token = (request.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '')
   if (!token) return { ok: false }
   const { data, error } = await admin.auth.getUser(token)
   if (error || !data.user) return { ok: false }
