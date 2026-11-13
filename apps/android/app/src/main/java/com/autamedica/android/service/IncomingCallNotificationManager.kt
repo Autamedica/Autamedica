@@ -56,8 +56,10 @@ object IncomingCallNotificationManager {
     const val ACTION_ANSWER_CALL = "com.autamedica.android.ACTION_ANSWER_CALL"
     const val ACTION_DECLINE_CALL = "com.autamedica.android.ACTION_DECLINE_CALL"
     const val ACTION_ACCEPT_DISPATCH = "com.autamedica.android.ACTION_ACCEPT_DISPATCH"
+    const val ACTION_PRESENT_DISPATCH_OFFER = "com.autamedica.android.ACTION_PRESENT_DISPATCH_OFFER"
     const val ACTION_DECLINE_DISPATCH = "com.autamedica.android.ACTION_DECLINE_DISPATCH"
     const val EXTRA_IS_DISPATCH_OFFER = "is_dispatch_offer"
+    const val EXTRA_DISPATCH_USER_ACTION = "dispatch_user_action"
     const val EXTRA_APPOINTMENT_ID = "appointment_id"
     const val EXTRA_CALL_ID = "call_id"
     const val EXTRA_ROOM_ID = "room_id"
@@ -351,6 +353,27 @@ object IncomingCallNotificationManager {
         val body = context.getString(R.string.notification_dispatch_offer_text)
         val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
 
+        // The system may launch the full-screen intent automatically to wake the lock screen.
+        // That presentation is not a clinician interaction and must not silence the 30s alarm.
+        val fullScreenIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            action = ACTION_PRESENT_DISPATCH_OFFER
+            putExtra(NotificationRouteResolver.EXTRA_NOTIFICATION_TYPE, "pharmacy_dispatch_incoming")
+            putExtra(NotificationRouteResolver.EXTRA_DEEP_LINK, "autamedica://ondemand")
+            putExtra(EXTRA_IS_DISPATCH_OFFER, true)
+            putExtra(EXTRA_NOTIFICATION_ID, notificationId)
+            putExtra(EXTRA_APPOINTMENT_ID, payload.appointmentId)
+        }
+        val fullScreenPendingIntent = PendingIntent.getActivity(
+            context,
+            notificationId + 30,
+            fullScreenIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        // This second PendingIntent is used only when the clinician taps the notification
+        // or its "Ver / Aceptar" action. MainActivity can now safely stop the alert.
         val openRadarIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                 Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -358,6 +381,7 @@ object IncomingCallNotificationManager {
             putExtra(NotificationRouteResolver.EXTRA_NOTIFICATION_TYPE, "pharmacy_dispatch_incoming")
             putExtra(NotificationRouteResolver.EXTRA_DEEP_LINK, "autamedica://ondemand")
             putExtra(EXTRA_IS_DISPATCH_OFFER, true)
+            putExtra(EXTRA_DISPATCH_USER_ACTION, true)
             putExtra(EXTRA_NOTIFICATION_ID, notificationId)
             putExtra(EXTRA_APPOINTMENT_ID, payload.appointmentId)
         }
@@ -402,7 +426,7 @@ object IncomingCallNotificationManager {
             .setSound(ringtoneUri)
             .setVibrate(VIBRATION_PATTERN)
             .setContentIntent(openRadar)
-            .setFullScreenIntent(openRadar, true)
+            .setFullScreenIntent(fullScreenPendingIntent, true)
             .setDeleteIntent(declineOffer)
             .setTimeoutAfter(CALL_TIMEOUT_MS)
             .addAction(

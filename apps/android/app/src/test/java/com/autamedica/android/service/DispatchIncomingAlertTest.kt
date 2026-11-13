@@ -13,6 +13,7 @@ import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -54,8 +55,15 @@ class DispatchIncomingAlertTest {
         val radarIntent = shadowOf(notification.fullScreenIntent).savedIntent
         assertEquals(MainActivity::class.java.name, radarIntent.component?.className)
         assertEquals(
-            IncomingCallNotificationManager.ACTION_ACCEPT_DISPATCH,
+            IncomingCallNotificationManager.ACTION_PRESENT_DISPATCH_OFFER,
             radarIntent.action,
+        )
+        assertTrue(
+            "Automatic full-screen presentation must not count as a clinician tap",
+            !radarIntent.getBooleanExtra(
+                IncomingCallNotificationManager.EXTRA_DISPATCH_USER_ACTION,
+                false,
+            ),
         )
         assertEquals("autamedica://ondemand", radarIntent.getStringExtra("deep_link"))
         assertTrue(radarIntent.getBooleanExtra(
@@ -81,7 +89,17 @@ class DispatchIncomingAlertTest {
         )
 
         assertEquals(2, notification.actions.size)
-        assertEquals(notification.fullScreenIntent, notification.actions[0].actionIntent)
+        assertEquals(notification.contentIntent, notification.actions[0].actionIntent)
+        assertNotEquals(notification.fullScreenIntent, notification.actions[0].actionIntent)
+        val acceptIntent = shadowOf(notification.actions[0].actionIntent).savedIntent
+        assertEquals(IncomingCallNotificationManager.ACTION_ACCEPT_DISPATCH, acceptIntent.action)
+        assertTrue(
+            "An explicit accept tap must stop the alert",
+            acceptIntent.getBooleanExtra(
+                IncomingCallNotificationManager.EXTRA_DISPATCH_USER_ACTION,
+                false,
+            ),
+        )
         assertEquals(
             context.getString(R.string.notification_dispatch_accept),
             notification.actions[0].title.toString(),

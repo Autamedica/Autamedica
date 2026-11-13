@@ -136,7 +136,15 @@ class MainActivity : ComponentActivity() {
             false,
         )
         if (isDispatchOffer) {
-            com.autamedica.android.service.IncomingCallNotificationManager.dismissDispatchAlert(this)
+            val isClinicianInteraction = intent.getBooleanExtra(
+                com.autamedica.android.service.IncomingCallNotificationManager.EXTRA_DISPATCH_USER_ACTION,
+                false,
+            )
+            if (isClinicianInteraction) {
+                com.autamedica.android.service.IncomingCallNotificationManager.dismissDispatchAlert(this)
+            }
+            // A full-screen intent can be launched by Android without a tap.
+            // Keep ringing on automatic presentation; stop only on an explicit action.
             return
         }
 
