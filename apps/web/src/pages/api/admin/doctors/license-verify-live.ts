@@ -163,7 +163,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // 1. Fetch the target doctor's details from the database
     const doctorQuery = admin
       .from('doctors')
-      .select('id, user_id, license_number, enrollment_jurisdiction, enrollment_entity, specialty, refeps_id');
+      .select('id, user_id, license_type, license_number, enrollment_jurisdiction, enrollment_entity, specialty, refeps_id');
 
     const targetUserId = body.userId?.trim();
     const targetDoctorId = body.doctorId?.trim();
@@ -189,13 +189,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     // Determine matrícula type (MN vs MP)
-    // If the enrollment entity or jurisdiction suggests a provincial registration, it is MP, otherwise MN
+    // Reconcile the explicitly entered prefix, stored license type, and jurisdiction.
     const requestedProvince = body.jurisdiction ?? doctor.enrollment_jurisdiction ?? undefined;
     const provinceKey = requestedProvince?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
     const province = provinceKey && ['caba', 'capital federal', 'ciudad autonoma de buenos aires'].includes(provinceKey)
       ? 'CABA' : requestedProvince;
     const isProvincial = isNonEmptyString(province) && province !== 'CABA';
-    const type: 'MN' | 'MP' = isProvincial ? 'MP' : 'MN';
+    // An explicit MN/MP prefix takes precedence over jurisdiction and legacy
+    // fields (which can disagree with the registration actually being checked).
+    const prefix = matricula.trim().toUpperCase().match(/^(MN|MP)(?=\s*[-.:/]?\s*\d)/)?.[1];
+    const recordedType = doctor.license_type === 'MN' || doctor.license_type === 'MP'
+      ? doctor.license_type : null;
+    const type: 'MN' | 'MP' = prefix === 'MN' || prefix === 'MP'
+      ? prefix : recordedType ?? (isProvincial ? 'MP' : 'MN');
 
     // 2. Resolve credentials for the Bus de Interoperabilidad
     logger.info('[license-verify-live] Running verification', {
@@ -252,10 +258,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
         .find((identifier) => identifier.value)?.value,
     );
 
-    // 5. Update the doctor's profile status in the database
+    // 5. Persist the official credential first. A failed license write must
+    // never leave the profile marked as validated for clinical dispatch.
     if (persist) {
-      // Persist the required license before setting SSS=valid; otherwise the
-      // clinical dispatch gate can stay closed while the admin reports success.
       const { error: licenseError } = await admin
         .from('doctor_licenses')
         .upsert(
@@ -271,11 +276,30 @@ export const POST: APIRoute = async ({ request, locals }) => {
         );
 
       if (licenseError) {
-        // Never report an official approval as persisted without its required license row.
-        logger.error('[license-verify-live] Structured license persistence failed', licenseError);
-        throw licenseError;
+        logger.error('[license-verify-live] Official license persistence failed', licenseError);
+        return jsonFail(
+          'SERVICE_UNAVAILABLE',
+          'No se pudo guardar la matrícula verificada. La habilitación anterior se conserva.',
+          503,
+          { reason: 'REFEPS_LICENSE_PERSIST_FAILED' },
+        );
       }
 
+      if (finalStatus === 'valid') {
+        const { error: doctorUpdateError } = await admin
+          .from('doctors')
+          .update({
+            license_type: type,
+            ...(practitionerId ? { refeps_id: practitionerId } : {}),
+            ...(validatedLicense ? { license_number: validatedLicense } : {}),
+            ...(province ? { enrollment_jurisdiction: province } : {}),
+          })
+          .eq('id', doctor.id);
+
+        if (doctorUpdateError) throw doctorUpdateError;
+      }
+
+      // The profile approval is the final write, after mandatory license persistence.
       const profileUpdates: Record<string, string | null> = {
         sss_validation_status: finalStatus,
         sss_last_checked_at: checkedAt,
@@ -290,20 +314,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
         .eq('user_id', doctor.user_id);
 
       if (updateError) throw updateError;
-
-      if (practitionerId) {
-        const { error: doctorUpdateError } = await admin
-          .from('doctors')
-          .update({
-            refeps_id: practitionerId,
-            ...(validatedLicense ? { license_number: validatedLicense } : {}),
-            ...(province ? { enrollment_jurisdiction: province } : {}),
-          })
-          .eq('id', doctor.id);
-
-        if (doctorUpdateError) throw doctorUpdateError;
-      }
-
 
       if (registeredSpecialty) {
         const { error: specialtyError } = await admin
