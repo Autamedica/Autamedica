@@ -15,6 +15,7 @@ import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
 import android.graphics.RectF
 import android.media.AudioAttributes
+import android.media.MediaPlayer
 import android.media.Ringtone
 import android.media.RingtoneManager
 import android.os.Build
@@ -42,7 +43,6 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.net.HttpURLConnection
 import java.net.URL
-import java.util.Locale
 
 /**
  * Manages high-priority incoming call notifications with continuous ringing,
@@ -55,6 +55,9 @@ object IncomingCallNotificationManager {
     const val DISPATCH_CHANNEL_ID = "autamedica_dispatch_incoming"
     const val ACTION_ANSWER_CALL = "com.autamedica.android.ACTION_ANSWER_CALL"
     const val ACTION_DECLINE_CALL = "com.autamedica.android.ACTION_DECLINE_CALL"
+    const val ACTION_ACCEPT_DISPATCH = "com.autamedica.android.ACTION_ACCEPT_DISPATCH"
+    const val ACTION_DECLINE_DISPATCH = "com.autamedica.android.ACTION_DECLINE_DISPATCH"
+    const val EXTRA_IS_DISPATCH_OFFER = "is_dispatch_offer"
     const val EXTRA_APPOINTMENT_ID = "appointment_id"
     const val EXTRA_CALL_ID = "call_id"
     const val EXTRA_ROOM_ID = "room_id"
@@ -81,8 +84,21 @@ object IncomingCallNotificationManager {
     @Volatile
     private var activeWakeLock: PowerManager.WakeLock? = null
 
+    // Pharmacy dispatch alarms are isolated from ordinary video-call alerts.
+    @Volatile
+    private var activeDispatchRingtone: Ringtone? = null
+
+    @Volatile
+    private var activeDispatchRingtonePlayer: MediaPlayer? = null
+
+    @Volatile
+    private var activeDispatchVibrator: Vibrator? = null
+
+    @Volatile
+    private var activeDispatchWakeLock: PowerManager.WakeLock? = null
+
+    private var dispatchTimeoutJob: Job? = null
     private var timeoutJob: Job? = null
-    private var countdownJob: Job? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     /**
@@ -319,51 +335,220 @@ object IncomingCallNotificationManager {
     }
 
     /**
-     * Displays a high-priority on-demand pharmacy dispatch notification.
-     * Uses native Google CallStyle on Android 12+ (S+) with dynamic live countdown.
-     * Guaranteed single notification ID prevents card accumulation in shade.
+     * Displays a full-screen, call-priority pharmacy dispatch offer.
+     * Wakes the display, rings and vibrates until the clinician opens the radar,
+     * dismisses the alert or the 30-second offer window expires.
+     * Lock-screen text is generic and never exposes patient clinical data.
      */
     fun showDispatchIncoming(context: Context, payload: PushPayload) {
-        // Dispatch is an OFFER, not an answered phone call. A notification must
-        // never enter the video room or reveal patient identity on lockscreen.
-        // The authorized offer is fetched by the clinician's JWT in the radar.
+        // The offer is time-critical, but the lock-screen surface is deliberately generic.
+        // Patient identity, documents, symptoms and room identifiers stay inside the radar.
+        acquireDispatchWakeLock(context)
         createDispatchChannel(context)
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        val notificationId = NOTIFICATION_ID_DISPATCH
+        val title = context.getString(R.string.notification_dispatch_offer_title)
+        val body = context.getString(R.string.notification_dispatch_offer_text)
+        val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
 
         val openRadarIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                 Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            action = Intent.ACTION_VIEW
+            action = ACTION_ACCEPT_DISPATCH
             putExtra(NotificationRouteResolver.EXTRA_NOTIFICATION_TYPE, "pharmacy_dispatch_incoming")
             putExtra(NotificationRouteResolver.EXTRA_DEEP_LINK, "autamedica://ondemand")
+            putExtra(EXTRA_IS_DISPATCH_OFFER, true)
+            putExtra(EXTRA_NOTIFICATION_ID, notificationId)
+            putExtra(EXTRA_APPOINTMENT_ID, payload.appointmentId)
         }
         val openRadar = PendingIntent.getActivity(
             context,
-            NOTIFICATION_ID_DISPATCH + 10,
+            notificationId + 10,
             openRadarIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
+        val declineIntent = Intent(context, CallActionReceiver::class.java).apply {
+            action = ACTION_DECLINE_DISPATCH
+            putExtra(EXTRA_NOTIFICATION_ID, notificationId)
+        }
+        val declineOffer = PendingIntent.getBroadcast(
+            context,
+            notificationId + 20,
+            declineIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val publicNotification = NotificationCompat.Builder(context, DISPATCH_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setColor(ContextCompat.getColor(context, R.color.primary))
+            .setContentTitle(title)
+            .setContentText(body)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .build()
+
         val notification = NotificationCompat.Builder(context, DISPATCH_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setColor(ContextCompat.getColor(context, R.color.primary))
-            .setContentTitle(context.getString(R.string.ui_dispatch_offer_title))
-            .setContentText(context.getString(R.string.ui_dispatch_offer_body))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
-            .setOngoing(false)
-            .setAutoCancel(true)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_CALL)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setPublicVersion(publicNotification)
+            .setOngoing(true)
+            .setAutoCancel(false)
+            .setSound(ringtoneUri)
+            .setVibrate(VIBRATION_PATTERN)
             .setContentIntent(openRadar)
-            .addAction(R.drawable.ic_notification, context.getString(R.string.ui_dispatch_open_radar), openRadar)
+            .setFullScreenIntent(openRadar, true)
+            .setDeleteIntent(declineOffer)
+            .setTimeoutAfter(CALL_TIMEOUT_MS)
+            .addAction(
+                R.drawable.ic_notification,
+                context.getString(R.string.notification_dispatch_accept),
+                openRadar,
+            )
+            .addAction(
+                R.drawable.ic_notification,
+                context.getString(R.string.notification_dispatch_decline),
+                declineOffer,
+            )
             .build()
+            .apply { flags = flags or Notification.FLAG_INSISTENT }
 
-        // Never clear an unrelated real incoming video-call notification.
-        manager.notify(NOTIFICATION_ID_DISPATCH, notification)
+        Timber.i("[IncomingCall] Posting full-screen pharmacy dispatch alert id=$notificationId")
+        manager.notify(notificationId, notification)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+            !manager.canUseFullScreenIntent()
+        ) {
+            // Android 14+ can revoke this permission at device level. Keep the max-priority
+            // ringing + heads-up notification active; never silently downgrade the offer.
+            Timber.w("[IncomingCall] Full-screen intent permission is disabled by the device")
+        }
+
+        startDispatchAlertRinging(context)
     }
 
-    private fun formatDispatchCountdown(seconds: Int): String =
-        String.format(Locale.ROOT, "%02d:%02d", seconds / 60, seconds % 60)
+    /** Starts an independent 30-second alarm without changing ordinary call audio state. */
+    @Synchronized
+    private fun startDispatchAlertRinging(context: Context) {
+        try {
+            val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+            val audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                if (activeDispatchRingtone?.isPlaying != true) {
+                    activeDispatchRingtone = RingtoneManager
+                        .getRingtone(context.applicationContext, ringtoneUri)
+                        ?.apply {
+                            isLooping = true
+                            this.audioAttributes = audioAttributes
+                            play()
+                        }
+                }
+            } else if (activeDispatchRingtonePlayer?.isPlaying != true) {
+                activeDispatchRingtonePlayer = MediaPlayer
+                    .create(context.applicationContext, ringtoneUri)
+                    ?.apply {
+                        setAudioAttributes(audioAttributes)
+                        isLooping = true
+                        start()
+                    }
+            }
+
+            getVibrator(context)?.takeIf { it.hasVibrator() }?.let { vibrator ->
+                activeDispatchVibrator = vibrator
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createWaveform(VIBRATION_PATTERN, 0))
+                } else {
+                    @Suppress("DEPRECATION")
+                    vibrator.vibrate(VIBRATION_PATTERN, 0)
+                }
+            }
+
+            dispatchTimeoutJob?.cancel()
+            dispatchTimeoutJob = scope.launch {
+                delay(CALL_TIMEOUT_MS)
+                Timber.d("[IncomingCall] Pharmacy dispatch alert expired after ${CALL_TIMEOUT_MS}ms")
+                dismissDispatchAlert(context)
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "[IncomingCall] Failed starting pharmacy dispatch alert")
+        }
+    }
+
+    @Synchronized
+    private fun acquireDispatchWakeLock(context: Context) {
+        try {
+            if (activeDispatchWakeLock?.isHeld != true) {
+                val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+                    ?: return
+                @Suppress("DEPRECATION")
+                val wakeLock = powerManager.newWakeLock(
+                    PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
+                        PowerManager.ACQUIRE_CAUSES_WAKEUP or
+                        PowerManager.ON_AFTER_RELEASE,
+                    "autamedica:dispatch_offer_wake",
+                )
+                wakeLock.acquire(CALL_TIMEOUT_MS)
+                activeDispatchWakeLock = wakeLock
+                Timber.i("[IncomingCall] Acquired pharmacy dispatch screen WakeLock")
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "[IncomingCall] Failed acquiring dispatch WakeLock")
+        }
+    }
+
+    /** Stops only pharmacy-dispatch ringing, leaving unrelated incoming-call alerts intact. */
+    @Synchronized
+    fun dismissDispatchAlert(context: Context) {
+        dispatchTimeoutJob?.cancel()
+        dispatchTimeoutJob = null
+
+        try {
+            activeDispatchRingtone?.let { if (it.isPlaying) it.stop() }
+        } catch (e: Exception) {
+            Timber.w(e, "[IncomingCall] Failed stopping dispatch ringtone")
+        } finally {
+            activeDispatchRingtone = null
+        }
+
+        try {
+            activeDispatchRingtonePlayer?.let { player ->
+                if (player.isPlaying) player.stop()
+                player.release()
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "[IncomingCall] Failed stopping dispatch media player")
+        } finally {
+            activeDispatchRingtonePlayer = null
+        }
+
+        try {
+            activeDispatchVibrator?.cancel()
+        } catch (e: Exception) {
+            Timber.w(e, "[IncomingCall] Failed stopping dispatch vibration")
+        } finally {
+            activeDispatchVibrator = null
+        }
+
+        try {
+            activeDispatchWakeLock?.let { if (it.isHeld) it.release() }
+        } catch (e: Exception) {
+            Timber.w(e, "[IncomingCall] Failed releasing dispatch WakeLock")
+        } finally {
+            activeDispatchWakeLock = null
+        }
+
+        context.getSystemService(NotificationManager::class.java)
+            ?.cancel(NOTIFICATION_ID_DISPATCH)
+    }
 
     /**
      * Crops any bitmap into an anti-aliased circle.
@@ -514,9 +699,6 @@ object IncomingCallNotificationManager {
     fun stopRingtone() {
         timeoutJob?.cancel()
         timeoutJob = null
-        countdownJob?.cancel()
-        countdownJob = null
-
         try {
             activeWakeLock?.let {
                 if (it.isHeld) {

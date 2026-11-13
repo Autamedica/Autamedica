@@ -131,6 +131,15 @@ class MainActivity : ComponentActivity() {
 
     private fun handleIncomingCallIntent(intent: Intent?) {
         if (intent == null) return
+        val isDispatchOffer = intent.getBooleanExtra(
+            com.autamedica.android.service.IncomingCallNotificationManager.EXTRA_IS_DISPATCH_OFFER,
+            false,
+        )
+        if (isDispatchOffer) {
+            com.autamedica.android.service.IncomingCallNotificationManager.dismissDispatchAlert(this)
+            return
+        }
+
         val isCall = intent.getBooleanExtra(com.autamedica.android.service.IncomingCallNotificationManager.EXTRA_IS_INCOMING_CALL, false) ||
             intent.action == com.autamedica.android.service.IncomingCallNotificationManager.ACTION_ANSWER_CALL
         if (isCall) {

@@ -44,7 +44,11 @@
     <string name="notification_dispatch_channel">Consultas on-demand</string>
     <string name="notification_dispatch_title">%1$s te espera en la guardia</string>
     <string name="notification_dispatch_title_default">Alguien te espera en la guardia</string>
-    <string name="notification_dispatch_text">Consulta on-demand entrante · respondé en 30 segundos</string>
+    <string name="notification_dispatch_text">Solicitud de guardia inmediata</string>
+    <string name="notification_dispatch_offer_title">Solicitud de guardia inmediata</string>
+    <string name="notification_dispatch_offer_text">Paciente esperando en guardia de farmacia</string>
+    <string name="notification_dispatch_accept">Ver / Aceptar guardia</string>
+    <string name="notification_dispatch_decline">Rechazar</string>
     <string name="notification_permission_title">Activar notificaciones</string>
     <string name="notification_permission_message">Recibiras avisos de nuevos turnos, mensajes y recetas</string>
 
