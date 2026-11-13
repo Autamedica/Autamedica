@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { UUID } from '@/lib/doctors/types/medical';
 import { doctorPrescriptionBackendService } from './prescription.backend';
 
 vi.mock('@/lib/doctors/lib/resolve-room', () => ({
@@ -43,7 +44,7 @@ function fixture(doctorCountry: string | null, patientCountry: string | null, ma
 }
 
 const doctor={userId:'doctor-user',doctorId:'doctor-uuid'};
-const payload={patient_id:'patient-uuid',medication_name:'PARACETAMOL',dosage:'500 mg'};
+const payload={patient_id:'00000000-0000-4000-8000-000000000001' as UUID,medication_name:'PARACETAMOL',dosage:'500 mg'};
 
 describe('doctor prescription creation uses canonical medical-care country', () => {
   it.each(['AR','BR'] as const)('%s: writes the doctor country, not an untrusted browser country', async (country) => {
