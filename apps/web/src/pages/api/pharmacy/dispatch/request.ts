@@ -9,6 +9,7 @@ import { resolveGuestSecret } from '@/lib/runtime-env'
 import { hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payment-access'
 import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
+import { getOperationalPaymentSwitches } from '@/lib/payments/operational-switches'
 
 const VALID_TIERS: DispatchTierCategory[] = [
   'general',
@@ -44,12 +45,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // Do not send a referred Jordan patient into a clinical queue without
     // a checkout that's explicitly live and secured server-side.
+    const operationalSwitches = await getOperationalPaymentSwitches(createAstroAdminClient(locals.runtime?.env)).catch(() => null)
+    if (!operationalSwitches?.pharmacy_express_payments_enabled) return serviceUnavailable('pharmacy_express_payments_disabled')
     if (referralCode === 'JORDAN') {
       if (careCountry !== 'BR') return badRequest('jordan_referral_brazil_only')
       if (tier && tier !== 'general') return badRequest('jordan_general_consultation_only')
-      const flag = (locals.runtime?.env?.ENABLE_JORDAN_PAYMENTS as string | undefined)
-        ?? import.meta.env.ENABLE_JORDAN_PAYMENTS
-      if (flag !== 'true' || !hasSecureGuestPaymentSecret(locals.runtime?.env)) {
+      if (!operationalSwitches.jordan_qr_payments_enabled || !hasSecureGuestPaymentSecret(locals.runtime?.env)) {
         return serviceUnavailable('jordan_checkout_not_ready')
       }
     }

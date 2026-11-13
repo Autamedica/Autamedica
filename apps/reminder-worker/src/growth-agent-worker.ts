@@ -256,6 +256,25 @@ async function processOneJob(job: AgentJob, workerConfig: WorkerConfig): Promise
     { complianceResult: compliance },
   );
 
+  if (compliance.verdict === 'flag') {
+    const { error: approvalError } = await supabase.from('admin_approval_decisions').insert({
+      domain: 'comms', status: 'PENDING_HUMAN_APPROVAL', proposed_by: 'growth-agent-worker',
+      summary: `Growth message held for human review: ${job.id}`,
+      risk_reason: compliance.matches.map((match) => match.note ?? match.category ?? 'Compliance flag').join('; ').slice(0, 2000),
+      impact_scope: `Outbound message to lead ${lead.id} via ${decision.channel}`,
+      payload: { action: 'growth_agent_job', jobId: job.id, leadId: lead.id, channel: decision.channel,
+        recipient: decision.recipient, message: decision.message, rationale: decision.rationale, complianceResult: compliance },
+    })
+    if (approvalError) {
+      await updateJob(job.id, 'blocked', 'Compliance flag; approval inbox insert failed')
+      throw new Error(`Could not queue human approval: ${approvalError.message}`)
+    }
+    await updateJob(job.id, 'blocked', 'Awaiting human approval for compliance flag')
+    await recordRun(job.id, 'deliver', { channel: decision.channel }, { skipped: true, reason: 'pending_human_approval' },
+      { approvalRequired: true, complianceResult: compliance })
+    return 'blocked'
+  }
+
   if (compliance.verdict === 'block') {
     await updateJob(job.id, 'blocked', 'Compliance blocked outbound message');
     await notifyTelegram(
@@ -279,7 +298,7 @@ async function processOneJob(job: AgentJob, workerConfig: WorkerConfig): Promise
     await recordRun(
       job.id,
       'deliver',
-      { channel: decision.channel, dryRun: liveWorkerConfig.dryRun },
+      { channel: decision.channel, dryRun: workerConfig.dryRun },
       { skipped: true, reason: deliveryCapability.reason, capability_authorization: deliveryCapability },
     );
     await updateJob(job.id, 'cancelled', deliveryCapability.reason);

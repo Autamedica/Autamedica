@@ -2,9 +2,11 @@ import type { APIRoute } from 'astro'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { badRequest, internalError, jsonOk, serviceUnavailable, unauthorized } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
+import { getRuntimeEnvValue } from '@/lib/runtime-env'
 import { authorizePharmacyPaymentRequest, hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payment-access'
 import { GENERAL_PHARMACY_BR_PRICE_CENTS, JORDAN_DOCTOR_FEE_CENTS } from '@/lib/pharmacy/payments/referral-finance'
 import { logger } from '@autamedica/shared'
+import { getOperationalPaymentSwitches } from '@/lib/payments/operational-switches'
 
 interface CheckoutPreference {
   id: string
@@ -18,12 +20,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   let admin: SupabaseClient | null = null
   try {
     admin = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient
-    const { data: operationalSwitches, error: switchError } = await admin
-      .from('platform_operational_switches')
-      .select('jordan_qr_payments_enabled')
-      .eq('id', 'global')
-      .maybeSingle()
-    if (switchError || operationalSwitches?.jordan_qr_payments_enabled !== true) {
+    const operationalSwitches = await getOperationalPaymentSwitches(admin).catch(() => null)
+    if (!operationalSwitches?.jordan_qr_payments_enabled || !operationalSwitches.pharmacy_express_payments_enabled || !operationalSwitches.global_pix_mp_payments_enabled) {
       return serviceUnavailable('pharmacy_checkout_not_enabled')
     }
     if (!hasSecureGuestPaymentSecret(locals.runtime?.env)) return serviceUnavailable('pharmacy_checkout_guest_security_not_configured')

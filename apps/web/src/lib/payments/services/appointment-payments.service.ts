@@ -13,6 +13,7 @@ import {
 } from '@/lib/payments/constants'
 import { centsToMajorUnit, majorUnitToCents } from '@/lib/payments/money'
 import { careEpisodesService } from '@/lib/clinical-safety/services/care-episodes.service'
+import { getOperationalPaymentSwitches } from '@/lib/payments/operational-switches'
 
 type Db = SupabaseClient<Database>
 
@@ -361,6 +362,8 @@ export const appointmentPaymentsService = {
     if (!appointment) throw new Error('appointment_not_found')
     if (appointment.patient_id !== input.patientId) throw new Error('appointment_access_denied')
     if (!appointment.doctor_id || !appointment.doctor) throw new Error('appointment_doctor_missing')
+    const switches = await getOperationalPaymentSwitches(supabase).catch(() => null)
+    if (!switches?.global_pix_mp_payments_enabled) throw new Error('global_pix_mp_payments_disabled')
 
     const amountCents = appointment.doctor.consultation_fee
     if (!amountCents || amountCents <= 0) throw new Error('doctor_consultation_fee_missing')

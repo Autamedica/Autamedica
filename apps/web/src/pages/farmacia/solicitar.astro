@@ -4,6 +4,7 @@ import { PharmacyExpressConsultation } from '@/components/pharmacy/PharmacyExpre
 import { createAstroAdminClient } from '@/lib/supabase';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payment-access';
+import { getOperationalPaymentSwitches } from '@/lib/payments/operational-switches';
 
 export const prerender = false;
 
@@ -30,19 +31,14 @@ if (pharmacyId) {
 }
 
 let jordanPaymentsEnabled = false;
+let pharmacyPaymentsEnabled = false;
 try {
-  const admin = createAstroAdminClient(Astro.locals.runtime?.env) as any;
-  const { data: switches, error } = await admin.from('platform_operational_switches')
-    .select('jordan_qr_payments_enabled, pharmacy_express_payments_enabled')
-    .eq('id', 'global').maybeSingle();
-  const envEnabled = ((Astro.locals.runtime?.env?.ENABLE_JORDAN_PAYMENTS as string | undefined)
-    ?? import.meta.env.ENABLE_JORDAN_PAYMENTS) === 'true';
-  jordanPaymentsEnabled = (!error && switches ? switches.pharmacy_express_payments_enabled === true : envEnabled)
+  const switches = await getOperationalPaymentSwitches(createAstroAdminClient(Astro.locals.runtime?.env) as any);
+  pharmacyPaymentsEnabled = switches.pharmacy_express_payments_enabled;
+  jordanPaymentsEnabled = switches.jordan_qr_payments_enabled && switches.pharmacy_express_payments_enabled
     && hasSecureGuestPaymentSecret(Astro.locals.runtime?.env);
 } catch {
-  jordanPaymentsEnabled = ((Astro.locals.runtime?.env?.ENABLE_JORDAN_PAYMENTS as string | undefined)
-    ?? import.meta.env.ENABLE_JORDAN_PAYMENTS) === 'true'
-    && hasSecureGuestPaymentSecret(Astro.locals.runtime?.env);
+  // Fail closed when platform controls cannot be read.
 }
 
 const title = 'Consulta Exprés en Farmacia • Red AutaMedica';
@@ -57,5 +53,6 @@ const description = 'Punto de atención de telemedicina de AutaMedica. Los docum
     referralCode={referralCode}
     referralPartnerName={referralPartnerName}
     jordanPaymentsEnabled={jordanPaymentsEnabled}
+    pharmacyPaymentsEnabled={pharmacyPaymentsEnabled}
   />
 </CallLayout>

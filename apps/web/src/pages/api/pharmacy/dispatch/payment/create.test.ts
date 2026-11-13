@@ -83,6 +83,7 @@ describe('API: /api/pharmacy/dispatch/payment/create pay-first', () => {
       status: 'searching',
     })
     const chains = [
+      buildChain({ jordan_qr_payments_enabled: true, pharmacy_express_payments_enabled: true, global_pix_mp_payments_enabled: true }),
       buildChain({
         referral_partner_id: 'partner-jordan',
         commercial_referral_partners: { code: 'JORDAN', active: true },
@@ -123,7 +124,7 @@ describe('API: /api/pharmacy/dispatch/payment/create pay-first', () => {
         ENABLE_JORDAN_PAYMENTS: 'true',
       }),
     )
-    expect(supabaseMock.from).toHaveBeenCalledTimes(5)
+    expect(supabaseMock.from).toHaveBeenCalledTimes(6)
     expect(fetch).toHaveBeenCalledTimes(1)
   })
 
@@ -140,12 +141,13 @@ describe('API: /api/pharmacy/dispatch/payment/create pay-first', () => {
 
     expect(response.status).toBe(400)
     expect(body.error.message).toBe('pharmacy_payment_request_not_payable')
-    expect(supabaseMock.from).not.toHaveBeenCalled()
+    expect(supabaseMock.from).toHaveBeenCalledTimes(1)
     expect(fetch).not.toHaveBeenCalled()
   })
 
   it('fails closed when the server-owned R$79/R$40 quote is missing or mismatched', async () => {
     const chains = [
+      buildChain({ jordan_qr_payments_enabled: true, pharmacy_express_payments_enabled: true, global_pix_mp_payments_enabled: true }),
       buildChain({
         referral_partner_id: 'partner-jordan',
         commercial_referral_partners: { code: 'JORDAN', active: true },
@@ -159,7 +161,7 @@ describe('API: /api/pharmacy/dispatch/payment/create pay-first', () => {
 
     expect(response.status).toBe(503)
     expect(body.error.message).toBe('jordan_medical_quote_not_verified')
-    expect(supabaseMock.from).toHaveBeenCalledTimes(2)
+    expect(supabaseMock.from).toHaveBeenCalledTimes(3)
     expect(fetch).not.toHaveBeenCalled()
   })
 })

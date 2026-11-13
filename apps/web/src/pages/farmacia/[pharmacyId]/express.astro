@@ -2,6 +2,7 @@
 import CallLayout from '@/layouts/CallLayout.astro';
 import { PharmacyExpressConsultation } from '@/components/pharmacy/PharmacyExpressConsultation';
 import { createAstroAdminClient } from '@/lib/supabase';
+import { getOperationalPaymentSwitches } from '@/lib/payments/operational-switches';
 
 export const prerender = false;
 
@@ -25,6 +26,14 @@ if (pharmacyId) {
   }
 }
 
+let pharmacyPaymentsEnabled = false;
+try {
+  const switches = await getOperationalPaymentSwitches(createAstroAdminClient(Astro.locals.runtime?.env));
+  pharmacyPaymentsEnabled = switches.pharmacy_express_payments_enabled;
+} catch {
+  // Fail closed when platform controls cannot be read.
+}
+
 const title = `Consulta Exprés • ${pharmacyName} • AutaMedica`;
 const description = `Punto de atención por videollamada AutaMedica en ${pharmacyName}. La emisión documental depende del profesional y de la habilitación correspondiente.`;
 ---
@@ -34,5 +43,6 @@ const description = `Punto de atención por videollamada AutaMedica en ${pharmac
     client:load
     pharmacyId={pharmacyId}
     pharmacyName={pharmacyName}
+    pharmacyPaymentsEnabled={pharmacyPaymentsEnabled}
   />
 </CallLayout>

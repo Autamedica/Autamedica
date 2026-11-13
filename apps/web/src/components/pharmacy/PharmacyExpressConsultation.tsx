@@ -30,6 +30,7 @@ interface PharmacyExpressConsultationProps {
   referralCode?: string | null
   referralPartnerName?: string | null
   jordanPaymentsEnabled?: boolean
+  pharmacyPaymentsEnabled?: boolean
 }
 
 type Step = 'FORM' | 'WAITING' | 'CALL' | 'ENDED' | 'CANCELLED'
@@ -51,6 +52,7 @@ export function PharmacyExpressConsultation({
   referralCode = null,
   referralPartnerName = null,
   jordanPaymentsEnabled = false,
+  pharmacyPaymentsEnabled = false,
 }: PharmacyExpressConsultationProps) {
   const dniInputId = useId()
   const nameInputId = useId()
@@ -131,6 +133,10 @@ export function PharmacyExpressConsultation({
     e.preventDefault()
     setFormError(null)
 
+    if (!pharmacyPaymentsEnabled) {
+      setFormError('Los pagos de Consulta Exprés están desactivados por la administración.')
+      return
+    }
     if (!formData.careCountry) {
       setFormError('Seleccioná el país donde recibirás atención: Argentina o Brasil.')
       return
