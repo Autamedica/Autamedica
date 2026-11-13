@@ -54,7 +54,7 @@ BEGIN
       WHERE tc.constraint_type='FOREIGN KEY' AND tc.table_schema='public'
         AND tc.table_name=v_policy.relname AND kcu.column_name='patient_id' LIMIT 1;
       IF v_policy.relname='patients' OR v_patient_fk IN ('patients','profiles') THEN
-        v_expected_gate := 'doctor_has_patient_read_access(';
+        v_expected_gate := CASE WHEN v_patient_fk='profiles' THEN 'doctor_has_patient_read_access(' ELSE 'is_clinically_authorized_doctor_read_for_patient(' END;
       ELSE
         v_expected_gate := 'is_clinically_authorized_doctor_read()';
       END IF;
@@ -84,6 +84,7 @@ BEGIN
 
   IF to_regprocedure('public.is_clinically_authorized_doctor_read()') IS NULL
      OR to_regprocedure('public.doctor_has_patient_read_access(uuid)') IS NULL
+     OR to_regprocedure('public.is_clinically_authorized_doctor_read_for_patient(uuid)') IS NULL
      OR to_regclass('app_private.clinical_legacy_read_grants') IS NULL THEN
     RAISE EXCEPTION 'Read-only legacy bridge is incomplete';
   END IF;

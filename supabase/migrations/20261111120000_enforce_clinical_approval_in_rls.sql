@@ -76,6 +76,19 @@ AS $function$
 $function$;
 REVOKE ALL ON FUNCTION public.doctor_has_patient_read_access(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.doctor_has_patient_read_access(uuid) TO anon,authenticated,service_role;
+
+-- Patient-id variant avoids querying public.patients from the patients RLS policy itself.
+CREATE OR REPLACE FUNCTION public.is_clinically_authorized_doctor_read_for_patient(p_patient_id uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO ''
+AS $function$
+ SELECT public.is_clinically_approved_doctor() OR EXISTS(
+  SELECT 1 FROM public.doctors d JOIN app_private.clinical_legacy_read_grants g ON g.doctor_id=d.id
+  WHERE d.user_id=(SELECT auth.uid()) AND d.active IS TRUE
+    AND g.patient_id=p_patient_id AND g.expires_at>now()
+ );
+$function$;
+REVOKE ALL ON FUNCTION public.is_clinically_authorized_doctor_read_for_patient(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.is_clinically_authorized_doctor_read_for_patient(uuid) TO anon,authenticated,service_role;
 -- doctor_has_patient_access is itself a clinical authorization helper. Do not
 -- let its SECURITY DEFINER context turn a technical doctor row into clearance.
 CREATE OR REPLACE FUNCTION public.doctor_has_patient_access(patient_user_id uuid)
@@ -235,9 +248,9 @@ BEGIN
         AND tc.table_name=v_policy.relname AND kcu.column_name='patient_id'
       LIMIT 1;
       IF v_policy.relname='patients' THEN
-        v_doctor_gate := 'public.doctor_has_patient_read_access(patients.user_id)';
+        v_doctor_gate := 'public.is_clinically_authorized_doctor_read_for_patient(patients.id)';
       ELSIF v_patient_fk='patients' THEN
-        v_doctor_gate := format('public.doctor_has_patient_read_access((SELECT p.user_id FROM public.patients p WHERE p.id = %I.patient_id))',v_policy.relname);
+        v_doctor_gate := format('public.is_clinically_authorized_doctor_read_for_patient(%I.patient_id)',v_policy.relname);
       ELSIF v_patient_fk='profiles' THEN
         v_doctor_gate := format('public.doctor_has_patient_read_access(%I.patient_id)',v_policy.relname);
       ELSE
