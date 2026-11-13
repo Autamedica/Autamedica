@@ -1,0 +1,67 @@
+---
+import { PharmacyExpressConsultation } from './PharmacyExpressConsultation';
+import { resolvePatientContext } from '@/lib/patients/api/patient-context';
+import { createAstroAdminClient } from '@/lib/supabase';
+
+interface Props { pharmacyId?: string | null; pharmacyName?: string }
+const { pharmacyId = null } = Astro.props;
+const context = await resolvePatientContext(Astro.request, Astro.locals);
+let pharmacyName = 'AutaMedica';
+let originCountry: string | null = null;
+let originValid = !pharmacyId;
+if (pharmacyId) {
+  const admin = createAstroAdminClient(Astro.locals.runtime?.env);
+  const { data } = await admin.from('pharmacies').select('name, care_country, active, deleted_at')
+    .eq('id', pharmacyId).maybeSingle();
+  if (data?.active && !data.deleted_at && ['AR', 'BR'].includes(data.care_country ?? '')) {
+    pharmacyName = data.name;
+    originCountry = data.care_country;
+    originValid = true;
+  }
+}
+const returnTo = Astro.url.pathname + Astro.url.search;
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+---
+
+{!context ? (
+  <section class="access-panel">
+    <h1>Identifica tu cuenta para recibir atención</h1>
+    <p>Ingresa como paciente y confirma el país donde recibirás la consulta.</p>
+    <a href={`/auth/login?role=patient&returnTo=${encodeURIComponent(returnTo)}`}>Ingresar como paciente</a>
+  </section>
+) : !originValid ? (
+  <section class="access-panel"><h1>Este punto de acceso requiere configuración</h1>
+    <p>La farmacia debe tener un país de atención registrado y estar activa.</p>
+    <a href="/farmacia/solicitar">Continuar desde tu cuenta</a>
+  </section>
+) : !context.careCountry ? (
+  <section class="access-panel">
+    <h1>Selecciona tu país de atención</h1>
+    <p>Indica dónde recibirás atención médica. Esta elección no depende de tu nacionalidad o documento. Para cambiarla después se requiere revisión.</p>
+    <form method="post" action="/api/patients/care-country">
+      <input type="hidden" name="return_to" value={returnTo} />
+      <fieldset><legend>País de atención (obligatorio)</legend>
+        <label><input type="radio" name="care_country" value="AR" required /> Argentina</label>
+        <label><input type="radio" name="care_country" value="BR" required /> Brasil</label>
+      </fieldset>
+      <button type="submit">Confirmar país y continuar</button>
+    </form>
+  </section>
+) : originCountry && originCountry !== context.careCountry ? (
+  <section class="access-panel"><h1>Este QR pertenece a otro país</h1>
+    <p>Tu cuenta recibe atención en {context.careCountry === 'BR' ? 'Brasil' : 'Argentina'}. No podemos iniciar una consulta en otra jurisdicción desde este punto.</p>
+    <a href="/farmacia/solicitar">Usar el acceso de mi país</a>
+  </section>
+) : (
+  <PharmacyExpressConsultation client:load pharmacyId={pharmacyId} pharmacyName={pharmacyName} />
+)}
+
+<style>
+  .access-panel { max-width: 38rem; margin: 4rem auto; padding: 1.5rem; color: var(--au-text-primary, #fff); }
+  h1 { font-size: 1.75rem; line-height: 1.2; margin-block-end: 1rem; }
+  p { line-height: 1.6; margin-block-end: 1.5rem; }
+  fieldset { border: 1px solid currentColor; border-radius: .5rem; padding: 1rem; }
+  label { display: flex; align-items: center; gap: .75rem; min-height: 3rem; cursor: pointer; }
+  a, button { display: inline-block; padding: .875rem 1.25rem; margin-block-start: 1rem; min-height: 3rem; border-radius: .5rem; background: #0d766e; color: white; font: inherit; }
+  :focus-visible { outline: 3px solid #38bdf8; outline-offset: 3px; }
+</style>
