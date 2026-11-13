@@ -157,13 +157,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     const context = await resolvePatientContext(request, locals)
-    if (!context) return unauthorized('Inicia sesión como paciente para solicitar atención')
-    if (!context.careCountry) {
+    // Authenticated patients use their persisted jurisdiction and patient link.
+    // Pharmacy QR visitors remain first-class guests with explicit country and validated identity/contact.
+    if (requestedByUserId && !context) {
+      return unauthorized('La sesión no corresponde a un paciente habilitado')
+    }
+    if (context && !context.careCountry) {
       return conflict('Selecciona tu país de atención en el portal del paciente antes de continuar')
     }
-    if (careCountry !== context.careCountry) {
+    if (context && careCountry !== context.careCountry) {
       return forbidden('patient_inactive_or_country_mismatch')
     }
+    if (!sanitizedName) return badRequest('Nombre completo requerido')
     // Resolve the establishment from persisted data, never from the QR payload.
     if (resolvedPharmacyId) {
       const { data: origin, error: originError } = await supabase.from('pharmacies')
@@ -214,8 +219,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     const insertPayload = {
-      care_country: context.careCountry,
-      patient_id: context.patientId,
+      care_country: context?.careCountry ?? careCountry,
+      patient_id: context?.patientId ?? null,
       patient_dni: sanitizedDni,
       patient_cpf: sanitizedCpf,
       patient_phone: sanitizedPhone,
@@ -227,7 +232,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       symptom_summary: sanitizedSymptoms,
       cloudflare_room_id: cloudflareRoomId,
       status: 'searching' as const,
-      requested_by_user_id: context.userId,
+      requested_by_user_id: context?.userId ?? null,
     }
 
     const { data, error } = await supabase
