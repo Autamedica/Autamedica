@@ -310,6 +310,14 @@ BEGIN
       );
     END IF;
 
+    -- A dual-role doctor must not bypass clinical approval through the patient branch.
+    -- Patient and system-admin actors remain unaffected.
+    IF v_new_using IS NOT NULL THEN
+      v_new_using := format('(%s) AND (NOT public.is_doctor() OR public.is_system_admin() OR (SELECT %s))',v_new_using,v_doctor_gate);
+    END IF;
+    IF v_new_check IS NOT NULL THEN
+      v_new_check := format('(%s) AND (NOT public.is_doctor() OR public.is_system_admin() OR (SELECT %s))',v_new_check,v_doctor_gate);
+    END IF;
     IF v_new_using IS DISTINCT FROM v_using THEN
       EXECUTE format(
         'ALTER POLICY %I ON public.%I USING (%s)',
