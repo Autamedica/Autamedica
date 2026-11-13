@@ -31,6 +31,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -92,7 +93,7 @@ fun PatientHeroSection(
                     painter = painterResource(R.drawable.hero_patient_bg),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    alignment = Alignment(0f, -0.44f),
+                    alignment = BiasAlignment(horizontalBias = 0f, verticalBias = -0.44f),
                     modifier = Modifier.fillMaxSize(),
                 )
                 Box(
