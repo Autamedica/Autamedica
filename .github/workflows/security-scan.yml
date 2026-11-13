@@ -54,6 +54,9 @@ jobs:
             echo "No dependency manifests, lockfiles or package patches changed; full audit remains scheduled and runs on main."
           fi
 
+      - name: Test high/critical audit policy parser
+        run: node --test scripts/ci/check-high-audit.test.mjs
+
   dependency-audit:
     needs: dependency-scope
     if: >-
@@ -77,7 +80,7 @@ jobs:
           pnpm audit --json > "$audit_file" || audit_exit=$?
           if [ ! -s "$audit_file" ]; then
             echo "::error::pnpm audit did not produce a JSON report (exit $audit_exit)"
-            exit "${audit_exit:-1}"
+            exit 1
           fi
           node scripts/ci/check-high-audit.mjs "$audit_file"
 
