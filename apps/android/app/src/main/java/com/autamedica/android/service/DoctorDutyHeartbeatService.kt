@@ -159,6 +159,7 @@ class DoctorDutyHeartbeatService : Service() {
             val intent = Intent(context, DoctorDutyHeartbeatService::class.java)
                 .putExtra(EXTRA_DOCTOR_ID, doctorId)
             ContextCompat.startForegroundService(context, intent)
+            Unit
         }
 
         fun stop(context: Context) {
