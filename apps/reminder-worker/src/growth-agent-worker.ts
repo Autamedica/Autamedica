@@ -279,7 +279,7 @@ async function processOneJob(job: AgentJob, workerConfig: WorkerConfig): Promise
     await recordRun(
       job.id,
       'deliver',
-      { channel: decision.channel, dryRun: workerConfig.dryRun },
+      { channel: decision.channel, dryRun: liveWorkerConfig.dryRun },
       { skipped: true, reason: deliveryCapability.reason, capability_authorization: deliveryCapability },
     );
     await updateJob(job.id, 'cancelled', deliveryCapability.reason);
