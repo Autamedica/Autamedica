@@ -56,12 +56,14 @@ BEGIN
   IF position('doctorId' IN m) > 0 THEN
     RAISE EXCEPTION 'Dispatch payload targets doctorId instead of userId';
   END IF;
-  IF position('d.active IS TRUE' IN m) = 0
-     OR position('d.active IS TRUE' IN t) = 0
-     OR position('NULLIF(btrim(d.license_number), '') IS NOT NULL' IN m) = 0
-     OR position('NULLIF(btrim(d.license_number), '') IS NOT NULL' IN t) = 0
-     OR position('PENDING' IN m) = 0
-     OR position('PENDING' IN t) = 0
+  -- Compare case-insensitively: the latest matcher normalizes NULLIF to
+  -- lower-case while the legacy trigger function retains upper-case SQL.
+  IF position('d.active is true' IN lower(m)) = 0
+     OR position('d.active is true' IN lower(t)) = 0
+     OR position('nullif(btrim(d.license_number)' IN lower(m)) = 0
+     OR position('nullif(btrim(d.license_number)' IN lower(t)) = 0
+     OR position('pending' IN lower(m)) = 0
+     OR position('pending' IN lower(t)) = 0
   THEN
     RAISE EXCEPTION 'Dispatch must reject inactive/provisional doctors';
   END IF;
