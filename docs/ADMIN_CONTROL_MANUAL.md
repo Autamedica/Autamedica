@@ -24,8 +24,8 @@ Apagar un interruptor impide iniciar nuevas operaciones de ese flujo. Las solici
 
 ### Growth y comunicaciones
 
-- **Envío WhatsApp** — `whatsapp_send_enabled`. Controla los envíos salientes de WhatsApp desde Growth Agent y Newsletter Worker, incluidos los adaptadores conectados a OpenClaw y WhatsApp Business API. Apagado: no se inician nuevos envíos; los mensajes ya aceptados por el proveedor siguen su curso.
-- **Envío email** — `email_send_enabled`. Controla envíos salientes de Resend y Brevo ejecutados por los workers de comunicaciones. Apagado: no se crean nuevos envíos; campañas o mensajes ya aceptados por el proveedor no se retiran.
+- **Envío WhatsApp** — `whatsapp_send_enabled`. Controla los envíos salientes de WhatsApp desde Growth Agent Worker mediante OpenClaw. Apagado: no se inician nuevos envíos; los mensajes ya aceptados por el proveedor siguen su curso.
+- **Envío email** — `email_send_enabled`. Controla envíos salientes de Resend y Brevo ejecutados por Newsletter Worker. Growth Agent todavía no tiene adaptador de entrega de email implementado. Apagado: no se crean nuevos envíos; campañas o mensajes ya aceptados por el proveedor no se retiran.
 - **Dry run** — `dry_run_enabled`. Cuando está activo, los workers compatibles simulan la entrega y no llaman al proveedor externo. Desactivarlo permite la entrega real únicamente si el interruptor del canal correspondiente también está activo.
 
 ### Farmacias y Jordan
