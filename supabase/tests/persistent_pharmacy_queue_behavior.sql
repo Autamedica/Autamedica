@@ -50,9 +50,9 @@ BEGIN
   -- precisely an AR offer and must NEVER target the BR request.
   INSERT INTO auth.users(id,email,raw_user_meta_data)
     VALUES(v_admin_user,'queue-admin-ci-'||v_admin_user||'@example.invalid','{"role":"admin"}'::jsonb);
-  UPDATE public.profiles SET active=true, role='platform_admin' WHERE user_id=v_admin_user;
-  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE user_id=v_admin_user AND active IS TRUE AND role::text='platform_admin') THEN
-    RAISE EXCEPTION 'Synthetic platform administrator fixture was not created';
+  UPDATE public.profiles SET active=true, role='admin' WHERE user_id=v_admin_user;
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE user_id=v_admin_user AND active IS TRUE AND role::text='admin') THEN
+    RAISE EXCEPTION 'Synthetic administrator fixture was not created';
   END IF;
 
   INSERT INTO auth.users(id,email)

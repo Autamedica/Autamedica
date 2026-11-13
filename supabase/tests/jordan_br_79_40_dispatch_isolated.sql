@@ -24,6 +24,7 @@ DECLARE
   v_doc uuid := gen_random_uuid();
   v_user uuid := gen_random_uuid();
   v_offer numeric;
+  v_payment uuid;
   v_claim jsonb;
   v_error text;
 BEGIN
@@ -118,6 +119,36 @@ BEGIN
   INSERT INTO public.doctor_duty_status(
     doctor_id,is_on_duty,last_heartbeat_at,duty_started_at
   ) VALUES(v_doc,true,now(),now());
+
+  -- Presence/heartbeat dispatch must not bypass the matcher payment gate.
+  IF EXISTS (
+    SELECT 1 FROM public.dispatch_offers
+    WHERE dispatch_request_id=v_jordan AND doctor_id=v_doc
+      AND status IN ('pending','accepted')
+  ) THEN
+    RAISE EXCEPTION 'Jordan physician offer was emitted before payment approval';
+  END IF;
+
+  -- Synthetic verifier proof, isolated to this rolled-back transaction.
+  -- No CPF, phone number or live PSP credentials are stored in this fixture.
+  INSERT INTO public.commercial_referral_identity_proofs(
+    dispatch_request_id,referral_partner_id,subject_digest,
+    verification_method,verification_receipt_id,verified_at
+  ) VALUES(
+    v_jordan,v_partner,repeat('a',64),'cpf_kyc',
+    'ci-jordan-paid-'||v_jordan::text,now()
+  );
+
+  INSERT INTO public.pharmacy_dispatch_payments(
+    dispatch_request_id,amount_minor,currency,provider,status
+  ) VALUES(v_jordan,7900,'BRL','mercadopago','pending')
+  RETURNING id INTO v_payment;
+
+  UPDATE public.pharmacy_dispatch_payments
+  SET status='approved',
+      provider_payment_id='123456789012',
+      paid_at=now()
+  WHERE id=v_payment;
 
   SELECT o.price_brl INTO v_offer FROM public.dispatch_offers o
   WHERE o.dispatch_request_id=v_jordan AND o.doctor_id=v_doc AND o.status='pending';

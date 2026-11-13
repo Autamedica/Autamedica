@@ -555,11 +555,28 @@ USING (EXISTS (SELECT 1 FROM public.pharmacists ph WHERE ph.user_id=auth.uid()
   AND (dispensation_orders.pharmacy_id=ph.pharmacy_id OR
     (dispensation_orders.pharmacy_id IS NULL AND dispensation_orders.status='pending'))))
 WITH CHECK (app_private.pharmacy_actor_authorized(pharmacy_id,care_country));
+CREATE FUNCTION app_private.pharmacy_prescriber_authorized(p_order uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=''
+AS $prescriber$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.dispensation_orders o
+    JOIN public.doctors d ON d.id=o.doctor_id
+    JOIN public.profiles pr ON pr.user_id=d.user_id
+    WHERE o.id=p_order
+      AND d.user_id=auth.uid()
+      AND d.active
+      AND pr.active
+      AND pr.role::text='doctor'
+      AND app_private.pharmacy_order_context_aligned(o.id)
+  );
+$prescriber$;
+REVOKE ALL ON FUNCTION app_private.pharmacy_prescriber_authorized(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION app_private.pharmacy_prescriber_authorized(uuid) TO authenticated;
+
 CREATE POLICY pharmacy_prescriber_update ON public.dispensation_orders FOR UPDATE TO authenticated
-USING (EXISTS(SELECT 1 FROM public.doctors d JOIN public.profiles pr ON pr.user_id=d.user_id
-  WHERE d.id=dispensation_orders.doctor_id AND d.user_id=auth.uid() AND d.active AND pr.active AND pr.role::text='doctor'))
-WITH CHECK (EXISTS(SELECT 1 FROM public.doctors d JOIN public.profiles pr ON pr.user_id=d.user_id
-  WHERE d.id=dispensation_orders.doctor_id AND d.user_id=auth.uid() AND d.active AND pr.active AND pr.role::text='doctor'));
+USING (app_private.pharmacy_prescriber_authorized(id))
+WITH CHECK (app_private.pharmacy_prescriber_authorized(id));
 ALTER POLICY dispensation_clarifications_update_doctor ON public.dispensation_clarifications
 WITH CHECK (responded_by=auth.uid() AND EXISTS (
   SELECT 1 FROM public.dispensation_orders o JOIN public.doctors d ON d.id=o.doctor_id
@@ -663,11 +680,39 @@ END $pharmacy_signup$;
 -- Filter before selecting the FIFO candidate, not only when inserting its offer.
 -- Preserve the existing matcher in full and fail if the reviewed anchor changes.
 DO $eligible_candidates$
-DECLARE v_definition text; v_anchor text:='AND d.care_country = v_req.care_country';
+DECLARE
+  v_definition text;
+  v_anchor text := 'AND d.care_country = v_req.care_country';
+  -- Inject into the canonical matcher so doctor-presence triggers and retry
+  -- workers cannot bypass Jordan's payment-first rule.
+  v_jordan_payment_gate text := $jordan_gate$
+    AND (
+      NOT EXISTS (
+        SELECT 1 FROM public.commercial_referral_partners rp
+        WHERE rp.id = v_req.referral_partner_id AND rp.code = 'JORDAN'
+      )
+      OR EXISTS (
+        SELECT 1 FROM public.pharmacy_dispatch_payments pay
+        WHERE pay.dispatch_request_id = v_req.id
+          AND pay.status = 'approved'
+          AND pay.provider = 'mercadopago'
+          AND pay.currency = 'BRL'
+          AND pay.amount_minor = 7900
+          AND pay.provider_payment_id IS NOT NULL
+          AND pay.paid_at IS NOT NULL
+      )
+    )
+  $jordan_gate$;
 BEGIN
   SELECT pg_get_functiondef('public.match_dispatch_doctors(uuid)'::regprocedure) INTO v_definition;
-  IF position(v_anchor IN v_definition)=0 THEN RAISE EXCEPTION 'pharmacy_matcher_definition_changed_requires_review'; END IF;
-  EXECUTE replace(v_definition,v_anchor,v_anchor||E'\n    AND d.user_id IS NOT NULL\n    AND EXISTS(SELECT 1 FROM public.profiles pr WHERE pr.user_id=d.user_id AND pr.active AND pr.role::text=''doctor'')\n    AND v_req.tier_requested::text=ANY(d.enabled_service_tiers)\n    AND v_req.tier_requested=ANY(dds.active_tiers)\n    AND dds.last_heartbeat_at<=now()+interval ''10 seconds''');
+  IF position(v_anchor IN v_definition)=0 THEN
+    RAISE EXCEPTION 'pharmacy_matcher_definition_changed_requires_review';
+  END IF;
+  EXECUTE replace(
+    v_definition,
+    v_anchor,
+    v_anchor || E'\n    AND d.user_id IS NOT NULL\n    AND EXISTS(SELECT 1 FROM public.profiles pr WHERE pr.user_id=d.user_id AND pr.active AND pr.role::text=''doctor'')\n    AND v_req.tier_requested::text=ANY(d.enabled_service_tiers)\n    AND v_req.tier_requested=ANY(dds.active_tiers)\n    AND dds.last_heartbeat_at<=now()+interval ''10 seconds''' || E'\n' || v_jordan_payment_gate
+  );
 END $eligible_candidates$;
 
 CREATE TRIGGER zzz_pharmacy_doctor_service_authority BEFORE INSERT OR UPDATE OF enabled_service_tiers ON public.doctors

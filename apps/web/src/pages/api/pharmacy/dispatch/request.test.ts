@@ -215,7 +215,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
       care_country: 'BR',
       patient_cpf: '12345678909',
       patient_dni: null,
-      requested_by_user_id: null,
+      requested_by_user_id: 'patient-auth-user-99',
     }))
   })
 
