@@ -24,6 +24,58 @@ REVOKE ALL ON FUNCTION public.is_clinically_approved_doctor()
 GRANT EXECUTE ON FUNCTION public.is_clinically_approved_doctor()
   TO anon, authenticated, service_role;
 
+-- Temporary read-only bridge for pre-existing patient relationships.
+CREATE TABLE IF NOT EXISTS app_private.clinical_legacy_read_grants (
+ doctor_id uuid NOT NULL REFERENCES public.doctors(id) ON DELETE CASCADE,
+ patient_id uuid NOT NULL REFERENCES public.patients(id) ON DELETE CASCADE,
+ source text NOT NULL CHECK(source IN ('patient_care_team','doctor_patient','appointment')),
+ granted_at timestamptz NOT NULL DEFAULT now(),
+ expires_at timestamptz NOT NULL,
+ PRIMARY KEY(doctor_id,patient_id)
+);
+CREATE INDEX IF NOT EXISTS clinical_legacy_read_grants_expiry_idx ON app_private.clinical_legacy_read_grants(doctor_id,expires_at);
+ALTER TABLE app_private.clinical_legacy_read_grants ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE app_private.clinical_legacy_read_grants FROM PUBLIC,anon,authenticated,service_role;
+WITH links AS (
+ SELECT pct.doctor_id,pct.patient_id,'patient_care_team'::text source FROM public.patient_care_team pct
+ JOIN public.patients p ON p.id=pct.patient_id AND p.active IS TRUE WHERE pct.active IS TRUE AND pct.doctor_id IS NOT NULL
+ UNION ALL SELECT dp.doctor_id,dp.patient_id,'doctor_patient'::text FROM public.doctor_patient dp
+ JOIN public.patients p ON p.id=dp.patient_id AND p.active IS TRUE WHERE dp.doctor_id IS NOT NULL
+ UNION ALL SELECT a.doctor_id,a.patient_id,'appointment'::text FROM public.appointments a
+ JOIN public.patients p ON p.id=a.patient_id AND p.active IS TRUE
+ WHERE a.doctor_id IS NOT NULL AND a.patient_id IS NOT NULL AND a.deleted_at IS NULL
+), eligible AS (
+ SELECT l.doctor_id,l.patient_id,(array_agg(l.source ORDER BY l.source))[1] source
+ FROM links l JOIN public.doctors d ON d.id=l.doctor_id
+ WHERE d.active IS TRUE AND NOT app_private.is_doctor_dispatch_approved(d.id)
+ GROUP BY l.doctor_id,l.patient_id
+)
+INSERT INTO app_private.clinical_legacy_read_grants(doctor_id,patient_id,source,expires_at)
+SELECT doctor_id,patient_id,source,now()+interval '30 days' FROM eligible
+ON CONFLICT(doctor_id,patient_id) DO NOTHING;
+
+CREATE OR REPLACE FUNCTION public.is_clinically_authorized_doctor_read()
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO ''
+AS $function$
+ SELECT public.is_clinically_approved_doctor() OR EXISTS(
+  SELECT 1 FROM public.doctors d JOIN app_private.clinical_legacy_read_grants g ON g.doctor_id=d.id
+  WHERE d.user_id=(SELECT auth.uid()) AND d.active IS TRUE AND g.expires_at>now()
+ );
+$function$;
+REVOKE ALL ON FUNCTION public.is_clinically_authorized_doctor_read() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.is_clinically_authorized_doctor_read() TO anon,authenticated,service_role;
+
+CREATE OR REPLACE FUNCTION public.doctor_has_patient_read_access(patient_user_id uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO ''
+AS $function$
+ SELECT public.doctor_has_patient_access(patient_user_id) OR EXISTS(
+  SELECT 1 FROM public.doctors d JOIN app_private.clinical_legacy_read_grants g ON g.doctor_id=d.id
+  JOIN public.patients p ON p.id=g.patient_id
+  WHERE d.user_id=(SELECT auth.uid()) AND d.active IS TRUE AND p.user_id=patient_user_id AND g.expires_at>now()
+ );
+$function$;
+REVOKE ALL ON FUNCTION public.doctor_has_patient_read_access(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.doctor_has_patient_read_access(uuid) TO anon,authenticated,service_role;
 -- doctor_has_patient_access is itself a clinical authorization helper. Do not
 -- let its SECURITY DEFINER context turn a technical doctor row into clearance.
 CREATE OR REPLACE FUNCTION public.doctor_has_patient_access(patient_user_id uuid)
@@ -119,6 +171,7 @@ DECLARE
   v_check text;
   v_new_using text;
   v_new_check text;
+  v_doctor_gate text;
   v_tables text[] := ARRAY[
     'appointment_followups',
     'appointment_history',
@@ -169,26 +222,31 @@ BEGIN
     v_check := v_policy.check_expr;
     v_new_using := v_using;
     v_new_check := v_check;
+    v_doctor_gate := CASE WHEN v_policy.polcmd='r' THEN 'public.is_clinically_authorized_doctor_read()' ELSE 'public.is_clinically_approved_doctor()' END;
 
     IF v_new_using IS NOT NULL THEN
-      v_new_using := replace(v_new_using, 'public.is_doctor()', 'public.is_clinically_approved_doctor()');
-      v_new_using := replace(v_new_using, 'is_doctor()', 'public.is_clinically_approved_doctor()');
+      IF v_policy.polcmd='r' THEN
+        v_new_using := replace(v_new_using, 'public.doctor_has_patient_access(', 'public.doctor_has_patient_read_access(');
+        v_new_using := replace(v_new_using, 'doctor_has_patient_access(', 'doctor_has_patient_read_access(');
+      END IF;
+      v_new_using := replace(v_new_using, 'public.is_doctor()', v_doctor_gate);
+      v_new_using := replace(v_new_using, 'is_doctor()', v_doctor_gate);
       v_new_using := regexp_replace(
         v_new_using,
         '((d|doctors)\.user_id = (auth\.uid\(\)|\( SELECT auth\.uid\(\) AS uid\)))',
-        E'\\1 AND (SELECT public.is_clinically_approved_doctor())',
+        E'\\1 AND (SELECT ' || v_doctor_gate || ')',
         'gi'
       );
       v_new_using := regexp_replace(
         v_new_using,
         '(doctor_id = get_my_doctor_id\(\))',
-        E'\\1 AND (SELECT public.is_clinically_approved_doctor())',
+        E'\\1 AND (SELECT ' || v_doctor_gate || ')',
         'gi'
       );
       v_new_using := regexp_replace(
         v_new_using,
         '(doctor_id = (auth\.uid\(\)|\( SELECT auth\.uid\(\) AS uid\)))',
-        E'\\1 AND (SELECT public.is_clinically_approved_doctor())',
+        E'\\1 AND (SELECT ' || v_doctor_gate || ')',
         'gi'
       );
     END IF;
@@ -199,19 +257,19 @@ BEGIN
       v_new_check := regexp_replace(
         v_new_check,
         '((d|doctors)\.user_id = (auth\.uid\(\)|\( SELECT auth\.uid\(\) AS uid\)))',
-        E'\\1 AND (SELECT public.is_clinically_approved_doctor())',
+        E'\\1 AND (SELECT ' || v_doctor_gate || ')',
         'gi'
       );
       v_new_check := regexp_replace(
         v_new_check,
         '(doctor_id = get_my_doctor_id\(\))',
-        E'\\1 AND (SELECT public.is_clinically_approved_doctor())',
+        E'\\1 AND (SELECT ' || v_doctor_gate || ')',
         'gi'
       );
       v_new_check := regexp_replace(
         v_new_check,
         '(doctor_id = (auth\.uid\(\)|\( SELECT auth\.uid\(\) AS uid\)))',
-        E'\\1 AND (SELECT public.is_clinically_approved_doctor())',
+        E'\\1 AND (SELECT ' || v_doctor_gate || ')',
         'gi'
       );
     END IF;
