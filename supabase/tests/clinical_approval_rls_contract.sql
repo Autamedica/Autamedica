@@ -7,6 +7,7 @@ DECLARE
   v_policy record;
   v_expr text;
   v_expected_gate text;
+  v_patient_fk text;
   v_tables text[] := ARRAY[
     'appointment_followups','appointment_history','appointment_reminders',
     'appointment_waitlist','appointments','calls','care_episodes',
@@ -44,7 +45,22 @@ BEGIN
     WHERE n.nspname='public' AND c.relname=ANY(v_tables)
   LOOP
     v_expr := concat_ws(' ',v_policy.using_expr,v_policy.check_expr);
-    v_expected_gate := CASE WHEN v_policy.polcmd='r' THEN 'is_clinically_authorized_doctor_read()' ELSE 'is_clinically_approved_doctor()' END;
+    IF v_policy.polcmd='r' THEN
+      v_patient_fk := NULL;
+      SELECT ccu.table_name INTO v_patient_fk
+      FROM information_schema.table_constraints tc
+      JOIN information_schema.key_column_usage kcu ON tc.constraint_name=kcu.constraint_name AND tc.constraint_schema=kcu.constraint_schema
+      JOIN information_schema.constraint_column_usage ccu ON tc.constraint_name=ccu.constraint_name AND tc.constraint_schema=ccu.constraint_schema
+      WHERE tc.constraint_type='FOREIGN KEY' AND tc.table_schema='public'
+        AND tc.table_name=v_policy.relname AND kcu.column_name='patient_id' LIMIT 1;
+      IF v_policy.relname='patients' OR v_patient_fk IN ('patients','profiles') THEN
+        v_expected_gate := 'doctor_has_patient_read_access(';
+      ELSE
+        v_expected_gate := 'is_clinically_authorized_doctor_read()';
+      END IF;
+    ELSE
+      v_expected_gate := 'is_clinically_approved_doctor()';
+    END IF;
 
     IF v_expr ~* '(^|[^a-z_])is_doctor\(\)' THEN
       RAISE EXCEPTION 'Legacy is_doctor() still authorizes %.%',v_policy.relname,v_policy.polname;
@@ -113,6 +129,10 @@ INSERT INTO auth.users(id,instance_id,aud,role,email,raw_user_meta_data,raw_app_
 VALUES('a1100000-0000-4000-8000-000000000002','00000000-0000-0000-0000-000000000000','authenticated','authenticated',
 'synthetic-legacy-patient@example.invalid','{"role":"patient"}'::jsonb,'{}'::jsonb);
 INSERT INTO public.patients(user_id,active) VALUES('a1100000-0000-4000-8000-000000000002',true);
+INSERT INTO auth.users(id,instance_id,aud,role,email,raw_user_meta_data,raw_app_meta_data)
+VALUES('a1100000-0000-4000-8000-000000000003','00000000-0000-0000-0000-000000000000','authenticated','authenticated',
+'synthetic-unassigned-patient@example.invalid','{"role":"patient"}'::jsonb,'{}'::jsonb);
+INSERT INTO public.patients(user_id,active) VALUES('a1100000-0000-4000-8000-000000000003',true);
 DO $legacy_grant$
 DECLARE v_doctor_id uuid;v_patient_id uuid;
 BEGIN
@@ -140,6 +160,7 @@ BEGIN
  IF NOT public.is_clinically_authorized_doctor_read() THEN RAISE EXCEPTION 'Legacy read bridge missing'; END IF;
  IF public.doctor_has_patient_access(v_patient_user_id) THEN RAISE EXCEPTION 'Legacy write access retained'; END IF;
  IF NOT public.doctor_has_patient_read_access(v_patient_user_id) THEN RAISE EXCEPTION 'Patient-specific read bridge missing'; END IF;
+ IF public.doctor_has_patient_read_access('a1100000-0000-4000-8000-000000000003') THEN RAISE EXCEPTION 'Unassigned patient read access leaked'; END IF;
  SELECT count(*) INTO v_count FROM public.appointments WHERE doctor_id=public.get_my_doctor_id() AND patient_id=v_patient_id;
  IF v_count<>1 THEN RAISE EXCEPTION 'Existing appointment unreadable'; END IF;
  BEGIN
