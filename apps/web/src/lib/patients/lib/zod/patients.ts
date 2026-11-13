@@ -19,6 +19,8 @@ const EmergencyContactSchema = z
 export const PatientSnakeSchema = z.object({
   id: z.string().uuid(),
   user_id: z.string().uuid(),
+  /** Fail closed when country is missing; do not infer from locale/IP. */
+  care_country: z.enum(['AR', 'BR']).nullable().optional(),
   dni: z.string().nullable(),
   birth_date: z.string().nullable(),
   gender: GenderEnum.nullable(),

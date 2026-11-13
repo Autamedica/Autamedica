@@ -47,4 +47,7 @@ ip_version = "IPv4"
 [functions.cloudflare-calls]
 verify_jwt = false
 
+[functions.patient-identity-renaper]
+verify_jwt = true
+
 [analytics]
