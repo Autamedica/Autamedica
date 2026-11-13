@@ -27,6 +27,12 @@ vi.mock('@/lib/runtime-env', () => ({
   resolveGuestSecret: vi.fn(() => TEST_SECRET),
 }))
 
+// Keep API tests deterministic; recovery-token cryptography has its own unit tests.
+vi.mock('@/lib/pharmacy/guest-queue-recovery', () => ({
+  createGuestQueueRecoveryToken: vi.fn(() => 'a'.repeat(64)),
+  hashGuestQueueRecoveryToken: vi.fn(async () => 'b'.repeat(64)),
+}))
+
 const VALID_KIOSK_ID = '11111111-1111-4111-8111-111111111111'
 const VALID_PHARMACY_ID = '22222222-2222-4222-8222-222222222222'
 
@@ -86,7 +92,9 @@ function makeContext(options?: {
   return {
     request,
     locals: {
-      session: options?.session !== undefined ? options.session : null,
+      session: options?.session !== undefined
+        ? options.session
+        : { user: { id: 'patient-auth-user-99' } },
       runtime: { env: { GUEST_TOKEN_SECRET: TEST_SECRET, ENABLE_JORDAN_PAYMENTS: options?.jordanEnabled ? 'true' : 'false' } },
     },
   } as unknown as Parameters<typeof POST>[0]
@@ -135,6 +143,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     })
     const response = await POST(makeContext({
       bearerToken: 'Bearer valid-native-patient-jwt',
+      session: null,
       jordanEnabled: true,
       body: {
         careCountry: 'BR', patientCpf: '12345678909',
