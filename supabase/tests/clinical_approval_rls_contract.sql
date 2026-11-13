@@ -43,6 +43,12 @@ BEGIN
     JOIN pg_class c ON c.oid=p.polrelid
     JOIN pg_namespace n ON n.oid=c.relnamespace
     WHERE n.nspname='public' AND c.relname=ANY(v_tables)
+      -- The trusted backend role has an explicit full-access policy. It is
+      -- not a user-facing dual-role policy and must remain outside the doctor gate.
+      AND NOT (
+        c.relname='clinical_case_states'
+        AND p.polname='service_role_full_access_clinical_states'
+      )
   LOOP
     v_expr := concat_ws(' ',v_policy.using_expr,v_policy.check_expr);
     IF v_policy.polcmd='r' THEN
@@ -84,6 +90,21 @@ BEGIN
       RAISE EXCEPTION 'Direct doctor_id branch lacks approval: %.%',v_policy.relname,v_policy.polname;
     END IF;
   END LOOP;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_policy p
+    JOIN pg_class c ON c.oid=p.polrelid
+    JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='public'
+      AND c.relname='clinical_case_states'
+      AND p.polname='service_role_full_access_clinical_states'
+      AND p.polroles=ARRAY['service_role'::regrole::oid]
+      AND pg_get_expr(p.polqual,p.polrelid) IS NOT DISTINCT FROM 'true'
+      AND pg_get_expr(p.polwithcheck,p.polrelid) IS NOT DISTINCT FROM 'true'
+  ) THEN
+    RAISE EXCEPTION 'Trusted service-role backend policy must remain service_role-only and unrestricted';
+  END IF;
 
   IF to_regprocedure('public.is_clinically_authorized_doctor_read()') IS NULL
      OR to_regprocedure('public.doctor_has_patient_read_access(uuid)') IS NULL
