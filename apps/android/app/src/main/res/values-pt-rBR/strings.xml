@@ -277,4 +277,5 @@
     <string name="patient_home_immediate_cta">Solicitar atendimento agora</string>
     <string name="patient_home_immediate_hint">Sem agendamento · Médico disponível</string>
     <string name="patient_home_scheduled_cta">Consulta programada · Reservar horário</string>
+    <string name="jordan_payment_start_message">Confirme o pagamento de R$ 79 para iniciar sua videoconsulta agora.</string>
 </resources>
