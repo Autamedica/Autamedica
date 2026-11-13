@@ -1,60 +1,184 @@
 ---
 const GOOGLE_ADS_ID = import.meta.env.PUBLIC_GOOGLE_ADS_ID?.trim() || 'AW-18168503394';
+// A GA4 web measurement ID (G-...) is distinct from the Firebase/Android stream.
+const candidate = import.meta.env.PUBLIC_GA4_MEASUREMENT_ID?.trim() || '';
+const GA4_ID = /^G-[A-Z0-9]+$/.test(candidate) ? candidate : '';
 ---
 
-<!-- Google tag (gtag.js) -->
-<script is:inline define:vars={{ GOOGLE_ADS_ID }}>
+<!-- Marketing analytics only: never initialize Google tags in clinical areas. -->
+<script is:inline define:vars={{ GOOGLE_ADS_ID, GA4_ID }}>
   (() => {
     const STORAGE_KEY = 'au-cookie-consent';
-    const SCRIPT_ID = 'autamedica-google-tag';
-    const CONSENT_EVENT = 'au:cookie-consent:accepted';
     const CONTROLLER_KEY = '__autamedicaGoogleTagControllerReady';
-    const LOADED_KEY = '__autamedicaGoogleTagLoaded';
     const LOAD_KEY = '__autamedicaLoadGoogleTag';
+    const LOADED_KEY = '__autamedicaGoogleTagLoaded';
+    const CONSENT_EVENT = 'au:cookie-consent:changed';
+    // Positive allowlist. Never forward arbitrary URLs, query strings, UIDs or clinical paths.
+    const MARKETING = /^\/(?:|descargar\/?|farmacia\/?|empresas\/?|precios\/?|contacto\/?|faq\/?|servicios\/?)$/;
+    const REGISTER = /^\/auth\/register\/?$/;
 
     if (window[CONTROLLER_KEY]) {
       window[LOAD_KEY]?.();
       return;
     }
 
-    function hasCookieConsent() {
+    function consented() {
+      try { return localStorage.getItem(STORAGE_KEY) === 'accepted'; }
+      catch { return false; }
+    }
+
+    const MARKETING_HOST = /^(?:www\.)?autamedica\.com$/i;
+    const SAFE_SOURCES = new Set([
+      'google', 'google_ads', 'instagram', 'instagram_ads', 'facebook', 'facebook_ads',
+      'whatsapp', 'linkedin', 'email', 'brevo', 'newsletter', 'referral', 'qr',
+      'farmacia', 'partner', 'direct', 'offline', 'autamedica',
+    ]);
+    const SAFE_MEDIA = new Set([
+      'organic', 'cpc', 'paid', 'paid_social', 'social', 'email', 'referral',
+      'whatsapp', 'qr', 'partner', 'offline', 'display', 'app',
+    ]);
+
+    function isMarketing() {
+      // A public page remains measurable even if it contains an unknown query
+      // (e.g. gclid, email, appointmentId): NONE of those parameters are forwarded.
+      return MARKETING_HOST.test(location.hostname) && MARKETING.test(location.pathname);
+    }
+
+    function isAllowed() {
+      return MARKETING_HOST.test(location.hostname) &&
+        (MARKETING.test(location.pathname) || REGISTER.test(location.pathname));
+    }
+
+    function safeMarketingLocation() {
+      const url = new URL(location.origin + location.pathname);
+      if (!isMarketing()) return url.href;
+      const params = new URLSearchParams(location.search);
+      const source = (params.get('utm_source') || '').toLowerCase();
+      const medium = (params.get('utm_medium') || '').toLowerCase();
+      // Do NOT forward campaign, term, content, gclid, ref or other arbitrary data.
+      if (SAFE_SOURCES.has(source)) url.searchParams.set('utm_source', source);
+      if (SAFE_MEDIA.has(medium)) url.searchParams.set('utm_medium', medium);
+      return url.href;
+    }
+
+    function safeReferrerOrigin() {
       try {
-        return localStorage.getItem(STORAGE_KEY) === 'accepted';
-      } catch {
-        return false;
+        const ref = new URL(document.referrer);
+        if (ref.protocol !== 'https:' && ref.protocol !== 'http:') return '';
+        const host = ref.hostname.toLowerCase();
+        const trusted = /^(?:www\.)?(?:google\.com|google\.com\.br|google\.com\.ar|bing\.com|duckduckgo\.com|instagram\.com|facebook\.com|linkedin\.com|whatsapp\.com|autamedica\.com)$/.test(host);
+        return trusted ? ref.origin + '/' : '';
+      } catch { return ''; }
+    }
+
+    function initializeGtag() {
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = window.gtag || function gtag() { window.dataLayer.push(arguments); };
+      window.gtag('consent', 'default', {
+        analytics_storage: 'denied', ad_storage: 'denied',
+        ad_user_data: 'denied', ad_personalization: 'denied',
+      });
+      window.gtag('js', new Date());
+
+      if (GA4_ID) {
+        window.gtag('config', GA4_ID, {
+          send_page_view: false,
+          page_location: safeMarketingLocation(),
+          page_referrer: safeReferrerOrigin(),
+          page_title: 'AutaMedica',
+          allow_google_signals: false,
+          allow_ad_personalization_signals: false,
+        });
+      }
+      if (GOOGLE_ADS_ID && isMarketing()) {
+        window.gtag('config', GOOGLE_ADS_ID);
+      }
+
+      const id = GA4_ID || (isMarketing() ? GOOGLE_ADS_ID : '');
+      if (!id) return;
+      const script = document.createElement('script');
+      script.id = 'autamedica-google-tag';
+      script.async = true;
+      script.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(id);
+      document.head.appendChild(script);
+      window[LOADED_KEY] = true;
+    }
+
+    let lastPagePath = '';
+    function refresh() {
+      if (!isAllowed() || !consented()) {
+        if (window.gtag) {
+          window.gtag('consent', 'update', {
+            analytics_storage: 'denied', ad_storage: 'denied',
+            ad_user_data: 'denied', ad_personalization: 'denied',
+          });
+        }
+        lastPagePath = '';
+        return;
+      }
+      if (!window[LOADED_KEY]) initializeGtag();
+      if (!window[LOADED_KEY]) return;
+      window.gtag('consent', 'update', {
+        analytics_storage: GA4_ID ? 'granted' : 'denied',
+        ad_storage: isMarketing() ? 'granted' : 'denied',
+        ad_user_data: 'denied',
+        ad_personalization: 'denied',
+      });
+
+      if (GA4_ID && isMarketing() && lastPagePath !== location.pathname) {
+        // No query strings, referrer, email, diagnosis, clinical context or record IDs.
+        window.gtag('event', 'page_view', {
+          send_to: GA4_ID,
+          page_location: safeMarketingLocation(),
+          page_referrer: safeReferrerOrigin(),
+          page_title: 'AutaMedica',
+        });
+        lastPagePath = location.pathname;
       }
     }
 
-    function loadGoogleTag() {
-      if (!hasCookieConsent() || window[LOADED_KEY]) return;
-
-      window[LOADED_KEY] = true;
-      window.dataLayer = window.dataLayer || [];
-      window.gtag =
-        window.gtag ||
-        function gtag() {
-          window.dataLayer.push(arguments);
-        };
-
-      window.gtag('js', new Date());
-      window.gtag('config', GOOGLE_ADS_ID);
-
-      if (document.getElementById(SCRIPT_ID)) return;
-
-      const script = document.createElement('script');
-      script.id = SCRIPT_ID;
-      script.async = true;
-      script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(
-        GOOGLE_ADS_ID,
-      )}`;
-      document.head.appendChild(script);
-    }
+    window.AutaAnalytics = {
+      track(name) {
+        if (!GA4_ID || !consented() || !window[LOADED_KEY] || !isAllowed()) return;
+        if (name === 'registration_requested' && REGISTER.test(location.pathname)) {
+          // A request to register is not a confirmed account, nor a paying customer.
+          window.gtag('event', 'registration_requested', {
+            send_to: GA4_ID, method: 'email',
+            page_location: location.origin + '/auth/register',
+          });
+        } else if (name === 'app_download_clicked' && isMarketing()) {
+          // No patient ID, diagnosis, specialty, link URL or query data.
+          window.gtag('event', 'app_download_clicked', {
+            send_to: GA4_ID, page_location: safeMarketingLocation(),
+          });
+        }
+      },
+    };
 
     window[CONTROLLER_KEY] = true;
-    window[LOAD_KEY] = loadGoogleTag;
-
-    loadGoogleTag();
-    document.addEventListener(CONSENT_EVENT, loadGoogleTag);
-    document.addEventListener('astro:after-swap', loadGoogleTag);
+    window[LOAD_KEY] = refresh;
+    refresh();
+    document.addEventListener(CONSENT_EVENT, refresh);
+    document.addEventListener('click', (event) => {
+      if (!isMarketing()) return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const anchor = target.closest('a[href]');
+      if (!anchor) return;
+      try {
+        const href = new URL(anchor.href, location.origin);
+        const download = (href.origin === location.origin && /^\/descargar\/?$/.test(href.pathname)) ||
+          (href.hostname === 'play.google.com' && href.pathname.startsWith('/store/apps/'));
+        if (download) window.AutaAnalytics?.track('app_download_clicked');
+      } catch { /* Invalid link never causes tracking. */ }
+    });
+    document.addEventListener('astro:before-swap', () => {
+      // Disable tracking before the client-side router enters a new document.
+      window.gtag?.('consent', 'update', {
+        analytics_storage: 'denied', ad_storage: 'denied',
+        ad_user_data: 'denied', ad_personalization: 'denied',
+      });
+    });
+    document.addEventListener('astro:after-swap', refresh);
   })();
 </script>

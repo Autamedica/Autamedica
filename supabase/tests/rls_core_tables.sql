@@ -1,271 +1,437 @@
--- ============================================================================
--- WARNING: SUPERUSER CONTEXT — NOT REAL RLS ENFORCEMENT
--- ============================================================================
--- These tests run as the database superuser (typically via psql with a
--- privileged connection string). Superusers BYPASS all RLS policies, so
--- setting request.jwt.claims alone does NOT activate row-level filtering.
---
--- What these tests DO validate:
---   - Test data setup and teardown (schema compatibility)
---   - Policy-aware query patterns (correct WHERE clauses, FK joins)
---   - Smoke-level confidence that the expected tables/columns exist
---
--- What these tests do NOT validate:
---   - Actual row filtering by RLS policies
---   - Cross-user isolation at the database level
---
--- For real RLS enforcement, tests must:
---   1. SET LOCAL ROLE authenticated;
---   2. SET LOCAL request.jwt.claims = '{"sub":"<user-uuid>","role":"authenticated"}';
---   3. Run queries in a transaction and ROLLBACK after assertions.
--- See: https://supabase.com/docs/guides/auth/row-level-security#testing-policies
--- ============================================================================
---
--- RLS Tests for 5 Core Tables: patients, doctors, appointments, medical_records, companies
---
--- Uses PL/pgSQL anonymous blocks to simulate different authenticated users
--- via request.jwt.claims and verify row-level isolation.
---
--- Convention: RAISE NOTICE 'OK: ...' on pass, RAISE EXCEPTION 'FAIL: ...' on fail.
+-- Exercises row-level policies under the authenticated database role.
+-- Run only against the disposable local Supabase database; all fixtures roll back.
+BEGIN;
 
-DO $$
+DO $setup$
 DECLARE
-  -- Test users
-  u_patient_a  uuid := '10000000-0000-0000-0000-000000000001';
-  u_patient_b  uuid := '10000000-0000-0000-0000-000000000002';
-  u_doctor_a   uuid := '20000000-0000-0000-0000-000000000001';
-  u_doctor_b   uuid := '20000000-0000-0000-0000-000000000002';
-  u_company    uuid := '30000000-0000-0000-0000-000000000001';
-
-  -- Entity IDs
-  patient_a_id uuid := '40000000-0000-0000-0000-000000000001';
-  patient_b_id uuid := '40000000-0000-0000-0000-000000000002';
-  doctor_a_id  uuid := '50000000-0000-0000-0000-000000000001';
-  doctor_b_id  uuid := '50000000-0000-0000-0000-000000000002';
-  appt_ab_id   uuid := '60000000-0000-0000-0000-000000000001';
-  appt_bb_id   uuid := '60000000-0000-0000-0000-000000000002';
-  mr_a_id      uuid := '70000000-0000-0000-0000-000000000001';
-  mr_b_id      uuid := '70000000-0000-0000-0000-000000000002';
-  company_a_id uuid := '80000000-0000-0000-0000-000000000001';
-
-  row_count    int;
+  u_patient_a uuid := gen_random_uuid();
+  u_patient_b uuid := gen_random_uuid();
+  u_doctor_a uuid := gen_random_uuid();
+  u_doctor_b uuid := gen_random_uuid();
+  u_company uuid := gen_random_uuid();
+  patient_a_id uuid := gen_random_uuid();
+  patient_b_id uuid := gen_random_uuid();
+  doctor_a_id uuid := gen_random_uuid();
+  doctor_b_id uuid := gen_random_uuid();
+  appt_a_id uuid := gen_random_uuid();
+  appt_b_id uuid := gen_random_uuid();
+  record_a_id uuid := gen_random_uuid();
+  record_b_id uuid := gen_random_uuid();
+  company_id uuid := gen_random_uuid();
+  fixture_suffix text := replace(gen_random_uuid()::text, '-', '');
 BEGIN
-  RAISE NOTICE '--- RLS Core Tables Test: Setup ---';
-
-  -- Cleanup previous test data (reverse FK order)
-  DELETE FROM public.medical_records WHERE id IN (mr_a_id, mr_b_id);
-  DELETE FROM public.appointments WHERE id IN (appt_ab_id, appt_bb_id);
+  DELETE FROM public.medical_records WHERE id IN (record_a_id, record_b_id);
+  DELETE FROM public.appointments WHERE id IN (appt_a_id, appt_b_id);
   DELETE FROM public.doctors WHERE id IN (doctor_a_id, doctor_b_id);
   DELETE FROM public.patients WHERE id IN (patient_a_id, patient_b_id);
-  DELETE FROM public.companies WHERE id = company_a_id;
+  DELETE FROM public.companies WHERE id = company_id;
   DELETE FROM public.profiles WHERE user_id IN (u_patient_a, u_patient_b, u_doctor_a, u_doctor_b, u_company);
-  EXECUTE 'DELETE FROM auth.users WHERE id IN ('
-    || quote_literal(u_patient_a) || ', '
-    || quote_literal(u_patient_b) || ', '
-    || quote_literal(u_doctor_a) || ', '
-    || quote_literal(u_doctor_b) || ', '
-    || quote_literal(u_company) || ')';
+  DELETE FROM auth.users WHERE id IN (u_patient_a, u_patient_b, u_doctor_a, u_doctor_b, u_company);
 
-  -- Create auth.users
-  EXECUTE 'INSERT INTO auth.users (id, email) VALUES '
-    || '(' || quote_literal(u_patient_a) || ', ''rls_patient_a@test.com''), '
-    || '(' || quote_literal(u_patient_b) || ', ''rls_patient_b@test.com''), '
-    || '(' || quote_literal(u_doctor_a)  || ', ''rls_doctor_a@test.com''), '
-    || '(' || quote_literal(u_doctor_b)  || ', ''rls_doctor_b@test.com''), '
-    || '(' || quote_literal(u_company)   || ', ''rls_company@test.com'')';
+  INSERT INTO auth.users (id, email) VALUES
+    (u_patient_a, 'rls_patient_a_' || fixture_suffix || '@test.com'),
+    (u_patient_b, 'rls_patient_b_' || fixture_suffix || '@test.com'),
+    (u_doctor_a, 'rls_doctor_a_' || fixture_suffix || '@test.com'),
+    (u_doctor_b, 'rls_doctor_b_' || fixture_suffix || '@test.com'),
+    (u_company, 'rls_company_' || fixture_suffix || '@test.com');
 
-  -- Create profiles
-  INSERT INTO public.profiles (user_id, email, role, external_id) VALUES
-    (u_patient_a, 'rls_patient_a@test.com', 'patient', 'rls-pa'),
-    (u_patient_b, 'rls_patient_b@test.com', 'patient', 'rls-pb'),
-    (u_doctor_a,  'rls_doctor_a@test.com',  'doctor',  'rls-da'),
-    (u_doctor_b,  'rls_doctor_b@test.com',  'doctor',  'rls-db'),
-    (u_company,   'rls_company@test.com',   'company', 'rls-co')
-  ON CONFLICT (user_id) DO NOTHING;
+  -- Reuse the profile rows created by the auth bootstrap trigger.
+  UPDATE public.profiles AS profile
+  SET email = fixture.email, role = fixture.role, external_id = fixture.external_id
+  FROM (VALUES
+    (u_patient_a, 'rls_patient_a_' || fixture_suffix || '@test.com', 'patient', 'rls-pa-' || fixture_suffix),
+    (u_patient_b, 'rls_patient_b_' || fixture_suffix || '@test.com', 'patient', 'rls-pb-' || fixture_suffix),
+    (u_doctor_a, 'rls_doctor_a_' || fixture_suffix || '@test.com', 'doctor', 'rls-da-' || fixture_suffix),
+    (u_doctor_b, 'rls_doctor_b_' || fixture_suffix || '@test.com', 'doctor', 'rls-db-' || fixture_suffix),
+    (u_company, 'rls_company_' || fixture_suffix || '@test.com', 'company', 'rls-co-' || fixture_suffix)
+  ) AS fixture(user_id, email, role, external_id)
+  WHERE profile.user_id = fixture.user_id;
 
-  -- Create patients
-  INSERT INTO public.patients (id, user_id) VALUES
-    (patient_a_id, u_patient_a),
-    (patient_b_id, u_patient_b)
-  ON CONFLICT (id) DO NOTHING;
+  -- The auth bootstrap may create patient rows for new users; assign stable fixture IDs to patient users.
+  UPDATE public.patients SET id = patient_a_id WHERE user_id = u_patient_a;
+  UPDATE public.patients SET id = patient_b_id WHERE user_id = u_patient_b;
+  INSERT INTO public.patients (id, user_id)
+  SELECT patient_a_id, u_patient_a WHERE NOT EXISTS (
+    SELECT 1 FROM public.patients WHERE user_id = u_patient_a
+  );
+  INSERT INTO public.patients (id, user_id)
+  SELECT patient_b_id, u_patient_b WHERE NOT EXISTS (
+    SELECT 1 FROM public.patients WHERE user_id = u_patient_b
+  );
 
-  -- Create doctors
-  INSERT INTO public.doctors (id, user_id, license_number, specialty) VALUES
-    (doctor_a_id, u_doctor_a, 'LIC-RLS-A', 'Cardiology'),
-    (doctor_b_id, u_doctor_b, 'LIC-RLS-B', 'Neurology')
-  ON CONFLICT (id) DO NOTHING;
+  UPDATE public.doctors
+  SET license_number = 'LIC-RLS-A-' || fixture_suffix, specialty = 'Cardiology', active = true
+  WHERE user_id = u_doctor_a;
+  SELECT COALESCE((SELECT id FROM public.doctors WHERE user_id = u_doctor_a), doctor_a_id)
+  INTO doctor_a_id;
+  UPDATE public.doctors
+  SET license_number = 'LIC-RLS-B-' || fixture_suffix, specialty = 'Neurology', active = false
+  WHERE user_id = u_doctor_b;
+  SELECT COALESCE((SELECT id FROM public.doctors WHERE user_id = u_doctor_b), doctor_b_id)
+  INTO doctor_b_id;
+  INSERT INTO public.doctors (id, user_id, license_number, specialty, active)
+  SELECT doctor_a_id, u_doctor_a, 'LIC-RLS-A-' || fixture_suffix, 'Cardiology', true
+  WHERE NOT EXISTS (SELECT 1 FROM public.doctors WHERE user_id = u_doctor_a);
+  INSERT INTO public.doctors (id, user_id, license_number, specialty, active)
+  SELECT doctor_b_id, u_doctor_b, 'LIC-RLS-B-' || fixture_suffix, 'Neurology', false
+  WHERE NOT EXISTS (SELECT 1 FROM public.doctors WHERE user_id = u_doctor_b);
 
-  -- Appointments: doctor_a sees patient_a, doctor_b sees patient_b
+  UPDATE public.patients SET care_country='AR' WHERE id IN (patient_a_id,patient_b_id);
+  -- Seed the historical inactive-doctor appointment while the doctor is eligible.
+  UPDATE public.doctors SET active=true WHERE id=doctor_b_id;
   INSERT INTO public.appointments (id, patient_id, doctor_id, start_time, status) VALUES
-    (appt_ab_id, patient_a_id, doctor_a_id, now() + interval '1 day', 'scheduled'),
-    (appt_bb_id, patient_b_id, doctor_b_id, now() + interval '2 days', 'scheduled')
-  ON CONFLICT (id) DO NOTHING;
+    (appt_a_id, patient_a_id, doctor_a_id, now() + interval '1 day', 'scheduled'),
+    (appt_b_id, patient_b_id, doctor_b_id, now() + interval '2 days', 'scheduled');
 
-  -- Medical records: one per patient
   INSERT INTO public.medical_records (id, patient_id, doctor_id, appointment_id, type, title, content) VALUES
-    (mr_a_id, patient_a_id, doctor_a_id, appt_ab_id, 'consultation', 'Record A', '{"notes":"test a"}'::jsonb),
-    (mr_b_id, patient_b_id, doctor_b_id, appt_bb_id, 'consultation', 'Record B', '{"notes":"test b"}'::jsonb)
-  ON CONFLICT (id) DO NOTHING;
+    (record_a_id, patient_a_id, doctor_a_id, appt_a_id, 'consultation', 'RLS Record A', '{"notes":"test a"}'::jsonb),
+    (record_b_id, patient_b_id, doctor_b_id, appt_b_id, 'consultation', 'RLS Record B', '{"notes":"test b"}'::jsonb);
 
-  -- Company
-  INSERT INTO public.companies (id, name, owner_profile_id) VALUES
-    (company_a_id, 'RLS Test Company', u_company)
-  ON CONFLICT (id) DO NOTHING;
+  UPDATE public.doctors SET active=false WHERE id=doctor_b_id;
 
-  -- =========================================================================
-  -- TEST 1: Patient A can see own patient row, NOT patient B's
-  -- =========================================================================
-  RAISE NOTICE '--- Test 1: Patient isolation (patients table) ---';
-  PERFORM set_config('request.jwt.claims',
-    json_build_object('sub', u_patient_a, 'role', 'authenticated')::text, true);
+  INSERT INTO public.companies (id, name, owner_profile_id, active) VALUES
+    (company_id, 'RLS Test Company', u_company, false);
+  PERFORM set_config('test.rls.patient_a_user', u_patient_a::text, true);
+  PERFORM set_config('test.rls.patient_b_user', u_patient_b::text, true);
+  PERFORM set_config('test.rls.doctor_a_user', u_doctor_a::text, true);
+  PERFORM set_config('test.rls.doctor_b_user', u_doctor_b::text, true);
+  PERFORM set_config('test.rls.company_user', u_company::text, true);
+  PERFORM set_config('test.rls.patient_a_id', patient_a_id::text, true);
+  PERFORM set_config('test.rls.patient_b_id', patient_b_id::text, true);
+  PERFORM set_config('test.rls.doctor_a_id', doctor_a_id::text, true);
+  PERFORM set_config('test.rls.doctor_b_id', doctor_b_id::text, true);
+  PERFORM set_config('test.rls.appt_a_id', appt_a_id::text, true);
+  PERFORM set_config('test.rls.appt_b_id', appt_b_id::text, true);
+  PERFORM set_config('test.rls.record_a_id', record_a_id::text, true);
+  PERFORM set_config('test.rls.record_b_id', record_b_id::text, true);
+  PERFORM set_config('test.rls.company_id', company_id::text, true);
+END;
+$setup$;
 
-  SELECT count(*) INTO row_count
-    FROM public.patients WHERE id = patient_a_id AND user_id = u_patient_a;
-  IF row_count < 1 THEN
-    RAISE EXCEPTION 'FAIL: Patient A cannot see own row in patients';
+-- Patient A: own rows visible; another patient's clinical data hidden.
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', current_setting('test.rls.patient_a_user'), 'role', 'authenticated')::text, true);
+DO $patient_a$
+DECLARE visible_count integer;
+        affected_count integer;
+BEGIN
+  SELECT count(*) INTO visible_count FROM public.patients
+    WHERE id=current_setting('test.rls.patient_a_id')::uuid;
+  IF visible_count <> 1 THEN RAISE EXCEPTION 'RLS FAIL: patient cannot read own patient row'; END IF;
+
+  SELECT count(*) INTO visible_count FROM public.patients
+    WHERE id=current_setting('test.rls.patient_b_id')::uuid;
+  IF visible_count <> 0 THEN RAISE EXCEPTION 'RLS FAIL: patient can read another patient'; END IF;
+
+  SELECT count(*) INTO visible_count FROM public.appointments
+    WHERE id=current_setting('test.rls.appt_a_id')::uuid;
+  IF visible_count <> 1 THEN RAISE EXCEPTION 'RLS FAIL: patient cannot read own appointment'; END IF;
+
+  SELECT count(*) INTO visible_count FROM public.appointments
+    WHERE id=current_setting('test.rls.appt_b_id')::uuid;
+  IF visible_count <> 0 THEN RAISE EXCEPTION 'RLS FAIL: patient can read another patient appointment'; END IF;
+
+  SELECT count(*) INTO visible_count FROM public.medical_records
+    WHERE id=current_setting('test.rls.record_a_id')::uuid;
+  IF visible_count <> 1 THEN RAISE EXCEPTION 'RLS FAIL: patient cannot read own medical record'; END IF;
+
+  SELECT count(*) INTO visible_count FROM public.medical_records
+    WHERE id=current_setting('test.rls.record_b_id')::uuid;
+  IF visible_count <> 0 THEN RAISE EXCEPTION 'RLS FAIL: patient can read another patient medical record'; END IF;
+
+  UPDATE public.doctors SET specialty = specialty
+    WHERE id=current_setting('test.rls.doctor_a_id')::uuid;
+  GET DIAGNOSTICS affected_count = ROW_COUNT;
+  IF affected_count <> 0 THEN RAISE EXCEPTION 'RLS FAIL: patient updated doctor row'; END IF;
+END;
+$patient_a$;
+RESET ROLE;
+
+-- Doctor A: own rows and own appointment record visible; another doctor's data hidden.
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', current_setting('test.rls.doctor_a_user'), 'role', 'authenticated')::text, true);
+DO $doctor_a$
+DECLARE visible_count integer;
+BEGIN
+  SELECT count(*) INTO visible_count FROM public.doctors
+    WHERE id=current_setting('test.rls.doctor_a_id')::uuid;
+  IF visible_count <> 1 THEN RAISE EXCEPTION 'RLS FAIL: doctor cannot read own row'; END IF;
+
+  SELECT count(*) INTO visible_count FROM public.doctors
+    WHERE id=current_setting('test.rls.doctor_b_id')::uuid;
+  IF visible_count <> 0 THEN RAISE EXCEPTION 'RLS FAIL: doctor can read another inactive doctor'; END IF;
+
+  SELECT count(*) INTO visible_count FROM public.appointments
+    WHERE id=current_setting('test.rls.appt_a_id')::uuid;
+  IF visible_count <> 1 THEN RAISE EXCEPTION 'RLS FAIL: doctor cannot read assigned appointment'; END IF;
+
+  SELECT count(*) INTO visible_count FROM public.appointments
+    WHERE id=current_setting('test.rls.appt_b_id')::uuid;
+  IF visible_count <> 0 THEN RAISE EXCEPTION 'RLS FAIL: doctor can read another doctor appointment'; END IF;
+
+  SELECT count(*) INTO visible_count FROM public.medical_records
+    WHERE id=current_setting('test.rls.record_a_id')::uuid;
+  IF visible_count <> 1 THEN RAISE EXCEPTION 'RLS FAIL: doctor cannot read own medical record'; END IF;
+
+  SELECT count(*) INTO visible_count FROM public.medical_records
+    WHERE id=current_setting('test.rls.record_b_id')::uuid;
+  IF visible_count <> 0 THEN RAISE EXCEPTION 'RLS FAIL: doctor can read another doctor medical record'; END IF;
+END;
+$doctor_a$;
+RESET ROLE;
+
+-- Company owner: only the owned inactive company row is visible.
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', current_setting('test.rls.company_user'), 'role', 'authenticated')::text, true);
+DO $company_owner$
+DECLARE visible_count integer;
+BEGIN
+  SELECT count(*) INTO visible_count FROM public.companies
+    WHERE id=current_setting('test.rls.company_id')::uuid;
+  IF visible_count <> 1 THEN RAISE EXCEPTION 'RLS FAIL: company owner cannot read owned company'; END IF;
+END;
+$company_owner$;
+RESET ROLE;
+
+-- Exercise scoped SECURITY DEFINER RPCs against real relationships while a different user probes them.
+UPDATE public.profiles
+SET role = 'admin'
+WHERE user_id = current_setting('test.rls.doctor_a_user')::uuid;
+
+UPDATE public.doctors SET active=true WHERE id=current_setting('test.rls.doctor_b_id')::uuid;
+INSERT INTO public.patient_care_team (patient_id, doctor_id, role, active)
+VALUES (
+  current_setting('test.rls.patient_b_id')::uuid,
+  current_setting('test.rls.doctor_b_id')::uuid,
+  'primary',
+  true
+);
+UPDATE public.doctors SET active=false WHERE id=current_setting('test.rls.doctor_b_id')::uuid;
+
+INSERT INTO public.medical_record_authorizations (
+  record_id, authorized_user_id, authorized_by_user_id, reason, valid_until
+)
+VALUES (
+  current_setting('test.rls.record_b_id')::uuid,
+  current_setting('test.rls.patient_b_user')::uuid,
+  current_setting('test.rls.patient_a_user')::uuid,
+  'RLS authorization guard smoke test',
+  now() + interval '1 hour'
+);
+
+-- The production heartbeat table is not versioned in the migration history; create a minimal test-only shape.
+CREATE TABLE IF NOT EXISTS public.doctor_heartbeats (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  doctor_id uuid NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+INSERT INTO public.doctor_heartbeats (doctor_id, created_at)
+VALUES (current_setting('test.rls.doctor_b_id')::uuid, now() - interval '5 minutes');
+
+-- A different patient cannot probe admin status, authorization, or relationships.
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', current_setting('test.rls.patient_a_user'), 'role', 'authenticated')::text, true);
+DO $unrelated_patient$
+DECLARE denied boolean := false;
+BEGIN
+  IF public.is_platform_or_org_admin(current_setting('test.rls.doctor_a_user')::uuid) THEN
+    RAISE EXCEPTION 'SECURITY FAIL: caller can probe another user admin status';
   END IF;
-  RAISE NOTICE 'OK: Patient A sees own patient row';
-
-  -- Patient A querying patient B should return 0 rows via RLS
-  -- (Direct query as patient A looking for patient B's user_id)
-  SELECT count(*) INTO row_count
-    FROM public.patients WHERE id = patient_b_id AND user_id = u_patient_b;
-  -- Under strict RLS, patient A's JWT should filter out patient B's row
-  -- NOTE: This test validates the policy exists; actual enforcement depends on
-  -- the query being run through the anon/authenticated role, not superuser.
-  RAISE NOTICE 'OK: Patient isolation policy verified (patients)';
-
-  -- =========================================================================
-  -- TEST 2: Doctor A can see own doctor row, NOT doctor B's
-  -- =========================================================================
-  RAISE NOTICE '--- Test 2: Doctor isolation (doctors table) ---';
-  PERFORM set_config('request.jwt.claims',
-    json_build_object('sub', u_doctor_a, 'role', 'authenticated')::text, true);
-
-  SELECT count(*) INTO row_count
-    FROM public.doctors WHERE id = doctor_a_id AND user_id = u_doctor_a;
-  IF row_count < 1 THEN
-    RAISE EXCEPTION 'FAIL: Doctor A cannot see own row in doctors';
+  IF public.has_active_authorization(
+    current_setting('test.rls.record_b_id')::uuid,
+    current_setting('test.rls.patient_b_user')::uuid
+  ) THEN
+    RAISE EXCEPTION 'SECURITY FAIL: caller can probe another user medical authorization';
   END IF;
-  RAISE NOTICE 'OK: Doctor A sees own doctor row';
-
-  -- =========================================================================
-  -- TEST 3: Appointments are scoped to participants
-  -- =========================================================================
-  RAISE NOTICE '--- Test 3: Appointment participant scoping ---';
-
-  -- As patient A, should see appointment with doctor A
-  PERFORM set_config('request.jwt.claims',
-    json_build_object('sub', u_patient_a, 'role', 'authenticated')::text, true);
-
-  SELECT count(*) INTO row_count
-    FROM public.appointments WHERE id = appt_ab_id;
-  IF row_count < 1 THEN
-    RAISE EXCEPTION 'FAIL: Patient A cannot see own appointment';
+  IF public.is_in_care_team(
+    current_setting('test.rls.doctor_b_id')::uuid,
+    current_setting('test.rls.patient_b_id')::uuid
+  ) THEN
+    RAISE EXCEPTION 'SECURITY FAIL: caller can probe another care team relationship';
   END IF;
-  RAISE NOTICE 'OK: Patient A sees own appointment';
-
-  -- As doctor A, should see appointment with patient A
-  PERFORM set_config('request.jwt.claims',
-    json_build_object('sub', u_doctor_a, 'role', 'authenticated')::text, true);
-
-  SELECT count(*) INTO row_count
-    FROM public.appointments WHERE id = appt_ab_id;
-  IF row_count < 1 THEN
-    RAISE EXCEPTION 'FAIL: Doctor A cannot see assigned appointment';
+  IF public.doctor_can_chat_with_patient(
+    current_setting('test.rls.doctor_b_id')::uuid,
+    current_setting('test.rls.patient_b_id')::uuid
+  ) THEN
+    RAISE EXCEPTION 'SECURITY FAIL: caller can probe another chat relationship';
   END IF;
-  RAISE NOTICE 'OK: Doctor A sees assigned appointment';
 
-  -- =========================================================================
-  -- TEST 4: Medical records are isolated by patient
-  -- =========================================================================
-  RAISE NOTICE '--- Test 4: Medical record isolation ---';
-
-  -- Patient A should see record A
-  PERFORM set_config('request.jwt.claims',
-    json_build_object('sub', u_patient_a, 'role', 'authenticated')::text, true);
-
-  SELECT count(*) INTO row_count
-    FROM public.medical_records WHERE id = mr_a_id;
-  IF row_count < 1 THEN
-    RAISE EXCEPTION 'FAIL: Patient A cannot see own medical record';
-  END IF;
-  RAISE NOTICE 'OK: Patient A sees own medical record';
-
-  -- Doctor A (care team for patient A) should see record A
-  PERFORM set_config('request.jwt.claims',
-    json_build_object('sub', u_doctor_a, 'role', 'authenticated')::text, true);
-
-  SELECT count(*) INTO row_count
-    FROM public.medical_records WHERE id = mr_a_id;
-  IF row_count < 1 THEN
-    RAISE EXCEPTION 'FAIL: Doctor A cannot see care team medical record';
-  END IF;
-  RAISE NOTICE 'OK: Doctor A sees care team medical record';
-
-  -- =========================================================================
-  -- TEST 5: Company owner sees own company
-  -- =========================================================================
-  RAISE NOTICE '--- Test 5: Company owner access ---';
-  PERFORM set_config('request.jwt.claims',
-    json_build_object('sub', u_company, 'role', 'authenticated')::text, true);
-
-  SELECT count(*) INTO row_count
-    FROM public.companies WHERE id = company_a_id;
-  IF row_count < 1 THEN
-    RAISE EXCEPTION 'FAIL: Company owner cannot see own company';
-  END IF;
-  RAISE NOTICE 'OK: Company owner sees own company';
-
-  -- =========================================================================
-  -- TEST 6: Cross-role isolation - patient cannot see doctor rows
-  -- =========================================================================
-  RAISE NOTICE '--- Test 6: Cross-role isolation ---';
-  PERFORM set_config('request.jwt.claims',
-    json_build_object('sub', u_patient_a, 'role', 'authenticated')::text, true);
-
-  -- Patient should not be able to modify doctors table
   BEGIN
-    UPDATE public.doctors SET bio = 'hacked' WHERE id = doctor_a_id;
-    -- If we get here without error, check if rows were affected
-    GET DIAGNOSTICS row_count = ROW_COUNT;
-    IF row_count > 0 THEN
-      RAISE EXCEPTION 'FAIL: Patient was able to update doctor row';
-    END IF;
-    RAISE NOTICE 'OK: Patient cannot modify doctor rows (0 rows affected)';
+    PERFORM public.get_doctor_online_minutes(
+      current_setting('test.rls.doctor_b_id')::uuid,
+      now() - interval '1 hour',
+      now()
+    );
   EXCEPTION WHEN insufficient_privilege THEN
-    RAISE NOTICE 'OK: Patient blocked from modifying doctor rows (RLS denied)';
+    denied := true;
   END;
+  IF NOT denied THEN
+    RAISE EXCEPTION 'SECURITY FAIL: caller can read another doctor activity';
+  END IF;
+END;
+$unrelated_patient$;
+RESET ROLE;
 
-  -- =========================================================================
-  -- TEST 7: Doctor can only see patients they have appointments with
-  -- =========================================================================
-  RAISE NOTICE '--- Test 7: Doctor-patient care team scoping ---';
-  PERFORM set_config('request.jwt.claims',
-    json_build_object('sub', u_doctor_a, 'role', 'authenticated')::text, true);
+-- Participants retain access to their own relationship and authorization checks.
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', current_setting('test.rls.patient_b_user'), 'role', 'authenticated')::text, true);
+DO $patient_participant$
+BEGIN
+  IF NOT public.has_active_authorization(current_setting('test.rls.record_b_id')::uuid) THEN
+    RAISE EXCEPTION 'SECURITY FAIL: authorized patient cannot validate own authorization';
+  END IF;
+  IF NOT public.is_in_care_team(
+    current_setting('test.rls.doctor_b_id')::uuid,
+    current_setting('test.rls.patient_b_id')::uuid
+  ) THEN
+    RAISE EXCEPTION 'SECURITY FAIL: patient cannot validate own care team relationship';
+  END IF;
+  IF NOT public.doctor_can_chat_with_patient(
+    current_setting('test.rls.doctor_b_id')::uuid,
+    current_setting('test.rls.patient_b_id')::uuid
+  ) THEN
+    RAISE EXCEPTION 'SECURITY FAIL: patient cannot validate own chat relationship';
+  END IF;
+END;
+$patient_participant$;
+RESET ROLE;
 
-  -- Doctor A has an appointment with patient A, so should see patient A
-  SELECT count(*) INTO row_count
-    FROM public.patients WHERE id = patient_a_id;
-  -- This depends on the "Doctors can view assigned patients" policy
-  RAISE NOTICE 'OK: Doctor-patient care team scoping verified';
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', current_setting('test.rls.doctor_b_user'), 'role', 'authenticated')::text, true);
+DO $doctor_participant$
+BEGIN
+  IF public.get_doctor_online_minutes(
+    current_setting('test.rls.doctor_b_id')::uuid,
+    now() - interval '1 hour',
+    now()
+  ) <> 5 THEN
+    RAISE EXCEPTION 'SECURITY FAIL: doctor cannot read own online activity';
+  END IF;
+END;
+$doctor_participant$;
+RESET ROLE;
 
-  -- =========================================================================
-  -- Cleanup
-  -- =========================================================================
-  RAISE NOTICE '--- Cleanup ---';
-  DELETE FROM public.medical_records WHERE id IN (mr_a_id, mr_b_id);
-  DELETE FROM public.appointments WHERE id IN (appt_ab_id, appt_bb_id);
-  DELETE FROM public.doctors WHERE id IN (doctor_a_id, doctor_b_id);
-  DELETE FROM public.patients WHERE id IN (patient_a_id, patient_b_id);
-  DELETE FROM public.companies WHERE id = company_a_id;
-  DELETE FROM public.profiles WHERE user_id IN (u_patient_a, u_patient_b, u_doctor_a, u_doctor_b, u_company);
-  EXECUTE 'DELETE FROM auth.users WHERE id IN ('
-    || quote_literal(u_patient_a) || ', '
-    || quote_literal(u_patient_b) || ', '
-    || quote_literal(u_doctor_a) || ', '
-    || quote_literal(u_doctor_b) || ', '
-    || quote_literal(u_company) || ')';
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', current_setting('test.rls.doctor_a_user'), 'role', 'authenticated')::text, true);
+DO $admin_participant$
+BEGIN
+  IF NOT public.is_platform_or_org_admin() THEN
+    RAISE EXCEPTION 'SECURITY FAIL: admin cannot validate own role';
+  END IF;
+  IF NOT public.is_in_care_team(
+    current_setting('test.rls.doctor_b_id')::uuid,
+    current_setting('test.rls.patient_b_id')::uuid
+  ) THEN
+    RAISE EXCEPTION 'SECURITY FAIL: admin cannot inspect care team relationship';
+  END IF;
+END;
+$admin_participant$;
+RESET ROLE;
 
-  RAISE NOTICE '--- RLS Core Tables Tests: ALL PASSED ---';
-END $$;
+DO $privileges$
+BEGIN
+  IF pg_catalog.has_function_privilege('anon', 'public.auto_delete_expired_recordings()', 'EXECUTE') THEN
+    RAISE EXCEPTION 'SECURITY FAIL: anon can execute legacy recording cleanup';
+  END IF;
+  IF pg_catalog.has_function_privilege('authenticated', 'public.auto_delete_expired_recordings()', 'EXECUTE') THEN
+    RAISE EXCEPTION 'SECURITY FAIL: authenticated can execute legacy recording cleanup';
+  END IF;
+  IF NOT pg_catalog.has_function_privilege('service_role', 'public.auto_delete_expired_recordings()', 'EXECUTE') THEN
+    RAISE EXCEPTION 'SECURITY FAIL: service role lost scheduler access';
+  END IF;
+END;
+$privileges$;
+
+
+-- CALL_INTEGRITY_BEGIN: synthetic calls inside the surrounding rollback transaction.
+DO $call_fixture$
+DECLARE call_id uuid := gen_random_uuid();
+BEGIN
+  INSERT INTO public.calls(id, room_id, doctor_id, patient_id, status, created_at, accepted_at)
+  VALUES (call_id, 'integrity-test-' || call_id::text,
+    current_setting('test.rls.doctor_a_id')::uuid,
+    current_setting('test.rls.patient_a_id')::uuid,
+    'connected', now() - interval '10 minutes', now() - interval '9 minutes');
+  PERFORM set_config('test.call_integrity.id', call_id::text, true);
+END;
+$call_fixture$;
+
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims', jsonb_build_object(
+  'sub',current_setting('test.rls.patient_b_user'),'role','authenticated')::text,true);
+DO $call_outsider$
+DECLARE denied boolean := false; visible_count integer;
+BEGIN
+  SELECT count(*) INTO visible_count FROM public.calls WHERE id=current_setting('test.call_integrity.id')::uuid;
+  IF visible_count <> 0 THEN RAISE EXCEPTION 'CALL INTEGRITY FAIL: unrelated user can read call'; END IF;
+  BEGIN
+    PERFORM public.update_call_status(current_setting('test.call_integrity.id')::uuid,'ended','outsider');
+  EXCEPTION WHEN insufficient_privilege THEN denied := true;
+  END;
+  IF NOT denied THEN RAISE EXCEPTION 'CALL INTEGRITY FAIL: unrelated user can change call'; END IF;
+END;
+$call_outsider$;
+RESET ROLE;
+
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims', jsonb_build_object(
+  'sub',current_setting('test.rls.doctor_a_user'),'role','authenticated')::text,true);
+DO $call_participant$
+DECLARE v_call_id uuid := current_setting('test.call_integrity.id')::uuid;
+  first_end timestamptz; event_count integer; denied boolean;
+BEGIN
+  IF NOT public.update_call_status(v_call_id,'ended','participant_ended') THEN
+    RAISE EXCEPTION 'CALL INTEGRITY FAIL: participant cannot end own call';
+  END IF;
+  SELECT ended_at INTO first_end FROM public.calls WHERE id=v_call_id;
+  IF first_end IS NULL THEN RAISE EXCEPTION 'CALL INTEGRITY FAIL: closing timestamp missing'; END IF;
+  IF public.update_call_status(v_call_id,'ended','replayed') THEN
+    RAISE EXCEPTION 'CALL INTEGRITY FAIL: replay performed work';
+  END IF;
+  IF (SELECT ended_at FROM public.calls WHERE id=v_call_id) IS DISTINCT FROM first_end THEN
+    RAISE EXCEPTION 'CALL INTEGRITY FAIL: replay changed closing time';
+  END IF;
+  SELECT count(*) INTO event_count FROM public.call_events WHERE call_events.call_id=v_call_id AND type='status_changed';
+  IF event_count <> 1 THEN RAISE EXCEPTION 'CALL INTEGRITY FAIL: audit event count %',event_count; END IF;
+
+  denied := false;
+  BEGIN PERFORM public.update_call_status(v_call_id,'connected','reopen');
+  EXCEPTION WHEN invalid_parameter_value THEN denied := true; END;
+  IF NOT denied THEN RAISE EXCEPTION 'CALL INTEGRITY FAIL: terminal call reopened'; END IF;
+
+  denied := false;
+  BEGIN UPDATE public.calls SET ended_at=now()+interval '1 day' WHERE id=v_call_id;
+  EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+  IF NOT denied THEN RAISE EXCEPTION 'CALL INTEGRITY FAIL: direct call mutation allowed'; END IF;
+
+  denied := false;
+  BEGIN DELETE FROM public.call_events WHERE call_events.call_id=v_call_id;
+  EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+  IF NOT denied THEN RAISE EXCEPTION 'CALL INTEGRITY FAIL: participant can delete audit'; END IF;
+
+  denied := false;
+  BEGIN INSERT INTO public.call_events(call_id,type,payload) VALUES(v_call_id,'status_changed','{}');
+  EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+  IF NOT denied THEN RAISE EXCEPTION 'CALL INTEGRITY FAIL: participant can forge status audit'; END IF;
+
+  INSERT INTO public.call_events(call_id,type,payload) VALUES(v_call_id,'debug_log','{"source":"synthetic_integrity_test"}');
+END;
+$call_participant$;
+RESET ROLE;
+
+DO $call_privileges$
+BEGIN
+  IF has_function_privilege('anon','public.update_call_status(uuid,public.call_status,text)','EXECUTE')
+    OR has_table_privilege('authenticated','public.calls','INSERT')
+    OR has_table_privilege('authenticated','public.calls','UPDATE')
+    OR has_table_privilege('authenticated','public.calls','DELETE')
+    OR has_table_privilege('authenticated','public.call_events','UPDATE')
+    OR has_table_privilege('authenticated','public.call_events','DELETE') THEN
+    RAISE EXCEPTION 'CALL INTEGRITY FAIL: excessive client privileges remain';
+  END IF;
+END;
+$call_privileges$;
+-- CALL_INTEGRITY_END
+
+ROLLBACK;
+

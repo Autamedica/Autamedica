@@ -326,7 +326,7 @@ class DoctorCertificatesViewModel @Inject constructor(
                         it.copy(
                             isSubmitting = false,
                             createdCertificate = certificate,
-                            userMessage = "Atestado médico emitido con éxito: ${certificate.cuir}",
+                            userMessage = "Borrador de certificado guardado, pendiente de firma: ${certificate.cuir}",
                             userMessageRes = R.string.cert_success_issued_cuir,
                             userMessageArg = certificate.cuir,
                         )

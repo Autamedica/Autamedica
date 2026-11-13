@@ -24,7 +24,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const session = locals.session;
   let isAuth = false;
   if (session) {
-    const role = (session.user.user_metadata as Record<string, unknown>)?.role;
+    const role = (session.user.app_metadata as Record<string, unknown>)?.role;
     if (
       typeof role === "string" &&
       ["admin", "organization_admin", "platform_admin"].includes(role)

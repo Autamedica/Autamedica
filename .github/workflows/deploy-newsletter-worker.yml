@@ -1,0 +1,43 @@
+name: Deploy Newsletter Worker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/newsletter-worker/**'
+      - '.github/workflows/deploy-newsletter-worker.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Newsletter Worker
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: ./.github/actions/setup-pnpm
+        with:
+          node-version: '22'
+          pnpm-version: '9.15.2'
+          build-core: 'false'
+      - name: Validate newsletter worker and audience sync syntax
+        run: pnpm -C apps/newsletter-worker typecheck
+      - name: Check Cloudflare deployment credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::CLOUDFLARE_API_TOKEN missing"; exit 1; }
+      - name: Deploy autamedica-newsletter
+        uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: 5b448192fe4b369642b68ad8f53a7603
+          workingDirectory: apps/newsletter-worker
+          command: deploy

@@ -1,0 +1,67 @@
+---
+const whatsappHref = 'https://wa.me/5491168261552?text=Ol%C3%A1%21%20Gostaria%20de%20falar%20sobre%20solu%C3%A7%C3%B5es%20da%20AutaMedica.';
+const emailHref = 'mailto:contacto@autamedica.com?subject=Contato%20institucional%20-%20AutaMedica';
+---
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="theme-color" content="#050505" />
+<meta name="description" content="Contato institucional da AutaMedica: WhatsApp, e-mail e cartão de contato para salvar no celular." />
+<meta property="og:title" content="AutaMedica | Contato Institucional" />
+<meta property="og:description" content="Telemedicina e soluções digitais para empresas e instituições de saúde." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://www.autamedica.com/contato" />
+<meta property="og:image" content="https://www.autamedica.com/images/brand/logo_bioceramic.png" />
+<link rel="canonical" href="https://www.autamedica.com/contato" />
+<link rel="icon" type="image/png" href="/images/brand/logo_bioceramic.png" />
+<title>Contato Institucional | AutaMedica</title>
+<style>
+:root{color-scheme:light;--blue:#0ea5e9;--ink:#050505;--slate:#334155;--border:#d6e7f5}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:Inter,"Segoe UI",Arial,sans-serif;background:#f5f9fe;color:var(--ink)}
+header{background:var(--ink);border-top:7px solid var(--blue);padding:22px 24px;color:white}
+header a{color:white;text-decoration:none;display:flex;align-items:center;gap:12px;font-weight:800;font-size:22px;letter-spacing:-.4px;max-width:640px;margin:auto}
+header img{width:46px;height:46px;border-radius:12px;object-fit:contain}
+header .blue{color:var(--blue)}
+main{max-width:640px;margin:36px auto;padding:0 20px 40px}
+.card{background:white;border:1px solid var(--border);border-radius:24px;padding:32px;box-shadow:0 18px 55px rgba(16,44,85,.07)}
+.eyebrow{text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:800;color:#075985;margin:0 0 18px}
+h1{font-size:clamp(29px,6vw,39px);letter-spacing:-.05em;line-height:1.12;margin:0 0 7px}
+.role{color:#075985;font-weight:700;margin:0 0 24px}
+.desc{color:var(--slate);line-height:1.6;margin:0 0 28px;max-width:52ch}
+.actions{display:grid;gap:12px}
+.button{display:block;text-align:center;text-decoration:none;border-radius:12px;padding:16px 19px;font-weight:750;font-size:16px;transition:transform .15s}
+.button:focus-visible,a:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+.button:hover{transform:translateY(-1px)}
+.whatsapp{background:#075985;color:white}.save{background:var(--ink);color:white}.email{background:#f1f8ff;color:#075985;border:1px solid #b8d8ef}
+.details{margin-top:28px;border-top:1px solid var(--border);padding-top:20px;display:grid;gap:10px;color:var(--slate);font-size:14px;overflow-wrap:anywhere}
+.details a{color:#075985}.footer{margin-top:22px;text-align:center;color:#64748b;font-size:13px;line-height:1.55}
+@media(max-width:450px){main{margin:20px auto;padding:0 12px 25px}.card{padding:25px 21px;border-radius:18px}}
+@media(prefers-reduced-motion:reduce){.button{transition:none}.button:hover{transform:none}}
+</style>
+</head>
+<body>
+<header><a href="/" aria-label="Página inicial AutaMedica"><img src="/images/brand/logo_bioceramic.png" alt="" loading="eager" /><span>Auta<span class="blue">Medica</span></span></a></header>
+<main>
+<section class="card" aria-label="Cartão de contato institucional">
+<p class="eyebrow">Tecnologia em saúde • Contato institucional</p>
+<h1>Eduardo Marques da Rosa</h1>
+<p class="role">Fundador · Relações Institucionais</p>
+<p class="desc">Telemedicina e soluções digitais para empresas e instituições de saúde. Entre em contato diretamente ou salve meus dados profissionais.</p>
+<div class="actions">
+<a class="button whatsapp" href={whatsappHref} target="_blank" rel="noopener noreferrer">Conversar pelo WhatsApp</a>
+<a class="button save" href="/contato/eduardo-marques.vcf" download="AutaMedica-Eduardo-Marques.vcf">Salvar contato no celular</a>
+<a class="button email" href={emailHref}>Enviar e-mail institucional</a>
+</div>
+<div class="details">
+<div><strong>WhatsApp:</strong> <a href={whatsappHref} target="_blank" rel="noopener noreferrer">+54 9 11 6826-1552</a></div>
+<div><strong>E-mail:</strong> <a href="mailto:contacto@autamedica.com">contacto@autamedica.com</a></div>
+<div><strong>Site:</strong> <a href="https://www.autamedica.com/">www.autamedica.com</a></div>
+</div>
+</section>
+<p class="footer">AutaMedica · Tecnologia em saúde digital<br />Canal para contatos comerciais e institucionais. Não destinado a emergências médicas.</p>
+</main>
+</body>
+</html>

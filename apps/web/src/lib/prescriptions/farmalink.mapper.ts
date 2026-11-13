@@ -32,7 +32,8 @@ function optionalText(value: string | undefined): string | undefined {
 }
 
 function digitsOnly(value: string | number | undefined): string | undefined {
-  if (typeof value === 'number') return String(value);
+  if (typeof value === 'number') return Number.isSafeInteger(value) && value > 0 ? String(value) : undefined;
+  if (value && !/^[0-9][0-9.\s-]*$/.test(value.trim())) return undefined;
   const digits = value?.replace(/\D/g, '');
   return digits || undefined;
 }
@@ -40,16 +41,22 @@ function digitsOnly(value: string | number | undefined): string | undefined {
 function numberFromDigits(value: string | number | undefined, field: string): number {
   const digits = digitsOnly(value);
   if (!digits) throw new FarmalinkMappingError(field);
-  return Number(digits);
+  const parsed = Number(digits);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) throw new FarmalinkMappingError(field);
+  return parsed;
 }
 
 function optionalNumberFromDigits(value: string | number | undefined): number | undefined {
   const digits = digitsOnly(value);
-  return digits ? Number(digits) : undefined;
+  if (value === undefined || value === '') return undefined;
+  if (!digits || !Number.isSafeInteger(Number(digits)) || Number(digits) <= 0) {
+    throw new FarmalinkMappingError('optionalNumericIdentifier');
+  }
+  return Number(digits);
 }
 
 function positiveNumber(value: number | undefined, field: string): number {
-  if (value === undefined || !Number.isFinite(value) || value <= 0) {
+  if (value === undefined || !Number.isSafeInteger(value) || value <= 0) {
     throw new FarmalinkMappingError(field);
   }
   return value;
@@ -59,7 +66,12 @@ function dateOnly(value: string, field: string): string {
   const normalized = assertText(value, field);
   const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!match) throw new FarmalinkMappingError(field, `${field} must use YYYY-MM-DD`);
-  return `${match[1]}-${match[2]}-${match[3]}`;
+  const day = `${match[1]}-${match[2]}-${match[3]}`;
+  const parsed = new Date(`${day}T00:00:00.000Z`);
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== day) {
+    throw new FarmalinkMappingError(field);
+  }
+  return day;
 }
 
 function boolFlag(value: boolean | undefined, defaultValue: FarmalinkBooleanFlag): FarmalinkBooleanFlag {
@@ -142,13 +154,32 @@ function withoutUndefined<T>(value: T): T {
 export function buildFarmalinkAltaRecetaRequest(
   input: FarmalinkPrescriptionMapInput,
 ): FarmalinkAltaRecetaRequest {
+  const validFrom = dateOnly(input.validity.from, 'validity.from');
+  const validTo = dateOnly(input.validity.to, 'validity.to');
+  if (validTo < validFrom) throw new FarmalinkMappingError('validity.to');
+  // Farmalink confirmed that AutaMedica's assigned organization is 182 (2026-11-03).
+  // Fail closed on stale organization configuration instead of issuing as another account.
+  const organizationId = assertText(input.organization.id, 'organization.id');
+  if (organizationId !== '182') throw new FarmalinkMappingError('organization.id');
+  if (input.treatmentType !== undefined && !['N', 'P'].includes(input.treatmentType)) {
+    throw new FarmalinkMappingError('treatmentType');
+  }
   const affiliateName = resolveName(input.affiliate, 'affiliate');
   const prescriberName = resolveName(input.prescriber, 'prescriber');
+
+  // The Farmalink v3 OpenAPI marks matricula.especialidad as required.
+  // Do not send a prescription that will predictably fail schema validation.
+  const specialty = input.prescriber.license.especialidad;
+  if (!specialty || (typeof specialty === 'string' && !specialty.trim()) ||
+      (typeof specialty === 'object' && !specialty.codigo && !specialty.textoLibre)) {
+    throw new FarmalinkMappingError('prescriber.license.especialidad');
+  }
+
   const items = input.items.map((item, index) => {
     const itemDiagnosis = input.diagnosisText ? undefined : diagnostic(item.diagnosisText);
 
     return withoutUndefined({
-      cantidad: item.quantity,
+      cantidad: positiveNumber(item.quantity, `items.${index}.quantity`),
       codProducto: assertText(digitsOnly(item.productCode), `items.${index}.productCode`).padStart(5, '0'),
       codDroga: assertText(digitsOnly(item.drugCode), `items.${index}.drugCode`).padStart(5, '0'),
       textoGenerico: assertText(item.genericText, `items.${index}.genericText`),
@@ -163,16 +194,15 @@ export function buildFarmalinkAltaRecetaRequest(
   const request: FarmalinkAltaRecetaRequest = {
     altaRecetaElectRq: {
       infoCabeceraRq: {
-        idOrganizacion: assertText(input.organization.id, 'organization.id'),
+        idOrganizacion: organizationId,
         tipoOrganizacion: assertText(input.organization.type, 'organization.type'),
         ipOrigen: assertText(input.organization.ipOrigin, 'organization.ipOrigin'),
         infoBrowser: optionalText(input.organization.browserInfo) ?? '',
       },
-      puntoEmisor: input.organization.issuerPointId ? { id: input.organization.issuerPointId } : undefined,
       recElectronica: {
         tipoReceta: optionalText(input.prescriptionType),
-        fechaVigenciaDesde: dateOnly(input.validity.from, 'validity.from'),
-        fechaVigenciaHasta: dateOnly(input.validity.to, 'validity.to'),
+        fechaVigenciaDesde: validFrom,
+        fechaVigenciaHasta: validTo,
         tipoTratamiento: input.treatmentType ?? 'N',
         diagnostico: diagnostic(input.diagnosisText),
         afiliado: {
@@ -266,3 +296,4 @@ export function buildFarmalinkBajaRecetaRequest(
 ): FarmalinkBajaRecetaRequest {
   return { bajaRecetaElectRq: recetaReferenceRequest(input) };
 }
+

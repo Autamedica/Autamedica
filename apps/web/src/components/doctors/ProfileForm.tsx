@@ -213,22 +213,57 @@ export function ProfileForm() {
       )
 
       if (invokeError) {
-        refetchDoctor()
-        setVerificationMessage('No pudimos validarla automáticamente. Quedó pendiente de revisión manual.')
+        // A failed Edge Function invocation is not necessarily a manual-review request.
+        // Only LICENSE_PENDING_REVIEW confirms that the server saved that state.
+        let errorCode: string | undefined
+        try {
+          const context = invokeError.context
+          if (context instanceof Response) {
+            const payload: unknown = await context.json()
+            if (payload && typeof payload === 'object' && 'code' in payload) {
+              const code = (payload as { code?: unknown }).code
+              if (typeof code === 'string') errorCode = code
+            }
+          }
+        } catch {
+          // Network and preflight failures may not include a JSON response.
+        }
+
+        if (errorCode === 'LICENSE_PENDING_REVIEW') {
+          await refetchDoctor()
+          setVerificationMessage(
+            'La matrícula no pudo confirmarse automáticamente en el registro consultado. ' +
+              'La solicitud quedó marcada para revisión manual; no es necesario volver a registrarte.',
+          )
+        } else if (errorCode === 'RATE_LIMITED') {
+          setError('Se alcanzó el límite de intentos. Esperá un minuto antes de volver a verificar.')
+        } else if (errorCode === 'LICENSE_PROFILE_MISMATCH') {
+          setError('La matrícula no coincide con la guardada en tu perfil. Guardá el perfil y volvé a intentar.')
+        } else if (errorCode === 'AUTH_REQUIRED' || errorCode === 'AUTH_INVALID') {
+          setError('La sesión venció. Volvé a iniciar sesión antes de verificar tu matrícula.')
+        } else if (errorCode === 'SSS_TIMEOUT') {
+          setVerificationMessage('El registro nacional no respondió a tiempo. Podés guardar tu perfil ahora; la verificación queda pendiente para reintentarla después.')
+        } else {
+          logger.error('[ProfileForm] license verification failed', { errorCode, invokeError })
+          setVerificationMessage('No se pudo completar la verificación por un problema de conexión o del servicio. ' +
+            'No se confirmó una revisión manual. Podés guardar tu perfil igualmente y reintentar la verificación más tarde.')
+        }
         return
       }
 
       if (data?.success) {
-        refetchDoctor()
+        await refetchDoctor()
         setVerificationMessage(
           data.data.profession
             ? `Matrícula validada como ${data.data.profession}.`
             : 'Matrícula validada.',
         )
+      } else {
+        setError('El servicio no confirmó la validación. Intentá nuevamente más tarde.')
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al validar la matrícula')
       logger.error('[ProfileForm] license verification error', err)
+      setVerificationMessage('No se pudo conectar con el registro nacional. Podés guardar tu perfil igualmente y reintentar la verificación más tarde.')
     } finally {
       setIsVerifyingLicense(false)
     }

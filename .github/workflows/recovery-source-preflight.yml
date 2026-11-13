@@ -1,0 +1,30 @@
+name: Recovery source preflight
+
+on:
+  push:
+    branches: [fix/recovery-source-client-tls]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  source:
+    name: Verify read-only production recovery connection
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - name: Test connection guards
+        run: python3 scripts/db/test_recovery_source.py
+      - name: Verify source with existing encrypted credentials
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: python3 scripts/db/check_recovery_source.py

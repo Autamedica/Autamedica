@@ -41,3 +41,36 @@ export interface PeerStatsSample {
   packetsLost: number
   packetsReceived: number
 }
+
+
+export interface CallQualityTimelineEntry {
+  timestamp: number
+  level: StreamQualityLevel
+  durationMs: number
+}
+
+export interface CallQualityAverageMetrics {
+  packetsLostPct: number | null
+  jitterMs: number | null
+  roundTripTimeMs: number | null
+  inboundVideoBitrateKbps: number | null
+}
+
+export interface CallQualityWorstMetrics {
+  packetsLostPct: number | null
+  jitterMs: number | null
+  roundTripTimeMs: number | null
+  inboundVideoBitrateKbps: number | null
+  framesPerSecond: number | null
+}
+
+export interface CallQualitySummary {
+  totalDurationMs: number
+  qualityBreakdown: Record<StreamQualityLevel, number>
+  timeline: CallQualityTimelineEntry[]
+  worstMetrics: CallQualityWorstMetrics
+  averageMetrics: CallQualityAverageMetrics
+  iceRestartCount: number
+  audioOnlyPeriods: number
+}
+

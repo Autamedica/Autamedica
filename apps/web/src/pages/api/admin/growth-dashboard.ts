@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@autamedica/types";
 import { logger } from "@autamedica/shared";
 import { createAstroAdminClient } from "@/lib/supabase";
+import { readAllPages, reconcileProfiles } from "@/lib/growth/dashboard-reconciliation";
 
 export const prerender = false;
 
@@ -16,6 +17,8 @@ type QueryChain<T> = PromiseLike<QueryResponse<T>> & {
   gte(column: string, value: string): QueryChain<T>;
   ilike(column: string, pattern: string): QueryChain<T>;
   neq(column: string, value: string): QueryChain<T>;
+  or(filters: string): QueryChain<T>;
+  range(from: number, to: number): QueryChain<T>;
   not(column: string, operator: string, value: string): QueryChain<T>;
   order(column: string, options?: { ascending?: boolean }): QueryChain<T>;
   limit(count: number): QueryChain<T>;
@@ -146,10 +149,7 @@ const ADMIN_ROLES = ["admin", "organization_admin", "platform_admin"] as const;
 
 function getMetadataRole(user: App.Locals["session"]["user"] | undefined): string | undefined {
   const appRole = (user?.app_metadata as Record<string, unknown> | undefined)?.role;
-  if (typeof appRole === "string") return appRole;
-
-  const userRole = (user?.user_metadata as Record<string, unknown> | undefined)?.role;
-  return typeof userRole === "string" ? userRole : undefined;
+  return typeof appRole === "string" ? appRole : undefined;
 }
 
 async function isAuthorized(
@@ -245,7 +245,7 @@ function activeLeadSummary(
     leads_by_vertical: countByKey(rows, (row) => row.vertical ?? "general"),
     leads_by_utm_source: countByKey(
       rows,
-      (row) => row.first_utm_source ?? "direct",
+      (row) => row.first_utm_source ?? "unknown",
     ),
     leads_by_day: Object.entries(byDate)
       .sort(([left], [right]) => left.localeCompare(right))
@@ -253,18 +253,20 @@ function activeLeadSummary(
   };
 }
 
-async function exactNewsletterEventCount(
+async function exactEmailEventCount(
   growth: GrowthSchemaClient,
   eventType: string,
   since: string,
+  newsletterOnly = true,
 ): Promise<number> {
-  const { count, error } = await growth
+  let query = growth
     .from<EmailEventRow>("email_events")
     .select("*", { count: "exact", head: true })
     .eq("provider", "resend")
     .eq("event_type", eventType)
-    .ilike("subject", "%Salud Digital%")
     .gte("received_at", since);
+  if (newsletterOnly) query = query.ilike("subject", "%Salud Digital%");
+  const { count, error } = await query;
 
   if (error) throw new Error(error.message);
   return count ?? 0;
@@ -296,7 +298,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const admin = createAstroAdminClient(
       runtimeEnv,
     ) as unknown as SupabaseClient<Database>;
-    const growth = (admin as any).schema("growth_os") as unknown as GrowthSchemaClient;
+    const growth = (admin as unknown as { schema(name: string): GrowthSchemaClient }).schema("growth_os");
 
     const { data, error } = await growth.rpc<DashboardSummary>(
       "dashboard_summary",
@@ -327,6 +329,15 @@ export const GET: APIRoute = async ({ request, locals }) => {
         .limit(50),
     ]);
 
+    const [profileIdentities, leadIdentities] = await Promise.all([
+      readAllPages<{ user_id: string; email: string | null }>((from, to) =>
+        admin.from("profiles").select("user_id, email")
+          .gte("created_at", since).order("user_id").range(from, to)),
+      readAllPages<{ email: string | null }>((from, to) =>
+        growth.from<{ email: string | null }>("leads").select("email")
+          .order("id").range(from, to)),
+    ]);
+    const reconciliation = reconcileProfiles(profileIdentities, leadIdentities);
     const recentProfiles = profilesListResult.data ?? [];
     if (
       profilesCountResult.error ||
@@ -350,15 +361,11 @@ export const GET: APIRoute = async ({ request, locals }) => {
       .select("email, vertical, first_utm_source, created_at")
       .gte("created_at", since)
       .neq("status", "unsubscribed")
-      .neq("first_utm_source", "codex")
+      .or("first_utm_source.is.null,first_utm_source.neq.codex")
       .not("email", "ilike", "%@autamedica.test")
       .limit(5000);
 
-    if (activeLeadsError) {
-      logger.error("[growth/dashboard] Failed to fetch active lead metrics", {
-        error: activeLeadsError,
-      });
-    }
+    if (activeLeadsError) throw new Error(activeLeadsError.message);
 
     // Also fetch recent leads for the table
     const { data: recentLeads, error: leadsError } = await growth
@@ -368,7 +375,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       )
       .gte("created_at", since)
       .neq("status", "unsubscribed")
-      .neq("first_utm_source", "codex")
+      .or("first_utm_source.is.null,first_utm_source.neq.codex")
       .not("email", "ilike", "%@autamedica.test")
       .order("created_at", { ascending: false })
       .limit(50);
@@ -426,6 +433,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       .select(
         "id, provider, event_type, message_id, broadcast_id, subject, received_at",
       )
+      .eq("provider", "resend")
       .gte("received_at", since)
       .order("received_at", { ascending: false })
       .limit(500);
@@ -445,13 +453,19 @@ export const GET: APIRoute = async ({ request, locals }) => {
       newsletterDelayed,
       newsletterOpened,
       newsletterClicked,
+      allEmailSent,
+      allEmailDelivered,
+      allEmailClicked,
     ] = await Promise.all([
-      exactNewsletterEventCount(growth, "email.sent", since),
-      exactNewsletterEventCount(growth, "email.delivered", since),
-      exactNewsletterEventCount(growth, "email.bounced", since),
-      exactNewsletterEventCount(growth, "email.delivery_delayed", since),
-      exactNewsletterEventCount(growth, "email.opened", since),
-      exactNewsletterEventCount(growth, "email.clicked", since),
+      exactEmailEventCount(growth, "email.sent", since),
+      exactEmailEventCount(growth, "email.delivered", since),
+      exactEmailEventCount(growth, "email.bounced", since),
+      exactEmailEventCount(growth, "email.delivery_delayed", since),
+      exactEmailEventCount(growth, "email.opened", since),
+      exactEmailEventCount(growth, "email.clicked", since),
+      exactEmailEventCount(growth, "email.sent", since, false),
+      exactEmailEventCount(growth, "email.delivered", since, false),
+      exactEmailEventCount(growth, "email.clicked", since, false),
     ]);
     const resendEvents = eventRows.filter(
       (event) => event.provider === "resend",
@@ -495,11 +509,28 @@ export const GET: APIRoute = async ({ request, locals }) => {
         source: "public.profiles",
         profiles_created: profilesCountResult.count ?? 0,
         newsletter_subscribed: newsletterProfilesCountResult.count ?? 0,
-        recent_profiles: recentProfiles as ProfileSignupRow[],
+        reconciliation: {
+          source: "normalized_email_all_growth_leads",
+          profiles_checked: reconciliation.profiles_checked,
+          matched_profiles: reconciliation.matched_profiles,
+          unmatched_profiles: reconciliation.unmatched_profiles,
+          profiles_without_email: reconciliation.profiles_without_email,
+        },
+        recent_profiles: (recentProfiles as ProfileSignupRow[]).map((profile) => ({
+          ...profile,
+          growth_lead_match: reconciliation.matches.get(profile.user_id) ?? "unknown",
+        })),
       },
       recent_leads: recentLeads ?? [],
       email_jobs: emailStats ?? [],
       nurturing_sequences: sequences ?? [],
+      resend: {
+        source: "growth_os.email_events; provider=resend; all subjects",
+        sent_events: allEmailSent,
+        delivered_events: allEmailDelivered,
+        clicked_events: allEmailClicked,
+        last_event_at: eventsError ? null : resendEvents[0]?.received_at ?? null,
+      },
       newsletter: {
         source: "newsletter_editions + Resend newsletter email_events",
         sent_broadcasts: newsletterRows.filter(
@@ -540,3 +571,4 @@ export const GET: APIRoute = async ({ request, locals }) => {
     return json({ error: "dashboard_failed" }, 500);
   }
 };
+

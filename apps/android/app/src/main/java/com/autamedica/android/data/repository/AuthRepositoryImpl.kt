@@ -7,10 +7,21 @@ import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.logging.SecureLog
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.mapLatest
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
+
+/** UI role resolution fails closed if the database profile is unavailable. */
+internal fun authoritativeUiRole(profileRole: String?): String {
+    val role = profileRole?.trim()?.lowercase()
+    require(role != null && UserRole.entries.any { it.wireName == role }) {
+        "No se pudo verificar el rol del perfil"
+    }
+    return role
+}
 
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
@@ -18,22 +29,39 @@ class AuthRepositoryImpl @Inject constructor(
     private val securePrefs: SecurePreferences,
 ) : AuthRepository {
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     override fun observeSession(): Flow<User?> {
-        return authDataSource.observeAuthUser().map { authUser ->
-            authUser?.toDomainUser()
+        return authDataSource.observeAuthUser().mapLatest { authUser ->
+            if (authUser == null) return@mapLatest null
+            try {
+                val role = authoritativeUiRole(authDataSource.fetchUserRole(authUser.id))
+                persistResolvedRole(authUser.id, role)
+                authUser.toDomainUser(role)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                SecureLog.warn("Unable to resolve session profile", e)
+                null
+            }
         }
+    }
+
+    private fun persistResolvedRole(userId: String, role: String) {
+        if (!authDataSource.isCurrentUser(userId)) {
+            throw CancellationException("Session changed during profile resolution")
+        }
+        securePrefs.putString(SecurePreferences.KEY_USER_ID, userId)
+        securePrefs.putString(SecurePreferences.KEY_USER_ROLE, role)
     }
 
     override suspend fun login(email: String, password: String, selectedRole: UserRole?): Result<User> {
         return try {
             val authUser = authDataSource.signIn(email, password)
 
-            // If role is not in JWT metadata, fetch from profiles table; fallback to selectedRole
-            val dbRole = authUser.role ?: authDataSource.fetchUserRole(authUser.id)
-            val effectiveRole = dbRole ?: selectedRole?.wireName ?: "patient"
+            // The selected role is a login preference, never an authorization source.
+            val effectiveRole = authoritativeUiRole(authDataSource.fetchUserRole(authUser.id))
 
-            securePrefs.putString(SecurePreferences.KEY_USER_ID, authUser.id)
-            securePrefs.putString(SecurePreferences.KEY_USER_ROLE, effectiveRole)
+            persistResolvedRole(authUser.id, effectiveRole)
 
             val user = User(
                 id = authUser.id,
@@ -41,6 +69,8 @@ class AuthRepositoryImpl @Inject constructor(
                 role = parseRole(effectiveRole),
             )
             Result.success(user)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             SecureLog.error("Login failed", e)
             Result.failure(e)
@@ -50,11 +80,9 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun loginWithGoogle(idToken: String, selectedRole: UserRole?): Result<User> {
         return try {
             val authUser = authDataSource.signInWithGoogle(idToken)
-            val dbRole = authUser.role ?: authDataSource.fetchUserRole(authUser.id)
-            val effectiveRole = dbRole ?: selectedRole?.wireName ?: "patient"
+            val effectiveRole = authoritativeUiRole(authDataSource.fetchUserRole(authUser.id))
 
-            securePrefs.putString(SecurePreferences.KEY_USER_ID, authUser.id)
-            securePrefs.putString(SecurePreferences.KEY_USER_ROLE, effectiveRole)
+            persistResolvedRole(authUser.id, effectiveRole)
 
             val user = User(
                 id = authUser.id,
@@ -62,6 +90,8 @@ class AuthRepositoryImpl @Inject constructor(
                 role = parseRole(effectiveRole),
             )
             Result.success(user)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             SecureLog.error("Google login failed", e)
             Result.failure(e)
@@ -73,19 +103,22 @@ class AuthRepositoryImpl @Inject constructor(
             val authUser = authDataSource.signUp(email, password, selectedRole.wireName)
             if (authUser != null) {
                 val requiresEmailConfirmation = authDataSource.getCurrentUser() == null
+                val effectiveRole = if (requiresEmailConfirmation) "patient"
+                    else authoritativeUiRole(authDataSource.fetchUserRole(authUser.id))
                 if (!requiresEmailConfirmation) {
-                    securePrefs.putString(SecurePreferences.KEY_USER_ID, authUser.id)
-                    securePrefs.putString(SecurePreferences.KEY_USER_ROLE, selectedRole.wireName)
+                    persistResolvedRole(authUser.id, effectiveRole)
                 }
                 val user = User(
                     id = authUser.id,
                     email = authUser.email,
-                    role = parseRole(authUser.role ?: selectedRole.wireName)
+                    role = parseRole(effectiveRole)
                 )
                 Result.success(com.autamedica.android.domain.repository.UserRegistrationResult(user, requiresEmailConfirmation))
             } else {
                 Result.failure(Exception("Failed to register user"))
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             val errorMsg = e.message ?: ""
             if (errorMsg.contains("User already registered", ignoreCase = true)) {
@@ -101,6 +134,8 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun logout() {
         try {
             authDataSource.signOut()
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             SecureLog.warn("Sign out error (clearing local state anyway)", e)
         }
@@ -112,24 +147,23 @@ class AuthRepositoryImpl @Inject constructor(
             val authUser = authDataSource.getCurrentUser() ?: return null
 
             // Ensure SecurePreferences are hydrated for restored sessions
-            securePrefs.putString(SecurePreferences.KEY_USER_ID, authUser.id)
-            val role = authUser.role ?: authDataSource.fetchUserRole(authUser.id)
-            if (role != null) {
-                securePrefs.putString(SecurePreferences.KEY_USER_ROLE, role)
-            }
+            val role = authoritativeUiRole(authDataSource.fetchUserRole(authUser.id))
+            persistResolvedRole(authUser.id, role)
 
-            authUser.toDomainUser()
+            authUser.toDomainUser(role)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             SecureLog.warn("Failed to get current user", e)
             null
         }
     }
 
-    private fun com.autamedica.android.data.remote.AuthUser.toDomainUser(): User {
+    private fun com.autamedica.android.data.remote.AuthUser.toDomainUser(authoritativeRole: String): User {
         return User(
             id = id,
             email = email,
-            role = parseRole(role ?: securePrefs.getString(SecurePreferences.KEY_USER_ROLE)),
+            role = parseRole(authoritativeRole),
             firstName = displayName ?: "",
             phone = phone,
         )

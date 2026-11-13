@@ -131,7 +131,7 @@ fun DoctorPrescriptionsScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onNavigateToCreatePrescription,
-                containerColor = PortalDoctors,
+                containerColor = PortalDoctorsAction,
                 contentColor = Color.White,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text(stringResource(R.string.doctor_rx_action_new), fontWeight = FontWeight.SemiBold) },

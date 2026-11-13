@@ -1,0 +1,30 @@
+name: Farmalink verify two issued TEST recipes (read only)
+
+on:
+  push:
+    branches:
+      - fix/farmalink-org-182-homologacion-20261103
+    paths:
+      - '.github/workflows/farmalink-read-two-test.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test-lookup:
+    if: "github.event.head_commit.message == 'ci(farmalink): inspect nested TEST product name'"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      FARMALINK_TEST_OAUTH_PASSWORD: ${{ secrets.FARMALINK_TEST_OAUTH_PASSWORD }}
+      FARMALINK_TEST_BASIC_PASSWORD: ${{ secrets.FARMALINK_TEST_BASIC_PASSWORD }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - name: ConsultaReceta only, no alta and no baja
+        run: python3 scripts/farmalink/read_two_test_recipes.py

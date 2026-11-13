@@ -1,0 +1,777 @@
+# AutaMedica — CircleCI Free. No automatic production publishing.
+# Smoke/web/Android test workflows remain manual and use placeholder secrets.
+# A separate GitHub release-tag workflow creates an INTERNAL-TRACK DRAFT only.
+version: 2.1
+
+parameters:
+  run_smoke:
+    type: boolean
+    default: false
+  run_web:
+    type: boolean
+    default: false
+  run_android:
+    type: boolean
+    default: false
+  run_jordan_gate:
+    type: boolean
+    default: false
+  run_jordan_candidate:
+    type: boolean
+    default: false
+
+jobs:
+  jordan_source_identity:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: small
+    environment:
+      JORDAN_CI_CHECKOUT_SHA: "<< pipeline.git.revision >>"
+      JORDAN_CI_CONFIG_SHA: "<< pipeline.config.sha >>"
+      JORDAN_CI_CHECKOUT_BRANCH: "<< pipeline.git.branch >>"
+      JORDAN_CI_CONFIG_REF: "<< pipeline.config.ref >>"
+      JORDAN_CI_CONFIG_REPO: "<< pipeline.config.repository.name >>"
+      JORDAN_CI_CHECKOUT_REPO: "<< pipeline.git.repo_owner >>/<< pipeline.git.repo_name >>"
+    steps:
+      - checkout
+      - run:
+          name: Reject cross-branch, cross-commit or wrong-config Jordan builds
+          command: bash scripts/ci/verify-jordan-main-source.sh
+
+  jordan_candidate_source_identity:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: small
+    environment:
+      JORDAN_CI_CHECKOUT_SHA: "<< pipeline.git.revision >>"
+      JORDAN_CI_CONFIG_SHA: "<< pipeline.config.sha >>"
+      JORDAN_CI_CHECKOUT_BRANCH: "<< pipeline.git.branch >>"
+      JORDAN_CI_CONFIG_REF: "<< pipeline.config.ref >>"
+      JORDAN_CI_CONFIG_REPO: "<< pipeline.config.repository.name >>"
+      JORDAN_CI_CHECKOUT_REPO: "<< pipeline.git.repo_owner >>/<< pipeline.git.repo_name >>"
+    steps:
+      - checkout
+      - run:
+          name: Non-main candidate branch source and configuration fingerprint
+          command: bash scripts/ci/verify-jordan-candidate-source.sh
+
+  auth_recovery_source_identity:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: small
+    environment:
+      AUTH_CI_CHECKOUT_SHA: "<< pipeline.git.revision >>"
+      AUTH_CI_CHECKOUT_BRANCH: "<< pipeline.git.branch >>"
+    steps:
+      - checkout
+      - run:
+          name: Verify isolated password-recovery source
+          command: |
+            set -euo pipefail
+            test "$AUTH_CI_CHECKOUT_BRANCH" = "fix/password-reset-pkce-flow-20261109"
+            test -n "$AUTH_CI_CHECKOUT_SHA"
+            test "$(git rev-parse HEAD)" = "$AUTH_CI_CHECKOUT_SHA"
+            echo "Validated password recovery candidate $AUTH_CI_CHECKOUT_SHA"
+
+  auth_recovery_web:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: medium
+    environment:
+      CI: "true"
+      HUSKY: "0"
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+    steps:
+      - checkout
+      - run:
+          name: Install locked workspace dependencies
+          command: |
+            corepack enable
+            corepack prepare pnpm@9.15.2 --activate
+            pnpm install --frozen-lockfile
+          no_output_timeout: 15m
+      - run:
+          name: Build workspace dependencies required by Vitest
+          command: pnpm --filter '@autamedica/web^...' run build
+          no_output_timeout: 15m
+      - run:
+          name: Password recovery PKCE and policy regressions
+          command: |
+            pnpm --filter @autamedica/web exec vitest run \
+              src/lib/__tests__/password-recovery.test.ts \
+              src/lib/__tests__/auth-recovery-session.test.ts \
+              src/lib/__tests__/password-policy.test.ts \
+              src/lib/__tests__/sentry-url-redaction.test.ts \
+              src/lib/__tests__/safe-auth-navigation.test.ts
+          no_output_timeout: 10m
+      - run:
+          name: Web typecheck and non-deploying production build
+          command: |
+            pnpm --filter @autamedica/web check
+            pnpm --filter @autamedica/web build
+          no_output_timeout: 15m
+
+  smoke:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Smarter Testing — offline clinical, privacy and Android policy smoke
+          command: circleci testsuite run "autamedica smoke"
+      - store_test_results:
+          path: test-results/smarter-testing
+
+  # Diagnostic only. CI runs doctor on the Smarter Testing feature branch.
+  # No secrets, deployment, Android signing or credit-charged testing features.
+  smarter_doctor:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Verify CircleCI Smarter Testing smoke suite
+          command: circleci testsuite doctor "autamedica smoke" --json
+      - store_test_results:
+          path: test-results/smarter-testing
+
+  jordan_sql_contract:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Jordan offline DB/API/security source invariants (NOT SQL replay)
+          command: node --test scripts/ci/jordan-release-contract.test.mjs
+
+  jordan_deno:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Deno synthetic SFU authorization, Jordan payment and country isolation
+          command: |
+            # Pinned Deno CLI via npm; the CircleCI Node image includes git for checkout.
+            npx --yes deno@2.4.5 --version
+            npx --yes deno@2.4.5 test --no-check --allow-env --allow-net supabase/functions/tests/cloudflare-calls.test.ts
+          no_output_timeout: 10m
+
+  web:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: medium
+    environment:
+      CI: "true"
+      HUSKY: "0"
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+    steps:
+      - checkout
+      - run:
+          name: Install locked workspace dependencies
+          command: |
+            corepack enable
+            corepack prepare pnpm@9.15.2 --activate
+            pnpm install --frozen-lockfile
+          no_output_timeout: 15m
+      - run:
+          name: Build workspace dependencies required by Vitest
+          command: |
+            # Workspace packages export dist/ files, which a fresh pnpm install does not generate.
+            # Build only the transitive dependencies of the web package, not the Astro web app itself.
+            pnpm --filter '@autamedica/web^...' run build
+          no_output_timeout: 15m
+      - run:
+          name: Verify clinical dispatch and optional signed-QR regression
+          command: |
+            pnpm --filter @autamedica/web exec vitest run 'src/pages/api/pharmacy/dispatch/request.test.ts'
+            if [ -f 'apps/web/src/pages/api/verify/[cuir].test.ts' ]; then
+              pnpm --filter @autamedica/web exec vitest run 'src/pages/api/verify/[cuir].test.ts'
+            else
+              echo 'VERIFY TEST NOT PRESENT ON THIS BRANCH: QR signature verification NOT validated by this job.'
+            fi
+          no_output_timeout: 10m
+
+      - run:
+          name: Jordan checkout, finance, media and provider unit regressions
+          command: |
+            pnpm --filter @autamedica/web exec vitest run \
+              src/pages/api/pharmacy/dispatch/request.test.ts \
+              src/pages/api/pharmacy/dispatch/payment/create.test.ts \
+              src/lib/pharmacy/payments/referral-finance.test.ts \
+              src/lib/pharmacy/payments/jordan-media-access.test.ts \
+              src/lib/calls/web-cloudflare-media-authorization.test.ts
+            pnpm --filter @autamedica/telemedicine exec vitest run src/server/cloudflare-calls-handler.test.ts
+            if [ -f 'apps/web/src/lib/pharmacy/payments/jordan-commission-eligibility.test.ts' ]; then
+              pnpm --filter @autamedica/web exec vitest run src/lib/pharmacy/payments/jordan-commission-eligibility.test.ts
+            else
+              echo 'GATE 5 IDENTITY TEST ABSENT ON THIS COMMIT — NOT RELEASE APPROVED'
+            fi
+            if [ -f 'apps/web/src/lib/calls/sfu-room-binding.test.ts' ]; then
+              pnpm --filter @autamedica/web exec vitest run src/lib/calls/sfu-room-binding.test.ts
+            else
+              echo 'GATE 7 SFU SESSION BINDING TEST ABSENT ON THIS COMMIT — NOT RELEASE APPROVED'
+            fi
+          no_output_timeout: 10m
+      - run:
+          name: Web Astro typecheck and non-deploying production build
+          command: |
+            pnpm --filter @autamedica/web check
+            pnpm --filter @autamedica/web build
+          no_output_timeout: 15m
+
+  # Parse/configuration probe for the CircleCI syntax-fix PR.
+  # The pipeline must parse this complete config before this branch-only job can start.
+  circleci_config_pr_probe:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Confirm CircleCI parsed the candidate config
+          command: |
+            set -euo pipefail
+            test -s .circleci/config.yml
+            if grep -nE '<{3}' .circleci/config.yml; then
+              echo "NO-GO: Bash here-string remains in CircleCI YAML"
+              exit 1
+            fi
+            echo "PASS: CircleCI parsed this config and the forbidden here-string is absent."
+
+  production_source_identity:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Verify main branch, repository and checkout SHA
+          command: |
+            set -euo pipefail
+            actual_sha="$(git rev-parse HEAD)"
+            printf 'CIRCLE_BRANCH=%s\n' "${CIRCLE_BRANCH:-<unset>}"
+            printf 'CIRCLE_SHA1=%s\n' "${CIRCLE_SHA1:-<unset>}"
+            printf 'GIT_HEAD=%s\n' "${actual_sha}"
+            [[ "${CIRCLE_BRANCH:-}" == "main" ]] || { echo "NO-GO: production deploy is restricted to main"; exit 1; }
+            [[ -n "${CIRCLE_SHA1:-}" ]] || { echo "NO-GO: CIRCLE_SHA1 is missing"; exit 1; }
+            [[ "${actual_sha}" == "${CIRCLE_SHA1}" ]] || { echo "NO-GO: checkout SHA differs from CIRCLE_SHA1"; exit 1; }
+            # Verify PR #747 commit (a331c1ff1cbfb417a885b7512db5bb6558c27827) is an ancestor of HEAD
+            git merge-base --is-ancestor a331c1ff1cbfb417a885b7512db5bb6558c27827 "${actual_sha}" || {
+              echo "NO-GO: HEAD does not include required commit a331c1ff1cbfb417a885b7512db5bb6558c27827"; exit 1;
+            }
+            printf 'PASS production source identity: main @ %s\n' "${actual_sha}"
+
+  production_validate_and_test:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: medium
+    environment:
+      CI: "true"
+      HUSKY: "0"
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+    steps:
+      - checkout
+      - run:
+          name: Install locked workspace dependencies
+          command: |
+            corepack enable
+            corepack prepare pnpm@9.15.2 --activate
+            pnpm install --frozen-lockfile
+          no_output_timeout: 15m
+      - run:
+          name: Build workspace core packages and run static validations
+          command: |
+            pnpm build:packages:core
+            pnpm typecheck
+            pnpm lint
+            pnpm hardcode:check
+          no_output_timeout: 20m
+      - run:
+          name: Password recovery PKCE, clinical dispatch and unit test suites
+          command: |
+            pnpm --filter @autamedica/web exec vitest run \
+              src/lib/__tests__/password-recovery.test.ts \
+              src/lib/__tests__/auth-recovery-session.test.ts \
+              src/lib/__tests__/password-policy.test.ts \
+              src/lib/__tests__/sentry-url-redaction.test.ts \
+              src/lib/__tests__/safe-auth-navigation.test.ts \
+              src/pages/api/pharmacy/dispatch/request.test.ts
+            pnpm test:unit
+          no_output_timeout: 20m
+
+  production_pages_deploy:
+    docker:
+      - image: cimg/node:22.15.0
+    resource_class: medium
+    environment:
+      CI: "true"
+      HUSKY: "0"
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+    steps:
+      - checkout
+      - run:
+          name: Verify production credentials and main branch guard (without printing secrets)
+          command: |
+            set -euo pipefail
+            [[ "${CIRCLE_BRANCH:-}" == "main" ]] || {
+              echo "NO-GO: production deployment is restricted to main"; exit 1;
+            }
+            [[ "$(git rev-parse HEAD)" == "${CIRCLE_SHA1:-}" ]] || {
+              echo "NO-GO: checkout SHA does not match CircleCI pipeline SHA"; exit 1;
+            }
+            export PUBLIC_SUPABASE_URL="${PUBLIC_SUPABASE_URL:-${AUTAMEDICA_SUPABASE_URL:-https://qxjjrpksmwwrmubhvjew.supabase.co}}"
+            export PUBLIC_SUPABASE_ANON_KEY="${PUBLIC_SUPABASE_ANON_KEY:-${AUTAMEDICA_SUPABASE_ANON_KEY:-}}"
+            export PUBLIC_SIGNALING_URL="${PUBLIC_SIGNALING_URL:-wss://autamedica-http-signaling-server.marques-eduardo95466020.workers.dev/signaling}"
+            export PUBLIC_APP_URL="${PUBLIC_APP_URL:-https://www.autamedica.com}"
+            export RENAPDIS_RL_NUMBER="${RENAPDIS_RL_NUMBER:-RL-2026-47574120-APN-SSVEIYES#MS}"
+            missing=0
+            for key in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID PUBLIC_SUPABASE_URL PUBLIC_SUPABASE_ANON_KEY; do
+              if [[ -z "${!key:-}" ]]; then
+                echo "MISSING_REQUIRED_VARIABLE: ${key}"
+                missing=1
+              else
+                echo "PRESENT_VARIABLE: ${key}"
+              fi
+            done
+            if [[ "${missing}" -ne 0 ]]; then
+              echo "NO-GO: One or more required CircleCI environment variables are missing. Configure them in CircleCI Project Settings -> Environment Variables."
+              exit 1
+            fi
+      - run:
+          name: Install locked workspace dependencies
+          command: |
+            corepack enable
+            corepack prepare pnpm@9.15.2 --activate
+            pnpm install --frozen-lockfile
+          no_output_timeout: 15m
+      - run:
+          name: Build workspace core packages and @autamedica/web (apps/web -> dist)
+          command: |
+            export PUBLIC_GA4_MEASUREMENT_ID="G-YRN6QY3BTY"
+            export PUBLIC_SUPABASE_URL="${PUBLIC_SUPABASE_URL:-${AUTAMEDICA_SUPABASE_URL:-https://qxjjrpksmwwrmubhvjew.supabase.co}}"
+            export PUBLIC_SUPABASE_ANON_KEY="${PUBLIC_SUPABASE_ANON_KEY:-${AUTAMEDICA_SUPABASE_ANON_KEY:-}}"
+            export PUBLIC_SIGNALING_URL="${PUBLIC_SIGNALING_URL:-wss://autamedica-http-signaling-server.marques-eduardo95466020.workers.dev/signaling}"
+            export PUBLIC_APP_URL="${PUBLIC_APP_URL:-https://www.autamedica.com}"
+            export PUBLIC_PATIENTS_URL="https://paciente.autamedica.com"
+            export PUBLIC_DOCTORS_URL="https://doctor.autamedica.com"
+            export PUBLIC_COMPANIES_URL="https://empresa.autamedica.com"
+            export PUBLIC_ADMIN_URL="https://autamedica-admin.pages.dev"
+            export RENAPDIS_RL_NUMBER="${RENAPDIS_RL_NUMBER:-RL-2026-47574120-APN-SSVEIYES#MS}"
+            pnpm build:packages:core
+            pnpm --filter @autamedica/web build
+            test -d apps/web/dist
+            test -f apps/web/dist/_worker.js/index.js -o -d apps/web/dist/_astro
+          no_output_timeout: 20m
+      - run:
+          name: Deploy all five Cloudflare Pages production projects via Wrangler
+          working_directory: apps/web
+          command: |
+            set -euo pipefail
+            snapshots='{}'
+            projects=(autamedica-web autamedica-doctors autamedica-patients autamedica-companies autamedica-admin)
+            for project in "${projects[@]}"; do
+              response=$(curl --fail --silent --show-error --max-time 30 \
+                "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${project}" \
+                -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+              prev_id=$(printf '%s' "${response}" | jq -er 'select(.success == true) | .result.canonical_deployment.id | select(type == "string" and length > 0)')
+              snapshots=$(printf '%s' "${snapshots}" | jq -c --arg project "${project}" --arg id "${prev_id}" '. + {($project): $id}')
+              echo "Snapshot ${project} previous canonical deployment: ${prev_id}"
+            done
+            for project in "${projects[@]}"; do
+              echo "Deploying ${project} from apps/web/dist to branch main..."
+              npx wrangler pages deploy dist --project-name="${project}" --branch=main --commit-hash="${CIRCLE_SHA1}" --commit-dirty=false
+              response=$(curl --fail --silent --show-error --max-time 30 \
+                "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${project}" \
+                -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+              new_id=$(printf '%s' "${response}" | jq -er 'select(.success == true) | .result.canonical_deployment.id | select(type == "string" and length > 0)')
+              echo "DEPLOYED_PROJECT=${project} DEPLOYMENT_ID=${new_id} COMMIT=${CIRCLE_SHA1}"
+            done
+          no_output_timeout: 20m
+      - run:
+          name: Post-deploy smoke verification of all production domains and PKCE bundle
+          command: |
+            set -euo pipefail
+            sleep 15
+            for url in \
+              https://www.autamedica.com \
+              https://autamedica.com \
+              https://auth.autamedica.com \
+              https://paciente.autamedica.com \
+              https://doctor.autamedica.com \
+              https://empresa.autamedica.com \
+              https://autamedica-admin.pages.dev
+            do
+              status=$(curl -so /dev/null -w '%{http_code}' -L --max-time 30 "${url}")
+              echo "${url}: HTTP ${status}"
+              [[ "${status}" == "200" || "${status}" == "302" ]]
+            done
+            status_404=$(curl -so /dev/null -w '%{http_code}' --max-time 30 "https://www.autamedica.com/nonexistent-$(date +%s).js")
+            [[ "${status_404}" == "404" ]]
+            for origin in https://www.autamedica.com https://autamedica-admin-5r9.pages.dev; do
+              lic_status=$(curl --silent --show-error --max-time 30 -o /dev/null -w '%{http_code}' \
+                -X POST -H 'Content-Type: application/json' \
+                --data '{"doctorId":"00000000-0000-0000-0000-000000000000","persist":false}' \
+                "${origin}/api/admin/doctors/license-verify-live")
+              echo "${origin} license verification: HTTP ${lic_status}"
+              [[ "${lic_status}" == "401" ]]
+            done
+            reset_html=$(curl --fail --silent --show-error -L --max-time 30 "https://www.autamedica.com/auth/reset-password")
+            reset_js_path=$(printf '%s' "${reset_html}" | grep -oE '/_astro/ResetPasswordForm\.[A-Za-z0-9_-]+\.js' | sed -n '1p')
+            echo "Live ResetPasswordForm bundle: ${reset_js_path}"
+            test -n "${reset_js_path}"
+            reset_js=$(curl --fail --silent --show-error -L --max-time 30 "https://www.autamedica.com${reset_js_path}")
+            printf '%s' "${reset_js}" | grep -F "token_hash" >/dev/null
+            printf '%s' "${reset_js}" | grep -F "verifyOtp" >/dev/null
+            echo "VERIFIED: Live production ResetPasswordForm bundle includes PKCE and scanner-safe token_hash recovery."
+
+  android:
+    docker:
+      - image: cimg/android:2026.10
+    resource_class: medium
+    environment:
+      CI: "true"
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8"
+      JAVA_HOME: "/usr/lib/jvm/java-17-openjdk-amd64"
+    steps:
+      - checkout
+      - run:
+          name: Check JDK and Android toolchain (no production secrets)
+          command: |
+            test -x "$JAVA_HOME/bin/java"
+            "$JAVA_HOME/bin/java" -version
+            test -f apps/android/gradlew
+            printf '%s\n' 'SUPABASE_URL=https://placeholder.supabase.co' 'SUPABASE_ANON_KEY=placeholder-key' 'SIGNALING_URL=wss://placeholder.autamedica.invalid/signaling' 'GOOGLE_WEB_CLIENT_ID=placeholder-client-id' > apps/android/local.properties
+            if [ ! -f apps/android/app/google-services.json ]; then
+              printf '%s\n' '{"project_info":{"project_number":"653971537811","project_id":"autamedica-e54fa","storage_bucket":"autamedica-e54fa.firebasestorage.app"},"client":[{"client_info":{"mobilesdk_app_id":"1:653971537811:android:dummy","android_client_info":{"package_name":"com.autamedica.android"}},"oauth_client":[],"api_key":[{"current_key":"dummy"}],"services":{}}],"configuration_version":"1"}' > apps/android/app/google-services.json
+            fi
+      - run:
+          name: Compile Android debug Kotlin (synthetic CI)
+          command: |
+            cd apps/android
+            chmod +x ./gradlew
+            # Isolate the Kotlin compiler failure before running tests or R8/bundling.
+            # Repository Kotlin heap defaults to 3072m; override for Docker medium (4 GB).
+            ./gradlew :app:compileDebugKotlin -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+          no_output_timeout: 25m
+      - run:
+          name: JVM tests and Android test source compilation (synthetic CI)
+          command: |
+            cd apps/android
+            ./gradlew clean testDebugUnitTest compileDebugAndroidTestSources -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+          no_output_timeout: 25m
+      - run:
+          name: Unsigned release bundle (synthetic CI; no Crashlytics upload)
+          command: |
+            cd apps/android
+            # Synthetic placeholders: skip external mapping upload ONLY on manual CI.
+            # Signed tag builds below keep the Crashlytics mapping upload enabled.
+            ./gradlew bundleRelease -x :app:uploadCrashlyticsMappingFileRelease -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+            test -n "$(find app/build/outputs/bundle/release -maxdepth 1 -type f -name '*.aab' -size +0c -print -quit)"
+            echo 'UNSIGNED RELEASE BUNDLE COMPILED — NOT FOR PLAY UPLOAD'
+          no_output_timeout: 25m
+      - run:
+          name: Android failure diagnostics (cgroup memory only; no secrets)
+          when: on_fail
+          command: |
+            echo 'Android build failed. Consult the Gradle error above.'
+            for path in /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.peak /sys/fs/cgroup/memory.max; do
+              if [ -r "$path" ]; then
+                printf '%s\n' "$path"
+                cat "$path"
+              fi
+            done
+
+  # Tag-triggered release only. Secrets are injected from restricted CircleCI contexts.
+  # This workflow NEVER touches production Play track or auto-publishes to users.
+  android_release_bundle:
+    docker:
+      - image: cimg/android:2026.10
+    resource_class: medium
+    working_directory: ~/project
+    environment:
+      CI: "true"
+      JAVA_HOME: "/usr/lib/jvm/java-17-openjdk-amd64"
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8"
+      CIRCLE_RELEASE_TAG: << pipeline.git.tag >>
+      CIRCLE_RELEASE_SHA: << pipeline.git.revision >>
+      CIRCLE_RELEASE_TRIGGER: << pipeline.trigger.type >>
+      CIRCLE_RELEASE_EVENT: << pipeline.event.name >>
+      CIRCLE_RELEASE_CONFIG_REF: << pipeline.config.ref >>
+      CIRCLE_RELEASE_CONFIG_SHA: << pipeline.config.sha >>
+      CIRCLE_RELEASE_CONFIG_REPO: << pipeline.config.repository.name >>
+      CIRCLE_RELEASE_OWNER: << pipeline.git.repo_owner >>
+      CIRCLE_RELEASE_REPO: << pipeline.git.repo_name >>
+    steps:
+      - checkout
+      - run:
+          name: Validate release tag, version and mainline ancestry
+          command: |
+            set -euo pipefail
+            tag="${CIRCLE_RELEASE_TAG:-}"
+            test "${CIRCLE_RELEASE_TRIGGER:-}" = "github_app"
+            test "${CIRCLE_RELEASE_EVENT:-}" = "push"
+            test "${CIRCLE_RELEASE_OWNER:-}" = "ecucondorSA"
+            test "${CIRCLE_RELEASE_REPO:-}" = "Autamedica"
+            test "${CIRCLE_RELEASE_CONFIG_REF:-}" = "refs/tags/$tag"
+            test "${CIRCLE_RELEASE_CONFIG_REPO:-}" = "ecucondorSA/Autamedica"
+            test -n "${CIRCLE_RELEASE_SHA:-}"
+            test "${CIRCLE_RELEASE_CONFIG_SHA:-}" = "$CIRCLE_RELEASE_SHA"
+            test "$(git rev-parse HEAD)" = "$CIRCLE_RELEASE_SHA"
+            echo "$tag" | grep -Eq '^android-v[0-9]+\.[0-9]+\.[0-9]+(-rc[1-9][0-9]*)?$'
+            version="$(sed -nE 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' apps/android/app/build.gradle.kts | sed -n '1p')"
+            test -n "$version"
+            tag_version="${tag#android-v}"
+            tag_version="${tag_version%%-rc*}"
+            test "$tag_version" = "$version"
+            git fetch origin main
+            git merge-base --is-ancestor "$CIRCLE_RELEASE_SHA" FETCH_HEAD || {
+              echo 'Release tag must reference a commit already on main'; exit 1;
+            }
+            echo "Validated release tag: $tag"
+      - run:
+          name: Prepare real signing and Firebase inputs (restricted context)
+          command: |
+            set -euo pipefail
+            python3 .circleci/scripts/prepare_android_release.py
+      - run:
+          name: Compile Android Kotlin for signed release
+          command: |
+            set -euo pipefail
+            cd apps/android
+            chmod +x ./gradlew
+            # Kotlin compiler uses same bounded memory verified in synthetic Android CI.
+            ./gradlew :app:compileDebugKotlin -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+          no_output_timeout: 25m
+      - run:
+          name: Validate Android JVM tests and AndroidTest sources for signed release
+          command: |
+            set -euo pipefail
+            cd apps/android
+            ./gradlew testDebugUnitTest compileDebugAndroidTestSources -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+          no_output_timeout: 25m
+      - run:
+          name: Build and verify SIGNED release AAB (Crashlytics enabled)
+          command: |
+            set -euo pipefail
+            cd apps/android
+            # No Crashlytics task exclusions on real signed releases.
+            ./gradlew bundleRelease -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+            aab="$(find app/build/outputs/bundle/release -maxdepth 1 -type f -name '*.aab' -size +0c -print -quit)"
+            test -n "$aab"
+            jarsigner -verify "$aab" | grep -F 'jar verified.'
+            sha256sum "$aab"
+          no_output_timeout: 25m
+      - run:
+          name: Android failure diagnostics (cgroup memory only; no secrets)
+          when: on_fail
+          command: |
+            echo 'Android build failed. Consult the Gradle error above.'
+            for path in /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.peak /sys/fs/cgroup/memory.max; do
+              if [ -r "$path" ]; then
+                printf '%s\n' "$path"
+                cat "$path"
+              fi
+            done
+      - persist_to_workspace:
+          root: .
+          paths:
+            - apps/android/app/build/outputs/bundle/release
+
+  android_play_internal_draft:
+    docker:
+      - image: cimg/ruby:3.3
+    resource_class: small
+    working_directory: ~/project
+    environment:
+      CI: "true"
+      FASTLANE_SKIP_UPDATE_CHECK: "1"
+      FASTLANE_DISABLE_COLORS: "1"
+      CIRCLE_RELEASE_TAG: << pipeline.git.tag >>
+      CIRCLE_RELEASE_TRIGGER: << pipeline.trigger.type >>
+      CIRCLE_RELEASE_EVENT: << pipeline.event.name >>
+      CIRCLE_RELEASE_CONFIG_SHA: << pipeline.config.sha >>
+      CIRCLE_RELEASE_CONFIG_REPO: << pipeline.config.repository.name >>
+      CIRCLE_RELEASE_SHA: << pipeline.git.revision >>
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Upload signed AAB as INTERNAL DRAFT only (never production)
+          command: |
+            set -euo pipefail
+            test "${CIRCLE_RELEASE_TRIGGER:-}" = "github_app"
+            test "${CIRCLE_RELEASE_EVENT:-}" = "push"
+            test "${CIRCLE_RELEASE_CONFIG_REPO:-}" = "ecucondorSA/Autamedica"
+            test -n "${CIRCLE_RELEASE_TAG:-}"
+            test -n "${CIRCLE_RELEASE_SHA:-}"
+            test "${CIRCLE_RELEASE_CONFIG_SHA:-}" = "$CIRCLE_RELEASE_SHA"
+            test "$(git rev-parse HEAD)" = "$CIRCLE_RELEASE_SHA"
+            echo "$CIRCLE_RELEASE_TAG" | grep -Eq '^android-v[0-9]+\.[0-9]+\.[0-9]+(-rc[1-9][0-9]*)?$'
+            aab="$(find apps/android/app/build/outputs/bundle/release -maxdepth 1 -type f -name '*.aab' -size +0c -print -quit)"
+            test -n "$aab"
+            test -n "${AUTAMEDICA_GOOGLE_PLAY_SERVICE_ACCOUNT:-}"
+            json_key="$(mktemp)"
+            trap 'rm -f "$json_key"' EXIT
+            chmod 600 "$json_key"
+            printf '%s' "$AUTAMEDICA_GOOGLE_PLAY_SERVICE_ACCOUNT" > "$json_key"
+            ruby -rjson -e 'key=JSON.parse(File.read(ARGV.fetch(0))); abort "Invalid Play service account" unless key["type"]=="service_account" && key["client_email"] && key["private_key"]' "$json_key"
+            gem install fastlane -v 2.241.2 --no-document
+            fastlane supply \
+              --aab "$aab" \
+              --package_name "com.autamedica.android" \
+              --json_key "$json_key" \
+              --track "internal" \
+              --release_status "draft" \
+              --skip_upload_metadata \
+              --skip_upload_changelogs \
+              --skip_upload_images \
+              --skip_upload_screenshots
+          no_output_timeout: 20m
+
+workflows:
+  # Release evidence must refer to exactly the chosen reviewed main commit.
+  # Explicitly triggered with run_jordan_gate=true: no unattended credits,
+  # production deployment, payment toggles or signed Play release.
+  jordan_release_gate_manual:
+    when: << pipeline.parameters.run_jordan_gate >>
+    jobs:
+      - jordan_source_identity
+      - smoke:
+          requires:
+            - jordan_source_identity
+      - jordan_sql_contract:
+          requires:
+            - jordan_source_identity
+      - web:
+          requires:
+            - smoke
+            - jordan_sql_contract
+      - jordan_deno:
+          requires:
+            - smoke
+            - jordan_sql_contract
+      - android:
+          requires:
+            - web
+            - jordan_deno
+
+  # Explicit, non-production candidate smoke for #707/#728/#729 before merging.
+  # There is NO Jordan release pass here: DB replay and live PSP/device gates
+  # are deliberately NOT claimed by this workflow.
+  jordan_candidate_manual:
+    when: << pipeline.parameters.run_jordan_candidate >>
+    jobs:
+      - jordan_candidate_source_identity
+      - smoke:
+          requires:
+            - jordan_candidate_source_identity
+      - web:
+          requires:
+            - smoke
+      - jordan_deno:
+          requires:
+            - smoke
+      - android:
+          requires:
+            - web
+            - jordan_deno
+
+  smoke_manual:
+    when: << pipeline.parameters.run_smoke >>
+    jobs:
+      - smoke
+
+  web_manual:
+    when: << pipeline.parameters.run_web >>
+    jobs:
+      - web
+
+  # Only execute Android stack-upgrade validation on its dedicated branch.
+  android_stack_upgrade_candidate:
+    jobs:
+      - android:
+          filters:
+            branches:
+              only: chore/upgrade-kotlin-2.4.21
+  android_manual:
+    when: << pipeline.parameters.run_android >>
+    jobs:
+      - android
+
+  # One feature-branch diagnostic. Never runs on main, releases or other branches.
+  smarter_doctor_feature_branch:
+    jobs:
+      - smarter_doctor:
+          filters: &smarter_testing_candidate_filter
+            branches:
+              only: ci/smarter-testing-smoke-20261108
+      - smoke:
+          requires:
+            - smarter_doctor
+          filters: *smarter_testing_candidate_filter
+
+  # GitHub App release-tag trigger only. Other branches remain opt-in / job-free.
+  android_release_internal_draft:
+    jobs:
+      - android_release_bundle:
+          context: autamedica-android-signing
+          filters: &android_release_tag_filter
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^android-v[0-9]+\.[0-9]+\.[0-9]+(-rc[1-9][0-9]*)?$/
+      - android_play_internal_draft:
+          context: autamedica-google-play-internal
+          requires:
+            - android_release_bundle
+          filters: *android_release_tag_filter
+
+  # Isolated, non-production validation for the PKCE password recovery fix.
+  # This workflow runs only on the dedicated PR branch and never deploys.
+  auth_recovery_validation:
+    jobs:
+      - auth_recovery_source_identity:
+          filters: &auth_recovery_branch_filter
+            branches:
+              only: fix/password-reset-pkce-flow-20261109
+      - auth_recovery_web:
+          requires:
+            - auth_recovery_source_identity
+          filters: *auth_recovery_branch_filter
+
+  # Run a non-deploying validation on the CI-fix PR branch itself.
+  circleci_config_pr_validation:
+    jobs:
+      - circleci_config_pr_probe:
+          filters:
+            branches:
+              only: fix/circleci-config-heredoc-escape-20261110
+
+  # Production validation and Cloudflare Pages deployment for main.
+  # Runs exclusively on main after smoke and web validation jobs succeed.
+  production_deploy_main:
+    jobs:
+      - production_source_identity:
+          filters: &production_main_branch_filter
+            branches:
+              only: main
+      - smoke:
+          requires:
+            - production_source_identity
+          filters: *production_main_branch_filter
+      - production_validate_and_test:
+          requires:
+            - production_source_identity
+          filters: *production_main_branch_filter
+      - production_pages_deploy:
+          requires:
+            - smoke
+            - production_validate_and_test
+          filters: *production_main_branch_filter
+

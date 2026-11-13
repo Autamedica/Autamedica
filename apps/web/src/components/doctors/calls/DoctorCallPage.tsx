@@ -648,7 +648,8 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             className="h-screen"
             onLocalAudioLevelChange={handleAudioLevelChange}
             auxiliaryControls={
-              context?.patient?.id ? (
+              context?.patient?.id && !context.dispatchTriage &&
+              /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(context.patient.id) ? (
                 <>
                   <CallAuxiliaryButton
                     icon={<Pill className="h-5 w-5 md:h-5.5 md:w-5.5" />}
@@ -707,7 +708,8 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
         />
       </div>
 
-      {showPrescriptionModal && context?.patient?.id && (
+      {showPrescriptionModal && context?.patient?.id && !context.dispatchTriage &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(context.patient.id) && (
         <PrescriptionCreateModal
           patientId={context.patient.id as UUID}
           onClose={() => setShowPrescriptionModal(false)}
@@ -732,7 +734,8 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
         />
       )}
 
-      {showStudyOrderModal && context?.patient?.id && (
+      {showStudyOrderModal && context?.patient?.id && !context.dispatchTriage &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(context.patient.id) && (
         <MedicalOrderCreateModal
           patientId={context.patient.id as UUID}
           onClose={() => setShowStudyOrderModal(false)}

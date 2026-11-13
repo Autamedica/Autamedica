@@ -74,6 +74,7 @@
 
   /* Portal colors — single accent source */
   --portal-patients: #0ea5e9;
+  --portal-patients-action: #0369a1; /* Accessible filled action; matches Android PortalPatientsAction */
   --portal-doctors: #0ea5e9;
   --portal-companies: #0ea5e9;
 

@@ -73,9 +73,11 @@ export function ClinicalIntelligenceDashboard() {
       setError(
         err instanceof ApiError && err.status === 401
           ? 'Acceso denegado. Debes poseer rol de administrador médico para visualizar este módulo.'
-          : err instanceof Error
-            ? err.message
-            : 'Error inesperado al conectar con el servidor analítico.'
+          : err instanceof ApiError && err.status === 503
+            ? 'Los datos clínicos no están disponibles. El panel no mostrará alertas hasta que la consulta real funcione.'
+            : err instanceof Error
+              ? err.message
+              : 'Error inesperado al conectar con el servidor analítico.'
       );
     } finally {
       setLoading(false);
@@ -252,6 +254,12 @@ export function ClinicalIntelligenceDashboard() {
 
   if (!data) return null;
 
+  const seasonalRows = Object.values(data.seasonal_symptoms ?? {}).flat();
+  const snomedRows = seasonalRows.filter((item) => Boolean(item.snomed));
+  const snomedCoverage = seasonalRows.length > 0
+    ? Math.round((snomedRows.length / seasonalRows.length) * 100)
+    : null;
+
   return (
     <div className="space-y-8">
       {/* Metrics / KPI Summary */}
@@ -288,11 +296,15 @@ export function ClinicalIntelligenceDashboard() {
 
         <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Precisión SNOMED CT</span>
-            <span className="inline-flex rounded-full bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700">Gold Layer</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Cobertura SNOMED CT</span>
+            <span className="inline-flex rounded-full bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700">Cálculo real</span>
           </div>
-          <p className="mt-4 text-3xl font-bold tracking-tight text-slate-900">100%</p>
-          <p className="mt-1 text-xs text-slate-500">Mapeo clínico estándar estructurado</p>
+          <p className="mt-4 text-3xl font-bold tracking-tight text-slate-900">
+            {snomedCoverage === null ? '—' : `${snomedCoverage}%`}
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            {snomedRows.length} de {seasonalRows.length} síntomas listados con código SNOMED CT
+          </p>
           <div className="absolute right-0 bottom-0 translate-x-2 translate-y-2 opacity-5">
             <Sparkles className="h-24 w-24" />
           </div>

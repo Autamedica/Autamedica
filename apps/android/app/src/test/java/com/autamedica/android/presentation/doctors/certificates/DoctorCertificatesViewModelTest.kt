@@ -198,7 +198,7 @@ class DoctorCertificatesViewModelTest {
         assertThat(state.createdCertificate).isNotNull()
         assertThat(state.createdCertificate?.hideDiagnosis).isTrue()
         assertThat(state.createdCertificate?.diagnosis).isNull() // Hidden in public model
-        assertThat(state.userMessage).contains("Atestado médico emitido con éxito")
+        assertThat(state.userMessage).contains("Borrador de certificado guardado")
     }
 }
 
@@ -219,7 +219,7 @@ private class FakeDoctorCertificateRepository(
         val cert = MedicalCertificate(
             id = "new-cert",
             cuir = "AR-CERT-20260912-TEST01",
-            status = "signed",
+            status = "draft",
             certificateType = request.certificateType,
             daysOfRest = request.daysOfRest,
             startDate = request.startDate,

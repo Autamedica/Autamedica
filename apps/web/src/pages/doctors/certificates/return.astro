@@ -1,0 +1,29 @@
+---
+/**
+ * FirmAR redirect landing. Reaching this URL is NOT proof of signing:
+ * browser redirects can be forged. Medical status is shown only through
+ * the authenticated doctor API after independently verified PAdES receipt.
+ */
+import Layout from '@/layouts/Layout.astro';
+Astro.response.headers.set('Cache-Control','no-store');
+Astro.response.headers.set('Referrer-Policy','no-referrer');
+---
+<Layout title="Firma digital pendiente | AutaMedica">
+  <main class="mx-auto max-w-xl px-5 py-16 text-center">
+    <div class="rounded-2xl border border-amber-200 bg-white p-8 shadow-sm">
+      <h1 class="text-2xl font-bold text-slate-900">Firma digital pendiente de verificación</h1>
+      <p class="mt-4 text-sm leading-6 text-slate-700">
+        Regresaste desde el servicio de firma. El certificado médico todavía no se
+        considera firmado ni emitido hasta que AutaMedica valide criptográficamente
+        el PDF recibido y confirme el resultado en el registro clínico.
+      </p>
+      <p class="mt-3 text-sm text-slate-600">
+        Consultá el estado del documento desde tu área médica. No entregues
+        un borrador como certificado oficial.
+      </p>
+      <a class="mt-6 inline-block rounded-lg bg-teal-700 px-5 py-3 text-sm font-semibold text-white hover:bg-teal-800" href="/doctors/prescriptions">
+        Volver a certificados médicos
+      </a>
+    </div>
+  </main>
+</Layout>

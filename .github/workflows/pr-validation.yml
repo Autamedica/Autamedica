@@ -4,6 +4,10 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ (github.actor == 'coderabbitai[bot]' || github.actor == 'circleci-app[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.draft)) && 'ignored' || 'active' }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   pull-requests: read
@@ -13,6 +17,8 @@ env:
 
 jobs:
   validate:
+    if: >-
+      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     name: PR Quality
     runs-on: ubuntu-latest
     timeout-minutes: 5

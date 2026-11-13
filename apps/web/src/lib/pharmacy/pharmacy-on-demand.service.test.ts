@@ -126,14 +126,14 @@ describe('pharmacy-on-demand.service', () => {
       expect(room).toMatch(/^cf-room-cardiologia-[a-z0-9]+-[a-z0-9]+-[a-z0-9]+$/)
     })
 
-    it('usa solo los últimos 4 dígitos del DNI sanitizado', () => {
-      const room = generateCloudflareRoomId('general', '40.270-41959')
-      expect(room).toMatch(/^cf-room-general-1959-/)
-    })
-
-    it('cae a 0000 cuando el DNI no tiene dígitos', () => {
-      const room = generateCloudflareRoomId('general', 'abcdef')
-      expect(room).toMatch(/^cf-room-general-0000-/)
+    it('no revela DNI ni CPF en el identificador de sala', () => {
+      const arRoom = generateCloudflareRoomId('general', '40.270-41959')
+      const brRoom = generateCloudflareRoomId('general', '12345678909')
+      expect(arRoom).toMatch(/^cf-room-general-[a-z0-9]+-[a-z0-9]+-[a-z0-9]+$/)
+      expect(brRoom).toMatch(/^cf-room-general-[a-z0-9]+-[a-z0-9]+-[a-z0-9]+$/)
+      expect(arRoom).not.toContain('1959')
+      expect(brRoom).not.toContain('8909')
+      expect(arRoom).not.toBe(brRoom)
     })
   })
 
@@ -142,6 +142,7 @@ describe('pharmacy-on-demand.service', () => {
       mockFetchApi.mockResolvedValue({ request: REQUEST, cloudflare_room_id: 'r', accessToken: 'tok-1' })
 
       await createPharmacyDispatchRequest({
+        careCountry: 'AR',
         patientDni: '  4027041959  ',
         patientPhone: ' 5491155995522 ',
         patientName: ' Marina ',
@@ -152,6 +153,7 @@ describe('pharmacy-on-demand.service', () => {
       expect(mockFetchApi).toHaveBeenCalledWith('/api/pharmacy/dispatch/request', {
         method: 'POST',
         body: expect.objectContaining({
+          careCountry: 'AR',
           patientDni: '4027041959',
           patientPhone: '5491155995522',
           patientName: 'Marina',
@@ -165,6 +167,7 @@ describe('pharmacy-on-demand.service', () => {
       mockFetchApi.mockResolvedValue({ request: REQUEST, cloudflare_room_id: 'r', accessToken: 'tok-1' })
 
       const result = await createPharmacyDispatchRequest({
+        careCountry: 'AR',
         patientDni: '4027041959',
         patientPhone: '5491155995522',
         tier: 'general',
@@ -177,6 +180,7 @@ describe('pharmacy-on-demand.service', () => {
       mockFetchApi.mockRejectedValue(new Error('Network error'))
 
       const result = await createPharmacyDispatchRequest({
+        careCountry: 'AR',
         patientDni: '4027041959',
         patientPhone: '5491155995522',
         tier: 'general',

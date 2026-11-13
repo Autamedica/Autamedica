@@ -1,0 +1,47 @@
+name: Memed DEMO full flow (synthetic identities)
+
+on:
+  push:
+    branches:
+      - test/memed-demo-e2e-20261103
+    paths:
+      - 'apps/web/src/lib/prescriptions/brazil/memed-demo-e2e.test.ts'
+      - 'apps/web/src/lib/prescriptions/brazil/memed.service.ts'
+      - 'apps/web/src/lib/prescriptions/brazil/memed.service.test.ts'
+      - 'apps/web/src/pages/api/doctors/prescriptions/memed-event.ts'
+      - '.github/workflows/memed-demo-e2e.yml'
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'apps/web/src/lib/prescriptions/brazil/memed-demo-e2e.test.ts'
+      - 'apps/web/src/pages/api/doctors/prescriptions/memed-event.ts'
+      - '.github/workflows/memed-demo-e2e.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ (github.actor == 'coderabbitai[bot]' || github.actor == 'circleci-app[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.draft)) && 'ignored' || 'active' }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  HUSKY: '0'
+
+jobs:
+  memed-demo-contract:
+    if: >-
+      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
+    name: Mock Memed / real AutaMedica handlers / no clinical mutations
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-pnpm
+        with:
+          node-version: '22'
+          pnpm-version: '9.15.2'
+      - name: Verify DEMO doctor, patient, country, consent, provider and pending signature
+        run: pnpm --filter @autamedica/web exec vitest run src/lib/prescriptions/brazil/memed-demo-e2e.test.ts src/lib/prescriptions/brazil/memed.service.test.ts

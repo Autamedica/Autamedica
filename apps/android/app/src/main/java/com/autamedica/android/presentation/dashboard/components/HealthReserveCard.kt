@@ -169,8 +169,9 @@ fun HealthReserveCard(
                 )
             }
 
-            // Balance & Capacity Widget
-            Surface(
+            // Only show a balance for a confirmed paid plan with a configured cap.
+            // The dashboard currently has no live credit-balance integration.
+            if (subscriptionTier != "free" && maxCapCredits > 0) Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = Color(0x14FFFFFF),
                 border = BorderStroke(1.dp, Color(0x1FFFFFFF)),

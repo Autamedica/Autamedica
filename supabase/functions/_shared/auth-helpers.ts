@@ -11,12 +11,16 @@ const ALLOWED_ORIGINS = new Set([
   'https://www.autamedica.com',
   'https://patients.autamedica.com',
   'https://paciente.autamedica.com',
+  'https://doctor.autamedica.com',
+  'https://empresa.autamedica.com',
   'https://autamedica-web.pages.dev',
   'https://autamedica-patients.pages.dev',
   'https://autamedica-doctors.pages.dev',
   'https://autamedica-companies.pages.dev',
   'https://autamedica-admin.pages.dev',
   'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3004',
   'http://localhost:3002',
   'http://localhost:3003',
   'http://localhost:4001',
@@ -34,7 +38,8 @@ export function getCorsHeaders(origin: string | null): Record<string, string> {
 
   return {
     'Access-Control-Allow-Origin': allowOrigin,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-retry-count, traceparent, tracestate, baggage',
+    'Vary': 'Origin',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Max-Age': '86400',
   };

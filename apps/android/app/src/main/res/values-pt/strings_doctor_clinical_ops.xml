@@ -51,7 +51,7 @@
 
     <!-- 4. Certificados Médicos / Atestados (DoctorCertificates & CreateCertificate) -->
     <string name="cert_screen_title">Atestados Médicos Emitidos</string>
-    <string name="cert_header_counts">%1$d válidos · %2$d emitidos</string>
+    <string name="cert_header_counts">%1$d registados · %2$d documentos</string>
     <string name="cert_action_new_certificate">Novo Atestado</string>
     <string name="cert_search_placeholder">Pesquisar por paciente, documento, código ou diagnóstico...</string>
     <string name="cert_filter_all">Todos (%1$d)</string>
@@ -72,7 +72,8 @@
     <string name="cert_detail_download_pdf">Descarregar PDF</string>
     <string name="cert_card_default_patient_name">Paciente Atribuído</string>
     <string name="cert_card_dni_label">Doc: %1$s</string>
-    <string name="cert_status_valid">Válido</string>
+    <string name="cert_status_draft">Rascunho sem assinatura</string>
+    <string name="cert_status_valid">Registado</string>
     <string name="cert_status_cancelled">Cancelado</string>
     <string name="cert_days_of_rest_count">%1$d dias de repouso</string>
     <string name="cert_days_of_rest_one">1 dia de repouso</string>
@@ -80,13 +81,13 @@
     <string name="cert_diagnosis_reserved">🔒 Diagnóstico reservado (Segredo médico)</string>
 
     <!-- 5. Emisión de Certificado (CreateCertificateScreen) -->
-    <string name="cert_create_title">Emitir Atestado Médico</string>
-    <string name="cert_create_legal_basis">Resolução CFM nº 2.299/2021 · Telemedicina</string>
+    <string name="cert_create_title">Preparar atestado (rascunho)</string>
+    <string name="cert_create_legal_basis">Referência interna AutaMedica · Assinatura pendente</string>
     <string name="cert_create_submitting">A assinar e selar digitalmente...</string>
-    <string name="cert_create_submit_button">Assinar e Emitir Certificado Oficial</string>
+    <string name="cert_create_submit_button">Guardar rascunho sem assinatura</string>
     <string name="cert_reg_active_title">Habilitação Profissional Ativa</string>
     <string name="cert_reg_pending_title">Verificação Pendente</string>
-    <string name="cert_reg_license_active">Matrícula: %1$s · Assinatura digital ativada</string>
+    <string name="cert_reg_license_active">Matrícula: %1$s · Identidade registada</string>
     <string name="cert_reg_license_required">Requer matrícula ativa para assinatura com validade oficial.</string>
     <string name="cert_reg_registered">Registada</string>
     <string name="cert_patient_recipient_title">Destinatário do Atestado</string>
@@ -115,10 +116,10 @@
     <string name="cert_privacy_hide_diagnosis_subtitle">Garantia de Segredo Médico e confidencialidade (CFM)</string>
     <string name="cert_obs_section_title">Indicações e Observações Clínicas (Opcional)</string>
     <string name="cert_obs_placeholder">Ex: Repouso domiciliário com hidratação contínua. Apresentar nos RH.</string>
-    <string name="cert_success_dialog_title">Atestado Emitido com Sucesso!</string>
-    <string name="cert_success_dialog_body">O atestado médico digital foi assinado com validade institucional.</string>
-    <string name="cert_success_cuir_header">CÓDIGO DE VALIDAÇÃO (CUIR):</string>
-    <string name="cert_success_dialog_footer">Válido perante entidades patronais, escolas ou instituições públicas através de verificação online.</string>
+    <string name="cert_success_dialog_title">Rascunho guardado</string>
+    <string name="cert_success_dialog_body">O documento ainda não foi assinado e não é um atestado oficial válido.</string>
+    <string name="cert_success_cuir_header">REFERÊNCIA INTERNA:</string>
+    <string name="cert_success_dialog_footer">Não apresentar este rascunho a empregadores ou instituições.</string>
     <string name="cert_success_back_to_certificates">Voltar aos Meus Atestados</string>
 
     <!-- 6. Diagnósticos Comunes Sugeridos -->
@@ -138,7 +139,8 @@
     <string name="cert_error_select_patient">Selecione um paciente da lista</string>
     <string name="cert_error_enter_diagnosis">Introduza um diagnóstico ou motivo clínico da certificação</string>
     <string name="cert_error_not_eligible">Não possui habilitação profissional ativa para emitir atestados oficiais</string>
-    <string name="cert_success_issued_cuir">Atestado médico emitido com sucesso. CUIR: %1$s</string>
+    <string name="cert_success_issued_cuir">Rascunho guardado. Referência: %1$s</string>
     <string name="cert_error_issue_failed">Erro ao emitir o certificado: %1$s</string>
     <string name="cert_error_connection">Falha de ligação</string>
+    <string name="signature_remote_pending_notice">É possível verificar a habilitação profissional aqui, mas ainda não é possível assinar certificados com o FirmAR. Uma assinatura desenhada não equivale a uma assinatura digital. O documento permanece como rascunho até à assinatura oficial.</string>
 </resources>

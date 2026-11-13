@@ -1,9 +1,6 @@
 package com.autamedica.android.domain.model
 
-/**
- * Domain model representing an official digital medical certificate (Atestado Médico Digital).
- * Conforms to Ley 27.553 / Decreto 63/2024 (Argentina) and Resolução CFM nº 2.299/2021 (Brasil).
- */
+/** Clinical certificate record: a draft or QR does not prove a valid signature. */
 data class MedicalCertificate(
     val id: String,
     val cuir: String,
@@ -25,18 +22,16 @@ data class MedicalCertificate(
     val createdAt: String,
 ) {
     val isActive: Boolean
-        get() = status.equals("signed", ignoreCase = true) ||
-                status.equals("activa", ignoreCase = true) ||
-                status.equals("active", ignoreCase = true) ||
-                status.equals("emitida", ignoreCase = true)
+        get() = status.equals("signed", ignoreCase = true) && !signedPdfUrl.isNullOrBlank()
 
     val effectiveQrContent: String
-        get() = qrCodeContent?.takeIf { it.isNotBlank() }
-            ?: "https://autamedica.com/verify/$cuir"
+        get() = if (!isActive) "" else (
+            qrCodeContent?.takeIf { it.isNotBlank() }
+                ?: "https://autamedica.com/verify/$cuir"
+        )
 
     val effectivePdfUrl: String?
-        get() = signedPdfUrl?.takeIf { it.isNotBlank() }
-            ?: "https://autamedica.com/verify/$cuir"
+        get() = if (!isActive) null else signedPdfUrl?.takeIf { it.isNotBlank() }
 
     val displayDaysOfRest: String
         get() = when {

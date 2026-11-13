@@ -133,7 +133,9 @@ export class FarmalinkClient {
   }
 
   private async requestJson<T>(url: string, init: RequestInit): Promise<T> {
-    const response = await this.fetchImpl(url, init);
+    // Never forward OAuth/password headers or bearer tokens through HTTP redirects.
+    // A redirect should be investigated explicitly rather than followed by this client.
+    const response = await this.fetchImpl(url, { ...init, signal: init.signal ?? AbortSignal.timeout(30_000), redirect: 'error' });
     const body = await parseJsonResponse(response);
     if (!response.ok) {
       throw new FarmalinkHttpError(response.status, body);
@@ -221,3 +223,4 @@ export class FarmalinkClient {
     );
   }
 }
+

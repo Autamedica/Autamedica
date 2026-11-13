@@ -3,6 +3,16 @@ name: Production Deploy
 on:
   push:
     branches: [main]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'worker/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
+      - '.github/workflows/deploy-production.yml'
   workflow_dispatch:
     inputs:
       deploy_database:
@@ -13,7 +23,7 @@ on:
 
 concurrency:
   group: deploy-production
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -38,6 +48,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
       - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm hardcode:check
 
   deploy-db:
     name: DB Migrations
@@ -91,15 +103,16 @@ jobs:
   build-and-deploy:
     name: Build & Deploy
     runs-on: ubuntu-latest
-    needs: [validate]
+    needs: [validate, deploy-db]
     timeout-minutes: 20
-    if: always() && needs.validate.result == 'success'
+    if: always() && !cancelled() && needs.validate.result == 'success' && (needs.deploy-db.result == 'success' || needs.deploy-db.result == 'skipped')
     outputs:
-      prev_deployment: ${{ steps.snapshot.outputs.id }}
+      prev_deployments: ${{ steps.snapshot.outputs.deployments }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           clean: true
+          fetch-depth: 0
       - uses: ./.github/actions/setup-pnpm
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -133,12 +146,26 @@ jobs:
           if [[ "$missing" -ne 0 ]]; then
             exit 1
           fi
+      - name: Configure Memed credentials for the doctor portal
+        env:
+          MEMED_API_KEY: ${{ secrets.MEMED_API_KEY }}
+          MEMED_SECRET_KEY: ${{ secrets.MEMED_SECRET_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        # Memed is optional; provider credential rejection must not block unrelated production releases.
+        continue-on-error: true
+        run: node scripts/ops/sync-memed-secrets.mjs
       - name: Build workspace packages
         run: pnpm build:packages:core
 
       - name: Build web
         run: pnpm --filter @autamedica/web build
         env:
+          # Public GA4 web stream ID; required at Astro compile time.
+          PUBLIC_GA4_MEASUREMENT_ID: G-YRN6QY3BTY
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: autamedica
+          SENTRY_PROJECT: javascript-astro
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
           PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
           PUBLIC_SIGNALING_URL: ${{ secrets.PUBLIC_SIGNALING_URL }}
@@ -152,13 +179,24 @@ jobs:
           CLOUDFLARE_CALLS_TURN_TOKEN: ${{ secrets.CLOUDFLARE_CALLS_TURN_TOKEN }}
           RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}
 
-      - name: Snapshot current deployment
+      - name: Unit tests before deployment
+        run: pnpm test:unit
+
+      - name: Snapshot production deployments
         id: snapshot
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          ID=$(curl -sf "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/pages/projects/autamedica-web/deployments?env=production&per_page=1" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" | jq -r '.result[0].id // empty') || true
-          echo "id=${ID}" >> $GITHUB_OUTPUT
-        continue-on-error: true
+          snapshots='{}'
+          for project in autamedica-web autamedica-doctors autamedica-patients autamedica-companies autamedica-admin; do
+            response=$(curl --fail --silent --show-error --max-time 30 \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$project" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN")
+            id=$(jq -er 'select(.success == true) | .result.canonical_deployment.id | select(type == "string" and length > 0)' <<< "$response")
+            snapshots=$(jq -c --arg project "$project" --arg id "$id" '. + {($project): $id}' <<< "$snapshots")
+          done
+          echo "deployments=$snapshots" >> "$GITHUB_OUTPUT"
 
       - name: Deploy (www)
         uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
@@ -181,6 +219,7 @@ jobs:
 
       - name: Create Sentry Release
         if: success()
+        continue-on-error: true
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: autamedica
@@ -190,17 +229,30 @@ jobs:
             echo "Sentry token not found, skipping release... (Not an error)"
             exit 0
           fi
+          # Sentry metadata is best-effort: never fail the deploy or trigger Pages rollback.
+          set +e
           curl -sL https://sentry.io/get-cli/ | bash
+          if [[ "$?" -ne 0 ]]; then
+            echo "::warning::Could not install sentry-cli; continuing with deployed sites."
+            exit 0
+          fi
           VERSION=$(sentry-cli releases propose-version)
+          if [[ -z "$VERSION" ]]; then
+            echo "::warning::Could not determine Sentry release version; continuing."
+            exit 0
+          fi
           echo "Finalizing Sentry release: $VERSION"
-          sentry-cli releases new "$VERSION"
-          sentry-cli releases set-commits "$VERSION" --auto
-          sentry-cli releases finalize "$VERSION"
+          sentry-cli releases new "$VERSION" || echo "::notice::Sentry release already exists or could not be created."
+          sentry-cli releases set-commits "$VERSION" --auto --ignore-missing || echo "::warning::Sentry commit association failed; continuing."
+          sentry-cli releases finalize "$VERSION" || echo "::warning::Sentry release finalization failed; continuing."
+          exit 0
 
   smoke-tests:
     name: Smoke Tests
     runs-on: ubuntu-latest
     needs: [build-and-deploy]
+    # Run smoke even when the optional DB job was skipped upstream.
+    if: always() && needs.build-and-deploy.result == 'success'
     timeout-minutes: 5
     steps:
       - name: CDN propagation
@@ -218,8 +270,8 @@ jobs:
       - name: Asset integrity
         run: |
           status=$(curl -so /dev/null -w '%{http_code}' "https://www.autamedica.com/nonexistent-$(date +%s).js")
-          if [[ "$status" == "200" ]]; then
-            echo "::error::Missing .js returned 200 — MIME type errors in production"
+          if [[ "$status" != "404" ]]; then
+            echo "::error::Missing .js must return 404; got $status"
             exit 1
           fi
 
@@ -229,13 +281,25 @@ jobs:
           echo "Supabase: $status"
           [[ "$status" == "200" || "$status" == "401" ]]
 
+      - name: License verification transport
+        run: |
+          for origin in https://www.autamedica.com https://autamedica-admin-5r9.pages.dev; do
+            status=$(curl --silent --show-error --max-time 30 -o /dev/null -w '%{http_code}'  -X POST -H 'Content-Type: application/json'  --data '{"doctorId":"00000000-0000-0000-0000-000000000000","persist":false}'  "$origin/api/admin/doctors/license-verify-live")
+            echo "$origin license verification: $status"
+            if [[ "$status" != "401" ]]; then
+              echo "::error::Unauthenticated license verification must return 401, got $status"
+              exit 1
+            fi
+          done
+
       - name: Role surfaces
         run: |
           for url in \
             https://www.autamedica.com \
             https://paciente.autamedica.com \
             https://doctor.autamedica.com \
-            https://empresa.autamedica.com
+            https://empresa.autamedica.com \
+            https://autamedica-admin.pages.dev
           do
             status=$(curl -so /dev/null -w '%{http_code}' -L "$url")
             echo "$url: $status"
@@ -246,16 +310,32 @@ jobs:
     name: Rollback
     runs-on: ubuntu-latest
     needs: [build-and-deploy, smoke-tests]
-    if: failure() && needs.build-and-deploy.result == 'success' && needs.build-and-deploy.outputs.prev_deployment != ''
+    if: always() && (needs.build-and-deploy.result == 'failure' || needs.smoke-tests.result == 'failure') && needs.build-and-deploy.outputs.prev_deployments != ''
+    timeout-minutes: 10
     steps:
-      - name: Rollback to previous deployment
+      - name: Restore all changed production projects
+        env:
+          PREVIOUS_DEPLOYMENTS: ${{ needs.build-and-deploy.outputs.prev_deployments }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          PREV="${{ needs.build-and-deploy.outputs.prev_deployment }}"
-          echo "Rolling back to $PREV"
-          RESULT=$(curl -sf -X POST \
-            "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/pages/projects/autamedica-web/deployments/${PREV}/rollback" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}")
-          echo "$RESULT" | jq -r '.success' | grep -q true
+          failed=0
+          for project in autamedica-web autamedica-doctors autamedica-patients autamedica-companies autamedica-admin; do
+            previous=$(jq -er --arg project "$project" '.[$project] | select(type == "string" and length > 0)' <<< "$PREVIOUS_DEPLOYMENTS") || { failed=1; continue; }
+            endpoint="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$project"
+            current=$(curl --fail --silent --show-error --max-time 30 "$endpoint" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -er 'select(.success == true) | .result.canonical_deployment.id') || { failed=1; continue; }
+            if [[ "$current" == "$previous" ]]; then
+              echo "$project unchanged"
+              continue
+            fi
+            response=$(curl --fail --silent --show-error --max-time 30 -X POST \
+              "$endpoint/deployments/$previous/rollback" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN") || { failed=1; continue; }
+            jq -e '.success == true' <<< "$response" > /dev/null || { failed=1; continue; }
+            echo "$project restored"
+          done
+          exit "$failed"
 
   summary:
     name: Summary
@@ -268,9 +348,14 @@ jobs:
           echo "## Deploy" >> $GITHUB_STEP_SUMMARY
           echo "| Stage | Result |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
-          # CI gate removed
+          # Pre-flight lint/typechecks and unit tests run before deployment.
           echo "| Pre-flight | ${{ needs.validate.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| DB | ${{ needs.deploy-db.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build & Deploy | ${{ needs.build-and-deploy.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Smoke | ${{ needs.smoke-tests.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Rollback | ${{ needs.auto-rollback.result }} |" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ needs.validate.result }}" != "success" || "${{ needs.build-and-deploy.result }}" != "success" || "${{ needs.smoke-tests.result }}" != "success" ]]; then
+            echo "::error::Production deployment verification failed (pre-flight, build or smoke)."
+            exit 1
+          fi
+

@@ -22,9 +22,6 @@ export async function resolveAdminRole(
   const appRole = metadataRole(session.user.app_metadata as Record<string, unknown> | undefined);
   if (isAdminRole(appRole)) return appRole;
 
-  const userRole = metadataRole(session.user.user_metadata as Record<string, unknown> | undefined);
-  if (isAdminRole(userRole)) return userRole;
-
   if (!supabase) return null;
 
   const { data } = await supabase

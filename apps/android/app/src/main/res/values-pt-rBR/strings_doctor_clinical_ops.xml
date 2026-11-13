@@ -51,7 +51,7 @@
 
     <!-- 4. Certificados Médicos / Atestados (DoctorCertificates & CreateCertificate) -->
     <string name="cert_screen_title">Atestados Médicos Emitidos</string>
-    <string name="cert_header_counts">%1$d válidos · %2$d emitidos</string>
+    <string name="cert_header_counts">%1$d registrados · %2$d documentos</string>
     <string name="cert_action_new_certificate">Emitir Novo Atestado</string>
     <string name="cert_search_placeholder">Buscar por paciente, CPF, código validador ou CID...</string>
     <string name="cert_filter_all">Todos (%1$d)</string>
@@ -72,7 +72,8 @@
     <string name="cert_detail_download_pdf">Baixar PDF Oficial</string>
     <string name="cert_card_default_patient_name">Paciente Atendido</string>
     <string name="cert_card_dni_label">CPF: %1$s</string>
-    <string name="cert_status_valid">Válido</string>
+    <string name="cert_status_draft">Rascunho sem assinatura</string>
+    <string name="cert_status_valid">Registrado</string>
     <string name="cert_status_cancelled">Cancelado</string>
     <string name="cert_days_of_rest_count">%1$d dias de afastamento</string>
     <string name="cert_days_of_rest_one">1 dia de afastamento</string>
@@ -80,13 +81,13 @@
     <string name="cert_diagnosis_reserved">🔒 Diagnóstico preservado (Sigilo Médico / CFM)</string>
 
     <!-- 5. Emisión de Certificado (CreateCertificateScreen) -->
-    <string name="cert_create_title">Emitir Atestado Médico Digital</string>
-    <string name="cert_create_legal_basis">Resolução CFM nº 2.299/2021 · Portaria MS</string>
+    <string name="cert_create_title">Preparar atestado (rascunho)</string>
+    <string name="cert_create_legal_basis">Referência interna AutaMedica · Assinatura pendente</string>
     <string name="cert_create_submitting">Assinando com Certificado ICP-Brasil...</string>
-    <string name="cert_create_submit_button">Assinar e Emitir Atestado Oficial</string>
+    <string name="cert_create_submit_button">Salvar rascunho sem assinatura</string>
     <string name="cert_reg_active_title">Habilitação Médica Ativa</string>
     <string name="cert_reg_pending_title">Verificação de CRM Pendente</string>
-    <string name="cert_reg_license_active">CRM: %1$s · Assinatura digital qualificada</string>
+    <string name="cert_reg_license_active">CRM: %1$s · Identidade cadastrada</string>
     <string name="cert_reg_license_required">Requer CRM ativo no conselho para assinatura com validade oficial.</string>
     <string name="cert_reg_registered">Cadastrada</string>
     <string name="cert_patient_recipient_title">Paciente Destinatário</string>
@@ -115,10 +116,10 @@
     <string name="cert_privacy_hide_diagnosis_subtitle">Garantia de sigilo médico perante o empregador (Resolução CFM nº 1.658/2002)</string>
     <string name="cert_obs_section_title">Observações Clínicas e Recomendações (Opcional)</string>
     <string name="cert_obs_placeholder">Ex.: Repouso domiciliar, hidratação oral contínua. Válido para o setor de RH.</string>
-    <string name="cert_success_dialog_title">Atestado Emitido com Sucesso!</string>
-    <string name="cert_success_dialog_body">O atestado médico digital foi assinado e registrado com validade jurídica nacional.</string>
-    <string name="cert_success_cuir_header">CÓDIGO DE AUTENTICIDADE (CUIR):</string>
-    <string name="cert_success_dialog_footer">Documento oficial válido perante empresas, órgãos públicos e escolas via verificação online.</string>
+    <string name="cert_success_dialog_title">Rascunho salvo</string>
+    <string name="cert_success_dialog_body">O documento ainda não foi assinado e não é um atestado oficial válido.</string>
+    <string name="cert_success_cuir_header">REFERÊNCIA INTERNA:</string>
+    <string name="cert_success_dialog_footer">Não apresentar este rascunho a empregadores ou instituições.</string>
     <string name="cert_success_back_to_certificates">Voltar para Meus Atestados</string>
 
     <!-- 6. Diagnósticos Comunes Sugeridos -->
@@ -138,7 +139,8 @@
     <string name="cert_error_select_patient">Selecione um paciente cadastrado da lista</string>
     <string name="cert_error_enter_diagnosis">Informe o diagnóstico ou justificativa clínica do atestado</string>
     <string name="cert_error_not_eligible">CRM sem habilitação ativa para emissão de atestados digitais</string>
-    <string name="cert_success_issued_cuir">Atestado médico emitido com sucesso. Código: %1$s</string>
+    <string name="cert_success_issued_cuir">Rascunho salvo. Referência: %1$s</string>
     <string name="cert_error_issue_failed">Erro ao emitir o atestado médico: %1$s</string>
     <string name="cert_error_connection">Falha de conexão com o servidor</string>
+    <string name="signature_remote_pending_notice">É possível verificar a habilitação profissional aqui, mas ainda não é possível assinar atestados com o FirmAR. Uma assinatura desenhada não equivale a uma assinatura digital. O documento permanece como rascunho até a assinatura oficial.</string>
 </resources>

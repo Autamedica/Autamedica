@@ -1,6 +1,5 @@
 package com.autamedica.android.presentation.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -11,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import com.autamedica.android.presentation.common.findHostActivity
 
 /**
  * AutaMedica clinical theme — matching the clean web design system (globals.css / auth.css).
@@ -29,22 +29,22 @@ private val AutamedicaScheme = lightColorScheme(
     onSurfaceVariant = AuTextSecondary,
 
     // Primary (sky-500 matching web)
-    primary = PortalPatients,
+    primary = PortalPatientsAction,
     onPrimary = Color.White,
     primaryContainer = PortalPatientsSoft,
-    onPrimaryContainer = PortalPatients,
+    onPrimaryContainer = PortalPatientsAction,
 
     // Secondary (cyan-600 doctor accent)
-    secondary = PortalDoctors,
+    secondary = PortalDoctorsAction,
     onSecondary = Color.White,
     secondaryContainer = PortalDoctorsSoft,
-    onSecondaryContainer = PortalDoctors,
+    onSecondaryContainer = PortalDoctorsAction,
 
     // Tertiary (emerald-600 pharmacy accent)
-    tertiary = PortalPharmacists,
+    tertiary = PortalPharmacistsAction,
     onTertiary = Color.White,
     tertiaryContainer = PortalPharmacistsSoft,
-    onTertiaryContainer = PortalPharmacists,
+    onTertiaryContainer = PortalPharmacistsAction,
 
     // Error
     error = AuDanger,
@@ -71,7 +71,7 @@ fun AutamedicaTheme(
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
-            val window = (view.context as Activity).window
+            val window = view.context.findHostActivity()?.window ?: return@SideEffect
             @Suppress("DEPRECATION")
             window.statusBarColor = Color.Transparent.toArgb()
             @Suppress("DEPRECATION")

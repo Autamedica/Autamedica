@@ -15,7 +15,8 @@ import { useCallQuality } from './hooks/useCallQuality'
 import { useAutoHideControls } from './hooks/useAutoHideControls'
 import { useGreenRoom } from './hooks/useGreenRoom'
 import { sanitizeErrorForUser, messageForFailureCode } from './utils/error-messages'
-import { hasRemoteVideoEvidence } from './utils/stream-helpers'
+import { attachQualityTelemetry } from './quality/telemetry'
+import { hasRemoteMediaEvidence } from './utils/stream-helpers'
 import { useViewportDetection } from './hooks/useViewportDetection'
 import { useParticipantSound } from './hooks/useParticipantSound'
 import { useChatMessages } from './hooks/useChatMessages'
@@ -260,6 +261,7 @@ export function UnifiedVideoCall({
 
     const webrtcClient = provider
     const unsubs: Array<() => void> = []
+    unsubs.push(attachQualityTelemetry(webrtcClient, logCallEvent, runtime === 'cloudflare-calls' ? 'client_to_sfu' : 'peer_to_peer'))
     const startConnectingTimeout = () => {
       if (connectingTimerRef.current) {
         clearTimeout(connectingTimerRef.current)
@@ -478,7 +480,7 @@ export function UnifiedVideoCall({
         const connectedForMs =
           connectedAtRef.current === null ? 0 : Date.now() - connectedAtRef.current
 
-        if (connectedForMs < QUALITY_WARMUP_MS || !hasRemoteVideoEvidence(summary)) {
+        if (connectedForMs < QUALITY_WARMUP_MS || !hasRemoteMediaEvidence(summary)) {
           setQualityLevel('unknown')
           return
         }
@@ -573,8 +575,8 @@ export function UnifiedVideoCall({
 
     return () => {
       emitDebug('info', 'Desmontando componente de videollamada')
-      unsubs.forEach((u) => u())
       void webrtcClient.disconnect()
+      unsubs.forEach((u) => u())
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
       if (connectingTimerRef.current) clearTimeout(connectingTimerRef.current)
       cleanupSound()
@@ -983,3 +985,4 @@ export function UnifiedVideoCall({
     </div>
   )
 }
+

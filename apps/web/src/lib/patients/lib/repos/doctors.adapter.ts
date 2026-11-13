@@ -57,92 +57,34 @@ interface DoctorRow {
   }> | null
 }
 
-function buildDoctorLicensePills(row: {
-  license_number?: string | null
-  license_type?: string | null
-  enrollment_jurisdiction?: string | null
-  uf_brazil?: string | null
-  doctor_licenses?: Array<{
-    license_number: string
-    license_type: string
-    province?: string | null
-    uf_brazil?: string | null
-    status?: string | null
-  }> | null
-}): DoctorLicensePill[] {
+export function buildDoctorLicensePills(row: Pick<DoctorRow,
+  'license_number' | 'license_type' | 'uf_brazil' | 'enrollment_jurisdiction' | 'doctor_licenses'
+>, country: 'AR' | 'BR'): DoctorLicensePill[] {
   const pills: DoctorLicensePill[] = []
   const seen = new Set<string>()
-
-  // 1. Process relational doctor_licenses
-  if (Array.isArray(row.doctor_licenses)) {
-    for (const lic of row.doctor_licenses) {
-      if (lic.status && lic.status !== 'active') continue
-      if (!lic.license_number) continue
-
-      let country: 'AR' | 'BR' | 'UY' = 'AR'
-      let label = ''
-
-      if (lic.license_type === 'CRM' || lic.license_type === 'CRO' || lic.license_type === 'CRF' || lic.uf_brazil) {
-        country = 'BR'
-        const uf = lic.uf_brazil ? `-${lic.uf_brazil}` : ''
-        label = `🇧🇷 CRM${uf} ${lic.license_number}`
-      } else if (lic.license_type === 'MSP' || lic.license_type === 'CMU' || lic.license_type === 'CJPPU') {
-        country = 'UY'
-        label = `🇺🇾 MSP ${lic.license_number}`
-      } else if (lic.license_type === 'MN') {
-        country = 'AR'
-        label = `🇦🇷 MN ${lic.license_number}`
-      } else {
-        country = 'AR'
-        const prov = lic.province ? ` · ${lic.province}` : ''
-        label = `🇦🇷 MP ${lic.license_number}${prov}`
-      }
-
-      const key = `${country}:${lic.license_number}`
-      if (!seen.has(key)) {
-        seen.add(key)
-        pills.push({ country, label, jurisdiction: lic.uf_brazil || lic.province })
-      }
-    }
+  const add = (type: string | null, number: string | null, jurisdiction?: string | null) => {
+    if (!number?.trim() || /^PENDING/i.test(number.trim())) return
+    if (country === 'BR' && (type !== 'CRM' || !/^(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)$/.test(jurisdiction ?? ''))) return
+    if (country === 'AR' && type !== 'MN' && type !== 'MP') return
+    const key = `${type}:${jurisdiction ?? ''}:${number}`
+    if (seen.has(key)) return
+    seen.add(key)
+    const suffix = jurisdiction ? ` · ${jurisdiction}` : ''
+    pills.push({ country, label: `${country === 'BR' ? '🇧🇷' : '🇦🇷'} ${type} ${number}${suffix}`, jurisdiction })
   }
-
-  // 2. Fallback / complement with primary license in doctors table
-  if (row.license_number && row.license_number !== 'PENDING') {
-    let country: 'AR' | 'BR' | 'UY' = 'AR'
-    let label = ''
-
-    if (row.license_type === 'CRM' || row.uf_brazil) {
-      country = 'BR'
-      const uf = row.uf_brazil ? `-${row.uf_brazil}` : ''
-      label = `🇧🇷 CRM${uf} ${row.license_number}`
-    } else if (row.license_type === 'MSP') {
-      country = 'UY'
-      label = `🇺🇾 MSP ${row.license_number}`
-    } else if (row.license_type === 'MN' || row.enrollment_jurisdiction === 'CABA' || row.enrollment_jurisdiction === 'Nacional') {
-      country = 'AR'
-      label = `🇦🇷 MN ${row.license_number}`
-    } else if (row.license_type === 'MP') {
-      country = 'AR'
-      const prov = row.enrollment_jurisdiction ? ` · ${row.enrollment_jurisdiction}` : ''
-      label = `🇦🇷 MP ${row.license_number}${prov}`
-    } else {
-      country = 'AR'
-      label = `🇦🇷 Mat. ${row.license_number}`
-    }
-
-    const key = `${country}:${row.license_number}`
-    if (!seen.has(key)) {
-      seen.add(key)
-      pills.push({ country, label, jurisdiction: row.uf_brazil || row.enrollment_jurisdiction })
-    }
+  add(row.license_type, row.license_number,
+    country === 'BR' ? row.uf_brazil : row.enrollment_jurisdiction)
+  for (const license of row.doctor_licenses ?? []) {
+    if (license.status !== 'active') continue
+    add(license.license_type, license.license_number,
+      country === 'BR' ? license.uf_brazil : license.province)
   }
-
   return pills
 }
 
 export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
   return {
-    async listActive(): Promise<DoctorSummary[]> {
+    async listActive(country: 'AR' | 'BR'): Promise<DoctorSummary[]> {
       const { data, error } = await supabase
         .from('doctors')
         .select(`
@@ -160,6 +102,7 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
           doctor_licenses(license_number, license_type, province, uf_brazil, status)
         `)
         .eq('active', true)
+        .eq('care_country', country)
 
       if (error) {
         logger.error('[doctorsRepo] listActive failed', error)
@@ -232,7 +175,7 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
           const hasAvailability = doctorsWithAvailability.has(row.id)
           const activePlan = doctorPlans.get(row.id) ?? null
           const hasPrescriptionDigital = !!(row.signature_image_url && row.stamp_image_url)
-          const licensePills = buildDoctorLicensePills(row)
+          const licensePills = buildDoctorLicensePills(row, country)
 
           const metrics = Array.isArray(row.doctor_ranking_metrics)
             ? row.doctor_ranking_metrics[0]
@@ -264,3 +207,4 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
     },
   }
 }
+

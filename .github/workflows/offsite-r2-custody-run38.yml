@@ -1,0 +1,142 @@
+name: Offsite encrypted recovery 38 to private R2
+
+# One-time trusted main workflow; no backup or cloud secrets on PRs.
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/offsite-r2-custody-run38.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: autamedica-offsite-run38
+  cancel-in-progress: false
+
+jobs:
+  transfer:
+    if: github.repository == 'ecucondorSA/Autamedica'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID || secrets.AUTAMEDICA_R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY || secrets.AUTAMEDICA_R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_EC2_METADATA_DISABLED: "true"
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+      R2_ENDPOINT: https://5b448192fe4b369642b68ad8f53a7603.r2.cloudflarestorage.com
+      BUCKET: autamedica-recovery-offsite-2026
+      PREFIX: encrypted-recovery-41734833692-1
+    steps:
+      - name: Require dedicated bucket-scoped R2 credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" ]]; then
+            echo "::error::Dedicated scoped R2 S3 credentials are not configured"
+            exit 1
+          fi
+          aws --version
+          echo "Dedicated R2 S3 access key present. Secret never printed."
+
+      - name: Test private bucket upload and download before touching backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$RUNNER_TEMP/preflight"
+          printf 'AutaMedica encrypted backup S3 preflight only\n' > "$RUNNER_TEMP/preflight/plain"
+          aws --endpoint-url "$R2_ENDPOINT" s3 cp "$RUNNER_TEMP/preflight/plain" \
+            "s3://$BUCKET/$PREFIX/preflight.txt" --no-progress --only-show-errors
+          aws --endpoint-url "$R2_ENDPOINT" s3 cp "s3://$BUCKET/$PREFIX/preflight.txt" \
+            "$RUNNER_TEMP/preflight/readback" --no-progress --only-show-errors
+          cmp -s "$RUNNER_TEMP/preflight/plain" "$RUNNER_TEMP/preflight/readback"
+
+      - name: Retrieve exactly encrypted recovery artifact from Actions
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$RUNNER_TEMP/custody38/original"
+          gh run download 41734833692 --repo ecucondorSA/Autamedica \
+            --name encrypted-recovery-41734833692-1 --dir "$RUNNER_TEMP/custody38/original"
+          cd "$RUNNER_TEMP/custody38/original"
+          test -f recovery.tar.gz.gpg
+          test -f SHA256SUMS
+          test "$(stat -c %s recovery.tar.gz.gpg)" -ge 400000000
+          sha256sum -c SHA256SUMS
+          echo "Original ciphertext SHA-256 verified"
+
+      - name: Split ciphertext locally and verify reconstruction
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$RUNNER_TEMP/custody38/parts"
+          cd "$RUNNER_TEMP/custody38/parts"
+          split -b 128M -d -a 2 "$RUNNER_TEMP/custody38/original/recovery.tar.gz.gpg" recovery.tar.gz.gpg.part-
+          cp "$RUNNER_TEMP/custody38/original/SHA256SUMS" SHA256SUMS
+          sha256sum recovery.tar.gz.gpg.part-* > PARTS.sha256
+          EXPECTED="$(awk '$2=="recovery.tar.gz.gpg"{print $1}' SHA256SUMS)"
+          ACTUAL="$(cat recovery.tar.gz.gpg.part-* | sha256sum | cut -d' ' -f1)"
+          test -n "$EXPECTED"
+          test "$EXPECTED" = "$ACTUAL" || { echo "::error::Ciphertext reconstructed hash mismatch"; exit 1; }
+          printf 'source_run=41734833692\nsource_artifact=encrypted-recovery-41734833692-1\nciphertext_sha256=%s\nciphertext_bytes=%s\n' \
+            "$EXPECTED" "$(stat -c %s "$RUNNER_TEMP/custody38/original/recovery.tar.gz.gpg")" > MANIFEST.txt
+
+      - name: Transfer ONLY encrypted segments to private Cloudflare R2
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/custody38/parts"
+          for f in recovery.tar.gz.gpg.part-*; do
+            aws --endpoint-url "$R2_ENDPOINT" s3 cp "$f" "s3://$BUCKET/$PREFIX/$f" \
+              --no-progress --only-show-errors
+            echo "Transferred encrypted segment"
+          done
+
+      - name: Independently download and verify ciphertext from R2
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$RUNNER_TEMP/custody38/readback"
+          cd "$RUNNER_TEMP/custody38/readback"
+          for f in "$RUNNER_TEMP/custody38/parts"/recovery.tar.gz.gpg.part-*; do
+            base="$(basename "$f")"
+            aws --endpoint-url "$R2_ENDPOINT" s3 cp "s3://$BUCKET/$PREFIX/$base" "$base" \
+              --no-progress --only-show-errors
+            cmp -s "$f" "$base"
+          done
+          cp "$RUNNER_TEMP/custody38/parts/PARTS.sha256" PARTS.sha256
+          sha256sum -c PARTS.sha256
+          EXPECTED="$(awk '$2=="recovery.tar.gz.gpg"{print $1}' "$RUNNER_TEMP/custody38/original/SHA256SUMS")"
+          ACTUAL="$(cat recovery.tar.gz.gpg.part-* | sha256sum | cut -d' ' -f1)"
+          test "$EXPECTED" = "$ACTUAL" || { echo "::error::Cloudflare R2 roundtrip SHA-256 mismatch"; exit 1; }
+          echo "Full R2 ciphertext SHA-256 matches GitHub backup #38"
+
+      - name: Upload verification manifest LAST and check readback
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/custody38/parts"
+          for f in SHA256SUMS PARTS.sha256 MANIFEST.txt; do
+            aws --endpoint-url "$R2_ENDPOINT" s3 cp "$f" "s3://$BUCKET/$PREFIX/$f" \
+              --no-progress --only-show-errors
+            aws --endpoint-url "$R2_ENDPOINT" s3 cp "s3://$BUCKET/$PREFIX/$f" \
+              "$RUNNER_TEMP/custody38/readback/verified-$f" --no-progress --only-show-errors
+            cmp -s "$f" "$RUNNER_TEMP/custody38/readback/verified-$f"
+          done
+          echo "OFFSITE_CIPHERTEXT_CUSTODY_VERIFIED=true"
+          echo "Only encrypted GPG ciphertext and non-sensitive checksums were transferred"
+
+      - name: Destroy ephemeral working copies
+        if: always()
+        shell: bash
+        run: |
+          rm -rf "$RUNNER_TEMP/custody38" "$RUNNER_TEMP/preflight"

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <receiver
+            android:name=".service.DebugNotificationReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.autamedica.android.TEST_DISPATCH_NOTIFICATION" />
+                <action android:name="com.autamedica.android.TEST_CALL_NOTIFICATION" />
+                <action android:name="com.autamedica.android.CLEAR_ALL_NOTIFICATIONS" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

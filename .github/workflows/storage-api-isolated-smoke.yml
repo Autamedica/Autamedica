@@ -1,0 +1,60 @@
+name: Storage API isolated smoke (synthetic only)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "scripts/db/test_storage_api_isolated.py"
+      - "scripts/db/test_storage_api_isolated_unit.py"
+      - "scripts/db/test_retained_storage_api.py"
+      - "scripts/db/test_retained_storage_api_unit.py"
+      - "docs/database/STORAGE_SERVICE_ISOLATED_CHECK.md"
+      - ".github/workflows/storage-api-isolated-smoke.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ (github.actor == 'coderabbitai[bot]' || github.actor == 'circleci-app[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.draft)) && 'ignored' || 'active' }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-storage-smoke:
+    if: >-
+      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      PYTHONPATH: scripts/db
+    steps:
+      - name: Checkout code, not production secrets
+        uses: actions/checkout@v4
+
+      - name: Install pinned Supabase CLI without modifying repository lockfiles
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/autamedica-cli" --no-save --no-package-lock supabase@2.122.0
+          echo "$RUNNER_TEMP/autamedica-cli/node_modules/.bin" >> "$GITHUB_PATH"
+
+      - name: Validate isolated test gates (no Docker needed)
+        run: python3 -m unittest -v test_storage_api_isolated_unit
+
+      - name: Run isolated synthetic Storage API and RLS denial tests
+        run: python3 scripts/db/test_storage_api_isolated.py
+
+      - name: Test retained Storage API byte replay safety gates
+        run: python3 -m unittest -v test_retained_storage_api_unit
+
+      - name: Rehydrate synthetic retained Storage files through local API
+        run: python3 scripts/db/test_retained_storage_api.py --synthetic-fixture
+
+      - name: Verify disposable Storage containers were removed
+        if: always()
+        run: |
+          set -euo pipefail
+          containers="$(docker ps -a --format '{{.Names}}')"
+          if printf '%s\n' "$containers" | grep -E -q '^supabase_db_autamedica-(storage-api-fixture|retained-storage-api)$'; then
+            echo "::error::A disposable Storage container remains"
+            exit 1
+          fi

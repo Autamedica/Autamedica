@@ -23,7 +23,6 @@ import javax.inject.Inject
 
 data class DoctorSignatureState(
     val isLoading: Boolean = false,
-    val isSuccess: Boolean = false,
     val errorMessage: String? = null,
     val errorMessageRes: Int? = null,
     val sisaValidated: Boolean = false,
@@ -127,23 +126,6 @@ class DoctorSignatureViewModel @Inject constructor(
                         )
                     }
                 }
-        }
-    }
-
-    fun saveSignature(signatureData: ByteArray) {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, errorMessage = null, errorMessageRes = null) }
-            if (_state.value.sisaValidated) {
-                _state.update { it.copy(isLoading = false, isSuccess = true) }
-            } else {
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = null,
-                        errorMessageRes = R.string.signature_error_must_validate_before_saving,
-                    )
-                }
-            }
         }
     }
 

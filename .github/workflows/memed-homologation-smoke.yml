@@ -1,0 +1,33 @@
+name: Memed homologation live smoke (official test environment)
+
+on:
+  push:
+    branches: [test/memed-demo-e2e-20261103]
+    paths:
+      - 'scripts/memed-homologation-smoke.mjs'
+      - '.github/workflows/memed-homologation-smoke.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  sandbox-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    env:
+      MEMED_HOMO_REGISTER_DEMO: 'false'
+      MEMED_HOMO_VALIDATE_DEMO: 'true'
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Validate sandbox credentials, CFM and existing AutaMedica DEMO identity (read only)
+        run: node scripts/memed-homologation-smoke.mjs

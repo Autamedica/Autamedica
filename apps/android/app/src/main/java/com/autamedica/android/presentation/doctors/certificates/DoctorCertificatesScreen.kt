@@ -351,6 +351,7 @@ fun DoctorCertificatesScreen(
                             selectedCertForDetail = null
                             onOpenPdf(pdfUrl)
                         },
+                        enabled = cert.status == "signed" && cert.signedPdfUrl?.isNotBlank() == true,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF0F766E),
                             contentColor = Color.White
@@ -435,13 +436,17 @@ private fun DoctorCertificateCard(
 
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = if (isValid) Color(0xFFDCFCE7) else Color(0xFFFEE2E2),
+                    color = if (isValid) Color(0xFFDCFCE7) else if (certificate.status == "draft") Color(0xFFFEF3C7) else Color(0xFFFEE2E2),
                 ) {
                     Text(
-                        text = if (isValid) stringResource(R.string.cert_status_valid) else stringResource(R.string.cert_status_cancelled),
+                        text = when (certificate.status) {
+                            "draft" -> stringResource(R.string.cert_status_draft)
+                            "signed" -> stringResource(R.string.cert_status_valid)
+                            else -> stringResource(R.string.cert_status_cancelled)
+                        },
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = if (isValid) Color(0xFF16A34A) else Color(0xFFDC2626),
+                        color = if (isValid) Color(0xFF16A34A) else if (certificate.status == "draft") Color(0xFF92400E) else Color(0xFFDC2626),
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                 }
@@ -527,6 +532,7 @@ private fun DoctorCertificateCard(
 
                     Button(
                         onClick = { onOpenPdf(pdfUrl) },
+                        enabled = isValid && certificate.signedPdfUrl?.isNotBlank() == true,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF0F766E),
                             contentColor = Color.White

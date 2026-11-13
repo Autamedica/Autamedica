@@ -7,6 +7,7 @@ import type { APIRoute } from 'astro';
 import { logger } from '@autamedica/shared';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { jsonOk, internalError } from '@/lib/api-helpers';
+import { isMedicalCertificatePubliclyVerifiable } from '@/lib/doctors/services/medical-certificate-verification';
 
 export const GET: APIRoute = async ({ params, locals }) => {
   const cuir = params.cuir;
@@ -29,7 +30,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
     if (!rx) {
       const { data: cert, error: certError } = await admin
         .from('medical_certificates')
-        .select('id, cuir, status, certificate_type, days_of_rest, start_date, end_date, diagnosis, hide_diagnosis, observations, doctor_id, patient_id, signed_pdf_url, qr_code_content, created_at, country_code')
+        .select('*')
         .eq('cuir', cuir)
         .maybeSingle();
 
@@ -39,6 +40,18 @@ export const GET: APIRoute = async ({ params, locals }) => {
       }
 
       if (!cert) return jsonOk({ valid: false, prescription: null, certificate: null });
+
+      // Fail closed: a database row, locally generated code or unsigned PDF
+      // must never be presented as a publicly verified medical certificate.
+      if (!isMedicalCertificatePubliclyVerifiable(cert as unknown as Parameters<typeof isMedicalCertificatePubliclyVerifiable>[0])) {
+        return jsonOk({
+          valid: false,
+          reason: 'certificate_not_verified',
+          documentType: 'certificate',
+          prescription: null,
+          certificate: null,
+        });
+      }
 
       let prescriberName = 'Médico';
       let prescriberLicense = '';
@@ -70,21 +83,16 @@ export const GET: APIRoute = async ({ params, locals }) => {
         if (dProfile) prescriberName = `Dr. ${dProfile.first_name ?? ''} ${dProfile.last_name ?? ''}`.trim();
       }
 
-      let patientName = 'Paciente';
-      let patientDni = '';
-      const { data: patient } = await admin
-        .from('patients')
-        .select('user_id, dni')
-        .eq('id', cert.patient_id)
-        .maybeSingle();
-      if (patient) {
-        patientDni = patient.dni ?? '';
-        const { data: pProfile } = await admin
-          .from('profiles')
-          .select('first_name, last_name')
-          .eq('user_id', patient.user_id)
-          .maybeSingle();
-        if (pProfile) patientName = `${pProfile.first_name ?? ''} ${pProfile.last_name ?? ''}`.trim();
+      if ((cert as { signature_method?: string }).signature_method === 'electronic_verified') {
+        const { data: issuance, error: issuanceError } = await (admin as unknown as import('@supabase/supabase-js').SupabaseClient)
+          .from('medical_certificate_electronic_issuances').select('doctor_identity,pdf_hash')
+          .eq('certificate_id', cert.id).maybeSingle();
+        if (issuanceError || issuance?.pdf_hash !== (cert as { signature_hash?: string }).signature_hash) {
+          return jsonOk({ valid: false, reason: 'certificate_not_verified', certificate: null, prescription: null });
+        }
+        const identity = issuance.doctor_identity as { name: string; license: string; license_type: string };
+        prescriberName = identity.name;
+        prescriberLicense = `${identity.license_type}: ${identity.license}`;
       }
 
       return jsonOk({
@@ -95,17 +103,17 @@ export const GET: APIRoute = async ({ params, locals }) => {
           status: cert.status,
           countryCode: (cert as { country_code?: string })?.country_code ?? 'AR',
           certificateType: cert.certificate_type,
-          daysOfRest: cert.days_of_rest,
-          startDate: cert.start_date,
-          endDate: cert.end_date,
-          diagnosis: cert.hide_diagnosis ? null : cert.diagnosis,
-          observations: cert.observations,
+          daysOfRest: 0,
+          startDate: null,
+          endDate: null,
           prescriberName,
           prescriberLicense,
-          patientName,
-          patientDni,
-          issuedAt: cert.created_at,
-          pdfUrl: cert.signed_pdf_url,
+          patientName: 'Datos reservados',
+          issuedAt: (cert as { signature_verified_at?: string }).signature_verified_at ?? cert.created_at,
+          signatureMethod: (cert as { signature_method?: string }).signature_method,
+          signatureLabel: (cert as { signature_method?: string }).signature_method === 'electronic_verified'
+            ? 'Firma electrónica confirmada por el profesional' : 'Firma digital certificada',
+          pdfUrl: null,
           qrContent: cert.qr_code_content,
         },
         prescription: null,
@@ -187,3 +195,4 @@ export const GET: APIRoute = async ({ params, locals }) => {
     return internalError();
   }
 };
+

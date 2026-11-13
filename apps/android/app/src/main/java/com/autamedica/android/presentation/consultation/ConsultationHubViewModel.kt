@@ -18,9 +18,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.OffsetDateTime
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 data class ConsultationHubUiState(
@@ -175,71 +172,6 @@ class ConsultationHubViewModel @Inject constructor(
                     )
                 }
             }
-        }
-    }
-
-    fun requestEmergencyConsultation(
-        reason: String = "Guardia Médica 24/7",
-        onReadyToEnter: (appointmentId: String) -> Unit,
-    ) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isEmergencyQueueLoading = true) }
-
-            val doctor = clinicStore.data.value.availableDoctors.firstOrNull()
-            if (doctor == null) {
-                _uiState.update {
-                    it.copy(
-                        isEmergencyQueueLoading = false,
-                        paymentMessage = "Ahora mismo no hay médicos de guardia disponibles. Probá nuevamente o agendá tu consulta desde Agenda.",
-                    )
-                }
-                return@launch
-            }
-
-            val now = OffsetDateTime.now(ZoneOffset.UTC)
-            val startTime = now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-            val endTime = now.plusMinutes(30).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-
-            val result = runCatching {
-                appointmentRepository.bookAppointment(
-                    doctorId = doctor.id,
-                    startTime = startTime,
-                    endTime = endTime,
-                    type = "telemedicine",
-                    reason = "Guardia Inmediata 24/7: $reason",
-                )
-            }.getOrNull()
-
-            val booked = result?.getOrNull()
-            if (booked == null) {
-                _uiState.update {
-                    it.copy(
-                        isEmergencyQueueLoading = false,
-                        paymentMessage = "No fue posible conectar con la guardia médica en este momento. Por favor intentá nuevamente.",
-                    )
-                }
-                return@launch
-            }
-
-            val finalApt = booked.copy(
-                doctorName = doctor.name,
-                doctorSpecialty = doctor.specialty,
-                doctorAvatarUrl = doctor.avatarUrl,
-                doctorFee = doctor.consultationFee ?: 15000.0,
-                status = AppointmentStatus.CONFIRMED,
-            )
-
-            clinicStore.applyMutation { data ->
-                data.copy(appointments = listOf(finalApt) + data.appointments.filter { it.id != finalApt.id })
-            }
-
-            _uiState.update {
-                it.copy(
-                    isEmergencyQueueLoading = false,
-                    paymentMessage = "Médico de guardia asignado (${doctor.name}). Podés ingresar de inmediato.",
-                )
-            }
-            onReadyToEnter(finalApt.id)
         }
     }
 }

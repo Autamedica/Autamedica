@@ -125,7 +125,16 @@ export const persistCallStatusService = {
     )
 
     if (!updated) {
-      throw new Error(`Unable to update call status to ${input.status}`)
+      // Another participant may have committed the same transition while this
+      // request waited for the row lock. Only the winning update consumes credits.
+      const latest = await callResponseRepo.findById(admin, call.id)
+      if (latest?.status === input.status) {
+        return {
+          kind: 'ok',
+          data: { callId: latest.id, roomId: latest.room_id, status: latest.status, changed: false },
+        }
+      }
+      return { kind: 'conflict', message: 'call_status_changed_concurrently' }
     }
 
     // Decrement credits when a call ends (with retry + audit)
@@ -185,3 +194,4 @@ export const persistCallStatusService = {
     }
   },
 }
+

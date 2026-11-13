@@ -5,6 +5,8 @@ import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.DoctorBookingInfo
 
 interface AppointmentRepository {
+    suspend fun getCareCountry(): Result<String?> = Result.success(null)
+    suspend fun selectCareCountry(country: String): Result<Unit> = Result.failure(IllegalStateException("country_selection_unavailable"))
     suspend fun getUpcomingAppointments(): Result<List<Appointment>>
     suspend fun getAppointmentById(id: String): Result<Appointment>
     suspend fun updateAppointmentNotes(id: String, notes: String): Result<Unit>
@@ -56,3 +58,4 @@ data class AppointmentPaymentExecution(
     val status: String,
     val checkoutUrl: String? = null,
 )
+

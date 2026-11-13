@@ -5,6 +5,7 @@ import { createAstroAdminClient } from "@/lib/supabase";
 import { doctorHasPatientAccess } from "@/lib/doctors/lib/resolve-room";
 import { logger } from "@autamedica/shared";
 import { z } from "zod";
+import { resolveBrazilianCidDisclosure } from "@/lib/doctors/services/brazilian-certificate-cid";
 
 const MedicalCertificateCreateSchema = z.object({
   patient_id: z.string().uuid("ID de paciente inválido"),
@@ -22,8 +23,11 @@ const MedicalCertificateCreateSchema = z.object({
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato de fecha de fin inválido (AAAA-MM-DD)").optional().nullable(),
   diagnosis: z.string().optional().nullable(),
   hide_diagnosis: z.boolean().default(false),
+  cid10_code: z.string().max(8).optional().nullable(),
+  cid_requested_by_patient: z.boolean().default(false),
   observations: z.string().optional().nullable(),
-  country_code: z.string().default("AR"),
+  treatment: z.string().trim().max(2000).optional().nullable(),
+  country_code: z.enum(["AR", "BR"]).default("AR"),
 });
 
 async function resolveAuthedDoctorContext(
@@ -36,7 +40,7 @@ async function resolveAuthedDoctorContext(
   const admin = createAstroAdminClient(locals?.runtime?.env);
   const { data: doctor, error } = await admin
     .from("doctors")
-    .select("id, active, user_id")
+    .select("id, active, user_id, license_type, uf_brazil")
     .eq("user_id", auth.user.id)
     .maybeSingle();
 
@@ -53,7 +57,15 @@ async function resolveAuthedDoctorContext(
     return forbidden("doctor_profile_required");
   }
 
-  return { userId: auth.user.id, doctorId: doctor.id };
+  return {
+    userId: auth.user.id,
+    doctorId: doctor.id,
+    licenseType: doctor.license_type as string | null,
+    ufBrazil: doctor.uf_brazil as string | null,
+    countryCode: doctor.license_type === "CRM" && /^[A-Z]{2}$/.test(doctor.uf_brazil ?? "")
+      ? "BR" as const
+      : ["MN", "MP"].includes(doctor.license_type ?? "") ? "AR" as const : null,
+  };
 }
 
 export const GET: APIRoute = async ({ request, locals }) => {
@@ -61,6 +73,9 @@ export const GET: APIRoute = async ({ request, locals }) => {
   if (context instanceof Response) return context;
 
   const url = new URL(request.url);
+  if (url.searchParams.get("context") === "country") {
+    return jsonOk({ countryCode: context.countryCode });
+  }
   const patientId = url.searchParams.get("patientId");
 
   try {
@@ -73,26 +88,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
     const query = admin
       .from("medical_certificates")
-      .select(`
-        id,
-        cuir,
-        status,
-        certificate_type,
-        days_of_rest,
-        start_date,
-        end_date,
-        diagnosis,
-        hide_diagnosis,
-        observations,
-        doctor_id,
-        patient_id,
-        appointment_id,
-        signed_pdf_url,
-        qr_code_content,
-        country_code,
-        created_at,
-        updated_at
-      `)
+      .select('*')
       .eq("doctor_id", context.doctorId);
 
     if (patientId) {
@@ -163,16 +159,31 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const result = MedicalCertificateCreateSchema.safeParse(body);
     if (!result.success) return badRequest(result.error.message);
 
+    if (!context.countryCode || result.data.country_code !== context.countryCode) {
+      return forbidden("certificate_doctor_country_mismatch");
+    }
+    let cid10Code: string | null;
+    try {
+      cid10Code = resolveBrazilianCidDisclosure({
+        countryCode: result.data.country_code,
+        code: result.data.cid10_code,
+        patientRequested: result.data.cid_requested_by_patient,
+        doctorLicenseType: context.licenseType,
+        doctorUfBrazil: context.ufBrazil,
+      });
+    } catch (error) {
+      return badRequest(error instanceof Error ? error.message : "cid10_invalid");
+    }
     const admin = createAstroAdminClient(locals?.runtime?.env);
 
     // Verify doctor patient access
     const hasAccess = await doctorHasPatientAccess(admin, context.doctorId, result.data.patient_id);
     if (!hasAccess) return forbidden("forbidden_patient_access");
 
-    // Generate official CUIR and QR code content
+    // Generate an internal draft reference; this is not a national ReNaPDiS registration.
     const timestampHex = Date.now().toString(16).toUpperCase();
     const randomHex = crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase();
-    const cuir = `AR-CERT-${timestampHex}-${randomHex}`;
+    const cuir = `${result.data.country_code}-CERT-${timestampHex}-${randomHex}`;
     const qrContent = `https://autamedica.com/verify/${cuir}`;
 
     const { data: created, error } = await admin
@@ -182,14 +193,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
         patient_id: result.data.patient_id,
         appointment_id: result.data.appointment_id ?? null,
         cuir,
-        status: "signed",
+        status: "draft",
         certificate_type: result.data.certificate_type,
         days_of_rest: result.data.days_of_rest,
         start_date: result.data.start_date,
         end_date: result.data.end_date ?? null,
         diagnosis: result.data.diagnosis ?? null,
-        hide_diagnosis: result.data.hide_diagnosis,
+        hide_diagnosis: result.data.country_code === "BR" ? true : result.data.hide_diagnosis,
+        cid10_code: cid10Code,
+        cid_requested_by_patient: Boolean(cid10Code),
+        cid_consent_recorded_at: cid10Code ? new Date().toISOString() : null,
+        cid_consent_recorded_by: cid10Code ? context.userId : null,
         observations: result.data.observations ?? null,
+        treatment: result.data.treatment ?? null,
         qr_code_content: qrContent,
         country_code: result.data.country_code,
       })
@@ -198,7 +214,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if (error) throw error;
 
-    logger.info("[api/doctors/certificates] certificate issued successfully", {
+    logger.info("[api/doctors/certificates] unsigned certificate draft saved", {
       certificateId: created.id,
       cuir: created.cuir,
       doctorId: context.doctorId,

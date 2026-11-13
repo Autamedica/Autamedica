@@ -806,7 +806,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (pathname === "/" && isAuthenticated && !portal) {
       const userRole =
         extractRole(user.app_metadata as Record<string, unknown>) ??
-        extractRole(user.user_metadata as Record<string, unknown>);
+        (await supabase.from("profiles").select("role").eq("user_id", user.id).maybeSingle()).data?.role ??
+        undefined;
       if (userRole) {
         const roleRedirect = getRoleRedirect(userRole);
         return context.redirect(roleRedirect);
@@ -818,7 +819,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
       if (isAuthenticated) {
         const userRole =
           extractRole(user.app_metadata as Record<string, unknown>) ??
-          extractRole(user.user_metadata as Record<string, unknown>);
+          (await supabase.from("profiles").select("role").eq("user_id", user.id).maybeSingle()).data?.role ??
+          undefined;
         if (!userRole) {
           return context.redirect("/auth/select-role");
         }
@@ -881,7 +883,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (isAuthenticated && isProtectedRoute) {
       const userRole =
         extractRole(user.app_metadata as Record<string, unknown>) ??
-        extractRole(user.user_metadata as Record<string, unknown>);
+        (await supabase.from("profiles").select("role").eq("user_id", user.id).maybeSingle()).data?.role ??
+        undefined;
 
       if (!userRole) {
         return context.redirect("/auth/select-role");

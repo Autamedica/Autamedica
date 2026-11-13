@@ -65,6 +65,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.autamedica.android.R
+import com.autamedica.android.presentation.theme.PortalPharmacistsAction
 import com.autamedica.android.domain.model.PharmacyDispatchRequest
 import com.autamedica.android.domain.model.dispatchTierLabel
 import com.autamedica.android.presentation.dashboard.cleanPatientName
@@ -105,13 +106,29 @@ fun UberIncomingDispatchAlert(
     ) {
         if (request == null) return@AnimatedVisibility
 
-        var remainingSeconds by remember(request.id) { mutableIntStateOf(totalSeconds) }
-        var progress by remember(request.id) { mutableFloatStateOf(1f) }
-        var isMinimized by remember(request.id) { mutableStateOf(false) }
+        // Expiry belongs to the backend offer; entering/recomposing the page
+        // must never restart a fabricated 30-second countdown.
+        val expiryMillis = remember(request.offerId, request.offerExpiresAt) {
+            runCatching {
+                java.time.OffsetDateTime.parse(requireNotNull(request.offerExpiresAt))
+                    .toInstant().toEpochMilli()
+            }.getOrNull()
+        }
+        val secondsInitially = ((expiryMillis ?: 0L) - System.currentTimeMillis())
+            .coerceAtLeast(0L).div(1000L).toInt().coerceAtMost(totalSeconds)
+        var remainingSeconds by remember(request.offerId, request.offerExpiresAt) {
+            mutableIntStateOf(secondsInitially)
+        }
+        var progress by remember(request.offerId, request.offerExpiresAt) {
+            mutableFloatStateOf(secondsInitially.toFloat() / totalSeconds.toFloat().coerceAtLeast(1f))
+        }
+        var isMinimized by remember(request.offerId, request.offerExpiresAt) { mutableStateOf(false) }
 
         // Start radar audio chime while alert is visible; stop on disposal
-        DisposableEffect(request.id) {
-            DispatchAudioNotifier.startPing(context, timeoutMs = totalSeconds * 1000L)
+        DisposableEffect(request.offerId, request.offerExpiresAt) {
+            if (secondsInitially > 0) {
+                DispatchAudioNotifier.startPing(context, timeoutMs = secondsInitially * 1000L)
+            }
             // Retroalimentación háptica inmediata al entrar la oferta
             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
             onDispose {
@@ -120,25 +137,21 @@ fun UberIncomingDispatchAlert(
         }
 
         // Countdown timer: ticks every 100ms for ultra-smooth radial arc
-        LaunchedEffect(request.id) {
-            val startTime = System.currentTimeMillis()
-            val totalDurationMs = totalSeconds * 1000L
+        LaunchedEffect(request.offerId, request.offerExpiresAt) {
+            var lastHapticSecond = -1
             while (true) {
-                val elapsed = System.currentTimeMillis() - startTime
-                val fraction = 1f - (elapsed.toFloat() / totalDurationMs).coerceIn(0f, 1f)
+                val msLeft = ((expiryMillis ?: 0L) - System.currentTimeMillis()).coerceAtLeast(0L)
+                val fraction = (msLeft.toFloat() / (totalSeconds * 1000f))
+                    .coerceIn(0f, 1f)
                 progress = fraction
-                val secsLeft = ((totalDurationMs - elapsed) / 1000L).coerceAtLeast(0).toInt()
+                val secsLeft = (msLeft / 1000L).toInt()
                 remainingSeconds = secsLeft
-
-                // Pequeño pulso táctil cuando quedan 10s y 5s
-                if (secsLeft == 10 || secsLeft == 5) {
+                if ((secsLeft == 10 || secsLeft == 5) && secsLeft != lastHapticSecond) {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    lastHapticSecond = secsLeft
                 }
-
-                if (elapsed >= totalDurationMs) {
-                    onDismiss()
-                    break
-                }
+                // Expiration is a backend event, NOT a doctor rejection.
+                if (msLeft <= 0L) break
                 delay(100L)
             }
         }
@@ -194,7 +207,7 @@ fun UberIncomingDispatchAlert(
                                 )
                                 Spacer(modifier = Modifier.width(5.dp))
                                 Text(
-                                    text = "OFERTA DISPATCH (${remainingSeconds}s)",
+                                    text = stringResource(R.string.ui_uber_compact_title, remainingSeconds),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = CyanSurgical,
@@ -202,7 +215,7 @@ fun UberIncomingDispatchAlert(
                                 )
                             }
                             Text(
-                                text = "$cleanName • Tocar para expandir",
+                                text = stringResource(R.string.ui_uber_compact_expand, cleanName),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.White,
@@ -220,11 +233,11 @@ fun UberIncomingDispatchAlert(
                             },
                             modifier = Modifier.height(36.dp),
                             shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = EmeraldAccept),
+                            colors = ButtonDefaults.buttonColors(containerColor = PortalPharmacistsAction),
                             contentPadding = PaddingValues(horizontal = 14.dp),
                         ) {
                             Text(
-                                text = "ATENDER",
+                                text = stringResource(R.string.ui_uber_answer),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = Color.White,
@@ -242,7 +255,7 @@ fun UberIncomingDispatchAlert(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
-                                contentDescription = "Cerrar",
+                                contentDescription = stringResource(R.string.ui_uber_close),
                                 tint = Color(0xFF94A3B8),
                                 modifier = Modifier.size(18.dp),
                             )
@@ -312,7 +325,14 @@ fun UberIncomingDispatchAlert(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "DESPACHO MÉDICO INMEDIATO",
+                                    text = stringResource(
+                                        R.string.ui_uber_guard_title,
+                                        when (request.careCountry) {
+                                            "BR" -> "BR"
+                                            "AR" -> "AR"
+                                            else -> "?"
+                                        },
+                                    ),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Black,
@@ -329,7 +349,7 @@ fun UberIncomingDispatchAlert(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ExpandMore,
-                                contentDescription = "Minimizar alerta",
+                                contentDescription = stringResource(R.string.ui_uber_minimize),
                                 tint = Color(0xFF94A3B8),
                                 modifier = Modifier.size(24.dp),
                             )
@@ -372,7 +392,7 @@ fun UberIncomingDispatchAlert(
                                 color = Color.White,
                             )
                             Text(
-                                text = "SEG SLA",
+                                text = stringResource(R.string.ui_uber_seconds_left),
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
@@ -437,7 +457,7 @@ fun UberIncomingDispatchAlert(
                                     )
 
                                     Text(
-                                        text = stringResource(R.string.uber_dispatch_dni_prefix, request.patientDni),
+                                        text = "${when (request.careCountry) { "BR" -> "CPF"; "AR" -> "DNI"; else -> stringResource(R.string.ui_document_generic) }} ${request.patientDni}",
                                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                                         color = Color(0xFF94A3B8),
                                     )
@@ -462,11 +482,10 @@ fun UberIncomingDispatchAlert(
                             }
 
                             // Symptom / Motivo Summary - Alto contraste
-                            val displayReason = when {
-                                request.symptomSummary.isNullOrBlank() || request.symptomSummary.contains("general", ignoreCase = true) ->
-                                    "Faringitis aguda y síndrome febril / Prescripción urgente"
-                                else -> request.symptomSummary
-                            }
+                            // No synthetic symptoms: a doctor must only see
+                            // the reason actually entered by this patient.
+                            val displayReason = request.symptomSummary?.takeIf { it.isNotBlank() }
+                                ?: stringResource(R.string.ui_uber_reason_unspecified)
                             Spacer(modifier = Modifier.height(10.dp))
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
@@ -476,7 +495,7 @@ fun UberIncomingDispatchAlert(
                             ) {
                                 Column(modifier = Modifier.padding(10.dp)) {
                                     Text(
-                                        text = "MOTIVO CLÍNICO REPORTADO",
+                                        text = stringResource(R.string.ui_uber_reported_reason),
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontSize = 10.sp,
                                             fontWeight = FontWeight.Bold,
@@ -511,7 +530,7 @@ fun UberIncomingDispatchAlert(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "${stringResource(R.string.uber_dispatch_origin_label)} • Teleconsulta Inmediata",
+                                    text = stringResource(R.string.ui_uber_origin_immediate, stringResource(R.string.uber_dispatch_origin_label)),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.SemiBold,
@@ -553,7 +572,7 @@ fun UberIncomingDispatchAlert(
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 onDismiss()
                             },
-                            enabled = !isClaiming,
+                            enabled = !isClaiming && remainingSeconds > 0,
                             shape = RoundedCornerShape(16.dp),
                             border = BorderStroke(1.dp, CrimsonReject.copy(alpha = 0.6f)),
                             colors = ButtonDefaults.outlinedButtonColors(
@@ -577,10 +596,10 @@ fun UberIncomingDispatchAlert(
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                                 onAccept(request.id)
                             },
-                            enabled = !isClaiming,
+                            enabled = !isClaiming && remainingSeconds > 0,
                             shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = EmeraldAccept,
+                                containerColor = PortalPharmacistsAction,
                                 contentColor = Color.White,
                             ),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),

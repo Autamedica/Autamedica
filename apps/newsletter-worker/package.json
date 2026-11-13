@@ -8,9 +8,9 @@
     "deploy": "wrangler deploy",
     "test-send": "wrangler dev --test-scheduled",
     "tail": "wrangler tail",
-    "typecheck": "tsc --noEmit",
-    "sync-audience": "bun scripts/sync-newsletter-audience.mjs",
-    "sync-audience:apply": "bun scripts/sync-newsletter-audience.mjs --apply"
+    "typecheck": "tsc --noEmit && node --check scripts/sync-newsletter-audience.mjs && node --test scripts/sync-newsletter-audience.test.mjs",
+    "sync-audience": "node scripts/sync-newsletter-audience.mjs",
+    "sync-audience:apply": "node scripts/sync-newsletter-audience.mjs --apply"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260401.0",

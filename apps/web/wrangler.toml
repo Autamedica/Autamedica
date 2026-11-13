@@ -1,15 +1,26 @@
 name = "autamedica-web"
 compatibility_date = "2025-09-23"
-compatibility_flags = ["nodejs_compat_v2"]
+compatibility_flags = ["nodejs_compat_v2", "global_fetch_strictly_public"]
 
 # Astro build output
 pages_build_output_dir = "dist"
 
 [vars]
 NODE_ENV = "production"
+MEMED_RX_ENABLED = "false"
+MEMED_API_URL = "https://api.memed.com.br/v1"
+MEMED_SCRIPT_URL = "https://partners.memed.com.br/integration.js"
 
 [env.production.vars]
 NODE_ENV = "production"
+# Memed production is enabled ONLY for the verified pilot doctor enforced by both API endpoints.
+# The provider event is stored as draft pending independent signature/delivery verification.
+MEMED_RX_ENABLED = "true"
+MEMED_API_URL = "https://api.memed.com.br/v1"
+MEMED_SCRIPT_URL = "https://partners.memed.com.br/integration.js"
+MEMED_PILOT_DOCTOR_ID = "7d3a8088-32a6-44ba-810b-e3b28a26608e"
 
 # Dominios personalizados (configurar en el dashboard de Cloudflare Pages)
 # custom_domains = ["www.autamedica.com", "autamedica.com"]
+
+

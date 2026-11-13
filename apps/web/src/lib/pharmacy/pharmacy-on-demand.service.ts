@@ -200,13 +200,13 @@ export function computeTierWaitTime(
 }
 
 /**
- * Genera una sala única y determinista para Cloudflare Calls
+ * Generate an opaque room identifier. DNI/CPF, even the last four digits,
+ * must never appear in video URLs, logs or room names.
  */
-export function generateCloudflareRoomId(tier: DispatchTierCategory, dni: string): string {
-  const sanitizedDni = dni.replace(/\D/g, '').slice(-4) || '0000'
-  const randomSuffix = Math.random().toString(36).substring(2, 7)
+export function generateCloudflareRoomId(tier: DispatchTierCategory, _document: string): string {
+  const opaque = crypto.randomUUID().replace(/-/g, '')
   const timestamp = Date.now().toString(36)
-  return `cf-room-${tier}-${sanitizedDni}-${timestamp}-${randomSuffix}`
+  return `cf-room-${tier}-${opaque.slice(0, 12)}-${timestamp}-${opaque.slice(12, 20)}`
 }
 
 /**
@@ -217,6 +217,7 @@ export function generateCloudflareRoomId(tier: DispatchTierCategory, dni: string
  * `accessToken` que el kiosco necesita para unirse a la sala.
  */
 export async function createPharmacyDispatchRequest(payload: {
+  careCountry: 'AR' | 'BR'
   patientDni: string
   patientPhone: string
   patientName?: string
@@ -238,7 +239,10 @@ export async function createPharmacyDispatchRequest(payload: {
     }>('/api/pharmacy/dispatch/request', {
       method: 'POST',
       body: {
-        patientDni: payload.patientDni.trim(),
+        careCountry: payload.careCountry,
+        ...(payload.careCountry === 'BR'
+          ? { patientCpf: payload.patientDni.replace(/\D/g, '') }
+          : { patientDni: payload.patientDni.replace(/\D/g, '') }),
         patientPhone: payload.patientPhone.trim(),
         patientName: payload.patientName?.trim() || undefined,
         tier: payload.tier,

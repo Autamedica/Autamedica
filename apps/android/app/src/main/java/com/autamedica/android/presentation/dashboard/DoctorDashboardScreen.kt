@@ -132,7 +132,9 @@ import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
 import com.autamedica.android.presentation.theme.PortalDoctors
+import java.time.LocalDate
 import java.time.OffsetDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -236,23 +238,13 @@ fun DoctorDashboardScreen(
             )
         },
         bottomBar = {
-            val incomingAlert: PharmacyDispatchRequest? = uiState.simulatedDispatchAlert
-                ?: uiState.pharmacyOnDutyState.pendingRequests
-                    .firstOrNull { it.id !in uiState.dismissedRequestIds }
-                    ?.let { req ->
-                        PharmacyDispatchRequest(
-                            id = req.id,
-                            patientDni = req.patientDni,
-                            patientPhone = req.patientPhone,
-                            patientName = req.patientName,
-                            tierRequested = req.pharmacyName,
-                            symptomSummary = req.reason,
-                            status = req.status.name.lowercase(),
-                            assignedDoctorId = req.doctorId,
-                            cloudflareRoomId = req.roomId ?: req.id,
-                            createdAt = req.createdAt?.toString() ?: "",
-                        )
-                    }
+            // The server has explicitly offered this exact patient to this
+            // logged-in doctor. Never derive a room ID from a request ID.
+            val incomingAlert: PharmacyDispatchRequest? =
+                uiState.simulatedDispatchAlert?.takeIf {
+                    uiState.guardApproved == true &&
+                        uiState.pharmacyOnDutyState.isOnDuty && !it.offerId.isNullOrBlank()
+                }
             UberIncomingDispatchAlert(
                 request = incomingAlert,
                 isClaiming = uiState.claimingPharmacyRequestId == incomingAlert?.id,
@@ -286,24 +278,56 @@ fun DoctorDashboardScreen(
                     }
                 }
 
+                uiState.guardApproved != true -> {
+                    // A registered doctor is not automatically an approved
+                    // clinical practitioner. Keep profile/onboarding navigation
+                    // accessible, but no appointments, patient charts, queue
+                    // acceptance, video or other clinical shortcuts here.
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(24.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Text(
+                                text = if (uiState.guardApproved == null)
+                                    stringResource(R.string.ui_doctor_approval_checking)
+                                else
+                                    stringResource(R.string.ui_doctor_approval_pending),
+                                style = MaterialTheme.typography.titleLarge,
+                                color = AuTextPrimary,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                text = if (uiState.guardApproved == null)
+                                    stringResource(R.string.ui_doctor_approval_checking_body)
+                                else
+                                    stringResource(R.string.ui_doctor_approval_pending_body),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Slate500,
+                            )
+                            Button(onClick = viewModel::refresh) {
+                                Text(stringResource(R.string.ui_doctor_approval_refresh))
+                            }
+                        }
+                    }
+                }
+
                 else -> {
-                    val nextInQueue = uiState.todayAppointments.firstOrNull() ?: Appointment(
-                        id = "next-dispatch",
-                        patientId = null,
-                        doctorId = uiState.doctorProfile?.id ?: "",
-                        startTime = OffsetDateTime.now().plusMinutes(15).toString(),
-                        endTime = null,
-                        durationMinutes = 30,
-                        type = AppointmentType.TELEMEDICINE,
-                        status = AppointmentStatus.CONFIRMED,
-                        notes = "Cefalea tensional y control de presión arterial",
-                        meetingUrl = null,
-                    )
-                    val nextSummary = nextInQueue.patientId?.let { uiState.patientsMap[it] }
-                    val nextName = nextSummary?.let { "${it.firstName} ${it.lastName}".trim().ifBlank { "Paciente en consulta" } }
-                        ?: "Paciente en consulta"
-                    val nextReason = cleanConsultationReason(nextInQueue.notes, nextInQueue.type, 0)
-                    val isNextJoinable = nextInQueue.id in uiState.joinableAppointmentIds || nextInQueue.isTelemedicineJoinCandidate()
+                    // The next patient must be an actual appointment, never a synthetic one.
+                    val nextInQueue = uiState.todayAppointments.firstOrNull {
+                        it.status == AppointmentStatus.SCHEDULED ||
+                            it.status == AppointmentStatus.CONFIRMED ||
+                            it.status == AppointmentStatus.IN_PROGRESS
+                    }
+                    val nextSummary = nextInQueue?.patientId?.let { uiState.patientsMap[it] }
+                    val nextName = nextSummary?.let {
+                        "${it.firstName} ${it.lastName}".trim().ifBlank { "Paciente" }
+                    } ?: "Paciente"
+                    val nextReason = nextInQueue?.let { cleanConsultationReason(it.notes, it.type) }.orEmpty()
+                    val isNextJoinable = nextInQueue?.let { it.id in uiState.joinableAppointmentIds } ?: false
 
                     var inspectingPatient by remember { mutableStateOf<QueuedPatient?>(null) }
 
@@ -319,14 +343,29 @@ fun DoctorDashboardScreen(
                         verticalArrangement = Arrangement.spacedBy(22.dp),
                     ) {
                         // 1. COCKPIT HEADER & STATUS RING (Uber Driver + Epic Haiku)
+                        if (!uiState.acceptedDispatchRoomId.isNullOrBlank()) {
+                            item {
+                                Button(
+                                    onClick = { viewModel.retryAcceptedVideo(onNavigateToVideoCall) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text("Reintentar ingreso a la videoconsulta")
+                                }
+                            }
+                        }
+
                         item {
                             DoctorCockpitHeader(
                                 doctorName = uiState.userName,
                                 specialty = uiState.doctorProfile?.specialty,
                                 licenseNumber = uiState.doctorProfile?.licenseNumber,
+                                licenseType = uiState.doctorProfile?.licenseType,
+                                countryCode = uiState.doctorProfile?.countryCode,
+                                ufBrazil = uiState.doctorProfile?.ufBrazil,
                                 avatarUrl = null,
                                 isOnDuty = uiState.pharmacyOnDutyState.isOnDuty,
                                 isLoading = uiState.pharmacyOnDutyState.isLoading,
+                                guardApproved = uiState.guardApproved,
                                 onToggleOnDuty = viewModel::togglePharmacyOnDuty,
                             )
                         }
@@ -335,11 +374,7 @@ fun DoctorDashboardScreen(
                         item {
                             NubankClinicalMetricsSection(
                                 stats = uiState.stats,
-                                consultationsTodayCount = uiState.todayAppointments.count { it.status == AppointmentStatus.COMPLETED },
-                                accumulatedEarnings = "R$ 1.840,00",
-                                averageResponseTime = "1.8 min",
-                                acceptanceRate = "99.2%",
-                                onOpenFinancials = { onNavigateToTab(DOCTOR_TAB_APPOINTMENTS) },
+                                statsAvailable = uiState.statsAvailable,
                             )
                         }
 
@@ -368,15 +403,17 @@ fun DoctorDashboardScreen(
                         }
 
                         // 5. PRÓXIMO EN ESPERA / CONSULTA TELEMEDICINA DESTACADA
-                        item {
-                            HeroNextInQueueCard(
-                                appointment = nextInQueue,
-                                patientName = nextName,
-                                avatarUrl = nextSummary?.avatarUrl,
-                                reason = nextReason,
-                                isJoinable = isNextJoinable,
-                                onJoinCall = { onNavigateToVideoCall(nextInQueue.id) },
-                            )
+                        if (nextInQueue != null) {
+                            item {
+                                HeroNextInQueueCard(
+                                    appointment = nextInQueue,
+                                    patientName = nextName,
+                                    avatarUrl = nextSummary?.avatarUrl,
+                                    reason = nextReason,
+                                    isJoinable = isNextJoinable,
+                                    onJoinCall = { onNavigateToVideoCall(nextInQueue.id) },
+                                )
+                            }
                         }
 
                         // 6. CONTINUIDAD ASISTENCIAL (Seguimiento a 30 días)
@@ -474,6 +511,7 @@ private fun DoctorGreetingHeader(
 private fun AutaMedicaOsDutyHero(
     isOnDuty: Boolean,
     isLoading: Boolean,
+    guardApproved: Boolean?,
     onToggleOnDuty: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -529,7 +567,11 @@ private fun AutaMedicaOsDutyHero(
                     Spacer(modifier = Modifier.width(14.dp))
                     Column {
                         Text(
-                            text = if (isOnDuty) "Guardia Médica Activa" else "Guardia en Pausa",
+                            text = when {
+                                guardApproved != true -> "Guardia pendiente de validación"
+                                isOnDuty -> "Guardia Médica Activa"
+                                else -> "Guardia en Pausa"
+                            },
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.ExtraBold,
@@ -538,7 +580,11 @@ private fun AutaMedicaOsDutyHero(
                             color = if (isOnDuty) Color(0xFF0F172A) else Color(0xFF475569),
                         )
                         Text(
-                            text = if (isOnDuty) "Recibiendo consultas on-demand" else "Toca para conectar con la red de farmacias",
+                            text = when {
+                                guardApproved != true -> "Requiere aprobación administrativa de matrícula"
+                                isOnDuty -> "Recibiendo consultas on-demand"
+                                else -> "Toca para conectar con la red de farmacias"
+                            },
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                             color = if (isOnDuty) AutaGreen else Slate500,
                         )
@@ -554,7 +600,7 @@ private fun AutaMedicaOsDutyHero(
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                         onToggleOnDuty(isChecked)
                     },
-                    enabled = !isLoading,
+                    enabled = !isLoading && (guardApproved == true || isOnDuty),
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
                         checkedTrackColor = AutaGreen,
@@ -854,16 +900,7 @@ private fun FollowUpPatientCard(
 }
 
 /**
- * 7. AGENDA DE HOY ESTILO UBER EATS (Lista Viva sin cajas grandes)
- * Filosofía: "Tu agenda actual parece un calendario. Uber muestra una lista viva. Sin cajas grandes. Solo una lista fluida."
- *
- * Muestra:
- * - Cabecera: "Agenda de hoy" con subtítulo "17 consultas programadas"
- * - Pacientes:
- *   * María López • Control • 09:00
- *   * Juan Pérez • Dolor lumbar • 09:30
- *   * Ana Silva • Resultado de estudios • 10:00
- *   * Carlos Méndez • Consulta general • 10:30
+ * Today's actual scheduled appointments (without synthetic patients or click targets).
  */
 @Composable
 private fun UberEatsLiveAgendaSection(
@@ -875,18 +912,14 @@ private fun UberEatsLiveAgendaSection(
     onNavigateToCreateAppointment: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Definición canónica de los pacientes requeridos por el usuario en la lista viva
-    val canonicalPatients = listOf(
-        Triple("María López", "Control", "09:00"),
-        Triple("Juan Pérez", "Dolor lumbar", "09:30"),
-        Triple("Ana Silva", "Resultado de estudios", "10:00"),
-        Triple("Carlos Méndez", "Consulta general", "10:30"),
+    val todayScheduled = scheduledAppointmentsForLocalDay(
+        appointments,
+        LocalDate.now(),
+        ZoneId.systemDefault(),
     )
-
-    val countText = if (appointments.size >= 17) "${appointments.size} consultas programadas" else "17 consultas programadas"
+    val countText = "${todayScheduled.size} consulta${if (todayScheduled.size == 1) "" else "s"} programada${if (todayScheduled.size == 1) "" else "s"}"
 
     Column(modifier = modifier.fillMaxWidth()) {
-        // Cabecera: Agenda de hoy estilo Uber Eats
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -903,20 +936,15 @@ private fun UberEatsLiveAgendaSection(
                     color = Slate900,
                 )
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = countText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Slate500,
-                )
+                Text(text = countText, style = MaterialTheme.typography.bodyMedium, color = Slate500)
             }
-
             IconButton(
                 onClick = onNavigateToCreateAppointment,
                 modifier = Modifier.size(36.dp),
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Agendar Turno",
+                    contentDescription = "Agendar turno",
                     tint = MedicalBlue,
                     modifier = Modifier.size(24.dp),
                 )
@@ -924,38 +952,41 @@ private fun UberEatsLiveAgendaSection(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-
-        // Lista Fluida SIN Cajas Grandes ni Cards con bordes
-        Column(modifier = Modifier.fillMaxWidth()) {
-            canonicalPatients.forEachIndexed { index, (name, reason, time) ->
-                val matchingApt = appointments.getOrNull(index)
-                val isJoinable = index == 0 || (matchingApt?.let { it.id in joinableAppointmentIds } == true)
-                val callAction = {
-                    val id = matchingApt?.id ?: "apt-live-$index"
-                    onJoinCall(id)
-                }
-
-                UberEatsLiveRowItem(
-                    patientName = name,
-                    reason = reason,
-                    time = time,
-                    avatarUrl = matchingApt?.patientId?.let { patientsMap[it]?.avatarUrl },
-                    isJoinable = isJoinable,
-                    onJoinCall = callAction,
-                )
-
-                if (index < canonicalPatients.lastIndex) {
-                    HorizontalDivider(
-                        modifier = Modifier.padding(start = 56.dp),
-                        color = Slate200.copy(alpha = 0.5f),
-                        thickness = 0.5.dp,
+        if (todayScheduled.isEmpty()) {
+            Text(
+                text = "No hay consultas programadas para hoy.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Slate500,
+                modifier = Modifier.padding(vertical = 14.dp),
+            )
+        } else {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                todayScheduled.forEachIndexed { index, appointment ->
+                    val patient = appointment.patientId?.let { patientsMap[it] }
+                    val patientName = patient?.let {
+                        "${it.firstName} ${it.lastName}".trim().ifBlank { "Paciente" }
+                    } ?: "Paciente"
+                    val isJoinable = appointment.id in joinableAppointmentIds
+                    UberEatsLiveRowItem(
+                        patientName = patientName,
+                        reason = cleanConsultationReason(appointment.notes, appointment.type),
+                        time = formatTime(appointment.startTime),
+                        avatarUrl = patient?.avatarUrl,
+                        isJoinable = isJoinable,
+                        onJoinCall = { if (isJoinable) onJoinCall(appointment.id) },
                     )
+                    if (index < todayScheduled.lastIndex) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 56.dp),
+                            color = Slate200.copy(alpha = 0.5f),
+                            thickness = 0.5.dp,
+                        )
+                    }
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -971,7 +1002,6 @@ private fun UberEatsLiveAgendaSection(
                     .clickable(onClick = onNavigateToCreateAppointment)
                     .padding(vertical = 6.dp, horizontal = 4.dp),
             )
-
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
@@ -1010,7 +1040,7 @@ private fun UberEatsLiveRowItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onJoinCall)
+            .then(if (isJoinable) Modifier.clickable(onClick = onJoinCall) else Modifier)
             .padding(vertical = 12.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -2055,41 +2085,25 @@ private fun PreConsultationBottomSheet(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HELPERS Y MOTIVOS CLÍNICOS ESPECÍFICOS
+// HELPERS DE PRESENTACIÓN CLÍNICA SIN DATOS INVENTADOS
 // ─────────────────────────────────────────────────────────────────────────────
 
-private val SPECIFIC_CLINICAL_REASONS = listOf(
-    "Cefalea tensional y control de presión arterial",
-    "Cuadro respiratorio alto, rinorrea y odinofagia",
-    "Evaluación de lumbalgia aguda y prescripción analgésica",
-    "Seguimiento evolutivo de gastritis y pauta farmacológica",
-    "Revisión de estudios de laboratorio y perfil lipídico",
-    "Control cardiovascular y ajuste de antihipertensivos",
-    "Evaluación dermatológica y control de lesiones cutáneas",
-    "Bronquitis aguda y pauta de tratamiento antibiótico",
-    "Consulta por astenia persistente y valoración metabólica",
-    "Control posoperatorio y evolución de cicatrización",
-    "Evaluación de reflujo gastroesofágico y pauta dietaria",
-    "Control clínico de rutina y plan de prevención integral",
-    "Atención médica prioritaria por síndrome febril",
-    "Seguimiento de diabetes tipo 2 y hemoglobina glicada",
-    "Evaluación traumatológica por entorsis de tobillo",
-    "Consulta clínica general y renovación de recetas oficiales",
-    "Control de anticoagulación oral y dosificación de fármacos"
-)
-
-private fun cleanConsultationReason(notes: String?, type: AppointmentType, index: Int = 0): String {
-    if (notes.isNullOrBlank()) {
-        return SPECIFIC_CLINICAL_REASONS[index % SPECIFIC_CLINICAL_REASONS.size]
+private fun cleanConsultationReason(notes: String?, type: AppointmentType): String {
+    val recordedReason = notes.orEmpty().trim().removePrefix("Motivo:").trim()
+    if (recordedReason.isNotBlank() &&
+        !recordedReason.startsWith("http://", ignoreCase = true) &&
+        !recordedReason.startsWith("https://", ignoreCase = true)
+    ) {
+        return recordedReason
     }
-    var clean = notes.trim()
-    while (clean.startsWith("Motivo:", ignoreCase = true) || clean.startsWith("Motivo :", ignoreCase = true)) {
-        clean = clean.substringAfter(":").trim()
+    return when (type) {
+        AppointmentType.FOLLOW_UP -> "Seguimiento"
+        AppointmentType.EMERGENCY -> "Urgencia"
+        AppointmentType.LAB_TEST -> "Estudio"
+        AppointmentType.CHECKUP -> "Control"
+        AppointmentType.TELEMEDICINE -> "Teleconsulta"
+        AppointmentType.CONSULTATION -> "Consulta"
     }
-    if (clean.isBlank() || clean.startsWith("http://") || clean.startsWith("https://") || clean.contains("general", ignoreCase = true)) {
-        return SPECIFIC_CLINICAL_REASONS[index % SPECIFIC_CLINICAL_REASONS.size]
-    }
-    return clean
 }
 
 @Composable

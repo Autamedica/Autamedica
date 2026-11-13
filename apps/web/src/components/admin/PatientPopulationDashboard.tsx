@@ -1,10 +1,20 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { fetchApi } from '@/lib/api-client';
+import { coverageLabel } from '@/lib/admin/patient-intelligence-metrics';
 
 type DemographicsData = {
   success: boolean;
   total_patients: number;
+  data_quality?: {
+    active_records: number;
+    linked_records: number;
+    linked_users: number;
+    unlinked_records: number;
+    with_birth_date: number;
+    with_address: number;
+    coverage_unknown: number;
+  };
   demographics: {
     by_gender: Record<string, number>;
     by_age_group: Record<string, number>;
@@ -31,6 +41,12 @@ type AnomalyAlert = {
 
 type ClinicalIntelligenceData = {
   success: boolean;
+  metrics?: {
+    extraction_records: number;
+    extractions_with_symptoms: number;
+    symptom_observations: number;
+    red_flag_observations: number;
+  };
   seasonal_symptoms: {
     Verano: SymptomCount[];
     Otoño: SymptomCount[];
@@ -126,7 +142,11 @@ export function PatientPopulationDashboard() {
         }
         
         const demoResult = await demoRes.json();
-        const clinicalResult = await clinicalRes.json();
+        const clinicalEnvelope = await clinicalRes.json();
+        const clinicalResult = clinicalEnvelope.data;
+        if (!clinicalEnvelope.success || !clinicalResult?.success) {
+          throw new Error('La información clínica no está disponible.');
+        }
 
         if (demoResult.error) throw new Error(demoResult.error);
         if (clinicalResult.error) throw new Error(clinicalResult.error);
@@ -471,7 +491,7 @@ export function PatientPopulationDashboard() {
               </svg>
             </div>
             <div>
-              <div className="text-[10px] uppercase font-bold tracking-wider text-stone-400">Pacientes Activos</div>
+              <div className="text-[10px] uppercase font-bold tracking-wider text-stone-400">Fichas Habilitadas</div>
               <div className="text-xl font-black text-stone-900 font-mono">{total_patients}</div>
             </div>
           </div>
@@ -486,7 +506,7 @@ export function PatientPopulationDashboard() {
                   </svg>
                   Distribución por Género
                 </h3>
-                <p className="text-xs text-stone-500">Cada bloque equivale exactamente a 1% de la población activa</p>
+                <p className="text-xs text-stone-500">Cada bloque representa aproximadamente 1% de las fichas habilitadas</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 items-center py-1">
@@ -573,7 +593,7 @@ export function PatientPopulationDashboard() {
             <div className="bg-white rounded-lg border border-stone-200 p-5 shadow-xs flex flex-col justify-between space-y-4 hover:shadow-sm transition-shadow">
               <div>
                 <h3 className="text-sm font-semibold text-stone-800">Rangos de Edad</h3>
-                <p className="text-xs text-stone-500">Distribución etaria de pacientes activos</p>
+                <p className="text-xs text-stone-500">Distribución etaria de fichas habilitadas</p>
               </div>
               <div className="space-y-3 py-1">
                 {Object.entries(demographics.by_age_group)
@@ -590,8 +610,8 @@ export function PatientPopulationDashboard() {
             {/* Geographic Distribution Card */}
             <div className="bg-white rounded-lg border border-stone-200 p-5 shadow-xs flex flex-col justify-between space-y-4 hover:shadow-sm transition-shadow">
               <div>
-                <h3 className="text-sm font-semibold text-stone-800">Distribución Geográfica</h3>
-                <p className="text-xs text-stone-500">Zonas de residencia declaradas</p>
+                <h3 className="text-sm font-semibold text-stone-800">Región inferida del domicilio</h3>
+                <p className="text-xs text-stone-500">Clasificación aproximada a partir de texto libre</p>
               </div>
               <div className="space-y-3 py-1">
                 {Object.entries(demographics.by_region)
@@ -633,9 +653,13 @@ export function PatientPopulationDashboard() {
               </svg>
             </div>
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-amber-800">Insight Operativo de Crecimiento</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-amber-800">Calidad de los datos poblacionales</h4>
               <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
-                La mayor concentración de pacientes activos se sitúa en <strong>CABA y Gran Buenos Aires</strong>, representando una oportunidad inmejorable para enfocar campañas regionales de emails e impulsar a los centros médicos locales asociados de esa zona para que aumenten su oferta de consultas presenciales y de telemedicina.
+                {demoData.data_quality && <span className="block mb-2">
+                  {demoData.data_quality.linked_records} fichas con usuario · {demoData.data_quality.unlinked_records} sin usuario vinculado.
+                  {' '}{demoData.data_quality.with_birth_date} con fecha de nacimiento · {demoData.data_quality.with_address} con domicilio · {demoData.data_quality.coverage_unknown} con cobertura desconocida.
+                </span>}
+                Las regiones se infieren del texto del domicilio y pueden ser ambiguas. Estos datos no permiten confirmar una concentración regional ni recomendar campañas segmentadas. Las fichas habilitadas no equivalen a pacientes atendidos.
               </p>
             </div>
           </div>
@@ -647,17 +671,17 @@ export function PatientPopulationDashboard() {
           {/* Clinical Tab Content */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-xs">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-stone-400">Total Consultas Procesadas por IA</span>
-              <div className="text-2xl font-black text-stone-900 font-mono mt-1">1207</div>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-stone-400">Extracciones IA registradas</span>
+              <div className="text-2xl font-black text-stone-900 font-mono mt-1">{clinicalData.metrics?.extraction_records ?? 'Sin verificar'}</div>
             </div>
             <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-xs">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-500">Consultas con Síntomas Estructurados</span>
-              <div className="text-2xl font-black text-emerald-700 font-mono mt-1">1205</div>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-500">Extracciones con síntomas estructurados</span>
+              <div className="text-2xl font-black text-emerald-700 font-mono mt-1">{clinicalData.metrics?.extractions_with_symptoms ?? 'Sin verificar'}</div>
             </div>
             <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-xs">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-rose-500">Banderas Rojas de Alarma Detectadas</span>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-rose-500">Observaciones marcadas como alarma</span>
               <div className="text-2xl font-black text-rose-700 font-mono mt-1">
-                {(clinicalData?.red_flags_ranking || []).reduce((sum, item) => sum + item.count, 0)}
+                {clinicalData.metrics?.red_flag_observations ?? 'Sin verificar'}
               </div>
             </div>
           </div>
@@ -760,7 +784,7 @@ export function PatientPopulationDashboard() {
                         <span className="font-mono text-stone-500 font-bold">{flag.count} alertas</span>
                       </div>
                       <div className="h-1.5 w-full bg-stone-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-rose-500 rounded-full" style={{ width: `${Math.min(100, (flag.count / 1207) * 100)}%` }} />
+                        <div className="h-full bg-rose-500 rounded-full" style={{ width: `${Math.min(100, (flag.count / (clinicalData.metrics?.red_flag_observations || 1)) * 100)}%` }} />
                       </div>
                     </div>
                   ))}
@@ -843,7 +867,7 @@ export function PatientPopulationDashboard() {
                           <div className="text-[10px] text-stone-400">CUIL: {p.cuil || 'N/D'}</div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-xs font-medium text-stone-800">{p.insuranceInfo?.provider || 'Particular'}</div>
+                          <div className="text-xs font-medium text-stone-800">{coverageLabel(p.insuranceInfo)}</div>
                           <div className="text-[10px] text-stone-400">{p.insuranceInfo?.plan ? `Plan: ${p.insuranceInfo.plan}` : ''}</div>
                         </td>
                         <td className="px-6 py-4">
@@ -1146,3 +1170,4 @@ export function PatientPopulationDashboard() {
     </div>
   );
 }
+

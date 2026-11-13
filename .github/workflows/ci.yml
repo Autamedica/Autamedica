@@ -2,17 +2,39 @@ name: CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches: [main]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'supabase/**'
+      - 'scripts/**'
+      - '.github/workflows/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
   push:
     branches: [main]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'supabase/**'
+      - 'scripts/**'
+      - '.github/workflows/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
   workflow_dispatch:
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ (github.actor == 'coderabbitai[bot]' || github.actor == 'circleci-app[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.draft)) && 'ignored' || 'active' }}
   cancel-in-progress: true
 
 permissions:
   contents: read
+  packages: read
 
 env:
   HUSKY: "0"
@@ -24,6 +46,7 @@ env:
 
 jobs:
   build-gate:
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]'
     name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -53,6 +76,7 @@ jobs:
           RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}
 
   lint-gate:
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]'
     name: Lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -62,6 +86,16 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
+      - name: Test newsletter audience reconciliation safeguards
+        run: node --test apps/newsletter-worker/scripts/sync-newsletter-audience.test.mjs
+      - name: Test Memed deployment configuration safeguards
+        run: node --test scripts/ops/sync-memed-secrets.test.mjs
+      - name: Verify service worker never caches clinical data
+        run: node --test scripts/security/service-worker-privacy.test.mjs
+      - name: Check backup publication and integrity safeguards
+        run: python3 scripts/db/test_logical_backup.py
+      - name: Verify actor-scoped telemedicine status authorization
+        run: node --experimental-strip-types --test supabase/functions/update-call-status/handler.test.ts
       - run: pnpm lint
       - run: pnpm hardcode:check
       - name: Detect hardcoded secrets
@@ -72,6 +106,7 @@ jobs:
           if grep -rnE "eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|sbp_[A-Za-z0-9]{20,}|SUPABASE_SERVICE_ROLE_KEY[[:space:]]*[:=][[:space:]]*['\"]|SUPABASE_ACCESS_TOKEN[[:space:]]*[:=][[:space:]]*['\"]" --include="*.ts" --include="*.js" --include="*.mjs" --include="*.sh" --include="*.yml" --include="*.yaml" --exclude="*.test.ts" --exclude="*.spec.ts" . --exclude-dir=".github" --exclude-dir="node_modules" | grep -vE "process\.env|import\.meta\.env|secrets\.|<token>|placeholder|REPLACE_WITH"; then FOUND=1; fi
           if [ "$FOUND" = "1" ]; then echo "::error::Hardcoded secrets detected"; exit 1; fi
   unit-tests:
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]'
     name: Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -86,35 +121,83 @@ jobs:
         env:
           RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}
 
-  rls-tests:
-    name: RLS
+  clinical-edge-prescription:
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]'
+    name: Clinical Edge RX (Deno)
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    needs: [build-gate]
-    continue-on-error: true
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      - name: Run RLS tests
-        env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: |
-          if [ -z "$SUPABASE_DB_URL" ]; then
-            echo "::warning::Skipping RLS tests: SUPABASE_DB_URL not set"
-            exit 0
-          fi
-          if ! psql "$SUPABASE_DB_URL" -c 'select 1' >/dev/null 2>&1; then
-            echo "::warning::Skipping RLS tests: unable to connect with configured SUPABASE_DB_URL"
-            exit 0
-          fi
-          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls_smoke.sql
-          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls_core_tables.sql
+      - uses: ./.github/actions/setup-pnpm
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          pnpm-version: ${{ env.PNPM_VERSION }}
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Check legacy mobile prescription endpoint
+        run: deno check --no-lock supabase/functions/issue-prescription/index.ts
+      - name: Prove AR/BR endpoint rejects unverified official issuance without writes
+        run: deno test --no-lock --allow-env --allow-net supabase/functions/tests/issue-prescription.test.ts
 
+  database-tests:
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]'
+    name: Database & RLS
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@b60b5899c73b63a2d2d651b1e90db8d4c9392f51 # v1.6.0
+        with:
+          version: 2.122.0
+      - name: Authenticate GHCR for Supabase Docker images
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+        run: |
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+      - name: Start isolated local Supabase
+        run: env -u SUPABASE_INTERNAL_IMAGE_REGISTRY supabase start
+      - name: Replay every migration from scratch
+        run: supabase db reset --local
+      - name: Run RLS checks against the local database
+        env:
+          SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: |
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/clinical_country_isolation.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/ar_electronic_certificate_demo_smoke.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/pharmacy_guest_identity_isolation.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/pharmacy_referral_commission_isolated.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls_core_tables.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/farmalink_once_only_issue.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/memed_provider_integrity_smoke.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/internal_trigger_permissions.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/auth_helper_permissions.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/clinical_rls_initplans.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/native_session_cleanup.sql
+      - name: Export and verify a disposable database backup
+        env:
+          SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: |
+          export BACKUP_DIR="$(mktemp -d)"
+          trap 'rm -rf -- "$BACKUP_DIR"' EXIT
+          bash scripts/db/create-supabase-logical-backup.sh
+          backups=("$BACKUP_DIR"/*)
+          test "${#backups[@]}" -eq 1
+          bash scripts/db/verify-supabase-logical-backup.sh "${backups[0]}"
+      - name: Verify Farmalink concurrency only after all other database checks
+        env:
+          SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: python3 scripts/farmalink/test_once_only_concurrency.py
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup
   ci-status:
     name: CI
     runs-on: ubuntu-latest
     timeout-minutes: 2
-    needs: [build-gate, lint-gate, unit-tests, rls-tests]
-    if: always()
+    needs: [build-gate, lint-gate, unit-tests, database-tests]
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && always()
     steps:
       - name: Evaluate gates
         run: |
@@ -124,7 +207,8 @@ jobs:
           echo "| Build | ${{ needs.build-gate.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Lint | ${{ needs.lint-gate.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| RLS | ${{ needs.rls-tests.result }} (non-blocking) |" >> $GITHUB_STEP_SUMMARY
-          if [[ "${{ needs.build-gate.result }}" != "success" || "${{ needs.lint-gate.result }}" != "success" || "${{ needs.unit-tests.result }}" != "success" ]]; then
+          echo "| Database & RLS | ${{ needs.database-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ needs.build-gate.result }}" != "success" || "${{ needs.lint-gate.result }}" != "success" || "${{ needs.unit-tests.result }}" != "success" || "${{ needs.database-tests.result }}" != "success" ]]; then
             exit 1
             fi
+

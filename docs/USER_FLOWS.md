@@ -630,3 +630,61 @@ node scripts/verify-integration.mjs
 ---
 
 Última actualización: 2 de octubre de 2025
+
+---
+
+## Medición GA4 / Firebase — contrato de privacidad (2026-11-01)
+
+**Fuentes de verdad**: los estados de turnos, pagos y consultas se confirman en
+Supabase; GA4 se utiliza para marketing agregado, nunca para datos clínicos.
+
+### Flujos y configuración
+
+- **Web**: crear o seleccionar un flujo GA4 de tipo Web para
+  `https://autamedica.com` en la propiedad empresarial adecuada. Obtener su
+  Measurement ID `G-...` real. Configurar la variable
+  `PUBLIC_GA4_MEASUREMENT_ID` en la compilación de Cloudflare Pages / Astro.
+  No utilizar el ID de la propiedad Android (`527169188`) como Measurement ID.
+- **Google Ads**: `PUBLIC_GOOGLE_ADS_ID` es un destino independiente.
+- **Consentimiento web**: las etiquetas se cargan únicamente en la lista
+  explícita de páginas públicas o registro, tras aceptación voluntaria.
+  Rechazar no carga etiquetas. El evento interno
+  `au:cookie-consent:manage` abre el selector de preferencias.
+- **Privacidad**: no enviar URLs de parámetros, identificadores de usuarios,
+  turnos, pacientes, médicos, diagnósticos, recetas ni texto libre. Las páginas
+  clínicas no deben medirse con etiquetas de marketing. Desactivar la medición
+  mejorada de **interacciones de formulario y cambios de historial** si el
+  flujo web pudiera navegar a rutas privadas desde el mismo documento.
+- **Android**: Firebase registra exclusivamente categorías de pantalla
+  `login`, `register`, `password_recovery`, `main` y `private_area`
+  (sin información de rutas, especialidades ni parámetros clínicos).
+  La recolección/consentimiento móvil y filtros de usuarios de prueba siguen
+  sujetos a validación del aviso de privacidad y configuración de Firebase.
+
+### Definiciones operativas
+
+| Evento / indicador | Fuente verificable | ¿Evento clave de negocio? |
+|---|---|---|
+| `page_view` (páginas públicas) | GA4 web con consentimiento | No |
+| `registration_requested` | Formulario web aceptado por autenticación | No: aún falta verificar la cuenta |
+| `sign_up` | Alta y verificación efectiva en backend | Sí, tras implementar |
+| `appointment_booked` | Turno confirmado en Supabase | Sí, tras implementar |
+| `payment_succeeded` / `purchase` | Pago confirmado y deduplicado por servidor | Sí, tras implementar |
+| `consultation_completed` | Consulta completada según backend | Sí, tras implementar |
+| `document_issued` | Documento emitido/firmado validado | Sí, tras implementar |
+| `first_open` / `session_start` | Eventos automáticos | No son ventas |
+
+**Para cerrar la entrega**:
+
+1. Configurar `PUBLIC_GA4_MEASUREMENT_ID` con el ID válido; ejecutar `astro check`
+   y pruebas de compilación en CI. Comprobar recepción en GA4 DebugView,
+   sin enviar eventos desde pantallas de pacientes, médicos o consultas.
+2. En Google Analytics Admin → Eventos clave, revisar `session_start` y
+   `first_open` conforme al contrato comercial; preservar los datos históricos.
+3. Implementar eventos confiables de backend con deduplicación e idempotencia
+   y respetando consentimiento; comparar conteos agregados con Supabase.
+4. Verificar en Android que un cambio de destino Compose genera exactamente
+   un `screen_view` por categoría y que no contiene IDs de pacientes.
+5. Excluir tráfico interno/de QA y generar tableros separados Web/Android y
+   Brasil/Argentina. No declarar producción verificada sin pruebas reales.
+

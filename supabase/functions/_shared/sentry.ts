@@ -1,4 +1,4 @@
-import * as Sentry from 'npm:@sentry/deno@10.42.0';
+import * as Sentry from '@sentry/deno';
 
 type Primitive = string | number | boolean | null | undefined;
 
@@ -85,24 +85,27 @@ function sanitizeValue(value: unknown, depth = 0): unknown {
   return sanitized;
 }
 
-function sanitizeEvent(event: Record<string, any>) {
-  if (event.request) {
-    delete event.request.data;
+function sanitizeEvent(event: Record<string, unknown>): Record<string, unknown> {
+  const request = event.request;
+  if (isPlainObject(request)) {
+    delete request.data;
 
-    if (isPlainObject(event.request.headers)) {
-      delete event.request.headers.authorization;
-      delete event.request.headers.Authorization;
-      delete event.request.headers.cookie;
-      delete event.request.headers.Cookie;
-      delete event.request.headers['set-cookie'];
-      delete event.request.headers['Set-Cookie'];
+    if (isPlainObject(request.headers)) {
+      const headers = request.headers;
+      delete headers.authorization;
+      delete headers.Authorization;
+      delete headers.cookie;
+      delete headers.Cookie;
+      delete headers['set-cookie'];
+      delete headers['Set-Cookie'];
     }
   }
 
-  if (event.user) {
-    delete event.user.email;
-    delete event.user.username;
-    delete event.user.ip_address;
+  const user = event.user;
+  if (isPlainObject(user)) {
+    delete user.email;
+    delete user.username;
+    delete user.ip_address;
   }
 
   if (event.extra) {
@@ -161,7 +164,8 @@ export function initEdgeSentry(functionName: string): void {
     sendDefaultPii: false,
     tracesSampleRate: getEnvironment() === 'development' ? 1 : 0.1,
     beforeSend(event) {
-      return sanitizeEvent(event as Record<string, any>);
+      sanitizeEvent(event as unknown as Record<string, unknown>);
+      return event;
     },
     initialScope: {
       tags: {

@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CloudflareCallsClient } from './client'
+import { CloudflareCallsSession } from './session'
 
 const CloudflareCallsClientTestOnly = {
   REMOTE_RESUBSCRIBE_MAX_ATTEMPTS: 3,
@@ -366,5 +367,52 @@ describe('CloudflareCallsClient cf-session announce readiness', () => {
     })
 
     expect(subscribeToSession).not.toHaveBeenCalled()
+  })
+})
+
+
+describe('CloudflareCallsClient quality lifecycle', () => {
+  it('stops failed-session sampling before retry and only reports actual reconnections', async () => {
+    vi.useFakeTimers()
+    const counts = new Map<CloudflareCallsSession, number>()
+    type SessionInternals = { cfg: { onConnectionStateChange: (state: RTCPeerConnectionState) => void } }
+    vi.spyOn(CloudflareCallsSession.prototype, 'connect').mockImplementation(async function (this: CloudflareCallsSession) {
+      ;(this as unknown as SessionInternals).cfg.onConnectionStateChange('connected')
+      return 'session-test'
+    })
+    vi.spyOn(CloudflareCallsSession.prototype, 'getStats').mockImplementation(async function (this: CloudflareCallsSession) {
+      counts.set(this, (counts.get(this) ?? 0) + 1)
+      return new Map() as RTCStatsReport
+    })
+    vi.spyOn(CloudflareCallsSession.prototype, 'connectionState', 'get').mockReturnValue('connected')
+    const client = new CloudflareCallsClient({ userId: 'doctor', userType: 'doctor', roomId: 'room' })
+    const internal = client as unknown as {
+      localStream: MediaStream
+      connectSignaling: () => Promise<void>
+      cfSession: CloudflareCallsSession
+    }
+    internal.localStream = { getTracks: () => [] } as unknown as MediaStream
+    internal.connectSignaling = async () => {}
+    const reconnected = vi.fn()
+    client.on('reconnected', reconnected)
+    try {
+      await client.connect()
+      const first = internal.cfSession
+      ;(first as unknown as SessionInternals).cfg.onConnectionStateChange('failed')
+      const firstCount = counts.get(first)
+      await client.connect()
+      await vi.advanceTimersByTimeAsync(5_000)
+      expect(counts.get(first)).toBe(firstCount)
+      expect(counts.get(internal.cfSession)).toBeGreaterThan(1)
+      expect(reconnected).not.toHaveBeenCalled()
+      const cfg = (internal.cfSession as unknown as SessionInternals).cfg
+      cfg.onConnectionStateChange('disconnected')
+      cfg.onConnectionStateChange('connected')
+      expect(reconnected).toHaveBeenCalledTimes(1)
+    } finally {
+      await client.disconnect()
+      vi.restoreAllMocks()
+      vi.useRealTimers()
+    }
   })
 })

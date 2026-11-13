@@ -1,3 +1,4 @@
+import { writeFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { primeRuntimeEnv, resetRuntimeEnvCache } from '@/lib/runtime-env';
 import { generatePrescriptionPdf } from './pdf-prescription.service';
@@ -55,6 +56,8 @@ describe('generatePrescriptionPdf', () => {
     expect(artifacts.cuir).toBe('02680042020102000000000000000000000010101');
     expect(artifacts.qrContent).toBe('https://www.autamedica.com/verify/02680042020102000000000000000000000010101');
     expect(pdfText).toContain('CÓDIGO DE BARRAS');
+    expect(pdfText).toContain('VERIFICACIÓN DE FIRMA');
+    expect(pdfText).not.toContain('Este documento ha sido firmado');
     expect(pdfText).toContain('500mg');
     expect(pdfText).toContain('Comprimidos');
     expect(pdfText).toContain('Fecha de registro: 11/05/2026');
@@ -190,6 +193,7 @@ describe('generatePrescriptionPdf', () => {
     expect(artifacts.cuir).toBe('02680042020102000000000000000000000010104');
     expect(pdfText).toContain('CUIR: 02680042020102000000000000000000000010104');
     expect(pdfText).toContain('RECETA FARMALINK: 9600000002762');
+    writeFileSync('/tmp/autamedica-farmalink-barcode.pdf', new Uint8Array(artifacts.pdfBuffer));
     expect(pdfText).toContain('Número de receta para validación online en farmacia');
   });
 
@@ -241,4 +245,71 @@ describe('generatePrescriptionPdf', () => {
     expect(pdfTextFemale).toContain('RECETA MÉDICA ELECTRÓNICA');
     expect(pdfTextEmpathetic).toContain('RECETA MÉDICA ELECTRÓNICA');
   });
+  it('renders both actual AutaMedica PDFs for previously approved TEST numbers without issuing/registering again', async () => {
+    const rctaSpy = vi.spyOn(rctaService, 'registerPrescription');
+    for (const scenario of [
+      { mode: 'S' as const, number: '9600000421228', commercialName: undefined, filename: 'generica' },
+      { mode: 'N' as const, number: '9600000421242', commercialName: 'ESFUMEL blanqueadora cr. x 20 g', filename: 'marca' },
+    ]) {
+      const artifacts = await generatePrescriptionPdf({
+        prescriptionId: `farmalink-homologation-${scenario.mode}-${scenario.number}`,
+        homologationTest: true,
+        homologationMode: scenario.mode,
+        externalPrescription: {
+          provider: 'farmalink',
+          number: scenario.number,
+          barcodeTitle: 'FARMALINK TEST',
+          displayLabel: 'FARMALINK',
+          legend: 'Validacion Farmalink TEST',
+        },
+        issuedAt: '2026-11-03',
+        expiresAt: '2026-11-19',
+        patient: {
+          name: 'Demo Demo', dni: '12345678', cuil: '27123456780',
+          dateOfBirth: '2025-01-01', sex: 'Masculino',
+          insurancePlan: '100',
+          affiliateCredential: '20123456786',
+          insuranceEntityCode: 7110,
+          address: 'Paciente de prueba, sin domicilio real',
+        },
+        prescriber: {
+          name: 'Demo Demo - PROFESIONAL TEST',
+          license: 'MN 11111', licenseJurisdiction: 'MN',
+          licenseEntity: 'TEST', refeps: '123456789012',
+          specialty: 'Medico clinico (TEST)',
+          professionalAddress: 'Consultorio DEMO - Calle 11 Nro 2300',
+        },
+        diagnosis: 'I20.9 (codigo del ejemplo DEMO, sin indicacion clinica)',
+        notes: 'Prueba tecnica sin firma clinica; no dispensar.',
+        medication: {
+          genericName: 'GLICOLICOAC.ASOC.',
+          commercialName: scenario.commercialName,
+          dosage: 'Presentacion TEST',
+          presentation: 'Crema x 20 g (segun producto 56800)',
+          quantity: 1,
+          instructions: 'Sin indicaciones clinicas: solo homologacion TEST',
+        },
+      });
+      expect(artifacts.cuir).toBe('NO ASIGNADO - TEST');
+      expect(artifacts.qrContent).toBe('');
+      const pdfText = Buffer.from(artifacts.pdfBuffer).toString('latin1');
+      expect(pdfText).toContain('GLICOLICOAC.ASOC.');
+      expect(pdfText).toContain(scenario.number);
+      expect(pdfText).toContain('SIN FIRMA - TEST');
+      expect(pdfText).toContain('Nro. afiliado / Credencial: 20123456786');
+      expect(pdfText).toContain('CUIL PACIENTE');
+      expect(pdfText).toContain('RL-2026-47574120-APN-SSVEIYES#MS');
+      expect(pdfText).not.toContain('MODALIDAD GENERICO=');
+      expect(pdfText).toContain('NO ASIGNADO - TEST');
+      expect(pdfText).not.toContain('PREDNISOLONA');
+      expect(pdfText).not.toContain('Validador RCTA');
+      if (scenario.mode === 'S') expect(pdfText).not.toContain('ESFUMEL');
+      else expect(pdfText).toContain('ESFUMEL');
+      writeFileSync(`/tmp/farmalink-autamedica-${scenario.filename}-test.pdf`,
+        new Uint8Array(artifacts.pdfBuffer));
+    }
+    expect(rctaSpy).not.toHaveBeenCalled();
+  });
+
 });
+

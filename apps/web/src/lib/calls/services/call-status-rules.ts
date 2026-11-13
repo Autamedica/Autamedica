@@ -34,9 +34,9 @@ export type DoctorCancelStatusResolution =
  * pre-validation to avoid unnecessary round-trips and provide better errors.
  */
 export const TRANSITION_MATRIX: Readonly<Record<CallStatus, ReadonlySet<CallStatus>>> = {
-  requested:  new Set<CallStatus>(['ringing', 'canceled']),
+  requested:  new Set<CallStatus>(['ringing', 'accepted', 'declined', 'canceled']),
   ringing:    new Set<CallStatus>(['accepted', 'declined', 'canceled']),
-  accepted:   new Set<CallStatus>(['connecting', 'canceled', 'ended']),
+  accepted:   new Set<CallStatus>(['connecting', 'connected', 'canceled', 'ended']),
   connecting: new Set<CallStatus>(['connected', 'ended']),
   connected:  new Set<CallStatus>(['ended']),
   declined:   new Set<CallStatus>(),
@@ -153,3 +153,4 @@ export function resolveDoctorCancelStatus(
     message: 'call_not_cancelable',
   }
 }
+

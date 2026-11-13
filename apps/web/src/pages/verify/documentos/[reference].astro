@@ -1,0 +1,87 @@
+---
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { createAstroAdminClient } from '@/lib/supabase';
+import { loadPublicDocumentArchive, type PublicDocumentArchive } from '@/lib/documents/archive-verification';
+
+let document: PublicDocumentArchive | null = null;
+let unavailable = false;
+try {
+  const admin = createAstroAdminClient(Astro.locals.runtime?.env) as unknown as SupabaseClient;
+  document = await loadPublicDocumentArchive(admin, Astro.params.reference ?? '');
+} catch { unavailable = true; }
+Astro.response.status = unavailable ? 503 : document ? 200 : 404;
+Astro.response.headers.set('Cache-Control', 'no-store');
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+const active = document?.status === 'registered';
+const displayDate = (value: string) => value.slice(0, 10).split('-').reverse().join('/');
+---
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <title>Verificación documental | AutaMedica</title>
+  </head>
+  <body>
+    <main>
+      <header><img src="/logo.png" alt="" width="48" height="48" /><a href="/">AUTAMEDICA</a></header>
+      <section class="card">
+        <p class="eyebrow">VERIFICACIÓN DOCUMENTAL</p>
+        <h1>{unavailable ? 'Verificación temporalmente no disponible' : !document ? 'Documento no encontrado' : active ? 'Documento registrado' : 'Documento revocado'}</h1>
+        {unavailable && <p>Intente nuevamente más tarde. Este resultado no determina el estado del documento.</p>}
+        {!unavailable && !document && <p>La referencia consultada no corresponde a un documento registrado en este archivo.</p>}
+        {document && <>
+          <p class:list={['state', { revoked: !active }]}>{active ? 'Registro de AutaMedica disponible' : 'Este registro fue revocado'}</p>
+          <dl>
+            <dt>Referencia interna</dt><dd class="code">{document.reference}</dd>
+            <dt>Profesional</dt><dd>{document.issuer.name}</dd>
+            <dt>Profesión</dt><dd>{document.issuer.profession}</dd>
+            <dt>Matrícula y jurisdicción</dt><dd>{document.issuer.license} · {document.issuer.jurisdiction}</dd>
+            <dt>Fecha del documento</dt><dd>{displayDate(document.documentDate)}</dd>
+            <dt>Fecha de registro</dt><dd>{displayDate(document.registeredAt)}</dd>
+            <dt>Modalidad de firma</dt><dd>Imágenes de firma y sello incorporadas administrativamente.</dd>
+          </dl>
+          <aside>Este QR permite consultar el registro y comparar la integridad del archivo. No certifica una firma digital criptográfica ni acredita por sí solo una habilitación ministerial. Los datos del paciente y su información clínica son reservados.</aside>
+          {active && <section class="compare">
+            <h2>Comprobar el PDF recibido</h2>
+            <p>Seleccione el archivo para comprobar si coincide exactamente con el registrado. La comparación se realiza en su dispositivo; el archivo no se envía.</p>
+            <label for="document-file">Seleccionar PDF</label>
+            <input id="document-file" type="file" accept="application/pdf,.pdf" data-hash={document.pdfSha256} />
+            <p id="file-result" role="status" aria-live="polite"></p>
+          </section>}
+          <details><summary>Huella de integridad SHA-256</summary><p class="code hash">{document.pdfSha256}</p></details>
+        </>}
+      </section>
+      <footer>AutaMedica · Verificación de documentos registrados</footer>
+    </main>
+    <script>
+      const input = document.querySelector<HTMLInputElement>('#document-file');
+      const result = document.querySelector<HTMLElement>('#file-result');
+      let revision = 0;
+      input?.addEventListener('change', async () => {
+        const current = ++revision;
+        const file = input.files?.[0];
+        if (!result) return;
+        result.textContent = '';
+        if (!file) return;
+        if (file.size > 25 * 1024 * 1024) { result.textContent = 'El archivo supera el límite de 25 MB.'; return; }
+        result.textContent = 'Comparando archivo…';
+        try {
+          const hash = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+          if (current !== revision) return;
+          const hex = Array.from(new Uint8Array(hash)).map(byte => byte.toString(16).padStart(2, '0')).join('');
+          result.textContent = hex === input.dataset.hash
+            ? 'El archivo coincide exactamente con el PDF registrado.'
+            : 'El archivo no coincide con el PDF registrado. Puede haber sido modificado o ser otra versión.';
+        } catch { if (current === revision) result.textContent = 'No se pudo comparar el archivo en este dispositivo.'; }
+      });
+    </script>
+  </body>
+</html>
+<style>
+  :global(*){box-sizing:border-box} :global(body){margin:0;background:#f1f5f9;color:#0f172a;font-family:system-ui,sans-serif;line-height:1.55}
+  main{max-width:760px;margin:auto;padding:28px 20px} header{display:flex;align-items:center;gap:14px;margin-bottom:28px} header img{border-radius:10px} a{color:inherit;font-weight:750;text-decoration:none;letter-spacing:.05em}
+  .card{background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:32px;box-shadow:0 8px 30px #0f172a08} .eyebrow{font-size:12px;color:#0f766e;font-weight:700;letter-spacing:.12em} h1{font-size:clamp(25px,5vw,34px);line-height:1.2;margin:12px 0 24px} h2{font-size:19px} p{overflow-wrap:anywhere}
+  .state{background:#f0fdfa;color:#115e59;border:1px solid #99f6e4;border-radius:9px;padding:12px 16px;font-weight:650}.revoked{background:#fef2f2;color:#991b1b;border-color:#fecaca} dl{margin:26px 0}dt{font-size:12px;color:#64748b;margin-top:18px}dd{margin:3px 0 0;font-weight:550;overflow-wrap:anywhere}.code{font-family:ui-monospace,monospace;font-size:13px;overflow-wrap:anywhere} aside{background:#f8fafc;padding:18px;border-radius:9px;font-size:13px;color:#475569}.compare{border-top:1px solid #e2e8f0;margin-top:26px;padding-top:12px}.compare p{font-size:14px;color:#475569}label{display:block;font-weight:600;margin:18px 0 8px}input{max-width:100%;font:inherit}#file-result{min-height:24px;color:#0f172a}details{margin-top:24px;font-size:13px;color:#475569}.hash{padding:10px;background:#f8fafc}footer{text-align:center;color:#64748b;font-size:12px;padding:24px 0}@media(max-width:480px){main{padding:20px 12px}.card{padding:22px 18px}}
+</style>

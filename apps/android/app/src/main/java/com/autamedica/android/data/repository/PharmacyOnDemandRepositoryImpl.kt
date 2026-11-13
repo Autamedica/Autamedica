@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -75,6 +76,30 @@ internal data class PharmacyRequestDto(
 }
 
 @Serializable
+internal data class PharmacyRequestStatusDto(
+    val found: Boolean = false,
+    val id: String = "",
+    val status: String = "pending",
+    @SerialName("queue_position") val queuePosition: Int = 0,
+    @SerialName("pharmacy_name") val pharmacyName: String = "",
+    @SerialName("patient_name") val patientName: String = "",
+    val reason: String = "",
+    @SerialName("room_id") val roomId: String? = null,
+    @SerialName("guest_invite_id") val guestInviteId: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("assigned_at") val assignedAt: String? = null,
+    @SerialName("doctor_name") val doctorName: String? = null,
+    @SerialName("doctor_specialty") val doctorSpecialty: String? = null,
+)
+
+@Serializable
+internal data class CancelPharmacyRequestDto(
+    val success: Boolean = false,
+    val error: String? = null,
+    @SerialName("request_id") val requestId: String? = null,
+)
+
+@Serializable
 internal data class DoctorDutyUpdateDto(
     @SerialName("on_duty_pharmacy") val onDutyPharmacy: Boolean,
     @SerialName("on_duty_since") val onDutySince: String?,
@@ -85,6 +110,17 @@ internal data class DoctorDutyCheckDto(
     val id: String,
     @SerialName("on_duty_pharmacy") val onDutyPharmacy: Boolean = false,
     @SerialName("on_duty_since") val onDutySince: String? = null,
+)
+
+@Serializable
+internal data class LegacyGuardApprovalDto(
+    val approved: Boolean = false,
+)
+
+@Serializable
+internal data class Gen2DutyTransitionDto(
+    val success: Boolean = false,
+    @SerialName("is_on_duty") val isOnDuty: Boolean = false,
 )
 
 @Serializable
@@ -155,7 +191,15 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
                 .decodeSingleOrNull<Gen2DutyCheckDto>()
         }.getOrNull()
 
-        val effectiveOnDuty = gen2Duty?.isOnDuty ?: doc.onDutyPharmacy
+        // Never fall back to the legacy doctors.on_duty_pharmacy flag: it
+        // may have been set after a rejected RPC, before Admin approval.
+        val eligible = runCatching {
+            supabaseClient.postgrest
+                .rpc("get_my_guard_approval")
+                .decodeAs<LegacyGuardApprovalDto>()
+                .approved
+        }.getOrDefault(false)
+        val effectiveOnDuty = eligible && gen2Duty?.isOnDuty == true
         val effectiveSince = runCatching {
             (gen2Duty?.updatedAt ?: doc.onDutySince)?.let { OffsetDateTime.parse(it) }
         }.getOrNull()
@@ -184,28 +228,28 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
             }
             .decodeSingleOrNull<DoctorDutyCheckDto>() ?: throw IllegalStateException("Doctor record not found")
 
-        // Update Gen 2 duty status via RPC
-        val dutyParams = buildJsonObject {
-            put("p_doctor_id", doc.id)
-            put("p_is_on_duty", onDuty)
-            put("p_active_tiers", JsonArray(listOf(JsonPrimitive("general"))))
-        }
-        runCatching {
-            supabaseClient.postgrest.rpc("set_doctor_duty_status", dutyParams)
+        if (onDuty) {
+            val approved = supabaseClient.postgrest
+                .rpc("get_my_guard_approval")
+                .decodeAs<LegacyGuardApprovalDto>()
+                .approved
+            check(approved) {
+                "La matrícula todavía no fue validada por el administrador."
+            }
         }
 
-        // Update legacy columns on doctors table for backwards compatibility
-        val now = if (onDuty) OffsetDateTime.now().toString() else null
-        supabaseClient.postgrest
-            .from("doctors")
-            .update(
-                DoctorDutyUpdateDto(
-                    onDutyPharmacy = onDuty,
-                    onDutySince = now
-                )
-            ) {
-                filter { eq("user_id", user.id) }
-            }
+        // A rejected Gen 2 RPC is a failure. No legacy write can turn a
+        // failed activation into a visually successful medical guard.
+        val confirmed = supabaseClient.postgrest
+            .rpc("set_doctor_duty_status", buildJsonObject {
+                put("p_doctor_id", doc.id)
+                put("p_is_on_duty", onDuty)
+                put("p_active_tiers", JsonArray(listOf(JsonPrimitive("general"))))
+            })
+            .decodeAs<Gen2DutyTransitionDto>()
+        check(confirmed.success && confirmed.isOnDuty == onDuty) {
+            "El servidor no confirmó el estado de la guardia."
+        }
 
         getOnDutyStatus().getOrThrow()
     }.onFailure {
@@ -213,31 +257,13 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getPendingQueue(): Result<List<PharmacyConsultationRequest>> = runCatching {
-        // Query Gen 2 table first (pharmacy_dispatch_requests with status 'searching')
-        val dispatchDtos = runCatching {
-            supabaseClient.postgrest
-                .from("pharmacy_dispatch_requests")
-                .select(Columns.ALL) {
-                    filter { eq("status", "searching") }
-                    order("created_at", Order.ASCENDING)
-                }
-                .decodeList<PharmacyDispatchItemDto>()
-        }.getOrDefault(emptyList())
-
-        if (dispatchDtos.isNotEmpty()) {
-            return@runCatching dispatchDtos.map { it.toPharmacyConsultationRequest() }
-        }
-
-        // Fallback to Gen 1 table (pharmacy_consultation_requests)
-        val dtos = supabaseClient.postgrest
-            .from("pharmacy_consultation_requests")
-            .select(Columns.ALL) {
-                filter { eq("status", "pending") }
-                order("created_at", Order.ASCENDING)
-            }
-            .decodeList<PharmacyRequestDto>()
-
-        dtos.map { it.toDomain() }
+        // Do NOT expose the global patient queue or Gen 1 fallback.
+        // The server returns only pending, unexpired offers to the
+        // authenticated and ADMIN-APPROVED physician in this country.
+        val dispatchDtos = supabaseClient.postgrest
+            .rpc("get_my_pending_dispatch_offers")
+            .decodeAs<List<PharmacyDispatchItemDto>>()
+        dispatchDtos.map { it.toPharmacyConsultationRequest() }
     }.onFailure {
         SecureLog.error("[PharmacyOnDemandRepo] Failed fetching pending queue", it)
     }
@@ -302,39 +328,21 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
         patientPhone: String,
         reason: String,
     ): Result<PharmacyConsultationRequest> = runCatching {
-        // Automatically cancel any previous pending requests for this patient to ensure deduplication
-        cancelActiveRequestsForPatient(patientDni, patientPhone)
-
         val validPharmacyUuid = pharmacyId?.trim()?.takeIf { isValidUuid(it) }
-        val resolvedName = if (pharmacyName.isNotBlank() && !pharmacyName.equals("Farmacia", ignoreCase = true)) {
-            pharmacyName.trim()
-        } else if (validPharmacyUuid != null) {
-            runCatching {
-                supabaseClient.postgrest
-                    .from("pharmacies")
-                    .select(Columns.list("name")) { filter { eq("id", validPharmacyUuid) } }
-                    .decodeSingleOrNull<PharmacyNameDto>()?.name
-            }.getOrNull() ?: "Farmacia de Turno"
-        } else {
-            "Farmacia de Turno"
-        }
+        val resolvedName = pharmacyName.trim().ifBlank { "Farmacia de Turno" }
 
+        // Public guest intake is handled by a SECURITY DEFINER RPC. Direct table
+        // INSERT/SELECT is intentionally revoked so guests cannot enumerate requests.
         val inserted = supabaseClient.postgrest
-            .from("pharmacy_consultation_requests")
-            .insert(
-                CreatePharmacyRequestPayload(
-                    pharmacyId = validPharmacyUuid,
-                    pharmacyName = resolvedName,
-                    patientDni = patientDni.trim(),
-                    patientName = patientName.trim(),
-                    patientPhone = patientPhone.trim(),
-                    reason = reason.trim(),
-                    status = "pending",
-                )
-            ) {
-                select(Columns.ALL)
-            }
-            .decodeSingle<PharmacyRequestDto>()
+            .rpc("create_pharmacy_consultation_request", buildJsonObject {
+                put("p_pharmacy_id", validPharmacyUuid?.let { JsonPrimitive(it) } ?: JsonNull)
+                put("p_pharmacy_name", resolvedName)
+                put("p_patient_dni", patientDni.trim())
+                put("p_patient_name", patientName.trim())
+                put("p_patient_phone", patientPhone.trim())
+                put("p_reason", reason.trim())
+            })
+            .decodeAs<PharmacyRequestDto>()
 
         inserted.toDomain()
     }.onFailure {
@@ -342,132 +350,53 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getRequestStatus(requestId: String): Result<RequestStatusResponse> = runCatching {
-        val req = supabaseClient.postgrest
-            .from("pharmacy_consultation_requests")
-            .select(Columns.ALL) {
-                filter { eq("id", requestId) }
-            }
-            .decodeSingleOrNull<PharmacyRequestDto>() ?: throw NoSuchElementException("Request $requestId not found")
+        // The UUID is an opaque bearer capability. The RPC returns only this
+        // request's status; it never grants table-wide guest SELECT.
+        val status = supabaseClient.postgrest
+            .rpc("get_pharmacy_consultation_request_status", buildJsonObject {
+                put("p_request_id", requestId)
+            })
+            .decodeAs<PharmacyRequestStatusDto>()
 
-        val parsedStatus = PharmacyConsultationStatus.fromString(req.status)
-        var queuePos = 0
-        if (parsedStatus == PharmacyConsultationStatus.PENDING) {
-            val pendingList = runCatching {
-                supabaseClient.postgrest
-                    .from("pharmacy_consultation_requests")
-                    .select(Columns.list("id", "patient_dni", "patient_phone", "created_at")) {
-                        filter { eq("status", "pending") }
-                        order("created_at", Order.ASCENDING)
-                    }
-                    .decodeList<PharmacyMiniQueueDto>()
-            }.getOrDefault(emptyList())
+        if (!status.found) throw NoSuchElementException("Request $requestId not found")
 
-            val currentPatientDni = req.patientDni.trim()
-            val currentPatientPhone = req.patientPhone.trim()
-
-            val idx = pendingList.indexOfFirst { it.id == requestId }
-            if (idx >= 0) {
-                // Count only distinct other patients waiting ahead of current request
-                val ahead = pendingList.subList(0, idx).filter { item ->
-                    val isSamePatient = (currentPatientDni.isNotEmpty() && item.patientDni.trim() == currentPatientDni) ||
-                                       (currentPatientPhone.isNotEmpty() && item.patientPhone.trim() == currentPatientPhone)
-                    !isSamePatient
-                }
-                val distinctPatientsAhead = ahead.distinctBy {
-                    when {
-                        it.patientDni.isNotBlank() -> it.patientDni.trim()
-                        it.patientPhone.isNotBlank() -> it.patientPhone.trim()
-                        else -> it.id
-                    }
-                }.size
-                queuePos = distinctPatientsAhead + 1
-            } else {
-                queuePos = 1
-            }
+        val createdAt = runCatching { status.createdAt?.let { OffsetDateTime.parse(it) } }.getOrNull()
+        val assignedAt = runCatching { status.assignedAt?.let { OffsetDateTime.parse(it) } }.getOrNull()
+        val patientJoinUrl = status.roomId?.let { roomId ->
+            status.guestInviteId?.let { inviteId -> "/call/join/$roomId?invite=$inviteId" }
+                ?: "/call/join/$roomId"
         }
-
-        var doctorName: String? = null
-        var doctorSpecialty: String? = null
-        if (!req.doctorId.isNullOrBlank()) {
-            runCatching {
-                val doc = supabaseClient.postgrest
-                    .from("doctors")
-                    .select(Columns.list("id", "specialty", "user_id")) {
-                        filter { eq("id", req.doctorId) }
-                    }
-                    .decodeSingleOrNull<DoctorSimpleDto>()
-                doctorSpecialty = doc?.specialty ?: "Medicina General"
-                val prof = doc?.userId?.let { uid ->
-                    supabaseClient.postgrest
-                        .from("profiles")
-                        .select(Columns.list("first_name", "last_name")) {
-                            filter { eq("user_id", uid) }
-                        }
-                        .decodeSingleOrNull<ProfileNameDto>()
-                }
-                doctorName = prof?.let { "Dr. ${it.firstName ?: ""} ${it.lastName ?: ""}".trim() } ?: "Médico de Guardia"
-            }
-        }
-
-        val parsedCreated = runCatching { req.createdAt?.let { OffsetDateTime.parse(it) } }.getOrNull()
 
         RequestStatusResponse(
-            id = req.id,
-            status = parsedStatus,
-            queuePosition = queuePos,
-            pharmacyName = req.pharmacyName,
-            patientName = req.patientName,
-            reason = req.reason,
-            roomId = req.roomId,
-            guestInviteId = req.guestInviteId,
-            patientJoinUrl = req.roomId?.let { "/call/join/$it" },
-            doctorName = doctorName,
-            doctorSpecialty = doctorSpecialty,
-            createdAt = parsedCreated,
-            assignedAt = null,
+            id = status.id,
+            status = PharmacyConsultationStatus.fromString(status.status),
+            queuePosition = status.queuePosition,
+            pharmacyName = status.pharmacyName,
+            patientName = status.patientName,
+            reason = status.reason,
+            roomId = status.roomId,
+            guestInviteId = status.guestInviteId,
+            patientJoinUrl = patientJoinUrl,
+            doctorName = status.doctorName,
+            doctorSpecialty = status.doctorSpecialty,
+            createdAt = createdAt,
+            assignedAt = assignedAt,
         )
     }.onFailure {
         SecureLog.error("[PharmacyOnDemandRepo] Failed fetching status for request $requestId", it)
     }
 
     override suspend fun cancelRequest(requestId: String): Result<Unit> = runCatching {
-        supabaseClient.postgrest
-            .from("pharmacy_consultation_requests")
-            .update(mapOf("status" to "cancelled")) {
-                filter { eq("id", requestId) }
-            }
+        val result = supabaseClient.postgrest
+            .rpc("cancel_pharmacy_consultation_request", buildJsonObject {
+                put("p_request_id", requestId)
+                put("p_reason", "cancelled_by_user")
+            })
+            .decodeAs<CancelPharmacyRequestDto>()
+        check(result.success) { result.error ?: "request_not_found_or_not_pending" }
         Unit
     }.onFailure {
         SecureLog.error("[PharmacyOnDemandRepo] Failed cancelling request $requestId", it)
-    }
-
-    override suspend fun cancelActiveRequestsForPatient(patientDni: String, patientPhone: String): Result<Unit> = runCatching {
-        val trimmedDni = patientDni.trim()
-        val trimmedPhone = patientPhone.trim()
-
-        if (trimmedDni.isNotBlank()) {
-            supabaseClient.postgrest
-                .from("pharmacy_consultation_requests")
-                .update(mapOf("status" to "cancelled")) {
-                    filter {
-                        eq("patient_dni", trimmedDni)
-                        eq("status", "pending")
-                    }
-                }
-        }
-        if (trimmedPhone.isNotBlank()) {
-            supabaseClient.postgrest
-                .from("pharmacy_consultation_requests")
-                .update(mapOf("status" to "cancelled")) {
-                    filter {
-                        eq("patient_phone", trimmedPhone)
-                        eq("status", "pending")
-                    }
-                }
-        }
-        Unit
-    }.onFailure {
-        SecureLog.error("[PharmacyOnDemandRepo] Failed cancelling active requests for patient DNI=$patientDni, Phone=$patientPhone", it)
     }
 
     private fun isValidUuid(str: String): Boolean =
@@ -514,7 +443,9 @@ internal data class ProfileNameDto(
 @Serializable
 private data class PharmacyDispatchItemDto(
     val id: String,
-    @SerialName("patient_dni") val patientDni: String = "",
+    @SerialName("patient_dni") val patientDni: String? = null,
+    @SerialName("patient_cpf") val patientCpf: String? = null,
+    @SerialName("care_country") val careCountry: String? = null,
     @SerialName("patient_phone") val patientPhone: String = "",
     @SerialName("patient_name") val patientName: String? = null,
     @SerialName("tier_requested") val tierRequested: String = "general",
@@ -532,10 +463,10 @@ private data class PharmacyDispatchItemDto(
             id = id,
             pharmacyId = null,
             pharmacyName = "Farmacia de Guardia",
-            patientDni = patientDni,
+            patientDni = if (careCountry == "BR") patientCpf.orEmpty() else patientDni.orEmpty(),
             patientName = patientName?.ifBlank { null } ?: "Paciente en espera",
             patientPhone = patientPhone,
-            reason = symptomSummary?.ifBlank { null } ?: "Derivación para atención médica inmediata",
+            reason = symptomSummary?.ifBlank { null } ?: "Motivo no especificado",
             status = PharmacyConsultationStatus.PENDING,
             roomId = cloudflareRoomId,
             createdAt = created,

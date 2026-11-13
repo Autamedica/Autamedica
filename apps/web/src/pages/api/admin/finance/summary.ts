@@ -48,58 +48,57 @@ export const GET: APIRoute = async ({ request, locals }) => {
   if (!auth.ok) return unauthorized('admin role required');
 
   try {
-    // 1. Calculate appointment payment statistics (gross amounts)
-    const { data: payments, error: paymentsErr } = await admin
-      .from('appointment_payments')
-      .select('gross_amount, status');
-
+    // Financial totals MUST be partitioned by currency.
+    // These are recorded statuses, NOT amounts reconciled with the bank/PSP.
+    const [{ data: payments, error: paymentsErr }, { data: earnings, error: earningsErr }] = await Promise.all([
+      admin.from('appointment_payments').select('gross_amount, currency, status'),
+      admin.from('doctor_earnings').select('currency, platform_fee_amount, processor_fee_amount, net_amount, status'),
+    ]);
     if (paymentsErr) throw paymentsErr;
-
-    let grossApproved = 0;
-    let grossRefunded = 0;
-    let grossPending = 0;
-
-    for (const p of payments || []) {
-      if (p.status === 'approved') grossApproved += p.gross_amount;
-      else if (p.status === 'refunded') grossRefunded += p.gross_amount;
-      else if (p.status === 'pending') grossPending += p.gross_amount;
-    }
-
-    // 2. Calculate earnings split (platform fees vs net amounts)
-    const { data: earnings, error: earningsErr } = await admin
-      .from('doctor_earnings')
-      .select('gross_amount, platform_fee_amount, processor_fee_amount, net_amount, status');
-
     if (earningsErr) throw earningsErr;
 
-    let platformFees = 0;
-    let processorFees = 0;
-    let pendingPayouts = 0;
-    let paidPayouts = 0;
+    type CurrencyTotals = {
+      grossApproved: number;
+      grossRefunded: number;
+      grossPending: number;
+      platformFees: number;
+      processorFees: number;
+      pendingPayouts: number;
+      paidPayouts: number;
+    };
+    const byCurrency: Record<string, CurrencyTotals> = {};
+    const emptyTotals = (): CurrencyTotals => ({
+      grossApproved: 0, grossRefunded: 0, grossPending: 0,
+      platformFees: 0, processorFees: 0, pendingPayouts: 0, paidPayouts: 0,
+    });
+    const totalsFor = (currency: string): CurrencyTotals => {
+      if (!['ARS', 'BRL'].includes(currency)) throw new Error('unsupported_finance_currency');
+      return byCurrency[currency] ?? (byCurrency[currency] = emptyTotals());
+    };
 
-    for (const e of earnings || []) {
-      if (e.status !== 'cancelled') {
-        platformFees += e.platform_fee_amount;
-        processorFees += e.processor_fee_amount;
+    for (const payment of payments ?? []) {
+      const totals = totalsFor(payment.currency);
+      if (payment.status === 'approved') totals.grossApproved += payment.gross_amount;
+      else if (payment.status === 'refunded') totals.grossRefunded += payment.gross_amount;
+      else if (payment.status === 'pending') totals.grossPending += payment.gross_amount;
+    }
+    for (const earning of earnings ?? []) {
+      const totals = totalsFor(earning.currency);
+      if (earning.status !== 'cancelled' && earning.status !== 'refunded') {
+        totals.platformFees += earning.platform_fee_amount;
+        totals.processorFees += earning.processor_fee_amount;
       }
-      if (e.status === 'pending') {
-        pendingPayouts += e.net_amount;
-      } else if (e.status === 'paid') {
-        paidPayouts += e.net_amount;
-      }
+      if (earning.status === 'pending') totals.pendingPayouts += earning.net_amount;
+      else if (earning.status === 'paid') totals.paidPayouts += earning.net_amount;
     }
 
     return jsonOk({
       success: true,
       summary: {
-        grossApproved,
-        grossRefunded,
-        grossPending,
-        platformFees,
-        processorFees,
-        pendingPayouts,
-        paidPayouts,
-        currency: 'ARS',
+        byCurrency,
+        amountsReconciledWithProvider: false,
+        // Pending/payout/approved are database states, never bank confirmations.
+        source: 'appointment_payments_and_doctor_earnings',
       },
     });
   } catch (err) {

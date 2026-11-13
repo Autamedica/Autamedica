@@ -1,8 +1,9 @@
 import type { APIRoute } from "astro";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@autamedica/types";
 import { logger } from "@autamedica/shared";
 import { createAstroAdminClient } from "@/lib/supabase";
+
+import { readMetricRows, summarizePatientQuality } from "@/lib/admin/patient-intelligence-metrics";
+import type { MetricClient, PatientQualityRow } from "@/lib/admin/patient-intelligence-metrics";
 
 export const prerender = false;
 
@@ -31,10 +32,7 @@ const ADMIN_ROLES = ["admin", "organization_admin", "platform_admin"] as const;
 
 function getMetadataRole(user: App.Locals["session"]["user"] | undefined): string | undefined {
   const appRole = (user?.app_metadata as Record<string, unknown> | undefined)?.role;
-  if (typeof appRole === "string") return appRole;
-
-  const userRole = (user?.user_metadata as Record<string, unknown> | undefined)?.role;
-  return typeof userRole === "string" ? userRole : undefined;
+  return typeof appRole === "string" ? appRole : undefined;
 }
 
 async function isAuthorized(
@@ -98,18 +96,17 @@ export const GET: APIRoute = async ({ request, locals }) => {
   }
 
   try {
-    const admin = createAstroAdminClient(
-      runtimeEnv,
-    ) as unknown as SupabaseClient<Database>;
-
-    // Fetch demographics from public.v_patient_demographics view
-    const { data: rawRows, error } = await admin
-      .from("v_patient_demographics" as unknown as "patients")
-      .select("*") as unknown as { data: PatientDemographicRow[] | null; error: { message: string } | null };
-
-    if (error) throw new Error(error.message);
-
-    const rows = rawRows || [];
+    const admin = createAstroAdminClient(runtimeEnv) as unknown as MetricClient;
+    const [rows, patientRows] = await Promise.all([
+      readMetricRows<PatientDemographicRow>((from, to) => admin
+        .from<PatientDemographicRow>("v_patient_demographics").select("*")
+        .order("gender").order("age_group").order("region").order("insurance_name").range(from, to)),
+      readMetricRows<PatientQualityRow>((from, to) => admin
+        .from<PatientQualityRow>("patients")
+        .select("user_id, birth_date, address, insurance_info")
+        .eq("active", true).order("id").range(from, to)),
+    ]);
+    const population = summarizePatientQuality(patientRows);
 
     // Aggregate values
     let totalPatients = 0;
@@ -117,10 +114,13 @@ export const GET: APIRoute = async ({ request, locals }) => {
       totalPatients = rows[0].total_active_patients || 0;
     }
 
+    if (totalPatients !== patientRows.length || rows.reduce((sum, row) => sum + Number(row.count), 0) !== totalPatients) {
+      throw new Error("Population changed or demographic source is incomplete; retry");
+    }
+
     const byGender: Record<string, number> = {};
     const byAgeGroup: Record<string, number> = {};
     const byRegion: Record<string, number> = {};
-    const byInsurance: Record<string, number> = {};
 
     rows.forEach((row) => {
       const count = Number(row.count || 0);
@@ -136,20 +136,19 @@ export const GET: APIRoute = async ({ request, locals }) => {
       // Region
       const reg = row.region || "Sin especificar";
       byRegion[reg] = (byRegion[reg] || 0) + count;
-
-      // Insurance
-      const ins = row.insurance_name || "Particular / Sin Obra Social";
-      byInsurance[ins] = (byInsurance[ins] || 0) + count;
     });
 
     return json({
       success: true,
-      total_patients: totalPatients,
+      total_patients: population.quality.active_records,
+      population_definition: "patients.active = true; enabled records, not service usage",
+      data_quality: population.quality,
+      geography_source: "legacy_address_text_inference",
       demographics: {
         by_gender: byGender,
         by_age_group: byAgeGroup,
         by_region: byRegion,
-        by_insurance: byInsurance,
+        by_insurance: population.by_insurance,
       },
     });
   } catch (err) {
@@ -158,3 +157,4 @@ export const GET: APIRoute = async ({ request, locals }) => {
     return json({ error: "demographics_failed", details: errorMsg }, 500);
   }
 };
+

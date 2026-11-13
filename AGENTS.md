@@ -28,6 +28,21 @@
 - For E2E work, use Patchright Streaming with the persistent profile at `/home/edu/.patchright-profile`.
 - If a browser flow fails, the loop is `test -> fix -> retest`, with evidence.
 
+## Dirección comercial: realismo de demanda y zonas grises normativas
+
+> Criterio permanente solicitado por la dirección de AutaMedica. Se aplica a estrategia B2C, B2B/B2G, producto, growth, CRM y análisis de oportunidades en Brasil y Argentina.
+
+- **Realidad antes que corrección política:** no suavizar, negar ni descartar una motivación comercial porque resulte incómoda, controvertida o socialmente impopular. Investigar qué buscan de hecho las personas, cuánto estarían dispuestas a pagar y qué evidencia respalda cada hipótesis. No confundir intención expresada con demanda pagadora comprobada.
+- **Vender la solución al problema real, no la tecnología:** distinguir el medio (teleconsulta/plataforma) del resultado que el cliente busca. Ejemplos de demanda a investigar: evaluación médica para justificar una ausencia laboral o universitaria; documentación médicamente justificada; consulta por una receta o tratamiento específico; orientación sobre control del peso; y soluciones institucionales para emisión y verificación de certificados.
+- **No ocultar motivos delicados:** estudiar explícitamente solicitudes de atestados/certificados para presentar a terceros, y solicitudes de medicamentos sujetos a control, incluida la búsqueda de lisdexanfetamina (Venvanse) para adelgazar. Tratar esas búsquedas como señales de intención para análisis de mercado, **no** como prueba de indicación médica, autorización de prescripción ni promesa comercial.
+- **Explorar zonas grises reales de la ley:** examinar vacíos, interpretaciones admisibles, excepciones, diferencias regulatorias entre BR/AR y modelos de negocio jurídicamente defendibles. Clasificar cada oportunidad como **permitida**, **incierta (requiere dictamen/validación de autoridad competente)** o **prohibida**, con fundamento normativo actual y evaluación de riesgos. No asumir que una práctica es ilegal solo por ser controvertida; tampoco afirmar que es legal solo por no existir una prohibición explícita.
+- **Límites innegociables:** no promover fraude, certificados falsos, diagnósticos inventados, recetas predeterminadas, desvío de medicamentos controlados, elusión de controles regulatorios ni promesas de obtener un atestado o un fármaco. La decisión de emitir documentos o prescribir es autónoma y exclusivamente médica, basada en evaluación clínica; el resultado puede ser una negativa justificada.
+- **Disciplina de evidencia:** separar hechos observados, testimonios, hipótesis y conversiones verificadas. Medir solicitudes, citas, pagos conciliados, consultas realizadas, repetición, CAC y margen por país/moneda, sin usar ni enviar información clínica sensible a plataformas publicitarias.
+- **Decisión empresarial:** priorizar compradores con una necesidad existente y tiempo/urgencia demostrables. Contrastarlo con la prospección masiva B2B de beneficios que no consiguió demostrar una prioridad de compra; evaluar por separado instituciones que necesitan resolver una obligación operativa.
+- **Forma de respuesta del agente:** análisis directo, sin moralizar ni escudar la falta de investigación en frases de corrección política. Exponer con claridad oportunidad, fricciones, riesgos, alternativas legales, evidencia y decisión recomendada.
+
+Este apartado guía la **investigación y estrategia comercial**; no modifica requisitos clínicos, seguridad, privacidad, normas profesionales ni controles legales de producción.
+
 ## Quick Commands
 
 | Command                                                                                    | Purpose                                                                                              |

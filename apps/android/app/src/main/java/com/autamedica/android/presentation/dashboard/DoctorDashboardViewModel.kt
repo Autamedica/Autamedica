@@ -40,6 +40,7 @@ import kotlinx.coroutines.isActive
 data class DoctorDashboardUiState(
     val doctorProfile: DoctorProfile? = null,
     val stats: DoctorStats = DoctorStats(),
+    val statsAvailable: Boolean = false,
     val todayAppointments: List<Appointment> = emptyList(),
     val joinableAppointmentIds: Set<String> = emptySet(),
     val unreadMessagesCount: Int = 0,
@@ -48,8 +49,12 @@ data class DoctorDashboardUiState(
     val patientNames: Map<String, String> = emptyMap(),
     val patientsMap: Map<String, PatientSummary> = emptyMap(),
     val pharmacyOnDutyState: DoctorOnDutyPharmacyState = DoctorOnDutyPharmacyState(),
+    val guardApproved: Boolean? = null,
+    val guardVerificationStatus: String? = null,
     val claimingPharmacyRequestId: String? = null,
     val claimErrorMessage: String? = null,
+    val acceptedDispatchRequestId: String? = null,
+    val acceptedDispatchRoomId: String? = null,
     val simulatedDispatchAlert: PharmacyDispatchRequest? = null,
     val activelyDispatchedPatientId: String? = null,
     val liveWaitingQueue: List<QueuedPatient> = emptyList(),
@@ -155,6 +160,7 @@ class DoctorDashboardViewModel @Inject constructor(
                 _uiState.update { state ->
                     state.copy(
                         stats = stats.getOrDefault(DoctorStats()),
+                        statsAvailable = stats.isSuccess,
                         todayAppointments = prioritizeToday(allAppointments),
                         joinableAppointmentIds = joinableResult.first,
                         recentPatients = patientsList.take(5),
@@ -258,7 +264,7 @@ class DoctorDashboardViewModel @Inject constructor(
                 _dismissedRequestIds,
                 _isOnDuty,
             ) { requests, dismissed, onDuty ->
-                Triple(requests.filter { it.id !in dismissed }, dismissed, onDuty)
+                Triple(requests.filter { "${it.id}:${it.offerExpiresAt}" !in dismissed }, dismissed, onDuty)
             }.collect { (activeOffers, _, onDuty) ->
                 val nextAlert = if (onDuty) activeOffers.firstOrNull() else null
                 val mappedQueue = activeOffers.map { it.toQueuedPatient() }
@@ -280,16 +286,29 @@ class DoctorDashboardViewModel @Inject constructor(
     }
 
     fun dismissDispatchAlert(requestId: String? = null) {
-        val targetId = requestId ?: _uiState.value.simulatedDispatchAlert?.id
-        if (targetId != null) {
-            _dismissedRequestIds.update { it + targetId }
+        val offer = _uiState.value.simulatedDispatchAlert
+            ?.takeIf { requestId == null || it.id == requestId }
+        if (offer == null || offer.offerId.isNullOrBlank()) {
+            _uiState.update { it.copy(claimErrorMessage = "Esta oferta ya no está disponible.") }
+            return
         }
-        _uiState.update { state ->
-            state.copy(
-                simulatedDispatchAlert = null,
-                activelyDispatchedPatientId = null,
-                dismissedRequestIds = if (targetId != null) state.dismissedRequestIds + targetId else state.dismissedRequestIds,
-            )
+        viewModelScope.launch {
+            pharmacyDispatchRepository.declinePharmacyOffer(requireNotNull(offer.offerId))
+                .onSuccess { declined ->
+                    if (declined) {
+                        _dismissedRequestIds.update { it + "${offer.id}:${offer.offerExpiresAt}" }
+                        _uiState.update {
+                            it.copy(simulatedDispatchAlert = null, activelyDispatchedPatientId = null,
+                                dismissedRequestIds = it.dismissedRequestIds + "${offer.id}:${offer.offerExpiresAt}")
+                        }
+                    } else {
+                        _uiState.update { it.copy(claimErrorMessage = "La oferta ya venció o fue asignada.") }
+                    }
+                }
+                .onFailure { error ->
+                    SecureLog.error("[DoctorDashboard] Offer refusal failed", error)
+                    _uiState.update { it.copy(claimErrorMessage = "No se pudo rechazar la oferta.") }
+                }
         }
     }
 
@@ -299,6 +318,23 @@ class DoctorDashboardViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(pharmacyOnDutyState = it.pharmacyOnDutyState.copy(isLoading = true)) }
+            if (onDuty) {
+                val approval = pharmacyDispatchRepository.getMyGuardApproval().getOrNull()
+                if (approval?.approved != true) {
+                    stopHeartbeat()
+                    _isOnDuty.value = false
+                    _uiState.update { state ->
+                        state.copy(
+                            guardApproved = false,
+                            guardVerificationStatus = approval?.verificationStatus ?: "pending",
+                            pharmacyOnDutyState = state.pharmacyOnDutyState.copy(isOnDuty = false, isLoading = false),
+                            error = "La guardia necesita aprobación administrativa de la matrícula.",
+                        )
+                    }
+                    return@launch
+                }
+                _uiState.update { it.copy(guardApproved=true,guardVerificationStatus=approval.verificationStatus) }
+            }
             pharmacyDispatchRepository.setDoctorDutyStatus(
                 doctorId = doctorId,
                 isOnDuty = onDuty,
@@ -320,84 +356,106 @@ class DoctorDashboardViewModel @Inject constructor(
                 }
             }.onFailure { error ->
                 SecureLog.error("[DoctorDashboard] Error toggling pharmacy duty", error)
-                _isOnDuty.value = onDuty
+                // Keep the previously confirmed server state. Never start a false heartbeat.
                 _uiState.update { state ->
                     state.copy(
                         pharmacyOnDutyState = state.pharmacyOnDutyState.copy(
-                            isOnDuty = onDuty,
                             isLoading = false,
                         ),
+                        error = "No se pudo actualizar el estado de guardia.",
                     )
                 }
-                if (onDuty) {
-                    startHeartbeat(doctorId)
-                } else {
-                    stopHeartbeat()
-                }
+                loadPharmacyDuty(doctorId)
             }
         }
     }
 
     fun claimPharmacyRequest(requestId: String, onNavigateToVideoCall: (String) -> Unit) {
-        val traceId = "trace-" + java.util.UUID.randomUUID().toString().substring(0, 8)
-        val alertRoomId = _uiState.value.simulatedDispatchAlert?.takeIf { it.id == requestId }?.cloudflareRoomId
-            ?: _uiState.value.pharmacyOnDutyState.pendingRequests.firstOrNull { it.id == requestId }?.roomId
-            ?: "room-$requestId"
-
-        com.autamedica.android.telemetry.CallTelemetry.startTrace(traceId = traceId, roomId = alertRoomId)
-        com.autamedica.android.telemetry.CallTelemetry.recordMilestone(traceId, "T0_TAP_INGRESAR")
-
-        // 1. Optimistic UI transition: dismiss alert immediately and navigate on tick 0 (<5ms)
-        _dismissedRequestIds.update { it + requestId }
-        _uiState.update { state ->
-            state.copy(
-                claimingPharmacyRequestId = null,
-                simulatedDispatchAlert = null,
-                activelyDispatchedPatientId = null,
-                liveWaitingQueue = state.liveWaitingQueue.filter { it.id != requestId },
-                dismissedRequestIds = state.dismissedRequestIds + requestId,
-                claimErrorMessage = null,
-            )
+        val doctorId = _uiState.value.doctorId
+        if (doctorId.isBlank() || requestId.isBlank()) {
+            _uiState.update { it.copy(claimErrorMessage = "No hay un médico o solicitud válida.") }
+            return
         }
-
-        onNavigateToVideoCall(alertRoomId)
-
-        val isSimulated = requestId.startsWith("sim-") || requestId.startsWith("q")
-        if (isSimulated) {
-            com.autamedica.android.telemetry.CallTelemetry.recordMilestone(traceId, "T1_BACKEND_CLAIM", mapOf("simulated" to true))
+        if (_uiState.value.claimingPharmacyRequestId != null) return
+        val incoming = _uiState.value.simulatedDispatchAlert
+        if (!_uiState.value.pharmacyOnDutyState.isOnDuty
+            || incoming?.id != requestId || incoming.offerId.isNullOrBlank()) {
+            _uiState.update { it.copy(claimErrorMessage = "La oferta no está vigente. Revisá el radar.") }
             return
         }
 
-        val doctorId = _uiState.value.doctorId
-        // 2. Concurrently execute atomic DB claim in background without blocking video navigation
+        val traceId = "trace-" + java.util.UUID.randomUUID().toString().substring(0, 8)
+        com.autamedica.android.telemetry.CallTelemetry.recordMilestone(traceId, "T0_TAP_INGRESAR")
+        _uiState.update { it.copy(claimingPharmacyRequestId = requestId, claimErrorMessage = null) }
+
+        // Claim atomically first. Never open a call for unconfirmed/synthetic offers.
         viewModelScope.launch {
             pharmacyDispatchRepository.claimPharmacyRequest(requestId, doctorId)
                 .onSuccess { claim ->
-                    if (claim.success) {
+                    val roomId = claim.cloudflareRoomId?.takeIf { it.isNotBlank() }
+                    if (claim.success && roomId != null) {
+                        _dismissedRequestIds.update { it + "${incoming.id}:${incoming.offerExpiresAt}" }
+                        _uiState.update { state ->
+                            state.copy(
+                                claimingPharmacyRequestId = null,
+                                simulatedDispatchAlert = null,
+                                activelyDispatchedPatientId = null,
+                                liveWaitingQueue = state.liveWaitingQueue.filter { it.id != requestId },
+                                dismissedRequestIds = state.dismissedRequestIds + requestId,
+                            )
+                        }
+                        _uiState.update {
+                            it.copy(acceptedDispatchRequestId = requestId, acceptedDispatchRoomId = roomId)
+                        }
+                        // Both phones must observe the same authoritative status
+                        // before opening the call. A failed update is not success.
                         pharmacyDispatchRepository.updateDispatchRequestStatus(requestId, "in_call")
-                        com.autamedica.android.telemetry.CallTelemetry.recordMilestone(
-                            traceId,
-                            "T1_BACKEND_CLAIM",
-                            mapOf("success" to true, "claimed_room" to (claim.cloudflareRoomId ?: alertRoomId))
-                        )
+                            .onSuccess {
+                                com.autamedica.android.telemetry.CallTelemetry.recordMilestone(
+                                    traceId, "T1_BACKEND_CLAIM", mapOf("success" to true)
+                                )
+                                _uiState.update { state -> state.copy(claimErrorMessage = null) }
+                                onNavigateToVideoCall(roomId)
+                            }
+                            .onFailure { error ->
+                                SecureLog.error("[DoctorDashboard] Cannot confirm in_call", error)
+                                _uiState.update {
+                                    it.copy(claimErrorMessage = "Consulta aceptada. Reintentá el ingreso a la videollamada.")
+                                }
+                            }
                     } else {
-                        val errMsg = claim.message ?: claim.code.ifBlank { "No se pudo aceptar la consulta" }
-                        com.autamedica.android.telemetry.CallTelemetry.recordMilestone(
-                            traceId,
-                            "T1_BACKEND_CLAIM",
-                            mapOf("success" to false, "error" to errMsg)
-                        )
-                        _uiState.update { it.copy(claimErrorMessage = errMsg) }
+                        val reason = claim.message?.takeIf { it.isNotBlank() }
+                            ?: "La consulta no está disponible o no tiene sala asignada."
+                        _uiState.update {
+                            it.copy(claimingPharmacyRequestId = null, claimErrorMessage = reason)
+                        }
                     }
                 }
                 .onFailure { error ->
-                    SecureLog.error("[DoctorDashboard] Error claiming pharmacy request in background", error)
-                    com.autamedica.android.telemetry.CallTelemetry.recordMilestone(
-                        traceId,
-                        "T1_BACKEND_CLAIM",
-                        mapOf("success" to false, "error" to (UiErrorMapper.map(error, "unknown")))
-                    )
-                    _uiState.update { it.copy(claimErrorMessage = UiErrorMapper.map(error, "No se pudo aceptar la solicitud")) }
+                    SecureLog.error("[DoctorDashboard] Error claiming pharmacy request", error)
+                    _uiState.update {
+                        it.copy(
+                            claimingPharmacyRequestId = null,
+                            claimErrorMessage = UiErrorMapper.map(error, "No se pudo aceptar la solicitud"),
+                        )
+                    }
+                }
+        }
+    }
+
+    fun retryAcceptedVideo(onNavigateToVideoCall: (String) -> Unit) {
+        val requestId = _uiState.value.acceptedDispatchRequestId ?: return
+        val roomId = _uiState.value.acceptedDispatchRoomId ?: return
+        viewModelScope.launch {
+            pharmacyDispatchRepository.updateDispatchRequestStatus(requestId, "in_call")
+                .onSuccess {
+                    _uiState.update { it.copy(claimErrorMessage = null) }
+                    onNavigateToVideoCall(roomId)
+                }
+                .onFailure {
+                    _uiState.update { state ->
+                        state.copy(claimErrorMessage = "No se confirmó el ingreso. Volvé a intentarlo.")
+                    }
                 }
         }
     }
@@ -407,18 +465,26 @@ class DoctorDashboardViewModel @Inject constructor(
         if (doctorId.isBlank()) return
 
         viewModelScope.launch {
+            val approval = pharmacyDispatchRepository.getMyGuardApproval().getOrNull()
+            val authorized = approval?.approved == true
+            _uiState.update { state ->
+                state.copy(
+                    guardApproved = authorized,
+                    guardVerificationStatus = approval?.verificationStatus ?: "pending",
+                )
+            }
             pharmacyDispatchRepository.getDoctorDutyStatus(doctorId)
                 .onSuccess { duty ->
-                    _isOnDuty.value = duty.isOnDuty
+                    _isOnDuty.value = duty.isOnDuty && authorized
                     _uiState.update { state ->
                         state.copy(
                             pharmacyOnDutyState = state.pharmacyOnDutyState.copy(
-                                isOnDuty = duty.isOnDuty,
+                                isOnDuty = duty.isOnDuty && authorized,
                                 isLoading = false,
                             ),
                         )
                     }
-                    if (duty.isOnDuty) {
+                    if (duty.isOnDuty && authorized) {
                         startHeartbeat(doctorId)
                     } else {
                         stopHeartbeat()

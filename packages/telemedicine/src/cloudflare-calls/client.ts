@@ -12,10 +12,9 @@ import { getAdaptiveConstraints, applyContentHints } from '../media-optimization
 import type { CallProvider, ConnectionState, DeviceInfo, WarmUpResult, WebRTCEvents } from '../providers/types'
 import type {
   ChatMessage,
-  StreamQualityLevel,
-  StreamQualitySummary,
 } from '../webrtc-client'
 import { CloudflareCallsSession, type TrackEntry } from './session'
+import { SfuQualityMonitor } from './quality'
 import { createTelemedicineLogger } from '../debug'
 
 type ServerMessage =
@@ -43,6 +42,8 @@ export interface CloudflareCallsClientConfig {
 export class CloudflareCallsClient implements CallProvider {
   private ws: WebSocket | null = null
   private sbHandle: SupabaseSignalingHandle | null = null
+  private quality: SfuQualityMonitor | null = null
+  private sfuReconnecting = false
   private cfSession: CloudflareCallsSession | null = null
   private localStream: MediaStream | null = null
   private connectionState: ConnectionState = 'disconnected'
@@ -278,8 +279,11 @@ export class CloudflareCallsClient implements CallProvider {
     if (this.connectionState === 'connecting' || this.connectionState === 'connected') return
 
     const finalRoomId = roomId ?? this.config.roomId
+    this.quality?.stop()
+    this.quality = null
     this.config.roomId = finalRoomId
     this.intentionalClose = false
+    this.sfuReconnecting = false
     this.signalingReconnectAttempt = 0
     this.setConnectionState('connecting')
 
@@ -290,6 +294,7 @@ export class CloudflareCallsClient implements CallProvider {
 
       this.cfSession = new CloudflareCallsSession({
         apiProxyUrl: this.config.apiProxyUrl,
+        roomId: finalRoomId,
         iceServers: this.config.iceServers,
         onTrack: (event) => this.handleRemoteTrack(event),
         onConnectionStateChange: (state) => {
@@ -298,10 +303,14 @@ export class CloudflareCallsClient implements CallProvider {
             if (this.connectionState === 'connecting' || this.connectionState === 'disconnected') {
               this.setConnectionState('connected')
             }
-            this.emit('reconnected', { peerId: 'sfu', afterAttempts: 1 })
+            if (this.sfuReconnecting) this.emit('reconnected', { peerId: 'sfu', afterAttempts: 1 })
+            this.sfuReconnecting = false
           } else if (state === 'disconnected') {
+            this.sfuReconnecting = true
             this.emit('reconnecting', { peerId: 'sfu', attempt: 1, maxAttempts: 1 })
           } else if (state === 'failed') {
+            this.quality?.stop()
+            this.quality = null
             this.setConnectionState('failed')
             this.emit('error', new Error('Cloudflare Calls SFU connection failed'))
           }
@@ -315,6 +324,7 @@ export class CloudflareCallsClient implements CallProvider {
       if (!this.localStream) throw new Error('No local stream available')
       this.debugLogger.info('Connecting to CF SFU...')
       const mySessionId = await this.cfSession.connect(this.localStream)
+      this.quality = new SfuQualityMonitor(finalRoomId, this.cfSession, (event, ...args) => this.emit(event, ...args))
       this.debugLogger.info('CF Session established', { sessionId: mySessionId })
 
       this.sendSignal({
@@ -344,6 +354,8 @@ export class CloudflareCallsClient implements CallProvider {
         })
       }
     } catch (err) {
+      this.quality?.stop()
+      this.quality = null
       this.debugLogger.error('Connection failed', err)
       this.setConnectionState('failed')
       this.emit('error', err instanceof Error ? err : new Error(String(err)))
@@ -353,6 +365,8 @@ export class CloudflareCallsClient implements CallProvider {
 
   async disconnect(): Promise<void> {
     this.intentionalClose = true
+    this.quality?.stop()
+    this.quality = null
     if (this.signalingReconnectTimer) {
       clearTimeout(this.signalingReconnectTimer)
       this.signalingReconnectTimer = null
@@ -397,17 +411,6 @@ export class CloudflareCallsClient implements CallProvider {
     }
     this.sendSignal({ type: 'chat', from: this.config.userId, data: { message } })
     return true
-  }
-
-  /* ── Quality stub ── */
-
-  private emitQualityStub(): void {
-    const stub: StreamQualitySummary = {
-      roomId: this.config.roomId,
-      overallLevel: 'unknown' as StreamQualityLevel,
-      peers: [],
-    }
-    this.emit('stream-quality', stub)
   }
 
   /* ── Señalización ── */
@@ -573,7 +576,6 @@ export class CloudflareCallsClient implements CallProvider {
           this.emit('user-joined', user.id, user.userType)
         }
         this.emit('chat-ready', true)
-        this.emitQualityStub()
         break
       }
 
@@ -885,3 +887,4 @@ export class CloudflareCallsClient implements CallProvider {
     this.emit('connection-state', state)
   }
 }
+

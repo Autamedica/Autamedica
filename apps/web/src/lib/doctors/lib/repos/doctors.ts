@@ -143,20 +143,8 @@ async function runDoctorProfileSelect<T>(
 
 export const doctorsRepo = {
   async findAll(client: DoctorsClient = getBrowserSupabaseClient()): Promise<DoctorWithProfile[]> {
-    const data = await runDoctorProfileSelect(
-      'findAll',
-      () => client
-        .from('doctors')
-        .select(DOCTOR_WITH_PROFILE_SELECT)
-        .eq('active', true)
-        .order('created_at', { ascending: false }),
-      () => client
-        .from('doctors')
-        .select(DOCTOR_WITH_PROFILE_LEGACY_SELECT)
-        .eq('active', true)
-        .order('created_at', { ascending: false }),
-    )
-
+    const { data, error } = await client.rpc('get_patient_doctor_directory')
+    if (error) throw error
     return toCamel<DoctorWithProfile[]>(data ?? [])
   },
 
@@ -210,23 +198,8 @@ export const doctorsRepo = {
     specialty: string,
     client: DoctorsClient = getBrowserSupabaseClient(),
   ): Promise<DoctorWithProfile[]> {
-    const data = await runDoctorProfileSelect(
-      'findBySpecialty',
-      () => client
-        .from('doctors')
-        .select(DOCTOR_WITH_PROFILE_SELECT)
-        .eq('specialty', specialty)
-        .eq('active', true)
-        .order('created_at', { ascending: false }),
-      () => client
-        .from('doctors')
-        .select(DOCTOR_WITH_PROFILE_LEGACY_SELECT)
-        .eq('specialty', specialty)
-        .eq('active', true)
-        .order('created_at', { ascending: false }),
-    )
-
-    return toCamel<DoctorWithProfile[]>(data ?? [])
+    const rows = await doctorsRepo.findAll(client)
+    return rows.filter(row => row.specialty === specialty)
   },
 
   async resolveIdByUserId(
@@ -295,3 +268,4 @@ export function createDoctorRepositoryAdapter(
       doctorsRepo.markUserMetadataOnboardingComplete(userId),
   }
 }
+

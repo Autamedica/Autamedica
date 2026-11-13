@@ -219,7 +219,7 @@ SUPABASE_SERVICE_ROLE_KEY=NUEVA-ANON-KEY-ROTADA.. \
 NEXT_PUBLIC_APP_URL=https://autamedica.com \
 NODE_ENV=production \
 HUSKY=0 \
-wrangler pages deploy .open-next/dist --project-name autamedica-web-app --branch main --token mLKuxgoPUv6h3YdjUXwUC3q1
+wrangler pages deploy .open-next/dist --project-name autamedica-web-app --branch main # Configure CLOUDFLARE_API_TOKEN securely in the environment (never as a CLI argument)
 ```
 
 **¿Por qué este comando es perfecto?**

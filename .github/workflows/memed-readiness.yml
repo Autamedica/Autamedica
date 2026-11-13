@@ -1,0 +1,37 @@
+name: Memed pilot readiness (read-only tests)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'apps/web/src/lib/prescriptions/brazil/memed-readiness*'
+      - 'apps/web/src/pages/api/admin/integrations/memed-health.ts'
+      - '.github/workflows/memed-readiness.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ (github.actor == 'coderabbitai[bot]' || github.actor == 'circleci-app[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.draft)) && 'ignored' || 'active' }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  HUSKY: '0'
+
+jobs:
+  memed-readiness:
+    if: >-
+      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-pnpm
+        with:
+          node-version: '22'
+          pnpm-version: '9.15.2'
+      - name: Validate Memed readiness with synthetic doctor only
+        run: pnpm --filter @autamedica/web exec vitest run src/lib/prescriptions/brazil/memed-readiness.test.ts

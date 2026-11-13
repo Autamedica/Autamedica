@@ -1,0 +1,40 @@
+name: Farmalink authorized distinct brand TEST once
+
+on:
+  push:
+    branches:
+      - fix/farmalink-org-182-homologacion-20261103
+    paths:
+      - '.github/workflows/farmalink-brand-extra-once.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: farmalink-one-distinct-brand-20261103
+  cancel-in-progress: false
+
+jobs:
+  one-distinct-brand:
+    if: "github.event.head_commit.message == 'ci(farmalink): execute distinct brand test once'"
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      FARMALINK_TEST_OAUTH_PASSWORD: ${{ secrets.FARMALINK_TEST_OAUTH_PASSWORD }}
+      FARMALINK_TEST_BASIC_PASSWORD: ${{ secrets.FARMALINK_TEST_BASIC_PASSWORD }}
+      FARMALINK_HOMOLOGATION_OUTPUT: /tmp/farmalink-brand-extra
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - run: python3 -m pip install --disable-pip-version-check 'reportlab==4.2.5'
+      - name: One new brand-N TEST attempt with previously accepted product code
+        run: python3 scripts/farmalink/brand_one_extra_attempt.py
+      - name: Preserve actual TEST receipt and its PDF if approved
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: farmalink-second-brand-test-20261103
+          path: /tmp/farmalink-brand-extra/
+          if-no-files-found: ignore
+          retention-days: 30

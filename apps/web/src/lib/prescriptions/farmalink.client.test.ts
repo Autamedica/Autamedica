@@ -223,4 +223,19 @@ describe('FarmalinkClient', () => {
       responseDescription: 'Credencial invalida',
     });
   });
+  it('does not retry altaReceta after a gateway 504', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({access_token:'dummy',expires_in:3600}))
+      .mockResolvedValueOnce(jsonResponse({error:'gateway_timeout'},504));
+    const client = new FarmalinkClient({...config,fetch:fetchMock});
+    await expect(client.altaReceta(altaRequest)).rejects.toMatchObject({status:504});
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[1][1].signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('never approves a successful functional code without a recipe number', () => {
+    expect(extractFarmalinkAltaResult({altaRecetaElectRs:{respuesta:{codigo:'00'}}}).approved).toBe(false);
+  });
+
 });
+

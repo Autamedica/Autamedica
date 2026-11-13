@@ -114,7 +114,7 @@ curl -H "x-trigger-key: $TRIGGER_KEY" \
 
 La fuente de verdad para newsletter es `public.profiles.newsletter_subscribed`.
 
-Antes de enviar, el worker compara Supabase contra Resend. Si hay un email activo en Resend que no esta activo en Supabase, o un email activo en Supabase que no existe activo en Resend, el envio se bloquea.
+Antes de enviar, el worker compara Supabase contra el **segmento de newsletter** (`RESEND_AUDIENCE_ID`) en Resend. Nunca compara contra `/contacts` global para decidir el envío, ni desuscribe globalmente contactos de otras campañas. Si faltan miembros o existen miembros adicionales activos en el segmento, el envío se bloquea.
 
 Auditar diferencias sin tocar nada:
 
@@ -128,7 +128,7 @@ Aplicar la sincronizacion:
 pnpm sync-audience:apply
 ```
 
-La sincronizacion respeta bajas del proveedor: si Resend tiene un contacto como `unsubscribed`, Supabase pasa a `newsletter_subscribed=false`. Nunca se re-suscribe automaticamente a alguien que ya se dio de baja en el proveedor.
+La sincronización respeta bajas globales y del segmento de Resend: si el contacto tiene `unsubscribed=true`, Supabase pasa a `newsletter_subscribed=false`. Nunca se re-suscribe automáticamente a quien se dio de baja. Los contactos ajenos a la newsletter se **quitan únicamente del segmento** (sin alterar su estado global ni otros segmentos). El modo sin `--apply` solamente muestra recuentos de diferencias, sin correos personales. El script acepta las variables requeridas desde el entorno del proceso (con prioridad sobre `.dev.vars`), para ejecutarse con secretos inyectados sin copiarlos al repositorio. No ejecuta ningún endpoint de envío. Tras aplicar, el script vuelve a leer Supabase y Resend para verificar las diferencias residuales, incluidos los consentimientos nulos. Ante correos normalizados duplicados, estados de baja desconocidos o paginación incompleta, se detiene sin aplicar el plan. Las bajas de Supabase se actualizan por `user_id` y se verifica la fila devuelta; las llamadas a Resend se serializan y respetan `Retry-After` con reintentos acotados.
 
 Para propagar bajas tambien a Brevo:
 

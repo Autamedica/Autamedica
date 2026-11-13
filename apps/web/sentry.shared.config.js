@@ -1,5 +1,10 @@
 const BLOCKED_FIELD_NAMES = new Set([
   'authorization',
+  'cpf',
+  'token',
+  'api-key',
+  'secret-key',
+  'data_nascimento',
   'set-cookie',
   'cookie',
   'cookies',
@@ -36,6 +41,22 @@ function isPlainObject(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function redactMemedText(value) {
+  return value.replace(/https?:\/\/(?:[a-z0-9-]+\.)*memed\.com\.br[^\s"'<>]*/gi, '[Memed URL redacted]')
+    .replace(/((?:api-key|secret-key|token)=)[^&\s]+/gi, '$1[Redacted]');
+}
+
+function redactTelemetry(value) {
+  if (typeof value === 'string') return redactMemedText(value);
+  if (Array.isArray(value)) return value.map((item) => redactTelemetry(item));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key,
+      ['cpf', 'api-key', 'secret-key', 'token', 'data_nascimento'].includes(key.toLowerCase())
+        ? (typeof item === 'number' ? 0 : '[Redacted]') : redactTelemetry(item)]));
+  }
+  return value;
+}
+
 function truncate(value, max = 240) {
   return value.length > max ? `${value.slice(0, max)}...[truncated]` : value;
 }
@@ -48,8 +69,8 @@ function sanitizeValue(value, depth = 0) {
   if (value instanceof Error) {
     return {
       name: value.name,
-      message: truncate(value.message),
-      stack: value.stack ? truncate(value.stack, 1000) : undefined,
+      message: truncate(redactMemedText(value.message)),
+      stack: value.stack ? truncate(redactMemedText(value.stack), 1000) : undefined,
     };
   }
 
@@ -63,7 +84,7 @@ function sanitizeValue(value, depth = 0) {
   }
 
   if (typeof value === 'string') {
-    return truncate(value);
+    return truncate(redactMemedText(value));
   }
 
   if (Array.isArray(value)) {
@@ -87,6 +108,9 @@ function sanitizeValue(value, depth = 0) {
 }
 
 export function sanitizeSentryEvent(event) {
+  if (typeof event.request?.url === 'string') event.request.url = redactMemedText(event.request.url);
+  if (Array.isArray(event.spans)) event.spans = event.spans.map((span) => redactTelemetry(span));
+  if (event.exception) event.exception = redactTelemetry(event.exception);
   if (event.request) {
     delete event.request.data;
 
@@ -129,11 +153,16 @@ export function getBaseSentryConfig(runtime) {
   return {
     dsn: sentryDsn,
     environment: `${runtime}-${nodeEnv}`,
-    sendDefaultPii: true,
+    sendDefaultPii: false,
     enableLogs: true,
     tracesSampleRate: nodeEnv === 'development' ? 1.0 : 0.1,
+    beforeBreadcrumb(breadcrumb) { return sanitizeValue(breadcrumb); },
+    beforeSendSpan(span) { return redactTelemetry(span); },
+    beforeSendTransaction(event) { return sanitizeSentryEvent(event); },
+    beforeSendLog(log) { return redactTelemetry(log); },
     beforeSend(event) {
       return sanitizeSentryEvent(event);
     },
   };
 }
+

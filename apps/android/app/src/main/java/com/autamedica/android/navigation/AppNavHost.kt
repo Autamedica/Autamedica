@@ -2,6 +2,9 @@ package com.autamedica.android.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import android.os.Bundle
+import com.google.firebase.analytics.FirebaseAnalytics
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -31,14 +34,42 @@ fun AppNavHost(
     navController: NavHostController = rememberNavController(),
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
+    // Compose routes do not create distinct Android Activities. Report static,
+    // non-clinical screen categories only; never serialize navigation arguments.
+    LaunchedEffect(navController, context) {
+        var previousScreen: String? = null
+        navController.currentBackStackEntryFlow.collect { entry ->
+            val routeTemplate = entry.destination.route.orEmpty()
+            val safeScreen = when {
+                routeTemplate.contains("Route.Login") -> "login"
+                routeTemplate.contains("Route.Register") -> "register"
+                routeTemplate.contains("Route.ForgotPassword") -> "password_recovery"
+                routeTemplate.contains("Route.Main") -> "main"
+                else -> "private_area"
+            }
+            if (safeScreen != previousScreen) {
+                val data = Bundle().apply {
+                    putString(FirebaseAnalytics.Param.SCREEN_NAME, safeScreen)
+                    putString(FirebaseAnalytics.Param.SCREEN_CLASS, "AutamedicaNavigation")
+                }
+                FirebaseAnalytics.getInstance(context).logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, data)
+                previousScreen = safeScreen
+            }
+        }
+    }
+
     LaunchedEffect(postLoginRoute, navController) {
         val route = postLoginRoute ?: return@LaunchedEffect
         var consumed = false
         navController.currentBackStackEntryFlow.collect { backStackEntry ->
             if (consumed) return@collect
             val currentRoute = backStackEntry.destination.route
-            val isOnLogin = currentRoute?.contains("Login") == true
-            if (!isOnLogin) {
+            // A pending deep link is never consumed on Register, ForgotPassword
+            // or other unauthenticated screens. Only the authenticated landing
+            // route (Main) can release it after login/profile verification.
+            val isOnAuthenticatedLanding = currentRoute?.contains("Route.Main") == true
+            if (isOnAuthenticatedLanding) {
                 consumed = true
                 navController.navigate(route) {
                     launchSingleTop = true

@@ -74,10 +74,7 @@ const ADMIN_ROLES = ["admin", "organization_admin", "platform_admin"] as const;
 
 function getMetadataRole(user: App.Locals["session"]["user"] | undefined): string | undefined {
   const appRole = (user?.app_metadata as Record<string, unknown> | undefined)?.role;
-  if (typeof appRole === "string") return appRole;
-
-  const userRole = (user?.user_metadata as Record<string, unknown> | undefined)?.role;
-  return typeof userRole === "string" ? userRole : undefined;
+  return typeof appRole === "string" ? appRole : undefined;
 }
 
 async function isAuthorized(locals: App.Locals, request: Request): Promise<boolean> {

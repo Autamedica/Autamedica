@@ -9,11 +9,11 @@ import {
 
 const baseInput = {
   organization: {
-    id: '100',
+    id: '182',
     type: 'NMD',
     ipOrigin: '8.8.8.8',
     browserInfo: 'AutaMedica Homologacion',
-    issuerPointId: 10000,
+    issuerPointId: 10000, // Legacy input must never be serialized to Farmalink.
   },
   validity: {
     from: '2026-05-18T12:00:00.000Z',
@@ -28,8 +28,8 @@ const baseInput = {
     cuil: '27-30123456-8',
     documentNumber: '30.123.456',
     credential: {
-      codEntidad: 7100,
-      pan: '12345678',
+      codEntidad: 7110,
+      pan: '20123456786',
       plan: 'NO POSEE',
     },
   },
@@ -62,16 +62,16 @@ const baseInput = {
 describe('Farmalink mapper', () => {
   it('normalizes AutaMedica prescription data into AltaRecetaElectRq', () => {
     const request = buildFarmalinkAltaRecetaRequest(baseInput);
+    expect(Object.prototype.hasOwnProperty.call(request.altaRecetaElectRq, 'puntoEmisor')).toBe(false);
 
     expect(request).toEqual({
       altaRecetaElectRq: {
         infoCabeceraRq: {
-          idOrganizacion: '100',
+          idOrganizacion: '182',
           tipoOrganizacion: 'NMD',
           ipOrigen: '8.8.8.8',
           infoBrowser: 'AutaMedica Homologacion',
         },
-        puntoEmisor: { id: 10000 },
         recElectronica: {
           tipoReceta: '01',
           fechaVigenciaDesde: '2026-05-18',
@@ -88,8 +88,8 @@ describe('Farmalink mapper', () => {
             numeroDocumento: 30123456,
             datosOfuscado: 'N',
             credencial: {
-              codEntidad: 7100,
-              pan: '12345678',
+              codEntidad: 7110,
+              pan: '20123456786',
               plan: 'NO POSEE',
             },
           },
@@ -128,25 +128,48 @@ describe('Farmalink mapper', () => {
     });
   });
 
+  it('rejects the obsolete organization 100 before sending a request', () => {
+    expect(() => buildFarmalinkAltaRecetaRequest({
+      ...baseInput,
+      organization: { ...baseInput.organization, id: '100' },
+    })).toThrow(FarmalinkMappingError);
+  });
+
+  it('maps the two required generic S and brand N scenarios without a point emitter', () => {
+    const generic = buildFarmalinkAltaRecetaRequest(baseInput).altaRecetaElectRq;
+    const brand = buildFarmalinkAltaRecetaRequest({
+      ...baseInput,
+      items: [{ ...baseInput.items[0], generic: false, brandRecommended: true }],
+    }).altaRecetaElectRq;
+    expect(generic.recElectronica.detalleRecElectronica.item[0]).toMatchObject({
+      generico: 'S', recomendacionMedica: 'N',
+    });
+    expect(brand.recElectronica.detalleRecElectronica.item[0]).toMatchObject({
+      generico: 'N', recomendacionMedica: 'S',
+    });
+    expect(Object.prototype.hasOwnProperty.call(generic, 'puntoEmisor')).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(brand, 'puntoEmisor')).toBe(false);
+  });
+
   it('builds consulta and baja requests with the same Farmalink recipe reference shape', () => {
     const reference = {
-      idOrganizacion: '100',
+      idOrganizacion: '182',
       tipoOrganizacion: 'NMD',
-      codEntidad: 7100,
-      pan: '12345678',
+      codEntidad: 7110,
+      pan: '20123456786',
       nroRecElectronica: '9600000002762',
     };
 
     expect(buildFarmalinkConsultaRecetaRequest(reference)).toEqual({
       consultaRecetaElectRq: {
         infoCabeceraRq: {
-          idOrganizacion: '100',
+          idOrganizacion: '182',
           tipoOrganizacion: 'NMD',
         },
         recElectronica: {
           afiliado: {
-            codEntidad: 7100,
-            pan: '12345678',
+            codEntidad: 7110,
+            pan: '20123456786',
           },
           receta: {
             nroRecElectronica: '9600000002762',
@@ -186,4 +209,56 @@ describe('Farmalink mapper', () => {
       },
     })).toThrow(FarmalinkMappingError);
   });
+  it('rejects a missing prescriber specialty before contacting Farmalink', () => {
+    expect(() => buildFarmalinkAltaRecetaRequest({
+      ...baseInput,
+      prescriber: {
+        ...baseInput.prescriber,
+        license: {
+          tipo: 'MN',
+          provincia: 'C',
+          numero: '123456',
+        },
+      },
+    })).toThrow(FarmalinkMappingError);
+  });
+
+  it('rejects an empty prescriber specialty before contacting Farmalink', () => {
+    expect(() => buildFarmalinkAltaRecetaRequest({
+      ...baseInput,
+      prescriber: {
+        ...baseInput.prescriber,
+        license: {
+          ...baseInput.prescriber.license,
+          especialidad: '   ',
+        },
+      },
+    })).toThrow(FarmalinkMappingError);
+  });
+
+  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])('rejects invalid quantity %s', (quantity) => {
+    expect(() => buildFarmalinkAltaRecetaRequest({
+      ...baseInput, items:[{...baseInput.items[0],quantity}],
+    })).toThrow(FarmalinkMappingError);
+  });
+
+  it.each(['2026-02-30','2026-13-01'])('rejects impossible date %s', (from) => {
+    expect(() => buildFarmalinkAltaRecetaRequest({
+      ...baseInput,validity:{...baseInput.validity,from},
+    })).toThrow(FarmalinkMappingError);
+  });
+
+  it('rejects expiration before the issue date', () => {
+    expect(() => buildFarmalinkAltaRecetaRequest({
+      ...baseInput,validity:{from:'2026-06-17',to:'2026-05-18'},
+    })).toThrow(FarmalinkMappingError);
+  });
+
+  it.each(['ABC123','9007199254740993','0','-123'])('rejects an invalid patient identifier %s', (documentNumber) => {
+    expect(() => buildFarmalinkAltaRecetaRequest({
+      ...baseInput,affiliate:{...baseInput.affiliate,documentNumber},
+    })).toThrow(FarmalinkMappingError);
+  });
+
 });
+

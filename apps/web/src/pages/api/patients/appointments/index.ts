@@ -4,7 +4,7 @@ import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { appointmentsUseCase } from '@/lib/patients/usecases/appointments.usecase'
 import { createAppointmentAdapter } from '@/lib/patients/lib/repos/appointments.adapter'
-import { jsonOk, unauthorized, notFound, conflict, internalError } from '@/lib/api-helpers'
+import { jsonOk, unauthorized, notFound, conflict, internalError, forbidden } from '@/lib/api-helpers'
 import { validateBody } from '@/lib/validation'
 import { CreatePatientAppointmentSchema } from '@/lib/zod/appointments'
 
@@ -51,6 +51,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return jsonOk(created, 201)
   } catch (err) {
     const errCode = (err as { code?: string }).code
+    if (errCode === 'CARE_COUNTRY' || (errCode === '42501' && String((err as { message?: string }).message).includes('care_country'))) return forbidden('care_country_mismatch_or_unset')
     if (errCode === 'DOCTOR_NOT_FOUND') {
       return notFound('Doctor not found or inactive')
     }
@@ -64,3 +65,4 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return internalError()
   }
 }
+

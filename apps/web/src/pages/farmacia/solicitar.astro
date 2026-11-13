@@ -2,11 +2,35 @@
 import CallLayout from '@/layouts/CallLayout.astro';
 import { PharmacyExpressConsultation } from '@/components/pharmacy/PharmacyExpressConsultation';
 import { createAstroAdminClient } from '@/lib/supabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payment-access';
 
 export const prerender = false;
 
 const pharmacyId = Astro.url.searchParams.get('pharmacyId');
-let pharmacyName = Astro.url.searchParams.get('name') || 'Punto de Farmacia';
+const requestedReferral = Astro.url.searchParams.get('ref')?.trim().toUpperCase() ?? null;
+let referralCode: string | null = null;
+let referralPartnerName: string | null = null;
+// Resolve the source against the private server-side partner registry.
+// URL text alone is never accepted as proof of a registered referral partner.
+if (requestedReferral && /^[A-Z0-9_-]{3,32}$/.test(requestedReferral)) {
+  try {
+    const admin = createAstroAdminClient(Astro.locals.runtime?.env);
+    const { data: partner } = await (admin as unknown as SupabaseClient)
+      .from('commercial_referral_partners')
+      .select('code, display_name')
+      .eq('code', requestedReferral)
+      .eq('active', true)
+      .maybeSingle();
+    if (partner) {
+      referralCode = partner.code;
+      referralPartnerName = partner.display_name;
+    }
+  } catch {
+    // No unverified attribution if partner registry is unavailable.
+  }
+}
+let pharmacyName = 'Punto de Farmacia'; // Pharmacy name is shown only when verified in our database.
 
 if (pharmacyId) {
   try {
@@ -25,8 +49,14 @@ if (pharmacyId) {
   }
 }
 
+// Checkout is intentionally disabled until synthetic PSP verification succeeds.
+const jordanPaymentsEnabled = (
+  (Astro.locals.runtime?.env?.ENABLE_JORDAN_PAYMENTS as string | undefined)
+  ?? import.meta.env.ENABLE_JORDAN_PAYMENTS
+) === 'true' && hasSecureGuestPaymentSecret(Astro.locals.runtime?.env);
+
 const title = 'Consulta Exprés en Farmacia • Red AutaMedica';
-const description = 'Punto de atención médica digital AutaMedica en farmacia con videoconsulta de guardia inmediata y receta oficial con firma digital.';
+const description = 'Punto de atención de telemedicina de AutaMedica. Los documentos médicos dependen del profesional y de la habilitación correspondiente al país de atención.';
 ---
 
 <CallLayout title={title} description={description}>
@@ -34,5 +64,8 @@ const description = 'Punto de atención médica digital AutaMedica en farmacia c
     client:load
     pharmacyId={pharmacyId}
     pharmacyName={pharmacyName}
+    referralCode={referralCode}
+    referralPartnerName={referralPartnerName}
+    jordanPaymentsEnabled={jordanPaymentsEnabled}
   />
 </CallLayout>

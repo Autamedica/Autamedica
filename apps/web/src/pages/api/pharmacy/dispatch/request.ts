@@ -1,9 +1,12 @@
 import type { APIRoute } from 'astro'
-import { badRequest, internalError, jsonOk, serviceUnavailable } from '@/lib/api-helpers'
+import { badRequest, forbidden, internalError, jsonOk, serviceUnavailable, unauthorized } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { generateCloudflareRoomId, type DispatchTierCategory } from '@/lib/pharmacy/pharmacy-on-demand.service'
 import { signGuestToken } from '@/lib/calls/lib/guest-token'
+import { createGuestQueueRecoveryToken, hashGuestQueueRecoveryToken } from '@/lib/pharmacy/guest-queue-recovery'
 import { resolveGuestSecret } from '@/lib/runtime-env'
+import { hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payment-access'
 import { logger } from '@autamedica/shared'
 
 const VALID_TIERS: DispatchTierCategory[] = [
@@ -30,16 +33,36 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return badRequest('Cuerpo de solicitud inválido')
     }
 
-    const { patientDni, patientPhone, patientName, tier, kioskId, pharmacyId, symptomSummary } = body
+    const { patientDni, patientCpf, careCountry, patientPhone, patientName, tier, kioskId, pharmacyId, symptomSummary, referralCode } = body
 
-    // 1. Validar campos mínimos obligatorios y sanitizar
-    if (!patientDni || typeof patientDni !== 'string') {
+    // Choose the country explicitly. A DNI/CPF or mobile dialing prefix cannot
+    // determine clinical jurisdiction or grant access to an existing patient.
+    if (careCountry !== 'AR' && careCountry !== 'BR') {
+      return badRequest('Seleccioná Argentina o Brasil como país de atención')
+    }
+
+    // Do not send a referred Jordan patient into a clinical queue without
+    // a checkout that's explicitly live and secured server-side.
+    if (referralCode === 'JORDAN') {
+      if (careCountry !== 'BR') return badRequest('jordan_referral_brazil_only')
+      if (tier && tier !== 'general') return badRequest('jordan_general_consultation_only')
+      const flag = (locals.runtime?.env?.ENABLE_JORDAN_PAYMENTS as string | undefined)
+        ?? import.meta.env.ENABLE_JORDAN_PAYMENTS
+      if (flag !== 'true' || !hasSecureGuestPaymentSecret(locals.runtime?.env)) {
+        return serviceUnavailable('jordan_checkout_not_ready')
+      }
+    }
+
+    const rawDocument = careCountry === 'BR' ? (patientCpf ?? patientDni) : patientDni
+    if (typeof rawDocument !== 'string' || !rawDocument.trim()) {
       return badRequest('Número de documento requerido')
     }
-    const sanitizedDni = patientDni.trim().replace(/[^\w.-]/g, '')
-    if (sanitizedDni.length < 5 || sanitizedDni.length > 20) {
-      return badRequest('Número de documento inválido')
+    const normalizedDocument = rawDocument.replace(/\D/g, '')
+    if (careCountry === 'BR' ? normalizedDocument.length !== 11 : normalizedDocument.length < 5 || normalizedDocument.length > 10) {
+      return badRequest(careCountry === 'BR' ? 'CPF inválido: ingresar 11 dígitos' : 'DNI inválido')
     }
+    const sanitizedDni = careCountry === 'AR' ? normalizedDocument : null
+    const sanitizedCpf = careCountry === 'BR' ? normalizedDocument : null
 
     if (!patientPhone || typeof patientPhone !== 'string') {
       return badRequest('Teléfono celular requerido')
@@ -62,6 +85,24 @@ export const POST: APIRoute = async ({ request, locals }) => {
       : 'general'
 
     const supabase = createAstroAdminClient(locals.runtime?.env)
+
+    // Native Android bearer must be verified by Supabase Auth, never parsed
+    // without signature checks. Malformed or expired bearer cannot become a
+    // new anonymous guest record by silently falling back.
+    const authorization = request.headers.get('authorization')?.trim() ?? ''
+    let mobileUserId: string | null = null
+    if (authorization) {
+      const match = /^Bearer\s+([A-Za-z0-9._-]+)$/i.exec(authorization)
+      if (!match) return unauthorized('invalid_mobile_session')
+      const { data: bearerIdentity, error: bearerError } = await supabase.auth.getUser(match[1])
+      if (bearerError || !bearerIdentity.user) return unauthorized('invalid_mobile_session')
+      mobileUserId = bearerIdentity.user.id
+    }
+    const sessionUser = (locals as { user?: { id: string } }).user ?? locals.session?.user
+    if (sessionUser?.id && mobileUserId && sessionUser.id !== mobileUserId) {
+      return forbidden('mobile_session_conflicts_with_cookie_session')
+    }
+    const requestedByUserId = mobileUserId || sessionUser?.id || null
 
     // 2. Validar pertenencia a kiosco registrado si kioskId viene provisto
     let resolvedKioskId: string | null = null
@@ -114,19 +155,47 @@ export const POST: APIRoute = async ({ request, locals }) => {
       resolvedPharmacyId = pharmacy.id
     }
 
-    const cloudflareRoomId = generateCloudflareRoomId(selectedTier, sanitizedDni)
+    // Attribution only at creation time, resolving the QR code on the server.
+    // Never trust a client-submitted partner ID or pharmacy ID as commercial proof.
+    let referralPartnerId: string | null = null
+    if (referralCode != null) {
+      if (typeof referralCode !== 'string' || !/^[A-Z0-9_-]{3,32}$/.test(referralCode)) {
+        return badRequest('referral_code_invalid')
+      }
+      const { data: partner, error: referralError } = await (supabase as unknown as SupabaseClient)
+        .from('commercial_referral_partners')
+        .select('id')
+        .eq('code', referralCode)
+        .eq('active', true)
+        .maybeSingle()
+      if (referralError) {
+        logger.error('[api/pharmacy/dispatch/request] referral_lookup_failed', {
+          code: typeof referralError.code === 'string' ? referralError.code : 'INTERNAL',
+        })
+        return serviceUnavailable('referral_lookup_unavailable')
+      }
+      if (!partner) return badRequest('referral_code_not_found')
+      referralPartnerId = partner.id
+    }
 
-    // Asociar usuario dueño si la petición proviene de un usuario autenticado
-    const sessionUser = (locals as { user?: { id: string } }).user ?? locals.session?.user
-    const requestedByUserId = sessionUser?.id || null
+    const cloudflareRoomId = generateCloudflareRoomId(selectedTier, normalizedDocument)
+
+     const secret = resolveGuestSecret(locals.runtime?.env)
+    if (!secret) {
+      logger.error('[api/pharmacy/dispatch/request] GUEST_TOKEN_SECRET not configured')
+      return serviceUnavailable('guest_token_not_configured')
+    }
 
     const insertPayload = {
+      care_country: careCountry,
       patient_dni: sanitizedDni,
+      patient_cpf: sanitizedCpf,
       patient_phone: sanitizedPhone,
       patient_name: sanitizedName,
       tier_requested: selectedTier,
       kiosk_id: resolvedKioskId,
       pharmacy_id: resolvedPharmacyId,
+      referral_partner_id: referralPartnerId,
       symptom_summary: sanitizedSymptoms,
       cloudflare_room_id: cloudflareRoomId,
       status: 'searching' as const,
@@ -140,14 +209,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .single()
 
     if (error) {
-      logger.error('[api/pharmacy/dispatch/request] Error inserting request', { error })
-      return internalError(error.message)
-    }
-
-    const secret = resolveGuestSecret(locals.runtime?.env)
-    if (!secret) {
-      logger.error('[api/pharmacy/dispatch/request] GUEST_TOKEN_SECRET not configured')
-      return serviceUnavailable('guest_token_not_configured')
+      if (error.code === '42501' && error.message.includes('care_country')) {
+        return forbidden('care_country_required_or_mismatched')
+      }
+      // Database errors may include failing rows with DNI/CPF, symptoms or PHI.
+      logger.error('[api/pharmacy/dispatch/request] insertion_failed', {
+        code: typeof error.code === 'string' && /^[A-Z0-9]{5}$/.test(error.code) ? error.code : 'INTERNAL',
+      })
+      return internalError('dispatch_request_failed')
     }
 
     // Generar token de acceso criptográfico (JWT firmado con HS256)
@@ -160,14 +229,39 @@ export const POST: APIRoute = async ({ request, locals }) => {
       secret,
     )
 
+    // Browser guests and authenticated native patients require a stable
+    // recovery secret to survive app process death. The resume endpoint must
+    // check both bearer user and scoped secret for authenticated native users.
+    let recoveryToken: string | null = null
+    if (!requestedByUserId || mobileUserId) {
+      recoveryToken = createGuestQueueRecoveryToken()
+      const digest = await hashGuestQueueRecoveryToken(recoveryToken)
+      const { error: recoveryError } = await (supabase as unknown as SupabaseClient)
+        .from('pharmacy_guest_dispatch_sessions')
+        .insert({ request_id: data.id, token_sha256: digest })
+
+      if (recoveryError) {
+        logger.error('[api/pharmacy/dispatch/request] recovery_session_creation_failed', {
+          code: recoveryError.code ?? 'INTERNAL',
+        })
+        // Never strand an anonymous request without a way to recover it.
+        await supabase.from('pharmacy_dispatch_requests')
+          .update({ status: 'cancelled' })
+          .eq('id', data.id)
+          .eq('status', 'searching')
+        return serviceUnavailable('guest_queue_recovery_unavailable')
+      }
+    }
+
     return jsonOk({
       request: data,
       cloudflare_room_id: cloudflareRoomId,
       accessToken,
+      ...(recoveryToken ? { recoveryToken } : {}),
     })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Error inesperado'
-    logger.error('[api/pharmacy/dispatch/request] Exception', { err })
-    return internalError(message)
+  } catch {
+    logger.error('[api/pharmacy/dispatch/request] unexpected_failure')
+    return internalError('dispatch_request_failed')
   }
 }
+

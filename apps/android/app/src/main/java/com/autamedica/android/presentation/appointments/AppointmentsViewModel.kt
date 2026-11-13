@@ -33,6 +33,9 @@ data class AppointmentsUiState(
     val isRefreshing: Boolean = false,
     val userRole: String = "patient",
     // Flujo directo de agendamiento rápido (Colapsable y con disponibilidad real)
+    val careCountry: String? = null,
+    val needsCareCountry: Boolean = false,
+    val isSavingCareCountry: Boolean = false,
     val isBookingExpanded: Boolean = false,
     val availableDoctors: List<DoctorBookingInfo> = emptyList(),
     val selectedDoctor: DoctorBookingInfo? = null,
@@ -83,6 +86,22 @@ class AppointmentsViewModel @Inject constructor(
                     )
                 }
             }
+        }
+    }
+
+    fun selectCareCountry(country: String) {
+        if (_uiState.value.isSavingCareCountry) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSavingCareCountry = true, bookingErrorMessage = null) }
+            appointmentRepository.selectCareCountry(country)
+                .onSuccess {
+                    _uiState.update { it.copy(careCountry = country, needsCareCountry = false, isSavingCareCountry = false) }
+                    clinicStore.refresh()
+                }
+                .onFailure { error ->
+                    _uiState.update { it.copy(isSavingCareCountry = false,
+                        bookingErrorMessage = UiErrorMapper.map(error, "No se pudo guardar el país / Não foi possível salvar o país")) }
+                }
         }
     }
 
@@ -355,6 +374,15 @@ class AppointmentsViewModel @Inject constructor(
             if (user != null) {
                 _uiState.update { state ->
                     state.copy(userRole = user.role.wireName)
+                }
+                if (user.role.wireName == "patient") {
+                    appointmentRepository.getCareCountry()
+                        .onSuccess { country ->
+                            _uiState.update { it.copy(careCountry = country, needsCareCountry = country != "AR" && country != "BR") }
+                        }
+                        .onFailure { error ->
+                            _uiState.update { it.copy(bookingErrorMessage = UiErrorMapper.map(error, "No se pudo consultar el país de atención")) }
+                        }
                 }
             }
         }

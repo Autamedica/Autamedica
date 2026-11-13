@@ -1016,7 +1016,7 @@ async function assertNewsletterAudienceAligned(env: Env): Promise<void> {
     profiles
       .filter((profile) => profile.newsletter_subscribed === true)
       .map((profile) => normalizeEmail(profile.email))
-      .filter(Boolean),
+      .filter((email) => Boolean(email) && !email.startsWith("deleted+") && !email.endsWith("@invalid.autamedica")),
   );
   const resendActive = new Set(
     contacts
@@ -1081,9 +1081,9 @@ async function loadResendContacts(env: Env): Promise<ResendContact[]> {
   const audienceId = env.RESEND_AUDIENCE_ID;
 
   for (;;) {
-    const url = new URL("https://api.resend.com/contacts");
+    if (!audienceId) throw new Error("RESEND_AUDIENCE_ID no configurada");
+    const url = new URL(`https://api.resend.com/segments/${encodeURIComponent(audienceId)}/contacts`);
     url.searchParams.set("limit", "100");
-    if (audienceId) url.searchParams.set("audience_id", audienceId);
     if (afterId) url.searchParams.set("after", afterId);
 
     const res = await fetch(url.toString(), {
@@ -1423,7 +1423,7 @@ async function sendViaResend(env: Env, subject: string, html: string): Promise<S
   const createRes = await fetch("https://api.resend.com/broadcasts", {
     method: "POST",
     headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, "content-type": "application/json" },
-    body: JSON.stringify({ audience_id: env.RESEND_AUDIENCE_ID, from: `${env.FROM_NAME} <${env.FROM_EMAIL}>`, subject, html, name: subject }),
+    body: JSON.stringify({ segment_id: env.RESEND_AUDIENCE_ID, from: `${env.FROM_NAME} <${env.FROM_EMAIL}>`, subject, html, name: subject }),
   });
   if (!createRes.ok) {
     const body = await createRes.text();

@@ -1,6 +1,5 @@
 package com.autamedica.android.data.remote
 
-import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.auth
@@ -124,7 +123,7 @@ class SupabaseAuthDataSource @Inject constructor(
             AuthUser(
                 id = it.id,
                 email = it.email ?: email,
-                role = extractRole(it) ?: role,
+                role = extractRole(it),
                 displayName = fullName,
                 phone = phone,
             )
@@ -153,26 +152,21 @@ class SupabaseAuthDataSource @Inject constructor(
     }
 
     private fun extractRole(user: io.github.jan.supabase.auth.user.UserInfo): String? {
-        val appRole = user.appMetadata?.get("role")?.jsonPrimitive?.content
-        if (!appRole.isNullOrBlank()) return appRole
-        val userRole = user.userMetadata?.jsonObject?.get("role")?.jsonPrimitive?.content
-        if (!userRole.isNullOrBlank()) return userRole
-        return null
+        // Only app_metadata is server-controlled; user_metadata can be edited by the user.
+        return user.appMetadata?.get("role")?.jsonPrimitive?.contentOrNull
+            ?.takeIf { it.isNotBlank() }
     }
 
+    fun isCurrentUser(userId: String): Boolean =
+        auth.currentSessionOrNull()?.user?.id == userId
+
     suspend fun fetchUserRole(userId: String): String? {
-        return try {
-            val result = supabase.postgrest.from("profiles")
-                .select(io.github.jan.supabase.postgrest.query.Columns.list("role")) {
-                    filter { eq("user_id", userId) }
-                }
-                .decodeList<ProfileRoleOnly>()
-                .firstOrNull()
-            result?.role
-        } catch (e: Exception) {
-            SecureLog.warn("Failed to fetch user role from profiles table", e)
-            null
-        }
+        return supabase.postgrest.from("profiles")
+            .select(io.github.jan.supabase.postgrest.query.Columns.list("role")) {
+                filter { eq("user_id", userId) }
+            }
+            .decodeList<ProfileRoleOnly>()
+            .firstOrNull()?.role
     }
 
     suspend fun sendPasswordResetEmail(email: String) {

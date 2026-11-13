@@ -7,6 +7,7 @@ import { createAppointmentAdapter } from '@/lib/patients/lib/repos/appointments.
 import { createCallStartAdapter } from '@/lib/calls/repos/call-start.adapter'
 import { isTelemedicineCallWindowOpen } from '@/lib/calls/lib/telemedicine-window'
 import { appointmentPaymentsService } from '@/lib/payments/services/appointment-payments.service'
+import { isDoctorScheduledAppointment } from '@/lib/calls/lib/appointment-payment-origin'
 import { badRequest, conflict, internalError, jsonOk, notFound, unauthorized } from '@/lib/api-helpers'
 
 const JOINABLE_STATUSES = new Set(['scheduled', 'confirmed', 'in_progress'])
@@ -89,11 +90,22 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
         ? participantCall
         : null)
 
-    const wasCreatedByDoctor = Boolean(
-      appointment.created_by &&
-      appointment.created_by !== context.userId &&
-      appointment.created_by !== context.patientId,
-    )
+    // Booking provenance must match the assigned doctor's verified user ID.
+    // Merely being different from the patient's ID is not proof of creation by
+    // a physician; direct clients previously had UPDATE on created_by.
+    let wasCreatedByDoctor = false
+    if (!existingCall && appointment.created_by) {
+      const { data: assignedDoctor, error: assignedDoctorError } = await admin
+        .from('doctors')
+        .select('user_id')
+        .eq('id', appointment.doctor_id)
+        .maybeSingle()
+      if (assignedDoctorError) throw assignedDoctorError
+      wasCreatedByDoctor = isDoctorScheduledAppointment(
+        appointment.created_by,
+        assignedDoctor?.user_id,
+      )
+    }
 
     if (!existingCall && !wasCreatedByDoctor) {
       const hasApprovedPayment = await appointmentPaymentsService.hasApprovedPayment(admin, appointment.id)

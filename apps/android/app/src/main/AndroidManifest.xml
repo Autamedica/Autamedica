@@ -103,15 +103,6 @@
             </intent-filter>
         </receiver>
 
-        <receiver
-            android:name=".service.DebugNotificationReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.autamedica.android.TEST_DISPATCH_NOTIFICATION" />
-                <action android:name="com.autamedica.android.TEST_CALL_NOTIFICATION" />
-                <action android:name="com.autamedica.android.CLEAR_ALL_NOTIFICATIONS" />
-            </intent-filter>
-        </receiver>
 
         <service
             android:name=".service.CallNotificationService"
@@ -126,6 +117,12 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+
+        <!-- Compose screen views are logged with static categories in AppNavHost.
+             Disable default Activity names (MainActivity, HiddenActivity) to avoid double counting. -->
+        <meta-data
+            android:name="google_analytics_automatic_screen_reporting_enabled"
+            android:value="false" />
 
         <!-- FCM default notification channel -->
         <meta-data

@@ -1,0 +1,38 @@
+name: Memed homologation browser — demo patient
+
+on:
+  push:
+    branches:
+      - test/memed-demo-e2e-20261103
+    paths:
+      - 'scripts/memed-homologation-browser.mjs'
+      - '.github/workflows/memed-homologation-browser.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  HUSKY: '0'
+
+jobs:
+  sandbox-browser:
+    name: Real Memed homologation SDK, no Rx issued
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-pnpm
+        with:
+          node-version: '22'
+          pnpm-version: '9.15.2'
+      - name: Install isolated Chromium for sandbox E2E
+        run: pnpm exec playwright install chromium --with-deps
+      - name: Open Memed sandbox SDK with owned DEMO doctor and set DEMO patient
+        run: node scripts/memed-homologation-browser.mjs

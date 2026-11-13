@@ -69,13 +69,16 @@ export function useCallDebugger({
         if (!callService) return
 
         callServiceRef.current = callService
-        await callService.logEvent(callId, type, (payload ?? null) as Json)
+        await callService.logEvent(callId, type, {
+          ...payload, reporterUserId: userId, reporterRole: userType, roomId,
+        } as Json)
       } catch {
         // non-critical: don't block the call flow
       }
     },
-    [callId, callServiceOverride]
+    [callId, callServiceOverride, roomId, userId, userType]
   )
 
   return { emitDebug, logCallEvent, debugLogger, debugCallServiceRef: callServiceRef }
 }
+

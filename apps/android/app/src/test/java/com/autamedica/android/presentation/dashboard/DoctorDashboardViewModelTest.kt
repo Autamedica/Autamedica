@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.DoctorBookingInfo
 import com.autamedica.android.domain.model.DoctorDutyStatus
+import com.autamedica.android.domain.model.DoctorGuardApproval
 import com.autamedica.android.domain.model.DoctorOnDutyPharmacyState
 import com.autamedica.android.domain.model.DoctorProfile
 import com.autamedica.android.domain.model.DoctorStats
@@ -108,6 +109,16 @@ private class FakeChatRepo : ChatRepository {
 }
 
 private class FakePharmacyDispatchRepo : PharmacyDispatchRepository {
+    // These fixtures represent an administratively APPROVED clinical doctor.
+    // Unapproved doctors must fail closed in production.
+    override suspend fun getMyGuardApproval(): Result<DoctorGuardApproval> =
+        Result.success(DoctorGuardApproval(
+            approved = true,
+            code = "CLINICALLY_APPROVED",
+            country = "AR",
+            verificationStatus = "valid",
+        ))
+
     var dutyStatus = DoctorDutyStatus(
         doctorId = "doctor-456",
         isOnDuty = true,
@@ -117,6 +128,11 @@ private class FakePharmacyDispatchRepo : PharmacyDispatchRepository {
     val heartbeatInvocations = mutableListOf<Long>()
     var heartbeatResponse: Result<Unit> = Result.success(Unit)
     val searchingRequestsFlow = MutableStateFlow<List<PharmacyDispatchRequest>>(emptyList())
+    val declinedOfferIds = mutableListOf<String>()
+    override suspend fun declinePharmacyOffer(offerId: String): Result<Boolean> {
+        declinedOfferIds += offerId
+        return Result.success(true)
+    }
 
     override suspend fun getDoctorDutyStatus(doctorId: String): Result<DoctorDutyStatus> = Result.success(dutyStatus)
     override suspend fun setDoctorDutyStatus(doctorId: String, isOnDuty: Boolean, activeTiers: List<String>): Result<Unit> {
@@ -140,7 +156,9 @@ private class FakePharmacyDispatchRepo : PharmacyDispatchRepository {
         patientName: String?,
         tierRequested: String,
         symptomSummary: String?,
-        patientCpf: String?
+        patientCpf: String?,
+        careCountry: String?,
+        referralCode: String?,
     ): Result<PharmacyDispatchRequest> = Result.failure(NotImplementedError())
     override fun observePatientRequest(requestId: String): Flow<PharmacyDispatchRequest> = flowOf()
     override suspend fun getActiveOnDutyDoctors(): Result<List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo>> = Result.success(emptyList())
@@ -287,6 +305,9 @@ class DoctorDashboardViewModelTest {
 
         val incomingRequest = PharmacyDispatchRequest(
             id = "req-real-999",
+            offerId = "offer-owned-999",
+            offerExpiresAt = java.time.OffsetDateTime.now().plusSeconds(30).toString(),
+            careCountry = "AR",
             patientDni = "30111222",
             patientPhone = "+5491199887766",
             patientName = "Carlos Tevez",
@@ -312,6 +333,7 @@ class DoctorDashboardViewModelTest {
         testScheduler.runCurrent()
 
         assertThat(viewModel.uiState.value.simulatedDispatchAlert).isNull()
+        assertThat(dispatchRepo.declinedOfferIds).containsExactly("offer-owned-999")
 
         viewModel.viewModelScope.cancel()
     }

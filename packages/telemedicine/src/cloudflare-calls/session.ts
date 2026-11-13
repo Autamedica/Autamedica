@@ -40,6 +40,8 @@ interface NewTracksResponse {
 export interface CFSessionConfig {
   /** URL del proxy API en el app (e.g., /api/cloudflare-calls) */
   apiProxyUrl: string
+  /** Server-verified room scope for every SFU operation. */
+  roomId: string
   iceServers?: RTCIceServer[]
   onTrack: (event: RTCTrackEvent) => void
   onConnectionStateChange: (state: RTCPeerConnectionState) => void
@@ -219,6 +221,16 @@ export class CloudflareCallsSession {
 
     this.ready = true
     return sessionId
+  }
+
+  /** Read-only diagnostics; never expose the mutable peer connection. */
+  get connectionState(): RTCPeerConnectionState {
+    return this.pc?.connectionState ?? 'closed'
+  }
+
+  async getStats(): Promise<RTCStatsReport> {
+    if (!this.pc) throw new Error('SFU stats unavailable before connection')
+    return this.pc.getStats()
   }
 
   /** True once connect() finished and the SFU session is usable. */
@@ -485,7 +497,7 @@ export class CloudflareCallsSession {
     const res = await fetch(this.cfg.apiProxyUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ method, path, body }),
+      body: JSON.stringify({ roomId: this.cfg.roomId, method, path, body }),
     })
     if (!res.ok) {
       let detail = ''
@@ -550,3 +562,4 @@ export class CloudflareCallsSession {
     this.localAudioSender = null
   }
 }
+

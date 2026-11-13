@@ -17,6 +17,8 @@ export interface HandlerResult {
 }
 
 const CF_API_BASE = 'https://rtc.live.cloudflare.com/v1/apps'
+// Never use an arbitrary browser-provided URL as the upstream API path.
+const ALLOWED_CF_PATH = /^sessions\/(?:new|[A-Za-z0-9._-]+\/(?:tracks\/new|tracks\/close|renegotiate))$/
 
 export async function handleCloudflareCallsProxy(
   request: Request,
@@ -40,12 +42,19 @@ export async function handleCloudflareCallsProxy(
   if (!path || typeof path !== 'string') {
     return { status: 400, body: { error: 'Missing "path" field' } }
   }
+  const normalizedMethod = typeof method === 'string' ? method.toUpperCase() : ''
+  if (!ALLOWED_CF_PATH.test(path) ||
+      !((path === 'sessions/new' || path.endsWith('/tracks/new'))
+        ? normalizedMethod === 'POST'
+        : normalizedMethod === 'PUT')) {
+    return { status: 400, body: { error: 'Invalid Cloudflare Calls operation' } }
+  }
 
   const url = `${CF_API_BASE}/${appId}/${path}`
 
   try {
     const res = await fetch(url, {
-      method,
+      method: normalizedMethod,
       headers: {
         Authorization: `Bearer ${appSecret}`,
         'Content-Type': 'application/json',

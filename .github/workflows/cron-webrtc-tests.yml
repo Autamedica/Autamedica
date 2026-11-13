@@ -15,6 +15,10 @@ on:
           - production
           - test
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -26,7 +30,7 @@ env:
 jobs:
   webrtc-e2e-tests:
     name: WebRTC Videocall Flow
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout repository
@@ -41,6 +45,17 @@ jobs:
 
       - name: Install Playwright Chromium dependencies
         run: npx playwright install --with-deps chromium
+
+      - name: Validate E2E test accounts
+        env:
+          DOCTOR_DEMO_EMAIL: ${{ secrets.DOCTOR_DEMO_EMAIL }}
+          DOCTOR_DEMO_PASSWORD: ${{ secrets.DOCTOR_DEMO_PASSWORD }}
+          E2E_PATIENT_NAME: ${{ secrets.E2E_PATIENT_NAME }}
+        run: |
+          if [[ -z "$DOCTOR_DEMO_EMAIL" || -z "$DOCTOR_DEMO_PASSWORD" || -z "$E2E_PATIENT_NAME" ]]; then
+            echo "::error::Dedicated doctor test login or synthetic patient name is missing"
+            exit 1
+          fi
 
       - name: Run WebRTC Videocall E2E Tests
         run: |
@@ -59,8 +74,9 @@ jobs:
           SIGNALING_URL: ${{ secrets.PUBLIC_SIGNALING_URL }}
           
           # Test credentials (fallback to demo credentials if secrets are not defined)
-          DOCTOR_DEMO_EMAIL: ${{ secrets.DOCTOR_DEMO_EMAIL || 'doctor.demo@autamedica.com' }}
-          DOCTOR_DEMO_PASSWORD: ${{ secrets.DOCTOR_DEMO_PASSWORD || 'Demo1234' }}
+          DOCTOR_DEMO_EMAIL: ${{ secrets.DOCTOR_DEMO_EMAIL }}
+          DOCTOR_DEMO_PASSWORD: ${{ secrets.DOCTOR_DEMO_PASSWORD }}
+          E2E_PATIENT_NAME: ${{ secrets.E2E_PATIENT_NAME }}
           
           # Protocol compatibility
           RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}

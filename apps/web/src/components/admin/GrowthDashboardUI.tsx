@@ -34,8 +34,15 @@ interface GrowthData {
     source: string;
     profiles_created: number;
     newsletter_subscribed: number;
+    reconciliation?: {
+      profiles_checked: number;
+      matched_profiles: number;
+      unmatched_profiles: number;
+      profiles_without_email: number;
+    };
     recent_profiles: Array<{
       user_id: string;
+      growth_lead_match?: "matched" | "unmatched" | "missing_email" | "unknown";
       email: string | null;
       role: string | null;
       newsletter_subscribed: boolean | null;
@@ -68,6 +75,12 @@ interface GrowthData {
     vertical: string | null;
     enabled: boolean;
   }>;
+  resend?: {
+    sent_events: number;
+    delivered_events: number;
+    clicked_events: number;
+    last_event_at: string | null;
+  };
   newsletter?: {
     source: string;
     sent_broadcasts: number;
@@ -196,6 +209,7 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
     nurturing_sequences,
     attribution,
     newsletter,
+    resend,
     cac,
   } = data;
   const totalLeads = summary.total_leads || 0;
@@ -212,9 +226,8 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
   const resendDelayed = newsletter?.delayed_emails ?? 0;
   const resendOpened = newsletter?.opened_emails ?? 0;
   const resendClicked = newsletter?.clicked_emails ?? 0;
-  const profileRegistrations = supabase_signups?.profiles_created ?? 0;
-  const growthLeads = summary.total_leads || 0;
-  const profileLeadGap = Math.max(profileRegistrations - growthLeads, 0);
+  const reconciliation = supabase_signups?.reconciliation;
+  const profileLeadGap = reconciliation?.unmatched_profiles;
   const lastNewsletterEvent = newsletter?.last_event_at
     ? formatDateTime(newsletter.last_event_at)
     : "sin eventos";
@@ -224,13 +237,9 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
   const hasAdSpend = Boolean(cac?.spend_rows && cac.spend_rows > 0);
   const hasRecentVerifiedNewsletter = Boolean(newsletter?.last_event_at);
   const recentProfiles = supabase_signups?.recent_profiles ?? [];
-  const leadEmails = new Set(
-    recent_leads.map((lead) => lead.email.toLowerCase()),
+  const unsyncedProfiles = recentProfiles.filter(
+    (profile) => profile.growth_lead_match === "unmatched",
   );
-  const unsyncedProfiles = recentProfiles.filter((profile) => {
-    const email = profile.email?.toLowerCase();
-    return Boolean(email) && !leadEmails.has(email ?? "");
-  });
   const roleCounts = countBy(
     recentProfiles,
     (profile) => profile.role || "unknown",
@@ -238,9 +247,19 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
   const dataHealthItems = [
     {
       label: "Supabase → Growth OS",
-      status: profileLeadGap > 0 ? "warning" : "ok",
-      value: `${profileLeadGap} sin sincronizar`,
-      detail: `${profileRegistrations} perfiles vs ${growthLeads} leads internos`,
+      status: reconciliation && profileLeadGap === 0 && reconciliation.profiles_without_email === 0 ? "ok" : "warning",
+      value: profileLeadGap === undefined ? "sin verificar" : `${profileLeadGap} sin correspondencia`,
+      detail: reconciliation
+        ? `${reconciliation.profiles_checked} perfiles comparados por correo · ${reconciliation.profiles_without_email} sin correo`
+        : "Comparación de identidad no disponible",
+    },
+    {
+      label: "Email Resend (todos)",
+      status: (resend?.delivered_events ?? 0) > 0 ? "ok" : "warning",
+      value: resend ? `${resend.delivered_events} eventos de entrega` : "sin verificar",
+      detail: resend
+        ? `${resend.sent_events} de envío · ${resend.clicked_events} de clic`
+        : "Actividad de correo no disponible",
     },
     {
       label: "Newsletter Resend",
@@ -249,17 +268,17 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
       detail: `último evento: ${lastNewsletterEvent}`,
     },
     {
-      label: "Audience sync",
+      label: "Ediciones newsletter",
       status: (newsletter?.failed_broadcasts ?? 0) > 0 ? "danger" : "ok",
       value: `${newsletter?.failed_broadcasts ?? 0} fallos`,
       detail: `último envío: ${lastNewsletterSent}`,
     },
     {
-      label: "CAC / ad spend",
+      label: "Gasto publicitario (sin CAC verificado)",
       status: hasAdSpend ? "ok" : "warning",
-      value: hasAdSpend ? money(cac?.total_spend ?? 0) : "sin inversión",
+      value: hasAdSpend ? `${cac?.spend_rows ?? 0} registros de gasto` : "sin costes registrados",
       detail: hasAdSpend
-        ? `${cac?.spend_rows ?? 0} registros cargados`
+        ? "Pendiente de conciliación por moneda y canal"
         : "growth_os.ad_spend vacío",
     },
   ];
@@ -269,9 +288,7 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
   const attributionAppointments = attribution.filter(
     (item) => item.converted_to_appointment,
   ).length;
-  const attributionRevenue = attribution
-    .filter((item) => item.converted_to_revenue)
-    .reduce((total, item) => total + (Number(item.payment_amount) || 0), 0);
+  const attributionPaymentCount = attribution.filter((item) => item.converted_to_revenue).length;
 
   return (
     <div className="space-y-8 pb-12">
@@ -345,8 +362,8 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
         <strong>Nota de integridad:</strong> Supabase tiene registros reales en{" "}
         <code>public.profiles</code>, pero Growth OS solo ve{" "}
         <code>growth_os.leads</code>. Los leads no deben leerse como adquisición
-        real hasta cerrar la sincronización Supabase → Growth OS y conectar
-        fuentes externas verificadas.
+        real sin atribución verificable. La correspondencia por correo no
+        demuestra adquisición ni consentimiento para comunicaciones.
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -390,7 +407,7 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
               <DollarSign className="h-5 w-5 text-slate-500" />
             </div>
             <div className="text-2xl font-bold text-white">
-              {money(cac.total_spend)}
+              {cac.spend_rows} registros
             </div>
             <div className="text-xs text-slate-500 mt-1">
               {cac.spend_rows > 0
@@ -401,31 +418,31 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
           <div className="bg-slate-900 p-6 rounded-xl border border-slate-800 shadow-lg">
             <div className="flex justify-between items-start mb-4">
               <span className="text-slate-400 text-sm font-medium uppercase tracking-wider">
-                Margen Operativo
+                Margen de contribución
               </span>
               <BarChart3 className="h-5 w-5 text-emerald-500" />
             </div>
             <div
-              className={`text-2xl font-bold ${cac.total_margin >= 0 ? "text-emerald-400" : "text-red-400"}`}
+              className="text-2xl font-bold text-slate-300"
             >
-              {money(cac.total_margin)}
+              No calculable
             </div>
             <div className="text-xs text-slate-500 mt-1">
-              Revenue - Inversión
+              Faltan honorarios, comisiones, pasarela y conciliación de monedas
             </div>
           </div>
           <div className="bg-slate-900 p-6 rounded-xl border border-slate-800 shadow-lg">
             <div className="flex justify-between items-start mb-4">
               <span className="text-slate-400 text-sm font-medium uppercase tracking-wider">
-                CAC Promedio
+                CAC por paciente pagador
               </span>
               <Target className="h-5 w-5 text-cyan-400" />
             </div>
             <div className="text-2xl font-bold text-white">
-              {money(cac.total_spend / (summary.total_leads || 1))}
+              No calculable
             </div>
             <div className="text-xs text-slate-500 mt-1">
-              Costo por lead adquirido
+              Los leads no equivalen a pacientes pagadores
             </div>
           </div>
         </div>
@@ -478,9 +495,9 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
               value={recentProfiles.length}
             />
             <MiniMetric
-              label="No sincronizados a leads"
-              value={unsyncedProfiles.length}
-              danger={unsyncedProfiles.length > 0}
+              label="Sin correspondencia (período)"
+              value={profileLeadGap ?? "Sin verificar"}
+              danger={(profileLeadGap ?? 0) > 0}
             />
             <MiniMetric
               label="Newsletter true"
@@ -502,9 +519,9 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-5 flex items-center justify-between gap-3">
             <div>
-              <h3 className="font-bold text-gray-950">Desync crítico</h3>
+              <h3 className="font-bold text-gray-950">Perfiles sin correspondencia</h3>
               <p className="text-sm text-gray-500">
-                Perfiles recientes sin fila visible en Growth OS.
+                Muestra reciente sin coincidencia de correo en todos los leads.
               </p>
             </div>
             <Database className="h-5 w-5 text-amber-600" />
@@ -527,7 +544,7 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
               </div>
             ))}
             {unsyncedProfiles.length === 0 && (
-              <EmptyLine text="Sin desincronización visible en los últimos registros." />
+              <EmptyLine text="No hay perfiles sin correspondencia en esta muestra reciente." />
             )}
           </div>
         </div>
@@ -561,10 +578,10 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
               active={summary.conversions.lead_to_appointment > 0}
             />
             <PipelineStep
-              label="Pago"
-              value={money(summary.conversions.total_revenue)}
-              detail={`${money(attributionRevenue)} vista atribucion`}
-              active={summary.conversions.total_revenue > 0}
+              label="Leads con pago"
+              value={attributionPaymentCount}
+              detail="Vínculos reportados; importe pendiente de conciliación por moneda"
+              active={attributionPaymentCount > 0}
             />
           </div>
         </div>
@@ -623,7 +640,7 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-100">
             <h3 className="font-bold text-gray-900">
-              Atribución CAC y ROAS por Canal
+              Atribución de leads por canal (no CAC validado)
             </h3>
           </div>
           <div className="overflow-x-auto">
@@ -632,12 +649,12 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
                 <tr>
                   <th className="px-6 py-3">Canal</th>
                   <th className="px-6 py-3">Leads</th>
-                  <th className="px-6 py-3">Inversión</th>
-                  <th className="px-6 py-3">CAC (Lead)</th>
+                  <th className="px-6 py-3">Gasto no conciliado</th>
+                  <th className="px-6 py-3">CPL pendiente</th>
                   <th className="px-6 py-3">Turnos</th>
-                  <th className="px-6 py-3">Revenue</th>
-                  <th className="px-6 py-3">ROAS</th>
-                  <th className="px-6 py-3">Margen</th>
+                  <th className="px-6 py-3">Ingreso no conciliado</th>
+                  <th className="px-6 py-3">ROAS pendiente</th>
+                  <th className="px-6 py-3">Margen pendiente</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -653,26 +670,26 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
                       </td>
                       <td className="px-6 py-4">{s.leads}</td>
                       <td className="px-6 py-4 text-gray-500">
-                        {money(s.spend)}
+                        Sin conciliar
                       </td>
                       <td className="px-6 py-4 font-medium text-cyan-700">
-                        {money(s.cac)}
+                        No conciliado
                       </td>
                       <td className="px-6 py-4">{s.appointments}</td>
                       <td className="px-6 py-4 text-emerald-700 font-medium">
-                        {money(s.revenue)}
+                        Sin conciliar
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`px-2 py-1 rounded text-xs font-bold ${s.roas > 2 ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-600"}`}
+                          className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600"
                         >
-                          {s.roas.toFixed(2)}x
+                          No conciliado
                         </span>
                       </td>
                       <td
-                        className={`px-6 py-4 font-bold ${s.margin >= 0 ? "text-emerald-600" : "text-red-600"}`}
+                        className="px-6 py-4 text-gray-500"
                       >
-                        {money(s.margin)}
+                        No conciliado
                       </td>
                     </tr>
                   ))}
@@ -1094,10 +1111,6 @@ function percentage(value: number, total: number): number {
   return Math.min(100, Math.round((value / total) * 100));
 }
 
-function money(value: number): string {
-  return `$${Number(value || 0).toLocaleString("es-AR")}`;
-}
-
 function formatDateTime(value: string): string {
   return new Date(value).toLocaleString("es-AR", {
     day: "2-digit",
@@ -1110,3 +1123,4 @@ function formatDateTime(value: string): string {
 function humanize(value: string): string {
   return value.replace(/_/g, " ");
 }
+

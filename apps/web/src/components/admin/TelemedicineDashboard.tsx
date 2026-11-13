@@ -8,13 +8,17 @@ interface CallRecord {
   id: string
   room_id: string
   status: string
-  doctor_id: string
-  patient_id: string
+  doctor_id: string | null
+  patient_id: string | null
   appointment_id: string | null
   created_at: string
   ended_at: string | null
-  doctor_joined: boolean
-  patient_joined: boolean
+  doctor_joined: true | null
+  patient_joined: true | null
+  stored_status: string
+  duration_seconds: number | null
+  duration_issue: string | null
+  is_test: boolean
 }
 
 interface TelemedicineStats {
@@ -23,13 +27,19 @@ interface TelemedicineStats {
   calls7d: number
   connected: number
   failed: number
-  avgDurationSeconds: number
+  avgDurationSeconds: number | null
+  durationSampleCount: number
+  durationExcludedCount: number
+  staleCalls: number
+  testCalls: number
+  lastCallAt: string | null
   byStatus: Record<string, number>
 }
 
 interface DashboardData {
   stats: TelemedicineStats
   recentCalls: CallRecord[]
+  generatedAt: string
   eventsByType: Record<string, number>
 }
 
@@ -54,6 +64,7 @@ interface NotificationRiskData {
 }
 
 const STATUS_COLORS: Record<string, string> = {
+  stale: 'bg-amber-100 text-amber-800',
   connected: 'bg-green-100 text-green-800',
   ended: 'bg-gray-100 text-gray-800',
   connecting: 'bg-blue-100 text-blue-800',
@@ -63,6 +74,13 @@ const STATUS_COLORS: Record<string, string> = {
   failed: 'bg-red-100 text-red-800',
   canceled: 'bg-red-100 text-red-800',
   declined: 'bg-red-100 text-red-800',
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  ended: 'Finalizada', connected: 'Conectada', requested: 'Solicitada',
+  accepted: 'Aceptada', canceled: 'Cancelada', declined: 'Rechazada',
+  ringing: 'Llamando', connecting: 'Conectando', failed: 'Fallida',
+  stale: 'Sin cierre confirmado',
 }
 
 export default function TelemedicineDashboard() {
@@ -132,13 +150,20 @@ export default function TelemedicineDashboard() {
     <div className="space-y-6">
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Total llamadas" value={stats.totalCalls} />
-        <StatCard label="Ultimas 24h" value={stats.calls24h} />
-        <StatCard label="Ultimos 7d" value={stats.calls7d} />
-        <StatCard label="Duracion promedio" value={formatDuration(stats.avgDurationSeconds)} />
+        <StatCard label="Intentos registrados" value={stats.totalCalls} />
+        <StatCard label="Últimas 24 h" value={stats.calls24h} />
+        <StatCard label="Últimos 7 días" value={stats.calls7d} />
+        <StatCard label="Duración registrada media" value={stats.avgDurationSeconds === null ? 'Sin datos fiables' : formatDuration(stats.avgDurationSeconds)} />
       </div>
 
-      <div className={`rounded-lg border p-4 ${riskSummary.p0 > 0 ? 'border-red-200 bg-red-50' : riskSummary.p1 > 0 ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-gray-800">
+        <p>Los intentos incluyen cancelaciones y {stats.testCalls} registros de prueba identificados; no equivalen a consultas realizadas.</p>
+        <p className="mt-1">Promedio sobre {stats.durationSampleCount} llamadas finalizadas: intervalo desde la primera conexión registrada hasta el cierre, que puede incluir desconexiones. {stats.durationExcludedCount} finalizadas excluidas por falta de evidencia, pruebas o fechas inconsistentes. Los intervalos superiores a 4 h requieren revisión y no entran en el promedio.</p>
+        <p className="mt-1">{stats.staleCalls} registros abiertos antiguos o con cierre inconsistente. “Sin cierre confirmado” conserva el estado original para auditoría; no confirma una llamada activa.</p>
+        <p className="mt-1">Último intento: {stats.lastCallAt ? new Date(stats.lastCallAt).toLocaleString('es-AR') : 'Sin registros'}. Actualizado: {new Date(data.generatedAt).toLocaleString('es-AR')}.</p>
+      </div>
+
+      <div className={`rounded-lg border p-4 ${notificationRiskError ? 'border-amber-200 bg-amber-50' : riskSummary.p0 > 0 ? 'border-red-200 bg-red-50' : riskSummary.p1 > 0 ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Riesgo de notificaciones de turnos</h3>
@@ -151,9 +176,9 @@ export default function TelemedicineDashboard() {
             </p>
           </div>
           <div className="flex gap-2 text-xs font-semibold">
-            <span className="rounded bg-red-100 px-2 py-1 text-red-800">P0 {riskSummary.p0}</span>
-            <span className="rounded bg-amber-100 px-2 py-1 text-amber-800">P1 {riskSummary.p1}</span>
-            <span className="rounded bg-gray-100 px-2 py-1 text-gray-800">P2 {riskSummary.p2}</span>
+            <span className="rounded bg-red-100 px-2 py-1 text-red-800">P0 {notificationRiskError ? '—' : riskSummary.p0}</span>
+            <span className="rounded bg-amber-100 px-2 py-1 text-amber-800">P1 {notificationRiskError ? '—' : riskSummary.p1}</span>
+            <span className="rounded bg-gray-100 px-2 py-1 text-gray-800">P2 {notificationRiskError ? '—' : riskSummary.p2}</span>
           </div>
         </div>
         {activeRisks.length > 0 && (
@@ -190,7 +215,7 @@ export default function TelemedicineDashboard() {
             {Object.entries(stats.byStatus).map(([status, count]) => (
               <div key={status} className="flex items-center justify-between">
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[status] ?? 'bg-gray-100 text-gray-700'}`}>
-                  {status}
+                  {STATUS_LABELS[status] ?? status}
                 </span>
                 <span className="text-sm font-mono text-gray-900">{count}</span>
               </div>
@@ -199,7 +224,7 @@ export default function TelemedicineDashboard() {
         </div>
 
         <div className="bg-white rounded-lg shadow p-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Eventos recientes por tipo</h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Eventos de las últimas 24 h por tipo</h3>
           <div className="space-y-2">
             {Object.entries(eventsByType)
               .sort((a, b) => b[1] - a[1])
@@ -221,7 +246,7 @@ export default function TelemedicineDashboard() {
         <div className="px-4 py-3 border-b border-gray-200">
           <h3 className="text-sm font-semibold text-gray-700">Llamadas recientes</h3>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Historial de intentos de llamada">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -230,42 +255,34 @@ export default function TelemedicineDashboard() {
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Participantes</th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Appointment</th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Creada</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Duracion</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Duración registrada</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {recentCalls.map((call) => {
-                const duration = call.ended_at
-                  ? Math.round((new Date(call.ended_at).getTime() - new Date(call.created_at).getTime()) / 1000)
-                  : null
-                const isNoShow = call.patient_joined && !call.doctor_joined && (call.status === 'ended' || call.status === 'connecting')
+                const duration = call.duration_seconds
                 const isRealCall = call.doctor_joined && call.patient_joined
                 return (
-                  <tr key={call.id} className={`hover:bg-gray-50 ${isNoShow ? 'bg-red-50' : ''}`}>
+                  <tr key={call.id} className="hover:bg-gray-50">
                     <td className="px-3 py-2 text-xs font-mono text-gray-700 truncate max-w-[140px]">
                       {call.room_id}
                     </td>
                     <td className="px-3 py-2">
-                      {isNoShow ? (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          no-show 🩺
-                        </span>
-                      ) : (
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[call.status] ?? 'bg-gray-100 text-gray-700'}`}>
-                          {call.status}
-                        </span>
-                      )}
+                      <span title={`Estado registrado: ${call.stored_status}`} className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[call.status] ?? 'bg-gray-100 text-gray-700'}`}>
+                        {STATUS_LABELS[call.status] ?? call.status}
+                      </span>
+                      {call.is_test && <span className="ml-1 text-xs text-gray-500">Prueba</span>}
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-1.5">
-                        <span className={`text-sm ${call.doctor_joined ? '' : 'opacity-25 grayscale'}`} title={call.doctor_joined ? 'Médico conectado' : 'Médico ausente'}>
+                        <span className={`text-sm ${call.doctor_joined ? '' : 'opacity-25 grayscale'}`} title={call.doctor_joined ? 'Entrada del médico registrada' : 'Sin evidencia de entrada del médico'}>
                           🩺
                         </span>
-                        <span className={`text-sm ${call.patient_joined ? '' : 'opacity-25 grayscale'}`} title={call.patient_joined ? 'Paciente conectado' : 'Paciente ausente'}>
+                        <span className={`text-sm ${call.patient_joined ? '' : 'opacity-25 grayscale'}`} title={call.patient_joined ? 'Entrada del paciente registrada' : 'Sin evidencia de entrada del paciente'}>
                           👤
                         </span>
-                        {isRealCall && <span className="text-xs text-green-600 font-medium ml-1">✓ Consulta</span>}
-                        {isNoShow && <span className="text-xs text-red-600 font-medium ml-1">Sin médico</span>}
+                        {isRealCall && <span className="text-xs text-green-600 font-medium ml-1">Ambos ingresaron</span>}
+                        {!isRealCall && <span className="text-xs text-gray-500">{call.doctor_joined || call.patient_joined ? 'Evidencia parcial' : 'Sin evidencia'}</span>}
                       </div>
                     </td>
                     <td className="px-3 py-2 text-xs text-gray-500">
@@ -273,7 +290,7 @@ export default function TelemedicineDashboard() {
                     </td>
                     <td className="px-3 py-2 text-xs text-gray-500">{timeAgo(call.created_at)}</td>
                     <td className="px-3 py-2 text-xs font-mono text-gray-700">
-                      {duration !== null ? formatDuration(duration) : '-'}
+                      {duration !== null ? formatDuration(duration) : (call.duration_issue ?? 'Sin evidencia')}
                     </td>
                   </tr>
                 )
@@ -301,3 +318,4 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
     </div>
   )
 }
+
