@@ -106,7 +106,9 @@ BEGIN
     SELECT 1 FROM pg_policies
     WHERE schemaname='public' AND tablename='medical_records'
       AND policyname='medical_records_select_scoped'
-      AND qual LIKE '%patients.user_id%'
+      AND qual ~* 'FROM[[:space:]]+patients[[:space:]]+p'
+      AND qual ~* 'p\\.user_id'
+      AND qual ~* 'auth\\.uid'
   ) THEN
     RAISE EXCEPTION 'Patient-owned medical-record access was removed';
   END IF;
