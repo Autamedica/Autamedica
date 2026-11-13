@@ -65,7 +65,7 @@ describe('Farmalink PDF affiliate reconciliation', () => {
     expect(pdf).toContain('Nro. afiliado / Credencial: 20123456786');
     expect(pdf).toContain('CUIL PACIENTE');
     expect(pdf).not.toContain('MODALIDAD GENERICO=');
-    expect(output.cuir).toContain('NO ASIGNADO - TEST');
+    expect(output.cuir).toBe('');
     expect(output.qrContent).toBe('');
   });
 });
