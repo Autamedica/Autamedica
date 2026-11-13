@@ -90,7 +90,8 @@ const SUPABASE_KEY = getServerEnvOrDefault('SUPABASE_SERVICE_ROLE_KEY');
 const OPENCLAW_URL = getServerEnvOrDefault('OPENCLAW_URL') ?? DEFAULT_OPENCLAW_CONFIG.baseUrl;
 const OPENCLAW_TOKEN = getServerEnvOrDefault('OPENCLAW_TOKEN') ?? '';
 const OPENCLAW_ACCOUNT = getServerEnvOrDefault('OPENCLAW_ACCOUNT') ?? 'autamedica';
-const DRY_RUN = getServerEnvOrDefault('GROWTH_AGENT_DRY_RUN') !== 'false' || !OPENCLAW_TOKEN;
+// Operational mode is read live from public.platform_operational_switches; no environment flag owns it.
+const DRY_RUN = false;
 const INTERVAL_MS = parseInt(getServerEnvOrDefault('GROWTH_AGENT_INTERVAL_MS') ?? '60000', 10);
 const BATCH_SIZE = parseInt(getServerEnvOrDefault('GROWTH_AGENT_BATCH_SIZE') ?? '25', 10);
 
@@ -231,6 +232,8 @@ async function processOneJob(job: AgentJob, workerConfig: WorkerConfig): Promise
   }
 
   const decision = buildConciergeDecision(job, lead);
+  const operationalSwitches = await loadOperationalSwitches();
+  const liveWorkerConfig = { ...workerConfig, dryRun: operationalSwitches.dry_run_enabled };
   await recordRun(
     job.id,
     'reason',
@@ -264,14 +267,14 @@ async function processOneJob(job: AgentJob, workerConfig: WorkerConfig): Promise
     return 'blocked';
   }
 
-  const deliverable = await validateDeliveryReadiness(lead, decision);
+  const deliverable = await validateDeliveryReadiness(lead, decision, operationalSwitches);
   if (!deliverable.ok) {
     await recordRun(job.id, 'deliver', { channel: decision.channel }, { skipped: true, reason: deliverable.reason });
     await updateJob(job.id, 'cancelled', deliverable.reason);
     return 'cancelled';
   }
 
-  const deliveryCapability = await authorizeDeliveryCapability(job, decision, workerConfig.dryRun);
+  const deliveryCapability = await authorizeDeliveryCapability(job, decision, liveWorkerConfig.dryRun);
   if (!deliveryCapability.allowed) {
     await recordRun(
       job.id,
@@ -283,7 +286,7 @@ async function processOneJob(job: AgentJob, workerConfig: WorkerConfig): Promise
     return 'cancelled';
   }
 
-  if (workerConfig.dryRun) {
+  if (liveWorkerConfig.dryRun) {
     logger.info(`[GROWTH AGENT DRY RUN] ${decision.channel} -> ${decision.recipient}\n${decision.message}`);
     await recordGrowthEvent(lead, 'agent.concierge.dry_run', job, decision);
     await recordRun(
@@ -303,7 +306,7 @@ async function processOneJob(job: AgentJob, workerConfig: WorkerConfig): Promise
     return 'ready';
   }
 
-  const providerResult = await deliverMessage(decision, workerConfig);
+  const providerResult = await deliverMessage(decision, liveWorkerConfig);
   await recordRun(
     job.id,
     'deliver',
@@ -445,9 +448,33 @@ function matchesPattern(message: string, rawPattern: string): boolean {
   }
 }
 
+type OperationalSwitches = {
+  jordan_qr_payments_enabled: boolean;
+  pharmacy_express_payments_enabled: boolean;
+  global_pix_mp_payments_enabled: boolean;
+  whatsapp_send_enabled: boolean;
+  email_send_enabled: boolean;
+  dry_run_enabled: boolean;
+  updated_by: string | null;
+  updated_at: string;
+};
+
+async function loadOperationalSwitches(): Promise<OperationalSwitches> {
+  const { data, error } = await supabase
+    .from('platform_operational_switches')
+    .select('jordan_qr_payments_enabled,pharmacy_express_payments_enabled,global_pix_mp_payments_enabled,whatsapp_send_enabled,email_send_enabled,dry_run_enabled,updated_by,updated_at')
+    .eq('id', 'global')
+    .single();
+  if (error || !data) {
+    throw new Error(`Could not load operational switches: ${error?.message ?? 'global row missing'}`);
+  }
+  return data as OperationalSwitches;
+}
+
 async function validateDeliveryReadiness(
   lead: LeadRecord,
   decision: ConciergeDecision,
+  switches: OperationalSwitches,
 ): Promise<{ ok: true } | { ok: false; reason: string }> {
   if (!lead.consent_marketing) {
     return { ok: false, reason: 'Lead has no marketing consent' };
@@ -461,19 +488,11 @@ async function validateDeliveryReadiness(
     return { ok: false, reason: `Missing recipient for ${decision.channel}` };
   }
 
-  const { data, error } = await supabase
-    .schema('growth_os')
-    .from('killswitch_state')
-    .select('enabled')
-    .eq('channel', decision.channel)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`Could not check killswitch for ${decision.channel}: ${error.message}`);
-  }
-
-  if (!data?.enabled) {
-    return { ok: false, reason: `Channel disabled by killswitch: ${decision.channel}` };
+  const channelEnabled = decision.channel === 'whatsapp_openclaw' || decision.channel === 'whatsapp_business_api'
+    ? switches.whatsapp_send_enabled
+    : switches.email_send_enabled;
+  if (!channelEnabled) {
+    return { ok: false, reason: `Channel disabled in Admin: ${decision.channel}` };
   }
 
   if (decision.channel !== 'whatsapp_openclaw' && decision.channel !== 'email_resend') {
@@ -507,6 +526,22 @@ async function authorizeCapability(
   capability: AgentCapability,
   channel: AgentChannel | null,
 ): Promise<CapabilityAuthorization> {
+  if (capability === 'dry_run_outbound' || capability === 'send_whatsapp' || capability === 'enqueue_email') {
+    const switches = await loadOperationalSwitches();
+    const enabled = capability === 'dry_run_outbound'
+      ? switches.dry_run_enabled
+      : capability === 'send_whatsapp'
+        ? switches.whatsapp_send_enabled
+        : switches.email_send_enabled;
+    return {
+      allowed: enabled,
+      agentType,
+      capability,
+      channel,
+      reason: enabled ? 'Authorized by public.platform_operational_switches' : 'Disabled by Admin operational switch',
+    };
+  }
+
   const query = supabase
     .schema('growth_os')
     .from('agent_capabilities')
