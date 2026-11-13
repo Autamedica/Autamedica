@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro'
 import { withAuthRole, ADMIN_ROLES, isAuthed } from '@/lib/api-auth'
-import { badRequest, forbidden, internalError, jsonOk } from '@/lib/api-helpers'
+import { badRequest, internalError, jsonOk } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
 
 export const prerender = false
@@ -21,7 +21,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!isAuthed(auth)) return auth
   const body = await request.json().catch(() => null) as { key?:string; enabled?:boolean; reason?:string } | null
   if (!body || !ALLOWED.includes(body.key as SwitchName) || typeof body.enabled !== 'boolean') return badRequest('invalid_payment_switch')
-  const db = createAstroAdminClient(locals.runtime?.env)
+  const db = createAstroAdminClient(locals.runtime?.env) as any
   const { data, error } = await db.from('platform_operational_switches').upsert({
     id:'global', [body.key as SwitchName]:body.enabled, updated_by:auth.user.id,
     reason: typeof body.reason === 'string' ? body.reason.slice(0,500) : null, updated_at:new Date().toISOString(),
