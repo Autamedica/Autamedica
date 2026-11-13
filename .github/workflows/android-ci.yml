@@ -76,7 +76,7 @@ jobs:
       - name: Compile and Run JVM Unit Tests
         run: |
           cd apps/android
-          ./gradlew clean testDebugUnitTest -PfirebasePerformanceInstrumentationEnabled=false --console=plain
+          ./gradlew testDebugUnitTest -PfirebasePerformanceInstrumentationEnabled=false --console=plain
 
       - name: Compile Instrumented Tests
         run: |
