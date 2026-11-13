@@ -33,9 +33,9 @@ cleanup_legacy_test() {
   exit "$result"
 }
 trap cleanup_legacy_test EXIT
-# This version includes clinical-country guards but precedes pharmaceutical
-# care_country columns. It is a local disposable reset, never a hosted downgrade.
-if ! supabase db reset --local --no-seed --version 20261101180139 >"$legacy_test_dir/reset-before.log" 2>&1; then
+# This version is the latest schema immediately before the consolidated P0
+# pharmacy-country migration. Only the disposable local database is rewound.
+if ! supabase db reset --local --no-seed --version 20261112181830 >"$legacy_test_dir/reset-before.log" 2>&1; then
   cat "$legacy_test_dir/reset-before.log" >&2
   exit 1
 fi

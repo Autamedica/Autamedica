@@ -1,5 +1,5 @@
 -- Run only through scripts/db/test-pharmacy-legacy-migration.sh against a reset
--- local database at the version immediately preceding pharmacy isolation.
+-- local database immediately before the consolidated 2026-11-13 country migrations.
 BEGIN;
 SET LOCAL autamedica.isolated_test='on';
 DO $$ BEGIN
@@ -66,8 +66,8 @@ BEGIN
   END LOOP;
 END $snapshot$;
 
-\ir ../migrations/20261102093000_pharmacy_country_isolation_p0.sql
-\ir ../migrations/20261103070251_pharmacy_legacy_country_quarantine.sql
+\ir ../migrations/20261113010000_pharmacy_country_isolation_p0.sql
+\ir ../migrations/20261113020000_pharmacy_legacy_country_quarantine.sql
 
 DO $preserve$
 DECLARE v_table text; v_changed boolean;
