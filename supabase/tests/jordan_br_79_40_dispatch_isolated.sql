@@ -33,13 +33,18 @@ BEGIN
   SELECT id INTO STRICT v_partner FROM public.commercial_referral_partners
   WHERE code='JORDAN' AND active IS TRUE;
 
+  -- Model the guest QR request shape exactly: no authenticated account and
+  -- no patients FK. Disable only the guest-materialization trigger for this
+  -- synthetic row; all dispatch, country, quote and payment triggers remain on.
+  ALTER TABLE public.pharmacy_dispatch_requests DISABLE TRIGGER tr_dispatch_assign_patient_id;
   INSERT INTO public.pharmacy_dispatch_requests(
       patient_phone,patient_cpf,patient_name,tier_requested,care_country,
-      cloudflare_room_id,status,referral_partner_id
+      cloudflare_room_id,status,referral_partner_id,patient_id,requested_by_user_id
   ) VALUES (
       '5551900000101','12345678909','SYNTHETIC JORDAN ONLY','general','BR',
-      'ci-jordan-br-'||gen_random_uuid()::text,'searching',v_partner
+      'ci-jordan-br-'||gen_random_uuid()::text,'searching',v_partner,NULL,NULL
   ) RETURNING id INTO v_jordan;
+  ALTER TABLE public.pharmacy_dispatch_requests ENABLE TRIGGER tr_dispatch_assign_patient_id;
 
   -- Separate unpaid request lets this fixture probe the matcher-level gate
   -- without retaining a row lock on the request whose PSP approval trigger
