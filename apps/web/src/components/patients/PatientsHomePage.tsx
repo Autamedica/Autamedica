@@ -535,7 +535,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
         >
           <div className="relative h-24 overflow-hidden sm:h-32" aria-hidden="true">
             <img
-              src="/images/hero_doctor.webp"
+              src="/images/hero_patient_bg.jpg"
               alt=""
               loading="eager"
               decoding="async"
