@@ -172,6 +172,7 @@ DECLARE
   v_new_using text;
   v_new_check text;
   v_doctor_gate text;
+  v_patient_fk text;
   v_tables text[] := ARRAY[
     'appointment_followups',
     'appointment_history',
@@ -222,7 +223,29 @@ BEGIN
     v_check := v_policy.check_expr;
     v_new_using := v_using;
     v_new_check := v_check;
-    v_doctor_gate := CASE WHEN v_policy.polcmd='r' THEN 'public.is_clinically_authorized_doctor_read()' ELSE 'public.is_clinically_approved_doctor()' END;
+    IF v_policy.polcmd='r' THEN
+      v_patient_fk := NULL;
+      SELECT ccu.table_name INTO v_patient_fk
+      FROM information_schema.table_constraints tc
+      JOIN information_schema.key_column_usage kcu
+        ON tc.constraint_name=kcu.constraint_name AND tc.constraint_schema=kcu.constraint_schema
+      JOIN information_schema.constraint_column_usage ccu
+        ON tc.constraint_name=ccu.constraint_name AND tc.constraint_schema=ccu.constraint_schema
+      WHERE tc.constraint_type='FOREIGN KEY' AND tc.table_schema='public'
+        AND tc.table_name=v_policy.relname AND kcu.column_name='patient_id'
+      LIMIT 1;
+      IF v_policy.relname='patients' THEN
+        v_doctor_gate := 'public.doctor_has_patient_read_access(patients.user_id)';
+      ELSIF v_patient_fk='patients' THEN
+        v_doctor_gate := format('public.doctor_has_patient_read_access((SELECT p.user_id FROM public.patients p WHERE p.id = %I.patient_id))',v_policy.relname);
+      ELSIF v_patient_fk='profiles' THEN
+        v_doctor_gate := format('public.doctor_has_patient_read_access(%I.patient_id)',v_policy.relname);
+      ELSE
+        v_doctor_gate := 'public.is_clinically_authorized_doctor_read()';
+      END IF;
+    ELSE
+      v_doctor_gate := 'public.is_clinically_approved_doctor()';
+    END IF;
 
     IF v_new_using IS NOT NULL THEN
       IF v_policy.polcmd='r' THEN
