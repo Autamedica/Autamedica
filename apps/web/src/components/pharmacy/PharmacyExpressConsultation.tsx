@@ -26,6 +26,7 @@ interface PharmacyExpressConsultationProps {
   pharmacyId?: string | null
   pharmacyName?: string
   initialDni?: string
+  initialCareCountry?: 'AR' | 'BR' | null
   referralCode?: string | null
   referralPartnerName?: string | null
   jordanPaymentsEnabled?: boolean
@@ -46,6 +47,7 @@ export function PharmacyExpressConsultation({
   pharmacyId = null,
   pharmacyName = 'Farmacia Adherida',
   initialDni = '',
+  initialCareCountry = null,
   referralCode = null,
   referralPartnerName = null,
   jordanPaymentsEnabled = false,
@@ -57,7 +59,7 @@ export function PharmacyExpressConsultation({
 
   const [step, setStep] = useState<Step>('FORM')
   const [formData, setFormData] = useState({
-    careCountry: (referralCode === 'JORDAN' ? 'BR' : '') as '' | 'AR' | 'BR',
+    careCountry: (initialCareCountry ?? (referralCode === 'JORDAN' ? 'BR' : '')) as '' | 'AR' | 'BR',
     dni: initialDni,
     name: '',
     phone: '',
