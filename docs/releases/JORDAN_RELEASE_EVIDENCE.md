@@ -4,7 +4,7 @@
 
 La única autoridad sobre el estado activo/inactivo de cualquier flujo es la fila global de `public.platform_operational_switches`, gobernada desde `/admin`. Ningún estado estático de este documento ni de otro Markdown representa configuración operativa vigente. Queda prohibido bloquear PRs, merges, CI o despliegues basándose en estados estáticos de documentos Markdown. Los checklists de este archivo documentan evidencia y procedimientos, no interruptores ejecutables.
 
-This is a **NO-GO** checklist until each gate has executed successfully on the exact reviewed/merged `main` SHA. Keep `ENABLE_JORDAN_PAYMENTS` disabled. Do not accept live Mercado Pago payments, distribute commercial QR codes, or transfer commissions while any gate remains open.
+This document records technical and clinical release evidence. Its static status is not an operational switch and must never block PRs, merges, CI or deployments. Live flow activation is governed exclusively by `public.platform_operational_switches` from `/admin`.
 
 ## Integrated changes
 
@@ -39,7 +39,7 @@ Use Mercado Pago TEST and synthetic patient/doctor records only. Trace request, 
 
 ## Gate 6 — production decision
 
-Before any GO decision, require green required CI, disposable migration replay, identity-proof tests, PSP TEST, end-to-end video tests, at least one eligible BR doctor on duty, verified secret parity, and a deployed web commit matching the reviewed code. Keep `ENABLE_JORDAN_PAYMENTS` unset/false until explicit release sign-off.
+Before any GO decision, require green required CI, disposable migration replay, identity-proof tests, PSP TEST, end-to-end video tests, at least one eligible BR doctor on duty, verified secret parity, and a deployed web commit matching the reviewed code. Use the live `/admin` controls in `public.platform_operational_switches` for operational activation. This Markdown checklist is not an activation authority.
 
 | Gate | Current state | Evidence / outstanding work |
 |---|---|---|
@@ -52,4 +52,4 @@ Before any GO decision, require green required CI, disposable migration replay, 
 | #744 dispatch eligibility | Ready for review | Tests + disposable replay pass; Audit red; 0 BR doctors on duty |
 | #728 verified identity | Ready for review | Tests + disposable replay pass; Audit red; trusted verifier unavailable |
 | PSP TEST + SFU E2E | NO-GO | Not executed end to end |
-| `ENABLE_JORDAN_PAYMENTS` | **OFF** | Must remain unset/false |
+| Operational activation | Admin-controlled | Read `public.platform_operational_switches`; Markdown has no authority |
