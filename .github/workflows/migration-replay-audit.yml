@@ -74,4 +74,5 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/memed_provider_integrity_smoke.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/persistent_pharmacy_queue_behavior.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/clinical_admin_approval_authority.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/clinical_approval_rls_contract.sql
 

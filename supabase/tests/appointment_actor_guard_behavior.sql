@@ -33,6 +33,12 @@ BEGIN
   END IF;
   INSERT INTO public.doctors(id,user_id,license_number,specialty,active)
   VALUES(v_doctor,v_doctor_user,'CI-ACTOR-'||v_doctor,'General',true);
+  UPDATE public.doctors SET license_type='MN' WHERE id=v_doctor;
+  UPDATE public.profiles
+  SET active=true,sss_validation_status='valid'
+  WHERE user_id=v_doctor_user;
+  INSERT INTO public.doctor_licenses(doctor_id,license_number,license_type,status)
+  VALUES(v_doctor,'CI-ACTOR-'||v_doctor,'MN','active');
   INSERT INTO public.appointments(id,patient_id,doctor_id,start_time,end_time,type,status)
   VALUES(v_patient_appt,v_patient,v_doctor,now()+interval '8 days',now()+interval '8 days 30 minutes','telemedicine','scheduled'),
         (v_doctor_appt,v_patient,v_doctor,now()+interval '9 days',now()+interval '9 days 30 minutes','telemedicine','scheduled');
