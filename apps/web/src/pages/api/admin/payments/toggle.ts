@@ -17,7 +17,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  const auth = await withAuthRole(request, ADMIN_ROLES, locals)
+  const auth = await withAuthRole(request, ['admin'], locals)
   if (!isAuthed(auth)) return auth
   const body = await request.json().catch(() => null) as { key?:string; enabled?:boolean; reason?:string } | null
   if (!body || !ALLOWED.includes(body.key as SwitchName) || typeof body.enabled !== 'boolean') return badRequest('invalid_payment_switch')
