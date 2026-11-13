@@ -97,7 +97,7 @@ BEGIN
      OR has_table_privilege('service_role','app_private.clinical_legacy_read_grants','SELECT') THEN
     RAISE EXCEPTION 'Legacy grant table is exposed directly';
   END IF;
-  IF EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND polcmd<>'r'
+  IF EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND cmd<>'r'
     AND concat_ws(' ',qual,with_check) ILIKE '%doctor_has_patient_read_access(%') THEN
     RAISE EXCEPTION 'Read-only helper leaked into write policy';
   END IF;
