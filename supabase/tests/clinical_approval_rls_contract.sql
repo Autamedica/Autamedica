@@ -158,7 +158,11 @@ VALUES('a1100000-0000-4000-8000-000000000002','00000000-0000-0000-0000-000000000
 'synthetic-legacy-patient@example.invalid','{"role":"patient"}'::jsonb,'{}'::jsonb);
 INSERT INTO public.patients(user_id,active,care_country) VALUES('a1100000-0000-4000-8000-000000000002',true,'AR')
 ON CONFLICT (user_id) DO UPDATE SET active=EXCLUDED.active,care_country=EXCLUDED.care_country;
-INSERT INTO public.patients(user_id,active) SELECT 'a1100000-0000-4000-8000-000000000001',true WHERE NOT EXISTS(SELECT 1 FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000001');
+INSERT INTO public.patients(user_id,active,care_country)
+VALUES('a1100000-0000-4000-8000-000000000001',true,'AR')
+ON CONFLICT (user_id) DO UPDATE
+SET active=EXCLUDED.active,
+    care_country=COALESCE(public.patients.care_country,EXCLUDED.care_country);
 INSERT INTO auth.users(id,instance_id,aud,role,email,raw_user_meta_data,raw_app_meta_data)
 VALUES('a1100000-0000-4000-8000-000000000003','00000000-0000-0000-0000-000000000000','authenticated','authenticated',
 'synthetic-unassigned-patient@example.invalid','{"role":"patient"}'::jsonb,'{}'::jsonb);
@@ -186,7 +190,21 @@ BEGIN
  INSERT INTO public.appointments(doctor_id,patient_id,start_time,status) VALUES(v_doctor_id,v_patient_id,now()-interval '1 day','completed');
  INSERT INTO app_private.clinical_legacy_read_grants(doctor_id,patient_id,source,expires_at) VALUES(v_doctor_id,v_patient_id,'patient_care_team',now()+interval '30 days');
  INSERT INTO public.doctor_patient(doctor_id,patient_id) VALUES(v_doctor_id,(SELECT id FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000004'));
- INSERT INTO public.doctor_patient(doctor_id,patient_id) SELECT v_doctor_id,id FROM public.patients WHERE user_id IN ('a1100000-0000-4000-8000-000000000005','a1100000-0000-4000-8000-000000000006');
+ -- Country isolation must reject these legacy links before they can become grants.
+ BEGIN
+   INSERT INTO public.doctor_patient(doctor_id,patient_id)
+   SELECT v_doctor_id,id FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000005';
+   RAISE EXCEPTION 'Cross-country doctor-patient link bypassed care-country guard';
+ EXCEPTION WHEN insufficient_privilege THEN
+   NULL;
+ END;
+ BEGIN
+   INSERT INTO public.doctor_patient(doctor_id,patient_id)
+   SELECT v_doctor_id,id FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000006';
+   RAISE EXCEPTION 'Unknown-country doctor-patient link bypassed care-country guard';
+ EXCEPTION WHEN insufficient_privilege THEN
+   NULL;
+ END;
  INSERT INTO app_private.clinical_legacy_read_grants(doctor_id,patient_id,source,expires_at)
  SELECT v_doctor_id,id,'doctor_patient',now()+interval '30 days' FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000004';
  INSERT INTO public.appointments(doctor_id,patient_id,start_time,status) VALUES(v_doctor_id,(SELECT id FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000001'),now()+interval '2 days','scheduled');
