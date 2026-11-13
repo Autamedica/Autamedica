@@ -14,3 +14,6 @@ comment on column public.platform_operational_switches.dry_run_enabled is
 
 -- Keep the historic growth tables readable for audit, but make their values non-authoritative.
 -- The application and workers must consult this row for all active/inactive decisions.
+
+alter table public.platform_operational_switches
+  add column if not exists switch_audit jsonb not null default '{}'::jsonb;
