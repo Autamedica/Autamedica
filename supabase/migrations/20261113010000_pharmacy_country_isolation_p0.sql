@@ -543,18 +543,18 @@ FOR EACH ROW EXECUTE FUNCTION app_private.finalize_pharmacy_delivery();
 
 -- Real actor checks apply even when a privileged web/Edge caller bypasses RLS.
 ALTER POLICY dispensation_orders_select_pharmacist ON public.dispensation_orders
-USING (EXISTS (SELECT 1 FROM public.pharmacists ph WHERE ph.user_id=auth.uid()
+USING (NOT public.is_doctor() AND EXISTS (SELECT 1 FROM public.pharmacists ph WHERE ph.user_id=auth.uid()
   AND ph.care_country=dispensation_orders.care_country
   AND app_private.pharmacy_actor_authorized(ph.pharmacy_id,ph.care_country)
   AND (dispensation_orders.pharmacy_id=ph.pharmacy_id OR
     (dispensation_orders.pharmacy_id IS NULL AND dispensation_orders.status='pending'))));
 ALTER POLICY dispensation_orders_update_pharmacist ON public.dispensation_orders
-USING (EXISTS (SELECT 1 FROM public.pharmacists ph WHERE ph.user_id=auth.uid()
+USING (NOT public.is_doctor() AND EXISTS (SELECT 1 FROM public.pharmacists ph WHERE ph.user_id=auth.uid()
   AND ph.care_country=dispensation_orders.care_country
   AND app_private.pharmacy_actor_authorized(ph.pharmacy_id,ph.care_country)
   AND (dispensation_orders.pharmacy_id=ph.pharmacy_id OR
     (dispensation_orders.pharmacy_id IS NULL AND dispensation_orders.status='pending'))))
-WITH CHECK (app_private.pharmacy_actor_authorized(pharmacy_id,care_country));
+WITH CHECK (NOT public.is_doctor() AND app_private.pharmacy_actor_authorized(pharmacy_id,care_country));
 CREATE FUNCTION app_private.pharmacy_prescriber_authorized(p_order uuid)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=''
 AS $prescriber$
@@ -568,6 +568,7 @@ AS $prescriber$
       AND d.active
       AND pr.active
       AND pr.role::text='doctor'
+      AND public.is_clinically_approved_doctor()
       AND app_private.pharmacy_order_context_aligned(o.id)
   );
 $prescriber$;
@@ -575,8 +576,8 @@ REVOKE ALL ON FUNCTION app_private.pharmacy_prescriber_authorized(uuid) FROM PUB
 GRANT EXECUTE ON FUNCTION app_private.pharmacy_prescriber_authorized(uuid) TO authenticated;
 
 CREATE POLICY pharmacy_prescriber_update ON public.dispensation_orders FOR UPDATE TO authenticated
-USING (app_private.pharmacy_prescriber_authorized(id))
-WITH CHECK (app_private.pharmacy_prescriber_authorized(id));
+USING (public.is_clinically_approved_doctor() AND app_private.pharmacy_prescriber_authorized(id))
+WITH CHECK (public.is_clinically_approved_doctor() AND app_private.pharmacy_prescriber_authorized(id));
 ALTER POLICY dispensation_clarifications_update_doctor ON public.dispensation_clarifications
 WITH CHECK (responded_by=auth.uid() AND EXISTS (
   SELECT 1 FROM public.dispensation_orders o JOIN public.doctors d ON d.id=o.doctor_id
@@ -661,7 +662,16 @@ FOR EACH ROW EXECUTE FUNCTION app_private.guard_pharmacy_dispatch_origin();
 
 GRANT INSERT ON public.dispensation_orders TO authenticated;
 CREATE POLICY pharmacy_prescriber_insert ON public.dispensation_orders FOR INSERT TO authenticated
-WITH CHECK(EXISTS(SELECT 1 FROM public.doctors d WHERE d.id=dispensation_orders.doctor_id AND d.user_id=auth.uid() AND d.active));
+WITH CHECK (
+  public.is_clinically_approved_doctor()
+  AND EXISTS (
+    SELECT 1 FROM public.doctors d
+    JOIN public.profiles pr ON pr.user_id=d.user_id
+    WHERE d.id=dispensation_orders.doctor_id
+      AND d.user_id=auth.uid() AND d.active
+      AND pr.active AND pr.role::text='doctor'
+  )
+);
 
 ALTER TABLE public.dispensation_events ALTER COLUMN id DROP DEFAULT;
 

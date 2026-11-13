@@ -8,6 +8,7 @@ DECLARE
   v_expr text;
   v_expected_gate text;
   v_patient_fk text;
+  v_prescriber_policy boolean;
   v_tables text[] := ARRAY[
     'appointment_followups','appointment_history','appointment_reminders',
     'appointment_waitlist','appointments','calls','care_episodes',
@@ -45,6 +46,8 @@ BEGIN
     WHERE n.nspname='public' AND c.relname=ANY(v_tables)
   LOOP
     v_expr := concat_ws(' ',v_policy.using_expr,v_policy.check_expr);
+    v_prescriber_policy := v_policy.relname='dispensation_orders'
+      AND v_policy.polname IN ('pharmacy_prescriber_update','pharmacy_prescriber_insert');
     IF v_policy.polcmd='r' THEN
       v_patient_fk := NULL;
       SELECT ccu.table_name INTO v_patient_fk
@@ -65,8 +68,15 @@ BEGIN
     IF regexp_replace(v_expr, 'NOT (public\.)?is_doctor\(\)', '', 'gi') ~* '(^|[^a-z_])is_doctor\(\)' THEN
       RAISE EXCEPTION 'Legacy is_doctor() still authorizes %.%',v_policy.relname,v_policy.polname;
     END IF;
-    IF v_expr !~* 'NOT (public\.)?is_doctor\(\)' THEN
+    IF NOT v_prescriber_policy AND v_expr !~* 'NOT (public\.)?is_doctor\(\)' THEN
       RAISE EXCEPTION 'Global dual-role doctor gate missing: %.%',v_policy.relname,v_policy.polname;
+    END IF;
+    IF v_prescriber_policy AND position('is_clinically_approved_doctor()' IN v_expr)=0 THEN
+      RAISE EXCEPTION 'Prescriber policy lacks clinical approval: %.%',v_policy.relname,v_policy.polname;
+    END IF;
+    IF v_policy.polname='pharmacy_prescriber_update'
+       AND position('pharmacy_prescriber_authorized(' IN v_expr)=0 THEN
+      RAISE EXCEPTION 'Prescriber update policy lacks order ownership: %.%',v_policy.relname,v_policy.polname;
     END IF;
 
     IF v_expr ~* '(d|doctors)\.user_id = (auth\.uid\(\)|\( SELECT auth\.uid\(\) AS uid\))'
