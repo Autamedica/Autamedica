@@ -59,8 +59,7 @@ try {
     .maybeSingle();
   const envEnabled = ((Astro.locals.runtime?.env?.ENABLE_JORDAN_PAYMENTS as string | undefined)
     ?? import.meta.env.ENABLE_JORDAN_PAYMENTS) === 'true';
-  jordanPaymentsEnabled = !error
-    && (switches?.jordan_qr_payments_enabled === true || switches?.pharmacy_express_payments_enabled === true || envEnabled)
+  jordanPaymentsEnabled = ((!error && (switches?.jordan_qr_payments_enabled === true || switches?.pharmacy_express_payments_enabled === true)) || envEnabled)
     && hasSecureGuestPaymentSecret(Astro.locals.runtime?.env);
 } catch {
   jordanPaymentsEnabled = ((Astro.locals.runtime?.env?.ENABLE_JORDAN_PAYMENTS as string | undefined)
