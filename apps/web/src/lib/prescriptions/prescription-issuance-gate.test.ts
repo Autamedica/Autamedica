@@ -5,6 +5,10 @@ import {
 } from './prescription-issuance-gate';
 
 const approvedAR = {
+  doctorActive: true,
+  profileActive: true,
+  profileRole: 'doctor',
+  patientActive: true,
   prescriptionCountry: 'AR',
   doctorCountry: 'AR',
   patientCountry: 'AR',
@@ -21,7 +25,25 @@ describe('proof-of-issuance clinical gate', () => {
     });
   });
 
+  it('rejects inactive doctors, non-doctor profiles and inactive patients', () => {
+    expect(check({ ...approvedAR, doctorActive: false })).toEqual({
+      ok: false, code: 'doctor_not_found',
+    });
+    expect(check({ ...approvedAR, profileActive: false })).toEqual({
+      ok: false, code: 'prescriber_validation_required',
+    });
+    expect(check({ ...approvedAR, profileRole: 'admin' })).toEqual({
+      ok: false, code: 'prescriber_validation_required',
+    });
+    expect(check({ ...approvedAR, patientActive: false })).toEqual({
+      ok: false, code: 'patient_not_found',
+    });
+  });
+
   it('rejects country mismatches or missing country even with approval enabled', () => {
+    expect(check({ ...approvedAR, doctorCountry: null })).toEqual({
+      ok: false, code: 'doctor_country_mismatch',
+    });
     expect(check({ ...approvedAR, doctorCountry: 'BR' })).toEqual({
       ok: false, code: 'doctor_country_mismatch',
     });
