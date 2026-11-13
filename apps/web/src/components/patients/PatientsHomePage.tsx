@@ -532,86 +532,103 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
         </div>
       </motion.header>
 
-      {/* Immediate-care hero: primary patient action, visible without scrolling */}
+      {/* Patient hero: photo-led greeting and two clear actions */}
       <section
         aria-labelledby="patient-home-immediate-title"
-        className="max-w-7xl mx-auto px-6 lg:px-12 pt-5 md:pt-8"
+        className="mx-auto max-w-7xl px-4 pt-5 sm:px-6 md:pt-8 lg:px-12"
       >
-        <div
-          className="relative isolate overflow-hidden rounded-[2rem] border bg-white shadow-sm"
-          style={{ borderColor: 'color-mix(in srgb, var(--portal-patients) 22%, transparent)' }}
-        >
-          <div className="relative h-24 overflow-hidden sm:h-32" aria-hidden="true">
+        <div className="overflow-hidden rounded-[2rem] border border-sky-100 bg-white shadow-[0_20px_60px_-36px_rgba(15,54,72,0.38)]">
+          <div className="relative isolate min-h-[540px] overflow-hidden bg-slate-950 sm:min-h-[580px] lg:min-h-[610px]">
             <img
               src="/images/hero_patient_bg.jpg"
               alt=""
               loading="eager"
               decoding="async"
-              className="h-full w-full object-cover object-[center_35%]"
+              className="absolute inset-0 h-full w-full object-cover object-[center_28%]"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/20 to-white/50" />
-          </div>
-          <div className="relative flex flex-col gap-5 p-6 sm:p-8 lg:p-10">
-            <div className="max-w-3xl space-y-2">
-              <p className="text-xs font-bold uppercase tracking-[0.18em]" style={{ color: 'var(--portal-patients-action)' }}>
-                {greeting}
-              </p>
-              <h2 className="text-2xl font-bold leading-tight tracking-tight sm:text-3xl" style={{ color: 'var(--au-text-primary)' }}>
-                {firstName}, {dict.patientPortal.metrics.healthInControl}
-              </h2>
-              <p className="text-sm leading-6 sm:text-base" style={{ color: 'var(--au-text-secondary)' }}>
-                {dict.patientPortal.metrics.allReady}
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/60 to-slate-950/5" />
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/35 via-transparent to-transparent" />
+
+            <div className="relative z-10 flex min-h-[540px] flex-col justify-end gap-5 px-5 py-7 sm:min-h-[580px] sm:gap-6 sm:px-9 sm:py-9 lg:min-h-[610px] lg:px-12 lg:py-11">
+              <div className="max-w-3xl space-y-2">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-sky-100 sm:text-sm">
+                  {greeting}
+                </p>
+                <h2 className="max-w-[22ch] text-3xl font-bold leading-[1.08] tracking-tight text-white sm:text-4xl lg:text-5xl">
+                  {firstName}, {dict.patientPortal.metrics.healthInControl}
+                </h2>
+                <p className="max-w-2xl text-base leading-7 text-white/90 sm:text-lg">
+                  {dict.patientPortal.metrics.allReady}
+                </p>
+              </div>
+
+              <div className="flex w-full flex-col gap-3 sm:max-w-4xl sm:flex-row sm:items-stretch">
+                <a
+                  href="/farmacia/solicitar"
+                  className="inline-flex min-h-14 flex-1 items-center justify-center gap-3 rounded-full border border-white bg-white px-5 py-4 text-center text-sm font-bold text-slate-950 shadow-lg transition hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/50 active:scale-[0.99] sm:text-base"
+                >
+                  <Video aria-hidden="true" className="size-5 shrink-0" />
+                  <span>{dict.patientPortal.immediateCare.cta}</span>
+                  <ArrowRight aria-hidden="true" className="size-5 shrink-0" />
+                </a>
+                <a
+                  href="/patients/appointments"
+                  className="inline-flex min-h-14 flex-1 items-center justify-center gap-2 rounded-full border border-white/80 bg-slate-950/25 px-5 py-4 text-center text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/50 sm:text-base"
+                >
+                  <Calendar aria-hidden="true" className="size-5 shrink-0" />
+                  <span>{dict.patientPortal.immediateCare.scheduledCta}</span>
+                </a>
+              </div>
+
+              <p className="text-center text-xs font-medium text-white/85 sm:max-w-4xl sm:text-sm">
+                {dict.patientPortal.immediateCare.hint}
               </p>
             </div>
+          </div>
 
-            <span className="inline-flex w-fit items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-bold tracking-wide" style={{ borderColor: 'color-mix(in srgb, var(--portal-patients) 24%, transparent)', backgroundColor: 'color-mix(in srgb, var(--portal-patients) 10%, white)', color: 'var(--portal-patients-action)' }}>
-              <Zap aria-hidden="true" className="size-3.5" />
-              {dict.patientPortal.immediateCare.tag}
-            </span>
-
-            <div className="max-w-3xl space-y-3">
-              <h1 id="patient-home-immediate-title" className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-5xl" style={{ color: "var(--au-text-primary)" }}>
+          <div className="space-y-5 bg-white px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-9">
+            <div className="max-w-4xl space-y-3">
+              <span
+                className="inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-bold tracking-wide"
+                style={{
+                  borderColor: 'color-mix(in srgb, var(--portal-patients) 24%, transparent)',
+                  backgroundColor: 'color-mix(in srgb, var(--portal-patients) 10%, white)',
+                  color: 'var(--portal-patients-action)',
+                }}
+              >
+                <Zap aria-hidden="true" className="size-3.5" />
+                {dict.patientPortal.immediateCare.tag}
+              </span>
+              <h1
+                id="patient-home-immediate-title"
+                className="text-2xl font-bold leading-tight tracking-tight text-slate-950 sm:text-3xl lg:text-4xl"
+              >
                 {dict.patientPortal.immediateCare.title}
               </h1>
-              <p className="max-w-2xl text-sm leading-6 sm:text-base sm:leading-7" style={{ color: "var(--au-text-secondary)" }}>
+              <p className="max-w-4xl text-sm leading-6 text-slate-700 sm:text-base sm:leading-7">
                 {dict.patientPortal.immediateCare.subtitle}
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2" aria-label={dict.patientPortal.immediateCare.title}>
-              <span className="inline-flex items-center gap-2 rounded-full border bg-white/90 px-3 py-2 text-xs font-semibold shadow-sm sm:text-sm" style={{ borderColor: 'color-mix(in srgb, var(--portal-patients) 18%, transparent)', color: 'var(--portal-patients-action)' }}>
-                <Stethoscope aria-hidden="true" className="size-4" style={{ color: "var(--portal-patients-action)" }} />
-                {dict.patientPortal.immediateCare.chips.consultation}
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-full border bg-white/90 px-3 py-2 text-xs font-semibold shadow-sm sm:text-sm" style={{ borderColor: 'color-mix(in srgb, var(--portal-patients) 18%, transparent)', color: 'var(--portal-patients-action)' }}>
-                <FileText aria-hidden="true" className="size-4" style={{ color: "var(--portal-patients-action)" }} />
-                {dict.patientPortal.immediateCare.chips.documents}
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-full border bg-white/90 px-3 py-2 text-xs font-semibold shadow-sm sm:text-sm" style={{ borderColor: 'color-mix(in srgb, var(--portal-patients) 18%, transparent)', color: 'var(--portal-patients-action)' }}>
-                <MapPin aria-hidden="true" className="size-4" style={{ color: "var(--portal-patients-action)" }} />
-                {dict.patientPortal.immediateCare.chips.pharmacy}
-              </span>
-            </div>
-
-            <div className="flex w-full flex-col gap-2.5">
-              <a
-                href="/farmacia/solicitar"
-                className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl px-6 py-4 text-base font-bold text-white shadow-md transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300 active:scale-[0.99]"
-                style={{ backgroundColor: 'var(--portal-patients-action)' }}
-              >
-                {dict.patientPortal.immediateCare.cta}
-                <ArrowRight aria-hidden="true" className="size-5" />
-              </a>
-              <p className="text-center text-xs font-medium text-neutral-500 sm:text-sm">
-                {dict.patientPortal.immediateCare.hint}
-              </p>
-              <a
-                href="/patients/appointments"
-                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border bg-white px-5 py-3 text-sm font-semibold transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100" style={{ borderColor: 'color-mix(in srgb, var(--portal-patients) 28%, transparent)', color: 'var(--portal-patients-action)' }}
-              >
-                <Calendar aria-hidden="true" className="size-4" />
-                {dict.patientPortal.immediateCare.scheduledCta}
-              </a>
+            <div className="grid gap-3 sm:grid-cols-3" aria-label={dict.patientPortal.immediateCare.title}>
+              <div className="flex min-h-[92px] items-center gap-3 rounded-2xl border border-sky-100 bg-sky-50/70 p-4 sm:min-h-[132px] sm:flex-col sm:justify-center sm:text-center">
+                <Stethoscope aria-hidden="true" className="size-8 shrink-0 text-sky-800" />
+                <span className="text-sm font-semibold text-slate-900 sm:text-base">
+                  {dict.patientPortal.immediateCare.chips.consultation}
+                </span>
+              </div>
+              <div className="flex min-h-[92px] items-center gap-3 rounded-2xl border border-sky-100 bg-sky-50/70 p-4 sm:min-h-[132px] sm:flex-col sm:justify-center sm:text-center">
+                <FileText aria-hidden="true" className="size-8 shrink-0 text-sky-800" />
+                <span className="text-sm font-semibold text-slate-900 sm:text-base">
+                  {dict.patientPortal.immediateCare.chips.documents}
+                </span>
+              </div>
+              <div className="flex min-h-[92px] items-center gap-3 rounded-2xl border border-sky-100 bg-sky-50/70 p-4 sm:min-h-[132px] sm:flex-col sm:justify-center sm:text-center">
+                <MapPin aria-hidden="true" className="size-8 shrink-0 text-sky-800" />
+                <span className="text-sm font-semibold text-slate-900 sm:text-base">
+                  {dict.patientPortal.immediateCare.chips.pharmacy}
+                </span>
+              </div>
             </div>
           </div>
         </div>
