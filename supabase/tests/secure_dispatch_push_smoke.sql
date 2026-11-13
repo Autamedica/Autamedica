@@ -7,17 +7,19 @@ DECLARE
   p text;
   claim text;
 BEGIN
-  IF pg_catalog.has_schema_privilege('anon', 'app_private', 'USAGE')
-     OR pg_catalog.has_schema_privilege('authenticated', 'app_private', 'USAGE')
-  THEN
-    RAISE EXCEPTION 'Private push schema must not be exposed';
+  -- app_private also contains clinical identity helpers intentionally exposed
+  -- to authenticated users. The push transport itself must remain non-callable.
+  IF pg_catalog.has_schema_privilege('anon', 'app_private', 'USAGE') THEN
+    RAISE EXCEPTION 'Private application schema must not be exposed to anon';
   END IF;
 
   IF pg_catalog.has_function_privilege(
       'anon', 'app_private.send_authenticated_dispatch_push(uuid,text,text,jsonb)', 'EXECUTE'
+    ) OR pg_catalog.has_function_privilege(
+      'authenticated', 'app_private.send_authenticated_dispatch_push(uuid,text,text,jsonb)', 'EXECUTE'
     )
   THEN
-    RAISE EXCEPTION 'Public caller can invoke privileged dispatch push';
+    RAISE EXCEPTION 'Client caller can invoke privileged dispatch push';
   END IF;
 
   IF pg_catalog.has_function_privilege('anon', 'public.match_dispatch_doctors(uuid)', 'EXECUTE')
