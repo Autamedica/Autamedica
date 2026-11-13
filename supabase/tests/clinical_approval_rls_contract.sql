@@ -151,7 +151,7 @@ INSERT INTO auth.users (
 INSERT INTO public.doctors(user_id,license_number,specialty,active,license_type)
 SELECT 'a1100000-0000-4000-8000-000000000001','CI-LEGACY-AR','General Medicine',true,'MN'
 WHERE NOT EXISTS(SELECT 1 FROM public.doctors WHERE user_id='a1100000-0000-4000-8000-000000000001');
-UPDATE public.doctors SET active=true,license_number='CI-LEGACY-AR',license_type='MN',care_country='AR'
+UPDATE public.doctors SET active=true,license_number='CI-LEGACY-AR',license_type='MN'
 WHERE user_id='a1100000-0000-4000-8000-000000000001';
 INSERT INTO auth.users(id,instance_id,aud,role,email,raw_user_meta_data,raw_app_meta_data)
 VALUES('a1100000-0000-4000-8000-000000000002','00000000-0000-0000-0000-000000000000','authenticated','authenticated',
