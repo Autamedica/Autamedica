@@ -10,6 +10,9 @@ import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.logging.SecureLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -390,76 +393,83 @@ class PharmacyIntakeViewModel @Inject constructor(
     private fun startStatusPolling(requestId: String) {
         statusPollingJob?.cancel()
         statusPollingJob = viewModelScope.launch {
-            // Dispatch and PSP state share one lifecycle. Realtime plus the repository's
-            // fallback poll drive this collector; PSP reads are throttled to 5 seconds.
-            var lastPaymentCheckAtMs = 0L
-            var isCheckingPayment = false
-            pharmacyDispatchRepository.observePatientRequest(requestId).collect { request ->
-                val isJoinable = request.doctorAttendedCall
-                val isTerminalFailure = request.status == "cancelled" || request.status == "expired"
-                val hasRoom = request.cloudflareRoomId.isNotBlank()
-                val paymentRequired = (_uiState.value.referralCode == "JORDAN" ||
-                    request.referralPartnerId != null) && request.careCountry == "BR"
-                val paymentEligibleStatus = paymentRequired &&
-                    request.status in setOf("searching", "matched", "in_call", "completed")
-                val currentPaymentStatus = _uiState.value.paymentStatus
-                val paymentIsTerminal = currentPaymentStatus in
-                    setOf("approved", "rejected", "refunded", "cancelled", "expired", "failed")
-                val now = System.currentTimeMillis()
-                val verifiedPaymentStatus = if (paymentEligibleStatus && !paymentIsTerminal &&
-                    !isCheckingPayment && now - lastPaymentCheckAtMs >= 5_000L) {
-                    // The collector serializes checks; this flag also protects future
-                    // refactors from overlapping PSP requests. Only backend PSP state
-                    // can approve access, never redirects or local callbacks.
-                    isCheckingPayment = true
-                    lastPaymentCheckAtMs = now
-                    try {
-                        pharmacyDispatchRepository.getDispatchPaymentStatus(requestId).getOrNull()
-                    } finally {
-                        isCheckingPayment = false
+            // Dispatch transitions and PSP reconciliation must not share one
+            // event clock. An idle Realtime stream cannot stop payment polling.
+            launch {
+                pharmacyDispatchRepository.observePatientRequest(requestId).collect { request ->
+                    val joinable = request.doctorAttendedCall
+                    val terminal = request.status == "cancelled" || request.status == "expired"
+                    val hasRoom = request.cloudflareRoomId.isNotBlank()
+                    val paymentRequired = (_uiState.value.referralCode == "JORDAN" ||
+                        request.referralPartnerId != null) && request.careCountry == "BR"
+
+                    if (request.status == "searching" || request.status == "matched") {
+                        refreshCountryDoctorCount(_uiState.value.careCountry)
                     }
-                } else null
-                if (request.status == "searching" || request.status == "matched") {
-                    refreshCountryDoctorCount(_uiState.value.careCountry)
-                }
-
-                _uiState.update { state ->
-                    val confirmedPayment = if (paymentRequired &&
-                        request.status in setOf("searching", "matched", "in_call", "completed")) {
-                        verifiedPaymentStatus ?: state.paymentStatus
-                    } else state.paymentStatus
-                    state.copy(
-                        status = mapDispatchStatus(request.status),
-                        activeReferralPartnerId = request.referralPartnerId ?: state.activeReferralPartnerId,
-                        paymentStatus = confirmedPayment,
-                        // A dispatch status does not establish a verified rank or ETA.
-                        queuePosition = 0,
-                        estimatedMinutes = 0,
-                        roomId = if (hasRoom) request.cloudflareRoomId else state.roomId,
-                        readyToJoinCall = isJoinable && hasRoom &&
-                            (!paymentRequired || confirmedPayment == "approved"),
-                    )
-                }
-
-                if (isJoinable && hasRoom && (!paymentRequired || verifiedPaymentStatus == "approved")) {
-                    statusPollingJob?.cancel()
-                }
-                if (isTerminalFailure) {
-                    statusPollingJob?.cancel()
-                    _uiState.update {
-                        it.copy(
-                            // A completed/closed legacy request must not be mislabeled
-                            // as a failure due to unavailable physicians.
-                            error = null,
-                            statusNotice = when (request.status) {
-                                "expired" -> "Esta solicitud anterior finalizó. Podés iniciar una nueva consulta."
-                                else -> "La solicitud fue cancelada."
-                            },
-                            activeRequestId = null,
-                            roomId = null,
-                            readyToJoinCall = false,
+                    _uiState.update { state ->
+                        state.copy(
+                            status = mapDispatchStatus(request.status),
+                            activeReferralPartnerId = request.referralPartnerId ?: state.activeReferralPartnerId,
+                            queuePosition = 0,
+                            estimatedMinutes = 0,
+                            roomId = if (hasRoom) request.cloudflareRoomId else state.roomId,
+                            readyToJoinCall = joinable && hasRoom &&
+                                (!paymentRequired || state.paymentStatus == "approved"),
                         )
                     }
+                    if (joinable && hasRoom &&
+                        (!paymentRequired || _uiState.value.paymentStatus == "approved")) {
+                        statusPollingJob?.cancel()
+                    }
+                    if (terminal) {
+                        statusPollingJob?.cancel()
+                        _uiState.update {
+                            it.copy(
+                                error = null,
+                                statusNotice = if (request.status == "expired")
+                                    "Esta solicitud anterior finalizó. Podés iniciar una nueva consulta."
+                                else "La solicitud fue cancelada.",
+                                activeRequestId = null,
+                                roomId = null,
+                                readyToJoinCall = false,
+                            )
+                        }
+                    }
+                }
+            }
+
+            launch {
+                val terminalPayments = setOf(
+                    "approved", "rejected", "refunded", "cancelled", "expired", "failed",
+                )
+                while (currentCoroutineContext().isActive) {
+                    val state = _uiState.value
+                    if (state.activeRequestId != requestId) break
+                    val eligible = state.requiresBrazilianPayment && state.status in setOf(
+                        PharmacyConsultationStatus.PENDING,
+                        PharmacyConsultationStatus.ASSIGNED,
+                        PharmacyConsultationStatus.IN_CALL,
+                        PharmacyConsultationStatus.COMPLETED,
+                    )
+                    if (eligible && state.paymentStatus !in terminalPayments) {
+                        pharmacyDispatchRepository.getDispatchPaymentStatus(requestId)
+                            .onSuccess { status ->
+                                _uiState.update { current ->
+                                    if (current.activeRequestId != requestId) current
+                                    else current.copy(
+                                        paymentStatus = status,
+                                        readyToJoinCall = current.status == PharmacyConsultationStatus.IN_CALL &&
+                                            !current.roomId.isNullOrBlank() && status == "approved",
+                                    )
+                                }
+                            }
+                            .onFailure { error ->
+                                SecureLog.warn("[PharmacyIntakeVM] PSP status poll failed: ${error.message}")
+                            }
+                    }
+                    if (_uiState.value.activeRequestId != requestId ||
+                        _uiState.value.paymentStatus in terminalPayments) break
+                    delay(5_000L)
                 }
             }
         }

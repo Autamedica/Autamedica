@@ -4,15 +4,12 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { logger } from '@autamedica/shared';
-import { pharmacyErrorCode } from '../errors';
 
 type Client = SupabaseClient;
 
 export interface PharmacistRecord {
   id: string;
   pharmacy_id: string;
-  care_country: 'AR' | 'BR' | null;
-  license_number: string | null;
 }
 
 export interface DispensationOrderRow {
@@ -21,7 +18,6 @@ export interface DispensationOrderRow {
   patient_id: string;
   doctor_id: string;
   pharmacy_id: string | null;
-  care_country: 'AR' | 'BR' | null;
   medication: string | null;
   formulation: string | null;
   dose_mg_per_day: number | null;
@@ -43,10 +39,9 @@ export const dispensationRepo = {
   async findPharmacist(supabase: Client, userId: string): Promise<PharmacistRecord | null> {
     const { data } = await supabase
       .from('pharmacists')
-      .select('id, pharmacy_id, care_country, license_number')
+      .select('id, pharmacy_id')
       .eq('user_id', userId)
       .eq('active', true)
-      .in('role', ['pharmacist', 'pharmacy_director'])
       .single();
     return data;
   },
@@ -54,14 +49,13 @@ export const dispensationRepo = {
   async listOrdersByPharmacy(
     supabase: Client,
     pharmacyId: string,
-    country: 'AR' | 'BR',
     statusFilter: string[],
     limit: number,
   ): Promise<DispensationOrderRow[]> {
     let query = supabase
       .from('dispensation_orders')
       .select(`
-        id, prescription_id, patient_id, doctor_id, pharmacy_id, care_country,
+        id, prescription_id, patient_id, doctor_id, pharmacy_id,
         medication, formulation, dose_mg_per_day, quantity_units, duration_days,
         prescription_type, status, clinical_semaphore, semaphore_reasons,
         extraordinary_dose_flag, requires_clarification,
@@ -69,7 +63,6 @@ export const dispensationRepo = {
         created_at, updated_at
       `)
       .eq('pharmacy_id', pharmacyId)
-      .eq('care_country', country)
       .order('created_at', { ascending: false })
       .limit(limit);
 
@@ -79,7 +72,7 @@ export const dispensationRepo = {
 
     const { data, error } = await query;
     if (error) {
-      logger.error('[dispensationRepo] listOrders error', { code: pharmacyErrorCode(error) });
+      logger.error('[dispensationRepo] listOrders error', error);
       throw error;
     }
     return data ?? [];
@@ -87,13 +80,12 @@ export const dispensationRepo = {
 
   async listUnassignedOrders(
     supabase: Client,
-    country: 'AR' | 'BR',
     limit: number,
   ): Promise<DispensationOrderRow[]> {
     const { data, error } = await supabase
       .from('dispensation_orders')
       .select(`
-        id, prescription_id, patient_id, doctor_id, pharmacy_id, care_country,
+        id, prescription_id, patient_id, doctor_id, pharmacy_id,
         medication, formulation, dose_mg_per_day, quantity_units, duration_days,
         prescription_type, status, clinical_semaphore, semaphore_reasons,
         extraordinary_dose_flag, requires_clarification,
@@ -101,13 +93,12 @@ export const dispensationRepo = {
         created_at, updated_at
       `)
       .is('pharmacy_id', null)
-      .eq('care_country', country)
       .eq('status', 'pending')
       .is('deleted_at', null)
       .order('created_at', { ascending: true })
       .limit(limit);
     if (error) {
-      logger.error('[dispensationRepo] listUnassignedOrders error', { code: pharmacyErrorCode(error) });
+      logger.error('[dispensationRepo] listUnassignedOrders error', error);
       throw error;
     }
     return data ?? [];
@@ -117,20 +108,15 @@ export const dispensationRepo = {
     supabase: Client,
     orderId: string,
     pharmacyId: string,
-    country: 'AR' | 'BR',
   ): Promise<void> {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('dispensation_orders')
       .update({ pharmacy_id: pharmacyId, status: 'assigned' })
       .eq('id', orderId)
-      .eq('care_country', country)
       .is('pharmacy_id', null)
-      .eq('status', 'pending')
-      .select('id')
-      .maybeSingle();
-    if (!data && !error) throw new Error('order_claim_conflict');
+      .eq('status', 'pending');
     if (error) {
-      logger.error('[dispensationRepo] claimOrder error', { orderId, pharmacyId, code: pharmacyErrorCode(error) });
+      logger.error('[dispensationRepo] claimOrder error', { orderId, pharmacyId, error });
       throw error;
     }
   },
@@ -142,7 +128,7 @@ export const dispensationRepo = {
     const { data } = await supabase
       .from('dispensation_orders')
       .select(`
-        id, prescription_id, patient_id, doctor_id, pharmacy_id, care_country,
+        id, prescription_id, patient_id, doctor_id, pharmacy_id,
         medication, formulation, dose_mg_per_day, quantity_units, duration_days,
         prescription_type, status, clinical_semaphore, semaphore_reasons,
         extraordinary_dose_flag, requires_clarification,
@@ -160,7 +146,7 @@ export const dispensationRepo = {
       .update({ status })
       .eq('id', orderId);
     if (error) {
-      logger.error('[dispensationRepo] updateOrderStatus error', { orderId, status, code: pharmacyErrorCode(error) });
+      logger.error('[dispensationRepo] updateOrderStatus error', { orderId, status, error });
       throw error;
     }
   },
@@ -179,7 +165,7 @@ export const dispensationRepo = {
   ): Promise<void> {
     const { error } = await supabase.from('dispensation_validations').insert(data);
     if (error) {
-      logger.error('[dispensationRepo] insertValidation error', { code: pharmacyErrorCode(error) });
+      logger.error('[dispensationRepo] insertValidation error', error);
       throw error;
     }
   },
@@ -195,29 +181,22 @@ export const dispensationRepo = {
     return data ?? [];
   },
 
-  async findDispensationEvent(supabase: Client, id: string): Promise<Record<string, unknown> | null> {
-    const { data, error } = await supabase.from('dispensation_events').select('*').eq('id', id).maybeSingle();
-    if (error) throw error;
-    return data;
-  },
-
   async insertDispensationEvent(
     supabase: Client,
     data: Record<string, unknown>,
   ): Promise<void> {
     const { error } = await supabase.from('dispensation_events').insert(data);
     if (error) {
-      logger.error('[dispensationRepo] insertEvent error', { code: pharmacyErrorCode(error) });
+      logger.error('[dispensationRepo] insertEvent error', error);
       throw error;
     }
   },
 
   async getTotalDispensed(supabase: Client, orderId: string): Promise<number> {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('dispensation_events')
       .select('dispensed_quantity')
       .eq('order_id', orderId);
-    if (error) throw error;
     return (data ?? []).reduce((sum, e) => sum + (e.dispensed_quantity ?? 0), 0);
   },
 
@@ -227,7 +206,7 @@ export const dispensationRepo = {
       .update({ status })
       .eq('id', prescriptionId);
     if (error) {
-      logger.error('[dispensationRepo] updatePrescriptionStatus error', { prescriptionId, status, code: pharmacyErrorCode(error) });
+      logger.error('[dispensationRepo] updatePrescriptionStatus error', { prescriptionId, status, error });
     }
   },
 
@@ -242,8 +221,7 @@ export const dispensationRepo = {
     },
   ): Promise<void> {
     await supabase.from('pharmacy_audit_events').insert(data).then(({ error }) => {
-      if (error) logger.warn('[dispensationRepo] audit log error (non-blocking)', { code: pharmacyErrorCode(error) });
+      if (error) logger.warn('[dispensationRepo] audit log error (non-blocking)', error);
     });
   },
 };
-

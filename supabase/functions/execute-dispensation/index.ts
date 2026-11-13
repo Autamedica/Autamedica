@@ -1,12 +1,10 @@
-import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { captureEdgeException, initEdgeSentry } from '../_shared/sentry.ts';
-import { verifyPharmacyOrderAccess, pharmacyErrorCode } from '../_shared/pharmacy-country.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? (() => { throw new Error('SUPABASE_URL is not set') })();
 const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? (() => { throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set') })();
 
 interface ExecuteDispensationRequest {
-  idempotency_key: string;
   order_id: string;
   dispensed_medication: string;
   dispensed_formulation: string;
@@ -47,7 +45,7 @@ Deno.serve(async (req) => {
     // Verify pharmacist
     const { data: pharmacist } = await supabaseAdmin
       .from('pharmacists')
-      .select('id, pharmacy_id, care_country, role, license_number')
+      .select('id, pharmacy_id')
       .eq('user_id', user.id)
       .eq('active', true)
       .single();
@@ -83,78 +81,161 @@ Deno.serve(async (req) => {
       });
     }
 
-    const accessError = await verifyPharmacyOrderAccess(supabaseAdmin, order, pharmacist);
-    if (accessError) {
-      return new Response(JSON.stringify({ error: accessError }), {
-        status: 403, headers: { 'Content-Type': 'application/json' },
+    if (order.pharmacy_id && order.pharmacy_id !== pharmacist.pharmacy_id) {
+      return new Response(JSON.stringify({ error: 'Order is assigned to a different pharmacy' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.idempotency_key ?? '') ||
-        !Number.isSafeInteger(body.dispensed_quantity) || body.dispensed_quantity <= 0) {
-      return new Response(JSON.stringify({ error: 'valid_idempotency_key_and_positive_integer_quantity_required' }), {
-        status: 400, headers: { 'Content-Type': 'application/json' },
+    const validStatuses = ['approved_for_dispensation', 'partially_dispensed'];
+    if (!validStatuses.includes(order.status)) {
+      return new Response(JSON.stringify({
+        error: `Cannot dispense in status "${order.status}". Expected "approved_for_dispensation" or "partially_dispensed".`,
+      }), {
+        status: 409,
+        headers: { 'Content-Type': 'application/json' },
       });
     }
-    const event = {
-      id: body.idempotency_key, order_id: body.order_id,
-      pharmacist_id: pharmacist.id, pharmacy_id: pharmacist.pharmacy_id,
-      dispense_status: 'dispensed', dispensed_medication: body.dispensed_medication,
-      dispensed_formulation: body.dispensed_formulation, dispensed_quantity: body.dispensed_quantity,
-      dispensed_batch_number: body.batch_number ?? null, dispensed_expiry_date: body.expiry_date ?? null,
-      substitution_type: body.substitution_type ?? 'none', substitution_reason: body.substitution_reason ?? null,
-      substitution_approved_by_prescriber: body.substitution_approved_by_prescriber ?? false,
-      pharmacy_notes: body.pharmacy_notes ?? null,
-    };
-    const previous = await supabaseUser.from('dispensation_events').select('*').eq('id', event.id).maybeSingle();
-    if (previous.error) throw previous.error;
-    let existing = previous.data;
-    if (!existing) {
-      // One PostgreSQL transaction enforces eligibility and commits the delivery,
-      // order state, prescription state and audit; no follow-up status writes.
-      const inserted = await supabaseUser.from('dispensation_events').insert(event);
-      if (inserted.error) {
-        if (inserted.error.code !== '23505') {
-          return new Response(JSON.stringify({ error: 'dispensation_rejected' }), {
-            status: ['23514', '42501'].includes(inserted.error.code) ? 409 : 500,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }
-        const retry = await supabaseUser.from('dispensation_events').select('*').eq('id', event.id).maybeSingle();
-        if (retry.error || !retry.data) throw retry.error ?? new Error('idempotency_record_unavailable');
-        existing = retry.data;
+
+    // HARD RULE: Bridge — exact formulation and quantity match
+    if (order.prescription_type === 'transition_bridge') {
+      if (body.dispensed_formulation !== order.formulation) {
+        return new Response(JSON.stringify({
+          error: 'Bridge prescription: formulation mismatch',
+          expected: order.formulation,
+          received: body.dispensed_formulation,
+          resolution: 'Use clarification workflow to request formulation changes on bridge prescriptions',
+        }), {
+          status: 409,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      if (body.dispensed_quantity !== order.quantity_units) {
+        return new Response(JSON.stringify({
+          error: 'Bridge prescription: quantity mismatch',
+          expected: order.quantity_units,
+          received: body.dispensed_quantity,
+          resolution: 'Use clarification workflow to request quantity changes on bridge prescriptions',
+        }), {
+          status: 409,
+          headers: { 'Content-Type': 'application/json' },
+        });
       }
     }
-    const storedEvent = existing;
-    if (storedEvent && Object.entries(event).some(([key, value]) => storedEvent[key] !== value)) {
-      return new Response(JSON.stringify({ error: 'idempotency_conflict' }), {
-        status: 409, headers: { 'Content-Type': 'application/json' },
+
+    const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
+
+    // Insert dispensation event (DB trigger will enforce substitution controls)
+    const { error: eventError } = await supabaseAdmin
+      .from('dispensation_events')
+      .insert({
+        order_id: body.order_id,
+        pharmacist_id: pharmacist.id,
+        pharmacy_id: pharmacist.pharmacy_id,
+        dispense_status: body.substitution_type && body.substitution_type !== 'none' ? 'substituted' : 'dispensed',
+        dispensed_medication: body.dispensed_medication,
+        dispensed_formulation: body.dispensed_formulation,
+        dispensed_quantity: body.dispensed_quantity,
+        dispensed_batch_number: body.batch_number || null,
+        dispensed_expiry_date: body.expiry_date || null,
+        substitution_type: body.substitution_type || 'none',
+        substitution_reason: body.substitution_reason || null,
+        substitution_approved_by_prescriber: body.substitution_approved_by_prescriber || false,
+        pharmacy_notes: body.pharmacy_notes || null,
+      });
+
+    if (eventError) {
+      captureEdgeException(eventError, {
+        layer: 'data-platform',
+        surface: 'execute-dispensation:event-insert',
+        owner: 'Pharmacy Platform',
+        context: {
+          orderId: body.order_id,
+          substitutionType: body.substitution_type || 'none',
+          dispensedQuantity: body.dispensed_quantity,
+        },
+      });
+      console.error('[execute-dispensation] Event insert error:', eventError);
+      // Check if it's a trigger enforcement error
+      if (eventError.message.includes('Substitution')) {
+        return new Response(JSON.stringify({
+          error: 'Substitution control violation',
+          details: eventError.message,
+        }), {
+          status: 409,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({ error: 'Failed to record dispensation', details: eventError.message }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
       });
     }
-    const [updated, events] = await Promise.all([
-      supabaseUser.from('dispensation_orders').select('status, quantity_units').eq('id', body.order_id).single(),
-      supabaseUser.from('dispensation_events').select('dispensed_quantity').eq('order_id', body.order_id),
-    ]);
-    if (updated.error || events.error || !updated.data || !['dispensed', 'partially_dispensed'].includes(updated.data.status)) {
-      throw new Error('dispensation_commit_not_verified');
-    }
+
+    // Calculate total dispensed
+    const { data: allEvents } = await supabaseAdmin
+      .from('dispensation_events')
+      .select('dispensed_quantity')
+      .eq('order_id', body.order_id);
+
+    const totalDispensed = (allEvents || []).reduce(
+      (sum: number, e: { dispensed_quantity: number }) => sum + e.dispensed_quantity, 0
+    );
+
+    const newStatus = totalDispensed >= order.quantity_units ? 'dispensed' : 'partially_dispensed';
+
+    // Update order status
+    await supabaseAdmin
+      .from('dispensation_orders')
+      .update({ status: newStatus })
+      .eq('id', body.order_id);
+
+    // Update original prescription status
+    const rxStatus = newStatus === 'dispensed' ? 'dispensed_total' : 'dispensed_partial';
+    await supabaseAdmin
+      .from('prescriptions')
+      .update({ status: rxStatus })
+      .eq('id', order.prescription_id);
+
+    // Audit
+    await supabaseAdmin.from('pharmacy_audit_events').insert({
+      order_id: body.order_id,
+      event_type: 'dispensation_executed',
+      actor_id: user.id,
+      actor_role: 'pharmacist',
+      details: {
+        dispensed_medication: body.dispensed_medication,
+        dispensed_formulation: body.dispensed_formulation,
+        dispensed_quantity: body.dispensed_quantity,
+        total_dispensed: totalDispensed,
+        target_quantity: order.quantity_units,
+        new_status: newStatus,
+        substitution_type: body.substitution_type || 'none',
+        batch_number: body.batch_number,
+      },
+      ip_address: ipAddress,
+    });
+
     return new Response(JSON.stringify({
-      status: updated.data.status,
-      total_dispensed: (events.data ?? []).reduce((sum, e) => sum + e.dispensed_quantity, 0),
-      target_quantity: updated.data.quantity_units,
-      prescription_status_updated: updated.data.status === 'dispensed' ? 'dispensed_total' : 'dispensed_partial',
-    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      status: newStatus,
+      total_dispensed: totalDispensed,
+      target_quantity: order.quantity_units,
+      prescription_status_updated: rxStatus,
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (error) {
-    captureEdgeException(new Error('pharmacy_operation_failed'), {
+    captureEdgeException(error, {
       layer: 'data-platform',
       surface: 'execute-dispensation:unexpected',
       owner: 'Pharmacy Platform',
     });
-    console.error('[execute-dispensation] Unexpected error:', { code: pharmacyErrorCode(error) });
+    console.error('[execute-dispensation] Unexpected error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
   }
 });
-

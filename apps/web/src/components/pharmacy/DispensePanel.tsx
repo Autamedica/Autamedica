@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { logger } from '@autamedica/shared';
 import { fetchApi } from '@/lib/api-client';
 import { Button } from '@autamedica/ui';
@@ -26,7 +26,6 @@ interface DispenseResponse {
 }
 
 export function DispensePanel({ order, onComplete }: DispensePanelProps) {
-  const deliveryId = useRef<string | null>(null);
   const isBridge = order.prescription_type === 'transition_bridge';
 
   const [form, setForm] = useState({
@@ -57,7 +56,6 @@ export function DispensePanel({ order, onComplete }: DispensePanelProps) {
       return;
     }
 
-    deliveryId.current ??= crypto.randomUUID();
     setDispensing(true);
     setError(null);
 
@@ -66,7 +64,6 @@ export function DispensePanel({ order, onComplete }: DispensePanelProps) {
         `/api/pharmacy/orders/${order.id}/dispense`,
         {
           body: {
-            idempotency_key: deliveryId.current,
             dispensed_medication: form.dispensed_medication,
             dispensed_formulation: form.dispensed_formulation,
             dispensed_quantity: Number(form.dispensed_quantity),
@@ -110,7 +107,7 @@ export function DispensePanel({ order, onComplete }: DispensePanelProps) {
         </div>
         <div className="flex gap-3 justify-center">
           {!isComplete && (
-            <Button variant="primary" onClick={() => { deliveryId.current = null; setResult(null); }} className="bg-emerald-600 hover:bg-emerald-700">
+            <Button variant="primary" onClick={() => setResult(null)} className="bg-emerald-600 hover:bg-emerald-700">
               Dispensar cantidad restante
             </Button>
           )}
@@ -213,4 +210,3 @@ export function DispensePanel({ order, onComplete }: DispensePanelProps) {
     </form>
   );
 }
-

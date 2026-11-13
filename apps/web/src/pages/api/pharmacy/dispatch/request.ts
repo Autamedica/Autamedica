@@ -146,7 +146,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
       const { data: pharmacy, error: pharmErr } = await supabase
         .from('pharmacies')
-        .select('id, active, deleted_at, care_country')
+        .select('id, active, deleted_at')
         .eq('id', cleanPharmacyId)
         .maybeSingle()
 
@@ -167,10 +167,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Resolve the establishment from persisted data, never from the QR payload.
     if (resolvedPharmacyId) {
       const { data: origin, error: originError } = await supabase.from('pharmacies')
-        .select('id, active, deleted_at, care_country').eq('id', resolvedPharmacyId).maybeSingle()
+        .select('id, active, deleted_at').eq('id', resolvedPharmacyId).maybeSingle()
       if (originError) return internalError()
-      if (!origin?.active || origin.deleted_at || origin.care_country !== context.careCountry) {
-        return forbidden('La farmacia y tu país de atención no coinciden. Usa el acceso de tu país')
+      if (!origin?.active || origin.deleted_at) {
+        return forbidden('La farmacia del QR no está activa. Usa el acceso de una farmacia adherida')
       }
     } else if (resolvedKioskId) {
       return forbidden('kiosk_country_not_configured')

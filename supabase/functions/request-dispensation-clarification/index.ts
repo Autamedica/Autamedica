@@ -1,5 +1,4 @@
-import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
-import { verifyPharmacyOrderAccess, pharmacyErrorCode } from '../_shared/pharmacy-country.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
 function requireEnv(name: string): string {
   const value = Deno.env.get(name);
@@ -45,7 +44,7 @@ Deno.serve(async (req) => {
     // Verify pharmacist
     const { data: pharmacist } = await supabaseAdmin
       .from('pharmacists')
-      .select('id, pharmacy_id, care_country, role, license_number')
+      .select('id, pharmacy_id')
       .eq('user_id', user.id)
       .eq('active', true)
       .single();
@@ -94,10 +93,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    const accessError = await verifyPharmacyOrderAccess(supabaseAdmin, order, pharmacist);
-    if (accessError) {
-      return new Response(JSON.stringify({ error: accessError }), {
-        status: 403, headers: { 'Content-Type': 'application/json' },
+    if (order.pharmacy_id && order.pharmacy_id !== pharmacist.pharmacy_id) {
+      return new Response(JSON.stringify({ error: 'Order is assigned to a different pharmacy' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
       });
     }
 
@@ -115,7 +114,7 @@ Deno.serve(async (req) => {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
 
-    const { data: clarification, error: insertError } = await supabaseUser
+    const { data: clarification, error: insertError } = await supabaseAdmin
       .from('dispensation_clarifications')
       .insert({
         order_id: body.order_id,
@@ -129,14 +128,34 @@ Deno.serve(async (req) => {
       .single();
 
     if (insertError) {
-      console.error('[request-dispensation-clarification] Insert error:', { code: pharmacyErrorCode(insertError) });
+      console.error('[request-dispensation-clarification] Insert error:', insertError);
       return new Response(JSON.stringify({ error: 'Failed to create clarification request' }), {
-        status: insertError.code === '42501' ? 403 : ['23505', '23514'].includes(insertError.code) ? 409 : 500,
+        status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    // PostgreSQL committed the clarification, order transition and audit together.
+    // Transition order status
+    await supabaseAdmin
+      .from('dispensation_orders')
+      .update({ status: 'clarification_requested' })
+      .eq('id', body.order_id);
+
+    // Audit
+    const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
+    await supabaseAdmin.from('pharmacy_audit_events').insert({
+      order_id: body.order_id,
+      event_type: 'clarification_requested',
+      actor_id: user.id,
+      actor_role: 'pharmacist',
+      details: {
+        question: body.question,
+        category: body.question_category,
+        clarification_id: clarification.id,
+        expires_at: expiresAt.toISOString(),
+      },
+      ip_address: ipAddress,
+    });
 
     // Send push notification to the prescribing doctor
     const { data: doctor } = await supabaseAdmin
@@ -149,7 +168,7 @@ Deno.serve(async (req) => {
       try {
         await supabaseAdmin.functions.invoke('send-push-notification', {
           body: {
-            userId: doctor.user_id,
+            user_id: doctor.user_id,
             title: '📋 Aclaración requerida',
             body: `La farmacia solicita aclaración sobre una receta: ${body.question_category}`,
             data: {
@@ -161,7 +180,7 @@ Deno.serve(async (req) => {
         });
       } catch (notifError) {
         // Non-fatal: log but don't fail the request
-        console.error('[request-dispensation-clarification] Push notification failed:', { code: pharmacyErrorCode(notifError) });
+        console.error('[request-dispensation-clarification] Push notification failed:', notifError);
       }
     }
 
@@ -174,11 +193,10 @@ Deno.serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('[request-dispensation-clarification] Unexpected error:', { code: pharmacyErrorCode(error) });
+    console.error('[request-dispensation-clarification] Unexpected error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
   }
 });
-

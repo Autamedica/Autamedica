@@ -536,11 +536,11 @@ export async function issuePrescription(
   // 1. Resolve and validate doctor
   const { data: doctor } = await supabase
     .from('doctors')
-    .select('id, active, care_country, license_number, license_type, uf_brazil, rqe_number, cpf, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address, signature_image_url, stamp_image_url, care_guide_template')
+    .select('id, care_country, license_number, license_type, uf_brazil, rqe_number, cpf, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address, signature_image_url, stamp_image_url, care_guide_template')
     .eq('user_id', userId)
     .maybeSingle();
 
-  if (!doctor?.active) return fail({ code: 'doctor_not_found' });
+  if (!doctor) return fail({ code: 'doctor_not_found' });
   if (!doctor.license_number) return fail({ code: 'missing_license_number' });
   if (!doctor.professional_address) return fail({ code: 'missing_professional_address' });
 
@@ -561,7 +561,7 @@ export async function issuePrescription(
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('sss_validation_status, role, active')
+    .select('sss_validation_status')
     .eq('user_id', userId)
     .single();
 
@@ -578,21 +578,21 @@ export async function issuePrescription(
   // 3. Get and validate patient
   const { data: patient } = await supabase
     .from('patients')
-    .select('user_id, active, care_country, dni, cuil, cpf, cns, address, birth_date, gender, insurance_info')
+    .select('user_id, care_country, dni, cuil, cpf, cns, address, birth_date, gender, insurance_info')
     .eq('id', rx.patient_id)
     .single();
 
-  if (!patient?.active) return fail({ code: 'patient_not_found' });
+  if (!patient) return fail({ code: 'patient_not_found' });
+
+  const doctorCountry = doctor.care_country === 'AR' || doctor.care_country === 'BR'
+    ? doctor.care_country
+    : doctor.license_type === 'CRM' && doctor.uf_brazil ? 'BR'
+      : doctor.license_type === 'MN' || doctor.license_type === 'MP' ? 'AR'
+        : null;
 
   const issuanceGate = checkDirectPrescriptionIssuance({
-    doctorActive: doctor.active,
-    profileActive: profile?.active,
-    profileRole: profile?.role,
-    patientActive: patient.active,
     prescriptionCountry,
-    // The persisted clinical jurisdiction is authoritative. Never infer it
-    // from CRM/MN credentials when doctors.care_country is unset.
-    doctorCountry: doctor.care_country,
+    doctorCountry,
     patientCountry: patient.care_country,
     argentinaProductionApproved: runtimeEnv?.AR_RX_PRODUCTION_APPROVED === 'true',
   });

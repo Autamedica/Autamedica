@@ -4,9 +4,6 @@
  * This gate must run before any vendor, PDF, CUIR, audit or storage mutation.
  */
 export type IssuanceGateCode =
-  | 'doctor_not_found'
-  | 'prescriber_validation_required'
-  | 'patient_not_found'
   | 'prescription_country_required'
   | 'doctor_country_mismatch'
   | 'patient_country_required_or_mismatched'
@@ -16,25 +13,11 @@ export type IssuanceGateCode =
 export type IssuanceCountry = 'AR' | 'BR';
 
 export function checkDirectPrescriptionIssuance(input: {
-  doctorActive: boolean | null | undefined;
-  profileActive: boolean | null | undefined;
-  profileRole: string | null | undefined;
-  patientActive: boolean | null | undefined;
   prescriptionCountry: string | null | undefined;
   doctorCountry: string | null | undefined;
   patientCountry: string | null | undefined;
   argentinaProductionApproved: boolean;
 }): { ok: true; country: 'AR' } | { ok: false; code: IssuanceGateCode } {
-  if (input.doctorActive !== true) {
-    return { ok: false, code: 'doctor_not_found' };
-  }
-  if (input.profileActive !== true || input.profileRole !== 'doctor') {
-    return { ok: false, code: 'prescriber_validation_required' };
-  }
-  if (input.patientActive !== true) {
-    return { ok: false, code: 'patient_not_found' };
-  }
-
   const country = input.prescriptionCountry;
   if (country !== 'AR' && country !== 'BR') {
     return { ok: false, code: 'prescription_country_required' };

@@ -283,7 +283,7 @@ class DoctorDashboardViewModel @Inject constructor(
     }
 
     private fun stopPersistentGuardHeartbeat() {
-        applicationContext?.let(DoctorDutyHeartbeatService::stop)
+        applicationContext?.let { context -> DoctorDutyHeartbeatService.stop(context) }
     }
 
     private fun observeIncomingOffers() {

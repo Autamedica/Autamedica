@@ -1,4 +1,3 @@
-import { pharmacyErrorCode } from '@/lib/pharmacy/errors';
 import type { APIRoute } from 'astro';
 import { logger } from '@autamedica/shared';
 import { withAuthRole, PHARMACIST_ROLES, isAuthed } from '@/lib/api-auth';
@@ -26,6 +25,12 @@ type UntypedNotificationClient = {
 function getRuntimeEnv(locals: unknown): Record<string, unknown> | null {
   const runtime = (locals as { runtime?: { env?: Record<string, unknown> } } | undefined)?.runtime;
   return runtime?.env ?? null;
+}
+
+function getClientIp(request: Request): string {
+  return request.headers.get('x-forwarded-for')
+    ?? request.headers.get('cf-connecting-ip')
+    ?? 'unknown';
 }
 
 function isClarificationCategory(value: string): value is ClarificationCategory {
@@ -73,31 +78,28 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
 
     const { data: pharmacist, error: pharmacistError } = await admin
       .from('pharmacists')
-      .select('id, pharmacy_id, care_country, role, license_number')
+      .select('id, pharmacy_id')
       .eq('user_id', user.id)
       .eq('active', true)
       .maybeSingle();
 
     if (pharmacistError) {
-      logger.error('[pharmacy/orders/clarify] Pharmacist lookup failed', { code: pharmacyErrorCode(pharmacistError) });
+      logger.error('[pharmacy/orders/clarify] Pharmacist lookup failed', pharmacistError);
       return internalError();
     }
 
-    if (!pharmacist?.id || !pharmacist.pharmacy_id ||
-        !['AR','BR'].includes(pharmacist.care_country ?? '') ||
-        !['pharmacist','pharmacy_director'].includes(pharmacist.role ?? '') ||
-        !pharmacist.license_number?.trim()) {
+    if (!pharmacist?.id || !pharmacist.pharmacy_id) {
       return forbidden('not_pharmacist');
     }
 
     const { data: order, error: orderError } = await admin
       .from('dispensation_orders')
-      .select('id, doctor_id, patient_id, prescription_id, pharmacy_id, care_country, status')
+      .select('id, doctor_id, pharmacy_id, status')
       .eq('id', orderId)
       .maybeSingle();
 
     if (orderError) {
-      logger.error('[pharmacy/orders/clarify] Order lookup failed', { code: pharmacyErrorCode(orderError) });
+      logger.error('[pharmacy/orders/clarify] Order lookup failed', orderError);
       return internalError();
     }
 
@@ -105,33 +107,8 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       return notFound('order_not_found');
     }
 
-    // Administrative DB clients bypass RLS: enforce assignment and jurisdiction here.
-    if (!order.pharmacy_id || order.pharmacy_id !== pharmacist.pharmacy_id ||
-        order.care_country !== pharmacist.care_country) {
+    if (order.pharmacy_id && order.pharmacy_id !== pharmacist.pharmacy_id) {
       return forbidden('order_not_in_pharmacy');
-    }
-
-    const [pharmacyResult, prescriptionResult, doctorResult, patientResult] = await Promise.all([
-      admin.from('pharmacies').select('active, deleted_at, care_country')
-        .eq('id', pharmacist.pharmacy_id).maybeSingle(),
-      admin.from('prescriptions').select('country_code, doctor_id, patient_id')
-        .eq('id', order.prescription_id).maybeSingle(),
-      admin.from('doctors').select('care_country, active')
-        .eq('id', order.doctor_id).maybeSingle(),
-      admin.from('patients').select('care_country, active')
-        .eq('id', order.patient_id).maybeSingle(),
-    ]);
-    const pharmacy = pharmacyResult.data;
-    const rx = prescriptionResult.data;
-    const prescriber = doctorResult.data;
-    const patient = patientResult.data;
-    if (pharmacyResult.error || prescriptionResult.error || doctorResult.error || patientResult.error ||
-        !pharmacy?.active || pharmacy.deleted_at || pharmacy.care_country !== order.care_country ||
-        rx?.country_code !== order.care_country ||
-        rx.doctor_id !== order.doctor_id || rx.patient_id !== order.patient_id ||
-        !prescriber?.active || prescriber.care_country !== order.care_country ||
-        !patient?.active || patient.care_country !== order.care_country) {
-      return forbidden('prescription_or_pharmacy_country_mismatch');
     }
 
     if (!['under_review', 'blocked'].includes(order.status)) {
@@ -146,7 +123,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       .maybeSingle();
 
     if (existingError) {
-      logger.error('[pharmacy/orders/clarify] Pending clarification lookup failed', { code: pharmacyErrorCode(existingError) });
+      logger.error('[pharmacy/orders/clarify] Pending clarification lookup failed', existingError);
       return internalError();
     }
 
@@ -157,7 +134,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     const requestedAt = new Date();
     const expiresAt = new Date(requestedAt.getTime() + 24 * 60 * 60 * 1000).toISOString();
 
-    const { data: clarification, error: clarificationError } = await auth.supabase
+    const { data: clarification, error: clarificationError } = await admin
       .from('dispensation_clarifications')
       .insert({
         order_id: orderId,
@@ -172,14 +149,41 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       .single();
 
     if (clarificationError) {
-      if (pharmacyErrorCode(clarificationError) === '23505') return conflict('clarification_already_pending');
-      if (pharmacyErrorCode(clarificationError) === '42501') return forbidden('pharmacy_authorization_required');
-      if (pharmacyErrorCode(clarificationError) === '23514') return conflict('clarification_state_conflict');
-      logger.error('[pharmacy/orders/clarify] Clarification insert failed', { code: pharmacyErrorCode(clarificationError) });
+      logger.error('[pharmacy/orders/clarify] Clarification insert failed', clarificationError);
       return internalError();
     }
 
-    // PostgreSQL committed the clarification, order transition and audit together.
+    const { error: updateOrderError } = await admin
+      .from('dispensation_orders')
+      .update({ status: 'clarification_requested' })
+      .eq('id', orderId);
+
+    if (updateOrderError) {
+      logger.error('[pharmacy/orders/clarify] Order update failed', updateOrderError);
+      return internalError();
+    }
+
+    await admin
+      .from('pharmacy_audit_events')
+      .insert({
+        order_id: orderId,
+        event_type: 'clarification_requested',
+        actor_id: user.id,
+        actor_role: 'pharmacist',
+        details: {
+          question,
+          category: questionCategory,
+          clarification_id: clarification.id,
+          expires_at: expiresAt,
+        },
+        ip_address: getClientIp(request),
+      })
+      .then(({ error }) => {
+        if (error) {
+          logger.warn('[pharmacy/orders/clarify] Audit insert failed', error);
+        }
+      });
+
     const { data: doctor, error: doctorError } = await admin
       .from('doctors')
       .select('user_id')
@@ -187,7 +191,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       .maybeSingle();
 
     if (doctorError) {
-      logger.warn('[pharmacy/orders/clarify] Doctor notification lookup failed', { code: pharmacyErrorCode(doctorError) });
+      logger.warn('[pharmacy/orders/clarify] Doctor notification lookup failed', doctorError);
     }
 
     if (doctor?.user_id) {
@@ -207,7 +211,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
         });
 
       if (notificationError) {
-        logger.warn('[pharmacy/orders/clarify] Notification insert failed', { code: pharmacyErrorCode(notificationError) });
+        logger.warn('[pharmacy/orders/clarify] Notification insert failed', notificationError);
       }
     }
 
@@ -217,8 +221,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       expiresAt,
     }, 201);
   } catch (err) {
-    logger.error('[pharmacy/orders/clarify] POST error', { code: pharmacyErrorCode(err) });
+    logger.error('[pharmacy/orders/clarify] POST error', err);
     return internalError();
   }
 };
-

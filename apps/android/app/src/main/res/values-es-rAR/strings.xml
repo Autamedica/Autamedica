@@ -14,4 +14,11 @@
     <string name="notification_dispatch_accept">Ver / Aceptar guardia</string>
     <string name="notification_dispatch_decline">Rechazar</string>
     <string name="jordan_payment_start_message">Confirmá el pago para iniciar tu videoconsulta ahora.</string>
+    <string name="notification_dispatch_channel">Consultas de guardia</string>
+    <string name="notification_dispatch_text">Nueva consulta de farmacia disponible</string>
+    <string name="notification_dispatch_title">Nueva consulta de guardia</string>
+    <string name="notification_dispatch_title_default">Nueva consulta de farmacia</string>
+    <string name="doctor_guard_notification_channel">Guardia médica activa</string>
+    <string name="doctor_guard_notification_title">Guardia activa</string>
+    <string name="doctor_guard_notification_text">Esperando pacientes</string>
 </resources>
