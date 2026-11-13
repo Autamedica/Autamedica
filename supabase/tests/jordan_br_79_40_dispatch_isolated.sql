@@ -123,14 +123,9 @@ BEGIN
     specialty=EXCLUDED.specialty,
     active=EXCLUDED.active
   RETURNING id INTO v_doc;
-  -- Service tiers are privileged operational permissions. Enable the synthetic
-  -- generalist as the synthetic administrator, never as the doctor itself.
-  PERFORM set_config(
-    'request.jwt.claims',
-    jsonb_build_object('sub',v_reviewer,'role','authenticated')::text,
-    true
-  );
-  UPDATE public.doctors SET enabled_service_tiers=ARRAY['general'] WHERE id=v_doc;
+  -- Active tiers live in doctor_duty_status.active_tiers in the current
+  -- dispatch schema. The isolated fixture sets that row below without relying
+  -- on the removed legacy doctors.enabled_service_tiers column.
   PERFORM set_config('request.jwt.claims','{"role":"service_role"}',true);
 
   INSERT INTO public.doctor_licenses(
