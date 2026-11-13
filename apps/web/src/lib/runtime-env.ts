@@ -180,7 +180,7 @@ export function resolveGuestSecret(runtimeEnv?: RuntimeEnvRecord): string | unde
 
   // Documented provisioning: openssl rand -hex 32 (256 bits).
   // Missing, placeholder or low-entropy-looking secrets fail closed.
-  return isStrongGuestSigningSecret(configured) ? configured : undefined;
+  return isWellFormedGuestSigningSecret(configured) ? configured : undefined;
 }
 
 export function resolvePublicClientEnv(runtimeEnv?: RuntimeEnvRecord): {

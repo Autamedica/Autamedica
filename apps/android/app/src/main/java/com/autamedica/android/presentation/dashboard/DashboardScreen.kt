@@ -199,8 +199,19 @@ fun DashboardScreen(
                         // 1. Hero Visual Anchor
                         item {
                             PatientHeroSection(
+                                userName = uiState.userName,
+                                subscriptionTier = uiState.subscriptionTier,
+                                benefitBalanceCredits = uiState.benefitBalanceCredits,
                                 onBookConsultation = {
                                     onNavigateToTab(PATIENT_TAB_APPOINTMENTS)
+                                },
+                                onOpenReserveDetails = {
+                                    onOpenHealthReserveDetail(
+                                        uiState.subscriptionTier,
+                                        uiState.benefitBalanceCredits,
+                                        uiState.maxCapCredits,
+                                    )
+                                    onNavigateToHealthReserve()
                                 },
                                 onPharmacyExpressClick = onOpenPharmacyExpress,
                             )

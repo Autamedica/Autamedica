@@ -7,17 +7,17 @@ DECLARE
   p text;
   claim text;
 BEGIN
-  IF pg_catalog.has_schema_privilege('anon', 'app_private', 'USAGE')
-     OR pg_catalog.has_schema_privilege('authenticated', 'app_private', 'USAGE')
-  THEN
-    RAISE EXCEPTION 'Private push schema must not be exposed';
-  END IF;
-
+  -- app_private contains a deliberately allow-listed set of callable
+  -- identity helpers. Schema USAGE is therefore not the security boundary;
+  -- this privileged push entry point must remain non-executable by clients.
   IF pg_catalog.has_function_privilege(
       'anon', 'app_private.send_authenticated_dispatch_push(uuid,text,text,jsonb)', 'EXECUTE'
     )
+     OR pg_catalog.has_function_privilege(
+      'authenticated', 'app_private.send_authenticated_dispatch_push(uuid,text,text,jsonb)', 'EXECUTE'
+    )
   THEN
-    RAISE EXCEPTION 'Public caller can invoke privileged dispatch push';
+    RAISE EXCEPTION 'Client caller can invoke privileged dispatch push';
   END IF;
 
   IF pg_catalog.has_function_privilege('anon', 'public.match_dispatch_doctors(uuid)', 'EXECUTE')
@@ -57,8 +57,11 @@ BEGIN
     RAISE EXCEPTION 'Dispatch payload targets doctorId instead of userId';
   END IF;
   IF position('d.active IS TRUE' IN m) = 0
-     OR position('PENDING(-|$)' IN m) = 0
-     OR position('PENDING(-|$)' IN t) = 0
+     OR position('d.active IS TRUE' IN t) = 0
+     OR position('NULLIF(btrim(d.license_number), '') IS NOT NULL' IN m) = 0
+     OR position('NULLIF(btrim(d.license_number), '') IS NOT NULL' IN t) = 0
+     OR position('PENDING' IN m) = 0
+     OR position('PENDING' IN t) = 0
   THEN
     RAISE EXCEPTION 'Dispatch must reject inactive/provisional doctors';
   END IF;
