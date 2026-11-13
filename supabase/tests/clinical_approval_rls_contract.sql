@@ -62,10 +62,10 @@ BEGIN
       v_expected_gate := 'is_clinically_approved_doctor()';
     END IF;
 
-    IF regexp_replace(v_expr, 'NOT public\.is_doctor\(\)', '', 'gi') ~* '(^|[^a-z_])is_doctor\(\)' THEN
+    IF regexp_replace(v_expr, 'NOT (public\.)?is_doctor\(\)', '', 'gi') ~* '(^|[^a-z_])is_doctor\(\)' THEN
       RAISE EXCEPTION 'Legacy is_doctor() still authorizes %.%',v_policy.relname,v_policy.polname;
     END IF;
-    IF position('NOT public.is_doctor()' IN v_expr)=0 THEN
+    IF v_expr !~* 'NOT (public\.)?is_doctor\(\)' THEN
       RAISE EXCEPTION 'Global dual-role doctor gate missing: %.%',v_policy.relname,v_policy.polname;
     END IF;
 
