@@ -33,6 +33,13 @@ class CallActionReceiver : BroadcastReceiver() {
         Timber.d("[CallActionReceiver] onReceive: action=$action resolvedId=$resolvedId")
 
         when (action) {
+            IncomingCallNotificationManager.ACTION_DECLINE_DISPATCH -> {
+                // A dispatch refusal only dismisses this local alert. It must not
+                // mutate a video-call appointment or expose patient details.
+                IncomingCallNotificationManager.dismissDispatchAlert(context)
+                Timber.i("[CallActionReceiver] Pharmacy dispatch alert dismissed by clinician")
+            }
+
             IncomingCallNotificationManager.ACTION_ANSWER_CALL -> {
                 // Silence ringtone — navigation to VideoCallScreen is handled by MainActivity
                 IncomingCallNotificationManager.stopRingtone()
