@@ -7,7 +7,7 @@ describe('Farmalink PDF affiliate reconciliation', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it('prints the exact PAN submitted to Farmalink, not the patient CUIL', async () => {
-    const textSpy = vi.spyOn(jsPDF.prototype, 'text');
+    const textSpy = vi.spyOn(jsPDF.API, 'text');
     vi.spyOn(rctaService, 'registerPrescription').mockResolvedValueOnce({
       cuir: '02680042020102000000000000000000000010104',
       evidenceHash: 'test-evidence-hash',
@@ -51,7 +51,7 @@ describe('Farmalink PDF affiliate reconciliation', () => {
   });
 
   it('keeps ReNaPDiS legend but removes technical generic-mode label in unsigned TEST', async () => {
-    const textSpy = vi.spyOn(jsPDF.prototype, 'text');
+    const textSpy = vi.spyOn(jsPDF.API, 'text');
     const output = await generatePrescriptionPdf({
       prescriptionId: 'rx-homologation-test',
       issuedAt: '2026-11-03',

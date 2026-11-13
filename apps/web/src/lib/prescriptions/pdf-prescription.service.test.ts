@@ -252,7 +252,7 @@ describe('generatePrescriptionPdf', () => {
       { mode: 'S' as const, number: '9600000421228', commercialName: undefined, filename: 'generica' },
       { mode: 'N' as const, number: '9600000421242', commercialName: 'ESFUMEL blanqueadora cr. x 20 g', filename: 'marca' },
     ]) {
-      const textSpy = vi.spyOn(jsPDF.prototype, 'text');
+      const textSpy = vi.spyOn(jsPDF.API, 'text');
       const artifacts = await generatePrescriptionPdf({
         prescriptionId: `farmalink-homologation-${scenario.mode}-${scenario.number}`,
         homologationTest: true,
