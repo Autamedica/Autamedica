@@ -27,5 +27,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     reason: typeof body.reason === 'string' ? body.reason.slice(0,500) : null, updated_at:new Date().toISOString(),
   }, { onConflict:'id' }).select('*').single()
   if (error) return internalError('payment_switch_update_failed')
+  await db.from('audit_logs').insert({user_id:auth.user.id,action:'platform_payment_switch_updated',resource_type:'platform_operational_switches',metadata:{key:body.key,enabled:body.enabled,reason:body.reason ?? null}})
   return jsonOk(data)
 }
