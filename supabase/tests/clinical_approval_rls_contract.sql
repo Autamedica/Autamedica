@@ -88,6 +88,7 @@ BEGIN
   IF to_regprocedure('public.is_clinically_authorized_doctor_read()') IS NULL
      OR to_regprocedure('public.doctor_has_patient_read_access(uuid)') IS NULL
      OR to_regprocedure('public.is_clinically_authorized_doctor_read_for_patient(uuid)') IS NULL
+     OR to_regprocedure('public.has_clinical_legacy_patient_read_grant(uuid)') IS NULL
      OR to_regclass('app_private.clinical_legacy_read_grants') IS NULL THEN
     RAISE EXCEPTION 'Read-only legacy bridge is incomplete';
   END IF;
@@ -138,6 +139,10 @@ INSERT INTO auth.users(id,instance_id,aud,role,email,raw_user_meta_data,raw_app_
 VALUES('a1100000-0000-4000-8000-000000000003','00000000-0000-0000-0000-000000000000','authenticated','authenticated',
 'synthetic-unassigned-patient@example.invalid','{"role":"patient"}'::jsonb,'{}'::jsonb);
 INSERT INTO public.patients(user_id,active) VALUES('a1100000-0000-4000-8000-000000000003',true);
+INSERT INTO auth.users(id,instance_id,aud,role,email,raw_user_meta_data,raw_app_meta_data)
+VALUES('a1100000-0000-4000-8000-000000000004','00000000-0000-0000-0000-000000000000','authenticated','authenticated',
+'synthetic-doctor-patient-link@example.invalid','{"role":"patient"}'::jsonb,'{}'::jsonb);
+INSERT INTO public.patients(user_id,active) VALUES('a1100000-0000-4000-8000-000000000004',true);
 DO $legacy_grant$
 DECLARE v_doctor_id uuid;v_patient_id uuid;
 BEGIN
@@ -146,6 +151,9 @@ BEGIN
  INSERT INTO public.patient_care_team(doctor_id,patient_id,active) VALUES(v_doctor_id,v_patient_id,true);
  INSERT INTO public.appointments(doctor_id,patient_id,start_time,status) VALUES(v_doctor_id,v_patient_id,now()-interval '1 day','completed');
  INSERT INTO app_private.clinical_legacy_read_grants(doctor_id,patient_id,source,expires_at) VALUES(v_doctor_id,v_patient_id,'patient_care_team',now()+interval '30 days');
+ INSERT INTO public.doctor_patient(doctor_id,patient_id) VALUES(v_doctor_id,(SELECT id FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000004'));
+ INSERT INTO app_private.clinical_legacy_read_grants(doctor_id,patient_id,source,expires_at)
+ SELECT v_doctor_id,id,'doctor_patient',now()+interval '30 days' FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000004';
  INSERT INTO public.appointments(doctor_id,patient_id,start_time,status) VALUES(v_doctor_id,(SELECT id FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000001'),now()+interval '2 days','scheduled');
 END;
 $legacy_grant$;
@@ -167,6 +175,9 @@ BEGIN
  IF public.doctor_has_patient_access(v_patient_user_id) THEN RAISE EXCEPTION 'Legacy write access retained'; END IF;
  IF NOT public.doctor_has_patient_read_access(v_patient_user_id) THEN RAISE EXCEPTION 'Patient-specific read bridge missing'; END IF;
  IF public.doctor_has_patient_read_access('a1100000-0000-4000-8000-000000000003') THEN RAISE EXCEPTION 'Unassigned patient read access leaked'; END IF;
+ IF NOT public.has_clinical_legacy_patient_read_grant((SELECT id FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000004')) THEN RAISE EXCEPTION 'Doctor-patient legacy link was not granted'; END IF;
+ SELECT count(*) INTO v_count FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000004';
+ IF v_count<>1 THEN RAISE EXCEPTION 'Legacy doctor_patient relationship is not readable through patients RLS'; END IF;
  IF public.is_clinically_authorized_doctor_read_for_patient(public.get_my_patient_id()) THEN
    RAISE EXCEPTION 'Unassigned dual-role doctor patient row received a legacy grant';
  END IF;

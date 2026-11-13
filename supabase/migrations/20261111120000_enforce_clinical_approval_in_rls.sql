@@ -89,6 +89,18 @@ AS $function$
 $function$;
 REVOKE ALL ON FUNCTION public.is_clinically_authorized_doctor_read_for_patient(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.is_clinically_authorized_doctor_read_for_patient(uuid) TO anon,authenticated,service_role;
+
+CREATE OR REPLACE FUNCTION public.has_clinical_legacy_patient_read_grant(p_patient_id uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO ''
+AS $function$
+ SELECT EXISTS(
+  SELECT 1 FROM public.doctors d JOIN app_private.clinical_legacy_read_grants g ON g.doctor_id=d.id
+  WHERE d.user_id=(SELECT auth.uid()) AND d.active IS TRUE
+    AND g.patient_id=p_patient_id AND g.expires_at>now()
+ );
+$function$;
+REVOKE ALL ON FUNCTION public.has_clinical_legacy_patient_read_grant(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.has_clinical_legacy_patient_read_grant(uuid) TO anon,authenticated,service_role;
 -- doctor_has_patient_access is itself a clinical authorization helper. Do not
 -- let its SECURITY DEFINER context turn a technical doctor row into clearance.
 CREATE OR REPLACE FUNCTION public.doctor_has_patient_access(patient_user_id uuid)
@@ -308,6 +320,11 @@ BEGIN
         E'\\1 AND (SELECT ' || v_doctor_gate || ')',
         'gi'
       );
+    END IF;
+
+    -- Preserve patient visibility for the exact legacy relationships captured at migration time.
+    IF v_policy.relname='patients' AND v_policy.polname='patients_select_scoped' AND v_policy.polcmd='r' THEN
+      v_new_using := format('(%s) OR public.has_clinical_legacy_patient_read_grant(patients.id)',v_new_using);
     END IF;
 
     -- A dual-role doctor must not bypass clinical approval through the patient branch.
