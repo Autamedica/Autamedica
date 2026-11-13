@@ -512,7 +512,7 @@ export async function generatePrescriptionPdf(
   if (input.patient.affiliateCredential) {
     // The PAN must match the confirmed altaReceta, not the CUIL or local insurance metadata.
     const displayedPlan = input.patient.insuranceEntityCode === 7110
-      ? 'No Posee'
+      ? 'NO POSEE'
       : input.patient.insurancePlan;
     const affiliation = [
       input.patient.insuranceEntityCode ? `Entidad: ${input.patient.insuranceEntityCode}` : null,
