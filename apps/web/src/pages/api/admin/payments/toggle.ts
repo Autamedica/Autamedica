@@ -22,9 +22,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const body = await request.json().catch(() => null) as { key?:string; enabled?:boolean; reason?:string } | null
   if (!body || !ALLOWED.includes(body.key as SwitchName) || typeof body.enabled !== 'boolean') return badRequest('invalid_payment_switch')
   const db = createAstroAdminClient(locals.runtime?.env) as any
+  const changedAt = new Date().toISOString()
+  const { data: current, error: readError } = await db.from('platform_operational_switches')
+    .select('switch_audit').eq('id','global').maybeSingle()
+  if (readError) return internalError('payment_switch_read_before_update_failed')
+  const switchAudit = { ...(current?.switch_audit ?? {}), [body.key]: {
+    updated_by: auth.user.id, updated_at: changedAt,
+    reason: typeof body.reason === 'string' ? body.reason.slice(0,500) : null,
+  } }
   const { data, error } = await db.from('platform_operational_switches').upsert({
     id:'global', [body.key as SwitchName]:body.enabled, updated_by:auth.user.id,
-    reason: typeof body.reason === 'string' ? body.reason.slice(0,500) : null, updated_at:new Date().toISOString(),
+    reason: typeof body.reason === 'string' ? body.reason.slice(0,500) : null,
+    updated_at:changedAt, switch_audit:switchAudit,
   }, { onConflict:'id' }).select('*').single()
   if (error) return internalError('payment_switch_update_failed')
   await db.from('audit_logs').insert({user_id:auth.user.id,action:'platform_operational_switch_updated',resource_type:'platform_operational_switches',metadata:{key:body.key,enabled:body.enabled,reason:body.reason ?? null}})
