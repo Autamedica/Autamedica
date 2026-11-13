@@ -50,7 +50,7 @@ android {
         versionCode = 32
         versionName = "1.2.22"
 
-        resourceConfigurations += listOf("es", "pt", "pt-rBR")
+        resourceConfigurations += listOf("es", "es-rAR", "pt", "pt-rBR" )
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

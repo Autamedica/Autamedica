@@ -10,8 +10,9 @@ import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.logging.SecureLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -100,7 +101,6 @@ class PharmacyIntakeViewModel @Inject constructor(
     val uiState: StateFlow<PharmacyIntakeUiState> = _uiState.asStateFlow()
 
     private var statusPollingJob: Job? = null
-    private var paymentPollingJob: Job? = null
     private var observeActiveDoctorsJob: Job? = null
     private var marketCapacityJob: Job? = null
 
@@ -226,10 +226,6 @@ class PharmacyIntakeViewModel @Inject constructor(
                             refreshCountryDoctorCount(request.careCountry)
                             // Observe the request even if the doctor already attended: payment is independent.
                             startStatusPolling(request.id)
-                            if (request.careCountry == "BR" && request.status in setOf("searching", "matched", "in_call") &&
-                                (referralCodeParam == "JORDAN" || request.referralPartnerId != null)) {
-                                startPaymentStatusPolling(request.id)
-                            }
                         }
                     }
                     .onFailure { error ->
@@ -349,10 +345,6 @@ class PharmacyIntakeViewModel @Inject constructor(
                 // La espera queda activa (radar) mientras el request está searching/matched.
                 // readyToJoinCall solo se enciende cuando el médico atiende (in_call) y la sala existe.
                 startStatusPolling(request.id)
-                if ((request.careCountry ?: state.careCountry) == "BR" &&
-                    (state.referralCode == "JORDAN" || request.referralPartnerId != null)) {
-                    startPaymentStatusPolling(request.id)
-                }
                 refreshCountryDoctorCount(request.careCountry ?: state.careCountry)
             }.onFailure { err ->
                 SecureLog.error("[PharmacyIntakeVM] Failed creating request", err)
@@ -398,88 +390,86 @@ class PharmacyIntakeViewModel @Inject constructor(
         _uiState.update { it.copy(paymentCheckoutUrl = null) }
     }
 
-    /** Poll the PSP independently of dispatch events after process restoration. */
-    private fun startPaymentStatusPolling(requestId: String) {
-        paymentPollingJob?.cancel()
-        paymentPollingJob = viewModelScope.launch {
-            while (isActive) {
-                val current = _uiState.value
-                if (current.activeRequestId != requestId || !current.requiresBrazilianPayment) break
-
-                val verifiedStatus = pharmacyDispatchRepository.getDispatchPaymentStatus(requestId).getOrNull()
-                if (verifiedStatus != null) {
-                    _uiState.update { state ->
-                        if (state.activeRequestId != requestId) return@update state
-                        state.copy(
-                            paymentStatus = verifiedStatus,
-                            readyToJoinCall = state.status == PharmacyConsultationStatus.IN_CALL &&
-                                !state.roomId.isNullOrBlank() && verifiedStatus == "approved",
-                        )
-                    }
-                    if (verifiedStatus in setOf("approved", "rejected", "refunded", "cancelled", "expired")) break
-                }
-                delay(5_000)
-            }
-        }
-    }
-
     private fun startStatusPolling(requestId: String) {
         statusPollingJob?.cancel()
         statusPollingJob = viewModelScope.launch {
-            pharmacyDispatchRepository.observePatientRequest(requestId).collect { request ->
-                val isJoinable = request.doctorAttendedCall
-                val isTerminalFailure = request.status == "cancelled" || request.status == "expired"
-                val hasRoom = request.cloudflareRoomId.isNotBlank()
-                val paymentRequired = (_uiState.value.referralCode == "JORDAN" ||
-                    request.referralPartnerId != null) && request.careCountry == "BR"
-                val verifiedPaymentStatus = if (paymentRequired &&
-                    request.status in setOf("searching", "matched", "in_call", "completed")) {
-                    // The PSP-backed endpoint is authoritative; never infer paid from
-                    // a redirect, a local callback or a clinician's presence.
-                    pharmacyDispatchRepository.getDispatchPaymentStatus(requestId).getOrNull()
-                } else null
-                if (request.status == "searching" || request.status == "matched") {
-                    refreshCountryDoctorCount(_uiState.value.careCountry)
-                }
+            // Dispatch transitions and PSP reconciliation must not share one
+            // event clock. An idle Realtime stream cannot stop payment polling.
+            launch {
+                pharmacyDispatchRepository.observePatientRequest(requestId).collect { request ->
+                    val joinable = request.doctorAttendedCall
+                    val terminal = request.status == "cancelled" || request.status == "expired"
+                    val hasRoom = request.cloudflareRoomId.isNotBlank()
+                    val paymentRequired = (_uiState.value.referralCode == "JORDAN" ||
+                        request.referralPartnerId != null) && request.careCountry == "BR"
 
-                _uiState.update { state ->
-                    val confirmedPayment = if (paymentRequired &&
-                        request.status in setOf("searching", "matched", "in_call", "completed")) {
-                        verifiedPaymentStatus ?: "unknown"
-                    } else state.paymentStatus
-                    state.copy(
-                        status = mapDispatchStatus(request.status),
-                        activeReferralPartnerId = request.referralPartnerId ?: state.activeReferralPartnerId,
-                        paymentStatus = confirmedPayment,
-                        // A dispatch status does not establish a verified rank or ETA.
-                        queuePosition = 0,
-                        estimatedMinutes = 0,
-                        roomId = if (hasRoom) request.cloudflareRoomId else state.roomId,
-                        readyToJoinCall = isJoinable && hasRoom &&
-                            (!paymentRequired || confirmedPayment == "approved"),
-                    )
-                }
-
-                if (isJoinable && hasRoom && (!paymentRequired || verifiedPaymentStatus == "approved")) {
-                    statusPollingJob?.cancel()
-                }
-                if (isTerminalFailure) {
-                    statusPollingJob?.cancel()
-                    paymentPollingJob?.cancel()
-                    _uiState.update {
-                        it.copy(
-                            // A completed/closed legacy request must not be mislabeled
-                            // as a failure due to unavailable physicians.
-                            error = null,
-                            statusNotice = when (request.status) {
-                                "expired" -> "Esta solicitud anterior finalizó. Podés iniciar una nueva consulta."
-                                else -> "La solicitud fue cancelada."
-                            },
-                            activeRequestId = null,
-                            roomId = null,
-                            readyToJoinCall = false,
+                    if (request.status == "searching" || request.status == "matched") {
+                        refreshCountryDoctorCount(_uiState.value.careCountry)
+                    }
+                    _uiState.update { state ->
+                        state.copy(
+                            status = mapDispatchStatus(request.status),
+                            activeReferralPartnerId = request.referralPartnerId ?: state.activeReferralPartnerId,
+                            queuePosition = 0,
+                            estimatedMinutes = 0,
+                            roomId = if (hasRoom) request.cloudflareRoomId else state.roomId,
+                            readyToJoinCall = joinable && hasRoom &&
+                                (!paymentRequired || state.paymentStatus == "approved"),
                         )
                     }
+                    if (joinable && hasRoom &&
+                        (!paymentRequired || _uiState.value.paymentStatus == "approved")) {
+                        statusPollingJob?.cancel()
+                    }
+                    if (terminal) {
+                        statusPollingJob?.cancel()
+                        _uiState.update {
+                            it.copy(
+                                error = null,
+                                statusNotice = if (request.status == "expired")
+                                    "Esta solicitud anterior finalizó. Podés iniciar una nueva consulta."
+                                else "La solicitud fue cancelada.",
+                                activeRequestId = null,
+                                roomId = null,
+                                readyToJoinCall = false,
+                            )
+                        }
+                    }
+                }
+            }
+
+            launch {
+                val terminalPayments = setOf(
+                    "approved", "rejected", "refunded", "cancelled", "expired", "failed",
+                )
+                while (currentCoroutineContext().isActive) {
+                    val state = _uiState.value
+                    if (state.activeRequestId != requestId) break
+                    val eligible = state.requiresBrazilianPayment && state.status in setOf(
+                        PharmacyConsultationStatus.PENDING,
+                        PharmacyConsultationStatus.ASSIGNED,
+                        PharmacyConsultationStatus.IN_CALL,
+                        PharmacyConsultationStatus.COMPLETED,
+                    )
+                    if (eligible && state.paymentStatus !in terminalPayments) {
+                        pharmacyDispatchRepository.getDispatchPaymentStatus(requestId)
+                            .onSuccess { status ->
+                                _uiState.update { current ->
+                                    if (current.activeRequestId != requestId) current
+                                    else current.copy(
+                                        paymentStatus = status,
+                                        readyToJoinCall = current.status == PharmacyConsultationStatus.IN_CALL &&
+                                            !current.roomId.isNullOrBlank() && status == "approved",
+                                    )
+                                }
+                            }
+                            .onFailure { error ->
+                                SecureLog.warn("[PharmacyIntakeVM] PSP status poll failed: ${error.message}")
+                            }
+                    }
+                    if (_uiState.value.activeRequestId != requestId ||
+                        _uiState.value.paymentStatus in terminalPayments) break
+                    delay(5_000L)
                 }
             }
         }
@@ -487,7 +477,6 @@ class PharmacyIntakeViewModel @Inject constructor(
 
     fun onCallNavigated() {
         statusPollingJob?.cancel()
-        paymentPollingJob?.cancel()
         _uiState.update {
             it.copy(
                 readyToJoinCall = false,
@@ -518,8 +507,6 @@ class PharmacyIntakeViewModel @Inject constructor(
                     if (cancelled) {
                         statusPollingJob?.cancel()
                         statusPollingJob = null
-                        paymentPollingJob?.cancel()
-                        paymentPollingJob = null
                         _uiState.update {
                             it.copy(
                                 isSubmitting = false,
@@ -560,7 +547,6 @@ class PharmacyIntakeViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         statusPollingJob?.cancel()
-        paymentPollingJob?.cancel()
         observeActiveDoctorsJob?.cancel()
     }
 }

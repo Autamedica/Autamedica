@@ -135,6 +135,10 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      - name: Check pharmacy Cloudflare Calls dispatch authorization
+        run: deno check --no-lock supabase/functions/cloudflare-calls/index.ts
+      - name: Test pharmacy guest dispatch-to-call identity binding
+        run: deno test --no-lock supabase/functions/tests/guest-dispatch-access.test.ts
       - name: Check legacy mobile prescription endpoint
         run: deno check --no-lock supabase/functions/issue-prescription/index.ts
       - name: Prove AR/BR endpoint rejects unverified official issuance without writes
@@ -168,6 +172,7 @@ jobs:
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/ar_electronic_certificate_demo_smoke.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/pharmacy_guest_identity_isolation.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/pharmacy_referral_commission_isolated.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/jordan_br_79_40_dispatch_isolated.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls_core_tables.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/farmalink_once_only_issue.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/memed_provider_integrity_smoke.sql
@@ -175,6 +180,7 @@ jobs:
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/auth_helper_permissions.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/clinical_rls_initplans.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/native_session_cleanup.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/pharmacy_dispatch_fcm_presence.sql
       - name: Export and verify a disposable database backup
         env:
           SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres

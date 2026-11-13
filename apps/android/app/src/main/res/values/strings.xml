@@ -45,8 +45,8 @@
     <string name="notification_dispatch_title">%1$s te espera en la guardia</string>
     <string name="notification_dispatch_title_default">Alguien te espera en la guardia</string>
     <string name="notification_dispatch_text">Solicitud de guardia inmediata</string>
-    <string name="notification_dispatch_offer_title">Solicitud de guardia inmediata</string>
-    <string name="notification_dispatch_offer_text">Paciente esperando en guardia de farmacia</string>
+    <string name="notification_dispatch_offer_title">Nueva consulta de farmacia disponible</string>
+    <string name="notification_dispatch_offer_text">Hay una consulta esperando en tu guardia.</string>
     <string name="notification_dispatch_accept">Ver / Aceptar guardia</string>
     <string name="notification_dispatch_decline">Rechazar</string>
     <string name="notification_permission_title">Activar notificaciones</string>
@@ -271,4 +271,8 @@
     <string name="patient_home_immediate_cta">Solicitar atención ahora</string>
     <string name="patient_home_immediate_hint">Sin reservar turno · Médico disponible</string>
     <string name="patient_home_scheduled_cta">Consulta programada · Reservar turno</string>
+    <string name="doctor_guard_notification_channel">Guardia médica activa</string>
+    <string name="doctor_guard_notification_title">Guardia activa</string>
+    <string name="doctor_guard_notification_text">Esperando pacientes</string>
+    <string name="jordan_payment_start_message">Confirmá el pago para iniciar tu videoconsulta ahora.</string>
 </resources>

@@ -1,9 +1,10 @@
 import type { APIRoute } from 'astro'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { internalError, jsonOk, notFound, unauthorized } from '@/lib/api-helpers'
+import { conflict, internalError, jsonOk, notFound, unauthorized } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { resolveGuestSecret } from '@/lib/runtime-env'
 import { verifyGuestToken } from '@/lib/calls/lib/guest-token'
+import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { logger } from '@autamedica/shared'
 
 /**
@@ -165,6 +166,77 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     return jsonOk({ request: requestRecord, doctor })
   } catch (err) {
     logger.error('[api/pharmacy/dispatch/[id]] Exception', { err })
+    return internalError()
+  }
+}
+
+/**
+ * DELETE /api/pharmacy/dispatch/[id]
+ * Cancels only the authenticated patient's own still-searching request.
+ * The legacy Gen 1 cancellation endpoint remains available for old clients.
+ */
+export const DELETE: APIRoute = async ({ params, request, locals }) => {
+  try {
+    const id = params.id?.trim()
+    if (!id) return notFound('missing_request_id')
+
+    const admin = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient
+    const { data: requestRecord, error: lookupError } = await admin
+      .from('pharmacy_dispatch_requests')
+      .select('id, patient_id, requested_by_user_id, care_country, cloudflare_room_id')
+      .eq('id', id)
+      .maybeSingle()
+    if (lookupError) return internalError()
+    if (!requestRecord) return notFound('request_not_found')
+
+    const context = await resolvePatientContext(request, locals).catch(() => null)
+    if (context?.careCountry &&
+        requestRecord.patient_id === context.patientId &&
+        requestRecord.requested_by_user_id === context.userId &&
+        requestRecord.care_country === context.careCountry) {
+      const { data, error } = await admin
+        .from('pharmacy_dispatch_requests')
+        .update({ status: 'cancelled' })
+        .eq('id', id)
+        .eq('patient_id', context.patientId)
+        .eq('requested_by_user_id', context.userId)
+        .eq('care_country', context.careCountry)
+        .eq('status', 'searching')
+        .select('id')
+        .maybeSingle()
+      if (error) return internalError()
+      if (!data) return conflict('request_cannot_be_cancelled')
+      return jsonOk({ cancelled: true })
+    }
+
+    const guestToken = request.headers.get('x-guest-token')?.trim()
+      || request.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim()
+      || ''
+    if (!guestToken) return unauthorized()
+    const secret = resolveGuestSecret(locals.runtime?.env)
+    if (!secret) return unauthorized()
+    const guestPayload = await verifyGuestToken(guestToken, secret)
+    if (!guestPayload ||
+        guestPayload.callId !== requestRecord.id ||
+        guestPayload.roomId !== requestRecord.cloudflare_room_id) {
+      return unauthorized()
+    }
+
+    const { data, error } = await admin
+      .from('pharmacy_dispatch_requests')
+      .update({ status: 'cancelled' })
+      .eq('id', id)
+      .is('patient_id', null)
+      .is('requested_by_user_id', null)
+      .eq('care_country', requestRecord.care_country)
+      .eq('status', 'searching')
+      .select('id')
+      .maybeSingle()
+    if (error) return internalError()
+    if (!data) return conflict('request_cannot_be_cancelled')
+    return jsonOk({ cancelled: true })
+  } catch (err) {
+    logger.error('[api/pharmacy/dispatch/[id]] DELETE exception', { err })
     return internalError()
   }
 }

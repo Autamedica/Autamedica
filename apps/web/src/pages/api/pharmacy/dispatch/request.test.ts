@@ -1,8 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { POST } from './request'
+import { resolvePatientContext } from '@/lib/patients/api/patient-context'
+
+vi.mock('@/lib/patients/api/patient-context', () => ({ resolvePatientContext: vi.fn() }))
 
 vi.mock('@autamedica/shared', () => {
-  const logMock = { warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn(), child: vi.fn() }
+  const logMock = { warn: vi.fn(), error: vi.fn((...args: unknown[]) => console.error('[test logger]', ...args)), info: vi.fn(), debug: vi.fn(), child: vi.fn() }
   logMock.child.mockReturnValue(logMock)
   return { logger: logMock }
 })
@@ -22,6 +25,12 @@ const TEST_SECRET = 'test-guest-secret-super-secure-at-least-32-chars!'
 
 vi.mock('@/lib/runtime-env', () => ({
   resolveGuestSecret: vi.fn(() => TEST_SECRET),
+}))
+
+// Keep API tests deterministic; recovery-token cryptography has its own unit tests.
+vi.mock('@/lib/pharmacy/guest-queue-recovery', () => ({
+  createGuestQueueRecoveryToken: vi.fn(() => 'a'.repeat(64)),
+  hashGuestQueueRecoveryToken: vi.fn(async () => 'b'.repeat(64)),
 }))
 
 const VALID_KIOSK_ID = '11111111-1111-4111-8111-111111111111'
@@ -65,6 +74,7 @@ function makeContext(options?: {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
+      'x-test-care-country': typeof options?.body === 'object' && options.body !== null && 'careCountry' in options.body ? String((options.body as { careCountry?: string }).careCountry ?? '') : 'AR',
       ...(options?.bearerToken ? { authorization: options.bearerToken } : {}),
     },
     body: JSON.stringify(
@@ -92,6 +102,16 @@ function makeContext(options?: {
 describe('API: /api/pharmacy/dispatch/request', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(resolvePatientContext).mockImplementation(async (request, locals) => {
+      const careCountry = request.headers.get('x-test-care-country')
+      const sessionUserId = (locals as { session?: { user?: { id?: string } } } | undefined)?.session?.user?.id
+      const bearerUserId = request.headers.get('authorization') ? '11111111-1111-4111-8111-111111111111' : null
+      return {
+        userId: sessionUserId ?? bearerUserId ?? 'patient-auth-user-99',
+        patientId: 'patient-row-99',
+        careCountry: careCountry === 'BR' ? 'BR' : 'AR',
+      }
+    })
   })
 
   it('rechaza una solicitud sin país explícito antes de consultar la base', async () => {
@@ -122,6 +142,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     })
     const response = await POST(makeContext({
       bearerToken: 'Bearer valid-native-patient-jwt',
+      session: null,
       jordanEnabled: true,
       body: {
         careCountry: 'BR', patientCpf: '12345678909',
@@ -202,7 +223,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
       care_country: 'BR',
       patient_cpf: '12345678909',
       patient_dni: null,
-      requested_by_user_id: null,
+      requested_by_user_id: 'patient-auth-user-99',
     }))
   })
 
@@ -439,6 +460,61 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     }))
     expect(specialist.status).toBe(400)
     expect(supabaseMock.from).not.toHaveBeenCalled()
+  })
+
+  it('creates a guest QR request without an auth.users account and returns recovery credentials', async () => {
+    vi.mocked(resolvePatientContext).mockResolvedValue(null)
+    const dispatchRow = {
+      id: 'guest-dispatch-qr-123',
+      care_country: 'AR',
+      patient_id: null,
+      requested_by_user_id: null,
+      patient_dni: '38123456',
+      patient_name: 'Ana Gomez',
+      patient_phone: '+5491122334455',
+      status: 'searching',
+    }
+    const dispatchTable = buildTableChain(dispatchRow)
+    const recoveryTable = buildTableChain(null)
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_requests') return dispatchTable
+      if (table === 'pharmacy_guest_dispatch_sessions') return recoveryTable
+      return buildTableChain(null)
+    })
+
+    const response = await POST(makeContext())
+    expect(response.status).toBe(200)
+    const payload = await response.json()
+    expect(payload.data.request.id).toBe(dispatchRow.id)
+    expect(payload.data.accessToken).toBeDefined()
+    expect(payload.data.recoveryToken).toMatch(/^[0-9a-f]{64}$/)
+    expect(dispatchTable.insert).toHaveBeenCalledWith(expect.objectContaining({
+      care_country: 'AR',
+      patient_id: null,
+      requested_by_user_id: null,
+      patient_dni: '38123456',
+      patient_cpf: null,
+      patient_name: 'Ana Gomez',
+      patient_phone: '+5491122334455',
+    }))
+    expect(recoveryTable.insert).toHaveBeenCalledWith(expect.objectContaining({
+      request_id: dispatchRow.id,
+      token_sha256: expect.any(String),
+    }))
+  })
+
+  it('does not infer a missing patient care country', async () => {
+    vi.mocked(resolvePatientContext).mockResolvedValue({ userId: 'p', patientId: 'p-row', careCountry: null })
+    const response = await POST(makeContext())
+    expect(response.status).toBe(409)
+    expect(supabaseMock.from).not.toHaveBeenCalledWith('pharmacy_dispatch_requests')
+  })
+
+  it('rejects a request country that differs from the authenticated patient country', async () => {
+    vi.mocked(resolvePatientContext).mockResolvedValue({ userId: 'p', patientId: 'p-row', careCountry: 'AR' })
+    const response = await POST(makeContext({ body: { careCountry: 'BR', patientCpf: '12345678909', patientPhone: '+5551987654321' } }))
+    expect(response.status).toBe(403)
+    expect(supabaseMock.from).not.toHaveBeenCalledWith('pharmacy_dispatch_requests')
   })
 
   it('no acredita origen de Jordan si no existe código QR', async () => {

@@ -315,7 +315,7 @@ class VideoCallViewModel @Inject constructor(
                     it.copy(
                         connectionState = ConnectionState.FAILED,
                         isWaitingRoom = false,
-                        sessionStatusMessage = "No se pudo activar la camara.",
+                        sessionStatusMessage = UiErrorMapper.map(error, "No se pudo iniciar la videollamada"),
                     )
                 }
                 CallNotificationService.stop(context)

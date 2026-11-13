@@ -21,6 +21,7 @@ DECLARE
   v_cardiologist uuid := gen_random_uuid();
   v_generalist uuid := gen_random_uuid();
   v_ar_general uuid := gen_random_uuid();
+  v_reviewer uuid := gen_random_uuid();
   v_request_specialist uuid;
   v_request_generalist uuid;
   v_partner uuid;
@@ -56,6 +57,29 @@ BEGIN
     RAISE EXCEPTION 'Jordan must persist exact R$79/R$40 quotes';
   END IF;
 
+  -- Jordan requests in this fixture must pass the same payment-first gate as
+  -- production before the doctor-presence trigger can emit R$40 offers.
+  INSERT INTO public.commercial_referral_identity_proofs(
+    dispatch_request_id,referral_partner_id,subject_digest,
+    verification_method,verification_receipt_id,verified_at
+  ) VALUES
+    (v_request_specialist,v_partner,repeat('b',64),'cpf_kyc',
+      'ci-jordan-specialist-paid-'||v_request_specialist::text,now()),
+    (v_request_generalist,v_partner,repeat('c',64),'cpf_kyc',
+      'ci-jordan-generalist-paid-'||v_request_generalist::text,now());
+
+  INSERT INTO public.pharmacy_dispatch_payments(
+    dispatch_request_id,amount_minor,currency,provider,status
+  ) VALUES
+    (v_request_specialist,7900,'BRL','mercadopago','pending'),
+    (v_request_generalist,7900,'BRL','mercadopago','pending');
+
+  UPDATE public.pharmacy_dispatch_payments
+  SET status='approved',
+      provider_payment_id='ci-jordan-specialist-approved-'||dispatch_request_id::text,
+      paid_at=now()
+  WHERE dispatch_request_id IN (v_request_specialist,v_request_generalist);
+
   -- Create synthetic verified medical profiles.
   FOR v_user IN SELECT unnest(ARRAY[
     v_psychiatrist,v_cardiologist,v_generalist,v_ar_general
@@ -64,6 +88,9 @@ BEGIN
     INSERT INTO auth.users(id,email)
     VALUES(v_user,'jordan-general-service-test-'||v_user||'@example.invalid');
   END LOOP;
+  INSERT INTO auth.users(id,email)
+  VALUES(v_reviewer,'jordan-general-cfm-reviewer-ci-'||v_reviewer||'@example.invalid');
+  UPDATE public.profiles SET role='admin',active=true WHERE user_id=v_reviewer;
 
   INSERT INTO public.doctors(
     id,user_id,license_type,license_number,uf_brazil,specialty,active,care_country
@@ -74,12 +101,20 @@ BEGIN
     (v_ar_general,v_ar_general,'MN','CI-'||v_ar_general::text,NULL,'Clínica Geral',true,'AR');
 
   INSERT INTO public.doctor_licenses(
-    doctor_id,license_type,license_number,uf_brazil,status,cfm_validation_status
+    doctor_id,license_type,license_number,uf_brazil,status,cfm_validation_status,
+    cfm_evidence_path,cfm_review_notes,cfm_reviewed_by,cfm_reviewed_at,cfm_last_checked_at
   ) VALUES
-    (v_psychiatrist,'CRM','CI-'||v_psychiatrist::text,'RS','active','valid'),
-    (v_cardiologist,'CRM','CI-'||v_cardiologist::text,'RS','active','valid'),
-    (v_generalist,'CRM','CI-'||v_generalist::text,'RS','active','valid'),
-    (v_ar_general,'MN','CI-'||v_ar_general::text,NULL,'active','valid');
+    (v_psychiatrist,'CRM','CI-'||v_psychiatrist::text,'RS','active','valid',
+      'ci/'||v_psychiatrist::text||'/synthetic-cfm-evidence.pdf',
+      'Synthetic manually reviewed CFM credential for isolated test',v_reviewer,now(),now()),
+    (v_cardiologist,'CRM','CI-'||v_cardiologist::text,'RS','active','valid',
+      'ci/'||v_cardiologist::text||'/synthetic-cfm-evidence.pdf',
+      'Synthetic manually reviewed CFM credential for isolated test',v_reviewer,now(),now()),
+    (v_generalist,'CRM','CI-'||v_generalist::text,'RS','active','valid',
+      'ci/'||v_generalist::text||'/synthetic-cfm-evidence.pdf',
+      'Synthetic manually reviewed CFM credential for isolated test',v_reviewer,now(),now()),
+    (v_ar_general,'MN','CI-'||v_ar_general::text,NULL,'active','pending',
+      NULL,NULL,NULL,NULL,NULL);
 
   IF NOT app_private.is_jordan_br_eligible_doctor(v_psychiatrist)
      OR NOT app_private.is_jordan_br_eligible_doctor(v_cardiologist)

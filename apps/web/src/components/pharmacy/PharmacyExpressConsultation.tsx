@@ -26,6 +26,7 @@ interface PharmacyExpressConsultationProps {
   pharmacyId?: string | null
   pharmacyName?: string
   initialDni?: string
+  initialCareCountry?: 'AR' | 'BR' | null
   referralCode?: string | null
   referralPartnerName?: string | null
   jordanPaymentsEnabled?: boolean
@@ -46,6 +47,7 @@ export function PharmacyExpressConsultation({
   pharmacyId = null,
   pharmacyName = 'Farmacia Adherida',
   initialDni = '',
+  initialCareCountry = null,
   referralCode = null,
   referralPartnerName = null,
   jordanPaymentsEnabled = false,
@@ -57,7 +59,7 @@ export function PharmacyExpressConsultation({
 
   const [step, setStep] = useState<Step>('FORM')
   const [formData, setFormData] = useState({
-    careCountry: (referralCode === 'JORDAN' ? 'BR' : '') as '' | 'AR' | 'BR',
+    careCountry: (initialCareCountry ?? (referralCode === 'JORDAN' ? 'BR' : '')) as '' | 'AR' | 'BR',
     dni: initialDni,
     name: '',
     phone: '',
@@ -203,10 +205,10 @@ export function PharmacyExpressConsultation({
       return
     }
     try {
-      const result = await fetchApi<{ cancelled: boolean }>('/api/pharmacy/on-demand/cancel', {
-        method: 'POST',
-        body: { requestId, accessToken },
-      })
+      const result = await fetchApi<{ cancelled: boolean }>(
+        `/api/pharmacy/dispatch/${encodeURIComponent(requestId)}`,
+        { method: 'DELETE', headers: { 'x-guest-token': accessToken } },
+      )
       if (!result.cancelled) {
         setFormError('La consulta ya fue asignada o no pudo cancelarse.')
         return
@@ -501,7 +503,9 @@ export function PharmacyExpressConsultation({
               Sala de Espera Exprés AutaMedica
             </h2>
             <p className="text-sm text-am-surface-300 max-w-sm mb-6">
-              Estamos buscando un médico disponible para atender tu consulta de <strong className="text-white">{referralPartnerName ?? pharmacyName}</strong>.
+              {referralCode === 'JORDAN' && formData.careCountry === 'BR' && jordanPaymentsEnabled && !jordanPaymentApproved
+                ? 'Completa el pago de R$ 79,00. La búsqueda y asignación del médico comienzan únicamente cuando Mercado Pago confirma el cobro.'
+                : <>Estamos buscando un médico disponible para atender tu consulta de <strong className="text-white">{referralPartnerName ?? pharmacyName}</strong>.</>}
             </p>
 
             <div className="w-full max-w-xs grid grid-cols-2 gap-3 mb-6">
@@ -543,6 +547,16 @@ export function PharmacyExpressConsultation({
                 </span>
               </div>
             </div>
+
+            {referralCode === 'JORDAN' && formData.careCountry === 'BR' && jordanPaymentsEnabled && requestId && accessToken && (
+              <div className="w-full min-h-24 mb-6">
+                <JordanPaymentWidget
+                  dispatchId={requestId}
+                  guestToken={accessToken}
+                  onStatusChange={(status) => setJordanPaymentApproved(status === 'approved')}
+                />
+              </div>
+            )}
 
             <div className="flex items-center gap-3 w-full max-w-xs">
               <button

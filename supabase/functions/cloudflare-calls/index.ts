@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { corsHeaders } from '../_shared/cors.ts'
 import { authorizeEdgeSfuBinding, recordEdgeSfuSession } from '../_shared/sfu-room-session-binding.ts'
+import { guestDispatchCallMatches } from '../_shared/guest-dispatch-access.ts'
 
 /**
  * cloudflare-calls
@@ -244,7 +245,7 @@ export async function handler(req: Request): Promise<Response> {
     // room paths are covered, including doctor entry.
     const { data: mediaDispatch, error: mediaDispatchError } = await supabaseAdmin
       .from('pharmacy_dispatch_requests')
-      .select('id,cloudflare_room_id,assigned_doctor_id,status,patient_id,requested_by_user_id,care_country,referral_partner_id')
+      .select('id,call_id,cloudflare_room_id,assigned_doctor_id,status,patient_id,requested_by_user_id,care_country,referral_partner_id')
       .eq('cloudflare_room_id', roomId)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -258,9 +259,9 @@ export async function handler(req: Request): Promise<Response> {
 
     // Check the signed request scope before inspecting payment state. A token
     // for another dispatch is always a 403, regardless of that dispatch's PSP.
-    if (guestClaims && (!mediaDispatch ||
-        mediaDispatch.id !== guestClaims.callId ||
-        mediaDispatch.cloudflare_room_id !== guestClaims.roomId)) {
+    if (guestClaims && mediaDispatch &&
+        ((mediaDispatch.id !== guestClaims.callId && mediaDispatch.call_id !== guestClaims.callId) ||
+         mediaDispatch.cloudflare_room_id !== guestClaims.roomId)) {
       return new Response(JSON.stringify({ error: 'guest_call_mismatch' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -327,21 +328,59 @@ export async function handler(req: Request): Promise<Response> {
     } | null = null
 
     if (guestClaims) {
-      if (!mediaDispatch || !isJordanRoom ||
-          mediaDispatch.id !== guestClaims.callId ||
-          mediaDispatch.cloudflare_room_id !== guestClaims.roomId ||
-          mediaDispatch.care_country !== 'BR') {
-        return new Response(JSON.stringify({ error: 'guest_call_mismatch' }), {
-          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
-      call = {
-        id: mediaDispatch.id,
-        room_id: mediaDispatch.cloudflare_room_id,
-        doctor_id: mediaDispatch.assigned_doctor_id ?? null,
-        patient_id: null,
-        appointment_id: null,
-        status: mediaDispatch.status,
+      if (mediaDispatch) {
+        // Pharmacy guest tokens identify a dispatch request. The actual SFU
+        // call has a distinct calls.id linked via pharmacy_dispatch_requests.call_id.
+        if ((mediaDispatch.id !== guestClaims.callId && mediaDispatch.call_id !== guestClaims.callId) ||
+            mediaDispatch.cloudflare_room_id !== guestClaims.roomId) {
+          return new Response(JSON.stringify({ error: 'guest_call_mismatch' }), {
+            status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+        if (!['matched', 'in_call'].includes(mediaDispatch.status) ||
+            !mediaDispatch.assigned_doctor_id ||
+            !mediaDispatch.call_id) {
+          return new Response(JSON.stringify({ error: 'dispatch_not_ready' }), {
+            status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+        const { data: dispatchCall, error: dispatchCallError } = await supabaseAdmin
+          .from('calls')
+          .select('id, room_id, doctor_id, patient_id, appointment_id, status')
+          .eq('id', mediaDispatch.call_id)
+          .eq('room_id', mediaDispatch.cloudflare_room_id)
+          .maybeSingle()
+
+        if (dispatchCallError) {
+          return new Response(JSON.stringify({ error: 'Media authorization unavailable' }), {
+            status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+        if (!guestDispatchCallMatches(mediaDispatch, guestClaims, dispatchCall)) {
+          return new Response(JSON.stringify({ error: 'guest_call_mismatch' }), {
+            status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+        call = dispatchCall
+      } else {
+        // Existing non-pharmacy guest calls retain the exact callId+roomId contract.
+        const { data: legacyCall, error: legacyCallError } = await supabaseAdmin
+          .from('calls')
+          .select('id, room_id, doctor_id, patient_id, appointment_id, status')
+          .eq('id', guestClaims.callId)
+          .eq('room_id', guestClaims.roomId)
+          .maybeSingle()
+        if (legacyCallError) {
+          return new Response(JSON.stringify({ error: 'Media authorization unavailable' }), {
+            status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+        if (!legacyCall) {
+          return new Response(JSON.stringify({ error: 'guest_call_mismatch' }), {
+            status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+        call = legacyCall
       }
     } else {
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(roomId)
@@ -415,7 +454,16 @@ export async function handler(req: Request): Promise<Response> {
     // signed callId+roomId above; JWT users retain doctor/patient membership checks.
     let participantRole: 'doctor' | 'patient' | 'guest' = guestClaims ? 'guest' : 'patient'
     if (guestClaims) {
-      if (call.id !== guestClaims.callId || call.room_id !== guestClaims.roomId) {
+      const matchesLegacyCall =
+        call.id === guestClaims.callId &&
+        call.room_id === guestClaims.roomId
+      const matchesDispatchCall =
+        mediaDispatch !== null &&
+        (mediaDispatch.id === guestClaims.callId || mediaDispatch.call_id === guestClaims.callId) &&
+        mediaDispatch.call_id === call.id &&
+        mediaDispatch.cloudflare_room_id === call.room_id &&
+        call.room_id === guestClaims.roomId
+      if (!matchesLegacyCall && !matchesDispatchCall) {
         return new Response(JSON.stringify({ error: 'guest_call_or_room_mismatch' }), {
           status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
