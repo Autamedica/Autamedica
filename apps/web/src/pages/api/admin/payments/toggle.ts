@@ -10,7 +10,7 @@ type SwitchName = typeof ALLOWED[number]
 export const GET: APIRoute = async ({ request, locals }) => {
   const auth = await withAuthRole(request, ADMIN_ROLES, locals)
   if (!isAuthed(auth)) return auth
-  const db = createAstroAdminClient(locals.runtime?.env)
+  const db = createAstroAdminClient(locals.runtime?.env) as any
   const { data, error } = await db.from('platform_operational_switches').select('*').eq('id','global').maybeSingle()
   if (error) return internalError('payment_switches_unavailable')
   return jsonOk(data ?? { jordan_qr_payments_enabled:true, pharmacy_express_payments_enabled:true, global_pix_mp_payments_enabled:true })
