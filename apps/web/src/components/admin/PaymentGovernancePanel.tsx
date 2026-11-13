@@ -9,6 +9,7 @@ type Switches = {
  dry_run_enabled:boolean
  updated_by:string|null
  updated_at:string|null
+ switch_audit?:Record<string,{updated_by:string;updated_at:string;reason:string|null}>
 }
 type PharmacyPayment = {id:string;request_id:string;amount_minor:number;currency:string;status:string;provider:string;assigned_doctor_id:string|null;jordan_commission_minor:number|null;created_at:string}
 type Approval = { id:string; status:string; domain:string; proposed_by:string; summary:string; risk_reason:string; impact_scope:string; created_at:string }
@@ -19,7 +20,7 @@ const SWITCHES: {key:SwitchKey;label:string;description:string;flows:string;inFl
  {key:'global_pix_mp_payments_enabled',label:'Pasarela Global PIX / MercadoPago',description:'Autoriza nuevas operaciones en las pasarelas integradas.',flows:'Creación de nuevas operaciones PIX y MercadoPago que consultan el control global.',inFlight:'No revierte operaciones confirmadas ni detiene conciliaciones de pagos ya aceptados.'},
  {key:'whatsapp_send_enabled',label:'Envío WhatsApp',description:'Controla los envíos salientes de WhatsApp de Growth y comunicaciones.',flows:'Growth Agent Worker y Newsletter Worker, incluidos los adaptadores WhatsApp configurados.',inFlight:'Detiene nuevos envíos en la siguiente comprobación. Los mensajes ya aceptados por el proveedor no se retiran.'},
  {key:'email_send_enabled',label:'Envío email',description:'Controla los envíos salientes de correo de Growth y Newsletter.',flows:'Newsletter Worker y adaptadores de correo Resend/Brevo.',inFlight:'No inicia nuevos envíos. Campañas y mensajes ya aceptados por el proveedor continúan.'},
- {key:'dry_run_enabled',label:'Dry run',description:'Simula las entregas y evita llamadas a proveedores externos.',flows:'Modo de ejecución de los workers Growth y Newsletter.',inFlight:'Los trabajos ya procesados no se revierten. El modo se vuelve a consultar antes de cada nueva entrega.'},
+ {key:'dry_run_enabled',label:'Dry run',description:'Growth Agent registra una simulación y los workers de comunicaciones bloquean las llamadas a proveedores externos.',flows:'Modo de ejecución de los workers Growth y Newsletter.',inFlight:'Los trabajos ya procesados no se revierten. El modo se vuelve a consultar antes de cada nueva entrega.'},
 ]
 export function PaymentGovernancePanel(){
  const [switches,setSwitches]=useState<Switches|null>(null)
@@ -55,7 +56,7 @@ export function PaymentGovernancePanel(){
     <p className="mt-2 text-sm text-slate-600">{item.description}</p>
     <p className="mt-2 text-xs text-slate-500"><strong>Endpoints y flujos:</strong> {item.flows}</p>
     <p className="mt-1 text-xs text-slate-500"><strong>Operaciones en curso:</strong> {item.inFlight}</p>
-    <p className="mt-2 text-xs text-slate-500"><strong>Último cambio:</strong> {switches?.updated_by??'Sin registro'} · {switches?.updated_at?new Date(switches.updated_at).toLocaleString():'Sin fecha'}</p>
+    <p className="mt-2 text-xs text-slate-500"><strong>Último cambio:</strong> {switches?.switch_audit?.[item.key]?.updated_by??'Sin registro'} · {switches?.switch_audit?.[item.key]?.updated_at?new Date(switches.switch_audit[item.key].updated_at).toLocaleString():'Sin fecha'}</p>
    </article>)}
   </div>
   <div><h2 className="text-lg font-semibold text-slate-900">Bandeja de Autorizaciones</h2>
