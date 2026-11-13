@@ -155,6 +155,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
       resolvedPharmacyId = pharmacy.id
     }
 
+    // Jordan is a Brazil-only commercial referral source, never an Argentina channel.
+    // Reject before registration so AR requests cannot contaminate partner reporting.
+    if (referralCode === 'JORDAN' && careCountry !== 'BR') {
+      return badRequest('jordan_referral_brazil_only')
+    }
+
     // Attribution only at creation time, resolving the QR code on the server.
     // Never trust a client-submitted partner ID or pharmacy ID as commercial proof.
     let referralPartnerId: string | null = null
