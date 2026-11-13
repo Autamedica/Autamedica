@@ -5,7 +5,7 @@ import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 vi.mock('@/lib/patients/api/patient-context', () => ({ resolvePatientContext: vi.fn() }))
 
 vi.mock('@autamedica/shared', () => {
-  const logMock = { warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn(), child: vi.fn() }
+  const logMock = { warn: vi.fn(), error: vi.fn((...args: unknown[]) => console.error('[test logger]', ...args)), info: vi.fn(), debug: vi.fn(), child: vi.fn() }
   logMock.child.mockReturnValue(logMock)
   return { logger: logMock }
 })
