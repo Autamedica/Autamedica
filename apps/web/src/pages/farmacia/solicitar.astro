@@ -1,6 +1,6 @@
 ---
 import CallLayout from '@/layouts/CallLayout.astro';
-import { PharmacyExpressConsultation } from '@/components/pharmacy/PharmacyExpressConsultation';
+import PharmacyCareAccess from '@/components/pharmacy/PharmacyCareAccess.astro';
 import { createAstroAdminClient } from '@/lib/supabase';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payment-access';
@@ -30,25 +30,6 @@ if (requestedReferral && /^[A-Z0-9_-]{3,32}$/.test(requestedReferral)) {
     // No unverified attribution if partner registry is unavailable.
   }
 }
-let pharmacyName = 'Punto de Farmacia'; // Pharmacy name is shown only when verified in our database.
-
-if (pharmacyId) {
-  try {
-    const admin = createAstroAdminClient(Astro.locals.runtime?.env);
-    const { data } = await admin
-      .from('pharmacies')
-      .select('name')
-      .eq('id', pharmacyId)
-      .maybeSingle();
-
-    if (data?.name) {
-      pharmacyName = data.name;
-    }
-  } catch {
-    // Si falla mantiene el default
-  }
-}
-
 // Checkout is intentionally disabled until synthetic PSP verification succeeds.
 const jordanPaymentsEnabled = (
   (Astro.locals.runtime?.env?.ENABLE_JORDAN_PAYMENTS as string | undefined)
@@ -60,10 +41,8 @@ const description = 'Punto de atención de telemedicina de AutaMedica. Los docum
 ---
 
 <CallLayout title={title} description={description}>
-  <PharmacyExpressConsultation
-    client:load
+  <PharmacyCareAccess
     pharmacyId={pharmacyId}
-    pharmacyName={pharmacyName}
     referralCode={referralCode}
     referralPartnerName={referralPartnerName}
     jordanPaymentsEnabled={jordanPaymentsEnabled}
