@@ -6,6 +6,7 @@ DO $contracts$
 DECLARE
   v_policy record;
   v_expr text;
+  v_expected_gate text;
   v_tables text[] := ARRAY[
     'appointment_followups','appointment_history','appointment_reminders',
     'appointment_waitlist','appointments','calls','care_episodes',
@@ -34,7 +35,7 @@ BEGIN
   END IF;
 
   FOR v_policy IN
-    SELECT c.relname, p.polname,
+    SELECT c.relname, p.polname, p.polcmd,
            pg_get_expr(p.polqual,p.polrelid) AS using_expr,
            pg_get_expr(p.polwithcheck,p.polrelid) AS check_expr
     FROM pg_policy p
@@ -43,27 +44,42 @@ BEGIN
     WHERE n.nspname='public' AND c.relname=ANY(v_tables)
   LOOP
     v_expr := concat_ws(' ',v_policy.using_expr,v_policy.check_expr);
+    v_expected_gate := CASE WHEN v_policy.polcmd='r' THEN 'is_clinically_authorized_doctor_read()' ELSE 'is_clinically_approved_doctor()' END;
 
     IF v_expr ~* '(^|[^a-z_])is_doctor\(\)' THEN
       RAISE EXCEPTION 'Legacy is_doctor() still authorizes %.%',v_policy.relname,v_policy.polname;
     END IF;
 
     IF v_expr ~* '(d|doctors)\.user_id = (auth\.uid\(\)|\( SELECT auth\.uid\(\) AS uid\))'
-       AND position('is_clinically_approved_doctor()' IN v_expr)=0 THEN
+       AND position(v_expected_gate IN v_expr)=0 THEN
       RAISE EXCEPTION 'Direct doctor identity branch lacks approval: %.%',v_policy.relname,v_policy.polname;
     END IF;
 
     IF v_expr ~* 'doctor_id = get_my_doctor_id\(\)'
-       AND position('is_clinically_approved_doctor()' IN v_expr)=0 THEN
+       AND position(v_expected_gate IN v_expr)=0 THEN
       RAISE EXCEPTION 'get_my_doctor_id branch lacks approval: %.%',v_policy.relname,v_policy.polname;
     END IF;
 
     IF v_expr ~* 'doctor_id = (auth\.uid\(\)|\( SELECT auth\.uid\(\) AS uid\))'
-       AND position('is_clinically_approved_doctor()' IN v_expr)=0 THEN
+       AND position(v_expected_gate IN v_expr)=0 THEN
       RAISE EXCEPTION 'Direct doctor_id branch lacks approval: %.%',v_policy.relname,v_policy.polname;
     END IF;
   END LOOP;
 
+  IF to_regprocedure('public.is_clinically_authorized_doctor_read()') IS NULL
+     OR to_regprocedure('public.doctor_has_patient_read_access(uuid)') IS NULL
+     OR to_regclass('app_private.clinical_legacy_read_grants') IS NULL THEN
+    RAISE EXCEPTION 'Read-only legacy bridge is incomplete';
+  END IF;
+  IF has_table_privilege('anon','app_private.clinical_legacy_read_grants','SELECT')
+     OR has_table_privilege('authenticated','app_private.clinical_legacy_read_grants','SELECT')
+     OR has_table_privilege('service_role','app_private.clinical_legacy_read_grants','SELECT') THEN
+    RAISE EXCEPTION 'Legacy grant table is exposed directly';
+  END IF;
+  IF EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND polcmd<>'r'
+    AND concat_ws(' ',qual,with_check) ILIKE '%doctor_has_patient_read_access(%') THEN
+    RAISE EXCEPTION 'Read-only helper leaked into write policy';
+  END IF;
   -- Patient ownership must remain present in the shared patient/doctor policy.
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
@@ -88,10 +104,25 @@ INSERT INTO auth.users (
   '{}'::jsonb
 );
 
-UPDATE public.doctors
-SET active=true, license_number='PENDING-LEGACY'
+INSERT INTO public.doctors(user_id,license_number,specialty,active,care_country)
+SELECT 'a1100000-0000-4000-8000-000000000001','PENDING-LEGACY','General Medicine',true,'BR'
+WHERE NOT EXISTS(SELECT 1 FROM public.doctors WHERE user_id='a1100000-0000-4000-8000-000000000001');
+UPDATE public.doctors SET active=true,license_number='PENDING-LEGACY',care_country='BR'
 WHERE user_id='a1100000-0000-4000-8000-000000000001';
-
+INSERT INTO auth.users(id,instance_id,aud,role,email,raw_user_meta_data,raw_app_meta_data)
+VALUES('a1100000-0000-4000-8000-000000000002','00000000-0000-0000-0000-000000000000','authenticated','authenticated',
+'synthetic-legacy-patient@example.invalid','{"role":"patient"}'::jsonb,'{}'::jsonb);
+INSERT INTO public.patients(user_id,active) VALUES('a1100000-0000-4000-8000-000000000002',true);
+DO $legacy_grant$
+DECLARE v_doctor_id uuid;v_patient_id uuid;
+BEGIN
+ SELECT id INTO v_doctor_id FROM public.doctors WHERE user_id='a1100000-0000-4000-8000-000000000001';
+ SELECT id INTO v_patient_id FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000002';
+ INSERT INTO public.patient_care_team(doctor_id,patient_id,active) VALUES(v_doctor_id,v_patient_id,true);
+ INSERT INTO public.appointments(doctor_id,patient_id,start_time,status) VALUES(v_doctor_id,v_patient_id,now()-interval '1 day','completed');
+ INSERT INTO app_private.clinical_legacy_read_grants(doctor_id,patient_id,source,expires_at) VALUES(v_doctor_id,v_patient_id,'patient_care_team',now()+interval '30 days');
+END;
+$legacy_grant$;
 SELECT set_config(
   'request.jwt.claims',
   '{"role":"authenticated","sub":"a1100000-0000-4000-8000-000000000001"}',
@@ -102,12 +133,30 @@ SELECT set_config('request.jwt.claim.role','authenticated',true);
 SET LOCAL ROLE authenticated;
 
 DO $pending$
+DECLARE v_patient_id uuid;v_patient_user_id uuid:='a1100000-0000-4000-8000-000000000002';v_count integer;
 BEGIN
-  IF public.is_clinically_approved_doctor() THEN
-    RAISE EXCEPTION 'Active PENDING synthetic doctor passed clinical approval';
-  END IF;
+ SELECT id INTO v_patient_id FROM public.patients WHERE user_id=v_patient_user_id;
+ IF public.is_clinically_approved_doctor() THEN RAISE EXCEPTION 'PENDING doctor passed approval'; END IF;
+ IF NOT public.is_clinically_authorized_doctor_read() THEN RAISE EXCEPTION 'Legacy read bridge missing'; END IF;
+ IF public.doctor_has_patient_access(v_patient_user_id) THEN RAISE EXCEPTION 'Legacy write access retained'; END IF;
+ IF NOT public.doctor_has_patient_read_access(v_patient_user_id) THEN RAISE EXCEPTION 'Patient-specific read bridge missing'; END IF;
+ SELECT count(*) INTO v_count FROM public.appointments WHERE doctor_id=public.get_my_doctor_id() AND patient_id=v_patient_id;
+ IF v_count<>1 THEN RAISE EXCEPTION 'Existing appointment unreadable'; END IF;
+ BEGIN
+  INSERT INTO public.appointments(doctor_id,patient_id,start_time,status) VALUES(public.get_my_doctor_id(),v_patient_id,now()+interval '1 day','scheduled');
+  RAISE EXCEPTION 'Legacy doctor created a new appointment';
+ EXCEPTION WHEN insufficient_privilege THEN NULL;
+ END;
 END;
 $pending$;
-
+RESET ROLE;
+UPDATE app_private.clinical_legacy_read_grants SET expires_at=now()-interval '1 second'
+WHERE doctor_id=(SELECT id FROM public.doctors WHERE user_id='a1100000-0000-4000-8000-000000000001');
+SET LOCAL ROLE authenticated;
+DO $expired$
+BEGIN
+ IF public.is_clinically_authorized_doctor_read() THEN RAISE EXCEPTION 'Expired grant remains active'; END IF;
+END;
+$expired$;
 RESET ROLE;
 ROLLBACK;
