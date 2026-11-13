@@ -27,7 +27,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const rolloutFlag = (locals.runtime?.env?.ENABLE_JORDAN_PAYMENTS as string | undefined)
       ?? getRuntimeEnvValue('ENABLE_JORDAN_PAYMENTS')
       ?? import.meta.env.ENABLE_JORDAN_PAYMENTS
-    if (switchesError || (operationalSwitches?.jordan_qr_payments_enabled !== true && rolloutFlag !== 'true')) {
+    if (operationalSwitches?.jordan_qr_payments_enabled !== true && rolloutFlag !== 'true') {
       return serviceUnavailable('pharmacy_checkout_not_enabled')
     }
     if (!hasSecureGuestPaymentSecret(locals.runtime?.env)) return serviceUnavailable('pharmacy_checkout_guest_security_not_configured')
