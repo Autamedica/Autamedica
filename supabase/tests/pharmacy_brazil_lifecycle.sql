@@ -12,6 +12,7 @@ DECLARE
   v_doctor_user uuid:=gen_random_uuid();
   v_patient_user uuid:=gen_random_uuid();
   v_pharmacist_user uuid:=gen_random_uuid();
+  v_reviewer_user uuid:=gen_random_uuid();
   v_doctor uuid:=gen_random_uuid();
   v_patient uuid;
   v_pharmacy uuid:=gen_random_uuid();
@@ -23,14 +24,25 @@ BEGIN
   INSERT INTO auth.users(id,email) VALUES
     (v_doctor_user,'isolated-br-doctor-'||v_doctor_user||'@example.invalid'),
     (v_patient_user,'isolated-br-patient-'||v_patient_user||'@example.invalid'),
-    (v_pharmacist_user,'isolated-br-pharmacist-'||v_pharmacist_user||'@example.invalid');
+    (v_pharmacist_user,'isolated-br-pharmacist-'||v_pharmacist_user||'@example.invalid'),
+    (v_reviewer_user,'isolated-br-cfm-reviewer-'||v_reviewer_user||'@example.invalid');
   UPDATE public.profiles SET role='doctor',active=true WHERE user_id=v_doctor_user;
   UPDATE public.profiles SET role='pharmacist',active=true WHERE user_id=v_pharmacist_user;
-  INSERT INTO public.doctors(id,user_id,license_number,license_type,uf_brazil,specialty,active)
-    VALUES(v_doctor,v_doctor_user,'CI-SYNTHETIC-NO-REAL-CRM','CRM','RS','Synthetic BR general',true)
+  UPDATE public.profiles SET role='admin',active=true WHERE user_id=v_reviewer_user;
+  INSERT INTO public.doctors(id,user_id,license_number,license_type,uf_brazil,specialty,active,care_country)
+    VALUES(v_doctor,v_doctor_user,'CI-SYNTHETIC-NO-REAL-CRM','CRM','RS','Synthetic BR general',true,'BR')
     ON CONFLICT(user_id) DO UPDATE SET license_number=excluded.license_number,
-      license_type='CRM',uf_brazil='RS',active=true;
+      license_type='CRM',uf_brazil='RS',active=true,care_country='BR';
   SELECT id INTO STRICT v_doctor FROM public.doctors WHERE user_id=v_doctor_user;
+  INSERT INTO public.doctor_licenses(
+    doctor_id,license_type,license_number,uf_brazil,status,cfm_validation_status,
+    cfm_evidence_path,cfm_review_notes,cfm_reviewed_by,cfm_reviewed_at,cfm_last_checked_at
+  ) VALUES(
+    v_doctor,'CRM','CI-SYNTHETIC-NO-REAL-CRM','RS','active','valid',
+    'ci/'||v_doctor::text||'/synthetic-cfm-evidence.pdf',
+    'Synthetic administrator-reviewed CFM evidence for isolated lifecycle test',
+    v_reviewer_user,now(),now()
+  );
   SELECT id INTO STRICT v_patient FROM public.patients WHERE user_id=v_patient_user;
   IF (SELECT care_country FROM public.doctors WHERE id=v_doctor)<>'BR' THEN
     RAISE EXCEPTION 'Synthetic CRM/UF physician did not remain BR';

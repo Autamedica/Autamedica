@@ -1,9 +1,13 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { jsPDF } from 'jspdf';
 import { generatePrescriptionPdf } from './pdf-prescription.service';
 import { rctaService } from './rcta.service';
 
 describe('Farmalink PDF affiliate reconciliation', () => {
+  afterEach(() => vi.restoreAllMocks());
+
   it('prints the exact PAN submitted to Farmalink, not the patient CUIL', async () => {
+    const textSpy = vi.spyOn(jsPDF.prototype, 'text');
     vi.spyOn(rctaService, 'registerPrescription').mockResolvedValueOnce({
       cuir: '02680042020102000000000000000000000010104',
       evidenceHash: 'test-evidence-hash',
@@ -32,19 +36,22 @@ describe('Farmalink PDF affiliate reconciliation', () => {
       },
       prescriber: { name: 'Demo Demo', license: 'MN 11111' },
     });
-    const pdf = Buffer.from(output.pdfBuffer).toString('latin1');
-    expect(pdf).toContain('Nro. afiliado / Credencial: 20123456786');
-    expect(pdf).toContain('Plan: NO POSEE');
-    expect(pdf).toContain('Entidad: 7110');
-    expect(pdf).toContain('CUIL: 27123456780');
-    expect(pdf).toContain('CUIL PACIENTE');
-    expect(pdf).toContain('RECETA FARMALINK');
-    expect(pdf).toContain('RECETA EXTERNA: 9600000421228');
-    expect(pdf).not.toContain('FARMALINK TEST / MODALIDAD GENERICO=');
-    vi.restoreAllMocks();
+    const renderedText = textSpy.mock.calls
+      .map(([value]) => Array.isArray(value) ? value.map(String).join(' ') : String(value))
+      .join('\n');
+    expect(Buffer.from(output.pdfBuffer).subarray(0, 5).toString('ascii')).toBe('%PDF-');
+    expect(renderedText).toContain('Nro. afiliado / Credencial: 20123456786');
+    expect(renderedText).toContain('Plan: No Posee');
+    expect(renderedText).toContain('Entidad: 7110');
+    expect(renderedText).toContain('CUIL: 27123456780');
+    expect(renderedText).toContain('CUIL PACIENTE');
+    expect(renderedText).toContain('RECETA FARMALINK');
+    expect(renderedText).toContain('RECETA EXTERNA: 9600000421228');
+    expect(renderedText).not.toContain('FARMALINK TEST / MODALIDAD GENERICO=');
   });
 
   it('keeps ReNaPDiS legend but removes technical generic-mode label in unsigned TEST', async () => {
+    const textSpy = vi.spyOn(jsPDF.prototype, 'text');
     const output = await generatePrescriptionPdf({
       prescriptionId: 'rx-homologation-test',
       issuedAt: '2026-11-03',
@@ -60,12 +67,15 @@ describe('Farmalink PDF affiliate reconciliation', () => {
         affiliateCredential: '20123456786', insuranceEntityCode: 7110, insurancePlan: '100' },
       prescriber: { name: 'Demo Demo', license: 'MN 11111' },
     });
-    const pdf = Buffer.from(output.pdfBuffer).toString('latin1');
-    expect(pdf).toContain('RL-2026-47574120-APN-SSVEIYES#MS');
-    expect(pdf).toContain('Nro. afiliado / Credencial: 20123456786');
-    expect(pdf).toContain('CUIL PACIENTE');
-    expect(pdf).not.toContain('MODALIDAD GENERICO=');
-    expect(output.cuir).toContain('NO ASIGNADO - TEST');
+    const renderedText = textSpy.mock.calls
+      .map(([value]) => Array.isArray(value) ? value.map(String).join(' ') : String(value))
+      .join('\n');
+    expect(Buffer.from(output.pdfBuffer).subarray(0, 5).toString('ascii')).toBe('%PDF-');
+    expect(renderedText).toContain('RL-2026-47574120-APN-SSVEIYES#MS');
+    expect(renderedText).toContain('Nro. afiliado / Credencial: 20123456786');
+    expect(renderedText).toContain('CUIL PACIENTE');
+    expect(renderedText).not.toContain('MODALIDAD GENERICO=');
+    expect(output.cuir).toBe('');
     expect(output.qrContent).toBe('');
   });
 });
