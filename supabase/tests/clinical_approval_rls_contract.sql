@@ -156,22 +156,27 @@ WHERE user_id='a1100000-0000-4000-8000-000000000001';
 INSERT INTO auth.users(id,instance_id,aud,role,email,raw_user_meta_data,raw_app_meta_data)
 VALUES('a1100000-0000-4000-8000-000000000002','00000000-0000-0000-0000-000000000000','authenticated','authenticated',
 'synthetic-legacy-patient@example.invalid','{"role":"patient"}'::jsonb,'{}'::jsonb);
-INSERT INTO public.patients(user_id,active,care_country) VALUES('a1100000-0000-4000-8000-000000000002',true,'AR');
+INSERT INTO public.patients(user_id,active,care_country) VALUES('a1100000-0000-4000-8000-000000000002',true,'AR')
+ON CONFLICT (user_id) DO UPDATE SET active=EXCLUDED.active,care_country=EXCLUDED.care_country;
 INSERT INTO public.patients(user_id,active) SELECT 'a1100000-0000-4000-8000-000000000001',true WHERE NOT EXISTS(SELECT 1 FROM public.patients WHERE user_id='a1100000-0000-4000-8000-000000000001');
 INSERT INTO auth.users(id,instance_id,aud,role,email,raw_user_meta_data,raw_app_meta_data)
 VALUES('a1100000-0000-4000-8000-000000000003','00000000-0000-0000-0000-000000000000','authenticated','authenticated',
 'synthetic-unassigned-patient@example.invalid','{"role":"patient"}'::jsonb,'{}'::jsonb);
-INSERT INTO public.patients(user_id,active) VALUES('a1100000-0000-4000-8000-000000000003',true);
+INSERT INTO public.patients(user_id,active) VALUES('a1100000-0000-4000-8000-000000000003',true)
+ON CONFLICT (user_id) DO UPDATE SET active=EXCLUDED.active;
 INSERT INTO auth.users(id,instance_id,aud,role,email,raw_user_meta_data,raw_app_meta_data)
 VALUES('a1100000-0000-4000-8000-000000000004','00000000-0000-0000-0000-000000000000','authenticated','authenticated',
 'synthetic-doctor-patient-link@example.invalid','{"role":"patient"}'::jsonb,'{}'::jsonb);
-INSERT INTO public.patients(user_id,active,care_country) VALUES('a1100000-0000-4000-8000-000000000004',true,'AR');
+INSERT INTO public.patients(user_id,active,care_country) VALUES('a1100000-0000-4000-8000-000000000004',true,'AR')
+ON CONFLICT (user_id) DO UPDATE SET active=EXCLUDED.active,care_country=EXCLUDED.care_country;
 INSERT INTO auth.users(id,instance_id,aud,role,email,raw_user_meta_data,raw_app_meta_data)
 VALUES('a1100000-0000-4000-8000-000000000005','00000000-0000-0000-0000-000000000000','authenticated','authenticated','synthetic-cross-country-patient@example.invalid','{"role":"patient"}'::jsonb,'{}'::jsonb);
-INSERT INTO public.patients(user_id,active,care_country) VALUES('a1100000-0000-4000-8000-000000000005',true,'BR');
+INSERT INTO public.patients(user_id,active,care_country) VALUES('a1100000-0000-4000-8000-000000000005',true,'BR')
+ON CONFLICT (user_id) DO UPDATE SET active=EXCLUDED.active,care_country=EXCLUDED.care_country;
 INSERT INTO auth.users(id,instance_id,aud,role,email,raw_user_meta_data,raw_app_meta_data)
 VALUES('a1100000-0000-4000-8000-000000000006','00000000-0000-0000-0000-000000000000','authenticated','authenticated','synthetic-unknown-country-patient@example.invalid','{"role":"patient"}'::jsonb,'{}'::jsonb);
-INSERT INTO public.patients(user_id,active,care_country) VALUES('a1100000-0000-4000-8000-000000000006',true,NULL);
+INSERT INTO public.patients(user_id,active,care_country) VALUES('a1100000-0000-4000-8000-000000000006',true,NULL)
+ON CONFLICT (user_id) DO UPDATE SET active=EXCLUDED.active,care_country=EXCLUDED.care_country;
 DO $legacy_grant$
 DECLARE v_doctor_id uuid;v_patient_id uuid;
 BEGIN
