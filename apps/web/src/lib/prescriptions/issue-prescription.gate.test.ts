@@ -4,7 +4,7 @@ import { issuePrescription, regenerateIssuedPrescriptionPdf } from './issue-pres
 
 function fakeDb(country: 'AR' | 'BR', patientCountry: 'AR' | 'BR' | null = country) {
   const doctor = {
-    id: 'doctor-demo', care_country: country, license_type: country === 'BR' ? 'CRM' : 'MN',
+    id: 'doctor-demo', active: true, care_country: country, license_type: country === 'BR' ? 'CRM' : 'MN',
     uf_brazil: country === 'BR' ? 'RS' : null, license_number: 'DEMO',
     professional_address: 'Test address', refeps_id: 'REFEPS-DEMO',
   };
@@ -13,8 +13,8 @@ function fakeDb(country: 'AR' | 'BR', patientCountry: 'AR' | 'BR' | null = count
     status: 'activa', clinical_data: { items: [{ generic_name: 'DEMO MEDICINE' }] },
     cuir: null, country_code: country,
   };
-  const profile = { sss_validation_status: 'valid' };
-  const patient = { user_id: null, care_country: patientCountry, dni: '12345678' };
+  const profile = { role: 'doctor', active: true, sss_validation_status: 'valid' };
+  const patient = { user_id: null, active: true, care_country: patientCountry, dni: '12345678' };
   const responses: Record<string, unknown> = {
     doctors: doctor, prescriptions: prescription, profiles: profile, patients: patient,
   };

@@ -138,7 +138,7 @@ BEGIN
   END IF;
   INSERT INTO public.doctor_duty_status(
     doctor_id,is_on_duty,last_heartbeat_at,duty_started_at,active_tiers
-  ) VALUES(v_doc,true,now(),now(),ARRAY['general']);
+  ) VALUES(v_doc,true,now(),now(),ARRAY['general']::public.dispatch_tier_category[]);
 
   -- Presence/heartbeat dispatch must not bypass the matcher payment gate.
   IF EXISTS (

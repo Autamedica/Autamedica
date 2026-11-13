@@ -92,9 +92,7 @@ function makeContext(options?: {
   return {
     request,
     locals: {
-      session: options?.session !== undefined
-        ? options.session
-        : { user: { id: 'patient-auth-user-99' } },
+      session: options?.session !== undefined ? options.session : null,
       runtime: { env: { GUEST_TOKEN_SECRET: TEST_SECRET, ENABLE_JORDAN_PAYMENTS: options?.jordanEnabled ? 'true' : 'false' } },
     },
   } as unknown as Parameters<typeof POST>[0]

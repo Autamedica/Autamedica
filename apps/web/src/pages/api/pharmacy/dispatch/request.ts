@@ -287,8 +287,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       accessToken,
       ...(recoveryToken ? { recoveryToken } : {}),
     })
-  } catch {
-    logger.error('[api/pharmacy/dispatch/request] unexpected_failure')
+  } catch (error) {
+    // Keep clinical payloads out of logs while preserving a safe stack hint
+    // for diagnosing unexpected server-side failures.
+    logger.error('[api/pharmacy/dispatch/request] unexpected_failure', {
+      name: error instanceof Error ? error.name : typeof error,
+      stack: error instanceof Error ? error.stack?.split('\n').slice(0, 4).join('\n') : undefined,
+    })
     return internalError('dispatch_request_failed')
   }
 }
