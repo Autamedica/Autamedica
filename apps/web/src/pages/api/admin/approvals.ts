@@ -8,7 +8,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
  const auth=await withAuthRole(request,ADMIN_ROLES,locals)
  if(!isAuthed(auth)) return auth
  const status=new URL(request.url).searchParams.get('status')
- const db=createAstroAdminClient(locals.runtime?.env)
+ const db=createAstroAdminClient(locals.runtime?.env) as any
  let query=db.from('admin_approval_decisions').select('*').order('created_at',{ascending:false}).limit(200)
  if(status==='pending') query=query.eq('status','PENDING_HUMAN_APPROVAL')
  const {data,error}=await query
