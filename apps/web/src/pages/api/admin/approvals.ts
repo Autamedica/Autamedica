@@ -27,5 +27,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
  }).eq('id',body.id).eq('status','PENDING_HUMAN_APPROVAL').select('*').maybeSingle()
  if(error) return internalError('approval_decision_update_failed')
  if(!data) return badRequest('approval_already_reviewed_or_not_found')
+ await db.from('audit_logs').insert({user_id:auth.user.id,action:'admin_approval_decision_reviewed',resource_type:'admin_approval_decisions',resource_id:data.id,metadata:{decision:body.decision,notes:body.notes ?? null,domain:data.domain}})
  return jsonOk(data)
 }
