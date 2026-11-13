@@ -198,3 +198,10 @@ tools/obs/__pycache__/
 # Supabase production secrets (never commit)
 .env.supabase.production
 .env.supabase.*
+# AutaMedica TV and local media exports: keep PII and large renders out of Git.
+video_exports/
+tools/obs/images/
+tools/obs/content_engine/video_exports/
+# Local clinical and videocall verification scripts may contain sensitive fixtures.
+apps/web/verify_*.mjs
+apps/web/test_web_to_web.mjs
