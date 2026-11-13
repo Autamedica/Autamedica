@@ -13,7 +13,7 @@ type Switches = {
 }
 type PharmacyPayment = {id:string;request_id:string;amount_minor:number;currency:string;status:string;provider:string;assigned_doctor_id:string|null;jordan_commission_minor:number|null;created_at:string}
 type Approval = { id:string; status:string; domain:string; proposed_by:string; summary:string; risk_reason:string; impact_scope:string; created_at:string }
-type SwitchKey = Exclude<keyof Switches,'updated_by'|'updated_at'>
+type SwitchKey = Exclude<keyof Switches,'updated_by'|'updated_at'|'switch_audit'>
 const SWITCHES: {key:SwitchKey;label:string;description:string;flows:string;inFlight:string}[] = [
  {key:'jordan_qr_payments_enabled',label:'Pagos QR Jordan',description:'Autoriza nuevos checkouts QR y la creación de cobros Jordan.',flows:'Checkout QR Jordan y creación de pagos asociados a solicitudes de consulta.',inFlight:'Los pagos ya aprobados y las consultas asignadas continúan. No revierte pagos ni corta videollamadas.'},
  {key:'pharmacy_express_payments_enabled',label:'Pagos Farmacias Express',description:'Autoriza nuevos cobros del flujo Farmacia Express.',flows:'Inicio de cobro y checkout de Farmacia Express.',inFlight:'Los pagos aceptados por el PSP y las consultas ya asignadas continúan su ciclo normal.'},
@@ -56,7 +56,7 @@ export function PaymentGovernancePanel(){
     <p className="mt-2 text-sm text-slate-600">{item.description}</p>
     <p className="mt-2 text-xs text-slate-500"><strong>Endpoints y flujos:</strong> {item.flows}</p>
     <p className="mt-1 text-xs text-slate-500"><strong>Operaciones en curso:</strong> {item.inFlight}</p>
-    <p className="mt-2 text-xs text-slate-500"><strong>Último cambio:</strong> {switches?.switch_audit?.[item.key]?.updated_by??'Sin registro'} · {switches?.switch_audit?.[item.key]?.updated_at?new Date(switches.switch_audit[item.key].updated_at).toLocaleString():'Sin fecha'}</p>
+    <p className="mt-2 text-xs text-slate-500"><strong>Último cambio:</strong> {switches?.switch_audit?.[item.key]?.updated_by??'Sin registro'} · {switches?.switch_audit?.[item.key]?.updated_at?new Date(switches?.switch_audit?.[item.key]?.updated_at ?? '').toLocaleString():'Sin fecha'}</p>
    </article>)}
   </div>
   <div><h2 className="text-lg font-semibold text-slate-900">Bandeja de Autorizaciones</h2>
