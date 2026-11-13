@@ -1,6 +1,5 @@
 import { writeFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { jsPDF } from 'jspdf';
 import { primeRuntimeEnv, resetRuntimeEnvCache } from '@/lib/runtime-env';
 import { generatePrescriptionPdf } from './pdf-prescription.service';
 import { rctaService } from './rcta.service';
@@ -252,7 +251,6 @@ describe('generatePrescriptionPdf', () => {
       { mode: 'S' as const, number: '9600000421228', commercialName: undefined, filename: 'generica' },
       { mode: 'N' as const, number: '9600000421242', commercialName: 'ESFUMEL blanqueadora cr. x 20 g', filename: 'marca' },
     ]) {
-      const textSpy = vi.spyOn(jsPDF.API, 'text');
       const artifacts = await generatePrescriptionPdf({
         prescriptionId: `farmalink-homologation-${scenario.mode}-${scenario.number}`,
         homologationTest: true,
@@ -291,11 +289,8 @@ describe('generatePrescriptionPdf', () => {
       });
       expect(artifacts.cuir).toBe('');
       expect(artifacts.qrContent).toBe('');
-      const pdfText = textSpy.mock.calls
-        .map(([value]) => Array.isArray(value) ? value.map(String).join(' ') : String(value))
-        .join('\n');
-      textSpy.mockRestore();
-      expect(Buffer.from(artifacts.pdfBuffer).subarray(0, 5).toString('ascii')).toBe('%PDF-');
+      const pdfText = Buffer.from(artifacts.pdfBuffer).toString('latin1');
+      expect(pdfText.slice(0, 5)).toBe('%PDF-');
       expect(pdfText).toContain('GLICOLICOAC.ASOC.');
       expect(pdfText).toContain(scenario.number);
       expect(pdfText).toContain('Nro. afiliado / Credencial: 20123456786');
