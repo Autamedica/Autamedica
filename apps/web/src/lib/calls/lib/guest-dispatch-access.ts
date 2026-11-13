@@ -26,7 +26,7 @@ export async function verifyGuestDispatchAccess(
 ): Promise<GuestDispatchDecision> {
   const { data: dispatch, error } = await admin
     .from('pharmacy_dispatch_requests')
-    .select('id,call_id,cloudflare_room_id,status,care_country,referral_partner_id,assigned_doctor_id')
+    .select('id,call_id,cloudflare_room_id,status,care_country,referral_partner_id,assigned_doctor_id,commercial_referral_partners!pharmacy_dispatch_requests_referral_partner_id_fkey(code,active)')
     .eq('cloudflare_room_id', guest.roomId)
     .maybeSingle()
 
@@ -43,7 +43,8 @@ export async function verifyGuestDispatchAccess(
     return { kind: 'conflict', message: 'dispatch_not_ready' }
   }
 
-  if (dispatch.care_country === 'BR' && dispatch.referral_partner_id) {
+  const partner = dispatch.commercial_referral_partners as { code?: string; active?: boolean } | null
+  if (dispatch.care_country === 'BR' && partner?.code === 'JORDAN') {
     const { data: payment, error: paymentError } = await admin
       .from('pharmacy_dispatch_payments')
       .select('id')
