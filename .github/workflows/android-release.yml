@@ -374,14 +374,21 @@ jobs:
           status: completed
 
       - name: Deploy Summary
+        if: always()
         run: |
           echo "## 🚀 Google Play Deployment" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.check_sa.outputs.has_secret }}" = "true" ]; then
-            echo "- **Estado:** ✅ Subido con éxito a Google Play Console" >> $GITHUB_STEP_SUMMARY
-            echo "- **Pista (Track):** \`${{ steps.play_internal_fallback.outcome == 'success' && 'internal (fallback)' || github.event.inputs.track || 'production' }}\`" >> $GITHUB_STEP_SUMMARY
-            echo "- **Paquete:** \`com.autamedica.android\`" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check_sa.outputs.has_secret }}" != "true" ]; then
+            echo "- **Estado:** ⚠️ AAB compilado y firmado; no se intentó la subida porque falta \`GOOGLE_PLAY_SERVICE_ACCOUNT\`." >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.play_production.outcome }}" = "success" ]; then
+            echo "- **Estado:** ✅ Google Play aceptó y confirmó la edición." >> $GITHUB_STEP_SUMMARY
+            echo "- **Pista:** \`production\`" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.play_internal_fallback.outcome }}" = "success" ]; then
+            echo "- **Estado:** ✅ Google Play aceptó la edición en la pista interna." >> $GITHUB_STEP_SUMMARY
+            echo "- **Pista:** \`internal\`" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- **Estado:** ⚠️ AAB compilado y firmado, pero falta configurar el secreto \`GOOGLE_PLAY_SERVICE_ACCOUNT\` para la subida desatendida a Play Store." >> $GITHUB_STEP_SUMMARY
-            echo "- **Acción manual:** El artefacto AAB firmado está listo en la pestaña Artifacts de GitHub Actions para descarga y carga manual en Play Console, o podés agregar el secreto \`GOOGLE_PLAY_SERVICE_ACCOUNT\` para que suba automáticamente." >> $GITHUB_STEP_SUMMARY
+            echo "- **Estado:** ❌ Google Play rechazó la confirmación de la edición; la publicación no se completó." >> $GITHUB_STEP_SUMMARY
+            echo "- **Bloqueo detectado:** falta completar App content > Foreground service permissions en Play Console." >> $GITHUB_STEP_SUMMARY
+            echo "- **Acción:** declarar los tipos de servicio en primer plano usados por la app y enviar la declaración desde Play Console." >> $GITHUB_STEP_SUMMARY
           fi
+          echo "- **Paquete:** \`com.autamedica.android\`" >> $GITHUB_STEP_SUMMARY
