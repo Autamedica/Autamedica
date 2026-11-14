@@ -27,5 +27,8 @@ export default defineConfig({
     url: 'http://127.0.0.1:3100',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
+    env: {
+      AUTAMEDICA_E2E_PHARMACY_DISPATCH: 'true',
+    },
   },
 });

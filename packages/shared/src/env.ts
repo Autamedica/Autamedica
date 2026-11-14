@@ -139,7 +139,7 @@ const ALLOWED_CLIENT_VARS = new Set([
   "PUBLIC_MEDIASOUP_URL",
 
   // IA (cliente)
-  "PUBLIC_OPENAI_API_KEY",
+  // OpenAI credentials are server-only. Never add a PUBLIC_OPENAI_API_KEY.
 
   // ONNX (cliente)
   "PUBLIC_AUTA_ONNX",
@@ -504,18 +504,9 @@ export function validateEnvironmentSecurity(): void {
     }
   }
 
-  // Verificación especial para OPENAI_API_KEY expuesto al cliente
-  if (
-    resolveClientEnv('PUBLIC_OPENAI_API_KEY') &&
-    !process.env.ALLOW_CLIENT_OPENAI_KEY
-  ) {
-    logger.warn(
-      "⚠️  WARNING: PUBLIC_OPENAI_API_KEY is exposed to client. This may pose security risks.",
-    );
-    logger.warn("⚠️  Consider moving OpenAI calls to server-side API routes.");
-    logger.warn(
-      "⚠️  Set ALLOW_CLIENT_OPENAI_KEY=true to suppress this warning if intentional.",
-    );
+  // OpenAI API keys must never be exposed to browser bundles.
+  if (resolveClientEnv('PUBLIC_OPENAI_API_KEY') || resolveClientEnv('NEXT_PUBLIC_OPENAI_API_KEY')) {
+    throw new Error('Security violation: OpenAI API keys must remain server-side. Use OPENAI_API_KEY.');
   }
 
   // Verificar que no hay variables duplicadas con diferentes prefijos (solo para SUPABASE_URL que puede tener ambas formas)

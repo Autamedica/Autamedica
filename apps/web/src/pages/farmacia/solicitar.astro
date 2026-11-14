@@ -41,6 +41,13 @@ try {
   // Fail closed when platform controls cannot be read.
 }
 
+// Playwright sets this on the Astro dev-server process. Read process.env here,
+// not Cloudflare's runtime bindings: webServer.env does not populate platform env.
+// The DEV guard makes this fixture override unavailable in production builds.
+if (import.meta.env.DEV && process.env.AUTAMEDICA_E2E_PHARMACY_DISPATCH === 'true') {
+  pharmacyPaymentsEnabled = true;
+}
+
 const title = 'Consulta Exprés en Farmacia • Red AutaMedica';
 const description = 'Punto de atención de telemedicina de AutaMedica. Los documentos médicos dependen del profesional y de la habilitación correspondiente al país de atención.';
 ---
