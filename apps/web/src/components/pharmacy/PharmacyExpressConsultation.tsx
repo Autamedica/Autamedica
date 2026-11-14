@@ -273,7 +273,7 @@ export function PharmacyExpressConsultation({
         <div className="fixed top-3 left-4 z-50 flex items-center gap-2.5 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-slate-200 shadow-lg text-xs font-medium text-slate-900">
           <img src="/logo_bioceramic.png" alt="AutaMedica" className="w-5 h-5 rounded-md object-contain" />
           <span className="font-bold tracking-tight text-slate-900">{copy.brand}</span>
-          <span className="text-zinc-500">•</span>
+          <span className="text-slate-400">•</span>
           <span className="text-emerald-700 flex items-center gap-1.5 font-semibold">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
             {copy.ready}
@@ -345,7 +345,7 @@ export function PharmacyExpressConsultation({
           <div className="w-full rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xl shadow-slate-200/70">
             <div className="flex items-center justify-between border-b border-slate-200 pb-4 mb-5">
               <div className="flex items-center gap-2 text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                <ShieldCheck className="w-4 h-4 text-sky-600 shrink-0" />
                 <span>{isPortuguese ? 'Atendimento imediato · Rede médica AutaMedica' : 'Atención inmediata · Red médica AutaMedica'}</span>
               </div>
               <span className="text-[11px] text-slate-500 font-medium">{isPortuguese ? 'Etapa 1 de 2' : 'Paso 1 de 2'}</span>
@@ -599,7 +599,7 @@ export function PharmacyExpressConsultation({
         {/* STEP: CANCELLED */}
         {step === 'CANCELLED' && (
           <div className="w-full rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xl shadow-slate-200/70 text-center flex flex-col items-center">
-            <div className="w-14 h-14 rounded-full bg-am-surface-700/40 flex items-center justify-center text-slate-500 mb-4">
+            <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 mb-4">
               <XCircle className="w-8 h-8" />
             </div>
             <h2 className="text-xl font-bold text-slate-900 mb-2">
