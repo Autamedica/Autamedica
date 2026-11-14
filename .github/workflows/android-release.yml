@@ -71,11 +71,13 @@ jobs:
       - name: Decode Keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           set -euo pipefail
           test -n "$KEYSTORE_BASE64" || { echo "Missing GitHub Actions secret: KEYSTORE_BASE64"; exit 1; }
-          test -n "${{ secrets.KEYSTORE_PASSWORD }}" || { echo "Missing GitHub Actions secret: KEYSTORE_PASSWORD"; exit 1; }
-          test -n "${{ secrets.KEY_PASSWORD }}" || { echo "Missing GitHub Actions secret: KEY_PASSWORD"; exit 1; }
+          test -n "$KEYSTORE_PASSWORD" || { echo "Missing GitHub Actions secret: KEYSTORE_PASSWORD"; exit 1; }
+          test -n "$KEY_PASSWORD" || { echo "Missing GitHub Actions secret: KEY_PASSWORD"; exit 1; }
           echo "$KEYSTORE_BASE64" | base64 --decode > apps/android/autamedica-release.keystore
           test -s apps/android/autamedica-release.keystore
           chmod 600 apps/android/autamedica-release.keystore
