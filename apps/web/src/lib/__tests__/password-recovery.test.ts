@@ -1,8 +1,34 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getPasswordRecoveryRedirectUrl,
   getPasswordRecoveryTokenHash,
   hasPasswordRecoveryCallback,
 } from '../auth/password-recovery';
+
+describe('getPasswordRecoveryRedirectUrl', () => {
+  it('routes a recovery callback falling back to the Site URL home to the reset page', () => {
+    const url = new URL(
+      'https://www.autamedica.com/?token_hash=pkce-test-hash&type=recovery',
+    );
+
+    expect(getPasswordRecoveryRedirectUrl(url)).toBe(
+      'https://www.autamedica.com/auth/reset-password?token_hash=pkce-test-hash&type=recovery',
+    );
+  });
+
+  it('does not redirect non-recovery links or callbacks without a token hash', () => {
+    expect(
+      getPasswordRecoveryRedirectUrl(
+        new URL('https://www.autamedica.com/?token_hash=some-hash&type=email'),
+      ),
+    ).toBeNull();
+    expect(
+      getPasswordRecoveryRedirectUrl(
+        new URL('https://www.autamedica.com/?type=recovery'),
+      ),
+    ).toBeNull();
+  });
+});
 
 describe('hasPasswordRecoveryCallback', () => {
   it('recognizes a scanner-safe recovery token hash without redeeming it', () => {
