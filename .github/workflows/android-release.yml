@@ -31,13 +31,69 @@ on:
         default: true
 
 concurrency:
-  group: ${{ github.workflow }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  # Keep each commit's release build independent; only the current main commit may publish.
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
 
 jobs:
+  android-unit-tests:
+    name: Android Unit Tests (independent of release build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Gradle Cache
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Generate local.properties for tests
+        run: |
+          cd apps/android
+          cat > local.properties << EOF
+          sdk.dir=$ANDROID_HOME
+          SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL || secrets.PUBLIC_SUPABASE_URL }}
+          SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.PUBLIC_SUPABASE_ANON_KEY }}
+          SIGNALING_URL=${{ secrets.PUBLIC_SIGNALING_URL || 'wss://signaling.autamedica.com/signaling' }}
+          GOOGLE_WEB_CLIENT_ID=${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          USE_LIVEKIT=false
+          EOF
+
+      - name: Setup google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          python3 -c "
+          import os, json
+          val = os.environ.get('GOOGLE_SERVICES_JSON', '')
+          path = 'apps/android/app/google-services.json'
+          if val.strip():
+              with open(path, 'w') as f:
+                  f.write(val)
+          elif not os.path.exists(path):
+              dummy = {
+                  'project_info': {'project_number': '653971537811', 'project_id': 'autamedica-e54fa', 'storage_bucket': 'autamedica-e54fa.firebasestorage.app'},
+                  'client': [{'client_info': {'mobilesdk_app_id': '1:653971537811:android:dummy', 'android_client_info': {'package_name': 'com.autamedica.android'}}, 'oauth_client': [], 'api_key': [{'current_key': 'dummy'}], 'services': {}}],
+                  'configuration_version': '1'
+              }
+              with open(path, 'w') as f:
+                  json.dump(dummy, f, indent=2)
+          "
+
+      - name: Run Android unit tests
+        run: |
+          cd apps/android
+          timeout --signal=TERM --kill-after=30s 8m ./gradlew testDebugUnitTest -PfirebasePerformanceInstrumentationEnabled=false --stacktrace --info
+
   build-release-aab:
     name: Build Signed Android AAB
     runs-on: ubuntu-latest
@@ -45,6 +101,7 @@ jobs:
     outputs:
       version_name: ${{ steps.version_info.outputs.version_name }}
       version_code: ${{ steps.version_info.outputs.version_code }}
+      is_current_main: ${{ steps.release_head.outputs.is_current_main }}
 
     steps:
       - name: Checkout repository
@@ -123,13 +180,6 @@ jobs:
               print('⚠️ Created fallback dummy google-services.json for build')
           "
 
-      - name: Run Unit Tests
-        timeout-minutes: 5
-        continue-on-error: true
-        run: |
-          cd apps/android
-          ./gradlew testDebugUnitTest -PfirebasePerformanceInstrumentationEnabled=false --stacktrace --info
-
       - name: Build Release Bundle (AAB)
         run: |
           cd apps/android
@@ -176,8 +226,22 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Verify this commit is still current main
+        id: release_head
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse FETCH_HEAD)" == "$GITHUB_SHA" ]]; then
+            echo "is_current_main=true" >> "$GITHUB_OUTPUT"
+            echo "Current main commit; publication enabled"
+          else
+            echo "is_current_main=false" >> "$GITHUB_OUTPUT"
+            echo "A newer main commit exists; keeping artifacts but skipping publication"
+          fi
+
       - name: Publish signed APK and AAB to GitHub Releases
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && steps.release_head.outputs.is_current_main == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: android-v${{ steps.version_info.outputs.version_name }}
@@ -206,6 +270,7 @@ jobs:
     if: |
       always() &&
       needs.build-release-aab.result == 'success' &&
+      needs.build-release-aab.outputs.is_current_main == 'true' &&
       ((github.event_name == 'push' && github.ref == 'refs/heads/main') ||
        (github.event_name == 'workflow_dispatch' && github.event.inputs.upload_to_play_store == 'true'))
     steps:
