@@ -39,6 +39,20 @@ export function getPasswordRecoveryRedirectUrl(url: URL): string | null {
   return redirectUrl.toString();
 }
 
+/**
+ * The production Site URL is www.autamedica.com. Normalize the apex host so
+ * resetPasswordForEmail never sends an unlisted apex redirect to Supabase.
+ * Keep localhost and Pages preview origins intact.
+ */
+export function getPasswordRecoveryRequestRedirectUrl(currentUrl: URL): string {
+  const origin =
+    currentUrl.protocol === 'https:' && currentUrl.hostname.toLowerCase() === 'autamedica.com'
+      ? 'https://www.autamedica.com'
+      : currentUrl.origin;
+
+  return new URL('/auth/reset-password', origin).toString();
+}
+
 export function hasPasswordRecoveryCallback(url: URL): boolean {
   if (hasAuthError(url)) return false;
   if (getPasswordRecoveryTokenHash(url)) return true;
