@@ -2,20 +2,15 @@
 import { useState, useEffect, useCallback, useId, type FormEvent } from 'react'
 import {
   AlertCircle,
-  Building2,
   CheckCircle2,
   Clock,
-  FileText,
   Phone,
-  ShieldCheck,
   User,
   Video,
   XCircle,
   Loader2,
   ArrowRight,
   RefreshCw,
-  FileCheck,
-  Lock,
 } from 'lucide-react'
 import { fetchApi } from '@/lib/api-client'
 import type { DispatchRequest } from '@/lib/pharmacy/pharmacy-on-demand.service'
@@ -38,26 +33,21 @@ interface PharmacyExpressConsultationProps {
 type Step = 'FORM' | 'WAITING' | 'CALL' | 'ENDED' | 'CANCELLED'
 
 const COPY = {
-  AR: {brand:'AutaMedica Guardia',ready:'Ya podés ingresar',restart:'Iniciar otra consulta',footerNetwork:'Red de farmacias asociadas',country:'¿Dónde querés atenderte?',patientData:'Tus datos',name:'Nombre y apellido',phone:'Teléfono / WhatsApp',reason:'Motivo de consulta',paymentTitle:'Consulta médica · R$ 79,00',paymentHint:'Confirmá el pago de R$ 79,00 para iniciar la videoconsulta.',nameExample:'Ej. Juan Pérez',phoneExample:'Ej. +54 9 11 2345-6789',reasonExample:'Contanos brevemente qué necesitás o qué síntomas tenés...',submit:'Consultar médico',submitting:'Conectando con la guardia...',searching:'Buscando médico...',waiting:'Estás en la fila de atención',waitingIntro:'Estamos buscando un médico disponible para atender tu consulta en',paymentPending:'Pago pendiente',paymentWaiting:'Completá el pago. La búsqueda y asignación del médico comienzan cuando Mercado Pago confirma el cobro.',queue:'Posición en la fila',queuePending:'Por confirmar',estimate:'Tiempo estimado',estimateUnknown:'Variable',patient:'Paciente:',network:'Red médica:',reasonLabel:'Motivo:',refresh:'Actualizar',cancel:'Cancelar',ended:'Atención finalizada · AutaMedica',endedHint:'Tu consulta finalizó correctamente. Gracias por usar AutaMedica.',cancelled:'Consulta cancelada',back:'Volver al inicio'},
-  BR: {brand:'Plantão AutaMedica',ready:'Você já pode entrar',restart:'Iniciar outra consulta',footerNetwork:'Rede de farmácias parceiras',paymentTitle:'Consulta médica · R$ 79,00',paymentHint:'Confirme o pagamento de R$ 79,00 para iniciar a videochamada.',country:'Onde você quer atendimento?',patientData:'Seus dados',name:'Nome completo',phone:'Telefone / WhatsApp',reason:'Motivo da consulta',nameExample:'Ex. João da Silva',phoneExample:'Ex. +55 51 99999-9999',reasonExample:'Conte brevemente o que você precisa ou quais sintomas está sentindo...',submit:'Consultar médico',submitting:'Conectando ao plantão...',searching:'Procurando médico...',waiting:'Sua fila de atendimento',waitingIntro:'Estamos procurando um médico disponível para atender você em',paymentPending:'Pagamento pendente',paymentWaiting:'Conclua o pagamento. A busca e a designação do médico começam quando o Mercado Pago confirma a cobrança.',queue:'Posição na fila',queuePending:'A confirmar',estimate:'Tempo estimado',estimateUnknown:'Não estimado',patient:'Paciente:',network:'Rede médica:',reasonLabel:'Motivo:',refresh:'Atualizar',cancel:'Cancelar',ended:'Atendimento concluído · AutaMedica',endedHint:'Sua consulta foi concluída. Obrigado por usar a AutaMedica.',cancelled:'Consulta cancelada',back:'Voltar ao início'},
+  AR: { brand: 'Consulta médica', ready: 'Médico conectado', restart: 'Nueva consulta', country: 'País de atención', document: 'DNI', name: 'Nombre y apellido', phone: 'WhatsApp', reason: 'Motivo', nameExample: 'Ej. Juan Pérez', phoneExample: 'Ej. 11 2345-6789', reasonExample: 'Describí brevemente el motivo', submit: 'Buscar médico', submitting: 'Conectando...', searching: 'Buscando médico', queue: 'Fila', queuePending: 'A confirmar', elapsed: 'Tiempo', patient: 'Paciente', reasonLabel: 'Motivo', refresh: 'Actualizar', cancel: 'Cancelar', ended: 'Consulta finalizada', endedHint: 'La consulta terminó.', cancelled: 'Consulta cancelada', back: 'Volver' },
+  BR: { brand: 'Consulta médica de plantão', ready: 'Médico conectado', restart: 'Nova consulta', country: 'País de atendimento', document: 'CPF', name: 'Nome completo', phone: 'WhatsApp', reason: 'Motivo', nameExample: 'Ex.: João da Silva', phoneExample: 'Ex.: (51) 99999-9999', reasonExample: 'Descreva o motivo em poucas palavras', submit: 'Buscar médico', submitting: 'Conectando...', searching: 'Buscando médico', queue: 'Fila', queuePending: 'A confirmar', elapsed: 'Tempo', patient: 'Paciente', reasonLabel: 'Motivo', refresh: 'Atualizar', cancel: 'Cancelar', ended: 'Consulta finalizada', endedHint: 'A consulta foi concluída.', cancelled: 'Consulta cancelada', back: 'Voltar' },
 } as const
 
 const QUICK_REASONS = [
-  'Renovación de receta crónica',
-  'Alergia / antihistamínico',
-  'Molestia gastrointestinal',
-  'Dolor muscular / analgésico',
-  'Síntomas respiratorios leves',
-  'Otro medicamento',
+  'Dolor / malestar',
+  'Receta',
+  'Otro motivo',
 ] as const
 
 export function PharmacyExpressConsultation({
   pharmacyId = null,
-  pharmacyName = 'Farmacia Adherida',
   initialDni = '',
   initialCareCountry = null,
   referralCode = null,
-  referralPartnerName = null,
   jordanPaymentsEnabled = false,
   pharmacyPaymentsEnabled = false,
 }: PharmacyExpressConsultationProps) {
@@ -74,6 +64,8 @@ export function PharmacyExpressConsultation({
     phone: '',
     reason: '',
   })
+  const [reasonCategory, setReasonCategory] = useState<'pain' | 'prescription' | 'other' | ''>('')
+  const [waitingSeconds, setWaitingSeconds] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -85,6 +77,8 @@ export function PharmacyExpressConsultation({
   const [onlineDoctorCount, setOnlineDoctorCount] = useState<number | null>(null)
   const isPortuguese = formData.careCountry === 'BR'
   const copy = isPortuguese ? COPY.BR : COPY.AR
+  const selectedReason = reasonCategory === 'pain' ? (isPortuguese ? 'Dor / mal-estar' : 'Dolor / malestar') : reasonCategory === 'prescription' ? (isPortuguese ? 'Receita' : 'Receta') : reasonCategory === 'other' ? (isPortuguese ? 'Outro motivo' : 'Otro motivo') : ''
+  const reasonSummary = [selectedReason, formData.reason.trim()].filter(Boolean).join(': ')
 
   // Country-scoped privacy-safe availability aggregate, shared with Kotlin.
   useEffect(() => {
@@ -110,6 +104,12 @@ export function PharmacyExpressConsultation({
     void refresh()
     const timer = window.setInterval(() => void refresh(), 15000)
     return () => { current = false; window.clearInterval(timer) }
+  }, [step, formData.careCountry, brazilPaymentApproved])
+
+  useEffect(() => {
+    if (step !== 'WAITING' || (formData.careCountry === 'BR' && !brazilPaymentApproved)) { setWaitingSeconds(0); return }
+    const timer = window.setInterval(() => setWaitingSeconds((seconds) => seconds + 1), 1000)
+    return () => window.clearInterval(timer)
   }, [step, formData.careCountry, brazilPaymentApproved])
 
   // Polling / escucha para consultar GET /api/pharmacy/dispatch/${requestId}?token=${accessToken}
@@ -198,7 +198,7 @@ export function PharmacyExpressConsultation({
       setFormError(isPortuguese ? 'Digite um telefone ou WhatsApp válido.' : 'Ingresá un teléfono o WhatsApp válido.')
       return
     }
-    if (!formData.reason.trim()) {
+    if (!reasonCategory && !formData.reason.trim()) {
       setFormError(isPortuguese ? 'Informe o motivo da consulta.' : 'Indicá el motivo de consulta.')
       return
     }
@@ -218,7 +218,7 @@ export function PharmacyExpressConsultation({
           ...(formData.careCountry === 'BR' ? { patientCpf: documentNumber } : { patientDni: documentNumber }),
           patientName: formData.name.trim(),
           patientPhone: formData.phone.trim(),
-          symptomSummary: formData.reason.trim(),
+          symptomSummary: reasonSummary,
           pharmacyId: pharmacyId || undefined,
           referralCode: referralCode || undefined,
           tier: 'general',
@@ -233,9 +233,8 @@ export function PharmacyExpressConsultation({
       setAccessToken(token)
       setCallRoomId(roomId)
       setStep('WAITING')
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : (isPortuguese ? 'Não foi possível conectar ao plantão médico.' : 'No pudimos conectar con la guardia médica.')
-      setFormError(msg)
+    } catch {
+      setFormError(isPortuguese ? 'Não foi possível iniciar a consulta. Tente novamente.' : 'No pudimos iniciar la consulta. Volvé a intentar.')
     } finally {
       setSubmitting(false)
     }
@@ -281,20 +280,11 @@ export function PharmacyExpressConsultation({
           <span className="text-slate-400 hidden sm:inline">•</span>
           <span className="text-slate-600 hidden sm:inline font-normal">{referralPartnerName ?? pharmacyName}</span>
         </div>
-        {(!requiresBrazilPayment || brazilPaymentApproved) && <GuestCallPage roomId={callRoomId} />}
-        {requiresBrazilPayment && !brazilPaymentApproved && (
-          <div className="min-h-[100dvh] flex items-center justify-center p-6 text-center text-slate-900">
-            <div className="max-w-md">
-              <h2 className="text-xl font-semibold text-slate-900">{copy.paymentTitle}</h2>
-              <p className="mt-3 text-sm text-slate-600">{copy.paymentHint}</p>
-            </div>
-          </div>
-        )}
+        {(!requiresBrazilPayment || brazilPaymentApproved) && <GuestCallPage roomId={callRoomId} language={isPortuguese ? 'pt' : 'es'} />}
         {requiresBrazilPayment && requestId && accessToken && (
           <JordanPaymentWidget
             dispatchId={requestId}
             guestToken={accessToken}
-            sourceLabel={referralPartnerName ?? (isPortuguese ? 'Farmácia Express' : 'Farmacia Express')}
             onStatusChange={(status) => setBrazilPaymentApproved(status === 'approved')}
           />
         )}
@@ -303,53 +293,18 @@ export function PharmacyExpressConsultation({
   }
 
   return (
-    <div className="min-h-[100dvh] bg-slate-50 text-slate-900 flex flex-col items-center justify-center p-4 sm:p-6 relative select-none font-sans overflow-x-hidden">
+    <div className="min-h-[100dvh] bg-slate-50 text-slate-900 flex flex-col items-center justify-center p-3 sm:p-5 relative font-sans overflow-x-hidden">
 
       <div className="w-full max-w-xl flex flex-col items-center relative z-10 my-auto">
-        {/* Brand & Pharmacy Header */}
-        <header className="flex flex-col items-center text-center mb-6">
-          {/* Official Bioceramic Jewel / Ring Container */}
-          <div className="relative w-16 h-16 rounded-[1.75rem] bg-white p-1 ring-1 ring-slate-200 shadow-lg flex items-center justify-center overflow-hidden mb-3.5 group">
-            <div className="absolute inset-0 bg-gradient-to-tr from-sky-100 via-transparent to-sky-50 opacity-80 transition-opacity group-hover:opacity-100" />
-            <img
-              src="/logo_bioceramic.png"
-              alt="AutaMedica"
-              width={52}
-              height={52}
-              className="relative z-10 object-contain rounded-2xl transition-transform duration-500 group-hover:scale-105"
-            />
-          </div>
-
-          {/* Institutional Partnership Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white border border-slate-200 text-xs font-medium mb-2 shadow-md">
-            <span className="font-bold text-slate-900">{copy.brand}</span>
-            <span className="text-slate-500">•</span>
-            <span className="text-sky-700 font-medium">{referralPartnerName ? (isPortuguese ? 'Canal de indicação' : 'Canal de referidos') : (isPortuguese ? 'Rede de farmácias parceiras' : 'Red de farmacias asociadas')}</span>
-          </div>
-
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 flex items-center justify-center gap-2">
-            {isPortuguese ? 'Atendimento médico na sua farmácia' : 'Atención médica en tu farmacia'}
+        <header className="mb-5 flex items-center justify-center gap-2.5 text-center">
+          <img src="/logo_bioceramic.png" alt="AutaMedica" className="h-9 w-9 object-contain" />
+          <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+            {isPortuguese ? 'Consulta médica de plantão' : 'Consulta médica'}
           </h1>
-
-          <div className="flex items-center justify-center gap-2 mt-1.5 text-xs text-slate-600">
-            <Building2 className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-            <span>{referralPartnerName ? (isPortuguese ? 'Origem da indicação: ' : 'Origen de referencia: ') : (isPortuguese ? 'Ponto de atendimento digital: ' : 'Punto de atención digital: ')}<strong className="text-slate-900 font-semibold">{referralPartnerName ?? pharmacyName}</strong></span>
-          </div>
-          <p className="text-xs text-slate-500 mt-1 max-w-md">
-            {isPortuguese ? 'Converse com um profissional por videochamada.' : 'Consultá con un profesional por videollamada.'}
-          </p>
         </header>
-
         {/* STEP: FORM */}
         {step === 'FORM' && (
-          <div className="w-full rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xl shadow-slate-200/70">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-4 mb-5">
-              <div className="flex items-center gap-2 text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                <ShieldCheck className="w-4 h-4 text-sky-600 shrink-0" />
-                <span>{isPortuguese ? 'Atendimento imediato · Rede médica AutaMedica' : 'Atención inmediata · Red médica AutaMedica'}</span>
-              </div>
-              <span className="text-[11px] text-slate-500 font-medium">{isPortuguese ? 'Etapa 1 de 2' : 'Paso 1 de 2'}</span>
-            </div>
+          <div className="w-full rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
 
             {formError && (
               <div className="mb-5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2.5">
@@ -358,37 +313,32 @@ export function PharmacyExpressConsultation({
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <fieldset className="rounded-xl border border-slate-300 p-3">
-                <legend className="text-xs font-medium text-slate-600 px-1">{copy.country}</legend>
-                <div className="flex flex-wrap gap-4 mt-2 text-sm text-slate-800">
-                  {(['AR', 'BR'] as const).map((country) => (
-                    <label key={country} className="inline-flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="careCountry"
-                        required
-                        checked={formData.careCountry === country}
-                        disabled={referralCode === 'JORDAN' && country === 'AR'}
-                        onChange={() => setFormData({ ...formData, careCountry: country, dni: '' })}
-                        className="accent-[#0EA5E9]"
-                      />
-                      {country === 'AR' ? 'Argentina · DNI' : 'Brasil · CPF'}
+            <form onSubmit={handleSubmit} className="space-y-3.5">
+              <fieldset className="grid grid-cols-2 gap-2">
+                <legend className="mb-2 text-xs font-medium text-slate-600">{copy.country}</legend>
+                {(['BR', 'AR'] as const).map((country) => {
+                  const disabled = referralCode === 'JORDAN' && country === 'AR'
+                  const selected = formData.careCountry === country
+                  return (
+                    <label key={country} className={selected ? 'flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#0EA5E9] bg-sky-50 px-3 text-sm font-medium text-sky-800' : 'flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700'}>
+                      <input type="radio" name="careCountry" required checked={selected} disabled={disabled} onChange={() => { setFormData({ ...formData, careCountry: country, dni: '', reason: '' }); setReasonCategory('') }} className="sr-only" />
+                      <span aria-hidden="true">{country === 'BR' ? '🇧🇷' : '🇦🇷'}</span>
+                      <span>{country === 'BR' ? 'Brasil' : 'Argentina'}</span>
                     </label>
-                  ))}
-                </div>
+                  )
+                })}
               </fieldset>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor={dniInputId} className="block text-xs font-medium text-slate-600 mb-1.5 flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5 text-slate-500" />
-                    {formData.careCountry === 'BR' ? 'CPF (11 dígitos)' : 'DNI'}
+                    {copy.document}
                   </label>
                   <input
                     id={dniInputId}
                     type="text"
                     required
-                    placeholder={formData.careCountry === 'BR' ? 'Ex. 123.456.789-09' : 'Ej. 35123456'}
+                    placeholder={isPortuguese ? '123.456.789-09' : '35.123.456'}
                     value={formData.dni}
                     onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition"
@@ -429,30 +379,18 @@ export function PharmacyExpressConsultation({
               </div>
 
               <div>
-                <label htmlFor={reasonInputId} className="block text-xs font-medium text-slate-600 mb-1.5 flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5 text-slate-500" />
-                  {copy.reason}
-                </label>
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {(isPortuguese ? ['Renovação de receita contínua','Alergia / anti-histamínico','Desconforto gastrointestinal','Dor muscular / analgésico','Sintomas respiratórios leves','Outro medicamento'] : QUICK_REASONS).map((r) => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, reason: r })}
-                      className={`text-[11px] px-2.5 py-1 rounded-lg border transition ${
-                        formData.reason === r
-                          ? 'bg-sky-50 border-sky-400 text-sky-800'
-                          : 'bg-white border-slate-200 text-slate-600 hover:border-sky-400'
-                      }`}
-                    >
-                      {r}
-                    </button>
-                  ))}
+                <label htmlFor={reasonInputId} className="mb-1.5 block text-xs font-medium text-slate-600">{copy.reason}</label>
+                <div className="mb-2 flex flex-wrap gap-2">
+                  {(isPortuguese ? ['Dor / mal-estar', 'Receita', 'Outro motivo'] : QUICK_REASONS).map((label, index) => {
+                    const value = (['pain', 'prescription', 'other'] as const)[index]
+                    const selected = reasonCategory === value
+                    return <button key={value} type="button" aria-pressed={selected} onClick={() => setReasonCategory(value)} className={selected ? 'rounded-lg border border-[#0EA5E9] bg-sky-50 px-3 py-2 text-xs font-medium text-sky-800' : 'rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600'}>{label}</button>
+                  })}
                 </div>
-                <textarea
+                                <textarea
                   id={reasonInputId}
                   rows={2}
-                  required
+                  required={!reasonCategory}
                   placeholder={copy.reasonExample}
                   value={formData.reason}
                   onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
@@ -481,83 +419,28 @@ export function PharmacyExpressConsultation({
                 </button>
               </div>
 
-              <p className="text-[10px] text-center text-slate-500 pt-1">
-                {isPortuguese ? 'Um profissional atenderá você por videochamada.' : 'Un profesional atenderá tu consulta por videollamada.'}
-              </p>
-
-              {/* Institutional Trust & Regulatory Seals */}
-              <div className="pt-4 mt-2 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-left">
-                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                  <ShieldCheck className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-[11px] font-semibold text-slate-900">{isPortuguese ? 'Videoatendimento' : 'Videoconsulta'}</p>
-                    <p className="text-[10px] text-slate-500 leading-tight">{isPortuguese ? 'Atendimento médico remoto' : 'Atención médica remota'}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                  <FileCheck className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-[11px] font-semibold text-slate-900">{isPortuguese ? 'Documentos médicos' : 'Documentación médica'}</p>
-                    <p className="text-[10px] text-slate-500 leading-tight">{isPortuguese ? 'Receitas e atestados digitais' : 'Recetas y constancias digitales'}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                  <Lock className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-[11px] font-semibold text-slate-900">{isPortuguese ? 'Dados protegidos' : 'Datos protegidos'}</p>
-                    <p className="text-[10px] text-slate-500 leading-tight">{isPortuguese ? 'Acesso controlado às suas informações' : 'Acceso controlado a tu información'}</p>
-                  </div>
-                </div>
-              </div>
             </form>
           </div>
         )}
 
         {/* STEP: WAITING */}
         {step === 'WAITING' && (
-          <div className="w-full rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xl shadow-slate-200/70 text-center flex flex-col items-center">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold mb-3">
-              <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse" />
-              {formData.careCountry === 'BR' && !brazilPaymentApproved ? copy.paymentPending : copy.searching}
-            </span>
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">
-              {formData.careCountry === 'BR' && !brazilPaymentApproved ? (isPortuguese ? 'Confirme sua consulta' : 'Confirmá tu consulta') : copy.waiting}
-            </h2>
-            <p className="text-sm text-slate-600 max-w-sm mb-4">
-              {formData.careCountry === 'BR' && !brazilPaymentApproved ? copy.paymentWaiting : <>{copy.waitingIntro} <strong className="text-slate-900">{referralPartnerName ?? pharmacyName}.</strong></>}
-            </p>
+          <div className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm sm:p-5">
             {(formData.careCountry !== 'BR' || brazilPaymentApproved) && (
-              <div className="mb-5 w-full"><LiveMedicalPresenceRadar onlineCount={onlineDoctorCount} isPortuguese={isPortuguese} /></div>
+              <>
+                <div className="mb-2 w-full"><LiveMedicalPresenceRadar onlineCount={onlineDoctorCount} isPortuguese={isPortuguese} /></div>
+                <p className="mb-3 text-xs font-medium text-slate-600" aria-live="polite">{copy.searching}</p>
+                <div className="mb-4 grid grid-cols-2 gap-2">
+                  <div className="rounded-xl bg-slate-50 px-3 py-2.5"><span className="block text-[11px] text-slate-500">{copy.queue}</span><strong className="text-sm text-slate-800">{copy.queuePending}</strong></div>
+                  <div className="rounded-xl bg-slate-50 px-3 py-2.5"><span className="flex items-center justify-center gap-1 text-[11px] text-slate-500"><Clock className="h-3 w-3" />{copy.elapsed}</span><strong className="text-sm tabular-nums text-slate-800">{String(Math.floor(waitingSeconds / 60)).padStart(2, '0')}:{String(waitingSeconds % 60).padStart(2, '0')}</strong></div>
+                </div>
+              </>
             )}
-            <div className="w-full max-w-xs grid grid-cols-2 gap-3 mb-6">
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center">
-                <span className="text-[11px] text-slate-500 flex items-center gap-1 mb-1"><User className="w-3.5 h-3.5" /> {copy.queue}</span>
-                <span className="text-xl font-bold text-slate-900">{copy.queuePending}</span>
-              </div>
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center">
-                <span className="text-[11px] text-slate-500 flex items-center gap-1 mb-1"><Clock className="w-3.5 h-3.5" /> {copy.estimate}</span>
-                <span className="text-xl font-bold text-slate-700">{copy.estimateUnknown}</span>
-              </div>
-            </div>
-            <div className="w-full max-w-md p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-left text-xs text-slate-600 space-y-1.5 mb-6">
-              <div className="flex justify-between gap-3"><span>{copy.patient}</span><strong className="text-slate-900 text-right">{formData.name} ({formData.careCountry === 'BR' ? 'CPF' : 'DNI'} {formData.dni})</strong></div>
-              <div className="flex justify-between gap-3"><span>{copy.network}</span><span className="text-slate-900 font-medium text-right">AutaMedica · {referralPartnerName ?? pharmacyName}</span></div>
-              <div className="flex justify-between gap-3"><span>{copy.reasonLabel}</span><span className="text-sky-700 font-medium truncate max-w-[200px]">{formData.reason}</span></div>
-            </div>
-            {formData.careCountry === 'BR' && requestId && accessToken && (
-              <div className="w-full min-h-24 mb-6">
-                <JordanPaymentWidget dispatchId={requestId} guestToken={accessToken}
-                  sourceLabel={referralPartnerName ?? 'Farmácia Express'}
-                  onStatusChange={(status) => setBrazilPaymentApproved(status === 'approved')} />
-              </div>
-            )}
-            <div className="flex items-center gap-3 w-full max-w-xs">
-              <button type="button" onClick={() => requestId && void checkStatus(requestId, accessToken)}
-                className="flex-1 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-medium text-slate-700 transition flex items-center justify-center gap-1.5">
-                <RefreshCw className="w-3.5 h-3.5" /> {copy.refresh}
-              </button>
-              <button type="button" onClick={handleCancelRequest}
-                className="py-2.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-xs font-medium text-rose-700 transition">{copy.cancel}</button>
+            <div className="mb-4 rounded-xl bg-slate-50 px-3 py-2.5 text-left text-xs"><p className="font-semibold text-slate-900">{copy.patient}: {formData.name}</p>{reasonSummary && <p className="mt-1 text-slate-600">{copy.reasonLabel}: {reasonSummary}</p>}</div>
+            {formData.careCountry === 'BR' && requestId && accessToken && <div className="mb-4 w-full"><JordanPaymentWidget dispatchId={requestId} guestToken={accessToken} onStatusChange={(status) => setBrazilPaymentApproved(status === 'approved')} /></div>}
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => requestId && void checkStatus(requestId, accessToken)} className="flex-1 rounded-xl bg-slate-100 px-3 py-2.5 text-xs font-medium text-slate-700 transition hover:bg-slate-200"><RefreshCw className="mr-1 inline h-3.5 w-3.5" /> {copy.refresh}</button>
+              <button type="button" onClick={handleCancelRequest} className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100">{copy.cancel}</button>
             </div>
           </div>
         )}
@@ -587,6 +470,7 @@ export function PharmacyExpressConsultation({
               type="button"
               onClick={() => {
                 setFormData({ careCountry: '', dni: '', name: '', phone: '', reason: '' })
+                setReasonCategory('')
                 setStep('FORM')
               }}
               className="py-2.5 px-6 rounded-xl bg-[#0EA5E9] hover:bg-sky-600 text-white font-medium text-xs transition"
@@ -610,7 +494,7 @@ export function PharmacyExpressConsultation({
             </p>
             <button
               type="button"
-              onClick={() => setStep('FORM')}
+              onClick={() => { setReasonCategory(''); setStep('FORM') }}
               className="py-2.5 px-6 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium text-xs transition"
             >
               {copy.back}
@@ -618,18 +502,6 @@ export function PharmacyExpressConsultation({
           </div>
         )}
 
-        {/* Official Institutional Footer */}
-        <footer className="mt-8 text-center text-xs text-slate-500 flex flex-col items-center gap-2 z-10 relative">
-          <div className="flex items-center gap-2 text-slate-600 font-medium">
-            <img src="/logo_bioceramic.png" alt="AutaMedica" className="w-4 h-4 rounded object-contain opacity-80" />
-            <span className="font-semibold text-slate-900">{copy.brand}</span>
-            <span className="text-slate-400">•</span>
-            <span>{copy.footerNetwork}</span>
-          </div>
-          <p className="text-[10px] text-slate-500 max-w-md leading-normal">
-            {isPortuguese ? 'Atendimento médico digital com AutaMedica.' : 'Atención médica digital con AutaMedica.'}
-          </p>
-        </footer>
       </div>
     </div>
   )

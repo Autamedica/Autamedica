@@ -18,12 +18,12 @@ export function LiveMedicalPresenceRadar({
 }: LiveMedicalPresenceRadarProps) {
   const availabilityLabel =
     onlineCount === null
-      ? (isPortuguese ? 'Consultando disponibilidade médica...' : 'Consultando disponibilidad médica...')
+      ? (isPortuguese ? 'Buscando médicos disponíveis...' : 'Buscando médicos disponibles...')
       : onlineCount === 0
-        ? (isPortuguese ? 'Nenhum médico disponível neste momento' : 'No hay médicos disponibles en este momento')
+        ? (isPortuguese ? 'Nenhum médico disponível agora' : 'Sin médicos disponibles ahora')
         : isPortuguese
-          ? `${onlineCount} ${onlineCount === 1 ? 'médico de plantão ativo' : 'médicos de plantão ativos'} no Brasil`
-          : `${onlineCount} ${onlineCount === 1 ? 'médico de guardia activo' : 'médicos de guardia activos'} en Argentina`
+          ? onlineCount + ' ' + (onlineCount === 1 ? 'médico de plantão' : 'médicos de plantão')
+          : onlineCount + ' ' + (onlineCount === 1 ? 'médico disponible' : 'médicos disponibles')
 
   const visibleSignals = onlineCount === null ? 0 : Math.min(onlineCount, RADAR_POINTS.length)
 
