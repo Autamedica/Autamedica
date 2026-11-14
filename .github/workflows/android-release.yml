@@ -1,8 +1,8 @@
 name: 📱 Android Release & Play Store (Auto-Triggered)
 
-# Automated Android Release Pipeline (AutoRenta standard)
-# Builds a signed AAB on Android changes, but uploads to Play Store ONLY
-# on explicit workflow_dispatch with upload_to_play_store=true. No auto-publication.
+# Automated Android Release Pipeline
+# Builds a signed AAB on Android changes and publishes successful main releases
+# to Google Play production. Manual dispatch supports choosing the target track.
 
 on:
   push:
@@ -41,7 +41,7 @@ jobs:
   build-release-aab:
     name: Build Signed Android AAB
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
     outputs:
       version_name: ${{ steps.version_info.outputs.version_name }}
       version_code: ${{ steps.version_info.outputs.version_code }}
@@ -284,7 +284,7 @@ jobs:
           print(f"✅ versionCode {BUILD_VERSION_CODE} is safe to deploy")
           PY
 
-      - name: Upload to Google Play production
+      - name: Upload to Google Play selected track
         id: play_production
         if: steps.check_sa.outputs.has_secret == 'true'
         uses: r0adkll/upload-google-play@v1.1.4
@@ -292,12 +292,12 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
           packageName: com.autamedica.android
           releaseFiles: ./aab/*.aab
-          tracks: production
+          tracks: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.track || 'production' }}
           status: completed
 
       - name: Fallback to Google Play internal track
         id: play_internal_fallback
-        if: steps.check_sa.outputs.has_secret == 'true' && steps.play_production.outcome == 'failure'
+        if: steps.check_sa.outputs.has_secret == 'true' && steps.play_production.outcome == 'failure' && (github.event_name == 'push' || github.event.inputs.track == 'production')
         uses: r0adkll/upload-google-play@v1.1.4
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
@@ -312,7 +312,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ "${{ steps.check_sa.outputs.has_secret }}" = "true" ]; then
             echo "- **Estado:** ✅ Subido con éxito a Google Play Console" >> $GITHUB_STEP_SUMMARY
-            echo "- **Pista (Track):** \`${{ github.event.inputs.track || 'internal' }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- **Pista (Track):** \`${{ steps.play_internal_fallback.outcome == 'success' && 'internal (fallback)' || github.event.inputs.track || 'production' }}\`" >> $GITHUB_STEP_SUMMARY
             echo "- **Paquete:** \`com.autamedica.android\`" >> $GITHUB_STEP_SUMMARY
           else
             echo "- **Estado:** ⚠️ AAB compilado y firmado, pero falta configurar el secreto \`GOOGLE_PLAY_SERVICE_ACCOUNT\` para la subida desatendida a Play Store." >> $GITHUB_STEP_SUMMARY
