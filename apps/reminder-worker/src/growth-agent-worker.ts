@@ -76,6 +76,7 @@ interface CapabilityAuthorization {
   capability: AgentCapability;
   channel: AgentChannel | null;
   reason: string;
+  dryRun?: boolean;
 }
 
 interface WorkerConfig {
@@ -147,7 +148,7 @@ async function notifyTelegram(message: string): Promise<void> {
 console.log('🏥 AutaMedica Growth Agent Worker starting...');
 console.log(`   Supabase: ${SUPABASE_URL}`);
 console.log(`   OpenClaw: ${OPENCLAW_URL} (account: ${OPENCLAW_ACCOUNT})`);
-console.log(`   Dry Run: ${config.dryRun}`);
+console.log('   Dry Run: controlled live by public.platform_operational_switches');
 console.log(`   Interval: ${config.intervalMs}ms`);
 console.log('');
 
@@ -293,25 +294,25 @@ async function processOneJob(job: AgentJob, workerConfig: WorkerConfig): Promise
     return 'cancelled';
   }
 
-  const deliveryCapability = await authorizeDeliveryCapability(job, decision, liveWorkerConfig.dryRun);
+  const deliveryCapability = await authorizeDeliveryCapability(job, decision);
   if (!deliveryCapability.allowed) {
     await recordRun(
       job.id,
       'deliver',
-      { channel: decision.channel, dryRun: workerConfig.dryRun },
+      { channel: decision.channel, dryRun: deliveryCapability.dryRun ?? false },
       { skipped: true, reason: deliveryCapability.reason, capability_authorization: deliveryCapability },
     );
     await updateJob(job.id, 'cancelled', deliveryCapability.reason);
     return 'cancelled';
   }
 
-  if (liveWorkerConfig.dryRun) {
+  if (deliveryCapability.dryRun) {
     logger.info(`[GROWTH AGENT DRY RUN] ${decision.channel} -> ${decision.recipient}\n${decision.message}`);
     await recordGrowthEvent(lead, 'agent.concierge.dry_run', job, decision);
     await recordRun(
       job.id,
       'deliver',
-      { channel: decision.channel, dryRun: true },
+      { channel: decision.channel, dryRun: deliveryCapability.dryRun ?? true },
       { ok: true, dryRun: true, capability_authorization: deliveryCapability },
     );
     await updateJob(job.id, 'ready');
@@ -325,7 +326,7 @@ async function processOneJob(job: AgentJob, workerConfig: WorkerConfig): Promise
     return 'ready';
   }
 
-  const providerResult = await deliverMessage(decision, liveWorkerConfig);
+  const providerResult = await deliverMessage(decision, { ...workerConfig, dryRun: deliveryCapability.dryRun ?? false });
   await recordRun(
     job.id,
     'deliver',
@@ -524,8 +525,11 @@ async function validateDeliveryReadiness(
 async function authorizeDeliveryCapability(
   job: AgentJob,
   decision: ConciergeDecision,
-  dryRun: boolean,
 ): Promise<CapabilityAuthorization> {
+  // Read the complete switch row at the final authorization boundary. The dry-run
+  // decision and channel permission must come from the same live snapshot.
+  const switches = await loadOperationalSwitches();
+  const dryRun = switches.dry_run_enabled;
   const capability = resolveDeliveryCapability(decision.channel, dryRun);
   if (!capability) {
     return {
@@ -534,10 +538,27 @@ async function authorizeDeliveryCapability(
       capability: 'send_admin_report',
       channel: decision.channel,
       reason: `No capability mapping for ${decision.channel}`,
+      dryRun,
     };
   }
 
-  return authorizeCapability(job.agent_type, capability, decision.channel);
+  if (capability === 'dry_run_outbound' || capability === 'send_whatsapp' || capability === 'enqueue_email') {
+    const enabled = capability === 'dry_run_outbound'
+      ? switches.dry_run_enabled
+      : capability === 'send_whatsapp'
+        ? switches.whatsapp_send_enabled
+        : switches.email_send_enabled;
+    return {
+      allowed: enabled,
+      agentType: job.agent_type,
+      capability,
+      channel: decision.channel,
+      reason: enabled ? 'Authorized by public.platform_operational_switches' : 'Disabled by Admin operational switch',
+      dryRun,
+    };
+  }
+
+  return { ...(await authorizeCapability(job.agent_type, capability, decision.channel)), dryRun };
 }
 
 async function authorizeCapability(
