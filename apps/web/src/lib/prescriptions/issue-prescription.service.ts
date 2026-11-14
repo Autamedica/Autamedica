@@ -614,7 +614,25 @@ export async function issuePrescription(
   if (!hasPatientId) {
     return fail({ code: 'missing_patient_identification' });
   }
-  if (!patient.address && !externalPatient?.address) return fail({ code: 'missing_patient_address' });
+  let patientAddress = patient.address || externalPatient?.address || undefined;
+  if (!patientAddress) {
+    const { data: dispatch } = await supabase
+      .from('pharmacy_dispatch_requests')
+      .select('id, kiosk_id, pharmacy_id, patient_dni, patient_cpf, patient_phone')
+      .eq('patient_id', rx.patient_id)
+      .eq('status', 'completed')
+      .not('patient_phone', 'is', null)
+      .limit(1)
+      .maybeSingle();
+    const requestIdentity = dispatch?.patient_cpf || dispatch?.patient_dni;
+    const patientIdentity = (patient as { cpf?: string }).cpf || patient.dni
+      || (externalPatient as { cpf?: string })?.cpf || externalPatient?.dni;
+    if (dispatch && requestIdentity && patientIdentity && requestIdentity.replace(/\\D/g, '') === patientIdentity.replace(/\\D/g, '')) {
+      const counterId = dispatch.pharmacy_id || dispatch.kiosk_id || dispatch.id;
+      patientAddress = `Atención en mostrador de farmacia (identificador ${counterId})`;
+    }
+  }
+  if (!patientAddress) return fail({ code: 'missing_patient_address' });
 
   // 5. Resolve names
   const patientName = externalPatient?.name?.trim()
@@ -702,7 +720,7 @@ export async function issuePrescription(
           cpf: (patient as { cpf?: string }).cpf || (externalPatient as { cpf?: string })?.cpf || patient.dni || externalPatient?.dni || '',
           cns: (patient as { cns?: string }).cns,
           birthDate: patient.birth_date || externalPatient?.birth_date,
-          address: patient.address || externalPatient?.address,
+          address: patientAddress,
         },
         prescriber: {
           name: doctorName,
@@ -763,7 +781,7 @@ export async function issuePrescription(
           insurancePlan: externalRegistration?.affiliateCredential.plan ?? resolveInsurancePlan(patient.insurance_info),
           affiliateCredential: externalRegistration?.affiliateCredential.pan,
           insuranceEntityCode: externalRegistration?.affiliateCredential.codEntidad,
-          address: patient.address ?? externalPatient?.address ?? undefined,
+          address: patientAddress,
         },
         prescriber: {
           name: doctorName,
