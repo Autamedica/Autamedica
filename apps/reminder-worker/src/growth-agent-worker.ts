@@ -234,7 +234,6 @@ async function processOneJob(job: AgentJob, workerConfig: WorkerConfig): Promise
 
   const decision = buildConciergeDecision(job, lead);
   const operationalSwitches = await loadOperationalSwitches();
-  const liveWorkerConfig = { ...workerConfig, dryRun: operationalSwitches.dry_run_enabled };
   await recordRun(
     job.id,
     'reason',
