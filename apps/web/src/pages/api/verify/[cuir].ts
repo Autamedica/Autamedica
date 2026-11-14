@@ -128,7 +128,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
       .maybeSingle();
     if (prescriptionError) return internalError();
 
-    if (!rx || prescription.status !== 'active' || !prescription.signed_pdf_url ||
+    if (!prescription || prescription.status !== 'active' || !prescription.signed_pdf_url ||
         prescription.signature_method !== 'ac_external' || prescription.cuir !== cuir) {
       return jsonOk({
         valid: false, reason: 'prescription_signature_unverified',
