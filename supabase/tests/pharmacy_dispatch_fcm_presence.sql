@@ -20,8 +20,9 @@ BEGIN
   END IF;
   IF position('fcm_token' IN v_private_matcher)=0
      OR position('last_heartbeat_at' IN v_private_matcher)=0
-     OR position('dds.is_on_duty' IN v_private_matcher)=0 THEN
-    RAISE EXCEPTION 'Private matcher does not combine active guard, fresh heartbeat and registered FCM';
+     OR position('dds.is_on_duty' IN v_private_matcher)=0
+     OR position('or exists (' IN v_private_matcher)=0 THEN
+    RAISE EXCEPTION 'Private matcher must require active guard and (fresh heartbeat OR registered FCM)';
   END IF;
   IF position('fcm_token' IN v_capacity)=0
      OR position('s.is_on_duty' IN v_capacity)=0 THEN

@@ -23,7 +23,7 @@ env:
 
 jobs:
   dependency-scope:
-    if: ${{ github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]' }}
+    if: ${{ github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft != true) }}
     name: Dependency Scope
     runs-on: ubuntu-latest
     outputs:

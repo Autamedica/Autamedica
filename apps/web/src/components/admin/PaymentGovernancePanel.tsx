@@ -44,10 +44,10 @@ export function PaymentGovernancePanel(){
   const j=await r.json(); if(!r.ok||!j.success){setError('No se pudo actualizar el interruptor');return}
   await load()
  }
- const decide=async(id:string,decision:'APPROVED'|'REJECTED',resolutionAction?:'reopen'|'refund')=>{
+ const decide=async(decisionId:string,status:'APPROVED'|'REJECTED',resolutionAction?:'reopen'|'refund')=>{
   const notes=window.prompt('Motivo de la decisión administrativa (obligatorio):')
   if(!notes?.trim())return
-  const r=await fetch('/api/admin/approvals',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,decision,notes:notes.trim(),...(resolutionAction?{resolution_action:resolutionAction}:{})})})
+  const r=await fetch('/api/admin/approvals',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:decisionId,decision:status,notes:notes.trim(),...(resolutionAction ? { resolution_action: resolutionAction } : {})})})
   const j=await r.json(); if(!r.ok||!j.success){setError('No se pudo registrar la decisión');return}
   await load()
  }
