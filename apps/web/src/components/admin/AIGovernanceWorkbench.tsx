@@ -42,12 +42,33 @@ export function AIGovernanceWorkbench() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ domain, request: request.trim() }),
       });
-      const result = await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      const responseText = await response.text();
+      let result: { success?: boolean; data?: GovernanceAssessment; error?: string | { message?: string; code?: string } };
+
+      if (!contentType.toLowerCase().includes('application/json')) {
+        const detail = response.status === 403
+          ? 'Cloudflare o una regla de acceso bloqueó la solicitud. Revisá los eventos de seguridad para www.autamedica.com y permití esta ruta para sesiones autenticadas.'
+          : response.status === 404
+            ? 'La API de gobernanza no está publicada en este despliegue de autamedica-web.'
+            : `El servidor devolvió una respuesta no JSON (HTTP ${response.status}).`;
+        throw new Error(detail);
+      }
+
+      try {
+        result = JSON.parse(responseText) as typeof result;
+      } catch {
+        throw new Error(`La API devolvió JSON inválido (HTTP ${response.status}). Intentá nuevamente y revisá los registros del servidor.`);
+      }
+
       if (!response.ok || !result.success) {
         const message = typeof result.error === 'string' ? result.error : result.error?.message || result.error?.code;
         throw new Error(message === 'openai_api_key_not_configured'
           ? 'Falta configurar OPENAI_API_KEY en el secreto de Cloudflare de autamedica-web.'
-          : message || 'No se pudo analizar la solicitud.');
+          : message || `No se pudo analizar la solicitud (HTTP ${response.status}).`);
+      }
+      if (!result.data) {
+        throw new Error('La API respondió sin incluir la evaluación de riesgo.');
       }
       setAssessment(result.data);
     } catch (cause) {
