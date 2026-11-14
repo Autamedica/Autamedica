@@ -62,6 +62,7 @@ class InCallDocumentPolicyTest {
         assertThat(InCallDocumentPolicy.countriesMatchForDocumentIssuance("AR", "AR")).isTrue()
         assertThat(InCallDocumentPolicy.countriesMatchForDocumentIssuance("BR", "AR")).isFalse()
         assertThat(InCallDocumentPolicy.countriesMatchForDocumentIssuance("AR", null)).isFalse()
+        assertThat(InCallDocumentPolicy.countriesMatchForDocumentIssuance(null, null)).isFalse()
         assertThat(InCallDocumentPolicy.countriesMatchForDocumentIssuance("UY", "UY")).isFalse()
     }
 

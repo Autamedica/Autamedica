@@ -209,11 +209,15 @@ $patch$;
 DO $expiry$
 DECLARE
   v_definition text;
-  v_old text := $old$WHERE status = 'searching' AND search_timeout_at <= now()$old$;
+  v_old text;
   v_new text := $new$WHERE status = 'searching'
       AND COALESCE(search_timeout_at, created_at + interval '25 seconds') <= now()$new$;
 BEGIN
   v_definition := pg_get_functiondef('public.expire_stale_dispatch_requests()'::regprocedure);
+  v_old := $old$WHERE status = 'searching' AND search_timeout_at <= now()$old$;
+  IF position(v_old IN v_definition) = 0 THEN
+    v_old := $old$WHERE status='searching' AND search_timeout_at<=now()$old$;
+  END IF;
   IF position(v_old IN v_definition) = 0 THEN
     RAISE EXCEPTION 'dispatch_expiry_anchor_not_found';
   END IF;
