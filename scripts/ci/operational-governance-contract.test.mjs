@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-const migration=readFileSync('supabase/migrations/20261114210000_operational_governance_center.sql','utf8');
+const migration=readFileSync('supabase/migrations/20261114230216_operational_governance_center.sql','utf8');
 const checkout=readFileSync('apps/web/src/pages/api/pharmacy/dispatch/payment/create.ts','utf8');
 const status=readFileSync('apps/web/src/pages/api/admin/governance/status.ts','utf8');
 const overview=readFileSync('apps/web/src/pages/api/admin/governance/overview.ts','utf8');
