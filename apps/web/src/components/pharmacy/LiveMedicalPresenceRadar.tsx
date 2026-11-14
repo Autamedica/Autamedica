@@ -17,34 +17,32 @@ export function LiveMedicalPresenceRadar({
   isPortuguese = false,
 }: LiveMedicalPresenceRadarProps) {
   const availabilityLabel =
-    onlineCount === null
-      ? (isPortuguese ? 'Buscando médicos disponíveis...' : 'Buscando médicos disponibles...')
-      : onlineCount === 0
-        ? (isPortuguese ? 'Nenhum médico disponível agora' : 'Sin médicos disponibles ahora')
-        : isPortuguese
-          ? onlineCount + ' ' + (onlineCount === 1 ? 'médico de plantão' : 'médicos de plantão')
-          : onlineCount + ' ' + (onlineCount === 1 ? 'médico disponible' : 'médicos disponibles')
+    onlineCount === null || onlineCount === 0
+      ? (isPortuguese ? 'Acionando médicos de plantão...' : 'Notificando médicos de guardia...')
+      : isPortuguese
+        ? `${onlineCount} ${onlineCount === 1 ? 'médico em plantão ativo' : 'médicos em plantão ativo'}`
+        : `${onlineCount} ${onlineCount === 1 ? 'médico de guardia activa' : 'médicos de guardia activa'}`
 
   const visibleSignals = onlineCount === null ? 0 : Math.min(onlineCount, RADAR_POINTS.length)
 
   return (
     <section className="flex w-full flex-col items-center" aria-label={isPortuguese ? 'Radar de presença médica' : 'Radar de presencia médica'}>
-      <div className="am-medical-radar relative mx-auto aspect-square w-full max-w-[280px] overflow-hidden rounded-full">
+      <div className="am-medical-radar relative mx-auto aspect-square w-48 h-48 sm:w-64 sm:h-64 overflow-hidden rounded-full">
         <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_center,#f0f9ff_0%,#f8fcff_52%,#ffffff_100%)]" />
-        <div className="absolute inset-[5%] rounded-full border border-sky-500/20" />
-        <div className="absolute inset-[17%] rounded-full border border-sky-500/20" />
-        <div className="absolute inset-[30%] rounded-full border border-sky-500/20 border-dashed" />
-        <div className="absolute inset-[43%] rounded-full border border-sky-500/20" />
+        <div className="absolute inset-[5%] rounded-full border border-[#0EA5E9]/20" />
+        <div className="absolute inset-[17%] rounded-full border border-[#0EA5E9]/20" />
+        <div className="absolute inset-[30%] rounded-full border border-[#0EA5E9]/20 border-dashed" />
+        <div className="absolute inset-[43%] rounded-full border border-[#0EA5E9]/20" />
 
-        <div className="absolute left-1/2 top-[5%] h-[90%] border-l border-dashed border-sky-500/15" />
-        <div className="absolute left-[5%] top-1/2 w-[90%] border-t border-dashed border-sky-500/15" />
+        <div className="absolute left-1/2 top-[5%] h-[90%] border-l border-dashed border-[#0EA5E9]/15" />
+        <div className="absolute left-[5%] top-1/2 w-[90%] border-t border-dashed border-[#0EA5E9]/15" />
 
-        <div className="am-radar-wave absolute inset-[27%] rounded-full border border-sky-400/45" />
-        <div className="am-radar-wave absolute inset-[27%] rounded-full border border-sky-400/40" style={{ animationDelay: '-0.93s' }} />
-        <div className="am-radar-wave absolute inset-[27%] rounded-full border border-sky-400/35" style={{ animationDelay: '-1.86s' }} />
+        <div className="am-radar-wave absolute inset-[27%] rounded-full border border-[#0EA5E9]/45" />
+        <div className="am-radar-wave absolute inset-[27%] rounded-full border border-[#0EA5E9]/40" style={{ animationDelay: '-0.93s' }} />
+        <div className="am-radar-wave absolute inset-[27%] rounded-full border border-[#0EA5E9]/35" style={{ animationDelay: '-1.86s' }} />
 
         <div className="am-radar-sweep absolute inset-0 rounded-full" />
-        <div className="am-radar-beam absolute left-1/2 top-1/2 h-px w-[45%] origin-left bg-gradient-to-r from-sky-500/80 to-transparent" />
+        <div className="am-radar-beam absolute left-1/2 top-1/2 h-px w-[45%] origin-left bg-gradient-to-r from-[#0EA5E9]/80 to-transparent" />
 
         {RADAR_POINTS.slice(0, visibleSignals).map((point, index) => (
           <span
