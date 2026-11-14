@@ -441,9 +441,14 @@ describe('API: /api/pharmacy/dispatch/request', () => {
   })
 
   it('rechaza Jordan sin checkout habilitado antes de crear una solicitud', async () => {
+    paymentSwitchesMock.mockResolvedValue({
+      jordan_qr_payments_enabled: false,
+      pharmacy_express_payments_enabled: true,
+      global_pix_mp_payments_enabled: true,
+    })
     const response = await POST(makeContext({
       body: {
-        careCountry: 'BR', patientCpf: '12345678909',
+        careCountry: 'BR', patientCpf: '12345678909', patientName: 'Paciente sintético',
         patientPhone: '+5551999998888', referralCode: 'JORDAN',
       },
     }))

@@ -183,7 +183,7 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
     expect(body.data.cancelled).toBe(true)
     expect(update.update).toHaveBeenCalledWith({ status: 'cancelled' })
     expect(update.eq).toHaveBeenCalledWith('id', 'req-1')
-    expect(update.eq).toHaveBeenCalledWith('requested_by_user_id', null)
+    expect(update.is).toHaveBeenCalledWith('requested_by_user_id', null)
     expect(update.eq).toHaveBeenCalledWith('care_country', 'AR')
     expect(update.eq).toHaveBeenCalledWith('status', 'searching')
     expect(update.eq).not.toHaveBeenCalledWith('patient_id', null)
