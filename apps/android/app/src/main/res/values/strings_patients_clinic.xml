@@ -74,6 +74,7 @@
     <string name="psychiatry_intake_reason_label">Motivo de consulta</string>
     <string name="psychiatry_intake_history_label">Antecedentes (Opcional)</string>
     <string name="psychiatry_intake_medication_label">Medicación actual (Opcional)</string>
+    <string name="psychiatry_intake_tdah_btn">Realizar evaluación TDAH</string>
     <string name="psychiatry_intake_submit_btn">Finalizar evaluación</string>
 
     <!-- Reproductive Health (IVE) Screen -->

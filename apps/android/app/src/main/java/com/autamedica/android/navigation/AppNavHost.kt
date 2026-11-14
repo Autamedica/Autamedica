@@ -128,7 +128,12 @@ fun AppNavHost(
 
         composable<Route.PsychiatryIntake> {
             com.autamedica.android.presentation.patients.psychiatry.PsychiatryIntakeScreen(
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onNavigateToTdahEvaluation = {
+                    navController.navigate(Route.TdahEvaluation) {
+                        launchSingleTop = true
+                    }
+                },
             )
         }
 

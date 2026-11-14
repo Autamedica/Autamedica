@@ -44,7 +44,7 @@
 
     <!-- Psychiatry: TDAH Evaluation Screen -->
     <string name="tdah_screen_title">Escala TDAH (ASRS v1.1)</string>
-    <string name="tdah_back_cd">Volver</string>
+    <string name="tdah_back_cd">Voltar</string>
     <string name="tdah_card_title">Rastreio Clínico de TDAH em Adultos</string>
     <string name="tdah_card_subtitle">Responda com base na sua experiência habitual nos últimos 6 meses. Este teste serve como orientação clínica e não substitui o diagnóstico psiquiátrico formal.</string>
     <string name="tdah_option_never">Nunca</string>
@@ -74,6 +74,7 @@
     <string name="psychiatry_intake_reason_label">Motivo da consulta</string>
     <string name="psychiatry_intake_history_label">Histórico prévio (Opcional)</string>
     <string name="psychiatry_intake_medication_label">Medicação atual (Opcional)</string>
+    <string name="psychiatry_intake_tdah_btn">Realizar avaliação TDAH</string>
     <string name="psychiatry_intake_submit_btn">Finalizar avaliação</string>
 
     <!-- Reproductive Health (IVE) Screen -->

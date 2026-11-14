@@ -5,7 +5,6 @@ import com.autamedica.android.service.NotificationHelper
 import com.autamedica.android.util.DebugStrictMode
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
-import java.io.File
 
 @HiltAndroidApp
 class AutamedicaApplication : Application() {
@@ -16,8 +15,7 @@ class AutamedicaApplication : Application() {
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         } else {
-            val logsDir = File(filesDir, "logs")
-            Timber.plant(CrashReportingTree(logsDir))
+            Timber.plant(CrashReportingTree())
         }
 
         // Create all notification channels (idempotent, safe to call every launch)

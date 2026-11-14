@@ -34,7 +34,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
 import java.time.Instant
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -111,7 +110,10 @@ class NotificationRepositoryImpl @Inject constructor(
             val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
                 ?: return@runCatching emptyList()
 
-            val remoteNotifications = runCatching {
+            // An empty successful response is authoritative: no invented messages
+            // and no stale inbox content from a previous fetch. Only a network
+            // failure may fall back to the in-memory cache.
+            val remoteResult = runCatching {
                 supabaseClient.postgrest
                     .from("portal_notifications")
                     .select {
@@ -122,19 +124,11 @@ class NotificationRepositoryImpl @Inject constructor(
                         limit(limit.toLong())
                     }
                     .decodeList<PortalNotification>()
-            }.getOrElse { error ->
-                SecureLog.warn("[Notifications] Failed to query remote portal_notifications, falling back to local cache", error)
-                emptyList()
+            }.onFailure { error ->
+                SecureLog.warn("[Notifications] Failed to query portal_notifications, retaining cached messages", error)
             }
 
-            val finalNotifications = if (remoteNotifications.isNotEmpty()) {
-                remoteNotifications
-            } else if (_notifications.value.isNotEmpty()) {
-                _notifications.value
-            } else {
-                // Default realistic onboarding notifications for active patients
-                generateDefaultNotifications(userId)
-            }
+            val finalNotifications = resolvePortalInbox(remoteResult, _notifications.value)
 
             _notifications.value = finalNotifications
             _unreadCount.value = finalNotifications.count { !it.isRead }
@@ -215,7 +209,9 @@ class NotificationRepositoryImpl @Inject constructor(
                     when (action) {
                         is PostgresAction.Insert -> {
                             val record = action.record
-                            val id = record["id"]?.jsonPrimitive?.content ?: UUID.randomUUID().toString()
+                            // Without a server ID, a Realtime event cannot be deduplicated.
+                            val id = record["id"]?.jsonPrimitive?.content
+                                ?.takeIf { it.isNotBlank() } ?: return@collect
                             val title = record["title"]?.jsonPrimitive?.content ?: "AutaMedica"
                             val body = record["body"]?.jsonPrimitive?.content ?: ""
                             val category = record["category"]?.jsonPrimitive?.content ?: "appointment"
@@ -236,18 +232,22 @@ class NotificationRepositoryImpl @Inject constructor(
                                 createdAt = Instant.now().toString(),
                             )
 
+                            // Replayed INSERT events (or a concurrent inbox refresh)
+                            // must never increase the badge or display a second toast.
+                            val isNew = _notifications.value.none { it.id == id }
                             _notifications.update { current ->
-                                if (current.none { it.id == id }) listOf(newNotification) + current else current
+                                addPortalNotificationIfNew(current, newNotification)
                             }
-                            _unreadCount.update { it + 1 }
+                            _unreadCount.value = _notifications.value.count { !it.isRead }
 
-                            // Show native system notification immediately
-                            showLocalNotification(
-                                title = title,
-                                body = body,
-                                category = category,
-                                deepLink = actionUrl,
-                            )
+                            if (isNew) {
+                                showLocalNotification(
+                                    title = title,
+                                    body = body,
+                                    category = category,
+                                    deepLink = actionUrl,
+                                )
+                            }
                         }
                         is PostgresAction.Update -> {
                             getNotifications()
@@ -282,80 +282,10 @@ class NotificationRepositoryImpl @Inject constructor(
             deepLink = deepLink,
         )
 
+        // Purely an Android system notification. Persisting a new row here
+        // would trigger PostgresAction.Insert and recurse indefinitely.
+        // portal_notifications is written by the authorized backend only.
         NotificationHelper.show(context, payload)
-
-        // Add to in-app notifications and update unread count
-        val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID) ?: "current_user"
-        val newNotification = PortalNotification(
-            id = UUID.randomUUID().toString(),
-            userId = userId,
-            category = category,
-            type = "user_alert",
-            title = title,
-            body = body,
-            actionUrl = deepLink,
-            actionLabel = if (category.lowercase() == "appointment") "Ver turno" else "Ver detalle",
-            readAt = null,
-            createdAt = Instant.now().toString(),
-        )
-
-        _notifications.update { listOf(newNotification) + it }
-        _unreadCount.update { it + 1 }
-
-        // Persist to Supabase if connected
-        if (userId != "current_user") {
-            repositoryScope.launch {
-                runCatching {
-                    supabaseClient.postgrest
-                        .from("portal_notifications")
-                        .insert(newNotification)
-                }.onFailure {
-                    SecureLog.warn("[Notifications] Could not persist local notification to Supabase", it)
-                }
-            }
-        }
-    }
-
-    private fun generateDefaultNotifications(userId: String): List<PortalNotification> {
-        val now = Instant.now()
-        return listOf(
-            PortalNotification(
-                id = "notif_welcome_${userId.take(6)}",
-                userId = userId,
-                category = "system",
-                type = "welcome",
-                title = "Bienvenido a AutaMedica",
-                body = "Tu perfil y cobertura de telemedicina están activos. Ya podés agendar consultas inmediatas o programadas.",
-                actionLabel = "Explorar médicos",
-                actionUrl = "/home",
-                readAt = null,
-                createdAt = now.minusSeconds(1800).toString(),
-            ),
-            PortalNotification(
-                id = "notif_doc_eduardo_${userId.take(6)}",
-                userId = userId,
-                category = "appointment",
-                type = "doctor_available",
-                title = "Dr. Eduardo Da Rosa disponible",
-                body = "El Dr. Eduardo Da Rosa (Medicina General) tiene turnos disponibles para teleconsulta inmediata.",
-                actionLabel = "Ver agenda",
-                actionUrl = "/appointments",
-                readAt = null,
-                createdAt = now.minusSeconds(7200).toString(),
-            ),
-            PortalNotification(
-                id = "notif_prescriptions_${userId.take(6)}",
-                userId = userId,
-                category = "prescription",
-                type = "prescription_info",
-                title = "Recetas digitales homologadas",
-                body = "Tus recetas y órdenes médicas emitidas durante las consultas se validan automáticamente con firma digital en Farmalink y SISA.",
-                actionLabel = "Mis recetas",
-                actionUrl = "/prescriptions",
-                readAt = now.minusSeconds(86400).toString(),
-                createdAt = now.minusSeconds(86400).toString(),
-            ),
-        )
     }
 
     companion object {

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">AutaMedica</string>
-    <string name="login_title">Iniciar Sesion</string>
+    <string name="login_title">Iniciar Sesión</string>
     <string name="login_email_label">Correo electronico</string>
     <string name="login_password_label">Contrasena</string>
     <string name="login_button">Ingresar</string>

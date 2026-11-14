@@ -19,6 +19,7 @@ import javax.inject.Singleton
 object WebRTCModule {
 
     @Provides
+    @Singleton
     fun provideSignalingClient(
         json: Json,
     ): SignalingClient {
