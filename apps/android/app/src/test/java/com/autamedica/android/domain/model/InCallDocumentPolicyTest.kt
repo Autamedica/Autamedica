@@ -66,6 +66,11 @@ class InCallDocumentPolicyTest {
         assertThat(InCallDocumentPolicy.countriesMatchForDocumentIssuance("UY", "UY")).isFalse()
     }
 
+    @Test fun matchingBrazilCareCountryDoesNotEnableTheUnhomologatedGenericPrescriptionIssuer() {
+        assertThat(InCallDocumentPolicy.countriesMatchForDocumentIssuance("BR", "BR")).isTrue()
+        assertThat(InCallDocumentPolicy.canUseNativePrescriptionIssuer("BR")).isFalse()
+    }
+
     @Test fun brazilMustNotFallBackToGenericPrescriptionIssuer() {
         assertThat(InCallDocumentPolicy.canUseNativePrescriptionIssuer("AR")).isTrue()
         assertThat(InCallDocumentPolicy.canUseNativePrescriptionIssuer("BR")).isFalse()
