@@ -53,3 +53,29 @@ Before any GO decision, require green required CI, disposable migration replay, 
 | #728 verified identity | Ready for review | Tests + disposable replay pass; Audit red; trusted verifier unavailable |
 | PSP TEST + SFU E2E | NO-GO | Not executed end to end |
 | Operational activation | Admin-controlled | Read `public.platform_operational_switches`; Markdown has no authority |
+
+## Verificación operativa Jordan / Farmacia Express — 2026-11-14
+
+**Estado: PARTIAL / NO-GO para declarar el circuito integral VERIFIED.** Esta sección reemplaza cualquier interpretación de migraciones aplicadas como evidencia de E2E.
+
+### Evidencia real leída en Supabase Producción (`qxjjrpksmwwrmubhvjew`)
+
+- Las tablas `pharmacy_dispatch_requests`, `pharmacy_dispatch_payments`, `admin_approval_decisions`, `doctor_earnings` y `commercial_referral_commissions` existen.
+- `platform_operational_switches.dispatch_engine_enabled` existe y el switch global está activo; también están activos los tres switches de checkout QR / Farmacia Express / PIX-MercadoPago.
+- `expire_stale_dispatch_requests()` está instalada y crea aprobaciones `PENDING_HUMAN_APPROVAL` para pagos aprobados asociados a solicitudes vencidas, con índice único idempotente por `dispatch_request_id`.
+- El trigger `trg_record_pharmacy_dispatch_doctor_earning` está instalado sobre la transición a `completed`. La función crea earning BRL 4000 (R$40) y comisión BRL 1000 (R$10), ambas idempotentes por solicitud.
+- La base informa 683 médicos BR activos/en guardia y 1 médico BR con FCM no vacío. Esto no demuestra entrega FCM ni aceptación de una oferta.
+- El panel administrativo exponía el cuarto switch, pero el callback de decisión de aprobación tenía un parámetro inexistente. Se corrigió en `PaymentGovernancePanel.tsx` para enviar explícitamente `resolution_action=reopen|refund`.
+- La ruta `/api/admin/approvals` ya implementa reapertura con nueva ventana de 15 minutos y reejecución del matcher, y reembolso MercadoPago con idempotency key.
+- La emisión de receta ya exime a médicos brasileños/CFM de REFEPS. Se corrigió el fallback de dirección para que un invitado QR con teléfono y solicitud de farmacia use la ubicación real del mostrador, sin exigir domicilio residencial.
+
+### Etapas que NO se marcan como verificadas
+
+1. QR invitado + token: no se ejecutó una creación nueva con token real en esta corrida.
+2. Pago R$79: no se confirmó un pago real MercadoPago TEST ni su webhook.
+3. FCM + matcher + claim: no se completó una oferta real de extremo a extremo.
+4. SFU invitado: no se realizó una llamada autenticada real a `cloudflare-calls` con `x-guest-token`.
+5. Receta BR + cierre contable: el trigger y las reglas están instalados, pero no se completó una consulta de prueba real con verificación de PDF/QR y ledger.
+6. Expiración + reapertura: la función y endpoint existen, pero no se creó y resolvió una segunda solicitud pagada de prueba.
+
+**Release decision: NO-GO / E2E pendiente.** No convertir esta evidencia de esquema/código en un GO / VERIFIED. La verificación integral requiere ejecutar el flujo contra un entorno de prueba con credenciales TEST de MercadoPago, un médico BR con FCM operativo y las credenciales de Cloudflare Calls/SFU.
