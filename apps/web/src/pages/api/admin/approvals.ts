@@ -31,8 +31,11 @@ async function executeApprovedAction(db: any, payload: Record<string, unknown>, 
       if (requestError) throw requestError
       if (!request) throw new Error('expired_dispatch_request_not_reopenable')
       const { data: matched, error: matchError } = await db.rpc('match_dispatch_doctors', { p_dispatch_id: requestId })
-      if (matchError) throw matchError
-      if (matched?.code === 'DISPATCH_ENGINE_DISABLED') throw new Error('dispatch_engine_disabled')
+      if (matchError || matched?.code === 'DISPATCH_ENGINE_DISABLED') {
+        await db.from('pharmacy_dispatch_requests').update({ status: 'expired', search_timeout_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', requestId).eq('status', 'searching')
+        if (matchError) throw matchError
+        throw new Error('dispatch_engine_disabled')
+      }
       return
     }
     if (payment.status === 'refunded') return
@@ -46,7 +49,6 @@ async function executeApprovedAction(db: any, payload: Record<string, unknown>, 
       body: JSON.stringify({ amount: Number(payment.amount_minor) / 100 }),
     })
     if (!response.ok) throw new Error(`mercadopago_refund_failed_${response.status}`)
-    const refundResult = await response.json().catch(() => ({}))
     const { error: refundUpdateError } = await db.from('pharmacy_dispatch_payments')
       .update({ status: 'refunded', updated_at: new Date().toISOString() })
       .eq('id', paymentId).eq('status', 'approved')
