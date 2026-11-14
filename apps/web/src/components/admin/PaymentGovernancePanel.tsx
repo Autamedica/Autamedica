@@ -36,7 +36,7 @@ export function PaymentGovernancePanel(){
    setError('')
   }catch{setError('No se pudo cargar la gobernanza administrativa')}
  }
- useEffect(()=>{void load()},[])
+ useEffect(()=>{void load();const refresh=setInterval(()=>void load(),15000);return ()=>clearInterval(refresh)},[])
  const toggle=async(key:SwitchKey,enabled:boolean)=>{
   const r=await fetch('/api/admin/payments/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key,enabled,reason:'Cambio manual desde Admin'})})
   const j=await r.json(); if(!r.ok||!j.success){setError('No se pudo actualizar el interruptor');return}
