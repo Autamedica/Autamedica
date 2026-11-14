@@ -41,12 +41,17 @@ function isAssessment(value: unknown): value is Assessment {
     );
 }
 
-function getOutputText(response: Record<string, any>): string | undefined {
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return value !== null && typeof value === 'object' ? value as Record<string, unknown> : undefined;
+}
+
+function getOutputText(response: Record<string, unknown>): string | undefined {
   const output = Array.isArray(response.output) ? response.output : [];
   for (const item of output) {
-    const content = Array.isArray(item?.content) ? item.content : [];
-    const text = content.find((part: any) => part?.type === 'output_text')?.text;
-    if (typeof text === 'string') return text;
+    const content = asRecord(item)?.content;
+    if (!Array.isArray(content)) continue;
+    const textPart = content.map(asRecord).find((part) => part?.type === 'output_text');
+    if (typeof textPart?.text === 'string') return textPart.text;
   }
   return undefined;
 }
@@ -107,14 +112,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
       }),
     });
     if (!openaiResponse.ok) {
-      const providerError = await openaiResponse.json().catch(() => ({})) as Record<string, any>;
-      const code = typeof providerError.error?.code === 'string' ? providerError.error.code : 'provider_error';
+      const providerError = asRecord(await openaiResponse.json().catch(() => ({})));
+      const providerDetails = asRecord(providerError?.error);
+      const code = typeof providerDetails?.code === 'string' ? providerDetails.code : 'provider_error';
       return new Response(JSON.stringify({ success: false, error: 'openai_request_failed', code }), {
         status: 502, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
       });
     }
-    const providerBody = await openaiResponse.json() as Record<string, any>;
-    const outputText = getOutputText(providerBody);
+    const providerBody = asRecord(await openaiResponse.json());
+    const outputText = providerBody ? getOutputText(providerBody) : undefined;
     if (!outputText) return internalError('openai_empty_response');
     const parsed: unknown = JSON.parse(outputText);
     if (!isAssessment(parsed)) return internalError('openai_invalid_assessment');
