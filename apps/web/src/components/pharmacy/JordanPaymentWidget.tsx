@@ -70,21 +70,21 @@ export function JordanPaymentWidget({
   }
 
   return (
-    <aside className="fixed top-16 right-3 z-40 w-[min(310px,calc(100vw-24px))] rounded-2xl border border-emerald-500/30 bg-zinc-950/95 p-3.5 shadow-xl backdrop-blur-lg text-sm text-white" aria-label="Pagamento da consulta">
-      <div className="font-semibold">Consulta médica · R$ 79,00</div>
-      <p className="mt-1 text-xs text-zinc-300">
+    <aside className="fixed top-16 right-3 z-40 w-[min(310px,calc(100vw-24px))] rounded-2xl border border-sky-200 bg-white p-3.5 shadow-xl shadow-slate-200/70 text-sm text-slate-900" aria-label="Pagamento da consulta">
+      <div className="font-semibold text-slate-900">Consulta médica · R$ 79,00</div>
+      <p className="mt-1 text-xs text-slate-600">
         Origem: {sourceLabel}. Pagamento seguro pelo Mercado Pago.
       </p>
       {status === 'approved' ? (
-        <p role="status" className="mt-2 text-emerald-400 font-semibold">Pagamento confirmado.</p>
+        <p role="status" className="mt-2 font-semibold text-emerald-700">Pagamento confirmado.</p>
       ) : (
         <>
           {checkoutUrl ? (
-            <a href={checkoutUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex rounded-lg bg-emerald-600 px-3 py-2 font-semibold hover:bg-emerald-500">
+            <a href={checkoutUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex rounded-lg bg-[#0EA5E9] px-3 py-2 font-semibold text-white hover:bg-sky-600">
               Abrir pagamento
             </a>
           ) : (
-            <button onClick={() => void beginCheckout()} disabled={busy} type="button" className="mt-3 rounded-lg bg-emerald-600 px-3 py-2 font-semibold disabled:opacity-50">
+            <button onClick={() => void beginCheckout()} disabled={busy} type="button" className="mt-3 rounded-lg bg-[#0EA5E9] px-3 py-2 font-semibold text-white hover:bg-sky-600 disabled:opacity-50">
               {busy ? 'Preparando...' : 'Pagar consulta'}
             </button>
           )}
