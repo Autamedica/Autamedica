@@ -1442,6 +1442,8 @@ async function sendViaResend(env: Env, subject: string, html: string): Promise<S
 }
 
 async function sendViaBrevo(env: Env, subject: string, html: string): Promise<SendResult> {
+  const enabled = await checkKillswitch(env, "email_brevo");
+  if (!enabled) throw new Error("Interruptor operativo de email deshabilitado");
   if (!env.BREVO_API_KEY) throw new Error("BREVO_API_KEY no configurada");
   const listIds = parseNumberList(env.BREVO_LIST_IDS);
   if (listIds.length > 0) {
@@ -1595,7 +1597,7 @@ async function checkKillswitch(env: Env, channel: string): Promise<boolean> {
     if (rows.length !== 1 || rows[0].dry_run_enabled !== false) return false;
     const emailChannel = channel.startsWith("email_");
     return emailChannel ? rows[0].email_send_enabled === true : rows[0].whatsapp_send_enabled === true;
-  } catch { return true; }
+  } catch { return false; }
 }
 
 async function logPublish(env: Env, entry: PublishLogEntry): Promise<void> {
