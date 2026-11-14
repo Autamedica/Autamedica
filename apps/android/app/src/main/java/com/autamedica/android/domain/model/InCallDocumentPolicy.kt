@@ -37,6 +37,7 @@ object InCallDocumentPolicy {
         }
     }
 
+    /** In-call documents require the linked patient's persisted care country to match the doctor's license. */
     fun countriesMatchForDocumentIssuance(doctorCountry: String?, patientCareCountry: String?): Boolean =
         doctorCountry in setOf("AR", "BR") && doctorCountry == patientCareCountry
 
