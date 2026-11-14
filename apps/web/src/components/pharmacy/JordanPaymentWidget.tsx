@@ -88,9 +88,9 @@ export function JordanPaymentWidget({
               {busy ? 'Preparando...' : 'Pagar consulta'}
             </button>
           )}
-          {status === 'pending' && <p role="status" className="mt-2 text-xs text-amber-200">Aguardando confirmação do pagamento.</p>}
-          {status === 'refunded' && <p role="status" className="mt-2 text-xs text-amber-200">Pagamento estornado.</p>}
-          {error && <p role="alert" className="mt-2 text-xs text-red-300">{error}</p>}
+          {status === 'pending' && <p role="status" className="mt-2 text-xs text-amber-700">Aguardando confirmação do pagamento.</p>}
+          {status === 'refunded' && <p role="status" className="mt-2 text-xs text-amber-700">Pagamento estornado.</p>}
+          {error && <p role="alert" className="mt-2 text-xs text-red-700">{error}</p>}
         </>
       )}
     </aside>
