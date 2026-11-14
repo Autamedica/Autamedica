@@ -64,6 +64,7 @@ type TableChain = {
   select: ReturnType<typeof vi.fn>
   eq: ReturnType<typeof vi.fn>
   gt: ReturnType<typeof vi.fn>
+  is: ReturnType<typeof vi.fn>
   maybeSingle: ReturnType<typeof vi.fn>
   single: ReturnType<typeof vi.fn>
   update: ReturnType<typeof vi.fn>
@@ -77,6 +78,7 @@ function buildTableChain(data: unknown, error: unknown = null): TableChain {
     select: vi.fn(),
     eq: vi.fn(),
     gt: vi.fn(),
+    is: vi.fn(),
     maybeSingle: vi.fn(),
     single: vi.fn(),
     update: vi.fn(),
@@ -84,6 +86,7 @@ function buildTableChain(data: unknown, error: unknown = null): TableChain {
   chain.select.mockReturnValue(chain)
   chain.eq.mockReturnValue(chain)
   chain.gt.mockReturnValue(chain)
+  chain.is.mockReturnValue(chain)
   chain.maybeSingle.mockReturnValue(chain)
   chain.single.mockReturnValue(chain)
   chain.update.mockReturnValue(chain)
