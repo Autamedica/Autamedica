@@ -1430,6 +1430,8 @@ async function sendViaResend(env: Env, subject: string, html: string): Promise<S
     await logPublish(env, { channel: "email_resend", status: "error", error_message: `create broadcast ${createRes.status}: ${body}`, payload: { subject } });
     throw new Error(`Resend Create Fail: ${createRes.status}: ${body}`);
   }
+  const stillEnabled = await checkKillswitch(env, KILLSWITCH_CHANNEL);
+  if (!stillEnabled) throw new Error("Interruptor operativo de email deshabilitado antes del envío");
   const { id } = (await createRes.json()) as { id: string };
   const sendRes = await fetch(`https://api.resend.com/broadcasts/${id}/send`, { method: "POST", headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, "content-type": "application/json" }, body: JSON.stringify({}) });
   if (!sendRes.ok) {
@@ -1483,6 +1485,8 @@ async function sendBrevoCampaign(env: Env, subject: string, html: string, listId
     await logPublish(env, { channel: "email_brevo", status: "error", error_message: `create campaign ${createRes.status}: ${createBody}`, payload: { subject, listIds } });
     throw new Error(`Brevo Campaign Create Fail: ${createRes.status}: ${createBody}`);
   }
+  const stillEnabled = await checkKillswitch(env, "email_brevo");
+  if (!stillEnabled) throw new Error("Interruptor operativo de email deshabilitado antes del envío");
   const campaign = JSON.parse(createBody) as { id: number };
   const sendRes = await fetch(`https://api.brevo.com/v3/emailCampaigns/${campaign.id}/sendNow`, {
     method: "POST",
