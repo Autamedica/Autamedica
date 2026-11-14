@@ -38,9 +38,18 @@ interface PharmacyExpressConsultationProps {
 type Step = 'FORM' | 'WAITING' | 'CALL' | 'ENDED' | 'CANCELLED'
 
 const COPY = {
-  AR: {brand:'AutaMedica Guardia',country:'¿Dónde querés atenderte?',patientData:'Tus datos',name:'Nombre y apellido',phone:'Teléfono / WhatsApp',reason:'Motivo de consulta',nameExample:'{copy.nameExample}',phoneExample:'{copy.phoneExample}',reasonExample:'Contanos brevemente qué necesitás o qué síntomas tenés...',submit:'Consultar médico',submitting:'Conectando con la guardia...',searching:'Buscando médico...',waiting:'Estás en la fila de atención',waitingIntro:'Estamos buscando un médico disponible para atender tu consulta en',paymentPending:'Pago pendiente',paymentWaiting:'Completá el pago. La búsqueda y asignación del médico comienzan cuando Mercado Pago confirma el cobro.',queue:'Posición en la fila',queuePending:'Por confirmar',estimate:'Tiempo estimado',estimateUnknown:'Variable',patient:'Paciente:',network:'Red médica:',reasonLabel:'Motivo:',refresh:'Actualizar',cancel:'Cancelar',ended:'Atención finalizada · AutaMedica',endedHint:'Tu consulta finalizó correctamente. Gracias por usar AutaMedica.',cancelled:'Consulta cancelada',back:'{copy.back}'},
-  BR: {brand:'Plantão AutaMedica',country:'Onde você quer atendimento?',patientData:'Seus dados',name:'Nome completo',phone:'Telefone / WhatsApp',reason:'Motivo da consulta',nameExample:'Ex. João da Silva',phoneExample:'Ex. +55 51 99999-9999',reasonExample:'Conte brevemente o que você precisa ou quais sintomas está sentindo...',submit:'Consultar médico',submitting:'Conectando ao plantão...',searching:'Procurando médico...',waiting:'Sua fila de atendimento',waitingIntro:'Estamos procurando um médico disponível para atender você em',paymentPending:'Pagamento pendente',paymentWaiting:'Conclua o pagamento. A busca e a designação do médico começam quando o Mercado Pago confirma a cobrança.',queue:'Posição na fila',queuePending:'A confirmar',estimate:'Tempo estimado',estimateUnknown:'Não estimado',patient:'Paciente:',network:'Rede médica:',reasonLabel:'Motivo:',refresh:'Atualizar',cancel:'Cancelar',ended:'Atendimento concluído · AutaMedica',endedHint:'Sua consulta foi concluída. Obrigado por usar a AutaMedica.',cancelled:'Consulta cancelada',back:'Voltar ao início'},
+  AR: {brand:'AutaMedica Guardia',ready:'Ya podés ingresar',restart:'Iniciar otra consulta',footerNetwork:'Red de farmacias asociadas',country:'¿Dónde querés atenderte?',patientData:'Tus datos',name:'Nombre y apellido',phone:'Teléfono / WhatsApp',reason:'Motivo de consulta',paymentTitle:'Consulta médica · R$ 79,00',paymentHint:'Confirmá el pago de R$ 79,00 para iniciar la videoconsulta.',nameExample:'Ej. Juan Pérez',phoneExample:'Ej. +54 9 11 2345-6789',reasonExample:'Contanos brevemente qué necesitás o qué síntomas tenés...',submit:'Consultar médico',submitting:'Conectando con la guardia...',searching:'Buscando médico...',waiting:'Estás en la fila de atención',waitingIntro:'Estamos buscando un médico disponible para atender tu consulta en',paymentPending:'Pago pendiente',paymentWaiting:'Completá el pago. La búsqueda y asignación del médico comienzan cuando Mercado Pago confirma el cobro.',queue:'Posición en la fila',queuePending:'Por confirmar',estimate:'Tiempo estimado',estimateUnknown:'Variable',patient:'Paciente:',network:'Red médica:',reasonLabel:'Motivo:',refresh:'Actualizar',cancel:'Cancelar',ended:'Atención finalizada · AutaMedica',endedHint:'Tu consulta finalizó correctamente. Gracias por usar AutaMedica.',cancelled:'Consulta cancelada',back:'{copy.back}'},
+  BR: {brand:'Plantão AutaMedica',ready:'Você já pode entrar',restart:'Iniciar outra consulta',footerNetwork:'Rede de farmácias parceiras',paymentTitle:'Consulta médica · R$ 79,00',paymentHint:'Confirme o pagamento de R$ 79,00 para iniciar a videochamada.',country:'Onde você quer atendimento?',patientData:'Seus dados',name:'Nome completo',phone:'Telefone / WhatsApp',reason:'Motivo da consulta',nameExample:'Ex. João da Silva',phoneExample:'Ex. +55 51 99999-9999',reasonExample:'Conte brevemente o que você precisa ou quais sintomas está sentindo...',submit:'Consultar médico',submitting:'Conectando ao plantão...',searching:'Procurando médico...',waiting:'Sua fila de atendimento',waitingIntro:'Estamos procurando um médico disponível para atender você em',paymentPending:'Pagamento pendente',paymentWaiting:'Conclua o pagamento. A busca e a designação do médico começam quando o Mercado Pago confirma a cobrança.',queue:'Posição na fila',queuePending:'A confirmar',estimate:'Tempo estimado',estimateUnknown:'Não estimado',patient:'Paciente:',network:'Rede médica:',reasonLabel:'Motivo:',refresh:'Atualizar',cancel:'Cancelar',ended:'Atendimento concluído · AutaMedica',endedHint:'Sua consulta foi concluída. Obrigado por usar a AutaMedica.',cancelled:'Consulta cancelada',back:'Voltar ao início'},
 } as const
+
+const QUICK_REASONS = [
+  'Renovación de receta crónica',
+  'Alergia / antihistamínico',
+  'Molestia gastrointestinal',
+  'Dolor muscular / analgésico',
+  'Síntomas respiratorios leves',
+  'Otro medicamento',
+] as const
 
 export function PharmacyExpressConsultation({
   pharmacyId = null,
@@ -261,22 +270,22 @@ export function PharmacyExpressConsultation({
     const requiresBrazilPayment = formData.careCountry === 'BR'
     return (
       <div className="w-full h-full min-h-[100dvh] bg-slate-50">
-        <div className="fixed top-3 left-4 z-50 flex items-center gap-2.5 bg-zinc-950/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10 shadow-2xl text-xs font-medium text-white">
+        <div className="fixed top-3 left-4 z-50 flex items-center gap-2.5 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-slate-200 shadow-lg text-xs font-medium text-slate-900">
           <img src="/logo_bioceramic.png" alt="AutaMedica" className="w-5 h-5 rounded-md object-contain" />
-          <span className="font-bold tracking-tight text-white">AutaMedica</span>
+          <span className="font-bold tracking-tight text-slate-900">{copy.brand}</span>
           <span className="text-zinc-500">•</span>
           <span className="text-emerald-400 flex items-center gap-1.5 font-semibold">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
             Guardia Exprés
           </span>
-          <span className="text-zinc-500 hidden sm:inline">•</span>
-          <span className="text-zinc-300 hidden sm:inline font-normal">{referralPartnerName ?? pharmacyName}</span>
+          <span className="text-slate-400 hidden sm:inline">•</span>
+          <span className="text-slate-600 hidden sm:inline font-normal">{referralPartnerName ?? pharmacyName}</span>
         </div>
         {(!requiresBrazilPayment || brazilPaymentApproved) && <GuestCallPage roomId={callRoomId} />}
         {requiresBrazilPayment && !brazilPaymentApproved && (
           <div className="min-h-[100dvh] flex items-center justify-center p-6 text-center text-white">
             <div className="max-w-md">
-              <h2 className="text-xl font-semibold">Consulta médica · R$ 79,00</h2>
+              <h2 className="text-xl font-semibold text-slate-900">{copy.paymentTitle}</h2>
               <p className="mt-3 text-sm text-zinc-300">
                 Confirme o pagamento de R$ 79,00 para iniciar a videochamada com o médico.
               </p>
@@ -316,17 +325,17 @@ export function PharmacyExpressConsultation({
           {/* Institutional Partnership Badge */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-am-surface-800/90 border border-slate-200 text-xs font-medium mb-2 shadow-md">
             <span className="font-bold text-slate-900">{copy.brand}</span>
-            <span className="text-am-surface-500">•</span>
+            <span className="text-slate-500">•</span>
             <span className="text-emerald-400 font-medium">{referralPartnerName ? 'Canal de referidos' : 'Red de Farmacias Asociadas'}</span>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 flex items-center justify-center gap-2">
             {isPortuguese ? 'Atendimento médico na sua farmácia' : 'Atención médica en tu farmacia'}
           </h1>
 
           <div className="flex items-center justify-center gap-2 mt-1.5 text-xs text-slate-600">
             <Building2 className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-            <span>{referralPartnerName ? 'Origen de referencia: ' : 'Punto de Atención Digital: '}<strong className="text-white font-semibold">{referralPartnerName ?? pharmacyName}</strong></span>
+            <span>{referralPartnerName ? 'Origen de referencia: ' : 'Punto de Atención Digital: '}<strong className="text-slate-900 font-semibold">{referralPartnerName ?? pharmacyName}</strong></span>
           </div>
           <p className="text-xs text-slate-500 mt-1 max-w-md">
             Atención médica por videollamada. La emisión de documentos depende del profesional y de las habilitaciones correspondientes a cada país.
@@ -345,8 +354,8 @@ export function PharmacyExpressConsultation({
             </div>
 
             {formError && (
-              <div className="mb-5 p-3.5 rounded-xl bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs flex items-start gap-2.5">
-                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+              <div className="mb-5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                 <span>{formError}</span>
               </div>
             )}
@@ -384,7 +393,7 @@ export function PharmacyExpressConsultation({
                     placeholder={formData.careCountry === 'BR' ? 'Ej. 12345678909' : 'Ej. 35123456'}
                     value={formData.dni}
                     onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-white placeholder-am-surface-500 text-sm focus:outline-none focus:border-am-primary-400 focus:ring-1 focus:ring-am-primary-400 transition"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition"
                   />
                 </div>
 
@@ -397,10 +406,10 @@ export function PharmacyExpressConsultation({
                     id={nameInputId}
                     type="text"
                     required
-                    placeholder="{copy.nameExample}"
+                    placeholder={copy.nameExample}
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-white placeholder-am-surface-500 text-sm focus:outline-none focus:border-am-primary-400 focus:ring-1 focus:ring-am-primary-400 transition"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition"
                   />
                 </div>
               </div>
@@ -414,10 +423,10 @@ export function PharmacyExpressConsultation({
                   id={phoneInputId}
                   type="tel"
                   required
-                  placeholder="{copy.phoneExample}"
+                  placeholder={copy.phoneExample}
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-white placeholder-am-surface-500 text-sm focus:outline-none focus:border-am-primary-400 focus:ring-1 focus:ring-am-primary-400 transition"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition"
                 />
               </div>
 
@@ -434,8 +443,8 @@ export function PharmacyExpressConsultation({
                       onClick={() => setFormData({ ...formData, reason: r })}
                       className={`text-[11px] px-2.5 py-1 rounded-lg border transition ${
                         formData.reason === r
-                          ? 'bg-am-primary-500/20 border-am-primary-400 text-am-primary-200'
-                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-am-surface-500'
+                          ? 'bg-sky-50 border-sky-400 text-sky-800'
+                          : 'bg-white border-slate-200 text-slate-600 hover:border-sky-400'
                       }`}
                     >
                       {r}
@@ -446,10 +455,10 @@ export function PharmacyExpressConsultation({
                   id={reasonInputId}
                   rows={2}
                   required
-                  placeholder="{copy.reasonExample}"
+                  placeholder={copy.reasonExample}
                   value={formData.reason}
                   onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-300 text-white placeholder-am-surface-500 text-sm focus:outline-none focus:border-am-primary-400 focus:ring-1 focus:ring-am-primary-400 transition resize-none"
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition resize-none"
                 />
               </div>
 
@@ -584,7 +593,7 @@ export function PharmacyExpressConsultation({
               }}
               className="py-2.5 px-6 rounded-xl bg-[#0EA5E9] hover:bg-sky-600 text-white font-medium text-xs transition"
             >
-              {copy.ended}
+              {copy.restart}
             </button>
           </div>
         )}
@@ -598,8 +607,8 @@ export function PharmacyExpressConsultation({
             <h2 className="text-xl font-bold text-white mb-2">
               {copy.cancelled}
             </h2>
-            <p className="text-sm text-slate-500 max-w-xs mb-6">
-              La solicitud fue dada de baja de la Red de Guardia AutaMedica.
+            <p className="text-sm text-slate-600 max-w-xs mb-6">
+              {isPortuguese ? 'A solicitação foi cancelada.' : 'La solicitud fue cancelada.'}
             </p>
             <button
               type="button"
@@ -615,11 +624,11 @@ export function PharmacyExpressConsultation({
         <footer className="mt-8 text-center text-xs text-slate-500 flex flex-col items-center gap-2 z-10 relative">
           <div className="flex items-center gap-2 text-slate-600 font-medium">
             <img src="/logo_bioceramic.png" alt="AutaMedica" className="w-4 h-4 rounded object-contain opacity-80" />
-            <span className="font-semibold text-white">AutaMedica</span>
-            <span className="text-am-surface-600">•</span>
-            <span>Red de Farmacias Asociadas</span>
+            <span className="font-semibold text-slate-900">{copy.brand}</span>
+            <span className="text-slate-400">•</span>
+            <span>{copy.footerNetwork}</span>
           </div>
-          <p className="text-[10px] text-am-surface-500 max-w-md leading-normal">
+          <p className="text-[10px] text-slate-500 max-w-md leading-normal">
             {isPortuguese ? 'Atendimento médico digital com AutaMedica.' : 'Atención médica digital con AutaMedica.'}
           </p>
         </footer>
