@@ -9,7 +9,7 @@ type SwitchName = typeof ALLOWED[number]
 
 type SwitchAdmin = { user: { id: string } } | Response
 
-async function requireSwitchAdmin(request: Request, locals: Parameters<APIRoute>[0] extends never ? never : any): Promise<SwitchAdmin> {
+async function requireSwitchAdmin(request: Request, locals: any): Promise<SwitchAdmin> {
   const auth = await withAuth(request, locals)
   if (!isAuthed(auth)) return auth
   const db = createAstroAdminClient(locals.runtime?.env) as any
@@ -31,8 +31,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  const auth = await withAuthRole(request, ['admin', 'platform_admin'], locals)
-  if (!isAuthed(auth)) return auth
+  const auth = await requireSwitchAdmin(request, locals)
+  if (auth instanceof Response) return auth
   const body = await request.json().catch(() => null) as { key?:string; enabled?:boolean; reason?:string } | null
   if (!body || !ALLOWED.includes(body.key as SwitchName) || typeof body.enabled !== 'boolean') return badRequest('invalid_payment_switch')
   const db = createAstroAdminClient(locals.runtime?.env) as any
