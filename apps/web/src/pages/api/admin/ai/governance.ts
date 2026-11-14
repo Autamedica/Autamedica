@@ -3,6 +3,7 @@ import { withAuthRole, isAuthed } from '@/lib/api-auth';
 import { badRequest, internalError, jsonOk } from '@/lib/api-helpers';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { getRuntimeEnvValue } from '@/lib/runtime-env';
+import { getServerEnvOrDefault } from '@autamedica/shared';
 
 export const prerender = false;
 
@@ -69,7 +70,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const runtimeEnv = locals.runtime?.env as Record<string, unknown> | undefined;
   const apiKey = (typeof runtimeEnv?.OPENAI_API_KEY === 'string' && runtimeEnv.OPENAI_API_KEY)
-    || getRuntimeEnvValue('OPENAI_API_KEY');
+    || getRuntimeEnvValue('OPENAI_API_KEY')
+    || getServerEnvOrDefault('OPENAI_API_KEY');
   if (!apiKey) {
     return new Response(JSON.stringify({ success: false, error: 'openai_api_key_not_configured' }), {
       status: 503, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
