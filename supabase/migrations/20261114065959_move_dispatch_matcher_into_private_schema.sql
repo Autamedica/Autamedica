@@ -1,0 +1,1 @@
+ALTER FUNCTION public.match_dispatch_doctors_without_switch(uuid) SET SCHEMA app_private;
