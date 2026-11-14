@@ -10,7 +10,6 @@ import {
   XCircle,
   Loader2,
   ArrowRight,
-  RefreshCw,
 } from 'lucide-react'
 import { fetchApi } from '@/lib/api-client'
 import type { DispatchRequest } from '@/lib/pharmacy/pharmacy-on-demand.service'
@@ -33,8 +32,8 @@ interface PharmacyExpressConsultationProps {
 type Step = 'FORM' | 'WAITING' | 'CALL' | 'ENDED' | 'CANCELLED'
 
 const COPY = {
-  AR: { brand: 'Consulta médica', ready: 'Médico conectado', restart: 'Nueva consulta', country: 'País de atención', document: 'DNI', name: 'Nombre y apellido', phone: 'WhatsApp', reason: 'Motivo', nameExample: 'Ej. Juan Pérez', phoneExample: 'Ej. 11 2345-6789', reasonExample: 'Describí brevemente el motivo', submit: 'Buscar médico', submitting: 'Conectando...', searching: 'Buscando médico', queue: 'Fila', queuePending: 'A confirmar', elapsed: 'Tiempo', patient: 'Paciente', reasonLabel: 'Motivo', refresh: 'Actualizar', cancel: 'Cancelar', ended: 'Consulta finalizada', endedHint: 'La consulta terminó.', cancelled: 'Consulta cancelada', back: 'Volver' },
-  BR: { brand: 'Consulta médica de plantão', ready: 'Médico conectado', restart: 'Nova consulta', country: 'País de atendimento', document: 'CPF', name: 'Nome completo', phone: 'WhatsApp', reason: 'Motivo', nameExample: 'Ex.: João da Silva', phoneExample: 'Ex.: (51) 99999-9999', reasonExample: 'Descreva o motivo em poucas palavras', submit: 'Buscar médico', submitting: 'Conectando...', searching: 'Buscando médico', queue: 'Fila', queuePending: 'A confirmar', elapsed: 'Tempo', patient: 'Paciente', reasonLabel: 'Motivo', refresh: 'Atualizar', cancel: 'Cancelar', ended: 'Consulta finalizada', endedHint: 'A consulta foi concluída.', cancelled: 'Consulta cancelada', back: 'Voltar' },
+  AR: { brand: 'Consulta médica', ready: 'Médico conectado', restart: 'Nueva consulta', country: 'País de atención', document: 'DNI', name: 'Nombre y apellido', phone: 'WhatsApp', reason: 'Motivo', nameExample: 'Ej. Juan Pérez', phoneExample: 'Ej. 11 2345-6789', reasonExample: 'Describí brevemente el motivo', submit: 'Continuar', submitting: 'Conectando...', searching: 'Buscando médico', elapsed: 'Tiempo', patient: 'Paciente', reasonLabel: 'Motivo', cancel: 'Cancelar', ended: 'Consulta finalizada', endedHint: 'La consulta terminó.', cancelled: 'Consulta cancelada', back: 'Volver' },
+  BR: { brand: 'Consulta médica de plantão', ready: 'Médico conectado', restart: 'Nova consulta', country: 'País de atendimento', document: 'CPF', name: 'Nome completo', phone: 'WhatsApp', reason: 'Motivo', nameExample: 'Ex.: João da Silva', phoneExample: 'Ex.: (51) 99999-9999', reasonExample: 'Descreva o motivo em poucas palavras', submit: 'Iniciar consulta', submitting: 'Conectando...', searching: 'Buscando médico',  elapsed: 'Tempo', patient: 'Paciente', reasonLabel: 'Motivo', cancel: 'Cancelar', ended: 'Consulta finalizada', endedHint: 'A consulta foi concluída.', cancelled: 'Consulta cancelada', back: 'Voltar' },
 } as const
 
 const QUICK_REASONS = [
@@ -45,6 +44,8 @@ const QUICK_REASONS = [
 
 export function PharmacyExpressConsultation({
   pharmacyId = null,
+  pharmacyName = 'Punto de Farmacia',
+  referralPartnerName = null,
   initialDni = '',
   initialCareCountry = null,
   referralCode = null,
@@ -55,10 +56,11 @@ export function PharmacyExpressConsultation({
   const nameInputId = useId()
   const phoneInputId = useId()
   const reasonInputId = useId()
+  const isJordanReferral = referralCode?.toUpperCase() === 'JORDAN'
 
   const [step, setStep] = useState<Step>('FORM')
   const [formData, setFormData] = useState({
-    careCountry: (initialCareCountry ?? (referralCode === 'JORDAN' ? 'BR' : '')) as '' | 'AR' | 'BR',
+    careCountry: (initialCareCountry ?? (isJordanReferral ? 'BR' : '')) as '' | 'AR' | 'BR',
     dni: initialDni,
     name: '',
     phone: '',
@@ -75,6 +77,33 @@ export function PharmacyExpressConsultation({
   const [callRoomId, setCallRoomId] = useState<string | null>(null)
   const [brazilPaymentApproved, setBrazilPaymentApproved] = useState(false)
   const [onlineDoctorCount, setOnlineDoctorCount] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (isJordanReferral) {
+      setFormData((current) => ({ ...current, careCountry: 'BR' }))
+      return
+    }
+    const browserIsPortuguese =
+      (typeof navigator !== 'undefined' && navigator.language.toLowerCase().startsWith('pt')) ||
+      (typeof document !== 'undefined' && document.documentElement.lang.toLowerCase().startsWith('pt'))
+    if (browserIsPortuguese) setFormData((current) => ({ ...current, careCountry: 'BR' }))
+  }, [isJordanReferral])
+
+  useEffect(() => {
+    try {
+      const raw = window.sessionStorage.getItem('autamedica:pharmacy-express:active-session')
+      if (!raw) return
+      const saved = JSON.parse(raw) as { requestId?: string; guestToken?: string; careCountry?: 'AR' | 'BR' }
+      if (!saved.requestId || !saved.guestToken || (saved.careCountry !== 'AR' && saved.careCountry !== 'BR')) return
+      setRequestId(saved.requestId)
+      setAccessToken(saved.guestToken)
+      setFormData((current) => ({ ...current, careCountry: isJordanReferral ? 'BR' : saved.careCountry! }))
+      setStep('WAITING')
+    } catch {
+      window.sessionStorage.removeItem('autamedica:pharmacy-express:active-session')
+    }
+  }, [])
+
   const isPortuguese = formData.careCountry === 'BR'
   const copy = isPortuguese ? COPY.BR : COPY.AR
   const selectedReason = reasonCategory === 'pain' ? (isPortuguese ? 'Dor / mal-estar' : 'Dolor / malestar') : reasonCategory === 'prescription' ? (isPortuguese ? 'Receita' : 'Receta') : reasonCategory === 'other' ? (isPortuguese ? 'Outro motivo' : 'Otro motivo') : ''
@@ -154,8 +183,10 @@ export function PharmacyExpressConsultation({
           setStep('CALL')
         }
       } else if (req.status === 'completed') {
+        window.sessionStorage.removeItem('autamedica:pharmacy-express:active-session')
         setStep('ENDED')
       } else if (req.status === 'cancelled' || req.status === 'expired') {
+        window.sessionStorage.removeItem('autamedica:pharmacy-express:active-session')
         setStep('CANCELLED')
       }
     } catch {
@@ -188,11 +219,11 @@ export function PharmacyExpressConsultation({
       setFormError(isPortuguese ? 'Escolha Argentina ou Brasil para continuar.' : 'Elegí Argentina o Brasil para continuar.')
       return
     }
-    if (referralCode === 'JORDAN' && formData.careCountry !== 'BR') {
+    if (isJordanReferral && formData.careCountry !== 'BR') {
       setFormError(isPortuguese ? 'O canal Jordan atende exclusivamente no Brasil.' : 'El canal Jordan atiende exclusivamente en Brasil.')
       return
     }
-    if (referralCode === 'JORDAN' && !jordanPaymentsEnabled) {
+    if (isJordanReferral && !jordanPaymentsEnabled) {
       setFormError(isPortuguese ? 'Este canal ainda não está disponível para atendimento.' : 'Este canal todavía no está disponible para atención.')
       return
     }
@@ -243,6 +274,7 @@ export function PharmacyExpressConsultation({
       setRequestId(reqId)
       setAccessToken(token)
       setCallRoomId(roomId)
+      window.sessionStorage.setItem('autamedica:pharmacy-express:active-session', JSON.stringify({ requestId: reqId, guestToken: token, careCountry: formData.careCountry }))
       setStep('WAITING')
     } catch {
       setFormError(isPortuguese ? 'Não foi possível iniciar a consulta. Tente novamente.' : 'No pudimos iniciar la consulta. Volvé a intentar.')
@@ -269,6 +301,7 @@ export function PharmacyExpressConsultation({
         setFormError(isPortuguese ? 'A consulta já foi atribuída ou não pôde ser cancelada.' : 'La consulta ya fue asignada o no pudo cancelarse.')
         return
       }
+      window.sessionStorage.removeItem('autamedica:pharmacy-express:active-session')
       setStep('CANCELLED')
     } catch {
       setFormError(isPortuguese ? 'Não foi possível cancelar a solicitação. Tente novamente.' : 'No pudimos cancelar la solicitud. Volvé a intentar.')
@@ -282,7 +315,8 @@ export function PharmacyExpressConsultation({
       <div className="w-full h-full min-h-[100dvh] bg-slate-50">
         <div className="fixed top-3 left-4 z-50 flex items-center gap-2.5 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-slate-200 shadow-lg text-xs font-medium text-slate-900">
           <img src="/logo_bioceramic.png" alt="AutaMedica" className="w-5 h-5 rounded-md object-contain" />
-          <span className="font-bold tracking-tight text-slate-900">{copy.brand}</span>
+          <span className="font-bold tracking-tight text-slate-900">{pharmacyName || copy.brand}</span>
+          {referralPartnerName && <span className="hidden text-slate-500 sm:inline">· {referralPartnerName}</span>}
           <span className="text-slate-400">•</span>
           <span className="text-emerald-700 flex items-center gap-1.5 font-semibold">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
@@ -324,10 +358,10 @@ export function PharmacyExpressConsultation({
             )}
 
             <form onSubmit={handleSubmit} className="space-y-3.5">
-              <fieldset className="grid grid-cols-2 gap-2">
+              {!isJordanReferral && <fieldset className="grid grid-cols-2 gap-2">
                 <legend className="mb-2 text-xs font-medium text-slate-600">{copy.country}</legend>
                 {(['BR', 'AR'] as const).map((country) => {
-                  const disabled = referralCode === 'JORDAN' && country === 'AR'
+                  const disabled = isJordanReferral && country === 'AR'
                   const selected = formData.careCountry === country
                   return (
                     <label key={country} className={selected ? 'flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#0EA5E9] bg-sky-50 px-3 text-sm font-medium text-sky-800' : 'flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700'}>
@@ -337,7 +371,7 @@ export function PharmacyExpressConsultation({
                     </label>
                   )
                 })}
-              </fieldset>
+              </fieldset>}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor={dniInputId} className="block text-xs font-medium text-slate-600 mb-1.5 flex items-center gap-1.5">
@@ -347,11 +381,13 @@ export function PharmacyExpressConsultation({
                   <input
                     id={dniInputId}
                     type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     required
                     placeholder={isPortuguese ? '123.456.789-09' : '35.123.456'}
                     value={formData.dni}
                     onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
-                    className="min-h-12 w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition"
+                    className="min-h-12 w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition"
                   />
                 </div>
 
@@ -367,7 +403,7 @@ export function PharmacyExpressConsultation({
                     placeholder={copy.nameExample}
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="min-h-12 w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition"
+                    className="min-h-12 w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition"
                   />
                 </div>
               </div>
@@ -380,11 +416,13 @@ export function PharmacyExpressConsultation({
                 <input
                   id={phoneInputId}
                   type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
                   required
                   placeholder={copy.phoneExample}
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="min-h-12 w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition"
+                  className="min-h-12 w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition"
                 />
               </div>
 
@@ -393,18 +431,18 @@ export function PharmacyExpressConsultation({
                 <div className="mb-2 flex flex-wrap gap-2">
                   {reasonOptions.map(({ value, label }) => {
                     const selected = reasonCategory === value
-                    return <button key={value} type="button" aria-pressed={selected} onClick={() => setReasonCategory(value)} className={selected ? 'min-h-11 rounded-lg border border-[#0EA5E9] bg-sky-50 px-3 py-2 text-xs font-medium text-sky-800' : 'min-h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600'}>{label}</button>
+                    return <button key={value} type="button" aria-pressed={selected} onClick={() => { setReasonCategory(value); if (value !== 'other') setFormData((current) => ({ ...current, reason: '' })) }} className={selected ? 'min-h-11 rounded-lg border border-[#0EA5E9] bg-sky-50 px-3 py-2 text-xs font-medium text-sky-800' : 'min-h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600'}>{label}</button>
                   })}
                 </div>
-                                <textarea
+                {reasonCategory === 'other' && <textarea
                   id={reasonInputId}
                   rows={2}
-                  required={!reasonCategory}
+                  required
                   placeholder={copy.reasonExample}
                   value={formData.reason}
                   onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                  className="min-h-24 w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition resize-none"
-                />
+                  className="min-h-24 w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition resize-none"
+                />}
               </div>
 
               <div className="pt-2">
@@ -440,16 +478,15 @@ export function PharmacyExpressConsultation({
                 <div className="mb-2 w-full"><LiveMedicalPresenceRadar onlineCount={onlineDoctorCount} isPortuguese={isPortuguese} /></div>
                 <p className="mb-3 text-xs font-medium text-slate-600" aria-live="polite">{copy.searching}</p>
                 <div className="mb-4 grid grid-cols-2 gap-2">
-                  <div className="rounded-xl bg-slate-50 px-3 py-2.5"><span className="block text-[11px] text-slate-500">{copy.queue}</span><strong className="text-sm text-slate-800">{copy.queuePending}</strong></div>
+                  
                   <div className="rounded-xl bg-slate-50 px-3 py-2.5"><span className="flex items-center justify-center gap-1 text-[11px] text-slate-500"><Clock className="h-3 w-3" />{copy.elapsed}</span><strong className="text-sm tabular-nums text-slate-800">{String(Math.floor(waitingSeconds / 60)).padStart(2, '0')}:{String(waitingSeconds % 60).padStart(2, '0')}</strong></div>
                 </div>
               </>
             )}
             <div className="mb-4 rounded-xl bg-slate-50 px-3 py-2.5 text-left text-xs"><p className="font-semibold text-slate-900">{copy.patient}: {formData.name}</p>{reasonSummary && <p className="mt-1 text-slate-600">{copy.reasonLabel}: {reasonSummary}</p>}</div>
             {formData.careCountry === 'BR' && requestId && accessToken && <div className="mb-4 w-full"><JordanPaymentWidget dispatchId={requestId} guestToken={accessToken} onStatusChange={(status) => setBrazilPaymentApproved(status === 'approved')} /></div>}
-            <div className="flex items-center gap-2">
-              <button type="button" onClick={() => requestId && void checkStatus(requestId, accessToken)} className="min-h-11 flex-1 rounded-xl bg-slate-100 px-3 py-2.5 text-xs font-medium text-slate-700 transition hover:bg-slate-200"><RefreshCw className="mr-1 inline h-3.5 w-3.5" /> {copy.refresh}</button>
-              <button type="button" onClick={handleCancelRequest} className="min-h-11 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100">{copy.cancel}</button>
+            <div className="flex items-center justify-center">
+              <button type="button" onClick={handleCancelRequest} className="min-h-11 w-full rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100">{copy.cancel}</button>
             </div>
           </div>
         )}
@@ -478,7 +515,10 @@ export function PharmacyExpressConsultation({
             <button
               type="button"
               onClick={() => {
-                setFormData({ careCountry: '', dni: '', name: '', phone: '', reason: '' })
+                window.sessionStorage.removeItem('autamedica:pharmacy-express:active-session')
+                setRequestId(null)
+                setAccessToken(null)
+                setFormData({ careCountry: isJordanReferral ? 'BR' : '', dni: '', name: '', phone: '', reason: '' })
                 setReasonCategory('')
                 setStep('FORM')
               }}
@@ -503,7 +543,7 @@ export function PharmacyExpressConsultation({
             </p>
             <button
               type="button"
-              onClick={() => { setReasonCategory(''); setStep('FORM') }}
+              onClick={() => { window.sessionStorage.removeItem('autamedica:pharmacy-express:active-session'); setRequestId(null); setAccessToken(null); setReasonCategory(''); setStep('FORM') }}
               className="py-2.5 px-6 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium text-xs transition"
             >
               {copy.back}
