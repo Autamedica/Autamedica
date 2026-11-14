@@ -578,6 +578,31 @@ jobs:
             sha256sum "$aab"
           no_output_timeout: 25m
       - run:
+          name: Build verified Android QA APK (clean-install only)
+          command: |
+            set -euo pipefail
+            cd apps/android
+            ./gradlew assembleRelease -PfirebasePerformanceInstrumentationEnabled=false -Pkotlin.daemon.jvmargs=-Xmx1280m -Dorg.gradle.parallel=false --no-parallel --max-workers=1 --no-daemon --stacktrace
+            apk="$(find app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -size +0c -print -quit)"
+            test -n "$apk"
+            verifier="$(find "${ANDROID_HOME:?}/build-tools" -mindepth 2 -maxdepth 2 -type f -name apksigner -print | sort -V | tail -1)"
+            test -n "$verifier"
+            actual="$("$verifier" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+            expected="$(printf '%s' "${AUTAMEDICA_UPLOAD_CERT_SHA256:?}" | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+            test -n "$actual"
+            test "$actual" = "$expected" || { echo 'QA APK certificate differs from expected Play UPLOAD certificate'; exit 1; }
+            version="$(sed -nE 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' app/build.gradle.kts | head -1)"
+            test -n "$version"
+            mkdir -p ../../release-qa-apk
+            filename="AutaMedica-${version}-qa-upload-key.apk"
+            cp "$apk" "../../release-qa-apk/$filename"
+            (cd ../../release-qa-apk && sha256sum "$filename" > "$filename.sha256")
+            echo 'Verified signed QA APK ready: only for clean installation on a dedicated test device.'
+          no_output_timeout: 25m
+      - store_artifacts:
+          path: release-qa-apk
+          destination: android-qa-apk
+      - run:
           name: Android failure diagnostics (cgroup memory only; no secrets)
           when: on_fail
           command: |

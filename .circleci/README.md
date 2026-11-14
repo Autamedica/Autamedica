@@ -236,3 +236,39 @@ publication is authorized by these checks.
 References: [CircleCI Docker sizes](https://circleci.com/docs/guides/execute/using-docker/),
 [Kotlin daemon JVM options](https://kotlinlang.org/docs/gradle-compilation-and-caches.html),
 [CircleCI `on_fail` behavior](https://circleci.com/docs/reference/configuration-reference/).
+
+## AutaMedica 1.2.22: APK for device QA (not Play production)
+
+The tag-gated `android_release_bundle` job now creates **two different outputs** after
+the same real credentials/keystore/provenance checks: the signed **AAB** for
+Google Play internal DRAFT and a signed **APK** for **clean installation only**
+on a dedicated test phone. The APK is generated with `assembleRelease`, checked
+with Android `apksigner verify --print-certs`, and its certificate SHA-256 must
+match `AUTAMEDICA_UPLOAD_CERT_SHA256`. It is copied into the artifact directory
+**only after** signature verification. The file and SHA-256 checksum appear in
+the CircleCI `android_release_bundle` job's **Artifacts → android-qa-apk** tab
+if (and only if) that job reaches the artifact publishing step. No keystore,
+service-account JSON, `local.properties`, or secrets are exported.
+
+**Important signature distinction:** This APK is signed with the **Google Play
+upload key**, which can differ from the **Google Play app-signing key** used on
+a phone when installed through Play. Do **not** attempt to install this APK over
+an existing Play-installed AutaMedica app; signature mismatch is expected and
+uninstalling can delete local app data. Use a spare test device without the
+production app for the direct APK. For in-place updates of Play-installed
+devices, finish the AAB internal-test route and install through Google Play.
+After Play processes the bundle, the Play Console app bundle explorer also
+offers Play-signed APK downloads (Test and release → Latest releases and bundles →
+Downloads), subject to the release's state.
+
+A failed `android_release_bundle` is still a failure: it does **not** establish
+the cause of the existing `android-v1.2.22-rc1` job, produce an APK, or
+authorize production release. Inspect the failed CircleCI step (tag provenance,
+restricted context, certificate, Gradle or Crashlytics) before any new tag.
+Once reviewed and merged, use a **new** protected RC tag on the reviewed main
+commit; re-running the old tag cannot include the new QA APK step.
+
+Official documentation:
+- https://circleci.com/docs/guides/optimize/artifacts/
+- https://developer.android.com/studio/publish/app-signing
+- https://support.google.com/googleplay/android-developer/answer/9842756

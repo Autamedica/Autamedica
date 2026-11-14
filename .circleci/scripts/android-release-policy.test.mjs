@@ -111,6 +111,26 @@ test('only a draft in the Google Play internal track is permitted', () => {
   assert.ok(workflow.includes('filters: *android_release_tag_filter'));
 });
 
+test('signed QA APK artifact requires Android release signature and cannot export signing secrets', () => {
+  const release = config.slice(start, config.indexOf('  android_play_internal_draft:\n', start));
+  const manual = config.slice(config.indexOf('  android:\n'), config.indexOf('  # Tag-triggered release only.'));
+  assert.ok(release.includes('name: Build verified Android QA APK (clean-install only)'));
+  assert.ok(release.includes('./gradlew assembleRelease '));
+  assert.ok(release.includes('verify --print-certs "$apk"'));
+  assert.ok(release.includes('AUTAMEDICA_UPLOAD_CERT_SHA256:?'));
+  assert.ok(release.includes('test "$actual" = "$expected"'));
+  assert.ok(release.includes('mkdir -p ../../release-qa-apk'));
+  assert.ok(release.includes('cp "$apk" "../../release-qa-apk/$filename"'));
+  assert.ok(release.includes('sha256sum "$filename"'));
+  assert.ok(release.includes('path: release-qa-apk'));
+  assert.ok(release.includes('destination: android-qa-apk'));
+  assert.ok(release.indexOf('name: Build verified Android QA APK') < release.indexOf('path: release-qa-apk'));
+  assert.ok(release.indexOf('name: Build and verify SIGNED release AAB') < release.indexOf('name: Build verified Android QA APK'));
+  assert.ok(!manual.includes('path: release-qa-apk'), 'No synthetic/placeholder APK artifact may be distributed');
+  assert.ok(!release.includes('path: apps/android/autamedica-release.keystore'));
+  assert.ok(!release.includes('path: apps/android/local.properties'));
+});
+
 test('build gates signed AAB and never exports release keystore as an artifact', () => {
   const bundle = config.slice(start, end);
   assert.ok(bundle.includes('./gradlew :app:compileDebugKotlin '));
