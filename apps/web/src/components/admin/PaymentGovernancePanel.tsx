@@ -9,7 +9,7 @@ type Switches = {
  dry_run_enabled:boolean
  updated_by:string|null
  updated_at:string|null
- switch_audit?:Record<string,{updated_by:string;updated_at:string;reason:string|null}>
+ switch_audit?:Record<string,{updated_by:string;updated_by_name?:string|null;updated_at:string;reason:string|null}>
 }
 type PharmacyPayment = {id:string;request_id:string;amount_minor:number;currency:string;status:string;provider:string;assigned_doctor_id:string|null;jordan_commission_minor:number|null;created_at:string}
 type Approval = { id:string; status:string; domain:string; proposed_by:string; summary:string; risk_reason:string; impact_scope:string; created_at:string }
@@ -40,7 +40,7 @@ export function PaymentGovernancePanel(){
  const toggle=async(key:SwitchKey,enabled:boolean)=>{
   const r=await fetch('/api/admin/payments/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key,enabled,reason:'Cambio manual desde Admin'})})
   const j=await r.json(); if(!r.ok||!j.success){setError('No se pudo actualizar el interruptor');return}
-  setSwitches(j.data)
+  await load()
  }
  const decide=async(id:string,decision:'APPROVED'|'REJECTED')=>{
   const r=await fetch('/api/admin/approvals',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,decision})})
@@ -56,7 +56,7 @@ export function PaymentGovernancePanel(){
     <p className="mt-2 text-sm text-slate-600">{item.description}</p>
     <p className="mt-2 text-xs text-slate-500"><strong>Endpoints y flujos:</strong> {item.flows}</p>
     <p className="mt-1 text-xs text-slate-500"><strong>Operaciones en curso:</strong> {item.inFlight}</p>
-    <p className="mt-2 text-xs text-slate-500"><strong>Último cambio:</strong> {switches?.switch_audit?.[item.key]?.updated_by??'Sin registro'} · {switches?.switch_audit?.[item.key]?.updated_at?new Date(switches?.switch_audit?.[item.key]?.updated_at ?? '').toLocaleString():'Sin fecha'}</p>
+    <p className="mt-2 text-xs text-slate-500"><strong>Último cambio:</strong> {switches?.switch_audit?.[item.key]?.updated_by_name??switches?.switch_audit?.[item.key]?.updated_by??'Sin registro'} · {switches?.switch_audit?.[item.key]?.updated_at?new Date(switches?.switch_audit?.[item.key]?.updated_at ?? '').toLocaleString():'Sin fecha'}</p>
    </article>)}
   </div>
   <div><h2 className="text-lg font-semibold text-slate-900">Bandeja de Autorizaciones</h2>
