@@ -618,6 +618,7 @@ fun VideoCallScreen(
             patientName = uiState.patientName,
             chiefComplaint = uiState.chiefComplaintPeek,
             countryCode = uiState.doctorCountryCode,
+            // Keep the linked patient's clinical jurisdiction aligned with the doctor's license.
             patientCareCountryCode = uiState.patientCareCountryCode,
             patientLinked = uiState.patientId.isNotBlank(),
             isSubmitting = uiState.isIssuingPrescription || uiState.isIssuingCertificate,
