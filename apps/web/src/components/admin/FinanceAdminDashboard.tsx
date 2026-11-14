@@ -5,6 +5,7 @@ import { ManualReceiptsIntake } from '@/components/admin/ManualReceiptsIntake';
 import { PspAuditCard } from '@/components/admin/PspAuditCard';
 import { AttendanceQualityCard } from '@/components/admin/AttendanceQualityCard';
 import { PaymentGovernancePanel } from '@/components/admin/PaymentGovernancePanel';
+import { AIGovernanceWorkbench } from '@/components/admin/AIGovernanceWorkbench';
 
 type CurrencySummary = {
   grossApproved: number;
@@ -225,6 +226,7 @@ export function FinanceAdminDashboard() {
   return (
     <div className="space-y-8">
       <PaymentGovernancePanel />
+      <AIGovernanceWorkbench />
       {/* Visual Metric KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
         <div className="bg-stone-900 text-stone-100 rounded-xl p-5 border border-stone-850 shadow-md">
