@@ -12362,6 +12362,22 @@ export type Database = {
       }
     }
     Functions: {
+      admin_set_operational_domain_status: {
+        Args: { p_scope_key: string; p_domain: string; p_status: string; p_reason: string; p_actor_id: string }
+        Returns: Json
+      }
+      admin_purge_orphan_dispatch_requests: {
+        Args: { p_actor_id: string; p_reason: string }
+        Returns: Json
+      }
+      admin_review_cfm_license: {
+        Args: { p_license_id: string; p_cfm_status: string; p_license_status: string; p_reason: string; p_evidence_path: string | null; p_actor_id: string }
+        Returns: Json
+      }
+      admin_manual_approve_pharmacy_payment: {
+        Args: { p_payment_id: string; p_actor_id: string; p_reason: string; p_evidence_reference: string }
+        Returns: Json
+      }
       get_patient_doctor_directory: {
         Args: Record<PropertyKey, never>
         Returns: Json
