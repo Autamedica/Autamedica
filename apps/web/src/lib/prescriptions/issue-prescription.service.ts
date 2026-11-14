@@ -605,6 +605,15 @@ export async function issuePrescription(
   const clinicalData = rx.clinical_data as ClinicalData;
   const externalPatient = clinicalData?.external_patient;
   
+  const { data: dispatch } = await supabase
+    .from('pharmacy_dispatch_requests')
+    .select('id, kiosk_id, pharmacy_id, patient_dni, patient_cpf, patient_phone')
+    .eq('patient_id', rx.patient_id)
+    .eq('status', 'completed')
+    .not('patient_phone', 'is', null)
+    .limit(1)
+    .maybeSingle();
+  const dispatchIdentity = dispatch?.patient_cpf || dispatch?.patient_dni;
   const hasPatientId = patient.dni
     || patient.cuil
     || (patient as { cpf?: string }).cpf
@@ -612,25 +621,18 @@ export async function issuePrescription(
     || externalPatient?.dni
     || externalPatient?.cuil
     || (externalPatient as { cpf?: string })?.cpf
-    || (externalPatient as { ci?: string })?.ci;
+    || (externalPatient as { ci?: string })?.ci
+    || dispatchIdentity;
 
   if (!hasPatientId) {
     return fail({ code: 'missing_patient_identification' });
   }
+
   let patientAddress = patient.address || externalPatient?.address || undefined;
-  if (!patientAddress) {
-    const { data: dispatch } = await supabase
-      .from('pharmacy_dispatch_requests')
-      .select('id, kiosk_id, pharmacy_id, patient_dni, patient_cpf, patient_phone')
-      .eq('patient_id', rx.patient_id)
-      .eq('status', 'completed')
-      .not('patient_phone', 'is', null)
-      .limit(1)
-      .maybeSingle();
-    const requestIdentity = dispatch?.patient_cpf || dispatch?.patient_dni;
+  if (!patientAddress && dispatch && dispatchIdentity && dispatch.patient_phone) {
     const patientIdentity = (patient as { cpf?: string }).cpf || patient.dni
-      || (externalPatient as { cpf?: string })?.cpf || externalPatient?.dni;
-    if (dispatch && requestIdentity && patientIdentity && requestIdentity.replace(/\\D/g, '') === patientIdentity.replace(/\\D/g, '')) {
+      || (externalPatient as { cpf?: string })?.cpf || externalPatient?.dni || dispatchIdentity;
+    if (dispatchIdentity.replace(/\\D/g, '') === patientIdentity.replace(/\\D/g, '')) {
       const counterId = dispatch.pharmacy_id || dispatch.kiosk_id || dispatch.id;
       patientAddress = `Atención en mostrador de farmacia (identificador ${counterId})`;
     }
