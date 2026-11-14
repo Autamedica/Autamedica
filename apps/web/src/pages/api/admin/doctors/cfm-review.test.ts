@@ -74,6 +74,7 @@ beforeEach(() => {
   state.reviewedLicense = null;
   state.createAdmin.mockReset().mockReturnValue({
     auth: { getUser: vi.fn() },
+    rpc: state.rpc,
     from: (table: string) => {
       if (table === 'profiles') {
         return {
