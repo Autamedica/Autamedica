@@ -11,10 +11,12 @@ export function JordanPaymentWidget({
   dispatchId,
   guestToken,
   onStatusChange,
+  sourceLabel = 'Farmacia Express',
 }: {
   dispatchId: string
   guestToken: string
   onStatusChange?: (status: PaymentStatus) => void
+  sourceLabel?: string
 }) {
   const [status, setStatus] = useState<PaymentStatus>('not_started')
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null)
@@ -70,7 +72,7 @@ export function JordanPaymentWidget({
     <aside className="fixed top-16 right-3 z-40 w-[min(310px,calc(100vw-24px))] rounded-2xl border border-emerald-500/30 bg-zinc-950/95 p-3.5 shadow-xl backdrop-blur-lg text-sm text-white" aria-label="Pagamento da consulta">
       <div className="font-semibold">Consulta médica · R$ 79,00</div>
       <p className="mt-1 text-xs text-zinc-300">
-        Origem: Cantina Jordan. Pagamento seguro pelo Mercado Pago.
+        Origem: {sourceLabel}. Pagamento seguro pelo Mercado Pago.
       </p>
       {status === 'approved' ? (
         <p role="status" className="mt-2 text-emerald-400 font-semibold">Pagamento confirmado.</p>

@@ -226,6 +226,7 @@ export function FinanceAdminDashboard() {
   return (
     <div className="space-y-8">
       <PaymentGovernancePanel />
+      <ReferralCommissionPayouts />
       <AIGovernanceWorkbench />
       {/* Visual Metric KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
@@ -671,5 +672,101 @@ export function FinanceAdminDashboard() {
         </div>
       )}
     </div>
+  );
+}
+
+
+function ReferralCommissionPayouts() {
+  type Commission = {
+    id: string;
+    amount_minor: number;
+    currency: string;
+    status: 'eligible' | 'paid' | 'reversed';
+    partner_name: string;
+    eligible_at: string | null;
+    payment_reference: string | null;
+    paid_at: string | null;
+  };
+  const [rows, setRows] = useState<Commission[]>([]);
+  const [references, setReferences] = useState<Record<string, string>>({});
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const load = async () => {
+    try {
+      const response = await fetch('/api/admin/finance/pharmacy-payments?view=commissions');
+      const payload = await response.json();
+      if (!response.ok || !payload.success) throw new Error(payload.error ?? 'No se pudieron cargar las comisiones');
+      setRows(payload.data ?? []);
+      setError('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudieron cargar las comisiones');
+    }
+  };
+  useEffect(() => { void load(); }, []);
+
+  const settle = async (id: string) => {
+    const paymentReference = (references[id] ?? '').trim();
+    if (!paymentReference) {
+      setError('Ingresá la referencia de transferencia para liquidar la comisión.');
+      return;
+    }
+    setBusyId(id);
+    setError('');
+    setSuccess('');
+    try {
+      const response = await fetch('/api/admin/finance/pharmacy-payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ commissionId: id, paymentReference }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) throw new Error(payload.error ?? 'No se pudo liquidar la comisión');
+      setSuccess('Comisión liquidada y referencia registrada.');
+      setReferences(current => ({ ...current, [id]: '' }));
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo liquidar la comisión');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const money = (amount: number, currency: string) =>
+    new Intl.NumberFormat(currency === 'BRL' ? 'pt-BR' : 'es-AR', { style: 'currency', currency }).format(amount / 100);
+
+  return (
+    <section className="rounded-xl border border-stone-200 bg-white p-5 space-y-4">
+      <div>
+        <h2 className="text-base font-semibold text-stone-900">Liquidación de comisiones comerciales</h2>
+        <p className="text-xs text-stone-500">Jordan recibe R$ 10 por primera adquisición confirmada. Registrá la referencia bancaria al transferir.</p>
+      </div>
+      {error && <p role="alert" className="text-xs text-rose-700">{error}</p>}
+      {success && <p role="status" className="text-xs text-emerald-700">{success}</p>}
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-xs">
+          <thead><tr className="border-b text-stone-500 uppercase"><th className="p-2">Partner</th><th className="p-2">Comisión</th><th className="p-2">Estado</th><th className="p-2">Referencia de transferencia</th><th className="p-2">Acción</th></tr></thead>
+          <tbody>
+            {rows.map(row => <tr key={row.id} className="border-b">
+              <td className="p-2 font-medium">{row.partner_name}</td>
+              <td className="p-2">{money(row.amount_minor, row.currency)}</td>
+              <td className="p-2">{row.status === 'eligible' ? 'Pendiente de liquidación' : row.status === 'paid' ? 'Liquidada' : 'Revertida'}</td>
+              <td className="p-2 min-w-56">
+                {row.status === 'eligible'
+                  ? <input value={references[row.id] ?? ''} onChange={event => setReferences(current => ({ ...current, [row.id]: event.target.value }))} maxLength={200} placeholder="ID / comprobante de transferencia" className="w-full rounded border border-stone-300 px-2 py-1" />
+                  : <span className="font-mono">{row.payment_reference ?? '—'}</span>}
+              </td>
+              <td className="p-2">
+                {row.status === 'eligible'
+                  ? <button type="button" disabled={busyId === row.id} onClick={() => void settle(row.id)} className="rounded bg-stone-900 px-3 py-1.5 text-white disabled:opacity-50">{busyId === row.id ? 'Registrando…' : 'Marcar pagada'}</button>
+                  : <span className="text-stone-400">{row.paid_at ? new Date(row.paid_at).toLocaleString() : '—'}</span>}
+              </td>
+            </tr>)}
+            {rows.length === 0 && <tr><td colSpan={5} className="p-3 text-stone-500">No hay comisiones comerciales registradas.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }

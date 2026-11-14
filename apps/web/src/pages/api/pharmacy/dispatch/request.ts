@@ -47,6 +47,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // a checkout that's explicitly live and secured server-side.
     const operationalSwitches = await getOperationalPaymentSwitches(createAstroAdminClient(locals.runtime?.env)).catch(() => null)
     if (!operationalSwitches?.pharmacy_express_payments_enabled) return serviceUnavailable('pharmacy_express_payments_disabled')
+    if (careCountry === 'BR' && (!hasSecureGuestPaymentSecret(locals.runtime?.env) || (tier && tier !== 'general'))) {
+      return serviceUnavailable('brazil_pharmacy_checkout_not_ready')
+    }
     if (referralCode === 'JORDAN') {
       if (careCountry !== 'BR') return badRequest('jordan_referral_brazil_only')
       if (tier && tier !== 'general') return badRequest('jordan_general_consultation_only')

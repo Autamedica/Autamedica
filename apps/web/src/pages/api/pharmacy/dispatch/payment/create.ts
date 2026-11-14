@@ -35,19 +35,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return badRequest('pharmacy_payment_request_not_payable')
     }
 
-    // Initial rollout deliberately scoped to Jordan's commercial QR.
+    // All Brazil express requests use the same BRL 79 / BRL 40 quote.
+    // Jordan is an attribution overlay, not a different payment requirement.
     const { data: source, error: sourceError } = await admin
       .from('pharmacy_dispatch_requests')
       .select('referral_partner_id, commercial_referral_partners!pharmacy_dispatch_requests_referral_partner_id_fkey(code,active)')
       .eq('id', dispatch.id).maybeSingle()
     if (sourceError) throw sourceError
     const partner = source?.commercial_referral_partners as { code?: string; active?: boolean } | null
-    if (partner?.code !== 'JORDAN' || partner.active !== true) {
-      return badRequest('jordan_qr_required_for_this_checkout')
+    const isJordan = partner?.code === 'JORDAN'
+    if (source?.referral_partner_id && (!isJordan || partner?.active !== true)) {
+      return badRequest('unsupported_or_inactive_pharmacy_referral')
     }
 
-    // Charge before dispatch. The server-owned request quote is fixed by the
-    // Jordan partner policy; no doctor assignment or accepted offer is required.
+    // Charge before dispatch. The database matcher independently enforces
+    // approved Mercado Pago payment before it can emit a doctor offer.
     const { data: quote, error: quoteError } = await admin
       .from('pharmacy_dispatch_requests')
       .select('doctor_fee_brl,price_brl')
@@ -56,7 +58,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (quoteError) throw quoteError
     if (Number(quote?.doctor_fee_brl) !== JORDAN_DOCTOR_FEE_CENTS / 100 ||
         Number(quote?.price_brl) !== GENERAL_PHARMACY_BR_PRICE_CENTS / 100) {
-      return serviceUnavailable('jordan_medical_quote_not_verified')
+      return serviceUnavailable('brazil_medical_quote_not_verified')
     }
     const amountCents = GENERAL_PHARMACY_BR_PRICE_CENTS
     const { data: old, error: oldError } = await admin.from('pharmacy_dispatch_payments')
@@ -75,7 +77,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       // Operational switches stop new checkouts only. Existing pending/approved payments
       // above remain readable and usable after an Admin pause.
       const operationalSwitches = await getOperationalPaymentSwitches(admin).catch(() => null)
-      if (!operationalSwitches?.jordan_qr_payments_enabled || !operationalSwitches.pharmacy_express_payments_enabled || !operationalSwitches.global_pix_mp_payments_enabled) {
+      if (!operationalSwitches?.pharmacy_express_payments_enabled || !operationalSwitches.global_pix_mp_payments_enabled || (isJordan && !operationalSwitches.jordan_qr_payments_enabled)) {
         return serviceUnavailable('pharmacy_checkout_not_enabled')
       }
       const { data: created, error: createError } = await admin.from('pharmacy_dispatch_payments')
