@@ -1,0 +1,189 @@
+name: Deploy Growth Agent to Oracle
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref to deploy (defaults to the workflow commit)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-growth-agent-oracle
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy and verify Growth Agent
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    env:
+      OCI_HOST: ${{ secrets.OCI_OPENCLAW_HOST }}
+      OCI_USER: ${{ secrets.OCI_OPENCLAW_USER }}
+      OCI_SSH_KEY: ${{ secrets.OCI_OPENCLAW_SSH_KEY }}
+      OCI_HOST_KEY: ${{ secrets.OCI_OPENCLAW_HOST_KEY }}
+    steps:
+      - name: Validate Oracle connection secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in OCI_HOST OCI_USER OCI_SSH_KEY OCI_HOST_KEY; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing GitHub Actions secret for ${name/OCI_/OCI_OPENCLAW_}"
+              exit 1
+            fi
+          done
+
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          fetch-depth: 1
+
+      - name: Package source
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -czf "$RUNNER_TEMP/autamedica-source.tar.gz" \
+            --exclude=.git --exclude=node_modules --exclude=.turbo \
+            --exclude=dist --exclude=.astro .
+          sha256sum "$RUNNER_TEMP/autamedica-source.tar.gz"
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/oci_openclaw
+          chmod 600 ~/.ssh/oci_openclaw
+          printf '%s\n' "$OCI_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          ssh -i ~/.ssh/oci_openclaw -o BatchMode=yes "$OCI_USER@$OCI_HOST" 'printf "oracle-ssh-ok\\n"'
+
+      - name: Upload release bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          scp -i ~/.ssh/oci_openclaw "$RUNNER_TEMP/autamedica-source.tar.gz" \
+            "$OCI_USER@$OCI_HOST:/tmp/autamedica-growth-agent-$GITHUB_SHA.tar.gz"
+
+      - name: Install and activate systemd service
+        shell: bash
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/oci_openclaw "$OCI_USER@$OCI_HOST" "bash -s -- '$DEPLOY_SHA'" <<'REMOTE'
+          set -euo pipefail
+          DEPLOY_SHA="$1"
+          DEPLOY_USER="$(id -un)"
+          RELEASE_ROOT="/opt/autamedica/releases"
+          RELEASE_DIR="$RELEASE_ROOT/growth-agent-$DEPLOY_SHA"
+          APP_ROOT="/opt/autamedica-growth-agent"
+          ENV_TARGET="/etc/autamedica/growth-agent.env"
+
+          command -v sudo >/dev/null
+          sudo -n true
+          sudo mkdir -p "$RELEASE_ROOT" /etc/autamedica
+          sudo mkdir -p "$RELEASE_DIR"
+          sudo tar -xzf "/tmp/autamedica-growth-agent-$DEPLOY_SHA.tar.gz" -C "$RELEASE_DIR"
+          sudo rm -f "/tmp/autamedica-growth-agent-$DEPLOY_SHA.tar.gz"
+          sudo chown -R "$DEPLOY_USER":"$(id -gn)" "$RELEASE_DIR"
+
+          # Reuse an existing server-side Supabase environment without printing secret values.
+          if ! sudo test -s "$ENV_TARGET"; then
+            mapfile -t ENV_CANDIDATES < <(
+              sudo find /etc/autamedica /opt/autamedica "$HOME" -maxdepth 4 -type f \
+                \( -name '*.env' -o -name '.env' -o -name '*.env.production' \) \
+                2>/dev/null | sort -u
+            )
+            SOURCE_ENV=""
+            for candidate in "${ENV_CANDIDATES[@]}"; do
+              if sudo grep -Eq '^(export )?SUPABASE_URL=' "$candidate" \
+                && sudo grep -Eq '^(export )?SUPABASE_SERVICE_ROLE_KEY=' "$candidate"; then
+                SOURCE_ENV="$candidate"
+                break
+              fi
+            done
+            if [[ -z "$SOURCE_ENV" ]]; then
+              echo "::error::No existing server environment file with SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY was found."
+              echo "The source code was uploaded, but the service was not installed or started."
+              exit 1
+            fi
+            sudo install -o root -g root -m 600 "$SOURCE_ENV" "$ENV_TARGET"
+          fi
+
+          sudo grep -Eq '^(export )?SUPABASE_URL=.+$' "$ENV_TARGET"
+          sudo grep -Eq '^(export )?SUPABASE_SERVICE_ROLE_KEY=.+$' "$ENV_TARGET"
+
+          if ! command -v node >/dev/null 2>&1; then
+            echo "::error::Node.js is required on the Oracle VM to install the workspace dependencies."
+            exit 1
+          fi
+          if ! command -v pnpm >/dev/null 2>&1; then
+            if command -v corepack >/dev/null 2>&1; then
+              sudo corepack enable
+              sudo corepack prepare pnpm@9.15.2 --activate
+            else
+              sudo npm install --global pnpm@9.15.2
+            fi
+          fi
+          if [[ ! -x "$HOME/.bun/bin/bun" ]]; then
+            curl -fsSL https://bun.sh/install | bash
+          fi
+          BUN_BIN="$HOME/.bun/bin/bun"
+          test -x "$BUN_BIN"
+
+          cd "$RELEASE_DIR"
+          pnpm install --frozen-lockfile
+          "$BUN_BIN" --version
+
+          sudo tee /etc/systemd/system/autamedica-growth-agent.service >/dev/null <<UNIT
+          [Unit]
+          Description=AutaMedica Growth Agent
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=simple
+          User=$DEPLOY_USER
+          WorkingDirectory=$RELEASE_DIR/apps/reminder-worker
+          EnvironmentFile=$ENV_TARGET
+          Environment=NODE_ENV=production
+          Environment=OPENCLAW_ACCOUNT=autamedica
+          Environment=GROWTH_AGENT_INTERVAL_MS=60000
+          Environment=GROWTH_AGENT_BATCH_SIZE=25
+          ExecStart=$BUN_BIN src/growth-agent-worker.ts
+          Restart=always
+          RestartSec=5
+          NoNewPrivileges=true
+          PrivateTmp=true
+
+          [Install]
+          WantedBy=multi-user.target
+          UNIT
+          sudo chmod 644 /etc/systemd/system/autamedica-growth-agent.service
+          sudo ln -sfn "$RELEASE_DIR" "$APP_ROOT"
+          sudo systemctl daemon-reload
+          sudo systemctl enable autamedica-growth-agent.service
+          sudo systemctl restart autamedica-growth-agent.service
+          sleep 3
+          if [[ "$(sudo systemctl is-active autamedica-growth-agent.service)" != "active" ]]; then
+            sudo systemctl --no-pager --full status autamedica-growth-agent.service || true
+            exit 1
+          fi
+          sudo systemctl show autamedica-growth-agent.service \
+            --property=ActiveState --property=SubState --property=MainPID --value
+          echo "Growth Agent deployed from $DEPLOY_SHA"
+          REMOTE
+
+      - name: Verify service is active
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/oci_openclaw "$OCI_USER@$OCI_HOST" \
+            'test "$(systemctl is-active autamedica-growth-agent.service)" = active && systemctl show autamedica-growth-agent.service --property=ActiveState --property=SubState --property=MainPID'
