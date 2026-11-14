@@ -128,6 +128,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
       .maybeSingle();
     if (prescriptionError) return internalError();
 
+    // The CUIR row can disappear between the lookup and signature-evidence read.
     if (!prescription || prescription.status !== 'active' || !prescription.signed_pdf_url ||
         prescription.signature_method !== 'ac_external' || prescription.cuir !== cuir) {
       return jsonOk({
