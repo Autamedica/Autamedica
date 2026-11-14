@@ -4,6 +4,7 @@ type Switches = {
  jordan_qr_payments_enabled:boolean
  pharmacy_express_payments_enabled:boolean
  global_pix_mp_payments_enabled:boolean
+ dispatch_engine_enabled:boolean
  whatsapp_send_enabled:boolean
  email_send_enabled:boolean
  dry_run_enabled:boolean
@@ -12,7 +13,7 @@ type Switches = {
  switch_audit?:Record<string,{updated_by:string;updated_by_name?:string|null;updated_at:string;reason:string|null}>
 }
 type PharmacyPayment = {id:string;request_id:string;amount_minor:number;currency:string;status:string;provider:string;assigned_doctor_id:string|null;jordan_commission_minor:number|null;created_at:string}
-type Approval = { id:string; status:string; domain:string; proposed_by:string; summary:string; risk_reason:string; impact_scope:string; created_at:string; payload?:{risk_level?:string;recommendation?:string;operation_summary?:string;source?:string} }
+type Approval = { id:string; status:string; domain:string; proposed_by:string; summary:string; risk_reason:string; impact_scope:string; created_at:string; payload?:{action_type?:string;risk_level?:string;recommendation?:string;operation_summary?:string;source?:string} }
 type SwitchKey = Exclude<keyof Switches,'updated_by'|'updated_at'|'switch_audit'>
 const SWITCHES: {key:SwitchKey;label:string;description:string;flows:string;inFlight:string}[] = [
  {key:'jordan_qr_payments_enabled',label:'Pagos QR Jordan',description:'Autoriza la creación de nuevos checkouts QR del partner JORDAN.',flows:'POST /api/pharmacy/dispatch/payment/create. Exige solicitud BR/general y partner JORDAN; este checkout también requiere activos los controles Farmacias Express y MercadoPago.',inFlight:'Los pagos pending/approved existentes siguen devolviendo su checkout/estado. Apagarlo bloquea únicamente la creación de un nuevo checkout; no revierte pagos ni corta consultas.'},
@@ -45,7 +46,7 @@ export function PaymentGovernancePanel(){
  const decide=async(id:string,decision:'APPROVED'|'REJECTED')=>{
   const notes=window.prompt('Motivo de la decisión administrativa (obligatorio):')
   if(!notes?.trim())return
-  const r=await fetch('/api/admin/approvals',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,decision,notes:notes.trim()})})
+  const r=await fetch('/api/admin/approvals',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,decision,notes:notes.trim(),resolution_action})})
   const j=await r.json(); if(!r.ok||!j.success){setError('No se pudo registrar la decisión');return}
   await load()
  }
@@ -62,7 +63,7 @@ export function PaymentGovernancePanel(){
    </article>)}
   </div>
   <div><h2 className="text-lg font-semibold text-slate-900">Bandeja de Autorizaciones</h2>
-   {approvals.length===0?<p className="mt-2 text-sm text-slate-500">No hay decisiones pendientes.</p>:<div className="mt-3 space-y-3">{approvals.map(a=><article key={a.id} className="rounded-lg border p-4"><div className="flex flex-wrap items-center justify-between gap-2"><strong>{a.summary}</strong><span className="text-xs uppercase text-amber-700">{a.domain}</span></div><p className="mt-1 text-sm text-slate-600">{a.risk_reason}</p>{a.payload?.operation_summary&&<p className="mt-2 text-sm text-slate-700"><strong>Solicitud original:</strong> {a.payload.operation_summary}</p>}{a.payload?.recommendation&&<p className="mt-2 text-sm text-slate-700"><strong>Recomendación de IA:</strong> {a.payload.recommendation}</p>}{a.payload?.risk_level&&<p className="mt-2 text-xs font-semibold uppercase text-amber-700">Riesgo clasificado: {a.payload.risk_level}</p>}<p className="text-xs text-slate-500">Propuesto por {a.proposed_by} · Impacto: {a.impact_scope}</p>{a.payload?.source==='openai-governance-engine'&&<p className="mt-2 rounded bg-slate-50 p-2 text-xs text-slate-600">La decisión registra la revisión de esta evaluación. No ejecuta la operación propuesta.</p>}<div className="mt-3 flex gap-2"><button onClick={()=>void decide(a.id,'APPROVED')} className="rounded bg-emerald-700 px-3 py-2 text-sm text-white">{a.payload?.source==='openai-governance-engine'?'Aprobar evaluación':'Autorizar'}</button><button onClick={()=>void decide(a.id,'REJECTED')} className="rounded bg-rose-700 px-3 py-2 text-sm text-white">{a.payload?.source==='openai-governance-engine'?'Rechazar evaluación':'Desautorizar / Rechazar'}</button></div></article>)}</div>}
+   {approvals.length===0?<p className="mt-2 text-sm text-slate-500">No hay decisiones pendientes.</p>:<div className="mt-3 space-y-3">{approvals.map(a=><article key={a.id} className="rounded-lg border p-4"><div className="flex flex-wrap items-center justify-between gap-2"><strong>{a.summary}</strong><span className="text-xs uppercase text-amber-700">{a.domain}</span></div><p className="mt-1 text-sm text-slate-600">{a.risk_reason}</p>{a.payload?.operation_summary&&<p className="mt-2 text-sm text-slate-700"><strong>Solicitud original:</strong> {a.payload.operation_summary}</p>}{a.payload?.recommendation&&<p className="mt-2 text-sm text-slate-700"><strong>Recomendación de IA:</strong> {a.payload.recommendation}</p>}{a.payload?.risk_level&&<p className="mt-2 text-xs font-semibold uppercase text-amber-700">Riesgo clasificado: {a.payload.risk_level}</p>}<p className="text-xs text-slate-500">Propuesto por {a.proposed_by} · Impacto: {a.impact_scope}</p>{a.payload?.source==='openai-governance-engine'&&<p className="mt-2 rounded bg-slate-50 p-2 text-xs text-slate-600">La decisión registra la revisión de esta evaluación. No ejecuta la operación propuesta.</p>}<div className="mt-3 flex flex-wrap gap-2">{a.payload?.action_type==='expired_paid_dispatch'?<><button onClick={()=>void decide(a.id,'APPROVED','reopen')} className="rounded bg-emerald-700 px-3 py-2 text-sm text-white">Aprobar y reabrir 15 min</button><button onClick={()=>void decide(a.id,'APPROVED','refund')} className="rounded bg-amber-700 px-3 py-2 text-sm text-white">Aprobar reembolso</button></>:<button onClick={()=>void decide(a.id,'APPROVED')} className="rounded bg-emerald-700 px-3 py-2 text-sm text-white">{a.payload?.source==='openai-governance-engine'?'Aprobar evaluación':'Autorizar'}</button>}<button onClick={()=>void decide(a.id,'REJECTED')} className="rounded bg-rose-700 px-3 py-2 text-sm text-white">{a.payload?.source==='openai-governance-engine'?'Rechazar evaluación':'Desautorizar / Rechazar'}</button></div></article>)}</div>}
   </div>
   <div><h2 className="text-lg font-semibold text-slate-900">Cobros de Farmacia Express / Jordan</h2>
    <div className="mt-3 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b text-xs uppercase text-slate-500"><th className="p-2">Estado</th><th className="p-2">Monto</th><th className="p-2">Comisión Jordan</th><th className="p-2">Request ID</th><th className="p-2">Médico asignado</th><th className="p-2">Fecha</th></tr></thead><tbody>
