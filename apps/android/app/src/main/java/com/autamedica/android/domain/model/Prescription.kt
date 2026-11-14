@@ -30,6 +30,7 @@ data class Prescription(
         get() = !signedPdfUrl.isNullOrBlank() && (
             status.equals("activa", ignoreCase = true) ||
             status.equals("active", ignoreCase = true) ||
+            status.equals("sent", ignoreCase = true) ||
             status.equals("signed", ignoreCase = true) ||
             status.equals("firmada", ignoreCase = true)
         )

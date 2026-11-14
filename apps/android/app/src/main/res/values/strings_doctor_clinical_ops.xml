@@ -143,4 +143,45 @@
     <string name="cert_error_issue_failed">Error al emitir el certificado: %1$s</string>
     <string name="cert_error_connection">Fallo de conexión</string>
     <string name="signature_remote_pending_notice">La matrícula profesional puede verificarse aquí, pero todavía no es posible firmar certificados mediante FirmAR. La firma dibujada no equivale a firma digital. El certificado continuará como borrador hasta completar la firma oficial.</string>
+
+    <!-- In-call clinical documents -->
+    <string name="in_call_clinical_title">Utilidad clínica durante la llamada</string>
+    <string name="in_call_clinical_subtitle">Videoconsulta activa • Emisión por jurisdicción</string>
+    <string name="in_call_close">Cerrar</string>
+    <string name="in_call_patient_fallback">Paciente en consulta</string>
+    <string name="in_call_complaint_prefix">Motivo: %1$s</string>
+    <string name="in_call_patient_link_required">Vincule la ficha clínica del paciente para emitir documentos.</string>
+    <string name="in_call_country_mismatch">El país de atención debe coincidir con la matrícula profesional.</string>
+    <string name="in_call_tab_prescription">Receta digital</string>
+    <string name="in_call_tab_certificate">Atestado médico</string>
+    <string name="in_call_certificate_draft_saved">Borrador preparado</string>
+    <string name="in_call_prescription_issued">Receta emitida en AutaMedica</string>
+    <string name="in_call_document_reference">Código de verificación: %1$s</string>
+    <string name="in_call_document_chat_notice">El estado y el documento quedan disponibles en el chat de la consulta.</string>
+    <string name="in_call_back_to_call">Volver a la llamada</string>
+    <string name="in_call_prepare_another">Preparar otro documento</string>
+    <string name="in_call_medication_label">Medicamento *</string>
+    <string name="in_call_medication_placeholder">Ej.: Amoxicilina 500 mg, Paracetamol 1 g</string>
+    <string name="in_call_dosage_label">Posología y frecuencia</string>
+    <string name="in_call_dosage_placeholder">Ej.: 1 comprimido cada 8 horas</string>
+    <string name="in_call_diagnosis_required">Diagnóstico clínico *</string>
+    <string name="in_call_diagnosis_placeholder">Ingrese el diagnóstico evaluado durante la consulta</string>
+    <string name="in_call_instructions_label">Indicaciones clínicas</string>
+    <string name="in_call_instructions_placeholder">Ej.: Tomar con las comidas durante 7 días.</string>
+    <string name="in_call_country_unavailable">Jurisdicción no habilitada para emitir documentos.</string>
+    <string name="in_call_prescription_issuing">Emitiendo receta...</string>
+    <string name="in_call_prescription_submit">Emitir receta digital</string>
+    <string name="in_call_certificate_type">Tipo de certificado</string>
+    <string name="in_call_rest_days">Días de dispensa laboral</string>
+    <string name="in_call_certificate_diagnosis">Diagnóstico / motivo clínico</string>
+    <string name="in_call_certificate_diagnosis_placeholder">Ej.: Gastroenteritis aguda / Cefalea tensional</string>
+    <string name="in_call_certificate_saving">Preparando atestado...</string>
+    <string name="in_call_certificate_submit">Preparar atestado médico</string>
+    <string name="in_call_validation_medication_diagnosis">Indique medicamento y diagnóstico clínico.</string>
+    <string name="in_call_prescription_error">No se pudo emitir la receta.</string>
+    <string name="in_call_certificate_error">No se pudo preparar el atestado.</string>
+    <string name="signature_status_cfm_verified">Matrícula CRM validada con evidencia CFM</string>
+    <string name="signature_error_invalid_cpf">Ingrese un CPF brasileño válido de 11 dígitos.</string>
+    <string name="signature_error_cpf_mismatch">El CPF no coincide con el registrado en el perfil médico.</string>
+    <string name="in_call_hide_diagnosis">Ocultar diagnóstico en el certificado</string>
 </resources>

@@ -185,7 +185,9 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
         val doctorCountry = InCallDocumentPolicy.doctorCountry(
             doctor.licenseType, doctor.careCountry, doctor.ufBrazil,
         )
-        check(doctorCountry == request.countryCode && doctorCountry != null) {
+        val resolvedCountry = doctorCountry
+            ?: throw IllegalStateException("No se pudo determinar el país a partir de la matrícula profesional")
+        check(request.countryCode.isBlank() || resolvedCountry == request.countryCode) {
             "El país del certificado no coincide con la matrícula médica"
         }
         val eligiblePatients = prescriptionRepository.getEligiblePatients().getOrElse {
@@ -198,12 +200,12 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             .select(Columns.list("id", "care_country")) {
                 filter { eq("id", request.patientId) }
             }.decodeSingleOrNull<PatientCountryDto>()?.countryCode
-        InCallDocumentPolicy.requireMatchingPatientCountry(patientCountry, request.countryCode)
+        InCallDocumentPolicy.requireMatchingPatientCountry(patientCountry, resolvedCountry)
 
         val timestampHex = java.lang.Long.toHexString(System.currentTimeMillis()).uppercase()
         val randomHex = UUID.randomUUID().toString().replace("-", "").take(6).uppercase()
         // Internal reference only. A draft has no public verification QR.
-        val cuir = "${request.countryCode}-CERT-$timestampHex-$randomHex"
+        val cuir = "${resolvedCountry}-CERT-$timestampHex-$randomHex"
         val certId = UUID.randomUUID().toString()
         val now = Instant.now().toString()
 
@@ -218,9 +220,9 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             put("start_date", request.startDate)
             request.endDate?.let { put("end_date", it) }
             request.diagnosis?.let { put("diagnosis", it) }
-            put("hide_diagnosis", request.countryCode == "BR" || request.hideDiagnosis)
+            put("hide_diagnosis", request.hideDiagnosis)
             request.observations?.let { put("observations", it) }
-            put("country_code", request.countryCode)
+            put("country_code", resolvedCountry)
             put("created_at", now)
             put("updated_at", now)
         }
@@ -247,7 +249,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             patientDni = patientDniMap[request.patientId],
             signedPdfUrl = null,
             qrCodeContent = null,
-            countryCode = request.countryCode,
+            countryCode = resolvedCountry,
             createdAt = now,
         )
     }.onFailure {

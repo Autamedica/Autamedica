@@ -309,7 +309,7 @@ class PrescriptionRepositoryImpl @Inject constructor(
         val finalPdfUrl = targetObj["signed_pdf_url"]?.jsonPrimitive?.contentOrNull
         val finalStatus = targetObj["status"]?.jsonPrimitive?.contentOrNull
             ?: throw IllegalStateException("Falta el estado del documento")
-        require(finalStatus == "sent" && !finalPdfUrl.isNullOrBlank()) {
+        require(finalStatus in setOf("sent", "active") && !finalPdfUrl.isNullOrBlank()) {
             "La receta no tiene una emisión confirmada por el servicio"
         }
         val finalQr = targetObj["qr_code_content"]?.jsonPrimitive?.contentOrNull

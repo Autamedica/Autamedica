@@ -35,7 +35,10 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     }
     if ([
       'farmalink_pending_reconciliation',
-      'br_requires_memed_provider',
+      'br_cfm_license_required',
+      'br_doctor_cpf_required',
+      'br_patient_cpf_required',
+      'br_special_prescription_provider_required',
       'ar_production_homologation_required',
       'farmalink_registration_required',
       'digital_signature_required',

@@ -625,8 +625,8 @@ fun VideoCallScreen(
             onIssuePrescription = { med, dosage, instructions, diagnosis, onResult ->
                 viewModel.issueInCallPrescription(med, dosage, instructions, diagnosis, onResult)
             },
-            onIssueCertificate = { type, days, diag, onResult ->
-                viewModel.issueInCallCertificate(type, days, diag, onResult)
+            onIssueCertificate = { type, days, diag, hideDiagnosis, onResult ->
+                viewModel.issueInCallCertificate(type, days, diag, hideDiagnosis, onResult)
             },
             onDismiss = { clinicalSheetMode = null },
         )

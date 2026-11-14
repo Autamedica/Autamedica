@@ -67,5 +67,5 @@ data class CreateCertificateRequest(
     val diagnosis: String? = null,
     val hideDiagnosis: Boolean = false,
     val observations: String? = null,
-    val countryCode: String = "AR",
+    val countryCode: String = "",
 )

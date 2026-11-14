@@ -139,7 +139,7 @@
     <string name="videocall_auto_degraded_notice">Conexão instável: alterado temporariamente para somente áudio</string>
     <string name="videocall_recovering_notice">Conexão restabelecida: reativando vídeo</string>
 
-    <!-- Prescriptions (ICP-Brasil & CFM 2.314/2022) -->
+    <!-- Prescriptions · CFM/CRM e ANVISA -->
     <string name="rx_title_prescriptions">Minhas Prescrições</string>
     <string name="rx_title_certificates">Meus Atestados</string>
     <string name="rx_tab_prescriptions">Prescrições</string>
@@ -149,12 +149,12 @@
     <string name="rx_filter_dispensed">Dispensadas</string>
     <string name="rx_filter_completed">Concluídas</string>
     <string name="rx_show_at_pharmacy">APRESENTE ESTE CÓDIGO NA FARMÁCIA</string>
-    <string name="rx_cuir_label">CÓDIGO CUIR:</string>
+    <string name="rx_cuir_label">CÓDIGO DE VALIDAÇÃO DIGITAL:</string>
     <string name="rx_download_pdf">Baixar Prescrição (PDF)</string>
     <string name="rx_instructions_title">COMO TOMAR (INSTRUÇÕES MÉDICAS)</string>
-    <string name="rx_regulatory_sisa">Validação Oficial CFM nº 2.314/2022 / ICP-Brasil</string>
-    <string name="rx_regulatory_icp_brasil">Prescrição Eletrônica ICP-Brasil (Lei 14.063/2020)</string>
-    <string name="rx_regulatory_pades_iti">Validada com Certificação Digital PAdES / ITI</string>
+    <string name="rx_regulatory_sisa">Validação profissional conforme CFM Resolução nº 2.381/2024</string>
+    <string name="rx_regulatory_icp_brasil">Receita digital com assinatura eletrônica verificável</string>
+    <string name="rx_regulatory_pades_iti">Assinatura digital incorporada ao PDF e código de validação AutaMedica</string>
     <string name="rx_license_crm_rs">CRM-RS: %1$s</string>
     <string name="rx_license_mn">Matrícula: %1$s</string>
     <string name="rx_emergency_samu">SAMU 192</string>

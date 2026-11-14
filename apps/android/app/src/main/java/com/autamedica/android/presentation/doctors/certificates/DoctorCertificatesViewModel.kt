@@ -317,7 +317,6 @@ class DoctorCertificatesViewModel @Inject constructor(
                 diagnosis = state.diagnosis.trim(),
                 hideDiagnosis = state.hideDiagnosis,
                 observations = state.observations.trim().ifEmpty { null },
-                countryCode = "AR",
             )
 
             certificateRepository.createCertificate(request)

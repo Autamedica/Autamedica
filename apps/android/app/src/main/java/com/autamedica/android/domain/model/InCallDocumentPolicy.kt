@@ -47,5 +47,5 @@ object InCallDocumentPolicy {
         return country
     }
 
-    fun canUseNativePrescriptionIssuer(country: String): Boolean = country == "AR"
+    fun canUseNativePrescriptionIssuer(country: String): Boolean = country == "AR" || country == "BR"
 }

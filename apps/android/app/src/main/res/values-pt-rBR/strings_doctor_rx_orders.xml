@@ -8,7 +8,7 @@
     <string name="doctor_rx_action_back">Voltar</string>
     <string name="doctor_rx_action_refresh">Atualizar</string>
     <string name="doctor_rx_action_new">Nova Receita</string>
-    <string name="doctor_rx_search_placeholder">Buscar por paciente, CPF, CUIR ou medicamento...</string>
+    <string name="doctor_rx_search_placeholder">Buscar por paciente, CPF, código de validação ou medicamento...</string>
     <string name="doctor_rx_search_desc">Buscar</string>
     <string name="doctor_rx_clear_search_desc">Limpar</string>
 
@@ -27,13 +27,13 @@
     <!-- Empty States -->
     <string name="doctor_rx_empty_title">Nenhuma receita emitida ainda</string>
     <string name="doctor_rx_empty_filtered_title">Nenhuma receita encontrada com esse critério</string>
-    <string name="doctor_rx_empty_desc">As receitas digitais emitidas sob o Decreto 63 aparecerão aqui com seu CUIR oficial.</string>
+    <string name="doctor_rx_empty_desc">As receitas digitais verificáveis emitidas pela AutaMedica aparecerão aqui.</string>
     <string name="doctor_rx_empty_filtered_desc">Tente buscar por outro nome, CPF ou limpe os filtros</string>
     <string name="doctor_rx_empty_clear_filters">Limpar filtros</string>
 
     <!-- Prescription Card -->
-    <string name="doctor_rx_card_copy_cuir">Copiar CUIR</string>
-    <string name="doctor_rx_card_cuir_copied_toast">CUIR copiado: %1$s</string>
+    <string name="doctor_rx_card_copy_cuir">Copiar código de validação</string>
+    <string name="doctor_rx_card_cuir_copied_toast">Código de validação copiado: %1$s</string>
     <string name="doctor_rx_card_default_patient">Paciente Atribuído</string>
     <string name="doctor_rx_card_dni_prefix">CPF: %1$s</string>
     <string name="doctor_rx_card_diagnosis_label">Diagnóstico:</string>
@@ -52,8 +52,8 @@
 
     <!-- Cancellation Dialog -->
     <string name="doctor_rx_cancel_dialog_title">Cancelar Receita Digital</string>
-    <string name="doctor_rx_cancel_dialog_body">Você está prestes a revogar a receita com CUIR %1$s de %2$s.</string>
-    <string name="doctor_rx_cancel_dialog_legal">Esta ação fica registrada de forma imutável no registro de auditoria clínica (Lei 27.553).</string>
+    <string name="doctor_rx_cancel_dialog_body">Você está prestes a cancelar a receita %1$s de %2$s.</string>
+    <string name="doctor_rx_cancel_dialog_legal">O cancelamento fica registrado no histórico de auditoria clínica.</string>
     <string name="doctor_rx_cancel_dialog_reason_label">Motivo clínico de cancelamento *</string>
     <string name="doctor_rx_cancel_dialog_reason_placeholder">Ex: Erro na posologia, alteração do esquema terapêutico</string>
     <string name="doctor_rx_cancel_dialog_confirm">Confirmar Cancelamento</string>
@@ -64,16 +64,16 @@
     <!-- 2. EMISIÓN DE RECETA DIGITAL (CreatePrescriptionScreen)              -->
     <!-- =================================================================== -->
     <string name="doctor_create_rx_title">Emitir Receita Digital</string>
-    <string name="doctor_create_rx_subtitle">Decreto 63/2024 · Lei 27.553</string>
+    <string name="doctor_create_rx_subtitle">CFM Resolução nº 2.381/2024 · ANVISA RDC nº 1.000/2025</string>
     <string name="doctor_create_rx_action_back">Voltar</string>
-    <string name="doctor_create_rx_submitting">Assinando e Gerando CUIR...</string>
+    <string name="doctor_create_rx_submitting">Assinando e Gerando código de validação digital...</string>
     <string name="doctor_create_rx_submit_button">Assinar e Emitir Receita Oficial</string>
 
     <!-- Regulatory Banner -->
-    <string name="doctor_create_rx_regulatory_eligible_title">Prescritor Habilitado · SISA REFEPS</string>
+    <string name="doctor_create_rx_regulatory_eligible_title">Profissional habilitado · CRM / CFM</string>
     <string name="doctor_create_rx_regulatory_not_eligible_title">Status de Validação Profissional</string>
-    <string name="doctor_create_rx_regulatory_license_info">CRM: %1$s · Assinatura digital e CUIR habilitados</string>
-    <string name="doctor_create_rx_regulatory_fallback_reason">Verifique seu CRM no perfil para cumprir o Decreto 63/2024</string>
+    <string name="doctor_create_rx_regulatory_license_info">CRM: %1$s · Validação profissional e assinatura digital</string>
+    <string name="doctor_create_rx_regulatory_fallback_reason">Verifique seu CRM e a validação CFM no perfil profissional.</string>
     <string name="doctor_create_rx_regulatory_registered">Registrado</string>
 
     <!-- Patient Selector -->
@@ -111,9 +111,9 @@
     <!-- Success Modal Dialog -->
     <string name="doctor_create_rx_success_title">Receita Emitida com Sucesso!</string>
     <string name="doctor_create_rx_success_body">A receita digital foi assinada e registrada de acordo com a legislação vigente.</string>
-    <string name="doctor_create_rx_cuir_label">CÓDIGO ÚNICO (CUIR):</string>
+    <string name="doctor_create_rx_cuir_label">CÓDIGO DE VALIDAÇÃO DIGITAL:</string>
     <string name="doctor_create_rx_copy_cuir">Copiar</string>
-    <string name="doctor_create_rx_cuir_copied_toast">CUIR copiado</string>
+    <string name="doctor_create_rx_cuir_copied_toast">Código de validação copiado</string>
     <string name="doctor_create_rx_success_validity">Válida em farmácias de todo o país por consulta online ou leitura do código QR.</string>
     <string name="doctor_create_rx_success_button">Ver Minhas Receitas</string>
 
@@ -125,7 +125,7 @@
     <string name="doctor_orders_action_back">Voltar</string>
     <string name="doctor_orders_action_refresh">Atualizar</string>
     <string name="doctor_orders_action_new">Novo Pedido</string>
-    <string name="doctor_orders_search_placeholder">Buscar por paciente, CPF, exame ou CUIR...</string>
+    <string name="doctor_orders_search_placeholder">Buscar por paciente, CPF, exame ou código de validação...</string>
     <string name="doctor_orders_clear_search_desc">Limpar</string>
 
     <!-- Order Filters -->
@@ -149,19 +149,19 @@
     <string name="doctor_orders_practices_header">Procedimentos e exames solicitados:</string>
     <string name="doctor_orders_dx_prefix">Dx: %1$s</string>
     <string name="doctor_orders_notes_prefix">Instruções: %1$s</string>
-    <string name="doctor_orders_cuir_prefix">CUIR: %1$s</string>
+    <string name="doctor_orders_cuir_prefix">Código de validação: %1$s</string>
     <string name="doctor_orders_copy_cuir_desc">Copiar</string>
-    <string name="doctor_orders_cuir_copied_toast">CUIR copiado</string>
+    <string name="doctor_orders_cuir_copied_toast">Código de validação copiado</string>
     <string name="doctor_orders_view_qr_desc">Ver QR</string>
     <string name="doctor_orders_view_pdf_desc">Ver PDF</string>
 
     <!-- QR Dialog -->
     <string name="doctor_orders_qr_dialog_title">Verificação de Pedido Médico</string>
     <string name="doctor_orders_qr_dialog_close">Fechar</string>
-    <string name="doctor_orders_qr_dialog_cuir_label">Código CUIR</string>
-    <string name="doctor_orders_qr_dialog_copy_desc">Copiar CUIR</string>
-    <string name="doctor_orders_qr_dialog_copied_toast">CUIR copiado para a área de transferência</string>
-    <string name="doctor_orders_qr_dialog_legal">Válido perante centros de diagnóstico, laboratórios e instituições conforme Decreto 63/2024.</string>
+    <string name="doctor_orders_qr_dialog_cuir_label">Código de validação digital</string>
+    <string name="doctor_orders_qr_dialog_copy_desc">Copiar código de validação</string>
+    <string name="doctor_orders_qr_dialog_copied_toast">Código de validação copiado</string>
+    <string name="doctor_orders_qr_dialog_legal">Consulte a autenticidade pelo código digital da AutaMedica.</string>
     <string name="doctor_orders_pdf_error_toast">Não foi possível abrir o documento PDF.</string>
 
     <!-- =================================================================== -->
@@ -228,7 +228,7 @@
     <string name="doctor_rx_val_frequency_required">Indique a frequência de uso para %1$s</string>
     <string name="doctor_rx_val_diagnosis_required">Indique o diagnóstico clínico (CID-10)</string>
     <string name="doctor_rx_val_license_required">Deve configurar seu CRM/registro antes de emitir receitas</string>
-    <string name="doctor_rx_val_issued_success">Receita emitida com sucesso: CUIR %1$s</string>
+    <string name="doctor_rx_val_issued_success">Receita emitida: código de validação %1$s</string>
     <string name="doctor_rx_val_issue_error">Erro ao emitir: %1$s</string>
     <string name="doctor_rx_val_load_error">Erro ao carregar receitas: %1$s</string>
     <string name="doctor_rx_val_unknown_error">Erro desconhecido</string>
@@ -240,7 +240,7 @@
     <string name="doctor_orders_val_patient_required">Selecione um paciente elegível</string>
     <string name="doctor_orders_val_practice_required">Insira pelo menos um exame ou procedimento médico</string>
     <string name="doctor_orders_val_diagnosis_required">Insira o diagnóstico presuntivo / código CID-10</string>
-    <string name="doctor_orders_val_issued_success">Pedido médico emitido com sucesso (CUIR: %1$s)</string>
+    <string name="doctor_orders_val_issued_success">Pedido médico emitido (código de validação: %1$s)</string>
     <string name="doctor_orders_val_issued_fallback">Emitido</string>
     <string name="doctor_orders_val_issue_error">Erro ao emitir pedido médico</string>
     <string name="doctor_orders_val_cancel_reason_required">Deve especificar um motivo de cancelamento</string>
@@ -248,9 +248,9 @@
     <string name="doctor_orders_val_cancel_error">Não foi possível cancelar o pedido</string>
 
     <string name="doctor_orders_card_notes_prefix">Indicações: %1$s</string>
-    <string name="doctor_orders_card_cuir_prefix">CUIR: %1$s</string>
-    <string name="doctor_orders_card_cuir_copied_toast">CUIR copiado para a área de transferência</string>
-    <string name="doctor_orders_card_copy_action">Copiar CUIR</string>
+    <string name="doctor_orders_card_cuir_prefix">Código de validação: %1$s</string>
+    <string name="doctor_orders_card_cuir_copied_toast">Código de validação copiado para a área de transferência</string>
+    <string name="doctor_orders_card_copy_action">Copiar código de validação</string>
     <string name="doctor_orders_card_view_qr_desc">Ver código QR</string>
     <string name="doctor_orders_card_view_pdf_desc">Ver pedido em PDF</string>
 </resources>
