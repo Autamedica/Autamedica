@@ -11,7 +11,13 @@ using (
       and p.active is true
       and p.role = 'admin'
   )
-  or coalesce(auth.jwt()->'app_metadata'->>'role','') = 'admin'
+  or (
+    coalesce(auth.jwt()->'app_metadata'->>'role','') = 'admin'
+    and not exists (
+      select 1 from public.profiles p
+      where p.user_id = auth.uid() and p.active is false
+    )
+  )
 )
 with check (
   exists (
