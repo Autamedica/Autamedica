@@ -33,10 +33,10 @@ export const GET: APIRoute = async ({ request, locals }) => {
   const { data: actors } = actorIds.length
     ? await db.from('profiles').select('user_id,first_name,last_name,email').in('user_id', actorIds)
     : { data: [] }
-  const actorById = new Map((actors ?? []).map((actor: { user_id:string; first_name?:string|null; last_name?:string|null; email?:string|null }) => [
+  const actorById = new Map<string, string>((actors ?? []).map((actor: { user_id:string; first_name?:string|null; last_name?:string|null; email?:string|null }) => [
     actor.user_id,
     [actor.first_name, actor.last_name].filter(Boolean).join(' ').trim() || actor.email || actor.user_id,
-  ]))
+  ] as const))
   const switchAudit = Object.fromEntries(auditEntries.map(([key, entry]) => [
     key, { ...entry, updated_by_name: entry.updated_by ? actorById.get(entry.updated_by) ?? entry.updated_by : null },
   ]))
