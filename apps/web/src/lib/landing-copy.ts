@@ -139,11 +139,14 @@ export function resolveLandingCopy(url: URL, requestedVariant?: string | null, l
     cta: variantConfig.cta,
     hero: {
       ...variantConfig.hero,
-      roleQuickAccess: variantConfig.hero.roleQuickAccess.map((item: RoleShortcutConfig) => ({
-        accent: item.accent,
-        href: item.href ?? buildRoleAuthPath(item.authPage ?? 'login', item.role ?? 'patient', item.returnTo ?? null),
-        label: item.label,
-      })),
+      roleQuickAccess: variantConfig.hero.roleQuickAccess.map((item) => {
+        const shortcut = item as RoleShortcutConfig;
+        return {
+          accent: shortcut.accent,
+          href: shortcut.href ?? buildRoleAuthPath(shortcut.authPage ?? 'login', shortcut.role ?? 'patient', shortcut.returnTo ?? null),
+          label: shortcut.label,
+        };
+      }),
     },
   };
 }
