@@ -102,7 +102,7 @@ export function PharmacyExpressConsultation({
     } catch {
       window.sessionStorage.removeItem('autamedica:pharmacy-express:active-session')
     }
-  }, [])
+  }, [isJordanReferral])
 
   const isPortuguese = formData.careCountry === 'BR'
   const copy = isPortuguese ? COPY.BR : COPY.AR
