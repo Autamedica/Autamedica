@@ -44,9 +44,10 @@ export function AIGovernanceWorkbench() {
       });
       const result = await response.json();
       if (!response.ok || !result.success) {
-        throw new Error(result.error === 'openai_api_key_not_configured'
+        const message = typeof result.error === 'string' ? result.error : result.error?.message || result.error?.code;
+        throw new Error(message === 'openai_api_key_not_configured'
           ? 'Falta configurar OPENAI_API_KEY en el secreto de Cloudflare de autamedica-web.'
-          : result.error || 'No se pudo analizar la solicitud.');
+          : message || 'No se pudo analizar la solicitud.');
       }
       setAssessment(result.data);
     } catch (cause) {
