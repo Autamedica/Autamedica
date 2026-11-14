@@ -114,6 +114,9 @@ fun InCallClinicalBottomSheet(
     // Feedback state
     var successCuir by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val validationMedicationDiagnosisMessage = stringResource(R.string.in_call_validation_medication_diagnosis)
+    val prescriptionIssueErrorMessage = stringResource(R.string.in_call_prescription_error)
+    val certificateIssueErrorMessage = stringResource(R.string.in_call_certificate_error)
     val countriesMatch = InCallDocumentPolicy.countriesMatchForDocumentIssuance(countryCode, patientCareCountryCode)
 
     ModalBottomSheet(
@@ -517,7 +520,7 @@ fun InCallClinicalBottomSheet(
                         Button(
                             onClick = {
                                 if (medicationName.isBlank() || prescriptionDiagnosis.isBlank()) {
-                                    errorMessage = stringResource(R.string.in_call_validation_medication_diagnosis)
+                                    errorMessage = validationMedicationDiagnosisMessage
                                     return@Button
                                 }
                                 errorMessage = null
@@ -525,7 +528,7 @@ fun InCallClinicalBottomSheet(
                                     if (ok) {
                                         successCuir = result
                                     } else {
-                                        errorMessage = result ?: stringResource(R.string.in_call_prescription_error)
+                                        errorMessage = result ?: prescriptionIssueErrorMessage
                                     }
                                 }
                             },
@@ -691,7 +694,7 @@ fun InCallClinicalBottomSheet(
                                     if (ok) {
                                         successCuir = result
                                     } else {
-                                        errorMessage = result ?: stringResource(R.string.in_call_certificate_error)
+                                        errorMessage = result ?: certificateIssueErrorMessage
                                     }
                                 }
                             },
