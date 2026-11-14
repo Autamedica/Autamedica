@@ -41,9 +41,10 @@ try {
   // Fail closed when platform controls cannot be read.
 }
 
-// The local Playwright fixture exercises intake dispatch independently of the
-// production payment switch. This override is impossible in production builds.
-if (import.meta.env.DEV && Astro.locals.runtime?.env?.AUTAMEDICA_E2E_PHARMACY_DISPATCH === 'true') {
+// Playwright sets this on the Astro dev-server process. Read process.env here,
+// not Cloudflare's runtime bindings: webServer.env does not populate platform env.
+// The DEV guard makes this fixture override unavailable in production builds.
+if (import.meta.env.DEV && process.env.AUTAMEDICA_E2E_PHARMACY_DISPATCH === 'true') {
   pharmacyPaymentsEnabled = true;
 }
 
