@@ -123,7 +123,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
     const { data: prescription, error: prescriptionError } = await admin
       .from('prescriptions')
       .select('id,doctor_id,patient_id,status,country_code,cuir,signed_pdf_url,signature_method,vendor_name,vendor_id,is_controlled_substance,created_at')
-      .eq('id', prescription.id)
+      .eq('id', rx.id)
       .maybeSingle();
     if (prescriptionError) return internalError();
 

@@ -17,7 +17,7 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
       .select('id,doctor_id,patient_id,status,cuir,signed_pdf_url,signature_method')
       .eq('id', id).maybeSingle();
     if (error) throw error;
-    if (!rx || rx.status !== 'active' || !rx.cuir || rx.signature_method !== 'ac_external') return notFound();
+    if (rx?.status !== 'active' || !rx.cuir || rx.signature_method !== 'ac_external') return notFound();
 
     const [{ data: doctor, error: doctorError }, { data: patient, error: patientError }] = await Promise.all([
       admin.from('doctors').select('user_id,active').eq('id', rx.doctor_id).maybeSingle(),
