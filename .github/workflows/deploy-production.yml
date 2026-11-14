@@ -8,6 +8,8 @@ on:
       - 'packages/**'
       - 'worker/**'
       - 'scripts/**'
+      - 'supabase/**'
+      - '.github/workflows/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'

@@ -11,7 +11,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ (github.actor == 'coderabbitai[bot]' || github.actor == 'circleci-app[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.draft)) && 'ignored' || 'active' }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -23,6 +23,7 @@ env:
 
 jobs:
   dependency-scope:
+    if: ${{ github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]' }}
     name: Dependency Scope
     runs-on: ubuntu-latest
     outputs:
@@ -60,7 +61,7 @@ jobs:
   dependency-audit:
     needs: dependency-scope
     if: >-
-      needs.dependency-scope.outputs.required == 'true' && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
+      needs.dependency-scope.outputs.required == 'true' && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     name: Audit
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -87,7 +88,7 @@ jobs:
 
   secret-scan:
     if: >-
-      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
+      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     name: Secrets
     runs-on: ubuntu-latest
     timeout-minutes: 5
