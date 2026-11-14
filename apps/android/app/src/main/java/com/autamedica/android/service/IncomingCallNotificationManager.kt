@@ -60,6 +60,7 @@ object IncomingCallNotificationManager {
     const val ACTION_DECLINE_DISPATCH = "com.autamedica.android.ACTION_DECLINE_DISPATCH"
     const val EXTRA_IS_DISPATCH_OFFER = "is_dispatch_offer"
     const val EXTRA_DISPATCH_USER_ACTION = "dispatch_user_action"
+    const val EXTRA_DISPATCH_OFFER_ID = "dispatch_offer_id"
     const val EXTRA_APPOINTMENT_ID = "appointment_id"
     const val EXTRA_CALL_ID = "call_id"
     const val EXTRA_ROOM_ID = "room_id"
@@ -395,6 +396,7 @@ object IncomingCallNotificationManager {
         val declineIntent = Intent(context, CallActionReceiver::class.java).apply {
             action = ACTION_DECLINE_DISPATCH
             putExtra(EXTRA_NOTIFICATION_ID, notificationId)
+            putExtra(EXTRA_DISPATCH_OFFER_ID, payload.offerId)
         }
         val declineOffer = PendingIntent.getBroadcast(
             context,

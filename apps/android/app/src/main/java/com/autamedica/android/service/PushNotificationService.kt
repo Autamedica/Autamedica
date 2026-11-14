@@ -77,7 +77,7 @@ class PushNotificationService : FirebaseMessagingService() {
         }
     }
 
-    private fun parsePayload(message: RemoteMessage): PushPayload {
+    internal fun parsePayload(message: RemoteMessage): PushPayload {
         val data = message.data
         val notification = message.notification
 
@@ -110,6 +110,7 @@ class PushNotificationService : FirebaseMessagingService() {
             rawType = rawType,
             doctorName = doctorName,
             doctorAvatarUrl = doctorAvatarUrl,
+            offerId = data["offer_id"],
         )
     }
 }
