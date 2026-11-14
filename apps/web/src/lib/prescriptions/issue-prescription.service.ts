@@ -629,13 +629,12 @@ export async function issuePrescription(
   }
 
   let patientAddress = patient.address || externalPatient?.address || undefined;
-  if (!patientAddress && dispatch && dispatchIdentity && dispatch.patient_phone) {
-    const patientIdentity = (patient as { cpf?: string }).cpf || patient.dni
-      || (externalPatient as { cpf?: string })?.cpf || externalPatient?.dni || dispatchIdentity;
-    if (dispatchIdentity.replace(/\\D/g, '') === patientIdentity.replace(/\\D/g, '')) {
-      const counterId = dispatch.pharmacy_id || dispatch.kiosk_id || dispatch.id;
-      patientAddress = `Atención en mostrador de farmacia (identificador ${counterId})`;
-    }
+  if (!patientAddress && dispatch?.patient_phone) {
+    // QR guests do not necessarily have a residential address. The consultation
+    // takes place at the pharmacy counter, so persist that truthful care location
+    // rather than blocking issuance for a missing home address.
+    const counterId = dispatch.pharmacy_id || dispatch.kiosk_id || dispatch.id;
+    patientAddress = `Atención en mostrador de farmacia (identificador ${counterId})`;
   }
   if (!patientAddress) return fail({ code: 'missing_patient_address' });
 
