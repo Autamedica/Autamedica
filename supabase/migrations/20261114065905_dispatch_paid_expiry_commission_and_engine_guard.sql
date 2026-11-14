@@ -1,4 +1,5 @@
 BEGIN;
+ALTER TABLE public.platform_operational_switches ADD COLUMN IF NOT EXISTS dispatch_engine_enabled boolean NOT NULL DEFAULT true;
 CREATE UNIQUE INDEX IF NOT EXISTS admin_approval_expired_dispatch_request_key
   ON public.admin_approval_decisions ((payload->>'dispatch_request_id'))
   WHERE payload->>'action_type' = 'expired_paid_dispatch';
