@@ -54,10 +54,15 @@ export const GET: APIRoute = async ({ request, locals }) => {
 export const POST: APIRoute = async ({ request, locals }) => {
  const auth = await withAuthRole(request, ADMIN_ROLES, locals)
  if (!isAuthed(auth)) return auth
- const body = await request.json().catch(() => null) as { action?: string; payment_id?: string; request_id?: string; commissionId?: string; paymentReference?: string } | null
+ const body = await request.json().catch(() => null) as { action?: string; payment_id?: string; request_id?: string; commissionId?: string; paymentReference?: string; reason?: string; evidence_reference?: string } | null
  const db = createAstroAdminClient(locals.runtime?.env) as any
 
  if (body?.action === 'manual_approve') {
+  const reason = typeof body.reason === 'string' ? body.reason.trim() : ''
+  const evidenceReference = typeof body.evidence_reference === 'string' ? body.evidence_reference.trim() : ''
+  if (reason.length < 10 || reason.length > 2000 || evidenceReference.length < 4 || evidenceReference.length > 300) {
+   return badRequest('manual_override_reason_and_external_evidence_reference_required')
+  }
   const paymentId = typeof body.payment_id === 'string' ? body.payment_id.trim()
    : typeof body.request_id === 'string' ? body.request_id.trim() : ''
   if (!/^[0-9a-f-]{36}$/i.test(paymentId)) return badRequest('valid_payment_id_or_request_id_required')
@@ -73,6 +78,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const { data, error } = await db.rpc('admin_manual_approve_pharmacy_payment', {
    p_payment_id: resolvedPaymentId,
    p_actor_id: auth.user.id,
+   p_reason: reason,
+   p_evidence_reference: evidenceReference,
   })
   if (error) return internalError('pharmacy_manual_approval_failed')
   if (!data?.success) return badRequest(data?.code ?? 'pharmacy_payment_not_eligible_for_manual_approval')

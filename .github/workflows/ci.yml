@@ -86,6 +86,8 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
+      - name: Test operational governance independence and audit guards
+        run: node --test scripts/ci/operational-governance-contract.test.mjs
       - name: Test newsletter audience reconciliation safeguards
         run: node --test apps/newsletter-worker/scripts/sync-newsletter-audience.test.mjs
       - name: Test Memed deployment configuration safeguards

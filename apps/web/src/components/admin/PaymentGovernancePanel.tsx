@@ -45,8 +45,12 @@ export function PaymentGovernancePanel(){
   await load()
  }
  const manualApprove=async(paymentId:string)=>{
-  if(!window.confirm('¿Aprobar manualmente este pago de mostrador y liberar al médico?'))return
-  const r=await fetch('/api/admin/finance/pharmacy-payments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'manual_approve',payment_id:paymentId})})
+  const reason=window.prompt('Motivo de la excepción financiera (mínimo 10 caracteres):')?.trim()??''
+  if(reason.length<10)return
+  const evidence_reference=window.prompt('Referencia verificable del comprobante externo:')?.trim()??''
+  if(evidence_reference.length<4)return
+  if(!window.confirm('¿Registrar MANUAL_OVERRIDE con esta referencia externa y liberar el despacho elegible?'))return
+  const r=await fetch('/api/admin/finance/pharmacy-payments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'manual_approve',payment_id:paymentId,reason,evidence_reference})})
   const j=await r.json().catch(()=>null)
   if(!r.ok||!j?.success){setError(j?.error??'No se pudo aprobar manualmente el pago');return}
   await load()

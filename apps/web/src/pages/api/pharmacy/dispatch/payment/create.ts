@@ -80,6 +80,24 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (!operationalSwitches?.pharmacy_express_payments_enabled || !operationalSwitches.global_pix_mp_payments_enabled || (isJordan && !operationalSwitches.jordan_qr_payments_enabled)) {
         return serviceUnavailable('pharmacy_checkout_not_enabled')
       }
+      // Clinical provider health is intentionally not a checkout dependency.
+      // A Memed/Farmalink incident may leave a document pending without disabling payments.
+      const scopes = await admin.from('platform_operational_domains')
+        .select('scope_key,commercial_status,financial_status')
+        .in('scope_key', isJordan ? ['BR','EXPRESS','JORDAN'] : ['BR','EXPRESS'])
+      if (scopes.error) return serviceUnavailable('commercial_governance_unavailable')
+      const scopeByKey = new Map((scopes.data ?? []).map((row: any) => [row.scope_key,row]))
+      const requiredScopes = ['BR','EXPRESS',...(isJordan ? ['JORDAN'] : [])]
+      const channelOpen = requiredScopes.every((key) => {
+        const row: any = scopeByKey.get(key)
+        return row && ['enabled','limited'].includes(row.commercial_status)
+      })
+      const financialOpen = requiredScopes.every((key) => {
+        const row: any = scopeByKey.get(key)
+        return row && row.financial_status !== 'unavailable'
+      })
+      if (!channelOpen) return serviceUnavailable('pharmacy_commercial_channel_paused')
+      if (!financialOpen) return serviceUnavailable('pharmacy_financial_rail_unavailable')
       const { data: created, error: createError } = await admin.from('pharmacy_dispatch_payments')
         .insert({
           dispatch_request_id: dispatch.id,
