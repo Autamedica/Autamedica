@@ -45,7 +45,7 @@ class DoctorCertificatesViewModelTest {
             doctorLicense = "MP006402",
             patientName = "Maximiliano Gutierrez",
             patientDni = "95123456",
-            signedPdfUrl = null,
+            signedPdfUrl = "https://storage.autamedica.com/cert-1.pdf",
             qrCodeContent = "https://autamedica.com/verify/AR-CERT-20260912-001091",
             countryCode = "AR",
             createdAt = "2026-09-12T00:00:00Z",
@@ -69,6 +69,26 @@ class DoctorCertificatesViewModelTest {
             qrCodeContent = "https://autamedica.com/verify/AR-CERT-20260910-002488",
             countryCode = "AR",
             createdAt = "2026-09-10T00:00:00Z",
+        ),
+        MedicalCertificate(
+            id = "cert-4",
+            cuir = "BR-CERT-20260915-004000",
+            status = "signed",
+            certificateType = CertificateType.REPOSO_LABORAL,
+            daysOfRest = 2,
+            startDate = "2026-09-15",
+            endDate = "2026-09-17",
+            diagnosis = null,
+            hideDiagnosis = true,
+            observations = null,
+            doctorName = "Dr. Eduardo Da Rosa",
+            doctorLicense = "CRM-RS-000000",
+            patientName = "Paciente de teste",
+            patientDni = "00000000000",
+            signedPdfUrl = "https://storage.autamedica.com/cert-4.pdf",
+            qrCodeContent = "https://autamedica.com/verify/BR-CERT-20260915-004000",
+            countryCode = "BR",
+            createdAt = "2026-09-15T00:00:00Z",
         ),
         MedicalCertificate(
             id = "cert-3",
@@ -113,17 +133,25 @@ class DoctorCertificatesViewModelTest {
     @Test
     fun initialStateLoadsCertificatesAndCounts() = runTest {
         val state = viewModel.uiState.value
-        assertThat(state.certificates).hasSize(3)
+        assertThat(state.certificates).hasSize(4)
         assertThat(state.totalCount).isEqualTo(3)
-        assertThat(state.validCount).isEqualTo(2)
+        assertThat(state.validCount).isEqualTo(1)
         assertThat(state.cancelledCount).isEqualTo(1)
-        assertThat(state.filteredCertificates).hasSize(3)
+        assertThat(state.filteredCertificates).hasSize(4)
+    }
+
+    @Test
+    fun brazilCertificateRequiresVerifiedSignatureAndDownloadablePdf() = runTest {
+        val brazilCertificate = sampleCertificates.first { it.id == "cert-4" }
+        assertThat(brazilCertificate.isActive).isFalse()
+        assertThat(brazilCertificate.copy(signatureVerifiedAt = "2026-09-15T12:00:00Z").isActive).isTrue()
+        assertThat(brazilCertificate.copy(signedPdfUrl = null, signatureVerifiedAt = "2026-09-15T12:00:00Z").isActive).isFalse()
     }
 
     @Test
     fun filteringByStatusWorks() = runTest {
         viewModel.onSelectStatusFilter("validos")
-        assertThat(viewModel.uiState.value.filteredCertificates).hasSize(2)
+        assertThat(viewModel.uiState.value.filteredCertificates).hasSize(1)
 
         viewModel.onSelectStatusFilter("cancelados")
         assertThat(viewModel.uiState.value.filteredCertificates).hasSize(1)

@@ -78,7 +78,7 @@ class DoctorCertificatesViewModel @Inject constructor(
             certificateRepository.getDoctorCertificates()
                 .onSuccess { list ->
                     val total = list.size
-                    val valid = list.count { it.status == "signed" }
+                    val valid = list.count { it.isActive }
                     val cancelled = list.count { it.status == "cancelled" }
 
                     _uiState.update { current ->
@@ -374,7 +374,7 @@ class DoctorCertificatesViewModel @Inject constructor(
     ): List<MedicalCertificate> {
         return list.filter { cert ->
             val matchesFilter = when (statusFilter) {
-                "validos" -> cert.status == "signed"
+                "validos" -> cert.isActive
                 "cancelados" -> cert.status == "cancelled"
                 else -> true
             }

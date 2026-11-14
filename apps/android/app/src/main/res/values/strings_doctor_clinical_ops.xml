@@ -73,6 +73,7 @@
     <string name="cert_card_default_patient_name">Paciente Asignado</string>
     <string name="cert_card_dni_label">DNI: %1$s</string>
     <string name="cert_status_draft">Borrador sin firma</string>
+    <string name="cert_status_pending_verification">Pendiente de verificación</string>
     <string name="cert_status_valid">Registrado</string>
     <string name="cert_status_cancelled">Cancelado</string>
     <string name="cert_days_of_rest_count">%1$d días de reposo</string>

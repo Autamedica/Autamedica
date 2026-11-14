@@ -20,9 +20,12 @@ data class MedicalCertificate(
     val qrCodeContent: String? = null,
     val countryCode: String = "AR",
     val createdAt: String,
+    val signatureVerifiedAt: String? = null,
 ) {
     val isActive: Boolean
-        get() = status.equals("signed", ignoreCase = true) && !signedPdfUrl.isNullOrBlank()
+        get() = status.equals("signed", ignoreCase = true)
+            && !signedPdfUrl.isNullOrBlank()
+            && (!countryCode.equals("BR", ignoreCase = true) || !signatureVerifiedAt.isNullOrBlank())
 
     val effectiveQrContent: String
         get() = if (!isActive) "" else (
