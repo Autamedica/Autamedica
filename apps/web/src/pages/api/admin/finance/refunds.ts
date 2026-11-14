@@ -19,7 +19,7 @@ async function assertAdmin(request: Request, admin: ReturnType<typeof createAstr
   return { ok: true, userId: data.user.id, role: profile.role }
 }
 export const POST: APIRoute = async ({ request, locals }) => {
-  const admin = createAstroAdminClient(locals.runtime?.env)
+  const admin = createAstroAdminClient(locals.runtime?.env) as any
   const auth = await assertAdmin(request, admin, locals)
   if (!auth.ok || !auth.userId || !auth.role) return unauthorized('admin role required')
   try {
