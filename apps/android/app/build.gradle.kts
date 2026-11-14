@@ -267,6 +267,8 @@ dependencies {
 }
 
 tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    // A broken coroutine retry/heartbeat must never pin the release runner indefinitely.
+    timeout.set(java.time.Duration.ofMinutes(3))
     testLogging {
         events(
             org.gradle.api.tasks.testing.logging.TestLogEvent.STARTED,
