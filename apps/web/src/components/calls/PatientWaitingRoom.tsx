@@ -106,7 +106,7 @@ const I18N = {
     backlightAlert: 'Luz de fondo intensa: colocá la luz frente a vos',
     lowLightAlert: 'Ambiente con poca luz: iluminá tu rostro',
     permissionError: 'Acceso a cámara o micrófono no permitido.',
-    consentNotice: 'Al ingresar a la consulta, aceptás los Términos de Telemedicina y Tratamiento de Dados (LGPD).',
+    consentNotice: 'Al ingresar a la consulta, aceptás los Términos de Telemedicina y Tratamiento de Datos Personales.',
     btnPayPix: 'Pagar Consulta con Pix',
     pixPending: 'Pix Pendiente',
     particularBadge: 'Consulta Particular',
@@ -117,7 +117,7 @@ const I18N = {
 
 export default function PatientWaitingRoom({
   doctorName = 'Dr. Felipe Silva',
-  doctorRole = 'Clínica Geral & Telemedicina',
+  doctorRole,
   doctorCrm = 'CRM/SP 184.920',
   clinicName = 'AutaMedica',
   language = 'pt',
@@ -130,6 +130,7 @@ export default function PatientWaitingRoom({
   triageCompleted = false
 }: PatientWaitingRoomProps) {
   const t = I18N[language] || I18N.pt
+  const localizedDoctorRole = doctorRole ?? (language === 'pt' ? 'Clínica Geral & Telemedicina' : 'Clínica general y telemedicina')
 
   const [showPixModal, setShowPixModal] = useState(false)
   const [hasPaid, setHasPaid] = useState(isPaid || !paymentRequired)
@@ -502,7 +503,7 @@ export default function PatientWaitingRoom({
               <div className="absolute top-3.5 inset-x-3.5 flex items-center justify-between z-10">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-slate-700 backdrop-blur-md px-3 py-1.5 rounded-full bg-white/90 border border-slate-200 font-medium">
-                    {doctorRole}
+                    {localizedDoctorRole}
                   </span>
                   {paymentRequired && !hasPaid && (
                     <button
