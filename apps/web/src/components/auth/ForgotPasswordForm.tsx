@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { resetPasswordForEmail } from '../../lib/auth/service';
+import { getPasswordRecoveryRequestRedirectUrl } from '../../lib/auth/password-recovery';
 import { AuthLogo } from './AuthLogo';
 import { AuthButton } from './AuthButton';
 import { AuthAlert } from './AuthAlert';
@@ -32,7 +33,7 @@ export function ForgotPasswordForm({ locale = 'es' }: { locale?: Locale }) {
     try {
       const result = await resetPasswordForEmail(
         email,
-        `${window.location.origin}/auth/reset-password`
+        getPasswordRecoveryRequestRedirectUrl(new URL(window.location.href))
       );
 
       if (!result.ok) {
