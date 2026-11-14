@@ -1,9 +1,28 @@
 import { describe, expect, it } from 'vitest';
 import {
   getPasswordRecoveryRedirectUrl,
+  getPasswordRecoveryRequestRedirectUrl,
   getPasswordRecoveryTokenHash,
   hasPasswordRecoveryCallback,
 } from '../auth/password-recovery';
+
+describe('getPasswordRecoveryRequestRedirectUrl', () => {
+  it('normalizes the apex production host to the configured www Site URL', () => {
+    expect(
+      getPasswordRecoveryRequestRedirectUrl(
+        new URL('https://autamedica.com/auth/forgot-password'),
+      ),
+    ).toBe('https://www.autamedica.com/auth/reset-password');
+  });
+
+  it('preserves local and preview origins', () => {
+    expect(
+      getPasswordRecoveryRequestRedirectUrl(
+        new URL('http://localhost:3000/auth/forgot-password'),
+      ),
+    ).toBe('http://localhost:3000/auth/reset-password');
+  });
+});
 
 describe('getPasswordRecoveryRedirectUrl', () => {
   it('routes a recovery callback falling back to the Site URL home to the reset page', () => {
