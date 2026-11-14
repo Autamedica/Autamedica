@@ -15,7 +15,7 @@ async function requireSwitchAdmin(request: Request, locals: any): Promise<Switch
   const db = createAstroAdminClient(locals.runtime?.env) as any
   const { data: profile, error } = await db.from('profiles').select('role,active').eq('user_id', auth.user.id).maybeSingle()
   const trustedAppRole = auth.user.app_metadata?.role === 'admin'
-  if (error || profile?.active === false || !((profile?.active === true && profile.role === 'admin') || trustedAppRole)) {
+  if (error || (profile && profile.active !== true) || !((profile?.active === true && profile.role === 'admin') || trustedAppRole)) {
     return new Response(JSON.stringify({ success:false, error:'forbidden' }), { status:403, headers:{'content-type':'application/json'} })
   }
   return { user: { id: auth.user.id } }
