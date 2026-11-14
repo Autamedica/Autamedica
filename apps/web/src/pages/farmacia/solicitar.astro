@@ -41,6 +41,12 @@ try {
   // Fail closed when platform controls cannot be read.
 }
 
+// The local Playwright fixture exercises intake dispatch independently of the
+// production payment switch. This override is impossible in production builds.
+if (import.meta.env.DEV && Astro.locals.runtime?.env?.AUTAMEDICA_E2E_PHARMACY_DISPATCH === 'true') {
+  pharmacyPaymentsEnabled = true;
+}
+
 const title = 'Consulta Exprés en Farmacia • Red AutaMedica';
 const description = 'Punto de atención de telemedicina de AutaMedica. Los documentos médicos dependen del profesional y de la habilitación correspondiente al país de atención.';
 ---
