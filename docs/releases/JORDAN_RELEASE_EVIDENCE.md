@@ -79,3 +79,11 @@ Before any GO decision, require green required CI, disposable migration replay, 
 6. Expiración + reapertura: la función y endpoint existen, pero no se creó y resolvió una segunda solicitud pagada de prueba.
 
 **Release decision: NO-GO / E2E pendiente.** No convertir esta evidencia de esquema/código en un GO / VERIFIED. La verificación integral requiere ejecutar el flujo contra un entorno de prueba con credenciales TEST de MercadoPago, un médico BR con FCM operativo y las credenciales de Cloudflare Calls/SFU.
+
+
+### Bloqueo adicional encontrado antes de declarar GO
+
+- El matcher de producción permite seleccionar un médico BR con FCM aunque el heartbeat supere 90 segundos. El único médico BR con FCM no vacío consultado tenía heartbeat de **629 segundos**; el criterio de selección está en el SQL desplegado. No se ejecutó una oferta real ni se confirmó entrega del push.
+- La ruta central `issuePrescription()` todavía tiene un bloqueo independiente: tras generar el flujo PDF/QR BR, exige `externalRegistration` y devuelve `farmalink_registration_required` si no existe. Esa variable solo se completa en el flujo AR/Farmalink. Brasil dispone de endpoints Memed separados, pero el test DEMO existente intercepta la llamada HTTP y usa Supabase simulado. Por eso no se puede declarar emisión BR de producción probada ni cerrar la etapa 5 con la corrección de REFEPS/domicilio solamente.
+- Los runs de CI y Production Deploy disparados por el commit de código `a6a61277b8e7038b234968af3ec501c42ddc60e0` fueron observados como `pending` sin jobs publicados en la consulta inicial. El run Security del commit documental también quedó `pending`. No hay evidencia verde para este SHA en esta ejecución.
+
