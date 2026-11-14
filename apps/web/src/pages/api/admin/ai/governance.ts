@@ -19,6 +19,36 @@ type Assessment = {
   recommendation: string;
 };
 
+type PendingApprovalRow = {
+  id: string;
+  status: string;
+  domain: string;
+  summary: string;
+  risk_reason: string;
+  impact_scope: string;
+  created_at: string;
+};
+
+type ApprovalInsertTable = {
+  insert(values: {
+    domain: Domain;
+    status: 'PENDING_HUMAN_APPROVAL';
+    proposed_by: string;
+    summary: string;
+    risk_reason: string;
+    impact_scope: string;
+    payload: Record<string, unknown>;
+  }): {
+    select(columns: string): {
+      single(): Promise<{ data: PendingApprovalRow | null; error: unknown }>;
+    };
+  };
+};
+
+type AuditInsertTable = {
+  insert(values: Record<string, unknown>): Promise<{ error: unknown }>;
+};
+
 const OUTPUT_SCHEMA = {
   type: 'object',
   additionalProperties: false,
@@ -131,8 +161,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   // This is a review request, never an executable command. Approval inbox permissions
   // and the existing human decision endpoint remain the only route to a decision.
-  const db = createAstroAdminClient(runtimeEnv) as any;
-  const { data: pending, error } = await db.from('admin_approval_decisions').insert({
+  const db = createAstroAdminClient(runtimeEnv);
+  const approvals = db.from('admin_approval_decisions' as never) as unknown as ApprovalInsertTable;
+  const { data: pending, error } = await approvals.insert({
     domain: domain as Domain,
     status: 'PENDING_HUMAN_APPROVAL',
     proposed_by: 'openai-governance-engine',
@@ -151,7 +182,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   if (error || !pending) return internalError('governance_approval_create_failed');
 
-  const { error: auditError } = await db.from('audit_logs').insert({
+  const auditLogs = db.from('audit_logs' as never) as unknown as AuditInsertTable;
+  const { error: auditError } = await auditLogs.insert({
     user_id: auth.user.id,
     action: 'openai_governance_assessment_created',
     resource_type: 'admin_approval_decisions',
