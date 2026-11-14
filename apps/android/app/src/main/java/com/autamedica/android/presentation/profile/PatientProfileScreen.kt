@@ -38,6 +38,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -69,7 +70,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.domain.model.PatientProfileSnapshot
+import com.autamedica.android.domain.model.RenaperPreviewPrivacy
 import com.autamedica.android.domain.model.User
+import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.presentation.dashboard.components.WalletTopupDialog
 import com.autamedica.android.presentation.dashboard.components.formatCents
 import com.autamedica.android.presentation.theme.AuAccent
@@ -169,6 +172,76 @@ fun PatientProfileScreen(
                         snapshot = uiState.patientSnapshot,
                     )
 
+                    // Argentina identity lookup stays Kotlin-native; the authenticated
+                    // backend is solely the credential-safe RENAPER intermediary.
+                    uiState.patientSnapshot
+                        ?.takeIf { it.careCountry == "AR" && uiState.user?.role == UserRole.PATIENT }
+                        ?.let { patient ->
+                            if (patient.renaperConfirmedAt != null) {
+                                Surface(
+                                    color = Color.White,
+                                    shape = RoundedCornerShape(20.dp),
+                                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(18.dp),
+                                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                                    ) {
+                                        Text(
+                                            stringResource(R.string.renaper_confirmed_title),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                        Text(
+                                            stringResource(R.string.renaper_confirmed_notice),
+                                            style = MaterialTheme.typography.bodySmall,
+                                        )
+                                        // Always show current saved domicile only as a
+                                        // redacted preview. The edit form starts blank.
+                                        Text(
+                                            stringResource(
+                                                R.string.renaper_address,
+                                                RenaperPreviewPrivacy.maskAddress(patient.address),
+                                            ),
+                                            style = MaterialTheme.typography.bodySmall,
+                                        )
+                                        OutlinedTextField(
+                                            value = uiState.editableAddress,
+                                            onValueChange = viewModel::onAddressChange,
+                                            label = { Text(stringResource(R.string.renaper_address_edit)) },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            enabled = !uiState.isAddressSaving,
+                                        )
+                                        Button(
+                                            onClick = viewModel::saveAddress,
+                                            enabled = !uiState.isAddressSaving &&
+                                                uiState.editableAddress.isNotBlank(),
+                                        ) {
+                                            Text(stringResource(R.string.renaper_address_save))
+                                        }
+                                        if (uiState.addressSaveSuccess) {
+                                            Text(stringResource(R.string.renaper_address_saved))
+                                        }
+                                        if (uiState.error != null) {
+                                            Text(uiState.error.orEmpty(), color = MaterialTheme.colorScheme.error)
+                                        }
+                                    }
+                                }
+                            } else {
+                                RenaperIdentityCard(
+                                    patient = patient,
+                                    loading = uiState.renaperLoading,
+                                    identity = uiState.renaperResult,
+                                    errorStatus = uiState.renaperErrorStatus,
+                                    confirming = uiState.renaperConfirming,
+                                    confirmErrorStatus = uiState.renaperConfirmErrorStatus,
+                                    onLookup = viewModel::lookupRenaper,
+                                    onConfirm = viewModel::confirmRenaper,
+                                    onClear = viewModel::clearRenaperResponse,
+                                )
+                            }
+                        }
+
                     // 2. Wallet Balance Card
                     PatientWalletCard(
                         balanceCents = uiState.walletBalanceCents,
@@ -215,6 +288,11 @@ fun PatientProfileScreen(
                 }
             }
         }
+    }
+
+    // No conservar datos de identidad obtenidos al abandonar la pantalla.
+    DisposableEffect(Unit) {
+        onDispose { viewModel.clearRenaperResponse() }
     }
 
     // Diálogo de recarga de billetera

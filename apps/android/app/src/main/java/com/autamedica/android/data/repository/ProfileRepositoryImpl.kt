@@ -55,6 +55,28 @@ class ProfileRepositoryImpl @Inject constructor(
         SecureLog.error("[Profile] Failed fetching patient snapshot", it)
     }
 
+    override suspend fun updatePatientAddress(address: String): Result<PatientProfileSnapshot?> = runCatching {
+        val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
+            ?: throw IllegalStateException("No user ID found")
+        val sanitized = address.trim()
+        require(sanitized.isNotEmpty() && sanitized.length <= 240) { "Invalid address" }
+        val current = supabaseClient.postgrest.from("patients").select(Columns.ALL) {
+            filter { eq("user_id", userId) }
+        }.decodeSingle<PatientProfileDto>()
+        require(current.careCountry == "AR" && current.renaperConfirmedAt != null) {
+            "Patient identity must be confirmed in Argentina"
+        }
+        supabaseClient.postgrest.from("patients").update({
+            set("address", sanitized)
+        }) {
+            filter { eq("user_id", userId) }
+            select(Columns.ALL)
+        }.decodeSingle<PatientProfileDto>().toDomain()
+    }.onFailure {
+        // Throwable messages may embed the submitted address; never log them.
+        SecureLog.warn("[Profile] Patient address update failed")
+    }
+
     override suspend fun updateProfile(
         firstName: String,
         lastName: String,
@@ -116,6 +138,9 @@ private data class ProfileDto(
 @Serializable
 private data class PatientProfileDto(
     val dni: String? = null,
+    @SerialName("care_country") val careCountry: String? = null,
+    val address: String? = null,
+    @SerialName("renaper_confirmed_at") val renaperConfirmedAt: String? = null,
     @SerialName("birth_date") val birthDate: String? = null,
     val gender: String? = null,
     @SerialName("blood_type") val bloodType: String? = null,
@@ -125,6 +150,9 @@ private data class PatientProfileDto(
 ) {
     fun toDomain() = PatientProfileSnapshot(
         dni = dni,
+        careCountry = careCountry,
+        address = address,
+        renaperConfirmedAt = renaperConfirmedAt,
         birthDate = birthDate,
         gender = gender,
         bloodType = bloodType,

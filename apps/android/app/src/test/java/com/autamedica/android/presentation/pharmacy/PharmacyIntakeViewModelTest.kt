@@ -53,6 +53,8 @@ private class FakeProfileRepository(
         Result.success(snapshot)
     override suspend fun updateProfile(firstName: String, lastName: String, phone: String?): Result<User> =
         user?.let { Result.success(it) } ?: Result.failure(Exception("No profile"))
+    override suspend fun updatePatientAddress(address: String): Result<PatientProfileSnapshot?> =
+        Result.success(snapshot?.copy(address = address))
 }
 
 private class FakePharmacyDispatchRepository(

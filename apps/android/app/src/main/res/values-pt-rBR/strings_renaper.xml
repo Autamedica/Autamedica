@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="renaper_title">Consulta de identidade argentina — RENAPER</string>
+    <string name="renaper_notice">Somente para pacientes com DNI argentino. A consulta exige autorização e não substitui validação médica nem comprova cobertura.</string>
+    <string name="renaper_dni_label">DNI argentino</string>
+    <string name="renaper_sex_label">Sexo registral no DNI</string>
+    <string name="renaper_sex_female">Feminino</string>
+    <string name="renaper_sex_male">Masculino</string>
+    <string name="renaper_sex_other">X / outro</string>
+    <string name="renaper_consent">Autorizo a consulta dos meus dados de identidade no serviço oficial.</string>
+    <string name="renaper_action">Consultar identidade</string>
+    <string name="renaper_partial">Resposta parcial: dados ocultados conforme a autorização do servidor.</string>
+    <string name="renaper_name">Nome: %1$s</string>
+    <string name="renaper_coverage">Cobertura: %1$s</string>
+    <string name="renaper_checked_at">Consulta: %1$s</string>
+    <string name="renaper_error_invalid">Informe um DNI válido (6 a 12 dígitos) e selecione o sexo registral.</string>
+    <string name="renaper_error_auth">Sua sessão ou autorização não permite esta consulta.</string>
+    <string name="renaper_error_limit">Limite de consultas de identidade atingido.</string>
+    <string name="renaper_error_unavailable">O serviço oficial está indisponível. Seu perfil não foi alterado.</string>
+    <string name="renaper_error_default">Não foi possível consultar. Seu perfil não foi alterado.</string>
+    <string name="renaper_dni_registered">DNI cadastrado: %1$s</string>
+    <string name="renaper_dni_missing">Cadastre seu DNI argentino no perfil para consultar os dados oficiais.</string>
+    <string name="renaper_data_matched">Foram encontrados dados no registro oficial</string>
+    <string name="renaper_identity_not_verified">Consultar dados do DNI não prova que quem usa esta conta é seu titular. Isso não autoriza receitas nem atestados.</string>
+    <string name="renaper_address">Endereço (protegido): %1$s</string>
+    <string name="renaper_photo_hidden">Foto oficial disponível — prévia oculta</string>
+    <string name="renaper_photo_unavailable">Foto oficial indisponível — amostra protegida</string>
+    <string name="renaper_photo_preview_note">Esta silhueta é ilustrativa; a fotografia real não é exibida nem baixada.</string>
+    <string name="renaper_confirmed_title">Dados oficiais confirmados pelo paciente</string>
+    <string name="renaper_confirmed_notice">Nome, DNI, CUIL, data de nascimento, sexo e impressão digital da foto ficam bloqueados. Esta confirmação não é uma verificação biométrica. O endereço pode ser alterado.</string>
+    <string name="renaper_address_edit">Novo endereço (digite o endereço completo)</string>
+    <string name="renaper_address_save">Salvar endereço</string>
+    <string name="renaper_address_saved">Endereço atualizado.</string>
+    <string name="renaper_confirm_attestation">Confirmo que estes dados oficiais são meus e aceito bloquear nome, DNI, CUIL, data de nascimento e sexo. O endereço continuará editável. Isto não verifica biometria.</string>
+    <string name="renaper_confirm_action">Confirmar dados e bloquear</string>
+    <string name="renaper_confirm_failed">Não foi possível confirmar os dados. Nenhuma identidade foi comprovada.</string>
+</resources>
