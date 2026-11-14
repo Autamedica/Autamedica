@@ -62,13 +62,13 @@ jobs:
           chmod 600 ~/.ssh/oci_openclaw
           printf '%s\n' "$OCI_HOST_KEY" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
-          ssh -i ~/.ssh/oci_openclaw -o BatchMode=yes "$OCI_USER@$OCI_HOST" 'printf "oracle-ssh-ok\\n"'
+          ssh -o ConnectTimeout=15 -o ServerAliveInterval=5 -o ServerAliveCountMax=2 -i ~/.ssh/oci_openclaw -o BatchMode=yes "$OCI_USER@$OCI_HOST" 'printf "oracle-ssh-ok\\n"'
 
       - name: Upload release bundle
         shell: bash
         run: |
           set -euo pipefail
-          scp -i ~/.ssh/oci_openclaw "$RUNNER_TEMP/autamedica-source.tar.gz" \
+          scp -o ConnectTimeout=15 -i ~/.ssh/oci_openclaw "$RUNNER_TEMP/autamedica-source.tar.gz" \
             "$OCI_USER@$OCI_HOST:/tmp/autamedica-growth-agent-$GITHUB_SHA.tar.gz"
 
       - name: Install and activate systemd service
@@ -77,7 +77,7 @@ jobs:
           DEPLOY_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          ssh -i ~/.ssh/oci_openclaw "$OCI_USER@$OCI_HOST" "bash -s -- '$DEPLOY_SHA'" <<'REMOTE'
+          ssh -o ConnectTimeout=15 -o ServerAliveInterval=5 -o ServerAliveCountMax=2 -i ~/.ssh/oci_openclaw "$OCI_USER@$OCI_HOST" "bash -s -- '$DEPLOY_SHA'" <<'REMOTE'
           set -euo pipefail
           DEPLOY_SHA="$1"
           DEPLOY_USER="$(id -un)"
@@ -185,5 +185,5 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ssh -i ~/.ssh/oci_openclaw "$OCI_USER@$OCI_HOST" \
+          ssh -o ConnectTimeout=15 -o ServerAliveInterval=5 -o ServerAliveCountMax=2 -i ~/.ssh/oci_openclaw "$OCI_USER@$OCI_HOST" \
             'test "$(systemctl is-active autamedica-growth-agent.service)" = active && systemctl show autamedica-growth-agent.service --property=ActiveState --property=SubState --property=MainPID'
