@@ -228,6 +228,7 @@ class PharmacyIntakeViewModelTest {
         assertThat(vm.uiState.value.error).doesNotContain("conexión")
         assertThat(vm.uiState.value.activeRequestId).isNull()
         assertThat(vm.uiState.value.isSubmitting).isFalse()
+        vm.viewModelScope.cancel()
     }
 
     @Test
@@ -320,6 +321,7 @@ class PharmacyIntakeViewModelTest {
         testScheduler.runCurrent()
         assertThat(pharmacyRepo.lastCreatedCountry).isEqualTo("BR")
         assertThat(pharmacyRepo.lastReferralCode).isEqualTo("JORDAN")
+        vm.viewModelScope.cancel()
     }
 
     @Test
@@ -354,6 +356,7 @@ class PharmacyIntakeViewModelTest {
         vm.submitRequest()
         testScheduler.runCurrent()
         assertThat(pharmacyRepo.lastCreatedCountry).isEqualTo("BR")
+        vm.viewModelScope.cancel()
     }
 
     @Test
@@ -422,6 +425,7 @@ class PharmacyIntakeViewModelTest {
         vm.submitRequest()
         assertThat(vm.uiState.value.error).isNotNull()
         assertThat(vm.uiState.value.activeRequestId).isNull()
+        vm.viewModelScope.cancel()
     }
 
     @Test
@@ -493,6 +497,7 @@ class PharmacyIntakeViewModelTest {
         // La espera (radar) queda activa: la sala existe pero el médico aún no atendió la llamada.
         assertThat(vm.uiState.value.roomId).isEqualTo("cf-room-general-9888")
         assertThat(vm.uiState.value.readyToJoinCall).isFalse()
+        vm.viewModelScope.cancel()
     }
 
     @Test
@@ -580,6 +585,7 @@ class PharmacyIntakeViewModelTest {
         assertThat(vm.uiState.value.status).isEqualTo(PharmacyConsultationStatus.IN_CALL)
         assertThat(vm.uiState.value.readyToJoinCall).isTrue()
         assertThat(vm.uiState.value.roomId).isEqualTo("cf-room-general-race1")
+        vm.viewModelScope.cancel()
     }
 
     @Test
@@ -625,6 +631,7 @@ class PharmacyIntakeViewModelTest {
         assertThat(vm.uiState.value.status).isNull()
         assertThat(vm.uiState.value.queuePosition).isEqualTo(0)
         assertThat(vm.uiState.value.isSubmitting).isFalse()
+        vm.viewModelScope.cancel()
     }
 
     @Test
@@ -694,6 +701,7 @@ class PharmacyIntakeViewModelTest {
         assertThat(vm.uiState.value.error).contains("No pudimos cancelar")
         assertThat(vm.uiState.value.isSubmitting).isFalse()
         assertThat(pharmacyRepo.cancellationAttempts).containsExactly(created.id, created.id)
+        vm.viewModelScope.cancel()
     }
 
     @Test
@@ -742,6 +750,7 @@ class PharmacyIntakeViewModelTest {
         pharmacyRepo.requestFlow.value = req.copy(status = "in_call", patientName = "Paciente BR aprovado")
         testScheduler.runCurrent()
         assertThat(vm.uiState.value.readyToJoinCall).isTrue()
+        vm.viewModelScope.cancel()
     }
 
     @Test
@@ -873,6 +882,7 @@ class PharmacyIntakeViewModelTest {
         assertThat(vm.uiState.value.activeRequestId).isNull()
         assertThat(vm.uiState.value.error).isNull()
         assertThat(vm.uiState.value.statusNotice).contains("finalizó")
+        vm.viewModelScope.cancel()
     }
 
     @Test
