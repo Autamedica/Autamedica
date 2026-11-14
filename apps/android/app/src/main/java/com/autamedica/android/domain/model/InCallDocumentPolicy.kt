@@ -37,6 +37,9 @@ object InCallDocumentPolicy {
         }
     }
 
+    fun countriesMatchForDocumentIssuance(doctorCountry: String?, patientCareCountry: String?): Boolean =
+        doctorCountry in setOf("AR", "BR") && doctorCountry == patientCareCountry
+
     /** A non-resolved patient or country must not silently become Argentina. */
     fun requireCountry(country: String?): String {
         require(country == "AR" || country == "BR") { "País y matrícula médica no verificados" }

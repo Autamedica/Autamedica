@@ -61,6 +61,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.autamedica.android.domain.model.CertificateType
+import com.autamedica.android.domain.model.InCallDocumentPolicy
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
 import com.autamedica.android.presentation.theme.AuBorderHover
@@ -109,7 +110,7 @@ fun InCallClinicalBottomSheet(
     // Feedback state
     var successCuir by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    val countriesMatch = countryCode in setOf("AR", "BR") && countryCode == patientCareCountryCode
+    val countriesMatch = InCallDocumentPolicy.countriesMatchForDocumentIssuance(countryCode, patientCareCountryCode)
 
     ModalBottomSheet(
         onDismissRequest = {

@@ -57,6 +57,14 @@ class InCallDocumentPolicyTest {
         }
     }
 
+    @Test fun inCallDocumentsRequireMatchingExplicitDoctorAndPatientCountries() {
+        assertThat(InCallDocumentPolicy.countriesMatchForDocumentIssuance("BR", "BR")).isTrue()
+        assertThat(InCallDocumentPolicy.countriesMatchForDocumentIssuance("AR", "AR")).isTrue()
+        assertThat(InCallDocumentPolicy.countriesMatchForDocumentIssuance("BR", "AR")).isFalse()
+        assertThat(InCallDocumentPolicy.countriesMatchForDocumentIssuance("AR", null)).isFalse()
+        assertThat(InCallDocumentPolicy.countriesMatchForDocumentIssuance("UY", "UY")).isFalse()
+    }
+
     @Test fun brazilMustNotFallBackToGenericPrescriptionIssuer() {
         assertThat(InCallDocumentPolicy.canUseNativePrescriptionIssuer("AR")).isTrue()
         assertThat(InCallDocumentPolicy.canUseNativePrescriptionIssuer("BR")).isFalse()
