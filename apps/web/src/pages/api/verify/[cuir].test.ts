@@ -81,7 +81,10 @@ describe('public prescription verification must fail closed until trusted signin
   it('does not query patient or clinical_data for a public prescription lookup', async () => {
     mocks.rx = { id: 'legacy-test' };
     await verify();
-    expect(mocks.from).toHaveBeenCalledTimes(1);
+    expect(mocks.from).toHaveBeenNthCalledWith(1, 'prescriptions');
+    expect(mocks.from).toHaveBeenNthCalledWith(2, 'prescriptions');
+    expect(mocks.from).toHaveBeenCalledTimes(2);
+    expect(mocks.from).not.toHaveBeenCalledWith('patients');
   });
 
   it('does not consider an unsigned certificate with a local QR and PDF valid', async () => {
