@@ -7,7 +7,7 @@ alter table public.platform_operational_switches
 
 -- Preserve the effective production permissions from both legacy Growth gates.
 -- A channel is enabled only when its agent capability AND channel killswitch are enabled.
-do $
+do $do$
 begin
   if to_regclass('growth_os.agent_capabilities') is not null
      and to_regclass('growth_os.killswitch_state') is not null then
@@ -37,7 +37,7 @@ begin
     $backfill$;
   end if;
 end
-$;
+$do$;
 
 comment on column public.platform_operational_switches.whatsapp_send_enabled is
   'Admin authority for all outbound WhatsApp delivery flows.';
