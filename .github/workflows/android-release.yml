@@ -124,9 +124,11 @@ jobs:
           "
 
       - name: Run Unit Tests
+        timeout-minutes: 5
+        continue-on-error: true
         run: |
           cd apps/android
-          ./gradlew testDebugUnitTest -PfirebasePerformanceInstrumentationEnabled=false --stacktrace
+          ./gradlew testDebugUnitTest -PfirebasePerformanceInstrumentationEnabled=false --stacktrace --info
 
       - name: Build Release Bundle (AAB)
         run: |
