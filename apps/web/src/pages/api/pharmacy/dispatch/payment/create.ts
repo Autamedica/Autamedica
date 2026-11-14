@@ -20,10 +20,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
   let admin: SupabaseClient | null = null
   try {
     admin = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient
-    const operationalSwitches = await getOperationalPaymentSwitches(admin).catch(() => null)
-    if (!operationalSwitches?.jordan_qr_payments_enabled || !operationalSwitches.pharmacy_express_payments_enabled || !operationalSwitches.global_pix_mp_payments_enabled) {
-      return serviceUnavailable('pharmacy_checkout_not_enabled')
-    }
     if (!hasSecureGuestPaymentSecret(locals.runtime?.env)) return serviceUnavailable('pharmacy_checkout_guest_security_not_configured')
 
     const body = await request.json().catch(() => null)
@@ -76,6 +72,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
       // Do not create a second preference for the same dispatch automatically.
       return serviceUnavailable('checkout_requires_manual_reconciliation')
     } else {
+      // Operational switches stop new checkouts only. Existing pending/approved payments
+      // above remain readable and usable after an Admin pause.
+      const operationalSwitches = await getOperationalPaymentSwitches(admin).catch(() => null)
+      if (!operationalSwitches?.jordan_qr_payments_enabled || !operationalSwitches.pharmacy_express_payments_enabled || !operationalSwitches.global_pix_mp_payments_enabled) {
+        return serviceUnavailable('pharmacy_checkout_not_enabled')
+      }
       const { data: created, error: createError } = await admin.from('pharmacy_dispatch_payments')
         .insert({
           dispatch_request_id: dispatch.id,
