@@ -12,6 +12,7 @@ import { defineMiddleware } from "astro:middleware";
 import { detectLocale, LOCALE_COOKIE } from "./i18n/index";
 import { isProduction, validateRedirectUrl } from "./lib/auth-utils";
 import { initServerSentry } from "./lib/observability/sentry";
+import { getPasswordRecoveryRedirectUrl } from "./lib/auth/password-recovery";
 import { checkRateLimit } from "./lib/rate-limit";
 import { primeRuntimeEnv, resolvePublicSupabaseEnv } from "./lib/runtime-env";
 import {
@@ -625,6 +626,16 @@ export const onRequest = defineMiddleware(async (context, next) => {
       redirected.search = requestUrl.search;
       return context.redirect(redirected.toString(), 301);
     }
+  }
+
+  // Supabase may fall back to Site URL (/) for a recovery callback.
+  // Route token_hash + type=recovery to the reset form without redeeming it.
+  const passwordRecoveryRedirect = getPasswordRecoveryRedirectUrl(requestUrl);
+  if (passwordRecoveryRedirect && pathname !== "/auth/reset-password") {
+    const response = context.redirect(passwordRecoveryRedirect, 302);
+    response.headers.set("Cache-Control", "private, no-store, max-age=0");
+    response.headers.set("Referrer-Policy", "no-referrer");
+    return response;
   }
 
   // Intercept OAuth redirects that land outside /auth/callback
