@@ -4,7 +4,7 @@ import { badRequest, internalError, jsonOk } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
 
 export const prerender = false
-const ALLOWED = ['jordan_qr_payments_enabled','pharmacy_express_payments_enabled','global_pix_mp_payments_enabled','whatsapp_send_enabled','email_send_enabled','dry_run_enabled'] as const
+const ALLOWED = ['jordan_qr_payments_enabled','pharmacy_express_payments_enabled','global_pix_mp_payments_enabled','dispatch_engine_enabled','whatsapp_send_enabled','email_send_enabled','dry_run_enabled'] as const
 type SwitchName = typeof ALLOWED[number]
 
 type SwitchAdmin = { user: { id: string } } | Response
@@ -27,7 +27,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   const db = createAstroAdminClient(locals.runtime?.env) as any
   const { data, error } = await db.from('platform_operational_switches').select('*').eq('id','global').maybeSingle()
   if (error) return internalError('payment_switches_unavailable')
-  if (!data) return jsonOk({ jordan_qr_payments_enabled:true, pharmacy_express_payments_enabled:true, global_pix_mp_payments_enabled:true, whatsapp_send_enabled:false, email_send_enabled:false, dry_run_enabled:true, updated_by:null, updated_at:null, switch_audit:{} })
+  if (!data) return jsonOk({ jordan_qr_payments_enabled:true, pharmacy_express_payments_enabled:true, global_pix_mp_payments_enabled:true, whatsapp_send_enabled:false, email_send_enabled:false, dry_run_enabled:true, dispatch_engine_enabled:true, updated_by:null, updated_at:null, switch_audit:{} })
   const auditEntries = Object.entries(data.switch_audit ?? {}) as Array<[string, { updated_by?:string; updated_at?:string; reason?:string|null }]>
   const actorIds = [...new Set(auditEntries.map(([, entry]) => entry.updated_by).filter((id): id is string => Boolean(id)))]
   const { data: actors } = actorIds.length
