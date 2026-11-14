@@ -2,12 +2,12 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { GENERAL_PHARMACY_BR_PRICE_CENTS } from './referral-finance'
 
 /**
- * Server-side media gate for the Brazilian Jordan channel.
+ * Server-side media gate for every Brazilian pharmacy express dispatch.
  *
  * A QR/referral parameter, checkout return URL or a signed guest-room token
  * is never payment evidence. Only the reconciled Mercado Pago ledger counts.
  *
- * An unrelated/ordinary AR or BR call does not require Jordan payment.
+ * Non-BR calls keep their existing authorization path.
  * Any database or partner lookup failure must propagate (fail closed).
  */
 export async function checkJordanMediaAccess(
@@ -17,7 +17,7 @@ export async function checkJordanMediaAccess(
   const { data: dispatch, error: dispatchError } = await admin
     .from('pharmacy_dispatch_requests')
     .select(
-      'id,care_country,referral_partner_id,commercial_referral_partners!pharmacy_dispatch_requests_referral_partner_id_fkey(code,active)',
+      'id,care_country,tier_requested,referral_partner_id,commercial_referral_partners!pharmacy_dispatch_requests_referral_partner_id_fkey(code,active)',
     )
     .eq('cloudflare_room_id', roomId)
     .order('created_at', { ascending: false })
@@ -35,11 +35,11 @@ export async function checkJordanMediaAccess(
   if (dispatch.referral_partner_id && !partner?.code) {
     throw new Error('media_referral_lookup_unavailable')
   }
-  if (partner?.code !== 'JORDAN') return 'allowed'
-
-  if (dispatch.care_country !== 'BR' || partner.active !== true) {
-    return 'payment_required'
+  if (dispatch.care_country !== 'BR') {
+    return partner?.code === 'JORDAN' ? 'payment_required' : 'allowed'
   }
+  if (dispatch.tier_requested !== 'general') return 'payment_required'
+  if (dispatch.referral_partner_id && partner?.active !== true) return 'payment_required'
 
   const { data: payment, error: paymentError } = await admin
     .from('pharmacy_dispatch_payments')

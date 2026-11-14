@@ -74,7 +74,7 @@ export function PharmacyExpressConsultation({
   const [requestId, setRequestId] = useState<string | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [callRoomId, setCallRoomId] = useState<string | null>(null)
-  const [jordanPaymentApproved, setJordanPaymentApproved] = useState(false)
+  const [brazilPaymentApproved, setBrazilPaymentApproved] = useState(false)
 
   // Polling / escucha para consultar GET /api/pharmacy/dispatch/${requestId}?token=${accessToken}
   const checkStatus = useCallback(async (id: string, token: string | null) => {
@@ -231,8 +231,7 @@ export function PharmacyExpressConsultation({
 
   // 1. STEP: CALL
   if (step === 'CALL' && callRoomId) {
-    const requiresJordanPayment = referralCode === 'JORDAN'
-    const paymentReady = jordanPaymentsEnabled && formData.careCountry === 'BR' && requestId && accessToken
+    const requiresBrazilPayment = formData.careCountry === 'BR'
     return (
       <div className="w-full h-full min-h-[100dvh] bg-am-surface-900">
         <div className="fixed top-3 left-4 z-50 flex items-center gap-2.5 bg-zinc-950/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10 shadow-2xl text-xs font-medium text-white">
@@ -246,24 +245,23 @@ export function PharmacyExpressConsultation({
           <span className="text-zinc-500 hidden sm:inline">•</span>
           <span className="text-zinc-300 hidden sm:inline font-normal">{referralPartnerName ?? pharmacyName}</span>
         </div>
-        {(!requiresJordanPayment || jordanPaymentApproved) && <GuestCallPage roomId={callRoomId} />}
-        {requiresJordanPayment && !jordanPaymentApproved && (
+        {(!requiresBrazilPayment || brazilPaymentApproved) && <GuestCallPage roomId={callRoomId} />}
+        {requiresBrazilPayment && !brazilPaymentApproved && (
           <div className="min-h-[100dvh] flex items-center justify-center p-6 text-center text-white">
             <div className="max-w-md">
               <h2 className="text-xl font-semibold">Consulta médica · R$ 79,00</h2>
               <p className="mt-3 text-sm text-zinc-300">
-                {paymentReady
-                  ? 'Confirme o pagamento para iniciar a videochamada com o médico.'
-                  : 'O pagamento desta consulta ainda não está disponível. Nenhuma cobrança será feita.'}
+                Confirme o pagamento de R$ 79,00 para iniciar a videochamada com o médico.
               </p>
             </div>
           </div>
         )}
-        {requiresJordanPayment && jordanPaymentsEnabled && formData.careCountry === 'BR' && requestId && accessToken && (
+        {requiresBrazilPayment && requestId && accessToken && (
           <JordanPaymentWidget
             dispatchId={requestId}
             guestToken={accessToken}
-            onStatusChange={(status) => setJordanPaymentApproved(status === 'approved')}
+            sourceLabel={referralPartnerName ?? 'Farmacia Express'}
+            onStatusChange={(status) => setBrazilPaymentApproved(status === 'approved')}
           />
         )}
       </div>
@@ -513,7 +511,7 @@ export function PharmacyExpressConsultation({
               Sala de Espera Exprés AutaMedica
             </h2>
             <p className="text-sm text-am-surface-300 max-w-sm mb-6">
-              {referralCode === 'JORDAN' && formData.careCountry === 'BR' && jordanPaymentsEnabled && !jordanPaymentApproved
+              {formData.careCountry === 'BR' && !brazilPaymentApproved
                 ? 'Completa el pago de R$ 79,00. La búsqueda y asignación del médico comienzan únicamente cuando Mercado Pago confirma el cobro.'
                 : <>Estamos buscando un médico disponible para atender tu consulta de <strong className="text-white">{referralPartnerName ?? pharmacyName}</strong>.</>}
             </p>
@@ -558,12 +556,13 @@ export function PharmacyExpressConsultation({
               </div>
             </div>
 
-            {referralCode === 'JORDAN' && formData.careCountry === 'BR' && jordanPaymentsEnabled && requestId && accessToken && (
+            {formData.careCountry === 'BR' && requestId && accessToken && (
               <div className="w-full min-h-24 mb-6">
                 <JordanPaymentWidget
                   dispatchId={requestId}
                   guestToken={accessToken}
-                  onStatusChange={(status) => setJordanPaymentApproved(status === 'approved')}
+                  sourceLabel={referralPartnerName ?? 'Farmacia Express'}
+                  onStatusChange={(status) => setBrazilPaymentApproved(status === 'approved')}
                 />
               </div>
             )}

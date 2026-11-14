@@ -40,7 +40,7 @@ class CloudflareCallsApiTest {
     @Test
     fun `authorization errors preserve explicit HTTP status semantics`() {
         val unauthorized = CloudflareCallsApiException(401, "invalid_guest_token", "invalid_guest_token")
-        val paymentRequired = CloudflareCallsApiException(402, "jordan_payment_required", "jordan_payment_required")
+        val paymentRequired = CloudflareCallsApiException(402, "brazil_pharmacy_payment_required", "jordan_payment_required")
         val forbidden = CloudflareCallsApiException(403, "guest_call_mismatch", "guest_call_mismatch")
 
         assertThat(unauthorized.isUnauthorized).isTrue()

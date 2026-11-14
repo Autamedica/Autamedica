@@ -94,7 +94,7 @@ BEGIN
     RAISE EXCEPTION 'Wrong Jordan doctor fee incorrectly accepted';
   EXCEPTION WHEN OTHERS THEN
     GET STACKED DIAGNOSTICS v_error=MESSAGE_TEXT;
-    IF v_error<>'jordan_existing_price_conflict' THEN RAISE; END IF;
+    IF v_error<>'brazil_pharmacy_quote_conflict' THEN RAISE; END IF;
   END;
 
   INSERT INTO public.pharmacy_dispatch_requests(
@@ -105,10 +105,10 @@ BEGIN
       'ci-other-br-'||gen_random_uuid()::text,'searching'
   ) RETURNING id INTO v_br;
 
-  IF EXISTS(
+  IF NOT EXISTS(
     SELECT 1 FROM public.pharmacy_dispatch_requests
-    WHERE id=v_br AND (price_brl=79.00 OR doctor_fee_brl=40.00)
-  ) THEN RAISE EXCEPTION 'Jordan pricing leaked into ordinary BR'; END IF;
+    WHERE id=v_br AND price_brl=79.00 AND doctor_fee_brl=40.00
+  ) THEN RAISE EXCEPTION 'Every BR express request must quote R$79 / R$40'; END IF;
 
   INSERT INTO public.pharmacy_dispatch_requests(
       patient_phone,patient_dni,patient_name,tier_requested,care_country,
@@ -180,7 +180,7 @@ BEGIN
 
   -- Neither the presence trigger nor a direct RPC may bypass the PSP gate.
   SELECT public.match_dispatch_doctors(v_jordan_unpaid_probe) INTO v_claim;
-  IF v_claim->>'code' IS DISTINCT FROM 'JORDAN_PAYMENT_REQUIRED' THEN
+  IF v_claim->>'code' IS DISTINCT FROM 'BRAZIL_PAYMENT_REQUIRED' THEN
     RAISE EXCEPTION 'Unpaid Jordan request must remain queued: %', v_claim;
   END IF;
   IF EXISTS (
@@ -192,16 +192,7 @@ BEGIN
     RAISE EXCEPTION 'Jordan physician offer was emitted before payment approval';
   END IF;
 
-  -- Synthetic verifier proof, isolated to this rolled-back transaction.
-  -- No CPF, phone number or live PSP credentials are stored in this fixture.
-  INSERT INTO public.commercial_referral_identity_proofs(
-    dispatch_request_id,referral_partner_id,subject_digest,
-    verification_method,verification_receipt_id,verified_at
-  ) VALUES(
-    v_jordan,v_partner,repeat('a',64),'cpf_kyc',
-    'ci-jordan-paid-'||v_jordan::text,now()
-  );
-
+  -- Payment approval is sufficient for the first acquisition; no GovBR/KYC proof is used.
   INSERT INTO public.pharmacy_dispatch_payments(
     dispatch_request_id,amount_minor,currency,provider,status
   ) VALUES(v_jordan,7900,'BRL','mercadopago','pending')
@@ -212,6 +203,13 @@ BEGIN
       provider_payment_id='123456789012',
       paid_at=now()
   WHERE id=v_payment;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.commercial_referral_commissions
+    WHERE dispatch_request_id=v_jordan AND amount_minor=1000 AND status='eligible'
+  ) THEN
+    RAISE EXCEPTION 'First Jordan BR paid contact must create R$10 commission without KYC';
+  END IF;
 
   -- The approval trigger must have dispatched the paid request. A direct
   -- matcher probe now returns OFFER_ALREADY_PENDING if the trigger worked;

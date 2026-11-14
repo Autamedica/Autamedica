@@ -1,57 +1,27 @@
 import { describe, expect, it } from 'vitest'
-import { isVerifiedJordanCommissionEligible } from './jordan-commission-eligibility'
+import { isJordanCommissionEligible } from './jordan-commission-eligibility'
 
-const verified = {
-  status: 'eligible',
-  verified_subject_hash: 'a'.repeat(64),
-}
+const firstAcquisition = { status: 'eligible', amount_minor: 1000, currency: 'BRL' }
 
-describe('Jordan first verified conversion reporting', () => {
-  it('never awards commission from payment approval alone', () => {
-    expect(isVerifiedJordanCommissionEligible('approved', null)).toBe(false)
-    expect(isVerifiedJordanCommissionEligible('approved', {
-      status: 'eligible', verified_subject_hash: null,
-    })).toBe(false)
-    expect(isVerifiedJordanCommissionEligible('approved', {
-      status: 'eligible', verified_subject_hash: 'guest-phone-number',
-    })).toBe(false)
+describe('Jordan first paid acquisition ledger', () => {
+  it('recognizes only the database-approved R$10 BRL eligibility', () => {
+    expect(isJordanCommissionEligible('approved', firstAcquisition)).toBe(true)
   })
-
-  it('refuses pending, rejected, cancelled and refunded payments', () => {
-    for (const status of ['pending', 'rejected', 'cancelled', 'refunded', 'failed']) {
-      expect(isVerifiedJordanCommissionEligible(status, verified)).toBe(false)
+  it('does not infer commission from a payment without a first-conversion ledger row', () => {
+    expect(isJordanCommissionEligible('approved', null)).toBe(false)
+    expect(isJordanCommissionEligible('approved', undefined)).toBe(false)
+  })
+  it('rejects pending, failed, refunded and cancelled payments', () => {
+    for (const status of ['pending', 'initializing', 'failed', 'refunded', 'cancelled', 'rejected']) {
+      expect(isJordanCommissionEligible(status, firstAcquisition)).toBe(false)
     }
   })
-
-  it('requires exact provider-approved state and an eligible verified ledger row', () => {
-    expect(isVerifiedJordanCommissionEligible('approved', verified)).toBe(true)
-    expect(isVerifiedJordanCommissionEligible('approved', {
-      ...verified, status: 'reversed',
-    })).toBe(false)
-    expect(isVerifiedJordanCommissionEligible('approved', {
-      ...verified, verified_subject_hash: 'A'.repeat(64),
-    })).toBe(false)
+  it('does not mark paid or reversed rows as eligible for a new transfer', () => {
+    expect(isJordanCommissionEligible('approved', { ...firstAcquisition, status: 'paid' })).toBe(false)
+    expect(isJordanCommissionEligible('approved', { ...firstAcquisition, status: 'reversed' })).toBe(false)
   })
-  it('rejects malformed and ambiguous purported subject identities', () => {
-    for (const digest of [
-      '0'.repeat(63),
-      '0'.repeat(65),
-      'Z'.repeat(64),
-      '0'.repeat(63) + ' ',
-      '5551987654321',
-      '',
-    ]) {
-      expect(isVerifiedJordanCommissionEligible('approved', {
-        status: 'eligible', verified_subject_hash: digest,
-      })).toBe(false)
-    }
+  it('rejects wrong amount or currency', () => {
+    expect(isJordanCommissionEligible('approved', { ...firstAcquisition, amount_minor: 900 })).toBe(false)
+    expect(isJordanCommissionEligible('approved', { ...firstAcquisition, currency: 'USD' })).toBe(false)
   })
-
-  it('does not infer an eligible first conversion from missing payment state', () => {
-    expect(isVerifiedJordanCommissionEligible(undefined, verified)).toBe(false)
-    expect(isVerifiedJordanCommissionEligible(null, verified)).toBe(false)
-    expect(isVerifiedJordanCommissionEligible('initializing', verified)).toBe(false)
-    expect(isVerifiedJordanCommissionEligible('approved', undefined)).toBe(false)
-  })
-
 })

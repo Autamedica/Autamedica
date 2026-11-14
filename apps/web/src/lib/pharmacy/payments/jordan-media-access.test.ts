@@ -6,6 +6,7 @@ const jordan = { code: 'JORDAN', active: true }
 const dispatch = {
   id: 'dispatch-br',
   care_country: 'BR',
+  tier_requested: 'general',
   referral_partner_id: 'jordan-id',
   commercial_referral_partners: jordan,
 }
@@ -42,16 +43,21 @@ function client(
   return { admin: { from } as unknown as SupabaseClient, from }
 }
 
-describe('Jordan server media gate', () => {
+describe('Brazil pharmacy server media gate', () => {
   it('leaves ordinary calls untouched', async () => {
     const absent = client(null)
     expect(await checkJordanMediaAccess(absent.admin, 'ordinary-room')).toBe('allowed')
     expect(absent.from).toHaveBeenCalledTimes(1)
-    expect(await checkJordanMediaAccess(client({ ...dispatch, referral_partner_id: null, commercial_referral_partners: null }).admin, 'br')).toBe('allowed')
-    expect(await checkJordanMediaAccess(client({ ...dispatch, commercial_referral_partners: { code: 'OTHER', active: true } }).admin, 'other')).toBe('allowed')
+    const ordinaryAr = { ...dispatch, care_country: 'AR', referral_partner_id: null, commercial_referral_partners: null }
+    const otherPartnerAr = { ...dispatch, care_country: 'AR', commercial_referral_partners: { code: 'OTHER', active: true } }
+    expect(await checkJordanMediaAccess(client(ordinaryAr).admin, 'ar')).toBe('allowed')
+    expect(await checkJordanMediaAccess(client(otherPartnerAr).admin, 'other')).toBe('allowed')
+    const directBr = { ...dispatch, referral_partner_id: null, commercial_referral_partners: null }
+    expect(await checkJordanMediaAccess(client(directBr, null).admin, 'direct-br')).toBe('payment_required')
+    expect(await checkJordanMediaAccess(client(directBr, paid).admin, 'direct-br-paid')).toBe('allowed')
   })
 
-  it('blocks Jordan without a reconciled approval', async () => {
+  it('blocks every BR dispatch without a reconciled approval', async () => {
     for (const payment of [null, { ...paid, status: 'pending' }, { ...paid, status: 'refunded' },
       { ...paid, currency: 'ARS' }, { ...paid, amount_minor: 7800 },
       { ...paid, provider_payment_id: null }, { ...paid, paid_at: null },
@@ -60,7 +66,7 @@ describe('Jordan server media gate', () => {
     }
   })
 
-  it('accepts only a complete BRL provider-approved ledger record', async () => {
+  it('accepts only a complete BRL provider-approved ledger record for Jordan', async () => {
     expect(await checkJordanMediaAccess(client(dispatch, paid).admin, 'jordan-room')).toBe('allowed')
   })
 

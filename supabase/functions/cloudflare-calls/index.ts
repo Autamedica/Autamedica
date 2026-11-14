@@ -268,6 +268,7 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     let isJordanRoom = false
+    let isPaidBrazilDispatch = false
     if (mediaDispatch?.referral_partner_id) {
       const { data: partner, error: partnerError } = await supabaseAdmin
         .from('commercial_referral_partners')
@@ -281,39 +282,48 @@ export async function handler(req: Request): Promise<Response> {
           status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }
-
+      if (partner.active !== true) {
+        return new Response(JSON.stringify({ error: 'Referral partner is inactive' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
       if (partner.code === 'JORDAN') {
         isJordanRoom = true
-        if (mediaDispatch.care_country !== 'BR' || partner.active !== true) {
+        if (mediaDispatch.care_country !== 'BR') {
           return new Response(JSON.stringify({ error: 'Jordan is limited to Brazil' }), {
             status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           })
         }
-
-        const { data: payment, error: paymentError } = await supabaseAdmin
-          .from('pharmacy_dispatch_payments')
-          .select('status,provider,provider_payment_id,paid_at,amount_minor,currency')
-          .eq('dispatch_request_id', mediaDispatch.id)
-          .maybeSingle()
-
-        if (paymentError) {
-          return new Response(JSON.stringify({ error: 'Media authorization unavailable' }), {
-            status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          })
-        }
-        const approved = payment?.status === 'approved'
-          && payment.provider === 'mercadopago'
-          && typeof payment.provider_payment_id === 'string'
-          && /^\d{1,20}$/.test(payment.provider_payment_id)
-          && Boolean(payment.paid_at)
-          && payment.amount_minor === 7900
-          && payment.currency === 'BRL'
-        if (!approved) {
-          return new Response(JSON.stringify({ error: 'jordan_payment_required' }), {
-            status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          })
-        }
       }
+    }
+
+    // Every Brazil pharmacy express consultation is payment-first, regardless
+    // of whether it came from the Jordan QR or the direct pharmacy entry point.
+    if (mediaDispatch?.care_country === 'BR') {
+      const { data: payment, error: paymentError } = await supabaseAdmin
+        .from('pharmacy_dispatch_payments')
+        .select('status,provider,provider_payment_id,paid_at,amount_minor,currency')
+        .eq('dispatch_request_id', mediaDispatch.id)
+        .maybeSingle()
+
+      if (paymentError) {
+        return new Response(JSON.stringify({ error: 'Media authorization unavailable' }), {
+          status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      const approved = payment?.status === 'approved'
+        && payment.provider === 'mercadopago'
+        && typeof payment.provider_payment_id === 'string'
+        && /^\d{1,20}$/.test(payment.provider_payment_id)
+        && Boolean(payment.paid_at)
+        && payment.amount_minor === 7900
+        && payment.currency === 'BRL'
+      if (!approved) {
+        return new Response(JSON.stringify({ error: 'brazil_pharmacy_payment_required' }), {
+          status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      isPaidBrazilDispatch = true
     }
 
     // Guest JWTs are issued for a dispatch request, not for a calls-table row.
@@ -335,6 +345,11 @@ export async function handler(req: Request): Promise<Response> {
             mediaDispatch.cloudflare_room_id !== guestClaims.roomId) {
           return new Response(JSON.stringify({ error: 'guest_call_mismatch' }), {
             status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+        if (mediaDispatch.care_country === 'BR' && !isPaidBrazilDispatch) {
+          return new Response(JSON.stringify({ error: 'brazil_pharmacy_payment_required' }), {
+            status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           })
         }
         if (!['matched', 'in_call'].includes(mediaDispatch.status) ||

@@ -159,7 +159,7 @@ describe('API: /api/pharmacy/dispatch/payment/create pay-first', () => {
     const body = await response.json()
 
     expect(response.status).toBe(503)
-    expect(body.error.message).toBe('jordan_medical_quote_not_verified')
+    expect(body.error.message).toBe('brazil_medical_quote_not_verified')
     expect(supabaseMock.from).toHaveBeenCalledTimes(2)
     expect(fetch).not.toHaveBeenCalled()
   })

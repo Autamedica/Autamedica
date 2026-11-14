@@ -21,7 +21,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const access = await authorizeWebCloudflareMedia(admin, roomId, auth.user.id, 'patient')
     if (access !== 'allowed') {
       return Response.json(
-        { error: access === 'payment_required' ? 'jordan_payment_required' : 'call_access_denied' },
+        { error: access === 'payment_required' ? 'brazil_pharmacy_payment_required' : 'call_access_denied' },
         { status: access === 'payment_required' ? 402 : 403 },
       )
     }

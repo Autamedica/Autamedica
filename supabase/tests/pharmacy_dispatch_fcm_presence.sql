@@ -3,19 +3,25 @@ BEGIN;
 DO $presence$
 DECLARE
   v_matcher text;
+  v_private_matcher text;
   v_capacity text;
   v_trigger text;
   v_activation text;
 BEGIN
   SELECT lower(pg_get_functiondef('public.match_dispatch_doctors(uuid)'::regprocedure)) INTO v_matcher;
+  SELECT lower(pg_get_functiondef('app_private.match_dispatch_doctors_without_switch(uuid)'::regprocedure)) INTO v_private_matcher;
   SELECT lower(pg_get_functiondef('public.get_country_on_duty_capacity(text)'::regprocedure)) INTO v_capacity;
   SELECT lower(pg_get_functiondef('app_private.dispatch_waiting_patient_on_doctor_presence()'::regprocedure)) INTO v_trigger;
   SELECT lower(pg_get_functiondef('public.set_doctor_duty_status(uuid,boolean,public.dispatch_tier_category[])'::regprocedure)) INTO v_activation;
 
-  IF position('fcm_token' IN v_matcher)=0
-     OR position('last_heartbeat_at' IN v_matcher)=0
-     OR position('dds.is_on_duty' IN v_matcher)=0 THEN
-    RAISE EXCEPTION 'Matcher does not combine active guard, fresh heartbeat and registered FCM';
+  IF position('brazil_payment_required' IN v_matcher)=0
+     OR position('match_dispatch_doctors_without_switch' IN v_matcher)=0 THEN
+    RAISE EXCEPTION 'Public matcher must enforce paid BR checkout before delegating';
+  END IF;
+  IF position('fcm_token' IN v_private_matcher)=0
+     OR position('last_heartbeat_at' IN v_private_matcher)=0
+     OR position('dds.is_on_duty' IN v_private_matcher)=0 THEN
+    RAISE EXCEPTION 'Private matcher does not combine active guard, fresh heartbeat and registered FCM';
   END IF;
   IF position('fcm_token' IN v_capacity)=0
      OR position('s.is_on_duty' IN v_capacity)=0 THEN

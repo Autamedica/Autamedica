@@ -54,6 +54,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
         return serviceUnavailable('jordan_checkout_not_ready')
       }
     }
+    if (careCountry === 'BR' && referralCode !== 'JORDAN' && tier && tier !== 'general') {
+      return badRequest('brazil_general_consultation_only')
+    }
+    if (careCountry === 'BR' && !hasSecureGuestPaymentSecret(locals.runtime?.env)) {
+      return serviceUnavailable('brazil_pharmacy_checkout_not_ready')
+    }
 
     const rawDocument = careCountry === 'BR' ? (patientCpf ?? patientDni) : patientDni
     if (typeof rawDocument !== 'string' || !rawDocument.trim()) {
