@@ -12,6 +12,7 @@ enabled = true
 site_url = "https://www.autamedica.com"
 additional_redirect_urls = [
   "https://www.autamedica.com/**",
+  "https://autamedica.com/**",
   "https://autamedica-web.pages.dev/**",
   "http://localhost:3000/**"
 ]
