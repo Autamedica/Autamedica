@@ -9,9 +9,10 @@ type LandingCopyVariantConfig = LandingCopyConfig['variants'][LandingCopyVariant
 
 interface RoleShortcutConfig {
   accent: string;
-  authPage: Exclude<AuthPage, 'select-role'>;
+  authPage?: Exclude<AuthPage, 'select-role'>;
+  href?: string;
   label: string;
-  role: EntryRole;
+  role?: EntryRole;
   returnTo?: string;
 }
 
@@ -38,27 +39,28 @@ const landingCopyPt = {
       seo: {
         title: 'AutaMedica | Especialistas de Referência e Telemedicina',
         description:
-          'Atendimento com médicos especialistas certificados sem deslocamentos. Prontuário unificado, triagem prévia e receita digital oficial válida em farmácias.',
+          'Atendimento com médicos especialistas certificados sem deslocamentos. Privacidade dos seus dados, atendimento rápido e receita digital válida para farmácias.',
       },
       hero: {
-        badge: 'Infraestrutura Clínica e Telemedicina',
-        title: 'Especialistas de referência,',
-        titleAccent: 'onde você estiver.',
+        badge: 'Atendimento médico online',
+        title: 'Atendimento médico, onde você estiver.',
+        titleAccent: 'Conecte-se pelo celular.',
         subtitle:
-          'Acesso direto a médicos certificados sem filas ou deslocamentos. Prontuário unificado, triagem prévia e receitas digitais aceitas em todas as farmácias.',
-        primaryCtaLabel: 'Consultar com especialista',
-        primaryCtaHref: '#portales',
-        secondaryCtaLabel: 'Acessar portais',
-        secondaryCtaHref: '/auth/select-role',
+          'Encontre um médico, faça sua consulta por vídeo e receba sua receita digital e acompanhamento em um só lugar.',
+        primaryCtaLabel: 'Buscar atendimento',
+        primaryCtaHref: '/farmacia/solicitar',
+        secondaryCtaLabel: '',
+        secondaryCtaHref: '',
         metrics: [
           { value: '100%', label: 'médicos com CRM ativo e verificado' },
           { value: 'Oficial', label: 'receita digital válida em farmácias' },
           { value: 'Seguimento', label: 'acompanhamento clínico e evolução' },
         ],
         roleQuickAccess: [
-          { label: 'Paciente', role: 'patient', authPage: 'login', accent: 'var(--portal-patients)' },
-          { label: 'Médico', role: 'doctor', authPage: 'login', accent: 'var(--portal-doctors)' },
-          { label: 'Empresa', role: 'company_admin', authPage: 'login', accent: 'var(--portal-companies)' },
+          { label: 'Pacientes', href: '/auth/login?role=patient', accent: 'var(--portal-patients)' },
+          { label: 'Farmácias / Plantão Express', href: '/farmacia/solicitar', accent: '#0EA5E9' },
+          { label: 'Médicos', href: '/auth/login?role=doctor', accent: 'var(--portal-doctors)' },
+          { label: 'Empresas', href: '/auth/login?role=company_admin', accent: 'var(--portal-companies)' },
         ],
       },
       cta: {
@@ -77,18 +79,18 @@ const landingCopyPt = {
     },
     b: {
       seo: {
-        title: 'AutaMedica | Fale com um médico hoy em minutos',
+        title: 'AutaMedica | Fale com um médico hoje em minutos',
         description:
           'Consulta médica online em minutos, com receita digital e acompanhamento. Médicos verificados no Brasil, Argentina, Equador e Colômbia. Sem agendamento, sem deslocamento.',
       },
       hero: {
-        badge: 'Disponível no Brasil, Argentina e Colômbia',
-        title: 'Consulta médica hoje,',
-        titleAccent: 'não na semana que vem.',
+        badge: 'Atendimento médico online',
+        title: 'Atendimento médico, onde você estiver.',
+        titleAccent: 'Conecte-se pelo celular.',
         subtitle:
-          'Encontre horário em minutos com um médico certificado. Receita digital no celular. Sem sair de casa.',
-        primaryCtaLabel: 'Quero minha consulta',
-        primaryCtaHref: '/auth/select-role',
+          'Encontre um médico, faça sua consulta por vídeo e receba sua receita digital e acompanhamento em um só lugar.',
+        primaryCtaLabel: 'Buscar atendimento',
+        primaryCtaHref: '/farmacia/solicitar',
         secondaryCtaLabel: 'Ver como funciona',
         secondaryCtaHref: '#proceso',
         metrics: [
@@ -139,7 +141,7 @@ export function resolveLandingCopy(url: URL, requestedVariant?: string | null, l
       ...variantConfig.hero,
       roleQuickAccess: variantConfig.hero.roleQuickAccess.map((item: RoleShortcutConfig) => ({
         accent: item.accent,
-        href: buildRoleAuthPath(item.authPage, item.role, item.returnTo ?? null),
+        href: item.href ?? buildRoleAuthPath(item.authPage ?? 'login', item.role ?? 'patient', item.returnTo ?? null),
         label: item.label,
       })),
     },
