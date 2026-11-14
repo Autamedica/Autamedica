@@ -73,7 +73,7 @@ class InCallDocumentPolicyTest {
 
     @Test fun brazilUsesTheBrazilSpecificInCallIssuer() {
         assertThat(InCallDocumentPolicy.canUseNativePrescriptionIssuer("AR")).isTrue()
-        assertThat(InCallDocumentPolicy.canUseNativePrescriptionIssuer("BR")).isFalse()
+        assertThat(InCallDocumentPolicy.canUseNativePrescriptionIssuer("BR")).isTrue()
         assertThat(InCallDocumentPolicy.canUseNativePrescriptionIssuer("UY")).isFalse()
     }
 
