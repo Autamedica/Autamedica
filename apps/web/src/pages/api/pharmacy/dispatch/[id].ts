@@ -209,9 +209,16 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
       return jsonOk({ cancelled: true })
     }
 
+    const guestBody = await request.clone().json().catch(() => null) as {
+      accessToken?: unknown
+      guestRecoveryCredential?: unknown
+    } | null
     const guestToken = request.headers.get('x-guest-token')?.trim()
+      || request.headers.get('x-guest-recovery-credential')?.trim()
+      || request.headers.get('x-access-token')?.trim()
       || request.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim()
-      || ''
+      || (typeof guestBody?.accessToken === 'string' ? guestBody.accessToken.trim() : '')
+      || (typeof guestBody?.guestRecoveryCredential === 'string' ? guestBody.guestRecoveryCredential.trim() : '')
     if (!guestToken) return unauthorized()
     const secret = resolveGuestSecret(locals.runtime?.env)
     if (!secret) return unauthorized()
