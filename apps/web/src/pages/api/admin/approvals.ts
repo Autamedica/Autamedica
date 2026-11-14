@@ -15,7 +15,44 @@ export const GET: APIRoute = async ({ request, locals }) => {
   if (error) return internalError('approval_inbox_unavailable')
   return jsonOk(data ?? [])
 }
-async function executeApprovedAction(db: any, payload: Record<string, unknown>, locals: any): Promise<void> {
+async function executeApprovedAction(db: any, payload: Record<string, unknown>, locals: any, resolutionAction?: string): Promise<void> {
+  if (payload.action_type === 'expired_paid_dispatch') {
+    const requestId = typeof payload.dispatch_request_id === 'string' ? payload.dispatch_request_id : ''
+    const paymentId = typeof payload.payment_id === 'string' ? payload.payment_id : ''
+    if (!requestId || !paymentId || !['reopen', 'refund'].includes(resolutionAction ?? '')) throw new Error('expired_dispatch_resolution_required')
+    const { data: payment, error: paymentError } = await db.from('pharmacy_dispatch_payments')
+      .select('id, status, provider_payment_id, amount_minor').eq('id', paymentId).eq('dispatch_request_id', requestId).maybeSingle()
+    if (paymentError) throw paymentError
+    if (!payment) throw new Error('expired_dispatch_payment_not_found')
+    if (resolutionAction === 'reopen') {
+      const { data: request, error: requestError } = await db.from('pharmacy_dispatch_requests')
+        .update({ status: 'searching', search_timeout_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(), updated_at: new Date().toISOString() })
+        .eq('id', requestId).eq('status', 'expired').select('id').maybeSingle()
+      if (requestError) throw requestError
+      if (!request) throw new Error('expired_dispatch_request_not_reopenable')
+      const { data: matched, error: matchError } = await db.rpc('match_dispatch_doctors', { p_dispatch_id: requestId })
+      if (matchError) throw matchError
+      if (matched?.code === 'DISPATCH_ENGINE_DISABLED') throw new Error('dispatch_engine_disabled')
+      return
+    }
+    if (payment.status === 'refunded') return
+    if (payment.status !== 'approved') throw new Error('expired_dispatch_payment_not_approved')
+    if (!payment.provider_payment_id) throw new Error('expired_dispatch_mp_payment_id_missing')
+    const token = (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN as string | undefined) ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN')
+    if (!token) throw new Error('mercadopago_access_not_configured')
+    const response = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(String(payment.provider_payment_id))}/refunds`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'X-Idempotency-Key': `autamedica-expired-dispatch-refund-${requestId}` },
+      body: JSON.stringify({ amount: Number(payment.amount_minor) / 100 }),
+    })
+    if (!response.ok) throw new Error(`mercadopago_refund_failed_${response.status}`)
+    const refundResult = await response.json().catch(() => ({}))
+    const { error: refundUpdateError } = await db.from('pharmacy_dispatch_payments')
+      .update({ status: 'refunded', updated_at: new Date().toISOString() })
+      .eq('id', paymentId).eq('status', 'approved')
+    if (refundUpdateError) throw refundUpdateError
+    return
+  }
   if (!payload.action) return
   if (payload.action === 'growth_agent_job') {
     const jobId = typeof payload.jobId === 'string' ? payload.jobId : ''
@@ -61,7 +98,7 @@ async function executeApprovedAction(db: any, payload: Record<string, unknown>, 
 export const POST: APIRoute = async ({ request, locals }) => {
   const auth = await withAuthRole(request, ['admin', 'platform_admin'], locals)
   if (!isAuthed(auth)) return auth
-  const body = await request.json().catch(() => null) as { id?: string; decision?: string; notes?: string } | null
+  const body = await request.json().catch(() => null) as { id?: string; decision?: string; notes?: string; resolution_action?: string } | null
   const notes = typeof body?.notes === 'string' ? body.notes.trim() : ''
   if (!body?.id || !['APPROVED', 'REJECTED'].includes(body.decision ?? '') || !notes) return badRequest('approval_id_decision_and_review_notes_required')
   const db = createAstroAdminClient(locals.runtime?.env) as any
@@ -70,7 +107,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!decision) return badRequest('approval_already_reviewed_or_not_found')
   const payload = decision.payload && typeof decision.payload === 'object' ? decision.payload as Record<string, unknown> : {}
   try {
-    if (body.decision === 'APPROVED') await executeApprovedAction(db, payload, locals)
+    if (body.decision === 'APPROVED') await executeApprovedAction(db, payload, locals, body.resolution_action)
     else if (payload.action === 'growth_agent_job' && typeof payload.jobId === 'string') {
       const { error } = await db.schema('growth_os').from('agent_jobs').update({ status: 'cancelled' }).eq('id', payload.jobId).eq('status', 'blocked')
       if (error) throw error
