@@ -565,8 +565,11 @@ export async function issuePrescription(
     .eq('user_id', userId)
     .single();
 
-  // Validate prescriber according to country regulations
-  if (prescriptionCountry === 'AR') {
+  // REFEPS is an Argentine registry. Brazilian care/CRM credentials are
+  // validated under CFM and must not be rejected for lacking an Argentine ID.
+  const isBrazilianCfmPrescriber = doctor.care_country === 'BR'
+    || (doctor.license_type === 'CRM' && Boolean(doctor.uf_brazil));
+  if (prescriptionCountry === 'AR' && !isBrazilianCfmPrescriber) {
     if (!doctor.refeps_id) return fail({ code: 'missing_refeps_id' });
     if (!canIssueWithPrescriberValidationStatus(
       profile?.sss_validation_status as PrescriberValidationStatus | null | undefined,
