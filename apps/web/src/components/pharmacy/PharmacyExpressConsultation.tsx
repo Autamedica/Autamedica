@@ -79,6 +79,17 @@ export function PharmacyExpressConsultation({
   const copy = isPortuguese ? COPY.BR : COPY.AR
   const selectedReason = reasonCategory === 'pain' ? (isPortuguese ? 'Dor / mal-estar' : 'Dolor / malestar') : reasonCategory === 'prescription' ? (isPortuguese ? 'Receita' : 'Receta') : reasonCategory === 'other' ? (isPortuguese ? 'Outro motivo' : 'Otro motivo') : ''
   const reasonSummary = [selectedReason, formData.reason.trim()].filter(Boolean).join(': ')
+  const reasonOptions = isPortuguese
+    ? [
+        { value: 'pain' as const, label: 'Dor / mal-estar' },
+        { value: 'prescription' as const, label: 'Receita' },
+        { value: 'other' as const, label: 'Outro motivo' },
+      ]
+    : [
+        { value: 'pain' as const, label: QUICK_REASONS[0] },
+        { value: 'prescription' as const, label: QUICK_REASONS[1] },
+        { value: 'other' as const, label: QUICK_REASONS[2] },
+      ]
 
   // Country-scoped privacy-safe availability aggregate, shared with Kotlin.
   useEffect(() => {
@@ -278,7 +289,6 @@ export function PharmacyExpressConsultation({
             {copy.ready}
           </span>
           <span className="text-slate-400 hidden sm:inline">•</span>
-          <span className="text-slate-600 hidden sm:inline font-normal">{referralPartnerName ?? pharmacyName}</span>
         </div>
         {(!requiresBrazilPayment || brazilPaymentApproved) && <GuestCallPage roomId={callRoomId} language={isPortuguese ? 'pt' : 'es'} />}
         {requiresBrazilPayment && requestId && accessToken && (
@@ -381,8 +391,7 @@ export function PharmacyExpressConsultation({
               <div>
                 <label htmlFor={reasonInputId} className="mb-1.5 block text-xs font-medium text-slate-600">{copy.reason}</label>
                 <div className="mb-2 flex flex-wrap gap-2">
-                  {(isPortuguese ? ['Dor / mal-estar', 'Receita', 'Outro motivo'] : QUICK_REASONS).map((label, index) => {
-                    const value = (['pain', 'prescription', 'other'] as const)[index]
+                  {reasonOptions.map(({ value, label }) => {
                     const selected = reasonCategory === value
                     return <button key={value} type="button" aria-pressed={selected} onClick={() => setReasonCategory(value)} className={selected ? 'min-h-11 rounded-lg border border-[#0EA5E9] bg-sky-50 px-3 py-2 text-xs font-medium text-sky-800' : 'min-h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600'}>{label}</button>
                   })}
