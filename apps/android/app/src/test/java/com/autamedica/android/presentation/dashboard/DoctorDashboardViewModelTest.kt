@@ -182,6 +182,7 @@ class DoctorDashboardViewModelTest {
     private lateinit var chatRepo: FakeChatRepo
     private lateinit var dispatchRepo: FakePharmacyDispatchRepo
     private lateinit var connectivityObserver: FakeConnectivityObserver
+    private val activeViewModels = mutableListOf<DoctorDashboardViewModel>()
 
     @Before
     fun setUp() {
@@ -197,6 +198,9 @@ class DoctorDashboardViewModelTest {
 
     @After
     fun tearDown() {
+        // Always cancel background heartbeat/FCM jobs, including when an assertion fails.
+        activeViewModels.forEach { it.viewModelScope.cancel() }
+        activeViewModels.clear()
         Dispatchers.resetMain()
     }
 
@@ -212,6 +216,7 @@ class DoctorDashboardViewModelTest {
             connectivityObserver = connectivityObserver,
             ioDispatcher = testDispatcher,
         )
+        activeViewModels += viewModel
 
         testScheduler.runCurrent()
         assertThat(dispatchRepo.heartbeatInvocations.size).isAtLeast(1)
@@ -235,6 +240,7 @@ class DoctorDashboardViewModelTest {
             connectivityObserver = connectivityObserver,
             ioDispatcher = testDispatcher,
         )
+        activeViewModels += viewModel
 
         testScheduler.runCurrent()
         val initialCount = dispatchRepo.heartbeatInvocations.size
@@ -268,6 +274,7 @@ class DoctorDashboardViewModelTest {
             connectivityObserver = connectivityObserver,
             ioDispatcher = testDispatcher,
         )
+        activeViewModels += viewModel
 
         testScheduler.runCurrent()
         val initialCount = dispatchRepo.heartbeatInvocations.size
@@ -300,6 +307,7 @@ class DoctorDashboardViewModelTest {
             connectivityObserver = connectivityObserver,
             ioDispatcher = testDispatcher,
         )
+        activeViewModels += viewModel
 
         testScheduler.runCurrent()
 
