@@ -12,3 +12,5 @@ BEGIN
   RETURN app_private.match_dispatch_doctors_without_switch(p_dispatch_id);
 END;
 $function$;
+REVOKE ALL ON FUNCTION public.match_dispatch_doctors(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.match_dispatch_doctors(uuid) TO service_role;
