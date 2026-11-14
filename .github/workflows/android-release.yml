@@ -18,7 +18,7 @@ on:
       track:
         description: 'Google Play Track'
         required: true
-        default: 'internal'
+        default: 'production'
         type: choice
         options:
           - internal
@@ -28,7 +28,7 @@ on:
       upload_to_play_store:
         description: 'Upload to Google Play Console'
         type: boolean
-        default: false
+        default: true
 
 concurrency:
   group: ${{ github.workflow }}
@@ -72,12 +72,14 @@ jobs:
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > apps/android/autamedica-release.keystore
-            echo "✅ Release Keystore decoded successfully"
-          else
-            echo "⚠️ KEYSTORE_BASE64 secret not found in repository"
-          fi
+          set -euo pipefail
+          test -n "$KEYSTORE_BASE64" || { echo "Missing GitHub Actions secret: KEYSTORE_BASE64"; exit 1; }
+          test -n "${{ secrets.KEYSTORE_PASSWORD }}" || { echo "Missing GitHub Actions secret: KEYSTORE_PASSWORD"; exit 1; }
+          test -n "${{ secrets.KEY_PASSWORD }}" || { echo "Missing GitHub Actions secret: KEY_PASSWORD"; exit 1; }
+          echo "$KEYSTORE_BASE64" | base64 --decode > apps/android/autamedica-release.keystore
+          test -s apps/android/autamedica-release.keystore
+          chmod 600 apps/android/autamedica-release.keystore
+          echo "Release keystore decoded"
 
       - name: Generate local.properties with Secrets
         run: |
@@ -170,6 +172,18 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Publish signed APK and AAB to GitHub Releases
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-v${{ steps.version_info.outputs.version_name }}
+          name: AutaMedica Android v${{ steps.version_info.outputs.version_name }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          files: |
+            apps/android/app/build/outputs/bundle/release/*.aab
+            apps/android/app/build/outputs/apk/release/*.apk
+
       - name: Build Summary
         run: |
           echo "## 📱 AutaMedica Android Release Build Complete" >> $GITHUB_STEP_SUMMARY
@@ -188,8 +202,8 @@ jobs:
     if: |
       always() &&
       needs.build-release-aab.result == 'success' &&
-      github.event_name == 'workflow_dispatch' &&
-      github.event.inputs.upload_to_play_store == 'true'
+      ((github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+       (github.event_name == 'workflow_dispatch' && github.event.inputs.upload_to_play_store == 'true'))
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -268,14 +282,26 @@ jobs:
           print(f"✅ versionCode {BUILD_VERSION_CODE} is safe to deploy")
           PY
 
-      - name: Upload to Google Play Store
+      - name: Upload to Google Play production
+        id: play_production
         if: steps.check_sa.outputs.has_secret == 'true'
         uses: r0adkll/upload-google-play@v1.1.4
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
           packageName: com.autamedica.android
           releaseFiles: ./aab/*.aab
-          tracks: ${{ github.event.inputs.track || 'internal' }}
+          tracks: production
+          status: completed
+
+      - name: Fallback to Google Play internal track
+        id: play_internal_fallback
+        if: steps.check_sa.outputs.has_secret == 'true' && steps.play_production.outcome == 'failure'
+        uses: r0adkll/upload-google-play@v1.1.4
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
+          packageName: com.autamedica.android
+          releaseFiles: ./aab/*.aab
+          tracks: internal
           status: completed
 
       - name: Deploy Summary

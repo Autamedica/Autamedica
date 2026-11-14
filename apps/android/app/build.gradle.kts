@@ -47,8 +47,8 @@ android {
         applicationId = "com.autamedica.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 32
-        versionName = "1.2.22"
+        versionCode = 33
+        versionName = "1.2.23"
 
         resourceConfigurations += listOf("es", "es-rAR", "pt", "pt-rBR" )
 
