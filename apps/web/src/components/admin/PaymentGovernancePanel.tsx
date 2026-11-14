@@ -12,7 +12,7 @@ type Switches = {
  updated_at:string|null
  switch_audit?:Record<string,{updated_by:string;updated_by_name?:string|null;updated_at:string;reason:string|null}>
 }
-type PharmacyPayment = {id:string;request_id:string;amount_minor:number;currency:string;status:string;provider:string;assigned_doctor_id:string|null;jordan_commission_minor:number|null;created_at:string}
+type PharmacyPayment = {id:string;request_id:string;amount_minor:number;currency:string;status:string;provider:string;provider_payment_id:string|null;metadata?:Record<string,unknown>|null;assigned_doctor_id:string|null;jordan_commission_minor:number|null;created_at:string}
 type Approval = { id:string; status:string; domain:string; proposed_by:string; summary:string; risk_reason:string; impact_scope:string; created_at:string; payload?:{action_type?:string;risk_level?:string;recommendation?:string;operation_summary?:string;source?:string} }
 type SwitchKey = Exclude<keyof Switches,'updated_by'|'updated_at'|'switch_audit'>
 const SWITCHES: {key:SwitchKey;label:string;description:string;flows:string;inFlight:string}[] = [
@@ -44,6 +44,13 @@ export function PaymentGovernancePanel(){
   const j=await r.json(); if(!r.ok||!j.success){setError('No se pudo actualizar el interruptor');return}
   await load()
  }
+ const manualApprove=async(paymentId:string)=>{
+  if(!window.confirm('¿Aprobar manualmente este pago de mostrador y liberar al médico?'))return
+  const r=await fetch('/api/admin/finance/pharmacy-payments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'manual_approve',payment_id:paymentId})})
+  const j=await r.json().catch(()=>null)
+  if(!r.ok||!j?.success){setError(j?.error??'No se pudo aprobar manualmente el pago');return}
+  await load()
+ }
  const decide=async(decisionId:string,status:'APPROVED'|'REJECTED',resolutionAction?:'reopen'|'refund')=>{
   const notes=window.prompt('Motivo de la decisión administrativa (obligatorio):')
   if(!notes?.trim())return
@@ -68,7 +75,7 @@ export function PaymentGovernancePanel(){
   </div>
   <div><h2 className="text-lg font-semibold text-slate-900">Cobros de Farmacia Express / Jordan</h2>
    <div className="mt-3 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b text-xs uppercase text-slate-500"><th className="p-2">Estado</th><th className="p-2">Monto</th><th className="p-2">Comisión Jordan</th><th className="p-2">Request ID</th><th className="p-2">Médico asignado</th><th className="p-2">Fecha</th></tr></thead><tbody>
-    {pharmacyPayments.map(p=><tr key={p.id} className="border-b"><td className="p-2">{p.status}</td><td className="p-2">{new Intl.NumberFormat(p.currency==='BRL'?'pt-BR':'es-AR',{style:'currency',currency:p.currency}).format(p.amount_minor/100)}</td><td className="p-2">{p.jordan_commission_minor===null?'—':new Intl.NumberFormat(p.currency==='BRL'?'pt-BR':'es-AR',{style:'currency',currency:p.currency}).format(p.jordan_commission_minor/100)}</td><td className="p-2 font-mono text-xs">{p.request_id}</td><td className="p-2">{p.assigned_doctor_id??'Sin asignar'}</td><td className="p-2">{new Date(p.created_at).toLocaleString()}</td></tr>)}
+    {pharmacyPayments.map(p=><tr key={p.id} className="border-b"><td className="p-2"><div className="flex flex-col items-start gap-1"><span>{p.status}</span>{p.metadata?.manual_override_by&&<span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-bold tracking-wide text-amber-900">[MANUAL OVERRIDE]</span>}{['pending','pending_payment'].includes(p.status)&&<button type="button" onClick={()=>void manualApprove(p.id)} className="rounded border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500">Validar Pago Manualmente (Excepción Mostrador)</button>}</div></td><td className="p-2">{new Intl.NumberFormat(p.currency==='BRL'?'pt-BR':'es-AR',{style:'currency',currency:p.currency}).format(p.amount_minor/100)}</td><td className="p-2">{p.jordan_commission_minor===null?'—':new Intl.NumberFormat(p.currency==='BRL'?'pt-BR':'es-AR',{style:'currency',currency:p.currency}).format(p.jordan_commission_minor/100)}</td><td className="p-2 font-mono text-xs">{p.request_id}</td><td className="p-2">{p.assigned_doctor_id??'Sin asignar'}</td><td className="p-2">{new Date(p.created_at).toLocaleString()}</td></tr>)}
     {pharmacyPayments.length===0&&<tr><td colSpan={6} className="p-3 text-slate-500">Sin pagos de farmacia registrados.</td></tr>}
    </tbody></table></div>
   </div>

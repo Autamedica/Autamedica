@@ -26,7 +26,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
  }
 
  const {data:payments,error}=await db.from('pharmacy_dispatch_payments')
-  .select('id,dispatch_request_id,amount_minor,currency,provider,status,provider_payment_id,paid_at,created_at')
+  .select('id,dispatch_request_id,amount_minor,currency,provider,status,provider_payment_id,paid_at,created_at,metadata')
   .order('created_at',{ascending:false}).limit(200)
  if(error) return internalError('pharmacy_payments_unavailable')
  const ids=(payments??[]).map((p:any)=>p.dispatch_request_id).filter(Boolean)
@@ -54,7 +54,30 @@ export const GET: APIRoute = async ({ request, locals }) => {
 export const POST: APIRoute = async ({ request, locals }) => {
  const auth = await withAuthRole(request, ADMIN_ROLES, locals)
  if (!isAuthed(auth)) return auth
- const body = await request.json().catch(() => null) as { commissionId?: string; paymentReference?: string } | null
+ const body = await request.json().catch(() => null) as { action?: string; payment_id?: string; request_id?: string; commissionId?: string; paymentReference?: string } | null
+ const db = createAstroAdminClient(locals.runtime?.env) as any
+
+ if (body?.action === 'manual_approve') {
+  const paymentId = typeof body.payment_id === 'string' ? body.payment_id.trim()
+   : typeof body.request_id === 'string' ? body.request_id.trim() : ''
+  if (!/^[0-9a-f-]{36}$/i.test(paymentId)) return badRequest('valid_payment_id_or_request_id_required')
+  const { data, error } = await db.rpc('admin_manual_approve_pharmacy_payment', {
+   p_payment_id: paymentId,
+   p_actor_id: auth.user.id,
+  })
+  if (error) return internalError('pharmacy_manual_approval_failed')
+  if (!data?.success) return badRequest(data?.code ?? 'pharmacy_payment_not_eligible_for_manual_approval')
+  const { error: auditError } = await db.from('audit_logs').insert({
+   user_id: auth.user.id,
+   action: 'pharmacy_payment_manual_override_approved',
+   resource_type: 'pharmacy_dispatch_payments',
+   resource_id: paymentId,
+   metadata: { dispatch_request_id: data.dispatch_request_id, provider_payment_id: data.provider_payment_id },
+  })
+  if (auditError) return internalError('pharmacy_manual_approval_audit_failed')
+  return jsonOk(data)
+ }
+
  const commissionId = typeof body?.commissionId === 'string' ? body.commissionId.trim() : ''
  const paymentReference = typeof body?.paymentReference === 'string' ? body.paymentReference.trim() : ''
  if (!commissionId || !/^[0-9a-f-]{36}$/i.test(commissionId) || !paymentReference || paymentReference.length > 200) {
