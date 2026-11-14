@@ -10,7 +10,7 @@ Los cambios requieren rol `admin` validado contra `public.profiles.role` y/o `ap
 
 ## Cómo operar
 
-Abrir `/admin`, entrar en **Control de Cobros en Vivo / Interruptores operativos**, revisar el estado actual y cambiar únicamente el flujo requerido. La pantalla actualiza el estado cada 15 segundos y muestra el último actor (UUID autenticado) y la hora del último cambio por interruptor. La API es `GET/POST /api/admin/payments/toggle`. Los cambios están restringidos a `public.profiles.role = 'admin'`; los roles `organization_admin` y `platform_admin` no heredan este permiso.
+Abrir `/admin`, entrar en **Control de Cobros en Vivo / Interruptores operativos**, revisar el estado actual y cambiar únicamente el flujo requerido. La pantalla actualiza el estado cada 15 segundos y muestra el nombre del operador (o email/UUID como respaldo) y la hora del último cambio por interruptor. La API es `GET/POST /api/admin/payments/toggle`. Los cambios están restringidos a `public.profiles.role = 'admin'`; los roles `organization_admin` y `platform_admin` no heredan este permiso.
 
 Apagar un interruptor impide iniciar nuevas operaciones de ese flujo. Las solicitudes ya aceptadas por un proveedor externo, pagos aprobados, consultas ya asignadas y videollamadas activas no se cancelan retroactivamente. Una petición de envío que todavía no llegó al proveedor se detiene en la siguiente comprobación; un envío ya aceptado por el proveedor no puede retirarse desde Admin.
 
