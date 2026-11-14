@@ -1,4 +1,59 @@
 import { assertEquals } from "jsr:@std/assert";
+
+Deno.test("issue-prescription - Brazilian CPF validation never calls the Argentine SISA verifier", async () => {
+  DUMMY_ENV();
+  const originalFetch = globalThis.fetch;
+  const requestedUrls: string[] = [];
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    requestedUrls.push(url);
+    if (url.includes("/auth/v1/user")) {
+      return new Response(JSON.stringify({ id: "br-doctor-user" }), {
+        status: 200, headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (url.includes("/rest/v1/profiles")) {
+      return new Response(JSON.stringify({
+        role: "doctor", active: true, sss_validation_status: "pending_review",
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    if (url.includes("/rest/v1/doctors")) {
+      return new Response(JSON.stringify({
+        id: "br-doctor", user_id: "br-doctor-user", active: true,
+        license_type: "CRM", license_number: "123456", uf_brazil: "RS",
+        care_country: "BR", cpf: "11111111111",
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    return originalFetch(input, init);
+  };
+  try {
+    const req = new Request("http://localhost/issue-prescription", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer synthetic-token",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        patientId: "123e4567-e89b-42d3-a456-426614174000",
+        countryCode: "BR",
+        diagnosis: "Synthetic test",
+        items: [{ generic_name: "Synthetic test" }],
+        clinicalData: {
+          diagnosis: "Synthetic test",
+          items: [{ generic_name: "Synthetic test" }],
+        },
+      }),
+    });
+    const response = await handler(req);
+    assertEquals(response.status, 422);
+    assertEquals((await response.json()).code, "BR_DOCTOR_CPF_REQUIRED");
+    assertEquals(requestedUrls.some((url) => url.includes("verify-doctor-license")), false);
+    assertEquals(requestedUrls.some((url) => url.includes("/rest/v1/prescriptions")), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 import { handler } from "../issue-prescription/index.ts";
 
 const DUMMY_ENV = () => {
@@ -67,7 +122,7 @@ Deno.test("issue-prescription - Doctor role check fails if role is not doctor", 
         Authorization: "Bearer token",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ patientId: "pat-123" }),
+      body: JSON.stringify({ patientId: "pat-123", countryCode: "AR" }),
     });
     const res = await handler(req);
     assertEquals(res.status, 403);
@@ -239,9 +294,9 @@ Deno.test("issue-prescription - legacy AR and BR issuance never fabricate signed
         }),
       });
       const res = await handler(req);
-      assertEquals(res.status, 409);
+      assertEquals(res.status, 422);
       const body = await res.json();
-      assertEquals(body.code, "OFFICIAL_ISSUANCE_PROVIDER_REQUIRED");
+      assertEquals(body.code, countryCode === "AR" ? "ARGENTINE_LICENSE_REQUIRED" : "CRM_UF_REQUIRED");
       assertEquals(body.success, false);
       assertEquals(body.data, undefined);
     }
