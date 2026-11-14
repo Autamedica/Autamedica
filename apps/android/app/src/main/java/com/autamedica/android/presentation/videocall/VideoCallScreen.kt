@@ -618,6 +618,7 @@ fun VideoCallScreen(
             patientName = uiState.patientName,
             chiefComplaint = uiState.chiefComplaintPeek,
             countryCode = uiState.doctorCountryCode,
+            patientCareCountryCode = uiState.patientCareCountryCode,
             patientLinked = uiState.patientId.isNotBlank(),
             isSubmitting = uiState.isIssuingPrescription || uiState.isIssuingCertificate,
             onIssuePrescription = { med, dosage, instructions, diagnosis, onResult ->
