@@ -38,7 +38,7 @@ interface PharmacyExpressConsultationProps {
 type Step = 'FORM' | 'WAITING' | 'CALL' | 'ENDED' | 'CANCELLED'
 
 const COPY = {
-  AR: {brand:'AutaMedica Guardia',ready:'Ya podés ingresar',restart:'Iniciar otra consulta',footerNetwork:'Red de farmacias asociadas',country:'¿Dónde querés atenderte?',patientData:'Tus datos',name:'Nombre y apellido',phone:'Teléfono / WhatsApp',reason:'Motivo de consulta',paymentTitle:'Consulta médica · R$ 79,00',paymentHint:'Confirmá el pago de R$ 79,00 para iniciar la videoconsulta.',nameExample:'Ej. Juan Pérez',phoneExample:'Ej. +54 9 11 2345-6789',reasonExample:'Contanos brevemente qué necesitás o qué síntomas tenés...',submit:'Consultar médico',submitting:'Conectando con la guardia...',searching:'Buscando médico...',waiting:'Estás en la fila de atención',waitingIntro:'Estamos buscando un médico disponible para atender tu consulta en',paymentPending:'Pago pendiente',paymentWaiting:'Completá el pago. La búsqueda y asignación del médico comienzan cuando Mercado Pago confirma el cobro.',queue:'Posición en la fila',queuePending:'Por confirmar',estimate:'Tiempo estimado',estimateUnknown:'Variable',patient:'Paciente:',network:'Red médica:',reasonLabel:'Motivo:',refresh:'Actualizar',cancel:'Cancelar',ended:'Atención finalizada · AutaMedica',endedHint:'Tu consulta finalizó correctamente. Gracias por usar AutaMedica.',cancelled:'Consulta cancelada',back:'{copy.back}'},
+  AR: {brand:'AutaMedica Guardia',ready:'Ya podés ingresar',restart:'Iniciar otra consulta',footerNetwork:'Red de farmacias asociadas',country:'¿Dónde querés atenderte?',patientData:'Tus datos',name:'Nombre y apellido',phone:'Teléfono / WhatsApp',reason:'Motivo de consulta',paymentTitle:'Consulta médica · R$ 79,00',paymentHint:'Confirmá el pago de R$ 79,00 para iniciar la videoconsulta.',nameExample:'Ej. Juan Pérez',phoneExample:'Ej. +54 9 11 2345-6789',reasonExample:'Contanos brevemente qué necesitás o qué síntomas tenés...',submit:'Consultar médico',submitting:'Conectando con la guardia...',searching:'Buscando médico...',waiting:'Estás en la fila de atención',waitingIntro:'Estamos buscando un médico disponible para atender tu consulta en',paymentPending:'Pago pendiente',paymentWaiting:'Completá el pago. La búsqueda y asignación del médico comienzan cuando Mercado Pago confirma el cobro.',queue:'Posición en la fila',queuePending:'Por confirmar',estimate:'Tiempo estimado',estimateUnknown:'Variable',patient:'Paciente:',network:'Red médica:',reasonLabel:'Motivo:',refresh:'Actualizar',cancel:'Cancelar',ended:'Atención finalizada · AutaMedica',endedHint:'Tu consulta finalizó correctamente. Gracias por usar AutaMedica.',cancelled:'Consulta cancelada',back:'Volver al inicio'},
   BR: {brand:'Plantão AutaMedica',ready:'Você já pode entrar',restart:'Iniciar outra consulta',footerNetwork:'Rede de farmácias parceiras',paymentTitle:'Consulta médica · R$ 79,00',paymentHint:'Confirme o pagamento de R$ 79,00 para iniciar a videochamada.',country:'Onde você quer atendimento?',patientData:'Seus dados',name:'Nome completo',phone:'Telefone / WhatsApp',reason:'Motivo da consulta',nameExample:'Ex. João da Silva',phoneExample:'Ex. +55 51 99999-9999',reasonExample:'Conte brevemente o que você precisa ou quais sintomas está sentindo...',submit:'Consultar médico',submitting:'Conectando ao plantão...',searching:'Procurando médico...',waiting:'Sua fila de atendimento',waitingIntro:'Estamos procurando um médico disponível para atender você em',paymentPending:'Pagamento pendente',paymentWaiting:'Conclua o pagamento. A busca e a designação do médico começam quando o Mercado Pago confirma a cobrança.',queue:'Posição na fila',queuePending:'A confirmar',estimate:'Tempo estimado',estimateUnknown:'Não estimado',patient:'Paciente:',network:'Rede médica:',reasonLabel:'Motivo:',refresh:'Atualizar',cancel:'Cancelar',ended:'Atendimento concluído · AutaMedica',endedHint:'Sua consulta foi concluída. Obrigado por usar a AutaMedica.',cancelled:'Consulta cancelada',back:'Voltar ao início'},
 } as const
 
@@ -274,8 +274,8 @@ export function PharmacyExpressConsultation({
           <img src="/logo_bioceramic.png" alt="AutaMedica" className="w-5 h-5 rounded-md object-contain" />
           <span className="font-bold tracking-tight text-slate-900">{copy.brand}</span>
           <span className="text-zinc-500">•</span>
-          <span className="text-emerald-400 flex items-center gap-1.5 font-semibold">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+          <span className="text-emerald-700 flex items-center gap-1.5 font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
             Guardia Exprés
           </span>
           <span className="text-slate-400 hidden sm:inline">•</span>
@@ -283,7 +283,7 @@ export function PharmacyExpressConsultation({
         </div>
         {(!requiresBrazilPayment || brazilPaymentApproved) && <GuestCallPage roomId={callRoomId} />}
         {requiresBrazilPayment && !brazilPaymentApproved && (
-          <div className="min-h-[100dvh] flex items-center justify-center p-6 text-center text-white">
+          <div className="min-h-[100dvh] flex items-center justify-center p-6 text-center text-slate-900">
             <div className="max-w-md">
               <h2 className="text-xl font-semibold text-slate-900">{copy.paymentTitle}</h2>
               <p className="mt-3 text-sm text-zinc-300">
@@ -323,7 +323,7 @@ export function PharmacyExpressConsultation({
           </div>
 
           {/* Institutional Partnership Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-am-surface-800/90 border border-slate-200 text-xs font-medium mb-2 shadow-md">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white border border-slate-200 text-xs font-medium mb-2 shadow-md">
             <span className="font-bold text-slate-900">{copy.brand}</span>
             <span className="text-slate-500">•</span>
             <span className="text-emerald-400 font-medium">{referralPartnerName ? 'Canal de referidos' : 'Red de Farmacias Asociadas'}</span>
@@ -363,7 +363,7 @@ export function PharmacyExpressConsultation({
             <form onSubmit={handleSubmit} className="space-y-4">
               <fieldset className="rounded-xl border border-slate-300 p-3">
                 <legend className="text-xs font-medium text-slate-600 px-1">{copy.country}</legend>
-                <div className="flex flex-wrap gap-4 mt-2 text-sm text-white">
+                <div className="flex flex-wrap gap-4 mt-2 text-sm text-slate-800">
                   {(['AR', 'BR'] as const).map((country) => (
                     <label key={country} className="inline-flex items-center gap-2 cursor-pointer">
                       <input
@@ -575,11 +575,11 @@ export function PharmacyExpressConsultation({
                 height={48}
                 className="object-contain rounded-xl"
               />
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white border-2 border-zinc-950 shadow-md">
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white border-2 border-white shadow-md">
                 <CheckCircle2 className="w-3.5 h-3.5" />
               </div>
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
               {copy.ended}
             </h2>
             <p className="text-sm text-slate-600 max-w-sm mb-6 leading-relaxed">
@@ -604,7 +604,7 @@ export function PharmacyExpressConsultation({
             <div className="w-14 h-14 rounded-full bg-am-surface-700/40 flex items-center justify-center text-slate-500 mb-4">
               <XCircle className="w-8 h-8" />
             </div>
-            <h2 className="text-xl font-bold text-white mb-2">
+            <h2 className="text-xl font-bold text-slate-900 mb-2">
               {copy.cancelled}
             </h2>
             <p className="text-sm text-slate-600 max-w-xs mb-6">
@@ -613,7 +613,7 @@ export function PharmacyExpressConsultation({
             <button
               type="button"
               onClick={() => setStep('FORM')}
-              className="py-2.5 px-6 rounded-xl bg-am-surface-700 hover:bg-am-surface-600 text-white font-medium text-xs transition"
+              className="py-2.5 px-6 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium text-xs transition"
             >
               {copy.back}
             </button>
