@@ -10,15 +10,20 @@ vi.mock('@autamedica/shared', () => {
   return { logger: logMock }
 })
 
-const { supabaseMock } = vi.hoisted(() => ({
+const { supabaseMock, paymentSwitchesMock } = vi.hoisted(() => ({
   supabaseMock: { from: vi.fn(), auth: { getUser: vi.fn() } } as {
     from: ReturnType<typeof vi.fn>
     auth: { getUser: ReturnType<typeof vi.fn> }
   },
+  paymentSwitchesMock: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase', () => ({
   createAstroAdminClient: vi.fn(() => supabaseMock),
+}))
+
+vi.mock('@/lib/payments/operational-switches', () => ({
+  getOperationalPaymentSwitches: paymentSwitchesMock,
 }))
 
 const TEST_SECRET = 'test-guest-secret-super-secure-at-least-32-chars!'
@@ -102,6 +107,11 @@ function makeContext(options?: {
 describe('API: /api/pharmacy/dispatch/request', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    paymentSwitchesMock.mockResolvedValue({
+      jordan_qr_payments_enabled: true,
+      pharmacy_express_payments_enabled: true,
+      global_pix_mp_payments_enabled: true,
+    })
     vi.mocked(resolvePatientContext).mockImplementation(async (request, locals) => {
       const careCountry = request.headers.get('x-test-care-country')
       const sessionUserId = (locals as { session?: { user?: { id?: string } } } | undefined)?.session?.user?.id

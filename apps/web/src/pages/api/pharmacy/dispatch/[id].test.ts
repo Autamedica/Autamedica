@@ -35,6 +35,7 @@ const REQUEST_RECORD = {
   requested_by_user_id: 'patient-user-1',
   assigned_doctor_id: 'doc-row-1',
   status: 'searching',
+  patient_id: 'patient-row-1',
   cloudflare_room_id: 'cf-room-1',
   care_country: 'AR',
   patient_dni: '12345678',
@@ -124,34 +125,65 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
   })
 
   it('cancela solo la solicitud searching del paciente autenticado', async () => {
-    const chain = buildTableChain({ id: 'req-1' })
-    supabaseMock.from.mockReturnValue(chain)
+    const lookup = buildTableChain(REQUEST_RECORD)
+    const update = buildTableChain({ id: 'req-1' })
+    let call = 0
+    supabaseMock.from.mockImplementation(() => call++ === 0 ? lookup : update)
 
     const response = await DELETE(makeContext({ method: 'DELETE' }))
     const body = await response.json()
 
     expect(response.status).toBe(200)
     expect(body.data.cancelled).toBe(true)
-    expect(supabaseMock.from).toHaveBeenCalledWith('pharmacy_dispatch_requests')
-    expect(chain.update).toHaveBeenCalledWith({ status: 'cancelled' })
-    expect(chain.eq).toHaveBeenCalledWith('id', 'req-1')
-    expect(chain.eq).toHaveBeenCalledWith('patient_id', 'patient-row-1')
-    expect(chain.eq).toHaveBeenCalledWith('requested_by_user_id', 'patient-user-1')
-    expect(chain.eq).toHaveBeenCalledWith('care_country', 'AR')
-    expect(chain.eq).toHaveBeenCalledWith('status', 'searching')
+    expect(supabaseMock.from).toHaveBeenCalledTimes(2)
+    expect(update.update).toHaveBeenCalledWith({ status: 'cancelled' })
+    expect(update.eq).toHaveBeenCalledWith('id', 'req-1')
+    expect(update.eq).toHaveBeenCalledWith('patient_id', 'patient-row-1')
+    expect(update.eq).toHaveBeenCalledWith('requested_by_user_id', 'patient-user-1')
+    expect(update.eq).toHaveBeenCalledWith('care_country', 'AR')
+    expect(update.eq).toHaveBeenCalledWith('status', 'searching')
   })
 
-  it('no cancela si no hay contexto de paciente autenticado', async () => {
+  it('no cancela sin sesión ni credencial de invitado válida', async () => {
     patientContextMock.resolve.mockResolvedValue(null)
+    supabaseMock.from.mockReturnValue(buildTableChain(REQUEST_RECORD))
     const response = await DELETE(makeContext({ method: 'DELETE' }))
     expect(response.status).toBe(401)
-    expect(supabaseMock.from).not.toHaveBeenCalled()
+    expect(supabaseMock.from).toHaveBeenCalledTimes(1)
   })
 
   it('devuelve conflicto cuando la solicitud ya no está en searching', async () => {
-    supabaseMock.from.mockReturnValue(buildTableChain(null))
+    const lookup = buildTableChain(REQUEST_RECORD)
+    const update = buildTableChain(null)
+    let call = 0
+    supabaseMock.from.mockImplementation(() => call++ === 0 ? lookup : update)
     const response = await DELETE(makeContext({ method: 'DELETE' }))
     expect(response.status).toBe(409)
+  })
+
+  it('permite cancelar a un invitado sin sesión con credencial ligada a requestId y roomId', async () => {
+    patientContextMock.resolve.mockResolvedValue(null)
+    const guestRequest = { ...REQUEST_RECORD, patient_id: 'guest-patient-row', requested_by_user_id: null }
+    const lookup = buildTableChain(guestRequest)
+    const update = buildTableChain({ id: 'req-1' })
+    let call = 0
+    supabaseMock.from.mockImplementation(() => call++ === 0 ? lookup : update)
+    const guestToken = await signGuestToken({ callId: 'req-1', roomId: 'cf-room-1', guestName: 'Guest' }, TEST_SECRET)
+
+    const response = await DELETE(makeContext({
+      method: 'DELETE',
+      headers: { 'x-guest-token': guestToken },
+    }))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.data.cancelled).toBe(true)
+    expect(update.update).toHaveBeenCalledWith({ status: 'cancelled' })
+    expect(update.eq).toHaveBeenCalledWith('id', 'req-1')
+    expect(update.eq).toHaveBeenCalledWith('requested_by_user_id', null)
+    expect(update.eq).toHaveBeenCalledWith('care_country', 'AR')
+    expect(update.eq).toHaveBeenCalledWith('status', 'searching')
+    expect(update.eq).not.toHaveBeenCalledWith('patient_id', null)
   })
 
   it('devuelve 404 si falta el id', async () => {

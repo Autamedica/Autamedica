@@ -226,7 +226,6 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
       .from('pharmacy_dispatch_requests')
       .update({ status: 'cancelled' })
       .eq('id', id)
-      .is('patient_id', null)
       .is('requested_by_user_id', null)
       .eq('care_country', requestRecord.care_country)
       .eq('status', 'searching')
