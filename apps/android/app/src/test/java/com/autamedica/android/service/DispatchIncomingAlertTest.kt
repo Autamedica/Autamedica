@@ -4,6 +4,7 @@ import android.app.Application
 import android.app.Notification
 import android.app.NotificationManager
 import android.media.RingtoneManager
+import android.os.Build
 import android.os.PowerManager
 import com.autamedica.android.MainActivity
 import com.autamedica.android.R
@@ -74,11 +75,15 @@ class DispatchIncomingAlertTest {
         assertEquals(Notification.PRIORITY_MAX, notification.priority)
         assertEquals(Notification.VISIBILITY_PUBLIC, notification.visibility)
         val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-        assertEquals(ringtoneUri, notification.sound)
-        assertArrayEquals(
-            longArrayOf(0, 1000, 1000, 1000, 1000, 1000),
-            notification.vibrate,
-        )
+        // Android 8+ delegates notification audio and vibration to the channel.
+        // Assert legacy Notification fields only on pre-O devices.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            assertEquals(ringtoneUri, notification.sound)
+            assertArrayEquals(
+                longArrayOf(0, 1000, 1000, 1000, 1000, 1000),
+                notification.vibrate,
+            )
+        }
         assertTrue(
             "The alert remains visible until dismissal or timeout",
             (notification.flags and Notification.FLAG_ONGOING_EVENT) != 0,
@@ -121,6 +126,10 @@ class DispatchIncomingAlertTest {
         assertTrue(channel.importance >= NotificationManager.IMPORTANCE_HIGH)
         assertEquals(Notification.VISIBILITY_PUBLIC, channel.lockscreenVisibility)
         assertEquals(ringtoneUri, channel.sound)
+        assertArrayEquals(
+            longArrayOf(0, 1000, 1000, 1000, 1000, 1000),
+            channel.vibrationPattern,
+        )
         assertEquals(
             context.getString(R.string.notification_dispatch_offer_title),
             notification.extras.getCharSequence(Notification.EXTRA_TITLE).toString(),
