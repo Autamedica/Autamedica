@@ -83,5 +83,4 @@ export function JordanPaymentWidget({
       )}
     </aside>
   )
-  )
 }
