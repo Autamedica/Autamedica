@@ -341,7 +341,7 @@ export function PharmacyExpressConsultation({
                     placeholder={isPortuguese ? '123.456.789-09' : '35.123.456'}
                     value={formData.dni}
                     onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition"
+                    className="min-h-12 w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition"
                   />
                 </div>
 
@@ -357,7 +357,7 @@ export function PharmacyExpressConsultation({
                     placeholder={copy.nameExample}
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition"
+                    className="min-h-12 w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition"
                   />
                 </div>
               </div>
@@ -374,7 +374,7 @@ export function PharmacyExpressConsultation({
                   placeholder={copy.phoneExample}
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition"
+                  className="min-h-12 w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition"
                 />
               </div>
 
@@ -384,7 +384,7 @@ export function PharmacyExpressConsultation({
                   {(isPortuguese ? ['Dor / mal-estar', 'Receita', 'Outro motivo'] : QUICK_REASONS).map((label, index) => {
                     const value = (['pain', 'prescription', 'other'] as const)[index]
                     const selected = reasonCategory === value
-                    return <button key={value} type="button" aria-pressed={selected} onClick={() => setReasonCategory(value)} className={selected ? 'rounded-lg border border-[#0EA5E9] bg-sky-50 px-3 py-2 text-xs font-medium text-sky-800' : 'rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600'}>{label}</button>
+                    return <button key={value} type="button" aria-pressed={selected} onClick={() => setReasonCategory(value)} className={selected ? 'min-h-11 rounded-lg border border-[#0EA5E9] bg-sky-50 px-3 py-2 text-xs font-medium text-sky-800' : 'min-h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600'}>{label}</button>
                   })}
                 </div>
                                 <textarea
@@ -394,7 +394,7 @@ export function PharmacyExpressConsultation({
                   placeholder={copy.reasonExample}
                   value={formData.reason}
                   onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition resize-none"
+                  className="min-h-24 w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition resize-none"
                 />
               </div>
 
@@ -402,7 +402,7 @@ export function PharmacyExpressConsultation({
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full py-3.5 px-4 rounded-xl font-semibold text-sm text-white bg-[#0EA5E9] hover:bg-sky-600 active:scale-[0.99] transition shadow-md shadow-sky-200 flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="min-h-12 w-full py-3.5 px-4 rounded-xl font-semibold text-sm text-white bg-[#0EA5E9] hover:bg-sky-600 active:scale-[0.99] transition shadow-md shadow-sky-200 flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {submitting ? (
                     <>
@@ -439,14 +439,14 @@ export function PharmacyExpressConsultation({
             <div className="mb-4 rounded-xl bg-slate-50 px-3 py-2.5 text-left text-xs"><p className="font-semibold text-slate-900">{copy.patient}: {formData.name}</p>{reasonSummary && <p className="mt-1 text-slate-600">{copy.reasonLabel}: {reasonSummary}</p>}</div>
             {formData.careCountry === 'BR' && requestId && accessToken && <div className="mb-4 w-full"><JordanPaymentWidget dispatchId={requestId} guestToken={accessToken} onStatusChange={(status) => setBrazilPaymentApproved(status === 'approved')} /></div>}
             <div className="flex items-center gap-2">
-              <button type="button" onClick={() => requestId && void checkStatus(requestId, accessToken)} className="flex-1 rounded-xl bg-slate-100 px-3 py-2.5 text-xs font-medium text-slate-700 transition hover:bg-slate-200"><RefreshCw className="mr-1 inline h-3.5 w-3.5" /> {copy.refresh}</button>
-              <button type="button" onClick={handleCancelRequest} className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100">{copy.cancel}</button>
+              <button type="button" onClick={() => requestId && void checkStatus(requestId, accessToken)} className="min-h-11 flex-1 rounded-xl bg-slate-100 px-3 py-2.5 text-xs font-medium text-slate-700 transition hover:bg-slate-200"><RefreshCw className="mr-1 inline h-3.5 w-3.5" /> {copy.refresh}</button>
+              <button type="button" onClick={handleCancelRequest} className="min-h-11 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100">{copy.cancel}</button>
             </div>
           </div>
         )}
         {/* STEP: ENDED */}
         {step === 'ENDED' && (
-          <div className="w-full rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xl shadow-slate-200/70 text-center flex flex-col items-center">
+          <div className="w-full rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-8 shadow-slate-200/70 text-center flex flex-col items-center">
             {/* Bioceramic Success Container */}
             <div className="relative w-16 h-16 rounded-[1.5rem] bg-white p-1 ring-1 ring-slate-200 shadow-lg flex items-center justify-center overflow-hidden mb-4">
               <img
@@ -482,7 +482,7 @@ export function PharmacyExpressConsultation({
 
         {/* STEP: CANCELLED */}
         {step === 'CANCELLED' && (
-          <div className="w-full rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xl shadow-slate-200/70 text-center flex flex-col items-center">
+          <div className="w-full rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-8 shadow-slate-200/70 text-center flex flex-col items-center">
             <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 mb-4">
               <XCircle className="w-8 h-8" />
             </div>

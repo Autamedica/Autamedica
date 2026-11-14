@@ -76,7 +76,7 @@ export function CallEndedScreen({
   }
 
   return (
-    <div className="min-h-[100dvh] bg-slate-50 text-slate-900 flex flex-col items-center justify-center p-4 sm:p-6 relative select-none font-sans overflow-x-hidden">
+    <div className="min-h-[100dvh] bg-slate-50 text-slate-900 flex flex-col items-center justify-center p-3 sm:p-6 relative select-none font-sans overflow-x-hidden">
       {/* ── Background concentric pulse decoration ── */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full border border-slate-200/30 animate-pulse" />
@@ -97,7 +97,7 @@ export function CallEndedScreen({
         </header>
 
         {/* ── Official High-Discharge Card ── */}
-        <div className="w-full rounded-3xl border border-slate-200 bg-white backdrop-blur-xl p-6 sm:p-8 shadow-2xl shadow-black/40 flex flex-col items-center text-center">
+        <div className="w-full rounded-2xl border border-slate-200 bg-white p-4 sm:p-8 shadow-sm flex flex-col items-center text-center">
           {/* Status Badge */}
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium mb-3.5">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -195,7 +195,7 @@ export function CallEndedScreen({
 function ErrorScreen({ language }: { language: 'pt' | 'es' }) {
   return (
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-slate-50 p-6 text-slate-900">
-      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 text-center shadow-sm">
         <h1 className="text-lg font-semibold text-slate-900">{language === 'pt' ? 'Não foi possível conectar' : 'No pudimos conectar'}</h1>
         <p className="mt-2 text-sm text-slate-600">{language === 'pt' ? 'Tente novamente.' : 'Volvé a intentar.'}</p>
       </div>
