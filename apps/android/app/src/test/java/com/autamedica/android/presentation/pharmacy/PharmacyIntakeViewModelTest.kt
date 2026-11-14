@@ -1,6 +1,7 @@
 package com.autamedica.android.presentation.pharmacy
 
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.viewModelScope
 import com.autamedica.android.domain.model.DispatchClaimResult
 import com.autamedica.android.domain.model.DoctorDutyStatus
 import com.autamedica.android.domain.model.PatientProfileSnapshot
@@ -15,6 +16,7 @@ import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.domain.repository.UserRegistrationResult
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -161,6 +163,7 @@ class PharmacyIntakeViewModelTest {
     private lateinit var authRepo: FakeAuthRepository
     private lateinit var profileRepo: FakeProfileRepository
     private lateinit var pharmacyRepo: FakePharmacyDispatchRepository
+    private val activeViewModels = mutableListOf<PharmacyIntakeViewModel>()
 
     @Before
     fun setUp() {
@@ -172,6 +175,10 @@ class PharmacyIntakeViewModelTest {
 
     @After
     fun tearDown() {
+        // Intake status/payment polling intentionally remains active while a request is pending.
+        // Stop every ViewModel even when an assertion fails, so runTest can finish deterministically.
+        activeViewModels.forEach { it.viewModelScope.cancel() }
+        activeViewModels.clear()
         Dispatchers.resetMain()
     }
 
@@ -204,6 +211,7 @@ class PharmacyIntakeViewModelTest {
             authRepository = authRepo, profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
         vm.onCountrySelected("AR")
         vm.onPatientNameChanged("Paciente de prueba")
@@ -245,6 +253,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
 
         advanceUntilIdle()
 
@@ -269,6 +278,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
 
         advanceUntilIdle()
 
@@ -288,6 +298,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
         assertThat(vm.uiState.value.careCountry).isEqualTo("BR")
         vm.onCountrySelected("AR")
@@ -319,6 +330,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
         vm.onPatientNameChanged("PACIENTE DEMO")
         vm.onPatientPhoneChanged("+5551987654321")
@@ -352,6 +364,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
 
         vm.onReasonChipSelected("Renovación de Receta")
@@ -372,6 +385,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
 
         vm.onCountrySelected("AR")
@@ -401,6 +415,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
 
         vm.onCountrySelected("AR")
@@ -417,6 +432,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
         vm.onReasonChipSelected("Renovación de Receta")
         assertThat(vm.uiState.value.effectiveReason).isEqualTo("Renovación de Receta")
@@ -461,6 +477,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
 
         vm.onReasonChipSelected("Presión / Hipertensión")
@@ -494,6 +511,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
 
         assertThat(vm.uiState.value.patientName).isEqualTo("Jaqueline Marques")
@@ -534,6 +552,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
 
         vm.onPatientNameChanged("María López")
@@ -584,6 +603,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
 
         vm.onPatientNameChanged("Carlos Gómez")
@@ -615,6 +635,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
 
         vm.onPatientNameChanged("Esteban Quito")
@@ -646,6 +667,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
         vm.onPatientNameChanged("Paciente sintético")
         vm.onPatientDniChanged("28999888")
@@ -689,6 +711,7 @@ class PharmacyIntakeViewModelTest {
             authRepository = authRepo, profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
         vm.onPatientNameChanged("Paciente BR")
         vm.onPatientPhoneChanged("+5551987654321")
@@ -736,6 +759,7 @@ class PharmacyIntakeViewModelTest {
             savedStateHandle = SavedStateHandle(mapOf("referralCode" to "JORDAN")),
             authRepository = authRepo, profileRepository = profileRepo, pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         testScheduler.runCurrent()
         assertThat(vm.uiState.value.activeRequestId).isEqualTo(restored.id)
         assertThat(vm.uiState.value.status).isEqualTo(PharmacyConsultationStatus.IN_CALL)
@@ -773,6 +797,7 @@ class PharmacyIntakeViewModelTest {
             savedStateHandle = SavedStateHandle(mapOf("referralCode" to "JORDAN")),
             authRepository = authRepo, profileRepository = profileRepo, pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         testScheduler.runCurrent()
         assertThat(vm.uiState.value.paymentStatus).isEqualTo("approved")
         assertThat(vm.uiState.value.readyToJoinCall).isTrue()
@@ -794,6 +819,7 @@ class PharmacyIntakeViewModelTest {
             savedStateHandle = SavedStateHandle(mapOf("referralCode" to "JORDAN")),
             authRepository = authRepo, profileRepository = profileRepo, pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         testScheduler.runCurrent()
         assertThat(vm.uiState.value.paymentStatus).isEqualTo("refunded")
         assertThat(vm.uiState.value.readyToJoinCall).isFalse()
@@ -821,6 +847,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
         vm.onPatientNameChanged("Paciente sintético AR")
         vm.onPatientDniChanged("28999888")
@@ -866,6 +893,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
 
         // Doctor is online
