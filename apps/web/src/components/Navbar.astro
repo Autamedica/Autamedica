@@ -166,7 +166,7 @@ const megaNav: MegaNavItem[] = [
     <button
       class="hamburger"
       id="hamburger-btn"
-      aria-label="Abrir menu de navegacion"
+      aria-label={isPt ? "Abrir menu de navegação" : "Abrir menú de navegación"}
       aria-expanded="false"
       aria-controls="mobile-menu"
     >
@@ -200,7 +200,7 @@ const megaNav: MegaNavItem[] = [
         )
       ))}
       <div class="mobile-menu-cta">
-        <a href="/auth/login" class="mobile-cta-btn">Iniciar sesión</a>
+        <a href="/auth/login" class="mobile-cta-btn">{isPt ? "Entrar" : "Iniciar sesión"}</a>
       </div>
     </div>
   </div>
