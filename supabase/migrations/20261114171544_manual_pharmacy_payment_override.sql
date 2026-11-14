@@ -97,6 +97,19 @@ BEGIN
   WHERE id = p_payment_id
   RETURNING * INTO v_payment;
 
+  INSERT INTO public.audit_logs (user_id, action, resource_type, resource_id, metadata)
+  VALUES (
+    p_actor_id,
+    'pharmacy_payment_manual_override_approved',
+    'pharmacy_dispatch_payments',
+    v_payment.id::text,
+    jsonb_build_object(
+      'dispatch_request_id', v_payment.dispatch_request_id,
+      'provider_payment_id', v_payment.provider_payment_id,
+      'manual_override_at', v_payment.paid_at
+    )
+  );
+
   SELECT status::text INTO v_dispatch_status
   FROM public.pharmacy_dispatch_requests
   WHERE id = v_payment.dispatch_request_id;

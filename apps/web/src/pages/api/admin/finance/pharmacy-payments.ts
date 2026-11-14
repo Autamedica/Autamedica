@@ -61,20 +61,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const paymentId = typeof body.payment_id === 'string' ? body.payment_id.trim()
    : typeof body.request_id === 'string' ? body.request_id.trim() : ''
   if (!/^[0-9a-f-]{36}$/i.test(paymentId)) return badRequest('valid_payment_id_or_request_id_required')
+  let resolvedPaymentId = paymentId
+  if (typeof body.payment_id !== 'string' && typeof body.request_id === 'string') {
+   const { data: payment, error: lookupError } = await db.from('pharmacy_dispatch_payments')
+    .select('id').eq('dispatch_request_id', paymentId).in('status', ['pending', 'pending_payment'])
+    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+   if (lookupError) return internalError('pharmacy_payment_lookup_failed')
+   if (!payment) return badRequest('pharmacy_payment_not_pending')
+   resolvedPaymentId = payment.id
+  }
   const { data, error } = await db.rpc('admin_manual_approve_pharmacy_payment', {
-   p_payment_id: paymentId,
+   p_payment_id: resolvedPaymentId,
    p_actor_id: auth.user.id,
   })
   if (error) return internalError('pharmacy_manual_approval_failed')
   if (!data?.success) return badRequest(data?.code ?? 'pharmacy_payment_not_eligible_for_manual_approval')
-  const { error: auditError } = await db.from('audit_logs').insert({
-   user_id: auth.user.id,
-   action: 'pharmacy_payment_manual_override_approved',
-   resource_type: 'pharmacy_dispatch_payments',
-   resource_id: paymentId,
-   metadata: { dispatch_request_id: data.dispatch_request_id, provider_payment_id: data.provider_payment_id },
-  })
-  if (auditError) return internalError('pharmacy_manual_approval_audit_failed')
   return jsonOk(data)
  }
 
@@ -83,7 +84,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
  if (!commissionId || !/^[0-9a-f-]{36}$/i.test(commissionId) || !paymentReference || paymentReference.length > 200) {
   return badRequest('commission_id_and_transfer_reference_required')
  }
- const db = createAstroAdminClient(locals.runtime?.env) as any
  const now = new Date().toISOString()
  const { data, error } = await db.from('commercial_referral_commissions')
   .update({ status: 'paid', payment_reference: paymentReference, paid_at: now, paid_by: auth.user.id })
