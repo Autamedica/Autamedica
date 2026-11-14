@@ -32,6 +32,7 @@ function buildChain(data: unknown, error: unknown = null) {
     select: ReturnType<typeof vi.fn>
     eq: ReturnType<typeof vi.fn>
     maybeSingle: ReturnType<typeof vi.fn>
+    in: ReturnType<typeof vi.fn>
     insert: ReturnType<typeof vi.fn>
     update: ReturnType<typeof vi.fn>
     single: ReturnType<typeof vi.fn>
@@ -42,11 +43,12 @@ function buildChain(data: unknown, error: unknown = null) {
     select: vi.fn(),
     eq: vi.fn(),
     maybeSingle: vi.fn(),
+    in: vi.fn(),
     insert: vi.fn(),
     update: vi.fn(),
     single: vi.fn(),
   }
-  for (const method of ['select', 'eq', 'maybeSingle', 'insert', 'update', 'single'] as const) {
+  for (const method of ['select', 'eq', 'maybeSingle', 'in', 'insert', 'update', 'single'] as const) {
     chain[method].mockReturnValue(chain)
   }
   return chain
@@ -90,6 +92,11 @@ describe('API: /api/pharmacy/dispatch/payment/create pay-first', () => {
       buildChain({ doctor_fee_brl: 40, price_brl: 79 }),
       buildChain(null),
       buildChain({ jordan_qr_payments_enabled: true, pharmacy_express_payments_enabled: true, global_pix_mp_payments_enabled: true }),
+      buildChain([
+        { scope_key: 'BR', commercial_status: 'enabled', financial_status: 'ready' },
+        { scope_key: 'EXPRESS', commercial_status: 'enabled', financial_status: 'ready' },
+        { scope_key: 'JORDAN', commercial_status: 'enabled', financial_status: 'ready' },
+      ]),
       buildChain({ id: 'payment-1' }),
       buildChain({ id: 'payment-1' }),
     ]
@@ -124,7 +131,7 @@ describe('API: /api/pharmacy/dispatch/payment/create pay-first', () => {
         ENABLE_JORDAN_PAYMENTS: 'true',
       }),
     )
-    expect(supabaseMock.from).toHaveBeenCalledTimes(6)
+    expect(supabaseMock.from).toHaveBeenCalledTimes(7)
     expect(fetch).toHaveBeenCalledTimes(1)
   })
 
