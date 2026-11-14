@@ -30,7 +30,7 @@ with check (
     coalesce(auth.jwt()->'app_metadata'->>'role','') = 'admin'
     and not exists (
       select 1 from public.profiles p
-      where p.user_id = auth.uid() and p.active is false
+      where p.user_id = auth.uid() and p.active is not true
     )
   )
 );
