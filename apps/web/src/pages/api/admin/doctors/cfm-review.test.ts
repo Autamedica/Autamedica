@@ -134,7 +134,7 @@ describe('POST /api/admin/doctors/cfm-review', () => {
       p_license_status: 'active',
       p_reason: 'Consulta oficial CFM realizada e dados conferidos.',
       p_actor_id: 'reviewer-1',
-      p_evidence_path: expect.stringMatching(/^doctor-1\\/license-1\\/.+\\.pdf$/),
+      p_evidence_path: expect.stringMatching(/^doctor-1\/license-1\/.+\.pdf$/),
     }));
     expect(payload.data?.license?.cfm_evidence_url).toBe('https://storage.test/signed-proof');
   });
