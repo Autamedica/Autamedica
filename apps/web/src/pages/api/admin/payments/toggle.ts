@@ -27,7 +27,20 @@ export const GET: APIRoute = async ({ request, locals }) => {
   const db = createAstroAdminClient(locals.runtime?.env) as any
   const { data, error } = await db.from('platform_operational_switches').select('*').eq('id','global').maybeSingle()
   if (error) return internalError('payment_switches_unavailable')
-  return jsonOk(data ?? { jordan_qr_payments_enabled:true, pharmacy_express_payments_enabled:true, global_pix_mp_payments_enabled:true, whatsapp_send_enabled:false, email_send_enabled:false, dry_run_enabled:true, updated_by:null, updated_at:null, switch_audit:{} })
+  if (!data) return jsonOk({ jordan_qr_payments_enabled:true, pharmacy_express_payments_enabled:true, global_pix_mp_payments_enabled:true, whatsapp_send_enabled:false, email_send_enabled:false, dry_run_enabled:true, updated_by:null, updated_at:null, switch_audit:{} })
+  const auditEntries = Object.entries(data.switch_audit ?? {}) as Array<[string, { updated_by?:string; updated_at?:string; reason?:string|null }]>
+  const actorIds = [...new Set(auditEntries.map(([, entry]) => entry.updated_by).filter((id): id is string => Boolean(id)))]
+  const { data: actors } = actorIds.length
+    ? await db.from('profiles').select('user_id,first_name,last_name,email').in('user_id', actorIds)
+    : { data: [] }
+  const actorById = new Map((actors ?? []).map((actor: { user_id:string; first_name?:string|null; last_name?:string|null; email?:string|null }) => [
+    actor.user_id,
+    [actor.first_name, actor.last_name].filter(Boolean).join(' ').trim() || actor.email || actor.user_id,
+  ]))
+  const switchAudit = Object.fromEntries(auditEntries.map(([key, entry]) => [
+    key, { ...entry, updated_by_name: entry.updated_by ? actorById.get(entry.updated_by) ?? entry.updated_by : null },
+  ]))
+  return jsonOk({ ...data, switch_audit:switchAudit })
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
