@@ -18,15 +18,15 @@ Apagar un interruptor impide iniciar nuevas operaciones de ese flujo. Las solici
 
 ### Finanzas
 
-- **Pagos QR Jordan** — `jordan_qr_payments_enabled`. Gobierna la habilitación de nuevos checkouts QR de Jordan. No revierte pagos ya aprobados ni interrumpe consultas ya asignadas.
-- **Pagos Farmacias Express** — `pharmacy_express_payments_enabled`. Gobierna la creación de nuevos cobros de Farmacia Express. No cancela conciliaciones ni pagos ya aceptados.
-- **Pasarela Global PIX / MercadoPago** — `global_pix_mp_payments_enabled`. Gobierna nuevas operaciones a través de las pasarelas globales integradas. No revierte transacciones confirmadas por el PSP.
+- **Pagos QR Jordan** — `jordan_qr_payments_enabled`. Controla la creación de nuevos checkouts en `POST /api/pharmacy/dispatch/payment/create`, para partner `JORDAN` y solicitudes BR/general. No revierte pagos aprobados ni interrumpe consultas ya asignadas; los pagos `pending`/`approved` existentes siguen devolviendo su URL/estado.
+- **Pagos Farmacias Express** — `pharmacy_express_payments_enabled`. Es una de las tres condiciones del checkout en `POST /api/pharmacy/dispatch/payment/create` durante el rollout actual Jordan BR. No cancela preferencias existentes ni conciliaciones.
+- **Pasarela Global PIX / MercadoPago** — `global_pix_mp_payments_enabled`. Controla nuevas preferencias MercadoPago creadas por `POST /api/pharmacy/dispatch/payment/create`; la confirmación llega por `/api/payments/mercadopago/webhook`. No revierte transacciones confirmadas ni cancela preferencias ya creadas.
 
 ### Growth y comunicaciones
 
-- **Envío WhatsApp** — `whatsapp_send_enabled`. Controla los envíos salientes de WhatsApp desde Growth Agent Worker mediante OpenClaw. Apagado: no se inician nuevos envíos; los mensajes ya aceptados por el proveedor siguen su curso.
-- **Envío email** — `email_send_enabled`. Controla envíos salientes de Resend y Brevo ejecutados por Newsletter Worker. Growth Agent todavía no tiene adaptador de entrega de email implementado. Apagado: no se crean nuevos envíos; campañas o mensajes ya aceptados por el proveedor no se retiran.
-- **Dry run** — `dry_run_enabled`. Cuando está activo, los workers compatibles simulan la entrega y no llaman al proveedor externo. Desactivarlo permite la entrega real únicamente si el interruptor del canal correspondiente también está activo.
+- **Envío WhatsApp** — `whatsapp_send_enabled`. `apps/reminder-worker/src/growth-agent-worker.ts` valida el switch antes de `sendMessageWithFallback` hacia OpenClaw. Apagado: no se inician nuevos envíos; los mensajes ya aceptados por el proveedor siguen su curso.
+- **Envío email** — `email_send_enabled`. `apps/newsletter-worker/src/index.ts`, funciones `sendViaResend` y `sendViaBrevo`, para campañas de newsletter. Los correos transaccionales clínicos, de pagos, autenticación y recuperación no dependen de este interruptor. Growth Agent todavía no tiene adaptador de entrega de email implementado. Apagado: no se crean nuevos envíos; campañas o mensajes ya aceptados por el proveedor no se retiran.
+- **Dry run** — `dry_run_enabled`. Cuando está activo, Growth Agent simula la entrega y no llama a OpenClaw; Newsletter Worker bloquea el envío externo (no ejecuta una simulación de campaña). Desactivarlo permite la entrega real únicamente si el interruptor del canal correspondiente también está activo.
 
 ### Farmacias y Jordan
 
@@ -34,11 +34,11 @@ Los interruptores de Finanzas controlan la apertura de nuevos cobros. No apagan 
 
 ### IA y decisiones humanas
 
-Las capacidades internas de agentes y las decisiones de compliance pueden restringir una acción concreta, pero no pueden modificar el estado global de un flujo ni sustituir la autoridad administrativa. Las propuestas de riesgo se presentan en la bandeja de autorizaciones de Admin; la decisión final corresponde al administrador humano.
+Las capacidades internas de agentes (`send_whatsapp`, `enqueue_email`, `dry_run_outbound`) se consolidan en los tres switches Growth de esta tabla. Las decisiones de compliance pueden detener una acción concreta y las propuestas de riesgo se presentan en la bandeja de autorizaciones de Admin. No existe hoy un switch global independiente de IA en `public.platform_operational_switches`; la decisión de riesgo sigue la bandeja de aprobación humana.
 
 ### Guardia médica
 
-La disponibilidad de médicos, el heartbeat, la asignación de ofertas y las llamadas activas son estados operativos distintos de los controles de cobro y comunicaciones. No deben apagarse indirectamente al pausar pagos o Growth. La guardia activa y las videollamadas en curso se mantienen; los controles de negocio sólo afectan el flujo que describen.
+La disponibilidad de médicos, el heartbeat, la asignación de ofertas y las llamadas activas son estados operativos distintos de los controles de cobro y comunicaciones. En el catálogo actual no existe un interruptor global de Guardia Médica en `public.platform_operational_switches`: son estados del flujo de guardia y presencia, no un switch administrativo central. No deben apagarse indirectamente al pausar pagos o Growth.
 
 ## Auditoría del cambio
 
