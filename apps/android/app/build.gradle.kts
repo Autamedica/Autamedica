@@ -44,6 +44,12 @@ android {
     namespace = "com.autamedica.android"
     compileSdk = 35
 
+    // Robolectric tests exercise app resources (strings, notification channels and layouts).
+    // Without this, tests fall back to framework-only resources and fail with resource IDs.
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
     defaultConfig {
         applicationId = "com.autamedica.android"
         minSdk = 26
