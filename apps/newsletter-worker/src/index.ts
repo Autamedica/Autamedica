@@ -1503,6 +1503,8 @@ async function sendBrevoCampaign(env: Env, subject: string, html: string, listId
 }
 
 async function sendBrevoSmtp(env: Env, subject: string, html: string, recipient: { email: string; name?: string }): Promise<string> {
+  const enabled = await checkKillswitch(env, "email_brevo");
+  if (!enabled) throw new Error("Interruptor operativo de email deshabilitado antes del envío");
   const templateId = Number.parseInt(env.BREVO_DEFAULT_TEMPLATE_ID || String(AUTAMEDICA_BREVO_DEFAULT_TEMPLATE_ID), 10);
   const res = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
