@@ -170,36 +170,36 @@ export function PharmacyExpressConsultation({
     setFormError(null)
 
     if (!pharmacyPaymentsEnabled) {
-      setFormError('Los pagos de Consulta Exprés están desactivados por la administración.')
+      setFormError(isPortuguese ? 'Os pagamentos da Consulta Expressa estão desativados.' : 'Los pagos de Consulta Exprés están desactivados.')
       return
     }
     if (!formData.careCountry) {
-      setFormError('Seleccioná el país donde recibirás atención: Argentina o Brasil.')
+      setFormError(isPortuguese ? 'Escolha Argentina ou Brasil para continuar.' : 'Elegí Argentina o Brasil para continuar.')
       return
     }
     if (referralCode === 'JORDAN' && formData.careCountry !== 'BR') {
-      setFormError('O canal Jordan atende exclusivamente no Brasil.')
+      setFormError(isPortuguese ? 'O canal Jordan atende exclusivamente no Brasil.' : 'El canal Jordan atiende exclusivamente en Brasil.')
       return
     }
     if (referralCode === 'JORDAN' && !jordanPaymentsEnabled) {
-      setFormError('Este canal ainda não está disponível para atendimento. Nenhuma cobrança será feita.')
+      setFormError(isPortuguese ? 'Este canal ainda não está disponível para atendimento.' : 'Este canal todavía no está disponible para atención.')
       return
     }
     const documentNumber = formData.dni.replace(/\D/g, '')
     if (formData.careCountry === 'BR' ? documentNumber.length !== 11 : documentNumber.length < 5 || documentNumber.length > 10) {
-      setFormError(formData.careCountry === 'BR' ? 'Ingresá un CPF de 11 dígitos.' : 'Ingresá un DNI válido.')
+      setFormError(formData.careCountry === 'BR' ? 'Digite um CPF com 11 dígitos.' : 'Ingresá un DNI válido.')
       return
     }
     if (!formData.name.trim() || formData.name.trim().length < 3) {
-      setFormError('Por favor ingresa tu nombre y apellido completo.')
+      setFormError(isPortuguese ? 'Digite seu nome completo.' : 'Ingresá tu nombre y apellido completos.')
       return
     }
     if (!formData.phone.trim() || formData.phone.trim().length < 6) {
-      setFormError('Ingresa un número de celular o WhatsApp válido para recibir tu receta.')
+      setFormError(isPortuguese ? 'Digite um telefone ou WhatsApp válido.' : 'Ingresá un teléfono o WhatsApp válido.')
       return
     }
     if (!formData.reason.trim()) {
-      setFormError('Selecciona o describe el medicamento o motivo de consulta.')
+      setFormError(isPortuguese ? 'Informe o motivo da consulta.' : 'Indicá el motivo de consulta.')
       return
     }
 
@@ -234,7 +234,7 @@ export function PharmacyExpressConsultation({
       setCallRoomId(roomId)
       setStep('WAITING')
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al conectar con la guardia médica'
+      const msg = err instanceof Error ? err.message : (isPortuguese ? 'Não foi possível conectar ao plantão médico.' : 'No pudimos conectar con la guardia médica.')
       setFormError(msg)
     } finally {
       setSubmitting(false)
@@ -243,7 +243,7 @@ export function PharmacyExpressConsultation({
 
   const handleCancelRequest = async () => {
     if (!requestId || !accessToken) {
-      setFormError('No se puede cancelar sin autorización de esta consulta.')
+      setFormError(isPortuguese ? 'Não foi possível cancelar sem autorização.' : 'No se puede cancelar sin autorización de esta consulta.')
       return
     }
     try {
@@ -261,7 +261,7 @@ export function PharmacyExpressConsultation({
       }
       setStep('CANCELLED')
     } catch {
-      setFormError('No se pudo cancelar la solicitud. Volvé a intentar.')
+      setFormError(isPortuguese ? 'Não foi possível cancelar a solicitação. Tente novamente.' : 'No pudimos cancelar la solicitud. Volvé a intentar.')
     }
   }
 
@@ -276,7 +276,7 @@ export function PharmacyExpressConsultation({
           <span className="text-zinc-500">•</span>
           <span className="text-emerald-700 flex items-center gap-1.5 font-semibold">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-            Guardia Exprés
+            {copy.ready}
           </span>
           <span className="text-slate-400 hidden sm:inline">•</span>
           <span className="text-slate-600 hidden sm:inline font-normal">{referralPartnerName ?? pharmacyName}</span>
@@ -286,9 +286,7 @@ export function PharmacyExpressConsultation({
           <div className="min-h-[100dvh] flex items-center justify-center p-6 text-center text-slate-900">
             <div className="max-w-md">
               <h2 className="text-xl font-semibold text-slate-900">{copy.paymentTitle}</h2>
-              <p className="mt-3 text-sm text-zinc-300">
-                Confirme o pagamento de R$ 79,00 para iniciar a videochamada com o médico.
-              </p>
+              <p className="mt-3 text-sm text-slate-600">{copy.paymentHint}</p>
             </div>
           </div>
         )}
@@ -296,7 +294,7 @@ export function PharmacyExpressConsultation({
           <JordanPaymentWidget
             dispatchId={requestId}
             guestToken={accessToken}
-            sourceLabel={referralPartnerName ?? 'Farmacia Express'}
+            sourceLabel={referralPartnerName ?? (isPortuguese ? 'Farmácia Express' : 'Farmacia Express')}
             onStatusChange={(status) => setBrazilPaymentApproved(status === 'approved')}
           />
         )}
@@ -326,7 +324,7 @@ export function PharmacyExpressConsultation({
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white border border-slate-200 text-xs font-medium mb-2 shadow-md">
             <span className="font-bold text-slate-900">{copy.brand}</span>
             <span className="text-slate-500">•</span>
-            <span className="text-emerald-400 font-medium">{referralPartnerName ? 'Canal de referidos' : 'Red de Farmacias Asociadas'}</span>
+            <span className="text-sky-700 font-medium">{referralPartnerName ? (isPortuguese ? 'Canal de indicação' : 'Canal de referidos') : (isPortuguese ? 'Rede de farmácias parceiras' : 'Red de farmacias asociadas')}</span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 flex items-center justify-center gap-2">
@@ -335,18 +333,18 @@ export function PharmacyExpressConsultation({
 
           <div className="flex items-center justify-center gap-2 mt-1.5 text-xs text-slate-600">
             <Building2 className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-            <span>{referralPartnerName ? 'Origen de referencia: ' : 'Punto de Atención Digital: '}<strong className="text-slate-900 font-semibold">{referralPartnerName ?? pharmacyName}</strong></span>
+            <span>{referralPartnerName ? (isPortuguese ? 'Origem da indicação: ' : 'Origen de referencia: ') : (isPortuguese ? 'Ponto de atendimento digital: ' : 'Punto de atención digital: ')}<strong className="text-slate-900 font-semibold">{referralPartnerName ?? pharmacyName}</strong></span>
           </div>
           <p className="text-xs text-slate-500 mt-1 max-w-md">
-            Atención médica por videollamada. La emisión de documentos depende del profesional y de las habilitaciones correspondientes a cada país.
+            {isPortuguese ? 'Converse com um profissional por videochamada.' : 'Consultá con un profesional por videollamada.'}
           </p>
         </header>
 
         {/* STEP: FORM */}
         {step === 'FORM' && (
           <div className="w-full rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xl shadow-slate-200/70">
-            <div className="flex items-center justify-between border-b border-am-surface-700/50 pb-4 mb-5">
-              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-4 mb-5">
+              <div className="flex items-center gap-2 text-xs font-semibold text-sky-700 uppercase tracking-wider">
                 <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>{isPortuguese ? 'Atendimento imediato · Rede médica AutaMedica' : 'Atención inmediata · Red médica AutaMedica'}</span>
               </div>
@@ -384,13 +382,13 @@ export function PharmacyExpressConsultation({
                 <div>
                   <label htmlFor={dniInputId} className="block text-xs font-medium text-slate-600 mb-1.5 flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5 text-slate-500" />
-                    {formData.careCountry === 'BR' ? 'CPF (11 dígitos)' : 'DNI / Documento'}
+                    {formData.careCountry === 'BR' ? 'CPF (11 dígitos)' : 'DNI'}
                   </label>
                   <input
                     id={dniInputId}
                     type="text"
                     required
-                    placeholder={formData.careCountry === 'BR' ? 'Ej. 12345678909' : 'Ej. 35123456'}
+                    placeholder={formData.careCountry === 'BR' ? 'Ex. 123.456.789-09' : 'Ej. 35123456'}
                     value={formData.dni}
                     onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition"
@@ -484,30 +482,30 @@ export function PharmacyExpressConsultation({
               </div>
 
               <p className="text-[10px] text-center text-slate-500 pt-1">
-                La atención y la eventual emisión de documentos dependen de la verificación profesional, del país elegido y de las integraciones habilitadas.
+                {isPortuguese ? 'Um profissional atenderá você por videochamada.' : 'Un profesional atenderá tu consulta por videollamada.'}
               </p>
 
               {/* Institutional Trust & Regulatory Seals */}
-              <div className="pt-4 mt-2 border-t border-am-surface-700/50 grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-left">
-                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-slate-50 border border-am-surface-700/50">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <div className="pt-4 mt-2 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-left">
+                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <ShieldCheck className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[11px] font-semibold text-white">Consulta por Videollamada</p>
-                    <p className="text-[10px] text-slate-500 leading-tight">Atención remota con controles clínicos y de identidad</p>
+                    <p className="text-[11px] font-semibold text-slate-900">{isPortuguese ? 'Videoatendimento' : 'Videoconsulta'}</p>
+                    <p className="text-[10px] text-slate-500 leading-tight">{isPortuguese ? 'Atendimento médico remoto' : 'Atención médica remota'}</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-slate-50 border border-am-surface-700/50">
+                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
                   <FileCheck className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[11px] font-semibold text-white">Documentación Médica</p>
-                    <p className="text-[10px] text-slate-500 leading-tight">Emisión sujeta a habilitación y validación según país</p>
+                    <p className="text-[11px] font-semibold text-slate-900">{isPortuguese ? 'Documentos médicos' : 'Documentación médica'}</p>
+                    <p className="text-[10px] text-slate-500 leading-tight">{isPortuguese ? 'Receitas e atestados digitais' : 'Recetas y constancias digitales'}</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-slate-50 border border-am-surface-700/50">
-                  <Lock className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <Lock className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[11px] font-semibold text-white">Protección de Datos</p>
-                    <p className="text-[10px] text-slate-500 leading-tight">Acceso controlado a información clínica</p>
+                    <p className="text-[11px] font-semibold text-slate-900">{isPortuguese ? 'Dados protegidos' : 'Datos protegidos'}</p>
+                    <p className="text-[10px] text-slate-500 leading-tight">{isPortuguese ? 'Acesso controlado às suas informações' : 'Acceso controlado a tu información'}</p>
                   </div>
                 </div>
               </div>
