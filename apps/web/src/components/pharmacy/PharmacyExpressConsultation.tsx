@@ -256,7 +256,7 @@ export function PharmacyExpressConsultation({
         },
       )
       if (!result.cancelled) {
-        setFormError('La consulta ya fue asignada o no pudo cancelarse.')
+        setFormError(isPortuguese ? 'A consulta já foi atribuída ou não pôde ser cancelada.' : 'La consulta ya fue asignada o no pudo cancelarse.')
         return
       }
       setStep('CANCELLED')
