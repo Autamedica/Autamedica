@@ -39,7 +39,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       ? Date.now() - new Date(duty.last_heartbeat_at).getTime()
       : Number.POSITIVE_INFINITY
     if (!duty?.is_on_duty || heartbeatAge < 0 || heartbeatAge > 90_000) {
-      return jsonOk({ queue: [], count: 0 })
+      return jsonOk({ queue: [], count: 0, careCountry: doctor.care_country })
     }
 
     const { data: offers, error: offersError } = await dispatchAdmin
@@ -94,6 +94,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     return jsonOk({
       queue,
       count: queue.length,
+      careCountry: doctor.care_country,
     })
   } catch (err) {
     logger.error('[api/doctors/on-duty/queue] GET error', err)
