@@ -480,39 +480,82 @@ class PrescriptionRepositoryImpl @Inject constructor(
 
         val doctor = supabaseClient.postgrest
             .from("doctors")
-            .select(Columns.list("id", "license_number")) {
+            .select(Columns.list("id", "license_number", "license_type", "uf_brazil", "care_country", "active")) {
                 filter { eq("user_id", userId) }
             }
             .decodeSingleOrNull<DoctorRecordDto>()
             ?: throw IllegalStateException("Perfil médico no encontrado")
 
-        val validationStatus = runCatching {
-            supabaseClient.postgrest
-                .from("profiles")
-                .select(Columns.list("sss_validation_status")) {
-                    filter { eq("user_id", userId) }
+        val countryCode = InCallDocumentPolicy.doctorCountry(
+            doctor.licenseType, doctor.careCountry, doctor.ufBrazil,
+        )
+        val hasLicense = !doctor.licenseNumber.isNullOrBlank() && doctor.active
+        if (countryCode == "BR") {
+            val crmNumber = doctor.licenseNumber.orEmpty().filter(Char::isDigit)
+            val uf = doctor.ufBrazil?.uppercase().orEmpty()
+            val licenses = supabaseClient.postgrest.from("doctor_licenses")
+                .select(Columns.list(
+                    "license_number", "license_type", "uf_brazil", "status",
+                    "cfm_validation_status", "cfm_evidence_path", "cfm_review_notes",
+                    "cfm_reviewed_by", "cfm_reviewed_at", "cfm_last_checked_at",
+                )) {
+                    filter {
+                        eq("doctor_id", doctor.id)
+                        eq("license_type", "CRM")
+                        eq("status", "active")
+                        eq("cfm_validation_status", "valid")
+                    }
+                }.decodeList<CfmLicenseEligibilityDto>()
+            val verified = hasLicense && doctor.licenseType == "CRM" &&
+                crmNumber.isNotBlank() && uf.matches(Regex("^[A-Z]{2}$")) &&
+                licenses.any { license ->
+                    license.licenseNumber.orEmpty().filter(Char::isDigit) == crmNumber &&
+                        license.ufBrazil?.uppercase() == uf &&
+                        !license.evidencePath.isNullOrBlank() &&
+                        (license.reviewNotes?.trim()?.length ?: 0) >= 10 &&
+                        !license.reviewedBy.isNullOrBlank() &&
+                        !license.reviewedAt.isNullOrBlank() &&
+                        !license.lastCheckedAt.isNullOrBlank()
                 }
-                .decodeSingleOrNull<DoctorProfileValidationDto>()
-                ?.sssValidationStatus
-        }.getOrNull()
-
-        val hasLicense = !doctor.licenseNumber.isNullOrBlank()
-        val isStatusValid = validationStatus.equals("valid", ignoreCase = true) ||
-                validationStatus.equals("exempt", ignoreCase = true)
-
-        val isEligible = hasLicense && isStatusValid
-
-        val reason = when {
-            !hasLicense -> "Matrícula profesional no registrada en el perfil"
-            !isStatusValid -> "Validación profesional SISA / REFEPS pendiente (Decreto 63/2024)"
-            else -> null
+            return@runCatching DoctorEligibility(
+                isEligible = verified,
+                doctorLicense = doctor.licenseNumber,
+                validationStatus = if (verified) "valid" else "pending_review",
+                reason = if (verified) null else "Validação CRM/UF no CFM pendente",
+                countryCode = "BR",
+            )
         }
 
+        if (countryCode != "AR") {
+            return@runCatching DoctorEligibility(
+                isEligible = false,
+                doctorLicense = doctor.licenseNumber,
+                validationStatus = "unsupported_jurisdiction",
+                reason = "Jurisdição profissional não habilitada para atestados",
+                countryCode = countryCode,
+            )
+        }
+
+        val validationStatus = supabaseClient.postgrest
+            .from("profiles")
+            .select(Columns.list("sss_validation_status")) {
+                filter { eq("user_id", userId) }
+            }
+            .decodeSingleOrNull<DoctorProfileValidationDto>()
+            ?.sssValidationStatus
+        val isStatusValid = validationStatus.equals("valid", ignoreCase = true) ||
+            validationStatus.equals("exempt", ignoreCase = true)
+        val isEligible = hasLicense && isStatusValid
         DoctorEligibility(
             isEligible = isEligible,
             doctorLicense = doctor.licenseNumber,
             validationStatus = validationStatus,
-            reason = reason,
+            reason = when {
+                !hasLicense -> "Matrícula profesional no registrada en el perfil"
+                !isStatusValid -> "Validación profesional SISA / REFEPS pendiente (Decreto 63/2024)"
+                else -> null
+            },
+            countryCode = "AR",
         )
     }.onFailure {
         SecureLog.error("[Prescriptions] Failed checking doctor eligibility", it)
@@ -881,6 +924,17 @@ class PrescriptionRepositoryImpl @Inject constructor(
         @SerialName("user_id") val userId: String,
         @SerialName("first_name") val firstName: String? = null,
         @SerialName("last_name") val lastName: String? = null,
+    )
+
+    @Serializable
+    private data class CfmLicenseEligibilityDto(
+        @SerialName("license_number") val licenseNumber: String? = null,
+        @SerialName("uf_brazil") val ufBrazil: String? = null,
+        @SerialName("cfm_evidence_path") val evidencePath: String? = null,
+        @SerialName("cfm_review_notes") val reviewNotes: String? = null,
+        @SerialName("cfm_reviewed_by") val reviewedBy: String? = null,
+        @SerialName("cfm_reviewed_at") val reviewedAt: String? = null,
+        @SerialName("cfm_last_checked_at") val lastCheckedAt: String? = null,
     )
 
     @Serializable
