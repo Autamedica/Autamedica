@@ -12,7 +12,7 @@ if (!externalId || !/^[a-zA-Z0-9-]{1,255}$/.test(externalId)) {
   process.exit(1);
 }
 const base = new URL(apiUrl);
-if (base.origin !== 'https://api.memed.com.br' || base.pathname.replace(/\\/$/, '') !== '/v1') {
+if (base.origin !== 'https://api.memed.com.br' || (base.pathname.endsWith('/') ? base.pathname.slice(0, -1) : base.pathname) !== '/v1') {
   console.error('MEMED_PREFLIGHT_CONFIGURATION_INVALID=production_api_url');
   process.exit(1);
 }
@@ -31,7 +31,7 @@ const safeBody = (payload, raw) => {
       code: typeof entry?.code === 'string' ? entry.code.slice(0, 80) : undefined,
       title: typeof entry?.title === 'string' ? entry.title.slice(0, 120) : undefined,
       detail: typeof entry?.detail === 'string'
-        ? entry.detail.replaceAll(externalId, '[EXTERNAL_ID]').replace(/\\b\\d{11}\\b/g, '[CPF]').slice(0, 240)
+        ? entry.detail.replaceAll(externalId, '[EXTERNAL_ID]').replace(/[0-9]{11}/g, '[CPF]').slice(0, 240)
         : undefined,
     })) : [];
     return JSON.stringify({
