@@ -18,7 +18,7 @@ data class MedicalCertificate(
     val patientDni: String? = null,
     val signedPdfUrl: String? = null,
     val qrCodeContent: String? = null,
-    val countryCode: String = "AR",
+    val countryCode: String = "",
     val createdAt: String,
     val signatureVerifiedAt: String? = null,
     val restHours: Int = 0,
