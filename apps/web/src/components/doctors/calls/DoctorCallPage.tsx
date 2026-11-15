@@ -290,7 +290,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
       fullText,
       durationSeconds,
       consentDoctor: true,
-      lang: 'es-AR',
+      lang: transcriptionLocale,
     }
 
     const url = `/api/doctors/consultations/${roomId}/transcription`
