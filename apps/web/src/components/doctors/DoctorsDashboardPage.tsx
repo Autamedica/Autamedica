@@ -25,8 +25,6 @@ import {
   FileText, 
   Users, 
   Video,
-  Mic,
-  Camera,
   AlertCircle,
   CheckCircle2,
   Clock,
