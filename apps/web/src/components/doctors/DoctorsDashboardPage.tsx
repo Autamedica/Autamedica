@@ -347,6 +347,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
   const isBrazilianDoctor = doctorCountry === 'BR';
   const pendingMandates = (stats?.pendingClarifications ?? 0) + (stats?.pendingTriageMandates ?? 0);
   const todayCount = stats?.todayCount ?? 0;
+  const activeCount = stats?.activeCount ?? 0;
   const todayCompletedCount = stats?.todayCompletedCount ?? 0;
   const patientsCount = stats?.patientsCount ?? 0;
   const _historyCount = stats?.historyCount ?? 0;
