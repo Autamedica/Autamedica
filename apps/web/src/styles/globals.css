@@ -232,20 +232,20 @@ a {
    Doctor Portal — Warm Light Theme Scope
    ═══════════════════════════════════════════ */
 .portal-doctor {
-  --am-bg: #FAFAF9;
+  --am-bg: #F8FAFC;
   --am-surface: #FFFFFF;
-  --am-surface-hover: #F5F5F4;
-  --am-border: #E7E5E4;
-  --am-border-hover: #D6D3D1;
-  --am-text-primary: #1C1917;
-  --am-text-secondary: #57534E;
-  --am-text-tertiary: #A8A29E;
-  --am-accent: #0EA5E9;
-  --am-accent-soft: rgba(14, 165, 233, 0.10);
+  --am-surface-hover: #F1F5F9;
+  --am-border: #E2E8F0;
+  --am-border-hover: #CBD5E1;
+  --am-text-primary: #0F2537;
+  --am-text-secondary: #475569;
+  --am-text-tertiary: #64748B;
+  --am-accent: #0D9488;
+  --am-accent-soft: rgba(13, 148, 136, 0.10);
 }
 
-.portal-doctor ::selection {
-  background: rgba(14, 165, 233, 0.15);
+.portal-doctor h1,\n.portal-doctor h2,\n.portal-doctor h3,\n.portal-doctor h4,\n.portal-doctor h5,\n.portal-doctor h6 {\n  font-family: var(--font-sans);\n}\n\n.portal-doctor ::selection {
+  background: rgba(13, 148, 136, 0.15);
   color: var(--am-text-primary);
 }
 
