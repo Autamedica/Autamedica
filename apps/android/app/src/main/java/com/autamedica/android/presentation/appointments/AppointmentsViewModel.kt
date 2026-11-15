@@ -19,6 +19,7 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.util.Locale
 import com.autamedica.android.presentation.common.UiErrorMapper
 import javax.inject.Inject
@@ -367,14 +368,11 @@ class AppointmentsViewModel @Inject constructor(
         if (country == "BR") Locale.forLanguageTag("pt-BR")
         else Locale.forLanguageTag("es-AR")
 
-    private fun formatConfirmationDate(date: LocalDate): String {
-        val today = LocalDate.now()
-        return when (date) {
-            today -> "hoy"
-            today.plusDays(1) -> "mañana"
-            else -> date.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", careLocale(_uiState.value.careCountry)))
-        }
-    }
+    private fun formatConfirmationDate(date: LocalDate): String =
+        date.format(
+            DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+                .withLocale(careLocale(_uiState.value.careCountry))
+        )
 
     private fun loadUserInfo() {
         viewModelScope.launch {
