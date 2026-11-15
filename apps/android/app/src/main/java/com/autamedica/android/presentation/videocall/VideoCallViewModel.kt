@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.videocall
 
+import com.autamedica.android.R
+
 import android.content.Context
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
@@ -1082,7 +1084,7 @@ class VideoCallViewModel @Inject constructor(
         } else {
             val systemMessage = ChatMessage(
                 id = "system-${System.currentTimeMillis()}",
-                text = "No se pudo enviar. Verifica la conexion del chat.",
+                text = context.getString(R.string.in_call_chat_send_error),
                 senderId = "system",
                 senderType = "system",
                 senderName = "Sistema",

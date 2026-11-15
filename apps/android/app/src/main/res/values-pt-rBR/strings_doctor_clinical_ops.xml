@@ -204,4 +204,9 @@
     <string name="signature_error_invalid_cpf">Informe um CPF brasileiro válido com 11 dígitos.</string>
     <string name="signature_error_cpf_mismatch">O CPF não corresponde ao registrado no perfil médico.</string>
     <string name="in_call_hide_diagnosis">Ocultar o diagnóstico no atestado</string>
+
+    <!-- In-call clinical sheet -->
+    <string name="in_call_clinical_ops_title">Utilidade Clínica em Chamada</string>
+    <string name="in_call_clinical_ops_status">Chamada ativa • Documentos sujeitos a verificação</string>
+    <string name="in_call_chat_send_error">Não foi possível enviar. Verifique a conexão do chat.</string>
 </resources>

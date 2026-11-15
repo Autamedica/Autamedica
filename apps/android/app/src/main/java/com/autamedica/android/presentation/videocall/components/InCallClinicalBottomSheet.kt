@@ -168,7 +168,7 @@ fun InCallClinicalBottomSheet(
                     }
                     Column {
                         Text(
-                            text = "Utilidad Clínica In-Call",
+                            text = stringResource(R.string.in_call_clinical_ops_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
@@ -183,7 +183,7 @@ fun InCallClinicalBottomSheet(
                                     .background(AuSuccess, CircleShape)
                             )
                             Text(
-                                text = "Llamada activa • Documentos sujetos a verificación",
+                                text = stringResource(R.string.in_call_clinical_ops_status),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AuTextTertiary,
                             )
