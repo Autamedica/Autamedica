@@ -27,6 +27,13 @@ interface PharmacyExpressConsultationProps {
   referralPartnerName?: string | null
   jordanPaymentsEnabled?: boolean
   pharmacyPaymentsEnabled?: boolean
+  pricingByCountry?: Partial<Record<'AR' | 'BR', {
+    currency: 'ARS' | 'BRL'
+    consultation_price_minor: number
+    doctor_fee_minor: number
+    partner_commission_minor: number
+    require_payment_before_dispatch: boolean
+  }>>
 }
 
 type Step = 'FORM' | 'WAITING' | 'CALL' | 'ENDED' | 'CANCELLED'
@@ -51,6 +58,7 @@ export function PharmacyExpressConsultation({
   referralCode = null,
   jordanPaymentsEnabled = false,
   pharmacyPaymentsEnabled = false,
+  pricingByCountry = {},
 }: PharmacyExpressConsultationProps) {
   const dniInputId = useId()
   const nameInputId = useId()
@@ -106,6 +114,9 @@ export function PharmacyExpressConsultation({
   }, [isJordanReferral])
 
   const isPortuguese = formData.careCountry === 'BR'
+  const currentPricing = formData.careCountry ? pricingByCountry[formData.careCountry] : undefined
+  const requiresCountryPayment = currentPricing?.require_payment_before_dispatch === true
+  const amountLabel = currentPricing ? new Intl.NumberFormat(currentPricing.currency === 'BRL' ? 'pt-BR' : 'es-AR', { style: 'currency', currency: currentPricing.currency }).format(currentPricing.consultation_price_minor / 100) : null
   const copy = isPortuguese ? COPY.BR : COPY.AR
   const selectedReason = reasonCategory === 'pain' ? (isPortuguese ? 'Dor / mal-estar' : 'Dolor / malestar') : reasonCategory === 'prescription' ? (isPortuguese ? 'Receita' : 'Receta') : reasonCategory === 'other' ? (isPortuguese ? 'Outro motivo' : 'Otro motivo') : ''
   const reasonSummary = [selectedReason, formData.reason.trim()].filter(Boolean).join(': ')
@@ -125,7 +136,7 @@ export function PharmacyExpressConsultation({
   useEffect(() => {
     const active = step === 'WAITING' &&
       (formData.careCountry === 'AR' || formData.careCountry === 'BR') &&
-      (formData.careCountry !== 'BR' || brazilPaymentApproved)
+      (!pricingByCountry[formData.careCountry]?.require_payment_before_dispatch || brazilPaymentApproved)
     if (!active) { setOnlineDoctorCount(null); return }
     let current = true
     const refresh = async () => {
@@ -145,13 +156,13 @@ export function PharmacyExpressConsultation({
     void refresh()
     const timer = window.setInterval(() => void refresh(), 15000)
     return () => { current = false; window.clearInterval(timer) }
-  }, [step, formData.careCountry, brazilPaymentApproved])
+  }, [step, formData.careCountry, brazilPaymentApproved, pricingByCountry])
 
   useEffect(() => {
-    if (step !== 'WAITING' || (formData.careCountry === 'BR' && !brazilPaymentApproved)) { setWaitingSeconds(0); return }
+    if (step !== 'WAITING' || (requiresCountryPayment && !brazilPaymentApproved)) { setWaitingSeconds(0); return }
     const timer = window.setInterval(() => setWaitingSeconds((seconds) => seconds + 1), 1000)
     return () => window.clearInterval(timer)
-  }, [step, formData.careCountry, brazilPaymentApproved])
+  }, [step, formData.careCountry, brazilPaymentApproved, requiresCountryPayment])
 
   // Polling / escucha para consultar GET /api/pharmacy/dispatch/${requestId}?token=${accessToken}
   const checkStatus = useCallback(async (id: string, token: string | null) => {
@@ -220,8 +231,8 @@ export function PharmacyExpressConsultation({
       setFormError(isPortuguese ? 'Escolha Argentina ou Brasil para continuar.' : 'Elegí Argentina o Brasil para continuar.')
       return
     }
-    if (isJordanReferral && formData.careCountry !== 'BR') {
-      setFormError(isPortuguese ? 'O canal Jordan atende exclusivamente no Brasil.' : 'El canal Jordan atiende exclusivamente en Brasil.')
+    if (!currentPricing) {
+      setFormError(isPortuguese ? 'A tarifa deste país ainda não está configurada.' : 'La tarifa de este país todavía no está configurada.')
       return
     }
     if (formData.careCountry === 'BR' && !lgpdConsent) {
@@ -329,11 +340,14 @@ export function PharmacyExpressConsultation({
           </span>
           <span className="text-slate-400 hidden sm:inline">•</span>
         </div>
-        {(!requiresBrazilPayment || brazilPaymentApproved) && <GuestCallPage roomId={callRoomId} language={isPortuguese ? 'pt' : 'es'} />}
-        {requiresBrazilPayment && requestId && accessToken && (
+        {(!requiresCountryPayment || brazilPaymentApproved) && <GuestCallPage roomId={callRoomId} language={isPortuguese ? 'pt' : 'es'} />}
+        {requiresCountryPayment && requestId && accessToken && currentPricing && (
           <JordanPaymentWidget
             dispatchId={requestId}
             guestToken={accessToken}
+            currency={currentPricing.currency}
+            amountMinor={currentPricing.consultation_price_minor}
+            countryCode={formData.careCountry as 'AR' | 'BR'}
             onStatusChange={(status) => setBrazilPaymentApproved(status === 'approved')}
           />
         )}
@@ -363,10 +377,10 @@ export function PharmacyExpressConsultation({
             )}
 
             <form onSubmit={handleSubmit} className="space-y-3.5">
-              {!isJordanReferral && <fieldset className="grid grid-cols-2 gap-2">
+              {<fieldset className="grid grid-cols-2 gap-2">
                 <legend className="mb-2 text-xs font-medium text-slate-600">{copy.country}</legend>
                 {(['BR', 'AR'] as const).map((country) => {
-                  const disabled = isJordanReferral && country === 'AR'
+                  const disabled = false
                   const selected = formData.careCountry === country
                   return (
                     <label key={country} className={selected ? 'flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#0EA5E9] bg-sky-50 px-3 text-sm font-medium text-sky-800' : 'flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700'}>
@@ -458,6 +472,7 @@ export function PharmacyExpressConsultation({
                   <span>Ao continuar, você concorda com os termos de teleconsulta e o tratamento de dados conforme a LGPD</span>
                 </label>
               )}
+              {formData.careCountry && currentPricing && amountLabel && <div className="flex items-center justify-between rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-sm"><span className="font-medium text-slate-700">{isPortuguese ? 'Valor da consulta' : 'Precio de la consulta'}</span><strong className="tabular-nums text-slate-900">{amountLabel}</strong></div>}
               <div className="pt-2">
                 <button
                   type="submit"
@@ -486,7 +501,7 @@ export function PharmacyExpressConsultation({
         {/* STEP: WAITING */}
         {step === 'WAITING' && (
           <div className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm sm:p-5">
-            {(formData.careCountry !== 'BR' || brazilPaymentApproved) && (
+            {(!requiresCountryPayment || brazilPaymentApproved) && (
               <>
                 <div className="mb-2 w-full"><LiveMedicalPresenceRadar onlineCount={onlineDoctorCount} isPortuguese={isPortuguese} /></div>
                 <p className="mb-3 text-xs font-medium text-slate-600" aria-live="polite">{copy.searching}</p>
@@ -497,7 +512,7 @@ export function PharmacyExpressConsultation({
               </>
             )}
             <div className="mb-4 rounded-xl bg-slate-50 px-3 py-2.5 text-left text-xs"><p className="font-semibold text-slate-900">{copy.patient}: {formData.name}</p>{reasonSummary && <p className="mt-1 text-slate-600">{copy.reasonLabel}: {reasonSummary}</p>}</div>
-            {formData.careCountry === 'BR' && requestId && accessToken && <div className="mb-4 w-full"><JordanPaymentWidget dispatchId={requestId} guestToken={accessToken} onStatusChange={(status) => setBrazilPaymentApproved(status === 'approved')} /></div>}
+            {requiresCountryPayment && requestId && accessToken && currentPricing && <div className="mb-4 w-full"><JordanPaymentWidget dispatchId={requestId} guestToken={accessToken} currency={currentPricing.currency} amountMinor={currentPricing.consultation_price_minor} countryCode={formData.careCountry as 'AR' | 'BR'} onStatusChange={(status) => setBrazilPaymentApproved(status === 'approved')} /></div>}
             <div className="flex items-center justify-center">
               <button type="button" onClick={handleCancelRequest} className="min-h-11 w-full rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100">{copy.cancel}</button>
             </div>
