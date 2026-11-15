@@ -368,7 +368,13 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
                 tabIndex={0}
                 className="group cursor-pointer"
                 onClick={() => onSelectPatient?.(patient.id, 'patient-info')}
-                onKeyDown={(e) => { if (e.key === 'Enter') onSelectPatient?.(patient.id, 'patient-info') }}
+                onKeyDown={(e) => {
+                  if (e.target !== e.currentTarget) return
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    onSelectPatient?.(patient.id, 'patient-info')
+                  }
+                }}
               >
               <Card className="overflow-hidden rounded-2xl border-neutral-200/70 bg-white shadow-sm transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-neutral-300 group-hover:shadow-xl group-hover:shadow-neutral-900/5">
                 <CardContent className="p-0">
