@@ -5,10 +5,13 @@ compatibility_flags = ["nodejs_compat_v2", "global_fetch_strictly_public"]
 # Astro build output
 pages_build_output_dir = "dist"
 
+# MEMED_MOBILE_ENABLED and MEMED_MOBILE_PILOT_DOCTOR_ID are intentionally
+# managed as Cloudflare Pages secrets by deploy-production.yml. Do not declare
+# them in Wrangler vars: both sources share the same runtime binding namespace.
+
 [vars]
 NODE_ENV = "production"
 MEMED_RX_ENABLED = "false"
-MEMED_MOBILE_ENABLED = "false" # Independent Android pilot gate
 MEMED_API_URL = "https://api.memed.com.br/v1"
 MEMED_SCRIPT_URL = "https://partners.memed.com.br/integration.js"
 
@@ -17,7 +20,6 @@ NODE_ENV = "production"
 # Memed production is enabled ONLY for the verified pilot doctor enforced by both API endpoints.
 # The provider event is stored as draft pending independent signature/delivery verification.
 MEMED_RX_ENABLED = "true"
-MEMED_MOBILE_ENABLED = "false" # Independent Android pilot gate
 MEMED_API_URL = "https://api.memed.com.br/v1"
 MEMED_SCRIPT_URL = "https://partners.memed.com.br/integration.js"
 MEMED_PILOT_DOCTOR_ID = "080fb7ae-92b4-44d4-8941-a6db65004b9f"
