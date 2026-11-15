@@ -1508,7 +1508,7 @@ class VideoCallViewModel @Inject constructor(
         val trimmedDiagnosis = diagnosis.trim()
 
         if (trimmedMed.isEmpty() || trimmedDiagnosis.isEmpty()) {
-            onResult(false, "Medicamento y diagnóstico clínico son obligatorios")
+            onResult(false, if (_uiState.value.patientCareCountryCode == "BR") "Informe o medicamento e o diagnóstico clínico." else "Indique medicamento y diagnóstico clínico.")
             return
         }
 
@@ -1551,7 +1551,7 @@ class VideoCallViewModel @Inject constructor(
                 prescriptionRepository.createPrescription(request).getOrThrow()
             }.onSuccess { prescription ->
                 val cuir = prescription.cuir ?: prescription.id.take(8)
-                val chatMsg = if (_uiState.value.doctorCountryCode == "BR") "📋 Receita emitida na AutaMedica. Código de validação: $cuir. PDF: ${prescription.signedPdfUrl.orEmpty()}" else "📋 Receta emitida en AutaMedica. Código de verificación: $cuir. PDF: ${prescription.signedPdfUrl.orEmpty()}"
+                val chatMsg = if ((_uiState.value.patientCareCountryCode ?: _uiState.value.doctorCountryCode) == "BR") "📋 Receita emitida na AutaMedica. Código de validação: $cuir. PDF: ${prescription.signedPdfUrl.orEmpty()}" else "📋 Receta emitida en AutaMedica. Código de verificación: $cuir. PDF: ${prescription.signedPdfUrl.orEmpty()}"
                 engine.sendChatMessage(chatMsg)
                 val localMsg = ChatMessage(
                     id = "local-rx-${System.currentTimeMillis()}",
@@ -1626,7 +1626,7 @@ class VideoCallViewModel @Inject constructor(
                     startDate = startDateStr,
                     endDate = endDateStr,
                     diagnosis = trimmedDiagnosis.takeIf { it.isNotBlank() },
-                    hideDiagnosis = hideDiagnosis,
+                    hideDiagnosis = hideDiagnosis || country == "BR",
                     observations = "Borrador preparado durante videoconsulta AutaMedica; pendiente de firma",
                     countryCode = country,
                 )
@@ -1635,7 +1635,7 @@ class VideoCallViewModel @Inject constructor(
             }.onSuccess { certificate ->
                 val cuir = certificate.cuir.ifBlank { certificate.id.take(8) }
                 val restText = if (effectiveRest > 0) "$effectiveRest días de reposo" else "Sin reposo"
-                val chatMsg = if (_uiState.value.doctorCountryCode == "BR") "📋 Rascunho de atestado médico preparado. Código de validação: $cuir. Assinatura médica pendente." else "📋 Borrador de atestado preparado: ${type.displayName} ($restText). Código de verificación: $cuir. Firma médica pendiente."
+                val chatMsg = if ((_uiState.value.patientCareCountryCode ?: _uiState.value.doctorCountryCode) == "BR") "📋 Rascunho de atestado médico preparado. Código de validação: $cuir. Assinatura médica pendente." else "📋 Borrador de atestado preparado: ${type.displayName} ($restText). Código de verificación: $cuir. Firma médica pendiente."
                 engine.sendChatMessage(chatMsg)
                 val localMsg = ChatMessage(
                     id = "local-cert-${System.currentTimeMillis()}",
