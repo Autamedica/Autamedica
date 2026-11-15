@@ -45,7 +45,7 @@ data class DoctorCertificatesUiState(
     val restHours: Int = 0,
     val restPeriodUnit: String = "days",
     val startDate: String = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE),
-    val endDate: String = LocalDate.now().plusDays(2).format(DateTimeFormatter.ISO_LOCAL_DATE),
+    val endDate: String? = LocalDate.now().plusDays(2).format(DateTimeFormatter.ISO_LOCAL_DATE),
     val diagnosis: String = "",
     val diagnosisCode: String? = null,
     val hideDiagnosis: Boolean = false,
