@@ -578,7 +578,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
       <LicenseStatusBanner />
 
       <div className="mb-6">
-        <DoctorOnDutyWidget />
+        <DoctorOnDutyWidget careCountry={doctorCountry === 'BR' ? 'BR' : doctorCountry === 'AR' ? 'AR' : undefined} />
       </div>
 
       <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0D9488]">MÉTRICAS CLÍNICAS</p>
