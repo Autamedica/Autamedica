@@ -172,6 +172,7 @@ fun PatientProfileScreen(
                     // 2. Wallet Balance Card
                     PatientWalletCard(
                         balanceCents = uiState.walletBalanceCents,
+                        currency = uiState.walletCurrency,
                         isLoading = uiState.isTopupLoading,
                         onTopupClick = { viewModel.setTopupDialogVisible(true) },
                     )
@@ -220,6 +221,7 @@ fun PatientProfileScreen(
     // Diálogo de recarga de billetera
     if (uiState.isTopupDialogOpen) {
         WalletTopupDialog(
+            currency = uiState.walletCurrency,
             onDismiss = { viewModel.setTopupDialogVisible(false) },
             onConfirmTopup = { amount ->
                 viewModel.topupWallet(amount)
@@ -414,6 +416,7 @@ private fun ProfileInfoRow(
 @Composable
 private fun PatientWalletCard(
     balanceCents: Long,
+    currency: String? = null,
     isLoading: Boolean,
     onTopupClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -485,7 +488,7 @@ private fun PatientWalletCard(
                         color = Color(0xFF475569),
                     )
                     Text(
-                        text = formatCents(balanceCents),
+                        text = formatCents(balanceCents, currency),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF0F172A),

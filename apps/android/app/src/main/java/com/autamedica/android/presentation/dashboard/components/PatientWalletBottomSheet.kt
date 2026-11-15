@@ -39,13 +39,12 @@ import androidx.compose.ui.unit.sp
 import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
-import java.text.NumberFormat
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PatientWalletBottomSheet(
     walletBalanceCents: Long,
+    walletCurrency: String? = null,
     freeConsultationsCount: Int,
     onDismiss: () -> Unit,
     onTopupClick: () -> Unit,
@@ -136,9 +135,7 @@ fun PatientWalletBottomSheet(
                                 color = Color(0xFF334155),
                             )
                         }
-                        val formattedBalance = NumberFormat.getCurrencyInstance(Locale.getDefault()).apply {
-                            maximumFractionDigits = 0
-                        }.format(walletBalanceCents / 100.0)
+                        val formattedBalance = formatCents(walletBalanceCents, walletCurrency)
                         Text(
                             text = formattedBalance,
                             fontSize = 17.sp,

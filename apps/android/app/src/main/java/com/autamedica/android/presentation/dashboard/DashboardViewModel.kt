@@ -55,6 +55,7 @@ data class DashboardUiState(
     val showReserveBanner: Boolean = true,
     // Wallet
     val walletBalanceCents: Long = 0L,
+    val walletCurrency: String? = null,
     val freeConsultationsCount: Int = 0,
     val isWalletSheetOpen: Boolean = false,
     val isTopupDialogOpen: Boolean = false,
@@ -202,7 +203,7 @@ class DashboardViewModel @Inject constructor(
                 val snapshotDeferred = async { profileRepository.getPatientProfileSnapshot() }
                 val profileDeferred = async { profileRepository.getProfile() }
                 val notifsDeferred = async { notificationRepository.getNotifications() }
-                val walletDeferred = async { walletRepository.getWalletBalance() }
+                val walletDeferred = async { walletRepository.getWalletBalanceDetails() }
 
                 val appointmentsResult = appointmentsDeferred.await()
                 val anamnesisResult = anamnesisDeferred.await()
@@ -248,7 +249,8 @@ class DashboardViewModel @Inject constructor(
                         userEmail = resolvedEmail,
                         userPhone = resolvedPhone,
                         userAvatarUrl = resolvedAvatar,
-                        walletBalanceCents = balanceResult.getOrNull() ?: current.walletBalanceCents,
+                        walletBalanceCents = balanceResult.getOrNull()?.availableCreditCents ?: current.walletBalanceCents,
+                        walletCurrency = balanceResult.getOrNull()?.currency,
                     )
                 }
             }

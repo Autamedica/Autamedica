@@ -68,7 +68,7 @@ Deno.test("patients-wallet-balance - Returns zeros when patient does not exist",
       available_credit_cents: 0,
       locked_credit_cents: 0,
       total_credit_cents: 0,
-      currency: "ARS",
+      currency: null,
     });
   } finally {
     globalThis.fetch = originalFetch;
@@ -92,9 +92,14 @@ Deno.test("patients-wallet-balance - Returns balance from RPC via GET and POST",
     }
     if (url.includes("/rest/v1/patients")) {
       return new Response(
-        JSON.stringify({ id: "patient-1", user_id: "user-patient-1" }),
+        JSON.stringify({ id: "patient-1", user_id: "user-patient-1", dni: "30123456", cpf: null }),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
+    }
+    if (url.includes("/rest/v1/patient_wallets")) {
+      return new Response(JSON.stringify({ currency: "ARS" }), {
+        status: 200, headers: { "Content-Type": "application/json" },
+      });
     }
     if (url.includes("/rest/v1/rpc/patient_wallet_get_balance")) {
       return new Response(
@@ -143,6 +148,85 @@ Deno.test("patients-wallet-balance - Returns balance from RPC via GET and POST",
       locked_credit_cents: 20000,
       total_credit_cents: 170000,
       currency: "ARS",
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("patients-wallet-balance - Returns verified Brazilian BRL wallet balance", async () => {
+  Deno.env.set("SUPABASE_URL", "https://dummy.supabase.co");
+  Deno.env.set("SUPABASE_ANON_KEY", "dummy_anon");
+  Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", "dummy_service_role");
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+
+    if (url.includes("/auth/v1/user")) {
+      return new Response(
+        JSON.stringify({ id: "user-patient-1" }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    if (url.includes("/rest/v1/patients")) {
+      return new Response(
+        JSON.stringify({ id: "patient-1", user_id: "user-patient-1", dni: null, cpf: "12345678901" }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    if (url.includes("/rest/v1/patient_wallets")) {
+      return new Response(JSON.stringify({ currency: "BRL" }), {
+        status: 200, headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (url.includes("/rest/v1/rpc/patient_wallet_get_balance")) {
+      return new Response(
+        JSON.stringify([
+          {
+            patient_id: "patient-1",
+            available_credit_cents: 150000,
+            locked_credit_cents: 20000,
+            total_credit_cents: 170000,
+            currency: "BRL",
+          },
+        ]),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    return await originalFetch(input, init);
+  };
+
+  try {
+    // Test GET
+    const reqGet = new Request("http://localhost/patients-wallet-balance", {
+      method: "GET",
+      headers: { Authorization: "Bearer valid-token" },
+    });
+    const resGet = await handler(reqGet);
+    assertEquals(resGet.status, 200);
+    const dataGet = await resGet.json();
+    assertEquals(dataGet, {
+      available_credit_cents: 150000,
+      locked_credit_cents: 20000,
+      total_credit_cents: 170000,
+      currency: "BRL",
+    });
+
+    // Test POST
+    const reqPost = new Request("http://localhost/patients-wallet-balance", {
+      method: "POST",
+      headers: { Authorization: "Bearer valid-token" },
+    });
+    const resPost = await handler(reqPost);
+    assertEquals(resPost.status, 200);
+    const dataPost = await resPost.json();
+    assertEquals(dataPost, {
+      available_credit_cents: 150000,
+      locked_credit_cents: 20000,
+      total_credit_cents: 170000,
+      currency: "BRL",
     });
   } finally {
     globalThis.fetch = originalFetch;

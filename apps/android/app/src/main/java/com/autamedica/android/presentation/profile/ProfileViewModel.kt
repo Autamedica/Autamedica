@@ -31,6 +31,7 @@ data class ProfileUiState(
     val lastName: String = "",
     val phone: String = "",
     val walletBalanceCents: Long = 0L,
+    val walletCurrency: String? = null,
     val isTopupLoading: Boolean = false,
     val checkoutUrlToLaunch: String? = null,
     val isTopupDialogOpen: Boolean = false,
@@ -98,7 +99,7 @@ class ProfileViewModel @Inject constructor(
 
     private fun loadProfile() {
         viewModelScope.launch {
-            val walletDeferred = async { walletRepository.getWalletBalance() }
+            val walletDeferred = async { walletRepository.getWalletBalanceDetails() }
             val profileDeferred = async { profileRepository.getProfile() }
 
             val profileResult = profileDeferred.await()
@@ -119,7 +120,8 @@ class ProfileViewModel @Inject constructor(
                             firstName = user.firstName,
                             lastName = user.lastName,
                             phone = user.phone.orEmpty(),
-                            walletBalanceCents = walletResult.getOrNull() ?: it.walletBalanceCents,
+                            walletBalanceCents = walletResult.getOrNull()?.availableCreditCents ?: it.walletBalanceCents,
+                            walletCurrency = walletResult.getOrNull()?.currency,
                             isLoading = false,
                             error = null,
                         )
@@ -139,8 +141,10 @@ class ProfileViewModel @Inject constructor(
 
     fun refreshWallet() {
         viewModelScope.launch {
-            walletRepository.getWalletBalance().onSuccess { balance ->
-                _uiState.update { it.copy(walletBalanceCents = balance) }
+            walletRepository.getWalletBalanceDetails().onSuccess { balance ->
+                _uiState.update {
+                    it.copy(walletBalanceCents = balance.availableCreditCents, walletCurrency = balance.currency)
+                }
             }
         }
     }

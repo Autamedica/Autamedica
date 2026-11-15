@@ -56,3 +56,7 @@ verify_jwt = false
 verify_jwt = true
 
 [analytics]
+
+# Mercado Pago authenticates this callback with its regional HMAC signature.
+[functions.mobile-payments-webhook]
+verify_jwt = false
