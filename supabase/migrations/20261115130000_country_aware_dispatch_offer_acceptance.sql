@@ -1,4 +1,4 @@
--- Preserve the legacy priceBrl response while making accepted AR offers currency-aware.
+-- Preserve the legacy priceBrl doctor-fee response while storing patient consultation price separately.
 CREATE OR REPLACE FUNCTION public.claim_dispatch_offer(p_offer_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -55,7 +55,7 @@ BEGIN
     RAISE EXCEPTION 'care_country_dispatch_mismatch' USING ERRCODE='42501';
   END IF;
   IF v_offer.currency IS DISTINCT FROM v_req.currency
-     OR v_offer.price_minor IS DISTINCT FROM v_req.price_minor
+     OR v_offer.price_minor IS DISTINCT FROM v_req.doctor_fee_minor
      OR v_req.currency NOT IN ('BRL','ARS') THEN
     RAISE EXCEPTION 'dispatch_offer_country_quote_mismatch' USING ERRCODE='23514';
   END IF;
@@ -84,8 +84,8 @@ BEGIN
     guest_invite_id=v_invite_id,
     status='matched',
     matched_at=NOW(),
-    price_brl=CASE WHEN v_offer.currency='BRL' THEN v_offer.price_minor::numeric/100 ELSE NULL END,
-    price_minor=v_offer.price_minor,
+    price_brl=CASE WHEN v_req.currency='BRL' THEN v_req.price_minor::numeric/100 ELSE NULL END,
+    price_minor=v_req.price_minor,
     currency=v_offer.currency,
     doctor_fee_minor=v_req.doctor_fee_minor
   WHERE id=v_offer.dispatch_request_id;
