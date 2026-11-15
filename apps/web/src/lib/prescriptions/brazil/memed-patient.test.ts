@@ -11,10 +11,10 @@ function database(overrides: Record<string, unknown> = {}): SupabaseClient {
     appointments: null, patients: identity,
     profiles: { first_name: 'Synthetic', last_name: 'Patient' }, ...overrides };
   return { from: vi.fn((table: string) => {
-    const chain = { select: vi.fn(), eq: vi.fn(), is: vi.fn(), or: vi.fn(), limit: vi.fn(),
+    const chain = { select: vi.fn(), update: vi.fn(), eq: vi.fn(), is: vi.fn(), or: vi.fn(), limit: vi.fn(),
       maybeSingle: vi.fn(async () => ({ data: rows[table], error: null })) };
     chain.is.mockReturnValue(chain); chain.or.mockReturnValue(chain);
-    chain.select.mockReturnValue(chain); chain.eq.mockReturnValue(chain); chain.limit.mockReturnValue(chain);
+    chain.select.mockReturnValue(chain); chain.update.mockReturnValue(chain); chain.eq.mockReturnValue(chain); chain.limit.mockReturnValue(chain);
     return chain;
   }) } as unknown as SupabaseClient;
 }
@@ -44,6 +44,16 @@ describe('Memed patient authorization', () => {
   it('accepts a legitimate completed consultation', async () => {
     await expect(resolveMemedPatient(database({ patient_care_team: null, appointments: { id: 'visit' } }),
       'doctor', patientId)).resolves.toHaveProperty('cpf', identity.cpf);
+  });
+  it('accepts clinician-confirmed demographics for express patients', async () => {
+    await expect(resolveMemedPatient(database({ patients: { ...identity, birth_date: null, gender: null } }),
+      'doctor', patientId, { birthDate: '2000-02-29', gender: 'female' }))
+      .resolves.toHaveProperty('cpf', identity.cpf);
+  });
+  it('rejects invalid clinician-entered demographics', async () => {
+    await expect(resolveMemedPatient(database(), 'doctor', patientId,
+      { birthDate: '2099-01-01', gender: 'female' }))
+      .rejects.toThrow('memed_patient_demographics_invalid');
   });
   it.each([{ lgpd_consent: false }, { active: false }])('requires authorized active patient %j', async (change) => {
     await expect(resolveMemedPatient(database({ patients: { ...identity, ...change } }), 'doctor', patientId))
