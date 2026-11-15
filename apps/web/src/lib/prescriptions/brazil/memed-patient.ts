@@ -30,6 +30,7 @@ export interface MemedPatient {
 /** Patient identity is resolved exclusively on the server, before issuing a token. */
 export async function resolveMemedPatient(
   admin: SupabaseClient, doctorId: string, patientId: unknown,
+  demographics?: { birthDate: string; gender: 'male' | 'female' },
 ): Promise<MemedPatient> {
   if (typeof patientId !== 'string' || !/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(patientId)) {
     throw new Error('memed_patient_required');
@@ -46,6 +47,16 @@ export async function resolveMemedPatient(
   ]);
   if (team.error || visit.error) throw new Error('memed_patient_authorization_unavailable');
   if (!team.data && !visit.data) throw new Error('doctor_patient_access_required');
+  if (demographics) {
+    if (!validBirthDate(demographics.birthDate)
+        || !/^(male|female)$/.test(demographics.gender)) {
+      throw new Error('memed_patient_demographics_invalid');
+    }
+    const { data: updatedPatient, error: demographicsError } = await admin.from('patients')
+      .update({ birth_date: demographics.birthDate, gender: demographics.gender, updated_at: now.toISOString() })
+      .eq('id', patientId).eq('care_country', 'BR').select('id').maybeSingle();
+    if (demographicsError || !updatedPatient) throw new Error('memed_patient_demographics_update_failed');
+  }
   const { data: patient, error } = await admin.from('patients')
     .select('user_id, active, cpf, birth_date, gender, lgpd_consent, care_country').eq('id', patientId).maybeSingle();
   if (error) throw new Error('memed_patient_lookup_failed');
