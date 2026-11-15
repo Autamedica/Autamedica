@@ -105,7 +105,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
             </div>
             <p className="text-xs text-am-surface-400">
               {onDuty
-                ? (careCountry === 'BR' ? `Conectado para receitas e teleconsultas imediatas ${since ? `• desde ${new Date(since).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : ''}` : `Conectado para recetas y videoconsultas inmediatas ${since ? `• desde ${new Date(since).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}` : ''}`)
+                ? (careCountry === 'BR' ? `Plantão conectado · Radar ativo · Disponível para receitas e teleconsultas imediatas ${since ? `• desde ${new Date(since).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : ''}` : `Guardia conectada · Radar activo · Disponible para recetas y videoconsultas inmediatas ${since ? `• desde ${new Date(since).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}` : ''}`)
                 : (careCountry === 'BR' ? 'Ative o plantão para receber pacientes das farmácias' : 'Activá la guardia para recibir pacientes de farmacias')}
             </p>
           </div>
