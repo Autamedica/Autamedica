@@ -622,7 +622,7 @@ private fun PharmacyWaitingRoomView(
                 ) {
                     val consultationPrice = formatDispatchPrice(uiState.priceMinor, uiState.currency)
                     Text(
-                        text = consultationPrice?.let { "Consulta médica · $it" } ?: "Consulta médica",
+                        text = consultationPrice?.let { stringResource(R.string.pharmacy_consultation_title, it) } ?: stringResource(R.string.pharmacy_consultation_title_default),
                         style = MaterialTheme.typography.titleMedium,
                         color = AuTextPrimary,
                         fontWeight = FontWeight.Bold,
@@ -633,10 +633,10 @@ private fun PharmacyWaitingRoomView(
                         uiState.status == PharmacyConsultationStatus.IN_CALL
                     Text(
                         text = when {
-                            confirmed -> "Pagamento confirmado. Acesso liberado quando o médico iniciar a consulta."
-                            uiState.paymentStatus == "pending" -> "Aguardando confirmação do Mercado Pago."
+                            confirmed -> stringResource(R.string.pharmacy_payment_confirmed)
+                            uiState.paymentStatus == "pending" -> stringResource(R.string.pharmacy_payment_pending)
                             canStartCheckout -> stringResource(R.string.jordan_payment_start_message)
-                            else -> "Aguardando um médico disponível antes do pagamento."
+                            else -> stringResource(R.string.pharmacy_payment_waiting_doctor)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextSecondary,
@@ -647,7 +647,7 @@ private fun PharmacyWaitingRoomView(
                             if (uiState.isPaymentLoading) {
                                 CircularProgressIndicator(modifier = Modifier.size(18.dp),
                                     strokeWidth = 2.dp)
-                            } else Text(consultationPrice?.let { "Pagar $it" } ?: "Pagar")
+                            } else Text(consultationPrice?.let { stringResource(R.string.pharmacy_payment_button, it) } ?: stringResource(R.string.pharmacy_payment_button_default))
                         }
                     }
                     uiState.paymentError?.let { error ->

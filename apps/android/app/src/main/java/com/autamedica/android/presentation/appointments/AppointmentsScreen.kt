@@ -1081,16 +1081,16 @@ private fun BookingCalendarCard(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 2,
+                            overflow = TextOverflow.Clip,
                         )
                         if (!isExpanded) {
                             Text(
                                 text = stringResource(R.string.appointments_book_new_subtitle),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AuTextSecondary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
+                                maxLines = 2,
+                                overflow = TextOverflow.Clip,
                             )
                         }
                     }
@@ -1216,8 +1216,8 @@ private fun BookingCalendarCard(
                                         style = MaterialTheme.typography.titleSmall,
                                         color = AuTextPrimary,
                                         fontWeight = FontWeight.SemiBold,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Clip,
                                     )
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
@@ -1228,8 +1228,8 @@ private fun BookingCalendarCard(
                                             style = MaterialTheme.typography.labelSmall,
                                             color = PortalPatients,
                                             fontWeight = FontWeight.Medium,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Clip,
                                         )
                                         if (!selectedDoctor.subspecialty.isNullOrBlank()) {
                                             Surface(
@@ -1242,8 +1242,8 @@ private fun BookingCalendarCard(
                                                     color = PortalPatients,
                                                     fontWeight = FontWeight.SemiBold,
                                                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
-                                                    maxLines = 1,
-                                                    softWrap = false,
+                                                    maxLines = 2,
+                                                    softWrap = true,
                                                 )
                                             }
                                         }

@@ -377,21 +377,21 @@ fun VideoCallScreen(
                 )
             } else {
                 val isOnDemandRoom = roomId.startsWith("cf-room") || uiState.activeCallId?.startsWith("cf-room") == true
-                val isPatientWaitingForDoctor = !uiState.isDoctor && isOnDemandRoom && (uiState.doctorName.isBlank() || uiState.doctorName == "Médico" || uiState.doctorName == "Profesional")
+                val isPatientWaitingForDoctor = !uiState.isDoctor && isOnDemandRoom && (uiState.doctorName.isBlank() || uiState.doctorName == stringResource(R.string.video_doctor_name_fallback) || uiState.doctorName == stringResource(R.string.video_professional_name_fallback))
                 val remoteDisplayName = when {
                     uiState.isDoctor -> uiState.patientName.ifBlank { "Paciente" }
                     isPatientWaitingForDoctor -> "Médico de Guardia"
-                    else -> uiState.doctorName.ifBlank { "Médico de Guardia" }
+                    else -> uiState.doctorName.ifBlank { stringResource(R.string.video_guard_doctor_name) }
                 }
                 val subtitleText = when {
                     uiState.isAuthorizationBlocked && !uiState.sessionStatusMessage.isNullOrBlank() ->
                         uiState.sessionStatusMessage.orEmpty()
-                    uiState.connectionState == ConnectionState.FAILED -> "Error de conexión con la sala"
-                    uiState.connectionState == ConnectionState.RECONNECTING -> "Reconectando..."
-                    isPatientWaitingForDoctor -> "Buscando médico de guardia... Aguarde en línea mientras un profesional toma su consulta."
-                    uiState.connectionState == ConnectionState.CONNECTING -> if (uiState.isDoctor) "Llamando al paciente..." else "Llamando al médico..."
-                    uiState.isDoctor -> "Esperando que el paciente active su cámara..."
-                    else -> "Esperando que el profesional active su cámara..."
+                    uiState.connectionState == ConnectionState.FAILED -> stringResource(R.string.video_connection_failed)
+                    uiState.connectionState == ConnectionState.RECONNECTING -> stringResource(R.string.video_reconnecting)
+                    isPatientWaitingForDoctor -> stringResource(R.string.video_waiting_doctor)
+                    uiState.connectionState == ConnectionState.CONNECTING -> if (uiState.isDoctor) stringResource(R.string.video_calling_patient) else stringResource(R.string.video_calling_doctor)
+                    uiState.isDoctor -> stringResource(R.string.video_waiting_patient_camera)
+                    else -> stringResource(R.string.video_waiting_professional_camera)
                 }
                 RemoteAvatarFallback(
                     name = remoteDisplayName,
@@ -510,7 +510,7 @@ fun VideoCallScreen(
                             .padding(6.dp),
                     ) {
                         Text(
-                            text = "TÚ",
+                            text = stringResource(R.string.video_self_label),
                             color = Color.White,
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
@@ -777,12 +777,12 @@ private fun MemedInCallWebView(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Prescrição digital | Memed",
+                text = stringResource(R.string.video_memed_title),
                 color = Color(0xFF172033),
                 fontWeight = FontWeight.SemiBold,
             )
             TextButton(onClick = onClose) {
-                Text("Voltar à consulta")
+                Text(stringResource(R.string.video_memed_back_to_call))
             }
         }
         AndroidView(

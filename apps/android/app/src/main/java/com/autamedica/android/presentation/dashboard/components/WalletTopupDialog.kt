@@ -32,6 +32,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
@@ -55,13 +57,13 @@ fun WalletTopupDialog(
         title = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "Cargar saldo",
+                    text = stringResource(R.string.wallet_topup),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = AuTextPrimary,
                 )
                 Text(
-                    text = "Seleccioná el monto a recargar.",
+                    text = stringResource(R.string.wallet_topup_description),
                     fontSize = 12.sp,
                     color = AuTextSecondary,
                 )
@@ -75,7 +77,7 @@ fun WalletTopupDialog(
                 OutlinedTextField(
                     value = amountText,
                     onValueChange = { amountText = it.filter { ch -> ch.isDigit() } },
-                    label = { Text("Valor (${currency ?: "moneda no verificada"})") },
+                    label = { Text(stringResource(R.string.wallet_topup_amount_label, currency ?: stringResource(R.string.wallet_topup_currency_unknown))) },
                     prefix = { Text(if (currency == "BRL") "R$ " else "$ ", fontWeight = FontWeight.Bold) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
@@ -138,7 +140,7 @@ fun WalletTopupDialog(
                 ),
                 modifier = Modifier.sizeIn(minHeight = 48.dp),
             ) {
-                Text("Cargar saldo", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.wallet_topup_confirm), fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
@@ -146,7 +148,7 @@ fun WalletTopupDialog(
                 onClick = onDismiss,
                 modifier = Modifier.sizeIn(minHeight = 48.dp),
             ) {
-                Text("Cancelar", color = AuTextSecondary)
+                Text(stringResource(R.string.wallet_topup_cancel), color = AuTextSecondary)
             }
         },
     )
