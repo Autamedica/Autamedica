@@ -143,7 +143,7 @@ jobs:
             exit 0
           fi
           test "${SUPABASE_PROJECT_ID}" = "qxjjrpksmwwrmubhvjew"
-          supabase secrets set --project-ref "${SUPABASE_PROJECT_ID}" \
+          supabase secrets set --yes --project-ref "${SUPABASE_PROJECT_ID}" \
             MEMED_MOBILE_ENABLED=true \
             MEMED_MOBILE_PILOT_DOCTOR_ID=080fb7ae-92b4-44d4-8941-a6db65004b9f
           echo "Memed mobile Edge Function secrets configured."
