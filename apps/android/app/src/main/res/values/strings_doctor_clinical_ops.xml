@@ -118,6 +118,8 @@
     <string name="cert_rest_end_date_label">Reintegro previsto:</string>
     <string name="cert_diag_section_title">Diagnóstico y Certificación Clínica</string>
     <string name="cert_diag_placeholder">Describa el diagnóstico, cuadro o aptitud clínica...</string>
+    <string name="cert_cid10_optional_label">CID-10 (opcional)</string>
+    <string name="cert_cid10_optional_placeholder">Informe o código CID-10 opcional</string>
     <string name="cert_privacy_hide_diagnosis_title">Ocultar diagnóstico en documento final</string>
     <string name="cert_privacy_hide_diagnosis_subtitle">Garantía de Secreto Médico y confidencialidad ante empleadores (Ley 27.553 / CFM)</string>
     <string name="cert_obs_section_title">Indicaciones y Observaciones Clínicas (Opcional)</string>
