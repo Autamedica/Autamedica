@@ -121,6 +121,7 @@ data class DoctorEligibility(
     val doctorLicense: String?,
     val validationStatus: String?,
     val reason: String? = null,
+    val countryCode: String? = null,
 )
 
 /**
