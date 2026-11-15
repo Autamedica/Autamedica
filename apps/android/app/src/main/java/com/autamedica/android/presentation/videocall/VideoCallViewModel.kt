@@ -1624,7 +1624,7 @@ class VideoCallViewModel @Inject constructor(
                     }
                 }
                 if (targetPatientId.isNullOrBlank()) {
-                    throw IllegalStateException("No se pudo identificar al paciente de la llamada")
+                    throw IllegalStateException(patientMissingMessage)
                 }
 
                 val zoneId = if (country == "BR") ZoneId.of("America/Sao_Paulo")
