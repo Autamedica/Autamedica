@@ -347,6 +347,8 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
   const todayCount = stats?.todayCount ?? 0;
   const patientsCount = stats?.patientsCount ?? 0;
   const _historyCount = stats?.historyCount ?? 0;
+  const pharmacyDispatchCount = stats?.pharmacyDispatchCount ?? 0;
+  const pharmacyEarnings = stats?.pharmacyEarningsByCurrency ?? { BRL: 0, ARS: 0 };
 
   const _nextApptName = useMemo(() => {
     if (!stats?.nextAppointment) return null;
@@ -575,6 +577,34 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
       </div>
 
       <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0D9488]">MÉTRICAS CLÍNICAS</p>
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">Guardias de farmacia</p>
+          <p className="mt-2 text-3xl font-bold tracking-tight text-[#0F2537]">{pharmacyDispatchCount}</p>
+          <p className="mt-1 text-xs text-slate-500">Consultas despachadas y contabilizadas</p>
+        </div>
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:col-span-1 lg:col-span-2">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">Ganancias de farmacia</p>
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-6 gap-y-2">
+            <span className="text-2xl font-bold tracking-tight text-[#0F2537]">{pharmacyEarnings.BRL.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            <span className="text-2xl font-bold tracking-tight text-[#0F2537]">{pharmacyEarnings.ARS.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 2 })}</span>
+          </div>
+          <p className="mt-1 text-xs text-slate-500">Importes netos registrados en BRL y ARS</p>
+        </div>
+      </div>
+      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0D9488]">FERRAMENTAS CLÍNICAS</p>
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <a href="/doctors/prescriptions" className="flex items-center gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm transition hover:border-sky-200 hover:shadow-md">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-sky-50 text-sky-700"><FileText className="h-5 w-5" /></span>
+          <span><span className="block text-sm font-semibold text-[#0F2537]">Receita digital</span><span className="block text-xs text-slate-500">Memed · Brasil / Farmalink · Argentina</span></span>
+          <ArrowUpRight className="ml-auto h-4 w-4 text-slate-400" />
+        </a>
+        <a href="/doctors/certificates" className="flex items-center gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm transition hover:border-emerald-200 hover:shadow-md">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50 text-emerald-700"><CheckCircle2 className="h-5 w-5" /></span>
+          <span><span className="block text-sm font-semibold text-[#0F2537]">Atestado</span><span className="block text-xs text-slate-500">Emissão clínica por jurisdição</span></span>
+          <ArrowUpRight className="ml-auto h-4 w-4 text-slate-400" />
+        </a>
+      </div>
       {/* ── Stat cards / Rich Dashboard Widgets ── */}
       <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:col-span-2">
