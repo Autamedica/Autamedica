@@ -347,11 +347,12 @@ export function AppointmentsPanel() {
                       />
                     ) : (
                       <button
+                        type="button"
                         onClick={() => setSelectedAppointmentId(currentTurno.id)}
                         className="flex items-center gap-3 rounded-2xl bg-[#137a8c] px-8 py-4 text-sm font-bold text-white shadow-lg shadow-teal-900/10 transition hover:bg-[#0e6378] active:scale-[0.98] uppercase tracking-wider"
                       >
-                        <Video className="h-5 w-5" />
-                        Iniciar consulta
+                        <FileText className="h-5 w-5" />
+                        {currentTurno.type === 'telemedicine' ? 'Ver videoconsulta' : 'Ver detalles'}
                       </button>
                     )}
                     <p className="mt-2 text-center text-[10px] font-bold uppercase tracking-widest text-neutral-400">
@@ -480,9 +481,9 @@ export function AppointmentsPanel() {
               )}
             </div>
 
-            <button className="flex w-full items-center justify-center gap-2 border-t border-neutral-100 py-3 text-xs font-semibold text-neutral-400 hover:text-neutral-600 hover:bg-neutral-50 transition">
+            <a href="/doctors/agenda" className="flex w-full items-center justify-center gap-2 border-t border-neutral-100 py-3 text-xs font-semibold text-neutral-500 transition hover:bg-neutral-50 hover:text-neutral-900">
               Ver agenda completa <ChevronRight className="h-3.5 w-3.5" />
-            </button>
+            </a>
           </div>
         </div>
 
