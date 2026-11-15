@@ -1096,7 +1096,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                             </span>
                           </div>
 
-                          <p className="mt-1 text-[11px] text-neutral-500 italic truncate" title={lab.laboratory_name}>
+                          <p className="mt-1 text-[11px] text-neutral-500 italic whitespace-normal break-words" title={lab.laboratory_name}>
                             Lugar: {lab.laboratory_name || "Laboratorio Externo"}
                           </p>
 
