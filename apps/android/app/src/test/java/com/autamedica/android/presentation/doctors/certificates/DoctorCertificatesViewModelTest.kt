@@ -38,7 +38,7 @@ class DoctorCertificatesViewModelTest {
             certificateType = CertificateType.REPOSO_LABORAL,
             daysOfRest = 2,
             startDate = "2026-09-12",
-            endDate = "2026-09-14",
+            endDate = "2026-09-13",
             diagnosis = "Gastroenteritis aguda",
             hideDiagnosis = false,
             observations = "Reposo 48 hs",
@@ -78,7 +78,7 @@ class DoctorCertificatesViewModelTest {
             certificateType = CertificateType.REPOSO_LABORAL,
             daysOfRest = 2,
             startDate = "2026-09-15",
-            endDate = "2026-09-17",
+            endDate = "2026-09-16",
             diagnosis = null,
             hideDiagnosis = true,
             observations = null,
@@ -179,7 +179,7 @@ class DoctorCertificatesViewModelTest {
         assertThat(state.certificateType).isEqualTo(CertificateType.REPOSO_LABORAL)
         assertThat(state.daysOfRest).isEqualTo(2)
 
-        val expectedEnd = LocalDate.now(ZoneId.of("America/Argentina/Buenos_Aires")).plusDays(2).format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val expectedEnd = LocalDate.now(ZoneId.of("America/Argentina/Buenos_Aires")).plusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE)
         assertThat(state.endDate).isEqualTo(expectedEnd)
     }
 
@@ -189,7 +189,7 @@ class DoctorCertificatesViewModelTest {
         viewModel.onDaysOfRestChange(5)
         val state = viewModel.uiState.value
         assertThat(state.daysOfRest).isEqualTo(5)
-        val expectedEnd = LocalDate.parse(state.startDate).plusDays(5).format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val expectedEnd = LocalDate.parse(state.startDate).plusDays(4).format(DateTimeFormatter.ISO_LOCAL_DATE)
         assertThat(state.endDate).isEqualTo(expectedEnd)
     }
 
