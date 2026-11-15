@@ -343,6 +343,8 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
   );
 
   const doctorName = getDoctorDisplayName(doctor, user);
+  const doctorCountry = (doctor as (NonNullable<typeof doctor> & { care_country?: string }) | null)?.care_country;
+  const isBrazilianDoctor = doctorCountry === 'BR';
   const pendingMandates = (stats?.pendingClarifications ?? 0) + (stats?.pendingTriageMandates ?? 0);
   const todayCount = stats?.todayCount ?? 0;
   const patientsCount = stats?.patientsCount ?? 0;
@@ -400,7 +402,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                     </span>
                     <span className="text-[10px] font-bold uppercase tracking-wider">
-                      {activeTelemedAppt ? "CONSULTA ACTIVA EN LÍNEA" : "SALA DE TELEMEDICINA ACTIVA"}
+                      {activeTelemedAppt ? (isBrazilianDoctor ? "CONSULTA ATIVA" : "CONSULTA ACTIVA EN LÍNEA") : (isBrazilianDoctor ? "SALA DE TELEMEDICINA ATIVA" : "SALA DE TELEMEDICINA ACTIVA")}
                     </span>
                   </div>
 
@@ -411,7 +413,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                           {new Date(activeTelemedAppt.start_time).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} hs · {activeTelemedPatientName}
                         </h2>
                         <p className="mt-1 text-[13px] text-slate-300">
-                          El paciente está listo en sala de espera. Habilitá tu señal para ingresar.
+                          {isBrazilianDoctor ? 'O paciente está pronto na sala de espera. Ative sua conexão para entrar.' : 'El paciente está listo en sala de espera. Habilitá tu señal para ingresar.'}
                         </p>
                       </div>
 
@@ -428,7 +430,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                         ) : (
                           <>
                             <Video className="h-4 w-4" />
-                            <span>Entrar a Consulta</span>
+                            <span>{isBrazilianDoctor ? 'Entrar na consulta' : 'Entrar a consulta'}</span>
                           </>
                         )}
                       </button>
@@ -437,10 +439,10 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="max-w-md">
                         <h2 className="text-xl font-light tracking-tight text-white sm:text-2xl">
-                          Sala de Videoconsulta Directa
+                          {isBrazilianDoctor ? 'Sala de teleconsulta direta' : 'Sala de videoconsulta directa'}
                         </h2>
                         <p className="mt-1 text-[12px] text-neutral-400">
-                          Iniciá una videollamada ad-hoc con pacientes asignados en tiempo real.
+                          {isBrazilianDoctor ? 'Inicie uma videochamada com pacientes vinculados em tempo real.' : 'Iniciá una videollamada ad-hoc con pacientes asignados en tiempo real.'}
                         </p>
                       </div>
 
@@ -450,7 +452,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                           onChange={(e) => setSelectedAdHocPatientId(e.target.value)}
                           className="rounded-lg border border-neutral-800 bg-neutral-950/80 px-2.5 py-2 text-[12px] text-white focus:border-[#2DD4BF] focus:outline-none min-w-[160px] max-w-[200px]"
                         >
-                          <option value="" className="bg-neutral-950 text-neutral-400">Seleccionar...</option>
+                          <option value="" className="bg-neutral-950 text-neutral-400">{isBrazilianDoctor ? 'Selecionar...' : 'Seleccionar...'}</option>
                           {assignedPatients.map((p: any) => {
                             const name = `${p.profile?.firstName ?? ''} ${p.profile?.lastName ?? ''}`.trim() || "Paciente";
                             return (
@@ -541,7 +543,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
           <div className="flex flex-col justify-between h-full">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.15em] text-white/40">MÉDICO ACTIVO</p>
+                <p className="text-[10px] uppercase tracking-[0.15em] text-white/40">{isBrazilianDoctor ? 'MÉDICO ATIVO' : 'MÉDICO ACTIVO'}</p>
                 <p className="text-[13px] font-semibold text-white/80">{doctorName}</p>
               </div>
               <a
@@ -555,7 +557,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
 
             <div className="grid grid-cols-3 gap-3 mt-4 border-t border-neutral-800/40 pt-4">
               <div>
-                <p className="text-[9px] uppercase tracking-[0.15em] text-white/35">Hoy</p>
+                <p className="text-[9px] uppercase tracking-[0.15em] text-white/35">{isBrazilianDoctor ? 'Hoje' : 'Hoy'}</p>
                 <p className="text-xl font-light text-white mt-0.5">{todayCount}</p>
               </div>
               <div>
@@ -563,7 +565,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                 <p className="text-xl font-light text-white mt-0.5">{patientsCount}</p>
               </div>
               <div>
-                <p className="text-[9px] uppercase tracking-[0.15em] text-white/35">Mandatos</p>
+                <p className="text-[9px] uppercase tracking-[0.15em] text-white/35">{isBrazilianDoctor ? 'Pendências' : 'Mandatos'}</p>
                 <p className="text-xl font-light text-white mt-0.5">{pendingMandates}</p>
               </div>
             </div>
@@ -580,30 +582,30 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
       <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0D9488]">MÉTRICAS CLÍNICAS</p>
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">Guardias de farmacia</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">{isBrazilianDoctor ? 'Plantões de farmácia' : 'Guardias de farmacia'}</p>
           <p className="mt-2 text-3xl font-bold tracking-tight text-[#0F2537]">{pharmacyDispatchCount}</p>
-          <p className="mt-1 text-xs text-slate-500">Consultas despachadas y contabilizadas</p>
-          <p className="mt-1 text-xs font-medium text-emerald-700">Hoy: {todayPharmacyCount} completadas</p>
+          <p className="mt-1 text-xs text-slate-500">{isBrazilianDoctor ? 'Consultas despachadas e contabilizadas' : 'Consultas despachadas y contabilizadas'}</p>
+          <p className="mt-1 text-xs font-medium text-emerald-700">{isBrazilianDoctor ? 'Hoje' : 'Hoy'}: {todayPharmacyCount} {isBrazilianDoctor ? 'concluídas' : 'completadas'}</p>
         </div>
         <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:col-span-1 lg:col-span-2">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">Ganancias de farmacia</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">{isBrazilianDoctor ? 'Ganhos de farmácia' : 'Ganancias de farmacia'}</p>
           <div className="mt-2 flex flex-wrap items-baseline gap-x-6 gap-y-2">
             <span className="text-2xl font-bold tracking-tight text-[#0F2537]">{pharmacyEarnings.BRL.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
             <span className="text-2xl font-bold tracking-tight text-[#0F2537]">{pharmacyEarnings.ARS.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 2 })}</span>
           </div>
-          <p className="mt-1 text-xs text-slate-500">Importes netos registrados en BRL y ARS</p>
+          <p className="mt-1 text-xs text-slate-500">{isBrazilianDoctor ? 'Valores líquidos registrados em BRL e ARS' : 'Importes netos registrados en BRL y ARS'}</p>
         </div>
       </div>
-      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0D9488]">FERRAMENTAS CLÍNICAS</p>
+      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0D9488]">{isBrazilianDoctor ? 'FERRAMENTAS CLÍNICAS' : 'HERRAMIENTAS CLÍNICAS'}</p>
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <a href="/doctors/prescriptions" className="flex items-center gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm transition hover:border-sky-200 hover:shadow-md">
           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-sky-50 text-sky-700"><FileText className="h-5 w-5" /></span>
-          <span><span className="block text-sm font-semibold text-[#0F2537]">Receita digital</span><span className="block text-xs text-slate-500">Memed · Brasil / Farmalink · Argentina</span></span>
+          <span><span className="block text-sm font-semibold text-[#0F2537]">{isBrazilianDoctor ? 'Receita digital' : 'Receta digital'}</span><span className="block text-xs text-slate-500">Memed · Brasil / Farmalink · Argentina</span></span>
           <ArrowUpRight className="ml-auto h-4 w-4 text-slate-400" />
         </a>
         <a href="/doctors/certificates" className="flex items-center gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm transition hover:border-emerald-200 hover:shadow-md">
           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50 text-emerald-700"><CheckCircle2 className="h-5 w-5" /></span>
-          <span><span className="block text-sm font-semibold text-[#0F2537]">Atestado</span><span className="block text-xs text-slate-500">Emissão clínica por jurisdição</span></span>
+          <span><span className="block text-sm font-semibold text-[#0F2537]">{isBrazilianDoctor ? 'Atestado' : 'Certificado médico'}</span><span className="block text-xs text-slate-500">{isBrazilianDoctor ? 'Emissão clínica por jurisdição' : 'Emisión clínica por jurisdicción'}</span></span>
           <ArrowUpRight className="ml-auto h-4 w-4 text-slate-400" />
         </a>
       </div>
