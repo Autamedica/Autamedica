@@ -386,6 +386,7 @@ jobs:
       - name: Fallback to Google Play internal track
         id: play_internal_fallback
         if: steps.check_sa.outputs.has_secret == 'true' && steps.play_production.outcome == 'failure' && (github.event_name == 'push' || github.event.inputs.track == 'production')
+        continue-on-error: true
         uses: r0adkll/upload-google-play@v1.1.4
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
