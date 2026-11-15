@@ -244,8 +244,24 @@ jobs:
             echo "A newer main commit exists; keeping artifacts but skipping publication"
           fi
 
-      - name: Publish signed APK and AAB to GitHub Releases
+      - name: Skip publication when the version tag already exists
+        id: existing_release
         if: github.ref == 'refs/heads/main' && steps.release_head.outputs.is_current_main == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="android-v${{ steps.version_info.outputs.version_name }}-code${{ steps.version_info.outputs.version_code }}"
+          if gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release tag already exists (possibly immutable); Actions artifacts remain available for this build."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish signed APK and AAB to GitHub Releases
+        if: github.ref == 'refs/heads/main' && steps.release_head.outputs.is_current_main == 'true' && steps.existing_release.outputs.exists != 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: android-v${{ steps.version_info.outputs.version_name }}-code${{ steps.version_info.outputs.version_code }}
