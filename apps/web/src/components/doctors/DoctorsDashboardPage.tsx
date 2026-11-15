@@ -590,8 +590,8 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
         <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:col-span-1 lg:col-span-2">
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">{isBrazilianDoctor ? 'Ganhos de farmácia' : 'Ganancias de farmacia'}</p>
           <div className="mt-2 flex flex-wrap items-baseline gap-x-6 gap-y-2">
-            <span className="text-2xl font-bold tracking-tight text-[#0F2537]">{pharmacyEarnings.BRL.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-            <span className="text-2xl font-bold tracking-tight text-[#0F2537]">{pharmacyEarnings.ARS.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 2 })}</span>
+            <span className="text-2xl font-bold tracking-tight text-[#0F2537]">{(pharmacyEarnings.BRL / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            <span className="text-2xl font-bold tracking-tight text-[#0F2537]">{(pharmacyEarnings.ARS / 100).toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 2 })}</span>
           </div>
           <p className="mt-1 text-xs text-slate-500">{isBrazilianDoctor ? 'Valores líquidos registrados em BRL e ARS' : 'Importes netos registrados en BRL y ARS'}</p>
         </div>
