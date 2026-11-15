@@ -443,7 +443,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                         (request.priceMinor != null && request.priceMinor > 0 &&
                             request.currency in setOf("ARS", "BRL")) ||
                             (request.careCountry == "BR" &&
-                                (state.referralCode == "JORDAN" || request.referralPartnerId != null))
+                                (_uiState.value.referralCode == "JORDAN" || request.referralPartnerId != null))
 
                     if (request.status == "searching" || request.status == "matched") {
                         refreshCountryDoctorCount(_uiState.value.careCountry)
