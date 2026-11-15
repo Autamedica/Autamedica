@@ -11,6 +11,7 @@ export function isJordanCommissionEligible(
 ): boolean {
   return paymentStatus === 'approved'
     && commission?.status === 'eligible'
-    && commission.amount_minor === 1000
-    && commission.currency === 'BRL'
+    && Number.isSafeInteger(commission.amount_minor)
+    && commission.amount_minor > 0
+    && (commission.currency === 'BRL' || commission.currency === 'ARS')
 }
