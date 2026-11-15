@@ -242,7 +242,8 @@ export function DoctorsPortalFrame({
           && Boolean(license.cfm_reviewed_by && license.cfm_reviewed_at && license.cfm_last_checked_at)
         ));
         setCfmCredentialVerified(verified);
-      });
+      })
+      .catch(() => { if (active) setCfmCredentialVerified(false); });
     return () => { active = false; };
   }, [doctor?.id, doctorCredential?.care_country, doctorCredential?.license_number, doctorCredential?.uf_brazil]);
 
@@ -468,7 +469,7 @@ export function DoctorsPortalFrame({
               {cachedProfile.isValidOrExempt && (
                 <div
                   className="absolute -bottom-1 -right-1 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#0D9488] text-white ring-2 ring-white shadow-sm"
-                  title="Matrícula validada en SSS / REFEPS"
+                  title={doctorCredential?.care_country === "BR" ? "CRM validado por CFM" : "Matrícula validada en SSS / REFEPS"}
                 >
                   <Check className="h-3 w-3 text-white" strokeWidth={3.5} />
                 </div>
