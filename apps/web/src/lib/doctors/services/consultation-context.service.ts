@@ -51,7 +51,11 @@ export interface ConsultationContextResult {
   reason?: string
   /** Only present for on-demand pharmacy kiosk patients */
   dispatchTriage?: {
+    patientId: string | null
     patientDni: string | null
+    patientCpf: string | null
+    patientName: string | null
+    careCountry: string | null
     symptomSummary: string | null
     dispatchRequestId: string
   }
@@ -158,7 +162,11 @@ export const consultationContextService = {
         suggestedQuestions: [],
         reason: 'kiosk_dispatch',
         dispatchTriage: {
+          patientId: triage.patientId,
           patientDni: triage.patientDni,
+          patientCpf: triage.patientCpf,
+          patientName: triage.patientName,
+          careCountry: triage.careCountry,
           symptomSummary: triage.symptomSummary,
           dispatchRequestId: triage.dispatchRequestId,
         },

@@ -4,7 +4,8 @@ import { badRequest, forbidden, internalError, jsonOk } from '@/lib/api-helpers'
 import { DOCTOR_ROLES, isAuthed, withAuthRole } from '@/lib/api-auth';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { MemedService } from '@/lib/prescriptions/brazil/memed.service';
-import { resolveMemedPatient, validCpf } from '@/lib/prescriptions/brazil/memed-patient';
+import { assertMemedDispatchEncounter, resolveMemedPatient, validCpf } from '@/lib/prescriptions/brazil/memed-patient';
+import { isMemedEnabled, isMemedPilotDoctor } from '@/lib/prescriptions/brazil/memed-pilot';
 import { getMemedDoctorCpf, storeMemedDoctorCpf } from '@/lib/prescriptions/brazil/memed-identity.repository';
 import { logger } from '@autamedica/shared';
 
@@ -23,12 +24,12 @@ const isValidIsoDate = (value: string): boolean => {
     && date.getTime() < Date.now();
 };
 
-async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: string, providedCpf?: string, patientId?: unknown, patientDemographics?: { birthDate: string; gender: 'male' | 'female' }): Promise<Response> {
+async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: string, providedCpf?: string, patientId?: unknown, patientDemographics?: { birthDate: string; gender: 'male' | 'female' }, requestId?: string): Promise<Response> {
   const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
   if (!isAuthed(auth)) return auth;
   // Allow Memed initialization in ready/pending_issuance; provider signing and
   // patient delivery remain separate, explicit lifecycle validations.
-  if (!(locals.runtime?.env?.MEMED_RX_ENABLED === 'true' || locals.runtime?.env?.MEMED_MOBILE_ENABLED === 'true')) {
+  if (!isMemedEnabled(locals.runtime?.env as unknown as Record<string, unknown> | undefined)) {
     return forbidden('memed_issuance_not_enabled');
   }
 
@@ -56,8 +57,7 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
       return internalError();
     }
     // Pilot is restricted to an explicitly configured prescriber.
-    const pilotDoctorId = locals.runtime?.env?.MEMED_PILOT_DOCTOR_ID || locals.runtime?.env?.MEMED_MOBILE_PILOT_DOCTOR_ID;
-    if (typeof pilotDoctorId !== 'string' || pilotDoctorId !== doctor?.id) {
+    if (!isMemedPilotDoctor(locals.runtime?.env as unknown as Record<string, unknown> | undefined, doctor?.id)) {
       return forbidden('memed_pilot_prescriber_only');
     }
     if (!doctor?.active || doctor.license_type !== 'CRM') {
@@ -125,6 +125,12 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
       return badRequest('memed_doctor_identity_incomplete');
     }
 
+    if (requestId) {
+      if (typeof patientId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(patientId)) {
+        return badRequest('memed_patient_required');
+      }
+      await assertMemedDispatchEncounter(admin, doctor.id, patientId, requestId);
+    }
     const patient = await resolveMemedPatient(admin, doctor.id, patientId, patientDemographics);
 
     const envMap: Record<string, string | undefined> = {};
@@ -177,7 +183,10 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
   }
 }
 
-export const GET: APIRoute = (context) => handleMemedToken(context, undefined, undefined, new URL(context.request.url).searchParams.get('patientId'));
+export const GET: APIRoute = (context) => {
+  const params = new URL(context.request.url).searchParams;
+  return handleMemedToken(context, undefined, undefined, params.get('patientId'), undefined, params.get('requestId') ?? undefined);
+};
 
 export const POST: APIRoute = async (context) => {
   const auth = await withAuthRole(context.request, DOCTOR_ROLES, context.locals);
@@ -208,6 +217,11 @@ export const POST: APIRoute = async (context) => {
     ? (body as { patientBirthDate?: unknown }).patientBirthDate : undefined;
   const patientGender = body && typeof body === 'object' && 'patientGender' in body
     ? (body as { patientGender?: unknown }).patientGender : undefined;
+  const requestId = body && typeof body === 'object' && 'requestId' in body
+    ? (body as { requestId?: unknown }).requestId : undefined;
+  if (requestId !== undefined && (typeof requestId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId))) {
+    return badRequest('invalid_encounter');
+  }
   if ((patientBirthDate !== undefined || patientGender !== undefined)
       && (typeof patientBirthDate !== 'string' || !isValidIsoDate(patientBirthDate)
         || (patientGender !== 'male' && patientGender !== 'female'))) {
@@ -216,7 +230,8 @@ export const POST: APIRoute = async (context) => {
   const patientDemographics = patientBirthDate && patientGender
     ? { birthDate: patientBirthDate as string, gender: patientGender as 'male' | 'female' } : undefined;
   return handleMemedToken(context, birthDate as string | undefined, providedCpf as string | undefined,
-    body && typeof body === 'object' && 'patientId' in body ? body.patientId : undefined, patientDemographics);
+    body && typeof body === 'object' && 'patientId' in body ? body.patientId : undefined, patientDemographics,
+    requestId as string | undefined);
 };
 
 

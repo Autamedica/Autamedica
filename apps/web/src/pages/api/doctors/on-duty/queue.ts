@@ -39,12 +39,12 @@ export const GET: APIRoute = async ({ request, locals }) => {
       ? Date.now() - new Date(duty.last_heartbeat_at).getTime()
       : Number.POSITIVE_INFINITY
     if (!duty?.is_on_duty || heartbeatAge < 0 || heartbeatAge > 90_000) {
-      return jsonOk({ queue: [], count: 0, careCountry: doctor.care_country })
+      return jsonOk({ queue: [], count: 0 })
     }
 
     const { data: offers, error: offersError } = await dispatchAdmin
       .from('dispatch_offers')
-      .select('id, dispatch_request_id, expires_at')
+      .select('id, dispatch_request_id')
       .eq('doctor_id', doctor.id)
       .eq('status', 'pending')
       .gt('expires_at', new Date().toISOString())
@@ -54,9 +54,9 @@ export const GET: APIRoute = async ({ request, locals }) => {
       logger.error('[api/doctors/on-duty/queue] offer_read_failed', { code: offersError.code ?? 'INTERNAL' })
       return internalError('No se pudo obtener las ofertas')
     }
-    const offerByRequestId = new Map((offers || []).map(offer => [offer.dispatch_request_id, offer]))
-    const offeredRequestIds = [...offerByRequestId.keys()]
-    if (offeredRequestIds.length === 0) return jsonOk({ queue: [], count: 0, careCountry: doctor.care_country })
+    const offeredRequestIds = (offers || []).map(offer => offer.dispatch_request_id)
+    if (offeredRequestIds.length === 0) return jsonOk({ queue: [], count: 0 })
+    const offerIdByRequestId = new Map((offers || []).map(offer => [offer.dispatch_request_id, offer.id]))
 
     const { data, error } = await admin
       .from('pharmacy_dispatch_requests')
@@ -77,8 +77,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       const diffMs = Math.max(0, now - createdTime)
       return {
         id: String(row.id),
-        offerId: String(offerByRequestId.get(row.id)?.id ?? ''),
-        expiresAt: String(offerByRequestId.get(row.id)?.expires_at ?? ''),
+        offerId: offerIdByRequestId.get(row.id) ?? null,
         pharmacyId: row.pharmacy_id ? String(row.pharmacy_id) : null,
         pharmacyName: 'Farmacia / Kiosco On-Demand',
         patientDni: String(row.care_country === 'BR' ? (row.patient_cpf ?? '') : (row.patient_dni ?? '')),
@@ -94,7 +93,6 @@ export const GET: APIRoute = async ({ request, locals }) => {
     return jsonOk({
       queue,
       count: queue.length,
-      careCountry: doctor.care_country,
     })
   } catch (err) {
     logger.error('[api/doctors/on-duty/queue] GET error', err)

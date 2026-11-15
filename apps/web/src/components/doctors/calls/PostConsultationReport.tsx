@@ -127,6 +127,10 @@ function ReportContent({ roomId }: { roomId: string }) {
         },
       });
 
+      await fetchApi('/api/doctors/on-duty/complete', {
+        method: 'POST',
+        body: { roomId },
+      });
       clearConsultationNotesDraft(roomId);
       setSaved(true);
     } catch (err) {

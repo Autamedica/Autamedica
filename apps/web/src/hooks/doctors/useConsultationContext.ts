@@ -61,7 +61,11 @@ export interface ConsultationContext {
   suggestedQuestions: SuggestedQuestion[];
   reason?: 'not_started' | 'not_shared' | 'kiosk_dispatch' | 'guest_call';
   dispatchTriage?: {
+    patientId: string | null;
     patientDni: string | null;
+    patientCpf: string | null;
+    patientName: string | null;
+    careCountry: 'AR' | 'BR' | string | null;
     symptomSummary: string | null;
     dispatchRequestId: string;
   };

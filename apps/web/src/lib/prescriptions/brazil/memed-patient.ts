@@ -19,6 +19,28 @@ export function validBirthDate(value: string): boolean {
     && date.getUTCFullYear() >= 1900 && date.getTime() < Date.now();
 }
 
+export async function assertMemedDispatchEncounter(
+  admin: SupabaseClient,
+  doctorId: string,
+  patientId: string,
+  requestId: string,
+): Promise<void> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId)) {
+    throw new Error('clinical_encounter_required');
+  }
+  const recent = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await admin.from('pharmacy_dispatch_requests')
+    .select('id')
+    .eq('id', requestId)
+    .eq('assigned_doctor_id', doctorId)
+    .eq('patient_id', patientId)
+    .in('status', ['in_call', 'completed'])
+    .gte('call_started_at', recent)
+    .maybeSingle();
+  if (error) throw new Error('memed_patient_authorization_unavailable');
+  if (!data) throw new Error('clinical_encounter_required');
+}
+
 export interface MemedPatient {
   idExterno: string;
   nome: string;

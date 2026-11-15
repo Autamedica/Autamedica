@@ -4,6 +4,7 @@ import { Loader2, AlertCircle } from 'lucide-react';
 
 interface MemedPrescriptionWidgetProps {
   patientId: string;
+  requestId?: string;
   onPrescriptionSaved: (memedId: string) => Promise<void>;
   onPrescriptionDeleted: (memedId: string) => Promise<void>;
   onClose: () => void;
@@ -14,6 +15,7 @@ interface MemedPrescriptionWidgetProps {
 
 export function MemedPrescriptionWidget({
   patientId,
+  requestId,
   onPrescriptionSaved,
   onPrescriptionDeleted,
   onClose,
@@ -67,7 +69,7 @@ export function MemedPrescriptionWidget({
         const tokenRequest: RequestInit = {
           method: 'POST', credentials: 'include', cache: 'no-store',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ patientId, ...doctorIdentitySubmitted, ...patientDemographicsSubmitted }),
+          body: JSON.stringify({ patientId, ...(requestId ? { requestId } : {}), ...doctorIdentitySubmitted, ...patientDemographicsSubmitted }),
         };
         const response = await fetch('/api/doctors/prescriptions/memed-token', tokenRequest);
         const json = await response.json();
@@ -122,7 +124,7 @@ export function MemedPrescriptionWidget({
       void hub?.module.hide?.('plataforma.prescricao').catch(() => undefined);
       // Leave the script in place to prevent duplicate initialization.
     };
-  }, [patientId, doctorIdentitySubmitted, patientDemographicsSubmitted]);
+  }, [patientId, requestId, doctorIdentitySubmitted, patientDemographicsSubmitted]);
 
   return (
     <div className={mobileFullscreen

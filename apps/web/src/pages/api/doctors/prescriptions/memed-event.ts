@@ -6,7 +6,8 @@ import type { APIRoute } from 'astro';
 import { DOCTOR_ROLES, isAuthed, withAuthRole } from '@/lib/api-auth';
 import { badRequest, forbidden, internalError, jsonOk } from '@/lib/api-helpers';
 import { createAstroAdminClient } from '@/lib/supabase';
-import { resolveMemedPatient, validCpf } from '@/lib/prescriptions/brazil/memed-patient';
+import { assertMemedDispatchEncounter, resolveMemedPatient, validCpf } from '@/lib/prescriptions/brazil/memed-patient';
+import { isMemedEnabled, isMemedPilotDoctor } from '@/lib/prescriptions/brazil/memed-pilot';
 import { MemedService } from '@/lib/prescriptions/brazil/memed.service';
 import { getMemedDoctorCpf } from '@/lib/prescriptions/brazil/memed-identity.repository';
 import { logger } from '@autamedica/shared';
@@ -24,7 +25,7 @@ function providerPrescription(response: JSONObject): JSONObject {
 export const POST: APIRoute = async ({ request, locals }) => {
   const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
   if (!isAuthed(auth)) return auth;
-  if (!(locals.runtime?.env?.MEMED_RX_ENABLED === 'true' || locals.runtime?.env?.MEMED_MOBILE_ENABLED === 'true')) {
+  if (!isMemedEnabled(locals.runtime?.env as unknown as Record<string, unknown> | undefined)) {
     return forbidden('memed_issuance_not_enabled');
   }
 
@@ -41,11 +42,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   const patientId = input.patientId;
+  const requestId = input.requestId;
   const prescriptionId = input.prescriptionId;
   const action = input.action;
   if (
     typeof patientId !== 'string' || !/^[0-9a-f-]{36}$/i.test(patientId) ||
     typeof prescriptionId !== 'string' || !/^[a-zA-Z0-9-]{1,80}$/.test(prescriptionId) ||
+    (requestId !== undefined && (typeof requestId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId))) ||
     (action !== 'issued' && action !== 'deleted')
   ) {
     return badRequest('invalid_memed_event');
@@ -59,8 +62,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .eq('user_id', auth.user.id)
       .maybeSingle();
     if (doctorError) throw doctorError;
-    const pilotDoctorId = locals.runtime?.env?.MEMED_PILOT_DOCTOR_ID || locals.runtime?.env?.MEMED_MOBILE_PILOT_DOCTOR_ID;
-    if (typeof pilotDoctorId !== 'string' || pilotDoctorId !== doctor?.id) {
+    if (!isMemedPilotDoctor(locals.runtime?.env as unknown as Record<string, unknown> | undefined, doctor?.id)) {
       return forbidden('memed_pilot_prescriber_only');
     }
     if (!doctor?.active || doctor.license_type !== 'CRM') return forbidden('brazil_prescriber_required');
@@ -83,6 +85,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     );
     if (!cfmVerified) return forbidden('verified_brazilian_license_required');
 
+    if (typeof requestId === 'string') {
+      await assertMemedDispatchEncounter(admin, doctor.id, patientId, requestId);
+    }
     const authorizedPatient = await resolveMemedPatient(admin, doctor.id, patientId);
 
     const { data: profile, error: profileError } = await admin

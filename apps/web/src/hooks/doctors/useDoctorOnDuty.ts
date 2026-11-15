@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { fetchApi } from '@/lib/api-client'
-import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
 import type {
   ClaimConsultationResult,
   DoctorOnDutyStatus,
@@ -11,24 +10,22 @@ import type {
 
 interface UseDoctorOnDutyReturn {
   onDuty: boolean
-  careCountry: 'AR' | 'BR' | null
   since: string | null
   loading: boolean
   toggling: boolean
   claimingId: string | null
+  decliningId: string | null
   queue: OnDemandQueueItem[]
   queueCount: number
   error: string | null
   toggleDuty: (targetState?: boolean) => Promise<boolean>
   claimPatient: (requestId: string) => Promise<ClaimConsultationResult | null>
+  declinePatient: (requestId: string) => Promise<boolean>
   refreshQueue: () => Promise<void>
-  declinePatient: (offerId: string) => Promise<boolean>
-  decliningId: string | null
 }
 
 export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
   const [onDuty, setOnDuty] = useState<boolean>(false)
-  const [careCountry, setCareCountry] = useState<'AR' | 'BR' | null>(null)
   const [since, setSince] = useState<string | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [toggling, setToggling] = useState<boolean>(false)
@@ -54,39 +51,37 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
     }
   }, [])
 
-  // The authenticated server endpoint is the only source of dispatch offers.
-  // It scopes results to this doctor, country, active duty and unexpired offers.
+  // Protected queue is the only source: country, approval, heartbeat and offer assignment are checked server-side.
   const fetchQueue = useCallback(async () => {
     try {
-      const dataRes = await fetchApi<{ queue: OnDemandQueueItem[]; count: number; careCountry?: 'AR' | 'BR' }>(
+      const dataRes = await fetchApi<{ queue: OnDemandQueueItem[]; count: number }>(
         '/api/doctors/on-duty/queue',
       )
       const items = dataRes.queue || []
-      setCareCountry(dataRes.careCountry === 'BR' || dataRes.careCountry === 'AR' ? dataRes.careCountry : null)
       setQueue(items)
 
+      // Audio notification if new patients arrived in queue and doctor is on duty
       if (onDuty && items.length > prevQueueLengthRef.current && typeof window !== 'undefined') {
         try {
           const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
           const osc = ctx.createOscillator()
           const gain = ctx.createGain()
           osc.type = 'sine'
-          osc.frequency.setValueAtTime(587.33, ctx.currentTime)
-          osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.1)
+          osc.frequency.setValueAtTime(587.33, ctx.currentTime) // D5
+          osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.1) // A5
           gain.gain.setValueAtTime(0.15, ctx.currentTime)
           gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3)
           osc.connect(gain)
           gain.connect(ctx.destination)
           osc.start()
           osc.stop(ctx.currentTime + 0.3)
-          void ctx.close()
         } catch {
-          // Browser audio may require a prior user gesture.
+          // Audio autoplay might be blocked
         }
       }
       prevQueueLengthRef.current = items.length
     } catch {
-      setError('No se pudo actualizar el radar de guardia')
+      // Ignorar fallos transitorios
     }
   }, [onDuty])
 
@@ -97,7 +92,6 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
   // Poll queue every 5 seconds when onDuty is active
   useEffect(() => {
     if (!onDuty) {
-      void fetchQueue()
       setQueue([])
       prevQueueLengthRef.current = 0
       return
@@ -138,6 +132,30 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
     // Cancelar intervalo al salir de guardia o desmontar el hook
     return () => clearInterval(interval)
   }, [onDuty])
+
+  const declinePatient = useCallback(async (requestId: string): Promise<boolean> => {
+    const item = queue.find((candidate) => candidate.id === requestId)
+    if (!item?.offerId) {
+      setError('No se encontró una oferta activa para rechazar')
+      return false
+    }
+    try {
+      setDecliningId(requestId)
+      setError(null)
+      await fetchApi('/api/pharmacy/dispatch/decline', {
+        method: 'POST',
+        body: { offerId: item.offerId },
+      })
+      setQueue((current) => current.filter((candidate) => candidate.id !== requestId))
+      void fetchQueue()
+      return true
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo rechazar la oferta')
+      return false
+    } finally {
+      setDecliningId(null)
+    }
+  }, [queue, fetchQueue])
 
   // Toggle onDuty status
   const toggleDuty = useCallback(
@@ -225,41 +243,19 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
     [],
   )
 
-
-  const declinePatient = useCallback(async (offerId: string): Promise<boolean> => {
-    if (!offerId) return false
-    try {
-      setDecliningId(offerId)
-      setError(null)
-      const { data, error: rpcError } = await getBrowserSupabaseClient()
-        .rpc('decline_my_pharmacy_dispatch_offer', { p_offer_id: offerId })
-      if (rpcError) throw rpcError
-      const declineResult = data as { declined?: boolean } | null
-      if (declineResult?.declined !== true) throw new Error('Esta oferta ya no está disponible')
-      await fetchQueue()
-      return true
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo rechazar la oferta')
-      return false
-    } finally {
-      setDecliningId(null)
-    }
-  }, [fetchQueue])
-
   return {
     onDuty,
-    careCountry,
     since,
     loading,
     toggling,
     claimingId,
+    decliningId,
     queue,
     queueCount: queue.length,
     error,
     toggleDuty,
     claimPatient,
-    refreshQueue: fetchQueue,
     declinePatient,
-    decliningId,
+    refreshQueue: fetchQueue,
   }
 }
