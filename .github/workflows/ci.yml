@@ -102,6 +102,8 @@ jobs:
         run: node --experimental-strip-types --test supabase/functions/update-call-status/handler.test.ts
       - run: pnpm lint
       - run: pnpm hardcode:check
+      - name: Verify country-scoped pharmacy pricing contract
+        run: node --test scripts/ci/jordan-release-contract.test.mjs
       - name: Detect hardcoded secrets
         run: |
           FOUND=0
