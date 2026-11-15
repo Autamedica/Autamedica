@@ -21,6 +21,8 @@ interface UseDoctorOnDutyReturn {
   toggleDuty: (targetState?: boolean) => Promise<boolean>
   claimPatient: (requestId: string) => Promise<ClaimConsultationResult | null>
   refreshQueue: () => Promise<void>
+  declinePatient: (offerId: string) => Promise<boolean>
+  decliningId: string | null
 }
 
 export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
@@ -29,6 +31,7 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
   const [loading, setLoading] = useState<boolean>(true)
   const [toggling, setToggling] = useState<boolean>(false)
   const [claimingId, setClaimingId] = useState<string | null>(null)
+  const [decliningId, setDecliningId] = useState<string | null>(null)
   const [queue, setQueue] = useState<OnDemandQueueItem[]>([])
   const [error, setError] = useState<string | null>(null)
 
@@ -49,77 +52,38 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
     }
   }, [])
 
-  // Fetch pending queue Gen 2 (pharmacy_dispatch_requests con status = 'searching')
+  // The authenticated server endpoint is the only source of dispatch offers.
+  // It scopes results to this doctor, country, active duty and unexpired offers.
   const fetchQueue = useCallback(async () => {
     try {
-      let items: OnDemandQueueItem[] = []
-      const supabase = getBrowserSupabaseClient()
-      const { data, error: dbError } = await supabase
-        .from('pharmacy_dispatch_requests')
-        .select(`
-          id,
-          pharmacy_id,
-          patient_dni,
-          patient_name,
-          patient_phone,
-          tier_requested,
-          symptom_summary,
-          status,
-          created_at,
-          cloudflare_room_id
-        `)
-        .eq('status', 'searching')
-        .order('created_at', { ascending: true })
-
-      if (!dbError && data) {
-        const now = Date.now()
-        items = data.map((row) => {
-          const createdTime = new Date(row.created_at).getTime()
-          const diffMs = Math.max(0, now - createdTime)
-          return {
-            id: String(row.id),
-            pharmacyId: row.pharmacy_id ? String(row.pharmacy_id) : null,
-            pharmacyName: 'Farmacia / Kiosco On-Demand',
-            patientDni: String(row.patient_dni),
-            patientName: String(row.patient_name || 'Paciente Kiosco'),
-            patientPhone: String(row.patient_phone),
-            reason: String(row.symptom_summary || `Consulta ${row.tier_requested || 'General'}`),
-            status: row.status,
-            createdAt: String(row.created_at),
-            minutesWaiting: Math.floor(diffMs / 60000),
-          }
-        })
-      } else {
-        const dataRes = await fetchApi<{ queue: OnDemandQueueItem[]; count: number }>(
-          '/api/doctors/on-duty/queue',
-        )
-        items = dataRes.queue || []
-      }
-
+      const dataRes = await fetchApi<{ queue: OnDemandQueueItem[]; count: number }>(
+        '/api/doctors/on-duty/queue',
+      )
+      const items = dataRes.queue || []
       setQueue(items)
 
-      // Audio notification if new patients arrived in queue and doctor is on duty
       if (onDuty && items.length > prevQueueLengthRef.current && typeof window !== 'undefined') {
         try {
           const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
           const osc = ctx.createOscillator()
           const gain = ctx.createGain()
           osc.type = 'sine'
-          osc.frequency.setValueAtTime(587.33, ctx.currentTime) // D5
-          osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.1) // A5
+          osc.frequency.setValueAtTime(587.33, ctx.currentTime)
+          osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.1)
           gain.gain.setValueAtTime(0.15, ctx.currentTime)
           gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3)
           osc.connect(gain)
           gain.connect(ctx.destination)
           osc.start()
           osc.stop(ctx.currentTime + 0.3)
+          void ctx.close()
         } catch {
-          // Audio autoplay might be blocked
+          // Browser audio may require a prior user gesture.
         }
       }
       prevQueueLengthRef.current = items.length
     } catch {
-      // Ignorar fallos transitorios
+      setError('No se pudo actualizar el radar de guardia')
     }
   }, [onDuty])
 
@@ -257,6 +221,26 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
     [],
   )
 
+
+  const declinePatient = useCallback(async (offerId: string): Promise<boolean> => {
+    if (!offerId) return false
+    try {
+      setDecliningId(offerId)
+      setError(null)
+      const { data, error: rpcError } = await getBrowserSupabaseClient()
+        .rpc('decline_my_pharmacy_dispatch_offer', { p_offer_id: offerId })
+      if (rpcError) throw rpcError
+      if (!data || data.declined !== true) throw new Error('Esta oferta ya no está disponible')
+      await fetchQueue()
+      return true
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo rechazar la oferta')
+      return false
+    } finally {
+      setDecliningId(null)
+    }
+  }, [fetchQueue])
+
   return {
     onDuty,
     since,
@@ -269,5 +253,7 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
     toggleDuty,
     claimPatient,
     refreshQueue: fetchQueue,
+    declinePatient,
+    decliningId,
   }
 }
