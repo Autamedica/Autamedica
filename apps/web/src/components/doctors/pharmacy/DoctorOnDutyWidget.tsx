@@ -137,7 +137,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
             ) : (
               <Power className="w-3.5 h-3.5" />
             )}
-            <span>{onDuty ? '{careCountry === 'BR' ? 'Pausar plantão' : 'Pausar guardia'}' : '{careCountry === 'BR' ? 'Iniciar plantão' : 'Iniciar guardia'}'}</span>
+            <span>{onDuty ? (careCountry === 'BR' ? 'Pausar plantão' : 'Pausar guardia') : (careCountry === 'BR' ? 'Iniciar plantão' : 'Iniciar guardia')}</span>
           </button>
         </div>
       </div>
