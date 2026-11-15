@@ -46,7 +46,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return badRequest('lgpd_consent_required')
     }
 
-    const pricingAdmin = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient
+    const pricingAdmin = createAstroAdminClient(locals.runtime?.env) as any
     const { data: countryPricing, error: pricingError } = await pricingAdmin
       .from('pharmacy_dispatch_pricing_configs')
       .select('country_code,currency,consultation_price_minor,doctor_fee_minor,partner_commission_minor,require_payment_before_dispatch')
