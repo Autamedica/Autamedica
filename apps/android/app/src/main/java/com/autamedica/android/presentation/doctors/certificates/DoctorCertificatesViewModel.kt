@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.ZoneId
 import javax.inject.Inject
 
 data class DoctorCertificatesUiState(
@@ -135,8 +136,15 @@ class DoctorCertificatesViewModel @Inject constructor(
 
     fun initCreateCertificate(patientId: String = "") {
         viewModelScope.launch {
-            val todayStr = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-            val defaultEndStr = LocalDate.now().plusDays(2).format(DateTimeFormatter.ISO_LOCAL_DATE)
+            val countryCode = _uiState.value.doctorEligibility?.countryCode
+            val zoneId = when (countryCode) {
+                "BR" -> ZoneId.of("America/Sao_Paulo")
+                "AR" -> ZoneId.of("America/Argentina/Buenos_Aires")
+                else -> ZoneId.systemDefault()
+            }
+            val today = LocalDate.now(zoneId)
+            val todayStr = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
+            val defaultEndStr = today.plusDays(2).format(DateTimeFormatter.ISO_LOCAL_DATE)
 
             _uiState.update {
                 it.copy(
