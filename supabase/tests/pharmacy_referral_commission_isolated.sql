@@ -16,11 +16,15 @@ DECLARE
   dispatch_cpf_repeat uuid := '00000000-0000-4000-8000-00000000b103';
   dispatch_direct uuid := '00000000-0000-4000-8000-00000000b104';
   dispatch_ar uuid := '00000000-0000-4000-8000-00000000b105';
+  dispatch_ar_repeat uuid := '00000000-0000-4000-8000-00000000b106';
+  dispatch_ar_direct uuid := '00000000-0000-4000-8000-00000000b107';
   payment_first uuid := '00000000-0000-4000-8000-00000000b201';
   payment_phone_repeat uuid := '00000000-0000-4000-8000-00000000b202';
   payment_cpf_repeat uuid := '00000000-0000-4000-8000-00000000b203';
   payment_direct uuid := '00000000-0000-4000-8000-00000000b204';
   payment_ar uuid := '00000000-0000-4000-8000-00000000b205';
+  payment_ar_repeat uuid := '00000000-0000-4000-8000-00000000b206';
+  payment_ar_direct uuid := '00000000-0000-4000-8000-00000000b207';
   err text;
 BEGIN
   SELECT id INTO STRICT partner FROM public.commercial_referral_partners
@@ -107,33 +111,49 @@ BEGIN
     END IF;
   END;
 
-  -- Jordan attribution must never be accepted for an Argentine dispatch.
-  BEGIN
-    INSERT INTO public.pharmacy_dispatch_requests
-      (id,patient_phone,patient_dni,patient_name,tier_requested,
-       cloudflare_room_id,status,care_country,referral_partner_id)
-    VALUES (dispatch_ar,'54911000000','38123456','SYNTHETIC ONLY','general',
-            'cf-room-referral-test-ar','searching','AR',partner);
-    RAISE EXCEPTION 'ar_jordan_was_accepted';
-  EXCEPTION WHEN SQLSTATE '23514' THEN
-    GET STACKED DIAGNOSTICS err=MESSAGE_TEXT;
-    IF err NOT IN ('jordan_referral_brazil_only','jordan_br_general_only') THEN
-      RAISE EXCEPTION 'unexpected AR rejection: %',err;
-    END IF;
-  END;
-  IF EXISTS (SELECT 1 FROM public.pharmacy_dispatch_requests WHERE id=dispatch_ar)
-  THEN RAISE EXCEPTION 'AR Jordan dispatch escaped guard'; END IF;
-
+  -- First AR Jordan acquisition uses the ARS tariff and earns ARS 2.000.
   INSERT INTO public.pharmacy_dispatch_requests
     (id,patient_phone,patient_dni,patient_name,tier_requested,
      cloudflare_room_id,status,care_country,referral_partner_id)
   VALUES (dispatch_ar,'54911000000','38123456','SYNTHETIC ONLY','general',
-          'cf-room-referral-test-ar','searching','AR',NULL);
+          'cf-room-referral-test-ar','searching','AR',partner);
+  IF NOT EXISTS (
+    SELECT 1 FROM public.pharmacy_dispatch_requests
+    WHERE id=dispatch_ar AND currency='ARS' AND price_minor=1500000
+      AND doctor_fee_minor=800000 AND price_brl IS NULL
+  ) THEN RAISE EXCEPTION 'Argentina quote must use the ARS tariff'; END IF;
   INSERT INTO public.pharmacy_dispatch_payments
     (id,dispatch_request_id,amount_minor,currency,status,provider_payment_id,paid_at)
-  VALUES (payment_ar,dispatch_ar,7900,'BRL','approved','555555555555',now());
-  IF EXISTS (SELECT 1 FROM public.commercial_referral_commissions WHERE dispatch_request_id=dispatch_ar)
-  THEN RAISE EXCEPTION 'Argentina dispatch was incorrectly credited in BRL'; END IF;
+  VALUES (payment_ar,dispatch_ar,1500000,'ARS','approved','555555555555',now());
+  IF NOT EXISTS (
+    SELECT 1 FROM public.commercial_referral_commissions
+    WHERE dispatch_request_id=dispatch_ar AND amount_minor=200000
+      AND currency='ARS' AND status='eligible'
+  ) THEN RAISE EXCEPTION 'First AR Jordan acquisition did not create exactly one ARS 2.000 commission'; END IF;
+
+  -- A repeat acquisition by the same AR phone receives no second commission.
+  INSERT INTO public.pharmacy_dispatch_requests
+    (id,patient_phone,patient_dni,patient_name,tier_requested,
+     cloudflare_room_id,status,care_country,referral_partner_id)
+  VALUES (dispatch_ar_repeat,'54911000000','38123457','SYNTHETIC ONLY','general',
+          'cf-room-referral-test-ar-repeat','searching','AR',partner);
+  INSERT INTO public.pharmacy_dispatch_payments
+    (id,dispatch_request_id,amount_minor,currency,status,provider_payment_id,paid_at)
+  VALUES (payment_ar_repeat,dispatch_ar_repeat,1500000,'ARS','approved','666666666666',now());
+  IF EXISTS (SELECT 1 FROM public.commercial_referral_commissions WHERE dispatch_request_id=dispatch_ar_repeat)
+  THEN RAISE EXCEPTION 'repeat AR phone received a Jordan commission'; END IF;
+
+  -- A direct Argentina pharmacy payment never earns a Jordan commission.
+  INSERT INTO public.pharmacy_dispatch_requests
+    (id,patient_phone,patient_dni,patient_name,tier_requested,
+     cloudflare_room_id,status,care_country,referral_partner_id)
+  VALUES (dispatch_ar_direct,'54911000001','38123458','SYNTHETIC ONLY','general',
+          'cf-room-referral-test-ar-direct','searching','AR',NULL);
+  INSERT INTO public.pharmacy_dispatch_payments
+    (id,dispatch_request_id,amount_minor,currency,status,provider_payment_id,paid_at)
+  VALUES (payment_ar_direct,dispatch_ar_direct,1500000,'ARS','approved','777777777777',now());
+  IF EXISTS (SELECT 1 FROM public.commercial_referral_commissions WHERE dispatch_request_id=dispatch_ar_direct)
+  THEN RAISE EXCEPTION 'unattributed AR consultation was credited to Jordan'; END IF;
 END $test$;
 ROLLBACK;
 SELECT 'PASS: first Jordan acquisition by phone OR CPF; repeats and direct channel earn R$0; refunds reverse R$10' AS smoke_result;
