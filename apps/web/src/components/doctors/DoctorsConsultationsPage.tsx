@@ -21,7 +21,7 @@ export function DoctorsConsultationsPage({
   initialView,
 }: DoctorsConsultationsPageProps = {}) {
   const { user } = useAuthenticatedUser();
-  const { patients } = useRealPatients();
+  const { patients, loading: patientsLoading, error: patientsError } = useRealPatients();
   const { appointments } = useDoctorAppointments();
 
   const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
@@ -44,6 +44,37 @@ export function DoctorsConsultationsPage({
   const selectedPatientName = selectedPatient
     ? getDisplayName(selectedPatient.profile).name
     : null;
+
+  if (selectedPatientId && !selectedPatient && patientsLoading) {
+    return (
+      <DoctorsPortalFrame
+        title="Cargando ficha del paciente"
+        description="Recuperando los datos del expediente."
+        activeSection="consultations"
+      >
+        <div role="status" aria-live="polite" className="rounded-xl border border-neutral-200 bg-white p-6 text-sm text-neutral-500">
+          Cargando ficha del paciente...
+        </div>
+      </DoctorsPortalFrame>
+    );
+  }
+
+  if (selectedPatientId && !selectedPatient) {
+    return (
+      <DoctorsPortalFrame
+        title={patientsError ? "No se pudo cargar la ficha" : "Paciente no encontrado"}
+        description="No pudimos abrir el expediente solicitado."
+        activeSection="consultations"
+      >
+        <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+          {patientsError || "El paciente no está disponible en tu lista de pacientes asignados."}
+          <a href="/doctors/patients" className="mt-4 inline-flex font-semibold underline">
+            Volver a pacientes
+          </a>
+        </div>
+      </DoctorsPortalFrame>
+    );
+  }
 
   if (selectedPatientId && selectedPatient) {
     const profile = selectedPatient.profile as {
