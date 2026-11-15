@@ -21,6 +21,8 @@ export interface DoctorStats {
   satisfactionRate?: number | null;
   avgRating?: number | null;
   avgConsultationTimeMins?: number | null;
+  pharmacyDispatchCount: number;
+  pharmacyEarningsByCurrency: { BRL: number; ARS: number };
   nextAppointment: {
     time: string;
     patientName: string;
@@ -109,6 +111,7 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
     notificationsResult,
     clarificationsResult,
     triageMandatesResult,
+    pharmacyEarningsResult,
   ] = await Promise.all([
     supabase
       .from('appointments')
@@ -168,6 +171,12 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
       .eq('assigned_doctor_id', doctorId)
       .neq('triage_priority', 'routine')
       .in('triage_status', ['pending', 'acknowledged', 'in_progress']),
+    // Pharmacy dispatch earnings are already recorded idempotently by the settlement trigger.
+    (supabase as any)
+      .from('doctor_earnings')
+      .select('net_amount, currency, dispatch_request_id')
+      .eq('doctor_id', doctorId)
+      .not('dispatch_request_id', 'is', null),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ]) as any[];
 
@@ -188,6 +197,17 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
 
   const qualityScoreRaw = rankingResult?.data?.overall_score;
   const qualityScore = qualityScoreRaw != null ? (qualityScoreRaw > 10 ? qualityScoreRaw / 10 : qualityScoreRaw) : null;
+
+  const pharmacyEarningsRows = pharmacyEarningsResult?.data ?? [];
+  const pharmacyEarningsByCurrency = pharmacyEarningsRows.reduce(
+    (totals: { BRL: number; ARS: number }, row: { net_amount?: number | string | null; currency?: string | null }) => {
+      const amount = Number(row.net_amount ?? 0);
+      if (Number.isFinite(amount) && row.currency === 'BRL') totals.BRL += amount;
+      if (Number.isFinite(amount) && row.currency === 'ARS') totals.ARS += amount;
+      return totals;
+    },
+    { BRL: 0, ARS: 0 },
+  );
 
   const avgRatingRaw = rankingResult?.data?.avg_rating;
   const avgRating = avgRatingRaw != null ? (avgRatingRaw > 5 ? avgRatingRaw / 20 : avgRatingRaw) : null;
@@ -229,6 +249,8 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
     satisfactionRate,
     avgRating,
     avgConsultationTimeMins,
+    pharmacyDispatchCount: pharmacyEarningsRows.length,
+    pharmacyEarningsByCurrency,
     nextAppointment: nextAppt
       ? {
           time: new Date(nextAppt.start_time).toLocaleTimeString('es-AR', {
