@@ -4,7 +4,6 @@ import { badRequest, internalError, jsonOk, serviceUnavailable, unauthorized } f
 import { createAstroAdminClient } from '@/lib/supabase'
 import { getRuntimeEnvValue } from '@/lib/runtime-env'
 import { authorizePharmacyPaymentRequest, hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payment-access'
-import { GENERAL_PHARMACY_BR_PRICE_CENTS, JORDAN_DOCTOR_FEE_CENTS } from '@/lib/pharmacy/payments/referral-finance'
 import { logger } from '@autamedica/shared'
 import { getOperationalPaymentSwitches } from '@/lib/payments/operational-switches'
 
@@ -28,8 +27,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const dispatch = await authorizePharmacyPaymentRequest(admin, requestId, token, locals.runtime?.env)
     if (!dispatch) return unauthorized('pharmacy_request_token_required')
-    if (dispatch.care_country !== 'BR' || dispatch.tier_requested !== 'general') {
-      return badRequest('pharmacy_payment_available_for_brazil_general_only')
+    if ((dispatch.care_country !== 'BR' && dispatch.care_country !== 'AR') || dispatch.tier_requested !== 'general') {
+      return badRequest('pharmacy_payment_available_for_ar_br_general_only')
     }
     if (!['searching','matched','in_call'].includes(dispatch.status)) {
       return badRequest('pharmacy_payment_request_not_payable')
@@ -44,31 +43,36 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (sourceError) throw sourceError
     const partner = source?.commercial_referral_partners as { code?: string; active?: boolean } | null
     const isJordan = partner?.code === 'JORDAN'
-    if (source?.referral_partner_id && (!isJordan || partner?.active !== true)) {
+    if (source?.referral_partner_id && partner?.active !== true) {
       return badRequest('unsupported_or_inactive_pharmacy_referral')
     }
 
-    // Charge before dispatch. The database matcher independently enforces
-    // approved Mercado Pago payment before it can emit a doctor offer.
+    const { data: pricing, error: pricingError } = await admin
+      .from('pharmacy_dispatch_pricing_configs')
+      .select('country_code,currency,consultation_price_minor,doctor_fee_minor,partner_commission_minor,require_payment_before_dispatch')
+      .eq('country_code', dispatch.care_country)
+      .maybeSingle()
+    if (pricingError || !pricing) return serviceUnavailable('pharmacy_dispatch_pricing_not_configured')
     const { data: quote, error: quoteError } = await admin
       .from('pharmacy_dispatch_requests')
-      .select('doctor_fee_brl,price_brl')
+      .select('doctor_fee_minor,price_minor,currency')
       .eq('id', dispatch.id)
       .maybeSingle()
     if (quoteError) throw quoteError
-    if (Number(quote?.doctor_fee_brl) !== JORDAN_DOCTOR_FEE_CENTS / 100 ||
-        Number(quote?.price_brl) !== GENERAL_PHARMACY_BR_PRICE_CENTS / 100) {
-      return serviceUnavailable('brazil_medical_quote_not_verified')
+    if (Number(quote?.doctor_fee_minor) !== pricing.doctor_fee_minor ||
+        Number(quote?.price_minor) !== pricing.consultation_price_minor || quote?.currency !== pricing.currency) {
+      return serviceUnavailable('pharmacy_country_quote_not_verified')
     }
-    const amountCents = GENERAL_PHARMACY_BR_PRICE_CENTS
+    const amountCents = pricing.consultation_price_minor
+    const currency = pricing.currency as 'BRL' | 'ARS'
     const { data: old, error: oldError } = await admin.from('pharmacy_dispatch_payments')
       .select('id,status,checkout_url,amount_minor,currency').eq('dispatch_request_id',dispatch.id).maybeSingle()
     if (oldError) throw oldError
     if (old) {
-      if (old.amount_minor !== amountCents || old.currency !== 'BRL') throw new Error('checkout_amount_changed')
-      if (old.status === 'approved') return jsonOk({ status: 'approved', checkoutUrl: null })
+      if (old.amount_minor !== amountCents || old.currency !== currency) throw new Error('checkout_amount_changed')
+      if (old.status === 'approved') return jsonOk({ status: 'approved', checkoutUrl: null, amountCents, currency })
       if (old.status === 'pending' && old.checkout_url) {
-        return jsonOk({ status: 'pending', checkoutUrl: old.checkout_url })
+        return jsonOk({ status: 'pending', checkoutUrl: old.checkout_url, amountCents, currency })
       }
       // A provider request may have succeeded even if the response was lost.
       // Do not create a second preference for the same dispatch automatically.
@@ -82,12 +86,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       }
       // Clinical provider health is intentionally not a checkout dependency.
       // A Memed/Farmalink incident may leave a document pending without disabling payments.
+      const countryScope = dispatch.care_country
+      const requiredScopes = [countryScope, 'EXPRESS', ...(isJordan ? ['JORDAN'] : [])]
       const scopes = await admin.from('platform_operational_domains')
         .select('scope_key,commercial_status,financial_status')
-        .in('scope_key', isJordan ? ['BR','EXPRESS','JORDAN'] : ['BR','EXPRESS'])
+        .in('scope_key', requiredScopes)
       if (scopes.error) return serviceUnavailable('commercial_governance_unavailable')
       const scopeByKey = new Map((scopes.data ?? []).map((row: any) => [row.scope_key,row]))
-      const requiredScopes = ['BR','EXPRESS',...(isJordan ? ['JORDAN'] : [])]
       const channelOpen = requiredScopes.every((key) => {
         const row: any = scopeByKey.get(key)
         return row && ['enabled','limited'].includes(row.commercial_status)
@@ -102,7 +107,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         .insert({
           dispatch_request_id: dispatch.id,
           amount_minor: amountCents,
-          currency: 'BRL',
+          currency,
           status: 'initializing',
           provider: 'mercadopago',
         })
@@ -127,10 +132,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
       },
       body: JSON.stringify({
         items: [{
-          title: 'AutaMedica - Consulta médica',
+          title: dispatch.care_country === 'AR' ? 'AutaMedica - Consulta médica' : 'AutaMedica - Consulta médica',
           quantity: 1,
           unit_price: amountCents / 100,
-          currency_id: 'BRL',
+          currency_id: currency,
         }],
         external_reference: `pharm:${dispatch.id}`,
         notification_url: `${appUrl}/api/payments/mercadopago/webhook`,
@@ -163,7 +168,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .eq('id', initializedPaymentId).eq('status','initializing')
       .select('id').maybeSingle()
     if (saveError || !saved) throw saveError ?? new Error('checkout_save_conflict')
-    return jsonOk({ status: 'pending', checkoutUrl: checkout.init_point })
+    return jsonOk({ status: 'pending', checkoutUrl: checkout.init_point, amountCents, currency })
   } catch (error) {
     logger.error('[pharmacy-payment/create] Could not create checkout', {
       reason: error instanceof Error ? error.message : 'unknown',
