@@ -54,7 +54,7 @@ test.describe('Pharmacy intake AR/BR clinical country', () => {
       await page.goto('/farmacia/solicitar')
       await waitForPharmacyHydration(page)
       await expect(page.getByRole('heading', { name: /Consulta médica/ })).toBeVisible()
-      await page.getByRole('radio', { name: c.countryLabel }).check()
+      await page.getByText(c.countryLabel, { exact: true }).click()\n      await expect(page.getByRole('radio', { name: c.countryLabel })).toBeChecked()
       await expect(page.getByRole('radio', { name: c.countryLabel })).toBeChecked()
       await expect(page.getByLabel(c.idLabel)).toBeVisible({ timeout: 10000 })
       await page.getByLabel(c.idLabel).fill(c.document)
