@@ -34,22 +34,36 @@ export function getWaitingCopy(
   state: DoctorWaitingState,
   defaultMessage?: string,
   peerName?: string,
+  locale: 'es-AR' | 'pt-BR' = 'es-AR',
 ): { title: string; description: string } {
-  const name = peerName ?? 'el paciente'
+  const isPortuguese = locale === 'pt-BR'
+  const name = peerName ?? (isPortuguese ? 'o paciente' : 'el paciente')
   switch (state) {
     case 'canceling':
-      return { title: 'Cancelando videollamada...', description: `Estamos cerrando la invitacion para que ${name} ya no vea esta llamada.` }
+      return isPortuguese
+        ? { title: 'Cancelando videochamada...', description: `Estamos encerrando o convite para que ${name} não veja mais esta chamada.` }
+        : { title: 'Cancelando videollamada...', description: `Estamos cerrando la invitación para que ${name} ya no vea esta llamada.` }
     case 'canceled':
-      return { title: 'Videollamada cancelada', description: `La invitacion se cerro antes de que ${name} se conectara.` }
+      return isPortuguese
+        ? { title: 'Videochamada cancelada', description: `O convite foi encerrado antes que ${name} se conectasse.` }
+        : { title: 'Videollamada cancelada', description: `La invitación se cerró antes de que ${name} se conectara.` }
     case 'timed_out':
-      return { title: `Sin respuesta de ${name}`, description: 'La videollamada se cancelo automaticamente porque nadie respondio a tiempo.' }
+      return isPortuguese
+        ? { title: `Sem resposta de ${name}`, description: 'A videochamada foi encerrada automaticamente porque ninguém respondeu a tempo.' }
+        : { title: `Sin respuesta de ${name}`, description: 'La videollamada se canceló automáticamente porque nadie respondió a tiempo.' }
     case 'declined':
-      return { title: `${name} no disponible`, description: `${name} rechazo la invitacion y la videollamada ya no esta disponible.` }
+      return isPortuguese
+        ? { title: `${name} indisponível`, description: `${name} recusou o convite e a videochamada não está mais disponível.` }
+        : { title: `${name} no disponible`, description: `${name} rechazó la invitación y la videollamada ya no está disponible.` }
     case 'ended':
-      return { title: 'Videollamada finalizada', description: 'La sala se cerro antes de que la consulta pudiera comenzar.' }
+      return isPortuguese
+        ? { title: 'Videochamada encerrada', description: 'A sala foi fechada antes que a consulta pudesse começar.' }
+        : { title: 'Videollamada finalizada', description: 'La sala se cerró antes de que la consulta pudiera comenzar.' }
     case 'waiting':
     default:
-      return { title: `Esperando a ${name}`, description: defaultMessage ?? `La videollamada esta lista. Entraremos apenas ${name} acepte.` }
+      return isPortuguese
+        ? { title: `Aguardando ${name}`, description: defaultMessage ?? `A videochamada está pronta. Entraremos assim que ${name} aceitar.` }
+        : { title: `Esperando a ${name}`, description: defaultMessage ?? `La videollamada está lista. Entraremos apenas ${name} acepte.` }
   }
 }
 
