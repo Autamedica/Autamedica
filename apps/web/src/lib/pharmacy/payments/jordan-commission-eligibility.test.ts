@@ -4,8 +4,9 @@ import { isJordanCommissionEligible } from './jordan-commission-eligibility'
 const firstAcquisition = { status: 'eligible', amount_minor: 1000, currency: 'BRL' }
 
 describe('Jordan first paid acquisition ledger', () => {
-  it('recognizes only the database-approved R$10 BRL eligibility', () => {
+  it('recognizes database-approved BRL and ARS country commissions', () => {
     expect(isJordanCommissionEligible('approved', firstAcquisition)).toBe(true)
+    expect(isJordanCommissionEligible('approved', { status: 'eligible', amount_minor: 200000, currency: 'ARS' })).toBe(true)
   })
   it('does not infer commission from a payment without a first-conversion ledger row', () => {
     expect(isJordanCommissionEligible('approved', null)).toBe(false)
@@ -20,8 +21,8 @@ describe('Jordan first paid acquisition ledger', () => {
     expect(isJordanCommissionEligible('approved', { ...firstAcquisition, status: 'paid' })).toBe(false)
     expect(isJordanCommissionEligible('approved', { ...firstAcquisition, status: 'reversed' })).toBe(false)
   })
-  it('rejects wrong amount or currency', () => {
-    expect(isJordanCommissionEligible('approved', { ...firstAcquisition, amount_minor: 900 })).toBe(false)
+  it('rejects invalid amounts or currencies', () => {
+    expect(isJordanCommissionEligible('approved', { ...firstAcquisition, amount_minor: 0 })).toBe(false)
     expect(isJordanCommissionEligible('approved', { ...firstAcquisition, currency: 'USD' })).toBe(false)
   })
 })
