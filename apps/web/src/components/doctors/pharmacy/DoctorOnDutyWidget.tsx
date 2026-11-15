@@ -93,7 +93,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
               {onDuty ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/40 bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                  {careCountry === 'BR' ? 'EM PLANTÃO' : 'DISPONIBLE'}
+                  {careCountry === 'BR' ? 'EM PLANTÃO' : 'CONECTADO A GUARDIA'}
                 </span>
               ) : (
                 <span className="px-2 py-0.5 rounded-full bg-am-surface-700/60 text-am-surface-400 text-[10px] font-medium">
@@ -166,6 +166,11 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
               >
                 {queueCount}
               </span>
+              {queueCount > 0 && (
+                <span className="rounded-full border border-emerald-400/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold tracking-wide text-emerald-300">
+                  {careCountry === 'BR' ? 'OFERTA RECEBIDA' : 'OFERTA ENTRANTE'}
+                </span>
+              )}
             </div>
 
             {queueCount > 0 && (
