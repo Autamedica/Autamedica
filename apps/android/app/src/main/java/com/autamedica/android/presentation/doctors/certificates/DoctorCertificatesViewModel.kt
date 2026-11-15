@@ -308,6 +308,7 @@ class DoctorCertificatesViewModel @Inject constructor(
                 )
             }
 
+            val countryCode = state.doctorEligibility?.countryCode.orEmpty()
             val request = CreateCertificateRequest(
                 patientId = state.patientId,
                 certificateType = state.certificateType,
@@ -315,8 +316,10 @@ class DoctorCertificatesViewModel @Inject constructor(
                 startDate = state.startDate,
                 endDate = if (state.daysOfRest > 0) state.endDate else null,
                 diagnosis = state.diagnosis.trim(),
-                hideDiagnosis = state.hideDiagnosis,
+                hideDiagnosis = state.hideDiagnosis || countryCode == "BR",
                 observations = state.observations.trim().ifEmpty { null },
+                countryCode = countryCode,
+                cid10Code = state.diagnosisCode?.trim()?.takeIf { it.isNotEmpty() },
             )
 
             certificateRepository.createCertificate(request)
