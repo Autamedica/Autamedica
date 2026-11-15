@@ -156,7 +156,7 @@ class DoctorCertificatesViewModel @Inject constructor(
                     endDate = defaultEndStr,
                     diagnosis = "",
                     diagnosisCode = null,
-                    hideDiagnosis = false,
+                    hideDiagnosis = countryCode == "BR",
                     observations = "",
                     createError = null,
                     createErrorRes = null,
