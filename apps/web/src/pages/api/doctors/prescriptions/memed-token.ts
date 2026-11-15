@@ -56,7 +56,7 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
       return internalError();
     }
     // Pilot is restricted to an explicitly configured prescriber.
-    const pilotDoctorId = locals.runtime?.env?.MEMED_PILOT_DOCTOR_ID;
+    const pilotDoctorId = locals.runtime?.env?.MEMED_PILOT_DOCTOR_ID || locals.runtime?.env?.MEMED_MOBILE_PILOT_DOCTOR_ID;
     if (typeof pilotDoctorId !== 'string' || pilotDoctorId !== doctor?.id) {
       return forbidden('memed_pilot_prescriber_only');
     }
