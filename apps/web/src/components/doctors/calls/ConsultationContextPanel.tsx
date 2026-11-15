@@ -338,7 +338,7 @@ export function ConsultationContextPanel({
             <User className="h-6 w-6" />
           </div>
           <div className="min-w-0">
-            <h3 className="text-base font-bold text-am-surface-900 truncate tracking-tight">{patientName}</h3>
+            <h3 className="text-base font-bold text-am-surface-900 whitespace-normal break-words tracking-tight">{patientName}</h3>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-xs font-semibold text-am-surface-500">{gender || (isPortuguese ? 'Gênero não informado' : 'Género no especificado')}</span>
               {age && (
