@@ -49,9 +49,22 @@ describe('Memed patient authorization', () => {
     await expect(resolveMemedPatient(database({ patients: { ...identity, ...change } }), 'doctor', patientId))
       .rejects.toThrow('memed_patient_consent_required');
   });
-  it.each([{ cpf: '00000000000' }, { birth_date: null }, { gender: null }])('rejects incomplete identity %j', async (change) => {
+  it.each([{ cpf: '00000000000' }, { cpf: '' }])('rejects incomplete required identity %j', async (change) => {
     await expect(resolveMemedPatient(database({ patients: { ...identity, ...change } }), 'doctor', patientId))
       .rejects.toThrow('memed_patient_identity_incomplete');
+  });
+  it.each([{ birth_date: null }, { gender: null }, { birth_date: null, gender: null }])(
+    'accepts express pharmacy patients without optional demographics %j', async (change) => {
+      const patient = await resolveMemedPatient(database({ patients: { ...identity, ...change } }), 'doctor', patientId);
+      expect(patient).toMatchObject({ nome: 'Synthetic Patient', cpf: identity.cpf });
+      expect(patient).not.toHaveProperty('data_nascimento');
+      expect(patient).not.toHaveProperty('sexo');
+    },
+  );
+  it('omits malformed optional demographics instead of fabricating them', async () => {
+    const patient = await resolveMemedPatient(database({ patients: { ...identity, birth_date: 'bad', gender: 'unknown' } }), 'doctor', patientId);
+    expect(patient).not.toHaveProperty('data_nascimento');
+    expect(patient).not.toHaveProperty('sexo');
   });
   it('rejects manipulated patient identifiers', async () => {
     await expect(resolveMemedPatient(database(), 'doctor', '../../other')).rejects.toThrow('memed_patient_required');
