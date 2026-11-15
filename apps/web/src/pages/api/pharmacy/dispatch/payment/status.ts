@@ -32,9 +32,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (error) throw error
     if (!local) return jsonOk({ status: 'not_started' })
 
-    const accessToken = (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN as string | undefined)
+    const accessToken = (dispatch.care_country === 'AR'
+      ? (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN_AR as string | undefined)
+        ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN_AR')
+      : undefined)
+      ?? (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN as string | undefined)
       ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN')
-    if (local.provider_payment_id && accessToken) {
+    const isManualOverride = String(local.provider_payment_id ?? '').startsWith('MANUAL_OVERRIDE_')
+    if (local.provider_payment_id && !isManualOverride && accessToken) {
       const response = await fetch(
         `https://api.mercadopago.com/v1/payments/${encodeURIComponent(local.provider_payment_id)}`,
         {
