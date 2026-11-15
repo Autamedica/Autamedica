@@ -61,7 +61,8 @@ test.describe('Pharmacy intake AR/BR clinical country', () => {
       await page.getByLabel(c.nameLabel).fill('PACIENTE SINTETICO TEST')
       await page.getByLabel('WhatsApp').fill(c.phone)
       await page.getByRole('button', { name: c.reasonOption }).click()
-      if (c.country === 'BR') await page.getByRole('checkbox').check()\n      await page.getByRole('button', { name: c.submitLabel }).click()
+      if (c.country === 'BR') await page.getByRole('checkbox').check()
+      await page.getByRole('button', { name: c.submitLabel }).click()
       await expect.poll(() => receivedBody !== null, { timeout: 10000 }).toBe(true)
       // The mocked API must be reached before any waiting-state assertion.
       await expect(page.getByText('Buscando médico')).toBeVisible({ timeout: 10000 })
@@ -72,7 +73,8 @@ test.describe('Pharmacy intake AR/BR clinical country', () => {
       expect(body?.[c.docField]).toBe(c.document)
       expect(body?.[c.absentField]).toBeUndefined()
       expect(body?.patientName).toBe('PACIENTE SINTETICO TEST')
-      expect(body?.patientPhone).toBe(c.phone)\n      expect(body?.symptomSummary).toBe(c.reasonOption)
+      expect(body?.patientPhone).toBe(c.phone)
+      expect(body?.symptomSummary).toBe(c.reasonOption)
     })
   }
 
@@ -84,7 +86,7 @@ test.describe('Pharmacy intake AR/BR clinical country', () => {
     })
     await page.goto('/farmacia/solicitar')
     await waitForPharmacyHydration(page)
-    await expect(page.getByRole('heading', { name: /Consulta Exprés en Farmacia/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Consulta médica/ })).toBeVisible()
     await page.getByLabel('DNI').fill('38123456')
     await page.getByLabel('Nombre y apellido').fill('PACIENTE SINTETICO TEST')
     await page.getByLabel('WhatsApp').fill('+5491122223333')
