@@ -11,6 +11,7 @@ import { logger } from '@autamedica/shared';
 export interface DoctorStats {
   activeCount: number;
   todayCount: number;
+  todayCompletedCount: number;
   patientsCount: number;
   historyCount: number;
   pendingClarifications: number;
@@ -197,7 +198,7 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
 
   const appointments = (apptResult.data ?? []) as AppointmentRow[];
 
-  const activeAppointments = appointments.filter(apt => apt.status === 'scheduled' || apt.status === 'in_progress');
+  const activeAppointments = appointments.filter(apt => apt.status === 'scheduled' || apt.status === 'confirmed' || apt.status === 'in_progress');
 
   const todayAppointments = appointments.filter(apt => apt.start_time >= startOfDay && apt.start_time <= endOfDay);
 
@@ -225,6 +226,7 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
 
   // Calculate average consultation time based on completed appointments
   const completedAppointments = appointments.filter(apt => apt.status === 'ended' || apt.status === 'completed');
+  const todayCompletedAppointments = completedAppointments.filter(apt => apt.start_time >= startOfDay && apt.start_time <= endOfDay);
   let avgConsultationTimeMins: number | null = null;
   if (completedAppointments.length > 0) {
     let totalMinutes = 0;
@@ -248,6 +250,7 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
   return {
     activeCount: activeAppointments.length,
     todayCount: todayAppointments.length + (pharmacyDispatchesResult?.count ?? 0),
+    todayCompletedCount: todayCompletedAppointments.length + (pharmacyDispatchesResult?.count ?? 0),
     todayPharmacyCount: pharmacyDispatchesResult?.count ?? 0,
     patientsCount: patientsResult.count ?? 0,
     historyCount: recordsResult.count ?? 0,
