@@ -100,7 +100,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       // Operational switches stop new checkouts only. Existing pending/approved payments
       // above remain readable and usable after an Admin pause.
       const operationalSwitches = await getOperationalPaymentSwitches(admin).catch(() => null)
-      if (!operationalSwitches?.pharmacy_express_payments_enabled || !operationalSwitches.global_pix_mp_payments_enabled || (isJordan && !operationalSwitches.jordan_qr_payments_enabled)) {
+      if (!operationalSwitches?.pharmacy_express_payments_enabled || (!manualPilot && !operationalSwitches.global_pix_mp_payments_enabled) || (isJordan && !operationalSwitches.jordan_qr_payments_enabled)) {
         return serviceUnavailable('pharmacy_checkout_not_enabled')
       }
       // Clinical provider health is intentionally not a checkout dependency.
