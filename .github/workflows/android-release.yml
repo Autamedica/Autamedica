@@ -43,6 +43,86 @@ permissions:
   contents: write
 
 jobs:
+  retire-legacy-open-testing-release:
+    name: Retire legacy Open Testing release (versionCode 11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Remove only versionCode 11 from Open Testing
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
+        run: |
+          set -euo pipefail
+          test -n "$SERVICE_ACCOUNT" || { echo "::error::GOOGLE_PLAY_SERVICE_ACCOUNT is not configured"; exit 1; }
+          python3 -m pip install --quiet google-auth requests
+          python3 - <<'PY'
+          import json, os, sys
+          from google.auth.transport.requests import AuthorizedSession
+          from google.oauth2 import service_account
+
+          package = "com.autamedica.android"
+          track_name = "alpha"
+          legacy_code = "11"
+          credentials = service_account.Credentials.from_service_account_info(
+              json.loads(os.environ["SERVICE_ACCOUNT"]),
+              scopes=["https://www.googleapis.com/auth/androidpublisher"],
+          )
+          session = AuthorizedSession(credentials)
+          base = f"https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{package}"
+          edit_response = session.post(f"{base}/edits")
+          edit_response.raise_for_status()
+          edit_id = edit_response.json()["id"]
+          print(f"Opened Play edit {edit_id} for {package}")
+          committed = False
+          try:
+              response = session.get(f"{base}/edits/{edit_id}/tracks/{track_name}")
+              if response.status_code == 404:
+                  print("Open testing track is empty; no legacy release to remove.")
+                  session.delete(f"{base}/edits/{edit_id}").raise_for_status()
+                  sys.exit(0)
+              response.raise_for_status()
+              track = response.json()
+              original = track.get("releases", [])
+              print("Open testing releases before:", json.dumps(original))
+              updated = []
+              removed = False
+              for release in original:
+                  codes = [str(code) for code in release.get("versionCodes", [])]
+                  if legacy_code not in codes:
+                      updated.append(release)
+                      continue
+                  removed = True
+                  remaining = [code for code in release.get("versionCodes", []) if str(code) != legacy_code]
+                  if remaining:
+                      release["versionCodes"] = remaining
+                      updated.append(release)
+                  else:
+                      print(f"Removing release containing only legacy versionCode {legacy_code}")
+              if not removed:
+                  print(f"versionCode {legacy_code} is not present on Open testing; no change required.")
+                  session.delete(f"{base}/edits/{edit_id}").raise_for_status()
+                  sys.exit(0)
+              payload = {"track": track_name, "releases": updated}
+              put = session.put(f"{base}/edits/{edit_id}/tracks/{track_name}", json=payload)
+              put.raise_for_status()
+              verify = session.get(f"{base}/edits/{edit_id}/tracks/{track_name}")
+              verify.raise_for_status()
+              remaining_codes = [
+                  str(code)
+                  for release in verify.json().get("releases", [])
+                  for code in release.get("versionCodes", [])
+              ]
+              if legacy_code in remaining_codes:
+                  raise RuntimeError("Verification failed: versionCode 11 remains on Open testing.")
+              commit = session.post(f"{base}/edits/{edit_id}:commit")
+              commit.raise_for_status()
+              committed = True
+              print(f"SUCCESS: committed Open testing without versionCode {legacy_code}. Remaining versionCodes: {remaining_codes}")
+          finally:
+              if not committed:
+                  session.delete(f"{base}/edits/{edit_id}")
+          PY
   android-unit-tests:
     name: Android Unit Tests (independent of release build)
     runs-on: ubuntu-latest
