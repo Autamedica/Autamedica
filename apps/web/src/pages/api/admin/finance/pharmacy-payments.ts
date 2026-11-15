@@ -43,7 +43,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
  return jsonOk((payments??[]).map((p:any)=>{
   const req=byId.get(p.dispatch_request_id)
   const doctor=req?.assigned_doctor_id?doctorById.get(req.assigned_doctor_id):null
-  const doctorFeeMinor=Number.isFinite(Number(req?.doctor_fee_minor))?Number(req?.doctor_fee_minor):(req?.doctor_fee_brl?Math.round(Number(req.doctor_fee_brl)*100):null)
+  const doctorFeeMinor=typeof req?.doctor_fee_minor==='number'&&Number.isFinite(req.doctor_fee_minor)?req.doctor_fee_minor:(req?.doctor_fee_brl?Math.round(Number(req.doctor_fee_brl)*100):null)
   return {...p,request_id:p.dispatch_request_id,assigned_doctor_id:req?.assigned_doctor_id??null,
    doctor_user_id:doctor?.user_id??null,doctor_fee_minor:doctorFeeMinor,
    jordan_commission_minor:commissionByDispatch.get(p.dispatch_request_id)?.status==='eligible'||commissionByDispatch.get(p.dispatch_request_id)?.status==='paid'?commissionByDispatch.get(p.dispatch_request_id).amount_minor:0,
