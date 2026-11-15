@@ -28,7 +28,7 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
   if (!isAuthed(auth)) return auth;
   // Allow Memed initialization in ready/pending_issuance; provider signing and
   // patient delivery remain separate, explicit lifecycle validations.
-  if (locals.runtime?.env?.MEMED_RX_ENABLED !== 'true') {
+  if (!(locals.runtime?.env?.MEMED_RX_ENABLED === 'true' || locals.runtime?.env?.MEMED_MOBILE_ENABLED === 'true')) {
     return forbidden('memed_issuance_not_enabled');
   }
 
