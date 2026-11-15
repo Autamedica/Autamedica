@@ -57,6 +57,7 @@ import org.webrtc.VideoTrack
 import com.autamedica.android.domain.repository.IceServerInfo
 import com.autamedica.android.presentation.videocall.components.SoapEvolutionData
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.serialization.SerialName
@@ -163,6 +164,13 @@ class VideoCallViewModel @Inject constructor(
     private val medicalCertificateRepository: MedicalCertificateRepository,
     private val pharmacyDispatchRepository: PharmacyDispatchRepository,
 ) : ViewModel() {
+
+    fun memedSessionTokens(): Pair<String, String>? {
+        val session = supabaseClient.auth.currentSessionOrNull() ?: return null
+        val access = session.accessToken.takeIf { it.isNotBlank() } ?: return null
+        val refresh = session.refreshToken.takeIf { it.isNotBlank() } ?: return null
+        return access to refresh
+    }
 
     val appointmentId: String = savedStateHandle["appointmentId"] ?: ""
     /** roomId real de la call (room_XXXX). Si está vacío, se usa appointmentId como fallback. */
