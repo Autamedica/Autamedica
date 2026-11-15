@@ -82,13 +82,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (old.status === 'pending' && old.checkout_url) {
         return jsonOk({ status: 'pending', checkoutUrl: old.checkout_url, amountCents, currency })
       }
-      if (manualPilot && old.status === 'pending' && old.provider === 'manual'
+      if (manualPilot && old.status === 'pending' && old.metadata?.payment_mode === 'manual_pilot'
           && old.metadata?.manual_approval_pending === true) {
         return jsonOk({ status: 'pending', checkoutUrl: null, amountCents, currency, manualApprovalRequired: true })
       }
       if (manualPilot && old.status === 'failed' && !old.provider_preference_id && !old.provider_payment_id) {
         const { data: recovered, error: recoverError } = await admin.from('pharmacy_dispatch_payments')
-          .update({ provider: 'manual', status: 'pending', checkout_url: null, metadata: { ...(old.metadata ?? {}), payment_mode: 'manual_pilot', manual_approval_pending: true, country_code: 'AR' } })
+          .update({ status: 'pending', checkout_url: null, metadata: { ...(old.metadata ?? {}), payment_mode: 'manual_pilot', manual_approval_pending: true, country_code: 'AR' } })
           .eq('id', old.id).eq('status', 'failed').select('id').maybeSingle()
         if (recoverError || !recovered) throw recoverError ?? new Error('manual_pilot_payment_recovery_failed')
         return jsonOk({ status: 'pending', checkoutUrl: null, amountCents, currency, manualApprovalRequired: true })
