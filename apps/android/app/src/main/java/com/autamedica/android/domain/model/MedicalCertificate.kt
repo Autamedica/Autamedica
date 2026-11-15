@@ -39,6 +39,7 @@ data class MedicalCertificate(
 
     val displayDaysOfRest: String
         get() = when {
+            restHours > 0 -> "$restHours horas"
             daysOfRest <= 0 -> "Sin reposo requerido"
             daysOfRest == 1 -> "1 día (24 horas)"
             daysOfRest == 2 -> "2 días (48 horas)"
