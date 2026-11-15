@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.profile
 
+import android.webkit.CookieManager
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autamedica.android.domain.model.PatientProfileSnapshot
@@ -179,7 +181,10 @@ class ProfileViewModel @Inject constructor(
     fun logout(onComplete: () -> Unit) {
         viewModelScope.launch {
             authRepository.logout()
-            onComplete()
+            CookieManager.getInstance().removeAllCookies {
+                CookieManager.getInstance().flush()
+                onComplete()
+            }
         }
     }
 }
