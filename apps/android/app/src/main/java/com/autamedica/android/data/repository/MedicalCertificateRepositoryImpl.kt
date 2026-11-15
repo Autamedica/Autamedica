@@ -259,7 +259,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             restHours = request.restHours,
             startDate = request.startDate,
             endDate = request.endDate,
-            diagnosis = if (request.hideDiagnosis) null else request.diagnosis,
+            diagnosis = if (resolvedCountry == "BR" || request.hideDiagnosis) null else request.diagnosis,
             hideDiagnosis = resolvedCountry == "BR" || request.hideDiagnosis,
             observations = request.observations,
             doctorName = doctorNameMap[doctor.id],
