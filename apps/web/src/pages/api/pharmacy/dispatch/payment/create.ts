@@ -34,7 +34,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return badRequest('pharmacy_payment_request_not_payable')
     }
 
-    // All Brazil express requests use the same BRL 79 / BRL 40 quote.
+    // Amount and currency are sourced from the active country tariff.
     // Jordan is an attribution overlay, not a different payment requirement.
     const { data: source, error: sourceError } = await admin
       .from('pharmacy_dispatch_requests')
@@ -117,7 +117,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       initializedPaymentId = created.id
     }
 
-    const secret = (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN as string | undefined)
+    const secret = (dispatch.care_country === 'AR'
+      ? (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN_AR as string | undefined)
+        ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN_AR')
+      : undefined)
+      ?? (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN as string | undefined)
       ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN')
     if (!secret) throw new Error('mercadopago_access_not_configured')
     const appUrl = ((locals.runtime?.env?.PUBLIC_APP_URL as string | undefined)
@@ -132,7 +136,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       },
       body: JSON.stringify({
         items: [{
-          title: dispatch.care_country === 'AR' ? 'AutaMedica - Consulta médica' : 'AutaMedica - Consulta médica',
+          title: 'AutaMedica - Consulta médica',
           quantity: 1,
           unit_price: amountCents / 100,
           currency_id: currency,
