@@ -434,7 +434,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
         @SerialName("signature_verified_at") val signatureVerifiedAt: String? = null,
         @SerialName("qr_code_content") val qrCodeContent: String? = null,
         @SerialName("created_at") val createdAt: String,
-        @SerialName("country_code") val countryCode: String = "AR",
+        @SerialName("country_code") val countryCode: String = "",
     )
 
     @Serializable
