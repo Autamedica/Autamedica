@@ -198,6 +198,7 @@ type CertificateItem = CreatedCertificate & {
   patientName?: string;
   patientDni?: string;
   signed_pdf_url?: string | null;
+  rest_hours?: number;
 };
 
 const CERT_TYPE_LABELS: Record<string, string> = {
@@ -882,14 +883,18 @@ export function DoctorsPrescriptionsPage() {
                               </div>
 
                               <h3 className="text-base font-semibold text-neutral-900">
-                                {cert.days_of_rest > 0
-                                  ? `${cert.days_of_rest} ${cert.days_of_rest === 1 ? "día" : "días"} de reposo médico`
-                                  : "Constancia de atención / Sin reposo"}
+                                {Number(cert.rest_hours ?? 0) > 0
+                                  ? `${cert.rest_hours} horas de dispensa médica`
+                                  : cert.days_of_rest > 0
+                                    ? `${cert.days_of_rest} ${cert.days_of_rest === 1 ? "día" : "días"} de reposo médico`
+                                    : "Constancia de atención / Sin reposo"}
                               </h3>
 
                               <p className="mt-1 text-sm text-neutral-600">
-                                Período: <span className="font-medium text-neutral-800">{cert.start_date}</span>
-                                {cert.end_date ? ` hasta ${cert.end_date}` : ""}
+                                Referencia: <span className="font-medium text-neutral-800">{cert.start_date}</span>
+                                {Number(cert.rest_hours ?? 0) > 0
+                                  ? " · Período expresado en horas"
+                                  : cert.end_date ? ` hasta ${cert.end_date}` : ""}
                               </p>
 
                               {cert.hide_diagnosis ? (
