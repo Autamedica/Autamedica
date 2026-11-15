@@ -22,6 +22,7 @@ interface DoctorOnDutyWidgetProps {
 export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOnDutyWidgetProps) {
   const {
     onDuty,
+    careCountry,
     since,
     loading,
     toggling,
@@ -87,7 +88,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-semibold text-white">
-                Guardia Farmacia / Consultas Exprés
+                {careCountry === 'BR' ? 'Plantão de Farmácia / Consultas Expressas' : 'Guardia Farmacia / Consultas Exprés'}
               </h3>
               {onDuty ? (
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[10px] font-semibold">
@@ -103,7 +104,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
             <p className="text-xs text-am-surface-400">
               {onDuty
                 ? `Activo para recetas y videoconsultas inmediatas en mostrador ${since ? `• desde ${new Date(since).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}`
-                : 'Activa la guardia para recibir pacientes en espera desde farmacias'}
+                : 'Ativá la guardia para receber pacientes de farmácias'}
             </p>
           </div>
         </div>
@@ -136,7 +137,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
             ) : (
               <Power className="w-3.5 h-3.5" />
             )}
-            <span>{onDuty ? 'Pausar Guardia' : 'Iniciar Guardia'}</span>
+            <span>{onDuty ? 'Pausar plantão' : 'Iniciar plantão'}</span>
           </button>
         </div>
       </div>
@@ -181,11 +182,11 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
           {queueCount === 0 ? (
             <div className="py-5 px-4 rounded-xl bg-white/5 border border-white/10 text-center flex flex-col items-center justify-center">
               <Activity className="w-5 h-5 text-emerald-400/60 mb-1.5 animate-pulse" />
-              <p className="text-xs text-am-surface-300 font-medium">
-                Radar ativo · Sem solicitações pendentes
+              <p className="text-xs text-slate-200 font-medium">
+                {careCountry === 'BR' ? 'Radar ativo · Sem solicitações pendentes' : 'Radar activo · Sin solicitudes pendientes'}
               </p>
-              <p className="text-[11px] text-am-surface-500 mt-0.5">
-                Você receberá um alerta quando uma farmácia enviar uma solicitação.
+              <p className="mt-0.5 text-[11px] text-slate-400">
+                {careCountry === 'BR' ? 'Você receberá um alerta quando uma farmácia enviar uma solicitação.' : 'Recibirás una alerta cuando una farmacia envíe una solicitud.'}
               </p>
             </div>
           ) : (
@@ -203,7 +204,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
                           {item.patientName}
                         </span>
                         <span className="text-[11px] text-am-surface-400">
-                          (DNI {item.patientDni})
+                          ({careCountry === 'BR' ? 'CPF' : 'DNI'} {item.patientDni})
                         </span>
                         <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-am-surface-800 text-am-surface-300 border border-am-surface-700">
                           <Building2 className="w-3 h-3 text-am-primary-400" />
@@ -212,13 +213,13 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
                       </div>
 
                       <div className="flex items-center gap-3 text-[11px] text-am-surface-300">
-                        <span className="flex items-center gap-1 text-am-primary-300 font-medium truncate max-w-[280px]">
+                        <span className="flex items-center gap-1 text-teal-200 font-medium min-w-0 flex-wrap">
                           <FileText className="w-3 h-3 text-am-primary-400" />
-                          {item.reason}
+                          <span className="break-words">{item.reason}</span>
                         </span>
                         <span className="flex items-center gap-1 text-am-surface-400">
                           <Clock className="w-3 h-3" />
-                          Esperando hace {item.minutesWaiting} min
+                          {careCountry === 'BR' ? `Aguardando há ${item.minutesWaiting} min` : `Esperando hace ${item.minutesWaiting} min`}
                         </span>
                       </div>
                     </div>
@@ -231,7 +232,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
                         onClick={() => item.offerId && void declinePatient(item.offerId)}
                         className="rounded-xl border border-rose-300/40 bg-rose-400/10 px-3 py-2 text-xs font-semibold text-rose-100 transition hover:bg-rose-400/20 disabled:opacity-50"
                       >
-                        {decliningId === item.offerId ? 'Recusando...' : 'Recusar / Rechazar'}
+                        {decliningId === item.offerId ? (careCountry === 'BR' ? 'Recusando...' : 'Rechazando...') : 'Recusar / Rechazar'}
                       </button>
                       <button
                         type="button"
