@@ -48,6 +48,25 @@ if (import.meta.env.DEV && process.env.AUTAMEDICA_E2E_PHARMACY_DISPATCH === 'tru
   pharmacyPaymentsEnabled = true;
 }
 
+
+let pricingByCountry: Partial<Record<'AR' | 'BR', {
+  currency: 'ARS' | 'BRL';
+  consultation_price_minor: number;
+  doctor_fee_minor: number;
+  partner_commission_minor: number;
+  require_payment_before_dispatch: boolean;
+}>> = {};
+try {
+  const pricingAdmin = createAstroAdminClient(Astro.locals.runtime?.env) as any;
+  const { data } = await pricingAdmin.from('pharmacy_dispatch_pricing_configs')
+    .select('country_code,currency,consultation_price_minor,doctor_fee_minor,partner_commission_minor,require_payment_before_dispatch');
+  for (const row of data ?? []) {
+    if (row.country_code === 'AR' || row.country_code === 'BR') pricingByCountry[row.country_code] = row;
+  }
+} catch {
+  // The form reports an explicit pricing configuration error when a tariff is absent.
+}
+
 const title = 'Consulta Exprés en Farmacia • Red AutaMedica';
 const description = 'Punto de atención de telemedicina de AutaMedica. Los documentos médicos dependen del profesional y de la habilitación correspondiente al país de atención.';
 ---
@@ -61,5 +80,6 @@ const description = 'Punto de atención de telemedicina de AutaMedica. Los docum
     referralPartnerName={referralPartnerName}
     jordanPaymentsEnabled={jordanPaymentsEnabled}
     pharmacyPaymentsEnabled={pharmacyPaymentsEnabled}
+    pricingByCountry={pricingByCountry}
   />
 </CallLayout>
