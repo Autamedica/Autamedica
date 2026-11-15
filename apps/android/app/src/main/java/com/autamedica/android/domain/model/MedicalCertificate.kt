@@ -21,6 +21,7 @@ data class MedicalCertificate(
     val countryCode: String = "AR",
     val createdAt: String,
     val signatureVerifiedAt: String? = null,
+    val restHours: Int = 0,
 ) {
     val isActive: Boolean
         get() = status.equals("signed", ignoreCase = true)
@@ -72,4 +73,5 @@ data class CreateCertificateRequest(
     val observations: String? = null,
     val countryCode: String = "",
     val cid10Code: String? = null,
+    val restHours: Int = 0,
 )
