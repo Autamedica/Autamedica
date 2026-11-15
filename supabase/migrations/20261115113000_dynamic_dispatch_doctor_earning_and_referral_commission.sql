@@ -97,42 +97,113 @@ $function$;
 CREATE OR REPLACE FUNCTION public.sync_pharmacy_referral_commission()
 RETURNS trigger
 LANGUAGE plpgsql
-SET search_path = pg_catalog, public
+SET search_path = 'pg_catalog','public'
 AS $function$
 DECLARE
   v_partner uuid;
   v_country text;
-  v_config public.pharmacy_dispatch_pricing_configs%ROWTYPE;
+  v_partner_active boolean;
+  v_phone text;
+  v_document text;
+  v_commission_minor integer;
+  v_currency text;
+  v_consultation_minor integer;
+  v_phone_match boolean;
+  v_document_match boolean;
+  v_prior_paid boolean := false;
 BEGIN
-  IF NEW.status = 'approved' THEN
-    SELECT referral_partner_id, care_country
-      INTO v_partner, v_country
-      FROM public.pharmacy_dispatch_requests
-     WHERE id = NEW.dispatch_request_id;
-    SELECT * INTO v_config
-      FROM public.pharmacy_dispatch_pricing_configs
-     WHERE country_code = v_country;
+  IF NEW.status='approved' THEN
+    SELECT d.referral_partner_id,d.care_country,d.patient_phone,
+           COALESCE(d.patient_cpf,d.patient_dni),p.active
+    INTO v_partner,v_country,v_phone,v_document,v_partner_active
+    FROM public.pharmacy_dispatch_requests d
+    LEFT JOIN public.commercial_referral_partners p ON p.id=d.referral_partner_id
+    WHERE d.id=NEW.dispatch_request_id;
 
-    IF v_partner IS NOT NULL AND FOUND
-       AND v_config.partner_commission_minor > 0
-       AND NEW.currency = v_config.currency
-       AND NEW.amount_minor = v_config.consultation_price_minor THEN
-      INSERT INTO public.commercial_referral_commissions (
-        dispatch_request_id, dispatch_payment_id, referral_partner_id,
-        amount_minor, currency, status, eligible_at, created_at, metadata
-      ) VALUES (
-        NEW.dispatch_request_id, NEW.id, v_partner,
-        v_config.partner_commission_minor, v_config.currency, 'eligible',
-        now(), now(),
-        jsonb_build_object('source','pharmacy_dispatch_payment',
-          'care_country',v_country,'pricing_config_country',v_config.country_code)
-      )
-      ON CONFLICT (dispatch_request_id) DO NOTHING;
+    IF v_partner IS NULL OR v_partner_active IS DISTINCT FROM TRUE THEN
+      RETURN NEW;
     END IF;
-  ELSIF NEW.status IN ('refunded', 'cancelled', 'rejected') THEN
+
+    SELECT currency,consultation_price_minor,partner_commission_minor
+    INTO v_currency,v_consultation_minor,v_commission_minor
+    FROM public.pharmacy_dispatch_pricing_configs
+    WHERE country_code=v_country;
+    IF NOT FOUND OR NEW.currency IS DISTINCT FROM v_currency
+       OR NEW.amount_minor IS DISTINCT FROM v_consultation_minor
+       OR NEW.paid_at IS NULL OR v_commission_minor<=0
+       OR NOT (
+         (NEW.provider='mercadopago' AND NEW.provider_payment_id ~ '^[0-9]{1,20}$')
+         OR (left(COALESCE(NEW.provider_payment_id,''),16)='MANUAL_OVERRIDE_'
+             AND NULLIF(NEW.metadata->>'manual_override_by','') IS NOT NULL)
+       ) THEN
+      RETURN NEW;
+    END IF;
+
+    v_phone:=regexp_replace(COALESCE(v_phone,''),'[^0-9]','','g');
+    IF v_country='BR' AND left(v_phone,2)='55' AND length(v_phone) IN (12,13) THEN
+      v_phone:=substring(v_phone FROM 3);
+    ELSIF v_country='AR' AND left(v_phone,2)='54' AND length(v_phone) IN (12,13) THEN
+      v_phone:=substring(v_phone FROM 3);
+    END IF;
+    IF length(v_phone) NOT IN (10,11) THEN v_phone:=NULL; END IF;
+    v_document:=regexp_replace(COALESCE(v_document,''),'[^0-9]','','g');
+    IF v_document !~ '^[0-9]{5,11}$' THEN v_document:=NULL; END IF;
+    IF v_phone IS NULL AND v_document IS NULL THEN RETURN NEW; END IF;
+
+    IF v_phone IS NOT NULL THEN
+      PERFORM pg_advisory_xact_lock(hashtext(v_partner::text),hashtext(v_country||':phone:'||v_phone));
+    END IF;
+    IF v_document IS NOT NULL THEN
+      PERFORM pg_advisory_xact_lock(hashtext(v_partner::text),hashtext(v_country||':document:'||v_document));
+    END IF;
+
+    SELECT EXISTS (
+      SELECT 1
+      FROM public.pharmacy_dispatch_payments pp
+      JOIN public.pharmacy_dispatch_requests pr ON pr.id=pp.dispatch_request_id
+      WHERE pp.dispatch_request_id<>NEW.dispatch_request_id
+        AND pp.status IN ('approved','refunded')
+        AND pr.care_country=v_country
+        AND pr.referral_partner_id=v_partner
+        AND (
+          (v_phone IS NOT NULL AND
+            CASE
+              WHEN v_country='BR' AND left(regexp_replace(COALESCE(pr.patient_phone,''),'[^0-9]','','g'),2)='55'
+                   AND length(regexp_replace(COALESCE(pr.patient_phone,''),'[^0-9]','','g')) IN (12,13)
+                THEN substring(regexp_replace(COALESCE(pr.patient_phone,''),'[^0-9]','','g') FROM 3)
+              WHEN v_country='AR' AND left(regexp_replace(COALESCE(pr.patient_phone,''),'[^0-9]','','g'),2)='54'
+                   AND length(regexp_replace(COALESCE(pr.patient_phone,''),'[^0-9]','','g')) IN (12,13)
+                THEN substring(regexp_replace(COALESCE(pr.patient_phone,''),'[^0-9]','','g') FROM 3)
+              ELSE regexp_replace(COALESCE(pr.patient_phone,''),'[^0-9]','','g')
+            END=v_phone)
+          OR (v_document IS NOT NULL AND
+            regexp_replace(COALESCE(pr.patient_cpf,pr.patient_dni,''),'[^0-9]','','g')=v_document)
+        )
+    ) INTO v_prior_paid;
+
+    IF v_prior_paid THEN RETURN NEW; END IF;
+
+    INSERT INTO public.commercial_referral_commissions (
+      dispatch_request_id,dispatch_payment_id,referral_partner_id,
+      amount_minor,currency,status,eligible_at,metadata
+    ) VALUES (
+      NEW.dispatch_request_id,NEW.id,v_partner,
+      v_commission_minor,v_currency,'eligible',now(),
+      jsonb_build_object(
+        'care_country',v_country,
+        'payment_provenance',CASE
+          WHEN left(COALESCE(NEW.provider_payment_id,''),16)='MANUAL_OVERRIDE_'
+            THEN 'manual_counter_override' ELSE 'mercadopago' END,
+        'manual_override_by',NEW.metadata->>'manual_override_by',
+        'manual_override_at',NEW.metadata->>'manual_override_at'
+      )
+    )
+    ON CONFLICT (dispatch_request_id) DO NOTHING;
+
+  ELSIF NEW.status IN ('refunded','cancelled','rejected') THEN
     UPDATE public.commercial_referral_commissions
-       SET status = 'reversed', reversed_at = now()
-     WHERE dispatch_payment_id = NEW.id AND status = 'eligible';
+    SET status='reversed',reversed_at=now()
+    WHERE dispatch_payment_id=NEW.id AND status IN ('eligible','paid');
   END IF;
   RETURN NEW;
 END;
