@@ -55,6 +55,32 @@ class ProfileRepositoryImpl @Inject constructor(
         SecureLog.error("[Profile] Failed fetching patient snapshot", it)
     }
 
+    override suspend fun persistLgpdConsent(
+        userId: String,
+        acceptedAt: String,
+        version: String,
+    ): Result<Unit> = runCatching {
+        val consent = supabaseClient.postgrest
+            .from("patients")
+            .update({
+                set("lgpd_consent", true)
+                set("lgpd_consent_date", acceptedAt)
+                set("lgpd_consent_version", version)
+            }) {
+                filter { eq("user_id", userId) }
+                select(Columns.list("lgpd_consent", "lgpd_consent_date", "lgpd_consent_version"))
+            }
+            .decodeSingleOrNull<PatientLgpdConsentDto>()
+
+        check(
+            consent?.lgpdConsent == true &&
+                !consent.lgpdConsentDate.isNullOrBlank() &&
+                consent.lgpdConsentVersion == version
+        ) { "No se pudo confirmar el consentimiento LGPD" }
+    }.onFailure {
+        SecureLog.error("[Profile] Failed persisting LGPD consent", it)
+    }
+
     override suspend fun updateProfile(
         firstName: String,
         lastName: String,
@@ -137,6 +163,13 @@ private data class PatientProfileDto(
         emergencyContactEmail = emergencyContact?.stringValue("email"),
     )
 }
+
+@Serializable
+private data class PatientLgpdConsentDto(
+    @SerialName("lgpd_consent") val lgpdConsent: Boolean? = null,
+    @SerialName("lgpd_consent_date") val lgpdConsentDate: String? = null,
+    @SerialName("lgpd_consent_version") val lgpdConsentVersion: String? = null,
+)
 
 private fun JsonObject.stringValue(key: String): String? {
     return this[key]

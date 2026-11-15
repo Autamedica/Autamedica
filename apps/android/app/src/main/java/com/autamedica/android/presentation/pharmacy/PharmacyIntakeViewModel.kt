@@ -8,10 +8,6 @@ import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.logging.SecureLog
-import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.postgrest.postgrest
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import java.time.Instant
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -97,7 +93,6 @@ class PharmacyIntakeViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
     private val pharmacyDispatchRepository: PharmacyDispatchRepository,
-    private val supabaseClient: SupabaseClient? = null,
 ) : ViewModel() {
 
     private val pharmacyIdParam: String = savedStateHandle["pharmacyId"] ?: ""
@@ -341,25 +336,11 @@ class PharmacyIntakeViewModel @Inject constructor(
                     val userId = authRepository.getCurrentUser()?.id
                         ?: throw IllegalStateException("pharmacy_error_lgpd_login")
                     val acceptedAt = Instant.now().toString()
-                    val client = supabaseClient ?: throw IllegalStateException("Supabase session client unavailable")
-                    client.postgrest.from("patients").update(
-                        buildJsonObject {
-                            put("lgpd_consent", true)
-                            put("lgpd_consent_date", acceptedAt)
-                            put("lgpd_consent_version", "1.0")
-                        }
-                    ) {
-                        filter { eq("user_id", userId) }
-                    }
-                    val consent = client.postgrest.from("patients")
-                        .select(io.github.jan.supabase.postgrest.query.Columns.list("lgpd_consent", "lgpd_consent_date", "lgpd_consent_version")) {
-                            filter { eq("user_id", userId) }
-                            limit(1)
-                        }.decodeSingleOrNull<PharmacyLgpdConsentDto>()
-                    check(consent?.lgpdConsent == true && !consent.lgpdConsentDate.isNullOrBlank() &&
-                        consent.lgpdConsentVersion == "1.0") {
-                        "pharmacy_error_lgpd_persist"
-                    }
+                    profileRepository.persistLgpdConsent(
+                        userId = userId,
+                        acceptedAt = acceptedAt,
+                        version = "1.0",
+                    ).getOrThrow()
                 }
             } catch (consentError: Exception) {
                 SecureLog.error("[PharmacyIntakeVM] LGPD consent persistence failed", consentError)

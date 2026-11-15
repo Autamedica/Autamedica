@@ -7,4 +7,5 @@ interface ProfileRepository {
     suspend fun getProfile(): Result<User>
     suspend fun getPatientProfileSnapshot(): Result<PatientProfileSnapshot?>
     suspend fun updateProfile(firstName: String, lastName: String, phone: String?): Result<User>
+    suspend fun persistLgpdConsent(userId: String, acceptedAt: String, version: String): Result<Unit>
 }

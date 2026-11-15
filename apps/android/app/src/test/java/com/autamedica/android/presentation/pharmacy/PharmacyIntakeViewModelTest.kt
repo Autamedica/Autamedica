@@ -55,6 +55,8 @@ private class FakeProfileRepository(
         Result.success(snapshot)
     override suspend fun updateProfile(firstName: String, lastName: String, phone: String?): Result<User> =
         user?.let { Result.success(it) } ?: Result.failure(Exception("No profile"))
+    override suspend fun persistLgpdConsent(userId: String, acceptedAt: String, version: String): Result<Unit> =
+        Result.success(Unit)
 }
 
 private class FakePharmacyDispatchRepository(
