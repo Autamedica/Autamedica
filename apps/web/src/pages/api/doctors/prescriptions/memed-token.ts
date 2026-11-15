@@ -23,7 +23,7 @@ const isValidIsoDate = (value: string): boolean => {
     && date.getTime() < Date.now();
 };
 
-async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: string, providedCpf?: string, patientId?: unknown): Promise<Response> {
+async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: string, providedCpf?: string, patientId?: unknown, patientDemographics?: { birthDate: string; gender: 'male' | 'female' }): Promise<Response> {
   const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
   if (!isAuthed(auth)) return auth;
   // Clinical Memed issuance remains disabled until signature and patient
@@ -117,7 +117,7 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
       return badRequest('memed_doctor_identity_incomplete');
     }
 
-    const patient = await resolveMemedPatient(admin, doctor.id, patientId);
+    const patient = await resolveMemedPatient(admin, doctor.id, patientId, patientDemographics);
 
     const envMap: Record<string, string | undefined> = {};
     if (locals.runtime?.env) {
@@ -145,6 +145,7 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
 
     const response = jsonOk({
       patient,
+      patientDemographicsMissing: !patient.data_nascimento || !patient.sexo,
       token: tokenData.token,
       scriptUrl: memed.getScriptUrl(),
       doctor: { id: doctor.id, userId: auth.user.id, crm, uf, nome: `${nome} ${sobrenome}` },
@@ -159,7 +160,10 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
     }
     if (err instanceof Error && err.message === 'doctor_patient_access_required') return forbidden(err.message);
     if (err instanceof Error && ['memed_patient_required', 'memed_patient_consent_required',
-      'memed_patient_identity_incomplete'].includes(err.message)) return badRequest(err.message);
+      'memed_patient_identity_incomplete', 'memed_patient_demographics_invalid'].includes(err.message)) return badRequest(err.message);
+    if (err instanceof Error && err.message === 'memed_patient_demographics_update_failed') {
+      return internalError(err.message);
+    }
     logger.error('[memed-token] token acquisition failed');
     return internalError('memed_token_unavailable');
   }
@@ -192,7 +196,19 @@ export const POST: APIRoute = async (context) => {
   if (birthDate !== undefined && (typeof birthDate !== 'string' || !isValidIsoDate(birthDate))) {
     return badRequest('memed_doctor_birth_date_invalid');
   }
-  return handleMemedToken(context, birthDate as string | undefined, providedCpf as string | undefined, body && typeof body === 'object' && 'patientId' in body ? body.patientId : undefined);
+  const patientBirthDate = body && typeof body === 'object' && 'patientBirthDate' in body
+    ? (body as { patientBirthDate?: unknown }).patientBirthDate : undefined;
+  const patientGender = body && typeof body === 'object' && 'patientGender' in body
+    ? (body as { patientGender?: unknown }).patientGender : undefined;
+  if ((patientBirthDate !== undefined || patientGender !== undefined)
+      && (typeof patientBirthDate !== 'string' || !isValidIsoDate(patientBirthDate)
+        || (patientGender !== 'male' && patientGender !== 'female'))) {
+    return badRequest('memed_patient_demographics_invalid');
+  }
+  const patientDemographics = patientBirthDate && patientGender
+    ? { birthDate: patientBirthDate, gender: patientGender as 'male' | 'female' } : undefined;
+  return handleMemedToken(context, birthDate as string | undefined, providedCpf as string | undefined,
+    body && typeof body === 'object' && 'patientId' in body ? body.patientId : undefined, patientDemographics);
 };
 
 
