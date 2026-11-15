@@ -724,12 +724,12 @@ export function DoctorsPortalFrame({
                   >
                     <div className="flex items-center gap-3">
                       <item.icon
-                        className={`h-4 w-4 ${isActive ? "text-neutral-900" : "text-neutral-400 group-hover:text-neutral-600"}`}
+                        className={`h-4 w-4 ${isActive ? "text-[#0D9488]" : "text-neutral-400 group-hover:text-neutral-600"}`}
                       />
                       {!isSidebarCollapsed && <span>{item.label}</span>}
                     </div>
                     {!isSidebarCollapsed && item.badge && (
-                      <span className="flex h-5 items-center justify-center rounded-md bg-neutral-900 px-1.5 text-[10px] font-bold text-white">
+                      <span className="flex h-5 items-center justify-center rounded-md bg-[#0D9488] px-1.5 text-[10px] font-bold text-white">
                         {item.badge}
                       </span>
                     )}
@@ -755,12 +755,12 @@ export function DoctorsPortalFrame({
                     >
                       <div className="flex items-center gap-3">
                         <item.icon
-                          className={`h-4 w-4 ${isActive ? "text-neutral-900" : "text-neutral-400 group-hover:text-neutral-600"}`}
+                          className={`h-4 w-4 ${isActive ? "text-[#0D9488]" : "text-neutral-400 group-hover:text-neutral-600"}`}
                         />
                         {!isSidebarCollapsed && <span>{item.label}</span>}
                       </div>
                       {!isSidebarCollapsed && item.badge && (
-                        <span className="flex h-5 items-center justify-center rounded-md bg-neutral-900 px-1.5 text-[10px] font-bold text-white">
+                        <span className="flex h-5 items-center justify-center rounded-md bg-[#0D9488] px-1.5 text-[10px] font-bold text-white">
                           {item.badge}
                         </span>
                       )}
