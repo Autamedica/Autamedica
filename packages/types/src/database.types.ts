@@ -7773,6 +7773,10 @@ export type Database = {
       }
       current_pharmacist_id: { Args: never; Returns: string }
       current_pharmacist_pharmacy_ids: { Args: never; Returns: string[] }
+      decline_my_pharmacy_dispatch_offer: {
+        Args: { p_offer_id: string }
+        Returns: Json
+      }
       detect_clinical_anomalies: {
         Args: never
         Returns: {
