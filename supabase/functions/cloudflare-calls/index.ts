@@ -239,6 +239,33 @@ export async function handler(req: Request): Promise<Response> {
       auth: { autoRefreshToken: false, persistSession: false },
     }) as any
 
+    // Resolve the exact pharmacy dispatch bound to this room before checking
+    // country tariff or granting guest/doctor media access.
+    const { data: mediaDispatch, error: mediaDispatchError } = await supabaseAdmin
+      .from('pharmacy_dispatch_requests')
+      .select('id,call_id,cloudflare_room_id,assigned_doctor_id,status,patient_id,requested_by_user_id,care_country,tier_requested,referral_partner_id')
+      .eq('cloudflare_room_id', roomId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (mediaDispatchError) {
+      return new Response(JSON.stringify({ error: 'Media authorization unavailable' }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // A guest token is scoped to one dispatch and one room. Reject substitution
+    // before reading payment state or binding the media session.
+    if (guestClaims && mediaDispatch &&
+        ((mediaDispatch.id !== guestClaims.callId && mediaDispatch.call_id !== guestClaims.callId) ||
+          mediaDispatch.cloudflare_room_id !== guestClaims.roomId)) {
+      return new Response(JSON.stringify({ error: 'guest_call_mismatch' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    let isJordanRoom = false
     // Country pricing and payment evidence are enforced before SFU access
     // for every BR/AR pharmacy dispatch, including Jordan and direct pharmacy QR.
     if (mediaDispatch?.referral_partner_id) {
