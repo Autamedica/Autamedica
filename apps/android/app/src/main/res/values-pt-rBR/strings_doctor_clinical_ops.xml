@@ -184,6 +184,8 @@
     <string name="in_call_certificate_saving">Preparando atestado...</string>
     <string name="in_call_certificate_submit">Preparar atestado médico</string>
     <string name="in_call_validation_medication_diagnosis">Informe o medicamento e o diagnóstico clínico.</string>
+    <string name="in_call_patient_missing">Não foi possível identificar o paciente da chamada.</string>
+    <string name="in_call_prescription_issuer_unavailable">O emissor de receitas não está habilitado para esta jurisdição.</string>
     <string name="in_call_prescription_validation">Informe o medicamento e o diagnóstico clínico.</string>
     <string name="in_call_default_dosage">Conforme indicação médica</string>
     <string name="in_call_default_frequency">Conforme indicação</string>
