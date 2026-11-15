@@ -118,6 +118,8 @@
     <string name="cert_rest_end_date_label">Retorno Previsto:</string>
     <string name="cert_diag_section_title">Diagnóstico Clínico &amp; CID-10</string>
     <string name="cert_diag_placeholder">Informe o diagnóstico clínico, evolução ou CID-10...</string>
+    <string name="cert_cid10_optional_label">CID-10 (opcional)</string>
+    <string name="cert_cid10_optional_placeholder">Informe o código CID-10 opcional</string>
     <string name="cert_privacy_hide_diagnosis_title">Não exibir diagnóstico no documento (Sigilo Médico)</string>
     <string name="cert_privacy_hide_diagnosis_subtitle">Garantia de sigilo médico perante o empregador (Resolução CFM nº 1.658/2002)</string>
     <string name="cert_obs_section_title">Observações Clínicas e Recomendações (Opcional)</string>
