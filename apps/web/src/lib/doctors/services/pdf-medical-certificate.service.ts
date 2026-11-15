@@ -23,6 +23,7 @@ export interface MedicalCertificatePdfInput {
   treatment?: string | null;
   observations?: string | null;
   daysOfRest: number;
+  restHours?: number;
   startDate: string;
   endDate?: string | null;
   createdAt: string;
@@ -156,10 +157,15 @@ export function generateMedicalCertificatePdf(
     field('Diagnóstico', input.diagnosis ?? '');
   }
   if (input.treatment && !isBrazil) field('Tratamiento indicado', input.treatment);
+  const restHours = Number(input.restHours ?? 0);
   field(isBrazil ? 'Afastamento indicado' : 'Reposo indicado',
     isBrazil
-      ? `${input.daysOfRest} dia(s). De ${date(input.startDate)}${input.endDate ? ' até ' + date(input.endDate) : ''}`
-      : `${input.daysOfRest} día(s). Desde ${date(input.startDate)}${input.endDate ? ' hasta ' + date(input.endDate) : ''}`);
+      ? restHours > 0
+        ? `${restHours} hora(s). Data de referência: ${date(input.startDate)}`
+        : `${input.daysOfRest} dia(s). De ${date(input.startDate)}${input.endDate ? ' até ' + date(input.endDate) : ''}`
+      : restHours > 0
+        ? `${restHours} hora(s). Fecha de referencia: ${date(input.startDate)}`
+        : `${input.daysOfRest} día(s). Desde ${date(input.startDate)}${input.endDate ? ' hasta ' + date(input.endDate) : ''}`);
   if (input.observations && !isBrazil) field('Observaciones', input.observations);
 
   if (mode === 'electronic' && input.electronicSignature) {
