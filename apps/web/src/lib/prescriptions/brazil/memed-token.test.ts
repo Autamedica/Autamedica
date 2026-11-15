@@ -20,7 +20,7 @@ vi.mock('@/lib/prescriptions/brazil/memed-identity.repository', () => ({
 import { POST } from '@/pages/api/doctors/prescriptions/memed-token';
 
 const doctor = { id: 'doctor', active: true, license_type: 'CRM', license_number: '9236',
-  uf_brazil: 'RS', cpf: '52998224725' };
+  uf_brazil: 'RS', cpf: '52998224725', memed_birth_date: '1994-10-09' };
 let rows: Record<string, unknown>;
 function context(body: unknown = {}, enabled = 'true', origin?: string): Parameters<typeof POST>[0] {
   return { request: new Request('https://www.autamedica.com/api/doctors/prescriptions/memed-token', {
@@ -101,6 +101,29 @@ describe('Memed token boundary', () => {
     mocks.patient.mockRejectedValue(new Error('memed_patient_identity_incomplete'));
     expect((await POST(context())).status).toBe(400);
     expect(mocks.token).not.toHaveBeenCalled();
+  });
+  it('uses the persisted Memed birth date and does not require re-entry', async () => {
+    const response = await POST(context({ patientId: 'patient' }));
+    expect(response.status).toBe(200);
+    expect(mocks.token).toHaveBeenCalledWith(expect.objectContaining({
+      externalId: 'doctor', dataNascimento: '09/10/1994',
+    }));
+  });
+  it('does not allow a submitted date to override the persisted doctor identity', async () => {
+    const response = await POST(context({ birthDate: '1990-01-01' }));
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({
+      error: { message: 'memed_doctor_birth_date_mismatch' },
+    });
+    expect(mocks.token).not.toHaveBeenCalled();
+  });
+  it('preserves the legacy manual date flow when no date is persisted', async () => {
+    rows.doctors = { ...doctor, memed_birth_date: null };
+    const response = await POST(context({ birthDate: '1985-05-04' }));
+    expect(response.status).toBe(200);
+    expect(mocks.token).toHaveBeenCalledWith(expect.objectContaining({
+      dataNascimento: '04/05/1985',
+    }));
   });
   it('returns backend patient identity with no-store token response', async () => {
     const response = await POST(context({ patientId: 'patient' }));

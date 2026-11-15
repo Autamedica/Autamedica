@@ -47,7 +47,7 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
 
     const { data: doctor, error: doctorError } = await admin
       .from('doctors')
-      .select('id, active, license_type, license_number, uf_brazil, cpf')
+      .select('id, active, license_type, license_number, uf_brazil, cpf, memed_birth_date')
       .eq('user_id', auth.user.id)
       .maybeSingle();
 
@@ -111,6 +111,14 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
       return forbidden('memed_doctor_cpf_mismatch');
     }
     const cpf = existingCpf || cpfDigits(providedCpf);
+    // Prefer the verified date already stored for this pilot. A browser-supplied
+    // date may support legacy records, but must never override the persisted identity.
+    const storedBirthDate = typeof doctor.memed_birth_date === 'string'
+      && isValidIsoDate(doctor.memed_birth_date) ? doctor.memed_birth_date : undefined;
+    if (storedBirthDate && birthDateIso && storedBirthDate !== birthDateIso) {
+      return forbidden('memed_doctor_birth_date_mismatch');
+    }
+    const effectiveBirthDateIso = storedBirthDate ?? birthDateIso;
 
     // Never register a medical professional using fabricated CPF, CRM or UF.
     if (!nome || !sobrenome || !crm || !VALID_UF.test(uf) || !validCpf(cpf)) {
@@ -135,8 +143,8 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
       uf,
       email: profile?.email || auth.user.email,
       telefone: profile?.phone || undefined,
-      ...(birthDateIso ? {
-        dataNascimento: birthDateIso.split('-').reverse().join('/'),
+      ...(effectiveBirthDateIso ? {
+        dataNascimento: effectiveBirthDateIso.split('-').reverse().join('/'),
       } : {}),
     });
 
@@ -176,7 +184,7 @@ export const POST: APIRoute = async (context) => {
   if (!isAuthed(auth)) return auth;
   const origin = context.request.headers.get('origin');
   if (origin && origin !== new URL(context.request.url).origin) return forbidden('cross_origin_request');
-  // DOB is supplied by the authenticated physician only for first-time Memed registration.
+  // DOB is supplied only when a legacy doctor record has no verified persisted Memed date.
   // It is not stored in logs, query strings, client storage or AutaMedica tables.
   let body: unknown;
   try {
