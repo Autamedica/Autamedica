@@ -91,9 +91,9 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
                 {careCountry === 'BR' ? 'Plantão de Farmácia / Consultas Expressas' : 'Guardia Farmacia / Consultas Exprés'}
               </h3>
               {onDuty ? (
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[10px] font-semibold">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/40 bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                  DISPONIBLE
+                  {careCountry === 'BR' ? 'EM PLANTÃO' : 'DISPONIBLE'}
                 </span>
               ) : (
                 <span className="px-2 py-0.5 rounded-full bg-am-surface-700/60 text-am-surface-400 text-[10px] font-medium">
@@ -137,7 +137,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
             ) : (
               <Power className="w-3.5 h-3.5" />
             )}
-            <span>{onDuty ? 'Pausar plantão' : 'Iniciar plantão'}</span>
+            <span>{onDuty ? '{careCountry === 'BR' ? 'Pausar plantão' : 'Pausar guardia'}' : '{careCountry === 'BR' ? 'Iniciar plantão' : 'Iniciar guardia'}'}</span>
           </button>
         </div>
       </div>
@@ -208,7 +208,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
                         </span>
                         <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-am-surface-800 text-am-surface-300 border border-am-surface-700">
                           <Building2 className="w-3 h-3 text-am-primary-400" />
-                          {item.pharmacyName}
+                          {careCountry === 'BR' ? 'Farmácia / Quiosque On-Demand' : item.pharmacyName}
                         </span>
                       </div>
 
@@ -220,6 +220,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
                         <span className="flex items-center gap-1 text-am-surface-400">
                           <Clock className="w-3 h-3" />
                           {careCountry === 'BR' ? `Aguardando há ${item.minutesWaiting} min` : `Esperando hace ${item.minutesWaiting} min`}
+                          {item.expiresAt && ` · ${careCountry === 'BR' ? 'Expira em' : 'Expira en'} ${Math.max(0, Math.ceil((new Date(item.expiresAt).getTime() - Date.now()) / 1000))}s`}
                         </span>
                       </div>
                     </div>
@@ -238,7 +239,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
                         type="button"
                         disabled={claimingId === item.id}
                         onClick={() => void handleClaim(item.id)}
-                        className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 transition shadow-md shadow-emerald-950/40 flex items-center gap-1.5 active:scale-[0.98] disabled:opacity-50"
+                        className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:bg-[#0D9488] transition shadow-md shadow-emerald-950/40 flex items-center gap-1.5 active:scale-[0.98] disabled:opacity-50"
                       >
                         {claimingId === item.id ? (
                           <>
