@@ -77,8 +77,10 @@ describe('Memed patient authorization', () => {
     'accepts express pharmacy patients without optional demographics %j', async (change) => {
       const patient = await resolveMemedPatient(database({ patients: { ...identity, ...change } }), 'doctor', patientId);
       expect(patient).toMatchObject({ nome: 'Synthetic Patient', cpf: identity.cpf });
-      expect(patient).not.toHaveProperty('data_nascimento');
-      expect(patient).not.toHaveProperty('sexo');
+      if (change.birth_date === null) expect(patient).not.toHaveProperty('data_nascimento');
+      else expect(patient).toHaveProperty('data_nascimento');
+      if (change.gender === null) expect(patient).not.toHaveProperty('sexo');
+      else expect(patient).toHaveProperty('sexo');
     },
   );
   it('omits malformed optional demographics instead of fabricating them', async () => {
