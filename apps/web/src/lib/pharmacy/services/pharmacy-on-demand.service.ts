@@ -571,7 +571,7 @@ export class PharmacyOnDemandService {
   async match_dispatch_doctors(
     admin: SupabaseClient,
     dispatchRequestId: string,
-  ): Promise<{ success: boolean; offers: Array<{ id: string; doctor_id: string; expires_at: string; price_brl: number } | null> | null }> {
+  ): Promise<{ success: boolean; offers: Array<{ id: string; doctor_id: string; expires_at: string; price_brl: number | null; price_minor: number; currency: 'BRL' | 'ARS' } | null> | null }> {
     const { data, error } = await admin
       .rpc('match_dispatch_doctors' as never, { p_dispatch_id: dispatchRequestId } as never)
     if (error) {
@@ -580,7 +580,7 @@ export class PharmacyOnDemandService {
     }
     // data es JSONB: { offers: [...] } o {}
     const raw = data as Record<string, unknown> | null
-    const offers = (raw?.offers as Array<{ id: string; doctor_id: string; expires_at: string; price_brl: number }>) || null
+    const offers = (raw?.offers as Array<{ id: string; doctor_id: string; expires_at: string; price_brl: number | null; price_minor: number; currency: 'BRL' | 'ARS' }>) || null
     return { success: true, offers }
   }
 
@@ -591,7 +591,7 @@ export class PharmacyOnDemandService {
   async claim_dispatch_offer(
     admin: SupabaseClient,
     offerId: string,
-  ): Promise<{ success: boolean; error?: string; result?: { requestId: string; callId: string; roomId: string; guestInviteId: string; doctorId: string; patientName: string; patientDni: string; priceBrl: number; assignedAt: string } }> {
+  ): Promise<{ success: boolean; error?: string; result?: { requestId: string; callId: string; roomId: string; guestInviteId: string; doctorId: string; patientName: string; patientDni: string; priceBrl: number | null; priceMinor: number; doctorFeeMinor: number; currency: 'BRL' | 'ARS'; assignedAt: string } }> {
     const { data, error } = await admin
       .rpc('claim_dispatch_offer' as never, { p_offer_id: offerId } as never)
     if (error) {
@@ -604,20 +604,20 @@ export class PharmacyOnDemandService {
   /**
    * Obtener ofertas vigentes para un dispatch (útil para UI polling)
    */
-  async get_dispatch_offers(admin: SupabaseClient, dispatchRequestId: string): Promise<{ success: boolean; offers: Array<{ id: string; doctor_id: string; expires_at: string; price_brl: number }> | null }> {
+  async get_dispatch_offers(admin: SupabaseClient, dispatchRequestId: string): Promise<{ success: boolean; offers: Array<{ id: string; doctor_id: string; expires_at: string; price_brl: number | null; price_minor: number; currency: 'BRL' | 'ARS' }> | null }> {
     const { data, error } = await admin
       .from('dispatch_offers')
-      .select('id, doctor_id, expires_at, status, price_brl')
+      .select('id, doctor_id, expires_at, status, price_brl, price_minor, currency')
       .eq('dispatch_request_id', dispatchRequestId)
       .eq('status', 'pending')
     if (error) {
       logger.error('[PharmacyOnDemandService.get_dispatch_offers] DB error', error)
       return { success: false, offers: null }
     }
-    const pendingOffers = (data as Array<{ id: string; doctor_id: string; expires_at: string; status: string; price_brl: number }>) || []
+    const pendingOffers = (data as Array<{ id: string; doctor_id: string; expires_at: string; status: string; price_brl: number | null; price_minor: number; currency: 'BRL' | 'ARS' }>) || []
     const now = new Date()
     const validOffers = pendingOffers.filter(o => new Date(o.expires_at) > now)
-    return { success: true, offers: validOffers.map(o => ({ id: o.id, doctor_id: o.doctor_id, expires_at: o.expires_at, price_brl: o.price_brl })) }
+    return { success: true, offers: validOffers.map(o => ({ id: o.id, doctor_id: o.doctor_id, expires_at: o.expires_at, price_brl: o.price_brl, price_minor: o.price_minor, currency: o.currency })) }
   }
 }
 
