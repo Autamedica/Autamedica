@@ -55,7 +55,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return badRequest('memed_crm_must_match_verified_cfm_record');
     }
 
-    const { error: privateError } = await admin.from('memed_doctor_identities')
+    const { error: privateError } = await (admin as any).from('memed_doctor_identities')
       .upsert({ doctor_id: PILOT_ID, cpf: cpf.replace(/\D/g, ''), crm, uf, verified_at: new Date().toISOString() },
         { onConflict: 'doctor_id' });
     if (privateError) return serviceUnavailable('memed_private_identity_persistence_failed');
