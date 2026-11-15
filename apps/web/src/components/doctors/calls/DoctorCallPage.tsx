@@ -23,6 +23,7 @@ import {
 } from '@/lib/doctors/calls/consultation-notes-draft'
 import { ConsultationContextPanel } from './ConsultationContextPanel'
 import { PrescriptionCreateModal } from '@/components/doctors/medical/PrescriptionCreateModal'
+import { MemedPrescriptionWidget } from '@/components/doctors/medical/MemedPrescriptionWidget'
 import { prescriptionService } from '@/lib/doctors/services/prescription.service'
 import { MedicalOrderCreateModal } from '@/components/doctors/medical/MedicalOrderCreateModal'
 import { medicalOrderService } from '@/lib/doctors/services/medical-order.service'
@@ -76,6 +77,9 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const [liveMicLevel, setLiveMicLevel] = useState(0)
   const [captionText, setCaptionText] = useState('')
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false)
+  const [showMemedWidget, setShowMemedWidget] = useState(false)
+  const [doctorId, setDoctorId] = useState<string | null>(null)
+  const [doctorCareCountry, setDoctorCareCountry] = useState<'AR' | 'BR' | null>(null)
   const [showStudyOrderModal, setShowStudyOrderModal] = useState(false)
   const { context, loading: contextLoading, error: contextError } = useConsultationContext(roomId)
   const {
@@ -92,6 +96,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const [transcriptionState, transcriptionActions] = useAudioTranscription('es-AR')
   const callStartTimeRef = useRef<number | null>(null)
   const transcriptionSavedRef = useRef(false)
+  const dispatchFinishRef = useRef(false)
   const transcriptionStartedRef = useRef(false)
   const callServiceRef = useRef<ReturnType<typeof createCallService> | null>(null)
   const notesHydratedRef = useRef(false)
@@ -114,6 +119,20 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     showWaitingRoom: showDoctorWaitingRoom,
     cancelCall: cancelWaitingCall,
   } = useDoctorWaitingRoom({ callSession, getCallService, refreshCallSession })
+
+  useEffect(() => {
+    const userId = callSession?.user.id
+    if (!userId) return
+    let cancelled = false
+    void getBrowserSupabaseClient().from('doctors').select('id, care_country')
+      .eq('user_id', userId).maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled || error || !data) return
+        setDoctorId(data.id)
+        setDoctorCareCountry(data.care_country === 'BR' || data.care_country === 'AR' ? data.care_country : null)
+      })
+    return () => { cancelled = true }
+  }, [callSession?.user.id])
 
   useEffect(() => {
     if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
@@ -307,9 +326,32 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     if (transcriptionState.isTranscribing) {
       transcriptionActions.stop()
     }
+
+    // A pharmacy dispatch must be settled before leaving the clinical room.
+    // The database trigger records doctor earnings/referral commission exactly once.
+    const requestId = context?.dispatchTriage?.dispatchRequestId
+    if (requestId && doctorId && !dispatchFinishRef.current) {
+      dispatchFinishRef.current = true
+      let finished = false
+      for (let attempt = 0; attempt < 3 && !finished; attempt++) {
+        try {
+          const { error } = await getBrowserSupabaseClient().rpc('finish_pharmacy_consultation', {
+            p_doctor_id: doctorId,
+            p_request_id: requestId,
+          })
+          if (error) throw error
+          finished = true
+        } catch (error) {
+          logger.error(`[DoctorCallPage] Pharmacy consultation settlement failed (attempt ${attempt + 1})`, error)
+          if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)))
+        }
+      }
+      if (!finished) dispatchFinishRef.current = false
+    }
+
     await saveTranscription(transcriptionState.segments)
     window.location.href = `/doctors/call/${roomId}/report`
-  }, [roomId, transcriptionState.segments, transcriptionState.isTranscribing, transcriptionActions, saveTranscription])
+  }, [roomId, context?.dispatchTriage?.dispatchRequestId, doctorId, transcriptionState.segments, transcriptionState.isTranscribing, transcriptionActions, saveTranscription])
 
   const handleAcceptCall = useCallback(async () => {
     if (!callSession?.callId) return
@@ -648,19 +690,28 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             className="h-screen"
             onLocalAudioLevelChange={handleAudioLevelChange}
             auxiliaryControls={
-              context?.patient?.id && !context.dispatchTriage &&
+              context?.patient?.id &&
               /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(context.patient.id) ? (
                 <>
-                  <CallAuxiliaryButton
-                    icon={<Pill className="h-5 w-5 md:h-5.5 md:w-5.5" />}
-                    label="Receta"
-                    onClick={() => setShowPrescriptionModal(true)}
-                  />
-                  <CallAuxiliaryButton
-                    icon={<FileText className="h-5 w-5 md:h-5.5 md:w-5.5" />}
-                    label="Estudio"
-                    onClick={() => setShowStudyOrderModal(true)}
-                  />
+                  {!context.dispatchTriage && <>
+                    <CallAuxiliaryButton
+                      icon={<Pill className="h-5 w-5 md:h-5.5 md:w-5.5" />}
+                      label="Receta"
+                      onClick={() => setShowPrescriptionModal(true)}
+                    />
+                    <CallAuxiliaryButton
+                      icon={<FileText className="h-5 w-5 md:h-5.5 md:w-5.5" />}
+                      label="Estudio"
+                      onClick={() => setShowStudyOrderModal(true)}
+                    />
+                  </>}
+                  {context.dispatchTriage && doctorCareCountry === 'BR' && (
+                    <CallAuxiliaryButton
+                      icon={<Pill className="h-5 w-5 md:h-5.5 md:w-5.5" />}
+                      label="Receita Memed"
+                      onClick={() => setShowMemedWidget(true)}
+                    />
+                  )}
                 </>
               ) : null
             }
@@ -707,6 +758,26 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
           onToggleVoiceNotes={handleToggleVoiceNotes}
         />
       </div>
+
+      {showMemedWidget && context?.patient?.id && context.dispatchTriage && doctorCareCountry === 'BR' && (
+        <MemedPrescriptionWidget
+          patientId={context.patient.id}
+          onClose={() => setShowMemedWidget(false)}
+          onFallbackToNativePrescription={() => setShowMemedWidget(false)}
+          onPrescriptionSaved={async (memedId) => {
+            await fetchApi('/api/doctors/prescriptions/memed-event', {
+              method: 'POST',
+              body: { patientId: context.patient?.id, prescriptionId: memedId, action: 'issued' },
+            })
+          }}
+          onPrescriptionDeleted={async (memedId) => {
+            await fetchApi('/api/doctors/prescriptions/memed-event', {
+              method: 'POST',
+              body: { patientId: context.patient?.id, prescriptionId: memedId, action: 'deleted' },
+            })
+          }}
+        />
+      )}
 
       {showPrescriptionModal && context?.patient?.id && !context.dispatchTriage &&
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(context.patient.id) && (
