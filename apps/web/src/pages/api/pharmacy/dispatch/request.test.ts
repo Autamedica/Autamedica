@@ -226,14 +226,20 @@ describe('API: /api/pharmacy/dispatch/request', () => {
   it('crea un dispatch brasileño usando CPF y no DNI', async () => {
     const dispatch = {
       id: 'dispatch-br-synthetic',
+      patient_id: 'patient-row-br-cpf',
       patient_cpf: '12345678909',
       care_country: 'BR',
       cloudflare_room_id: 'cf-room-general-8909-test',
       status: 'searching',
     }
     const table = buildTableChain(dispatch)
-    supabaseMock.from.mockImplementation((tableName: string) => tableName === 'pharmacy_dispatch_pricing_configs'
-      ? buildTableChain(pricingRow('BR')) : table)
+    const patientTable = buildTableChain({ id: 'patient-row-br-cpf' })
+    supabaseMock.from.mockImplementation((tableName: string) => {
+      if (tableName === 'pharmacy_dispatch_pricing_configs') return buildTableChain(pricingRow('BR'))
+      if (tableName === 'pharmacy_dispatch_requests') return table
+      if (tableName === 'patients') return patientTable
+      return buildTableChain(null)
+    })
 
     const response = await POST(makeContext({
       body: {
@@ -429,15 +435,18 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     const partnerId = 'aaaaaaa1-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
     const row = {
       id: 'dispatch-jordan-demo',
+      patient_id: 'patient-row-jordan',
       cloudflare_room_id: 'cf-room-test',
       patient_name: 'Paciente sintético',
       status: 'searching',
     }
     const dispatchTable = buildTableChain(row)
+    const patientTable = buildTableChain({ id: 'patient-row-jordan' })
     supabaseMock.from.mockImplementation((table: string) => {
       if (table === 'pharmacy_dispatch_pricing_configs') return buildTableChain(pricingRow('BR'))
       if (table === 'commercial_referral_partners') return buildTableChain({ id: partnerId })
       if (table === 'pharmacy_dispatch_requests') return dispatchTable
+      if (table === 'patients') return patientTable
       return buildTableChain(null)
     })
 
