@@ -71,4 +71,5 @@ data class CreateCertificateRequest(
     val hideDiagnosis: Boolean = false,
     val observations: String? = null,
     val countryCode: String = "",
+    val cid10Code: String? = null,
 )
