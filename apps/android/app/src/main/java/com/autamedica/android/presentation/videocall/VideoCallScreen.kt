@@ -1,9 +1,17 @@
 package com.autamedica.android.presentation.videocall
 
 import android.Manifest
+import androidx.activity.compose.BackHandler
+import android.webkit.CookieManager
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import android.webkit.SslErrorHandler
+import android.net.http.SslError
+import androidx.compose.ui.viewinterop.AndroidView
 import android.content.Context
-import android.net.Uri
-import androidx.browser.customtabs.CustomTabsIntent
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -182,20 +190,15 @@ fun VideoCallScreen(
     val inCallCertificatePatientMissing = inCallPatientMissing
     var clinicalSheetMode by remember { mutableStateOf<InCallClinicalMode?>(null) }
 
-    // The browser signs in independently; never place Supabase or Memed tokens in URLs.
+    // Keep the WebRTC call mounted while Memed runs in an in-call WebView overlay.
+    // The doctor authenticates in the portal WebView; no JWT or provider token enters the URL.
     val memedLaunchUrl = uiState.memedLaunchUrl
+    var memedInCallUrl by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(memedLaunchUrl) {
         if (memedLaunchUrl != null) {
+            memedInCallUrl = memedLaunchUrl
             viewModel.consumeMemedLaunchUrl()
-            try {
-                CustomTabsIntent.Builder()
-                    .setShareState(CustomTabsIntent.SHARE_STATE_OFF)
-                    .build()
-                    .launchUrl(context, Uri.parse(memedLaunchUrl))
-                clinicalSheetMode = null
-            } catch (_: Exception) {
-                viewModel.reportMemedBrowserError()
-            }
+            clinicalSheetMode = null
         }
     }
 
@@ -695,6 +698,13 @@ fun VideoCallScreen(
             onDismiss = { clinicalSheetMode = null },
         )
     }
+
+    memedInCallUrl?.let { launchUrl ->
+        MemedInCallWebView(
+            url = launchUrl,
+            onClose = { memedInCallUrl = null },
+        )
+    }
 }
 
 private fun Context.hasTelemedicineMediaPermissions(): Boolean {
@@ -708,4 +718,113 @@ private fun Context.hasTelemedicineMediaPermissions(): Boolean {
     ) == PackageManager.PERMISSION_GRANTED
 
     return cameraGranted && audioGranted
+}
+
+/**
+ * Full-screen prescription surface layered above the active call. The call's
+ * WebRTC engine and lifecycle remain mounted underneath this view.
+ */
+@Composable
+private fun MemedInCallWebView(
+    url: String,
+    onClose: () -> Unit,
+) {
+    val webViewRef = remember { mutableStateOf<WebView?>(null) }
+
+    BackHandler(enabled = true) {
+        val webView = webViewRef.value
+        if (webView?.canGoBack() == true) webView.goBack() else onClose()
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            webViewRef.value?.let { webView ->
+                webView.stopLoading()
+                webView.loadUrl("about:blank")
+                webView.clearHistory()
+                webView.removeAllViews()
+                webView.destroy()
+            }
+            webViewRef.value = null
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White)
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Prescrição digital | Memed",
+                color = Color(0xFF172033),
+                fontWeight = FontWeight.SemiBold,
+            )
+            TextButton(onClick = onClose) {
+                Text("Voltar à consulta")
+            }
+        }
+        AndroidView(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            factory = { viewContext ->
+                WebView(viewContext).apply {
+                    webViewRef.value = this
+                    settings.javaScriptEnabled = true
+                    settings.domStorageEnabled = true
+                    settings.javaScriptCanOpenWindowsAutomatically = false
+                    settings.setSupportMultipleWindows(false)
+                    settings.allowFileAccess = false
+                    settings.allowContentAccess = false
+                    settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+                    CookieManager.getInstance().setAcceptCookie(true)
+                    CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
+                    webChromeClient = WebChromeClient()
+                    webViewClient = object : WebViewClient() {
+                        override fun shouldOverrideUrlLoading(
+                            view: WebView,
+                            request: WebResourceRequest,
+                        ): Boolean {
+                            val target = request.url
+                            if (target.scheme == "autamedica" && target.host == "return") {
+                                onClose()
+                                return true
+                            }
+                            if (target.scheme != "https") return true
+                            val host = target.host?.lowercase() ?: return true
+                            val trustedHost = host == "doctor.autamedica.com" ||
+                                host == "autamedica.com" ||
+                                host == "www.autamedica.com" ||
+                                host == "partners.memed.com.br" ||
+                                host == "integrations.memed.com.br" ||
+                                host == "accounts.google.com" ||
+                                host.endsWith(".google.com") ||
+                                host.endsWith(".gstatic.com") ||
+                                host.endsWith(".googleapis.com") ||
+                                host.endsWith(".memed.com.br")
+                            return !trustedHost
+                        }
+
+                        override fun onReceivedSslError(
+                            view: WebView,
+                            handler: SslErrorHandler,
+                            error: SslError,
+                        ) {
+                            handler.cancel()
+                        }
+                    }
+                    loadUrl(url)
+                }
+            },
+            update = {},
+        )
+    }
 }
