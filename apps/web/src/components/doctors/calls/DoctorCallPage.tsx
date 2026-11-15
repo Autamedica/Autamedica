@@ -485,7 +485,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
       <div className="flex min-h-screen items-center justify-center bg-[#0D1F2D] px-4">
         <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0D1F2D] p-8 text-center shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2DD4BF]">
-            Telemedicina profesional
+            {isBrazilianDoctor ? 'Telemedicina profissional' : 'Telemedicina profesional'}
           </p>
           <div className="mx-auto mb-4 mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
             <svg className="h-7 w-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -503,14 +503,14 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
               onClick={() => void refreshCallSession()}
               className="rounded-2xl bg-[#0D9488] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#0F766E]"
             >
-              Reintentar
+              {isBrazilianDoctor ? 'Tentar novamente' : 'Reintentar'}
             </button>
             <button
               type="button"
               onClick={() => { window.location.href = '/doctors' }}
               className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-200 transition-colors hover:bg-[#0D1F2D]"
             >
-              Volver al portal
+              {isBrazilianDoctor ? 'Voltar ao portal' : 'Volver al portal'}
             </button>
           </div>
         </div>
@@ -526,9 +526,9 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             Telemedicina profesional
           </p>
           <div className="mx-auto mb-4 mt-5 h-12 w-12 animate-spin rounded-full border-b-2 border-am-doctor-400"></div>
-          <h1 className="text-xl font-semibold text-white">Preparando videollamada...</h1>
+          <h1 className="text-xl font-semibold text-white">{isBrazilianDoctor ? 'Preparando videochamada...' : 'Preparando videollamada...'}</h1>
           <p className="mt-3 text-sm text-slate-300">
-            Estamos validando la sala, el contexto clínico y la conexión segura antes de ingresar.
+            {isBrazilianDoctor ? 'Estamos validando a sala, o contexto clínico e a conexão segura antes de entrar.' : 'Estamos validando la sala, el contexto clínico y la conexión segura antes de ingresar.'}
           </p>
         </div>
       </div>
@@ -547,9 +547,9 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-1.333-2.694-1.333-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
-          <h1 className="text-xl font-semibold text-white">La videollamada quedó inconsistente</h1>
+          <h1 className="text-xl font-semibold text-white">{isBrazilianDoctor ? 'A videochamada ficou inconsistente' : 'La videollamada quedó inconsistente'}</h1>
           <p className="mt-3 text-sm text-slate-300">
-            Recibimos una sesión parcial. Reintentá para reconstruir la llamada antes de volver a entrar.
+            {isBrazilianDoctor ? 'Recebemos uma sessão parcial. Tente novamente para reconstruir a chamada antes de entrar.' : 'Recibimos una sesión parcial. Reintentá para reconstruir la llamada antes de volver a entrar.'}
           </p>
           <div className="mt-6 flex flex-col gap-3">
             <button
@@ -589,7 +589,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
       {context?.dispatchTriage && (
         <div className="fixed left-4 top-20 z-40 flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-slate-950/95 px-3 py-2 text-xs text-slate-100 shadow-lg">
           <strong>{context.dispatchTriage.patientName || context.patient?.name || 'Paciente'}</strong>
-          <span className="text-slate-400">{isBrazilianDispatch ? 'CPF' : 'DNI'}: {maskedDispatchDocument || 'No informado'}</span>
+          <span className="text-slate-400">{isBrazilianDispatch ? 'CPF' : 'DNI'}: {maskedDispatchDocument || (isBrazilianDispatch ? 'Não informado' : 'No informado')}</span>
           <span className="rounded-md bg-slate-800 px-2 py-1">{context.dispatchTriage.careCountry || (isBrazilianDispatch ? 'País não definido' : 'País no definido')}</span>
         </div>
       )}
@@ -603,7 +603,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                   <p className={`text-xs font-semibold uppercase tracking-[0.24em] ${
                     (doctorWaitingState as string) === 'waiting' ? 'text-[#2DD4BF]' : 'text-slate-300/80'
                   }`}>
-                    {(doctorWaitingState as string) === 'waiting' ? 'Videollamada lista' : 'Videollamada finalizada'}
+                    {(doctorWaitingState as string) === 'waiting' ? (isBrazilianDoctor ? 'Videochamada pronta' : 'Videollamada lista') : (isBrazilianDoctor ? 'Videochamada encerrada' : 'Videollamada finalizada')}
                   </p>
                   <h1 className="mt-3 text-3xl font-semibold text-white">
                     {waitingCopy.title}
@@ -619,8 +619,8 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                   {(doctorWaitingState as string) === 'waiting'
                     ? formatWaitingCountdown(waitSecondsRemaining)
                     : doctorWaitingState === 'canceling'
-                      ? 'Procesando'
-                      : 'Cerrada'}
+                      ? (isBrazilianDoctor ? 'Processando' : 'Procesando')
+                      : (isBrazilianDoctor ? 'Encerrada' : 'Cerrada')}
                 </div>
               </div>
 
@@ -631,11 +631,11 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
               <div className="mt-8 rounded-2xl border border-white/10 bg-[#0D1F2D] p-5">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm font-semibold text-white">Estado de invitacion</p>
+                    <p className="text-sm font-semibold text-white">{isBrazilianDoctor ? 'Estado do convite' : 'Estado de invitación'}</p>
                     <p className="mt-1 text-sm text-slate-300">
                       {(doctorWaitingState as string) === 'waiting'
-                        ? 'El paciente verá la llamada entrante y podrá aceptar desde su portal.'
-                        : 'La invitación ya no está activa para esta sala.'}
+                        ? (isBrazilianDoctor ? 'O paciente verá a chamada recebida e poderá aceitá-la pelo portal.' : 'El paciente verá la llamada entrante y podrá aceptar desde su portal.')
+                        : (isBrazilianDoctor ? 'O convite não está mais ativo para esta sala.' : 'La invitación ya no está activa para esta sala.')}
                     </p>
                   </div>
                   <div className="text-right">
@@ -659,7 +659,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                     disabled={doctorWaitingState === 'canceling'}
                     className="inline-flex items-center justify-center rounded-2xl bg-[#0D1F2D] border border-red-200 px-5 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {doctorWaitingState === 'canceling' ? 'Cancelando...' : 'Cancelar llamada'}
+                    {doctorWaitingState === 'canceling' ? (isBrazilianDoctor ? 'Cancelando...' : 'Cancelando...') : (isBrazilianDoctor ? 'Cancelar chamada' : 'Cancelar llamada')}
                   </button>
                 ) : (
                   <button
