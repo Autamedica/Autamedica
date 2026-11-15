@@ -10,6 +10,9 @@ on:
       - main
     paths:
       - 'apps/android/**'
+      - 'supabase/functions/_shared/memed-mobile-policy.ts'
+      - 'supabase/functions/memed-mobile-preflight/**'
+      - 'apps/web/src/pages/api/doctors/prescriptions/memed-mobile-context.ts'
       - '.github/workflows/android-release.yml'
       - 'package.json'
       - 'pnpm-lock.yaml'
