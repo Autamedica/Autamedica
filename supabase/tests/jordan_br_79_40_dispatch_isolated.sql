@@ -235,4 +235,4 @@ BEGIN
 END $test$;
 
 ROLLBACK;
-SELECT 'PASS: Jordan BR 79/40; ordinary BR/AR isolated' AS smoke_result;
+SELECT 'PASS: consultation quote BRL 79; physician offer BRL 40; AR/BR dispatch isolated' AS smoke_result;
