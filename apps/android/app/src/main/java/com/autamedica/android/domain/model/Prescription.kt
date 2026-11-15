@@ -114,7 +114,7 @@ data class CreatePrescriptionRequest(
 )
 
 /**
- * Doctor qualification and regulatory status for prescribing under Decreto 63 / SISA REFEPS.
+ * Doctor qualification and regulatory status in the licensing jurisdiction (SISA/REFEPS for AR, CFM/CRM for BR).
  */
 data class DoctorEligibility(
     val isEligible: Boolean,
