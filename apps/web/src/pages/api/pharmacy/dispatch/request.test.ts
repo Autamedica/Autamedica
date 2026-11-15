@@ -390,6 +390,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     }
 
     supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_pricing_configs') return buildTableChain(pricingRow('AR'))
       if (table === 'pharmacy_dispatch_requests') {
         return buildTableChain(insertedRow, null)
       }
