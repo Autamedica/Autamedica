@@ -531,16 +531,16 @@ export function DoctorsPortalFrame({
           </a>
 
           <div className="flex items-center gap-2 md:gap-3">
-            <button
-              type="button"
+            <a
+              href="/doctors/patients"
               className="group flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-3.5 py-2 transition-all hover:border-neutral-300 hover:bg-white"
-              aria-label="Buscar"
+              aria-label="Buscar pacientes"
             >
               <Search className="h-4 w-4 text-neutral-400" strokeWidth={1.5} />
-              <span className="hidden text-[13px] text-neutral-400 sm:inline">
-                Buscar...
+              <span className="hidden text-[13px] text-neutral-500 sm:inline">
+                Buscar pacientes
               </span>
-            </button>
+            </a>
 
             <DoctorNotificationsBell />
 
