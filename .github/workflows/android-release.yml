@@ -62,7 +62,7 @@ jobs:
           from google.oauth2 import service_account
 
           package = "com.autamedica.android"
-          track_name = "alpha"
+          track_name = "beta"  # Google Play Open testing
           legacy_code = "11"
           credentials = service_account.Credentials.from_service_account_info(
               json.loads(os.environ["SERVICE_ACCOUNT"]),
