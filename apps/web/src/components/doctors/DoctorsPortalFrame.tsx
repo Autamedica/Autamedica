@@ -105,8 +105,8 @@ function getInitials(name: string): string {
   );
 }
 
-function formatDateLabel(date: Date): string {
-  return date.toLocaleDateString("es-AR", {
+function formatDateLabel(date: Date, locale = "es-AR"): string {
+  return date.toLocaleDateString(locale, {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -209,8 +209,9 @@ export function DoctorsPortalFrame({
 
   const doctorName = getDoctorDisplayName(doctor, user);
   const doctorInitials = getInitials(doctorName);
-  const doctorSpecialty = doctor?.specialty || "Especialidad pendiente";
   const doctorCredential = doctor as (NonNullable<typeof doctor> & { care_country?: string; uf_brazil?: string }) | null;
+  const isBrazilianPortal = doctorCredential?.care_country === "BR";
+  const doctorSpecialty = doctor?.specialty || (isBrazilianPortal ? "Especialidade pendente" : "Especialidad pendiente");
   const [cfmCredentialVerified, setCfmCredentialVerified] = useState(false);
   const credentialLabel = doctorCredential?.care_country === "BR"
     ? `CRM${doctorCredential.uf_brazil ? `-${doctorCredential.uf_brazil}` : ""} ${doctorCredential.license_number}`
@@ -300,7 +301,7 @@ export function DoctorsPortalFrame({
     () => [
       {
         href: "/doctors/dashboard",
-        label: "Dashboard",
+        label: isBrazilianPortal ? "Painel" : "Dashboard",
         icon: Home,
         key: "dashboard",
       },
@@ -312,38 +313,38 @@ export function DoctorsPortalFrame({
       },
       {
         href: "/doctors/agenda",
-        label: "Citas",
+        label: isBrazilianPortal ? "Agenda" : "Citas",
         icon: Calendar,
         key: "appointments",
         badge: stats?.todayCount ? String(stats.todayCount) : undefined,
       },
       {
         href: "/doctors/consultations",
-        label: "Historiales",
+        label: isBrazilianPortal ? "Prontuários" : "Historiales",
         icon: FileText,
         key: "consultations",
       },
       {
         href: "/doctors/prescriptions",
-        label: "Recetas",
+        label: isBrazilianPortal ? "Receitas" : "Recetas",
         icon: Pill,
         key: "prescriptions",
       },
       {
         href: "/doctors/medical-orders",
-        label: "Exámenes",
+        label: isBrazilianPortal ? "Exames" : "Exámenes",
         icon: ClipboardList,
         key: "medical-orders",
       },
     ],
-    [stats?.todayCount],
+    [stats?.todayCount, isBrazilianPortal],
   );
 
   const platformLinks = useMemo<NavigationItem[]>(
     () => [
       {
         href: "/doctors/community",
-        label: "Comunidad",
+        label: isBrazilianPortal ? "Comunidade" : "Comunidad",
         icon: Trophy,
         key: "community",
         badge: stats?.unreadCommunityCount
@@ -352,30 +353,30 @@ export function DoctorsPortalFrame({
       },
       {
         href: "/doctors/accounting",
-        label: "Contabilidad",
+        label: isBrazilianPortal ? "Financeiro" : "Contabilidad",
         icon: Calculator,
         key: "accounting",
       },
       {
         href: "/doctors/subscription",
-        label: "Suscripción",
+        label: isBrazilianPortal ? "Assinatura" : "Suscripción",
         icon: CreditCard,
         key: "subscription",
       },
       {
         href: "/doctors/perfil",
-        label: "Configuración",
+        label: isBrazilianPortal ? "Configurações" : "Configuración",
         icon: Settings,
         key: "profile",
       },
       {
         href: "/doctors/faq",
-        label: "Ayuda",
+        label: isBrazilianPortal ? "Ajuda" : "Ayuda",
         icon: HelpCircle,
         key: "faq",
       },
     ],
-    [stats?.unreadCommunityCount],
+    [stats?.unreadCommunityCount, isBrazilianPortal],
   );
 
   useEffect(() => {
@@ -595,7 +596,7 @@ export function DoctorsPortalFrame({
                 {currentTime || "--:--"}
               </time>
               <time className="text-[11px] capitalize text-neutral-400">
-                {formatDateLabel(currentDate)}
+                {formatDateLabel(currentDate, isBrazilianPortal ? "pt-BR" : "es-AR")}
               </time>
             </div>
           </div>
