@@ -63,7 +63,8 @@ export function assessMemedPilotReadiness(input: {
     digits(license.license_number) === digits(doctor?.license_number) &&
     license.uf_brazil?.toUpperCase() === doctor?.uf_brazil?.toUpperCase(),
   );
-  const cpf = input.privateCpf || doctor?.cpf || input.profile?.cpf || '';
+  const cpf = [input.privateCpf, doctor?.cpf, input.profile?.cpf]
+    .map(value => value ?? '').find(value => validCpf(value)) ?? '';
   const identityComplete = Boolean(
     input.profile?.first_name?.trim() &&
     input.profile?.last_name?.trim() && validCpf(cpf),
