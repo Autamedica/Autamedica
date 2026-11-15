@@ -88,6 +88,22 @@ BEGIN
   IF EXISTS (SELECT 1 FROM public.commercial_referral_commissions WHERE dispatch_request_id=dispatch_direct)
   THEN RAISE EXCEPTION 'unattributed consultation was credited to Jordan'; END IF;
 
+  -- A fully audited manual override may replace a previous provider payment ID.
+  UPDATE public.pharmacy_dispatch_payments SET
+    provider_payment_id='MANUAL_OVERRIDE_00000000-0000-4000-8000-00000000a001',
+    metadata=jsonb_build_object(
+      'manual_override_by','00000000-0000-4000-8000-00000000a002',
+      'manual_override_at',now(),
+      'manual_override_reason','Synthetic payment approval fallback',
+      'manual_override_evidence_reference','CI-MANUAL-OVERRIDE-01'
+    )
+  WHERE id=payment_first;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.pharmacy_dispatch_payments
+    WHERE id=payment_first AND provider_payment_id LIKE 'MANUAL_OVERRIDE_%'
+      AND metadata->>'manual_override_by' IS NOT NULL
+  ) THEN RAISE EXCEPTION 'audited MANUAL_OVERRIDE payment identity was rejected'; END IF;
+
   -- A repeated webhook cannot duplicate the first commission.
   UPDATE public.pharmacy_dispatch_payments SET status='approved' WHERE id=payment_first;
   IF (SELECT count(*) FROM public.commercial_referral_commissions WHERE dispatch_request_id=dispatch_first)<>1
@@ -156,4 +172,4 @@ BEGIN
   THEN RAISE EXCEPTION 'unattributed AR consultation was credited to Jordan'; END IF;
 END $test$;
 ROLLBACK;
-SELECT 'PASS: first Jordan acquisition by phone OR CPF; repeats and direct channel earn R$0; refunds reverse R$10' AS smoke_result;
+SELECT 'PASS: BRL and ARS first-acquisition commissions; duplicates blocked; audited manual override accepted; refunds reverse commission' AS smoke_result;
