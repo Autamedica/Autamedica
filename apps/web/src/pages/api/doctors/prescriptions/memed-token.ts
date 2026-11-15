@@ -40,8 +40,9 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
       .eq('scope_key', 'BR')
       .maybeSingle();
     if (clinicalScopeError) return internalError('brazil_clinical_status_unavailable');
-    if (clinicalScope?.clinical_status !== 'ready') {
-      return forbidden('brazil_clinical_issuance_pending');
+    const clinicalStatus = clinicalScope?.clinical_status?.toLowerCase();
+    if (clinicalStatus === 'disabled' || clinicalStatus === 'suspended') {
+      return forbidden('brazil_clinical_issuance_disabled');
     }
 
     const { data: doctor, error: doctorError } = await admin
