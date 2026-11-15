@@ -358,7 +358,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
   const _nextApptName = useMemo(() => {
     if (!stats?.nextAppointment) return null;
     const match = todayAppointments.find((a: any) => {
-      const timeStr = new Date(a.start_time).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+      const timeStr = new Date(a.start_time).toLocaleTimeString(isBrazilianDoctor ? 'pt-BR' : 'es-AR', { hour: '2-digit', minute: '2-digit' });
       return timeStr === stats.nextAppointment?.time;
     });
     if (match) {
@@ -633,24 +633,24 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                     <Calendar className="h-5 w-5" strokeWidth={1.5} />
                   </div>
                   <div>
-                    <h3 className="text-md font-semibold tracking-tight text-neutral-900">Agenda hoy</h3>
-                    <p className="text-[12px] text-neutral-400">Consultas y citas programadas para hoy</p>
+                    <h3 className="text-md font-semibold tracking-tight text-neutral-900">{isBrazilianDoctor ? 'Agenda de hoje' : 'Agenda hoy'}</h3>
+                    <p className="text-[12px] text-neutral-400">{isBrazilianDoctor ? 'Consultas e agendamentos de hoje' : 'Consultas y citas programadas para hoy'}</p>
                   </div>
                 </div>
                 <span className="rounded-full bg-neutral-100 px-3 py-1 text-[11px] font-bold text-neutral-600">
-                  {todayAppointments.length} {todayAppointments.length === 1 ? "turno" : "turnos"}
+                  {todayAppointments.length} {todayAppointments.length === 1 ? (isBrazilianDoctor ? 'consulta' : 'turno') : (isBrazilianDoctor ? 'consultas' : 'turnos')}
                 </span>
               </div>
 
               <div className="mt-4 space-y-3 min-h-[140px]">
                 {appointmentsLoading ? (
                   <div className="flex h-[140px] items-center justify-center">
-                    <span className="text-[12px] text-neutral-400 animate-pulse">Cargando agenda de hoy...</span>
+                    <span className="text-[12px] text-neutral-400 animate-pulse">{isBrazilianDoctor ? 'Carregando agenda de hoje...' : 'Cargando agenda de hoy...'}</span>
                   </div>
                 ) : todayAppointments.length === 0 ? (
                   <div className="flex h-[140px] flex-col items-center justify-center rounded-xl border border-dashed border-neutral-100 bg-neutral-50/50 p-4 text-center">
-                    <p className="text-[13px] font-medium text-neutral-700">Agenda despejada por hoy</p>
-                    <p className="text-[11px] text-neutral-400 mt-1">No tenés consultas agendadas para el día de hoy.</p>
+                    <p className="text-[13px] font-medium text-neutral-700">{isBrazilianDoctor ? 'Agenda livre por hoje' : 'Agenda despejada por hoy'}</p>
+                    <p className="text-[11px] text-neutral-400 mt-1">{isBrazilianDoctor ? 'Você não tem consultas agendadas para hoje.' : 'No tenés consultas agendadas para el día de hoy.'}</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-neutral-100 max-h-[220px] overflow-y-auto pr-1">
@@ -682,7 +682,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                             <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
                               isConfirmed ? "bg-emerald-50 border border-emerald-200/60 text-emerald-700" : "bg-amber-50 border border-amber-200/60 text-amber-700"
                             }`}>
-                              {isConfirmed ? "Confirmado" : "Programado"}
+                              {isConfirmed ? "Confirmado" : (isBrazilianDoctor ? "Agendado" : "Programado")}
                             </span>
                             {isTelemedicine && apt.status !== 'completed' && (
                               <a
@@ -704,13 +704,13 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
 
             <div className="mt-5 border-t border-neutral-100 pt-4 flex justify-between items-center">
               <span className="text-[11px] text-neutral-400">
-                {stats?.activeCount ? `${stats.activeCount} activas esta semana` : "Sin otras citas esta semana"}
+                {stats?.activeCount ? `${stats.activeCount} ${isBrazilianDoctor ? "ativas esta semana" : "activas esta semana"}` : (isBrazilianDoctor ? "Sem outros agendamentos nesta semana" : "Sin otras citas esta semana")}
               </span>
               <a
                 href="/doctors/agenda"
                 className="inline-flex items-center gap-1.5 text-[12px] font-bold text-neutral-900 hover:text-cyan-600 transition-colors"
               >
-                Gestionar agenda
+                {isBrazilianDoctor ? "Gerenciar agenda" : "Gestionar agenda"}
                 <ArrowRight className="h-3.5 w-3.5" />
               </a>
             </div>
@@ -725,8 +725,8 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                     <Users className="h-5 w-5" strokeWidth={1.5} />
                   </div>
                   <div>
-                    <h3 className="text-md font-semibold tracking-tight text-neutral-900">Seguimiento activo</h3>
-                    <p className="text-[12px] text-neutral-400">Pacientes activos bajo tu cuidado</p>
+                    <h3 className="text-md font-semibold tracking-tight text-neutral-900">{isBrazilianDoctor ? 'Acompanhamento ativo' : 'Seguimiento activo'}</h3>
+                    <p className="text-[12px] text-neutral-400">{isBrazilianDoctor ? 'Pacientes ativos sob seus cuidados' : 'Pacientes activos bajo tu cuidado'}</p>
                   </div>
                 </div>
               </div>
@@ -734,12 +734,12 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
               <div className="mt-4 space-y-3 min-h-[140px]">
                 {patientsLoading ? (
                   <div className="flex h-[140px] items-center justify-center">
-                    <span className="text-[12px] text-neutral-400 animate-pulse">Cargando pacientes...</span>
+                    <span className="text-[12px] text-neutral-400 animate-pulse">{isBrazilianDoctor ? 'Carregando pacientes...' : 'Cargando pacientes...'}</span>
                   </div>
                 ) : assignedPatients.length === 0 ? (
                   <div className="flex h-[140px] flex-col items-center justify-center rounded-xl border border-dashed border-neutral-100 bg-neutral-50/50 p-4 text-center">
-                    <p className="text-[13px] font-medium text-neutral-700">Sin pacientes asignados</p>
-                    <p className="text-[11px] text-neutral-400 mt-1">Tus pacientes aparecerán acá una vez asignados.</p>
+                    <p className="text-[13px] font-medium text-neutral-700">{isBrazilianDoctor ? 'Nenhum paciente vinculado' : 'Sin pacientes asignados'}</p>
+                    <p className="text-[11px] text-neutral-400 mt-1">{isBrazilianDoctor ? 'Seus pacientes aparecerão aqui quando forem vinculados.' : 'Tus pacientes aparecerán acá una vez asignados.'}</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-neutral-50 max-h-[220px] overflow-y-auto pr-1">
@@ -796,8 +796,8 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                     <FileText className="h-5 w-5" strokeWidth={1.5} />
                   </div>
                   <div>
-                    <h3 className="text-md font-semibold tracking-tight text-neutral-900">Contexto clínico</h3>
-                    <p className="text-[12px] text-neutral-400">Casos clínicos e intakes pendientes</p>
+                    <h3 className="text-md font-semibold tracking-tight text-neutral-900">{isBrazilianDoctor ? 'Contexto clínico' : 'Contexto clínico'}</h3>
+                    <p className="text-[12px] text-neutral-400">{isBrazilianDoctor ? 'Casos clínicos e triagens pendentes' : 'Casos clínicos e intakes pendientes'}</p>
                   </div>
                 </div>
               </div>
@@ -805,12 +805,12 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
               <div className="mt-4 space-y-3 min-h-[140px]">
                 {statsLoading ? (
                   <div className="flex h-[140px] items-center justify-center">
-                    <span className="text-[12px] text-neutral-400 animate-pulse">Cargando contexto clínico...</span>
+                    <span className="text-[12px] text-neutral-400 animate-pulse">{isBrazilianDoctor ? 'Carregando contexto clínico...' : 'Cargando contexto clínico...'}</span>
                   </div>
                 ) : (clinicalCases.length === 0 && intakes.length === 0) ? (
                   <div className="flex h-[140px] flex-col items-center justify-center rounded-xl border border-dashed border-neutral-100 bg-neutral-50/50 p-4 text-center">
-                    <p className="text-[13px] font-medium text-neutral-700">Sin novedades clínicas</p>
-                    <p className="text-[11px] text-neutral-400 mt-1">No hay alertas ni reportes pendientes.</p>
+                    <p className="text-[13px] font-medium text-neutral-700">{isBrazilianDoctor ? 'Sem novidades clínicas' : 'Sin novedades clínicas'}</p>
+                    <p className="text-[11px] text-neutral-400 mt-1">{isBrazilianDoctor ? 'Não há alertas ou relatórios pendentes.' : 'No hay alertas ni reportes pendientes.'}</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-neutral-50 max-h-[220px] overflow-y-auto pr-1">
@@ -898,7 +898,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
           </div>
           <div className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-[11px] font-medium text-neutral-600">
             <Activity className="h-3.5 w-3.5 text-cyan-500" />
-            <span>Motor activo</span>
+            <span>{isBrazilianDoctor ? 'Sistema ativo' : 'Motor activo'}</span>
           </div>
         </div>
 
@@ -913,8 +913,8 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                     <Activity className="h-4 w-4" strokeWidth={2} />
                   </div>
                   <div>
-                    <h3 className="text-[13px] font-bold text-neutral-900">Eventos del Motor</h3>
-                    <p className="text-[11px] text-neutral-400">Alertas de síntomas e ingesta</p>
+                    <h3 className="text-[13px] font-bold text-neutral-900">{isBrazilianDoctor ? 'Eventos do sistema' : 'Eventos del Motor'}</h3>
+                    <p className="text-[11px] text-neutral-400">{isBrazilianDoctor ? 'Alertas de sintomas e ingestão' : 'Alertas de síntomas e ingesta'}</p>
                   </div>
                 </div>
                 <span className="rounded-full bg-red-50 border border-red-100 px-2 py-0.5 text-[9px] font-bold text-red-600 uppercase">
@@ -925,8 +925,8 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
               <div className="space-y-3 min-h-[180px]">
                 {patientAlerts.length === 0 ? (
                   <div className="flex h-[180px] flex-col items-center justify-center rounded-xl border border-dashed border-neutral-100 bg-neutral-50/50 p-4 text-center">
-                    <p className="text-[12px] font-medium text-neutral-600">Sin alertas abiertas</p>
-                    <p className="text-[10px] text-neutral-400 mt-1">El motor no detectó anomalías recientes.</p>
+                    <p className="text-[12px] font-medium text-neutral-600">{isBrazilianDoctor ? 'Sem alertas abertas' : 'Sin alertas abiertas'}</p>
+                    <p className="text-[10px] text-neutral-400 mt-1">{isBrazilianDoctor ? 'O sistema não detectou anomalias recentes.' : 'El motor no detectó anomalías recientes.'}</p>
                   </div>
                 ) : (
                   <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
@@ -954,7 +954,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                           <h4 className="mt-1 text-[12px] font-bold text-neutral-900">{alert.title}</h4>
                           <p className="mt-1 text-[11px] leading-relaxed text-neutral-600">{alert.message}</p>
                           <div className="mt-2.5 flex items-center justify-between text-[10px] text-neutral-400">
-                            <span>Origen: {alert.source_table === 'medication_logs' ? 'Toma' : 'Chatbot'}</span>
+                            <span>Origen: {alert.source_table === 'medication_logs' ? (isBrazilianDoctor ? 'Tomada' : 'Toma') : 'Chatbot'}</span>
                             <span>{new Date(alert.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}</span>
                           </div>
                         </div>
@@ -981,8 +981,8 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                     <Clock className="h-4 w-4" strokeWidth={2} />
                   </div>
                   <div>
-                    <h3 className="text-[13px] font-bold text-neutral-900">Recetas por Vencer</h3>
-                    <p className="text-[11px] text-neutral-400">Renovación anticipada rápida</p>
+                    <h3 className="text-[13px] font-bold text-neutral-900">{isBrazilianDoctor ? 'Receitas próximas do vencimento' : 'Recetas por Vencer'}</h3>
+                    <p className="text-[11px] text-neutral-400">{isBrazilianDoctor ? 'Renovação antecipada rápida' : 'Renovación anticipada rápida'}</p>
                   </div>
                 </div>
               </div>
@@ -990,8 +990,8 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
               <div className="space-y-3 min-h-[180px]">
                 {expiringPrescriptions.length === 0 ? (
                   <div className="flex h-[180px] flex-col items-center justify-center rounded-xl border border-dashed border-neutral-100 bg-neutral-50/50 p-4 text-center">
-                    <p className="text-[12px] font-medium text-neutral-600">Sin recetas por vencer</p>
-                    <p className="text-[10px] text-neutral-400 mt-1">Ningún paciente requiere renovación urgente en los próximos 7 días.</p>
+                    <p className="text-[12px] font-medium text-neutral-600">{isBrazilianDoctor ? 'Nenhuma receita próxima do vencimento' : 'Sin recetas por vencer'}</p>
+                    <p className="text-[10px] text-neutral-400 mt-1">{isBrazilianDoctor ? 'Nenhum paciente precisa de renovação urgente nos próximos 7 dias.' : 'Ningún paciente requiere renovación urgente en los próximos 7 días.'}</p>
                   </div>
                 ) : (
                   <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
@@ -1027,12 +1027,12 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                               {isAnticipating ? (
                                 <>
                                   <div className="h-3 w-3 animate-spin rounded-full border border-white border-t-transparent" />
-                                  <span>Anticipando...</span>
+                                  <span>{isBrazilianDoctor ? 'Antecipando...' : 'Anticipando...'}</span>
                                 </>
                               ) : (
                                 <>
                                   <Sparkles className="h-3 w-3" />
-                                  <span>Anticipar</span>
+                                  <span>{isBrazilianDoctor ? 'Antecipar' : 'Anticipar'}</span>
                                 </>
                               )}
                             </button>
@@ -1061,8 +1061,8 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                     <FileText className="h-4.5 w-4.5" strokeWidth={2} />
                   </div>
                   <div>
-                    <h3 className="text-[13px] font-bold text-neutral-900">Exámenes Clínicos</h3>
-                    <p className="text-[11px] text-neutral-400">Estudios de diagnóstico e informes</p>
+                    <h3 className="text-[13px] font-bold text-neutral-900">{isBrazilianDoctor ? 'Exames clínicos' : 'Exámenes Clínicos'}</h3>
+                    <p className="text-[11px] text-neutral-400">{isBrazilianDoctor ? 'Exames de diagnóstico e laudos' : 'Estudios de diagnóstico e informes'}</p>
                   </div>
                 </div>
               </div>
@@ -1070,8 +1070,8 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
               <div className="space-y-3 min-h-[180px]">
                 {labResults.length === 0 ? (
                   <div className="flex h-[180px] flex-col items-center justify-center rounded-xl border border-dashed border-neutral-100 bg-neutral-50/50 p-4 text-center">
-                    <p className="text-[12px] font-medium text-neutral-600">Sin estudios cargados</p>
-                    <p className="text-[10px] text-neutral-400 mt-1">No se han subido resultados de laboratorio recientemente.</p>
+                    <p className="text-[12px] font-medium text-neutral-600">{isBrazilianDoctor ? 'Nenhum exame carregado' : 'Sin estudios cargados'}</p>
+                    <p className="text-[10px] text-neutral-400 mt-1">{isBrazilianDoctor ? 'Nenhum resultado laboratorial foi enviado recentemente.' : 'No se han subido resultados de laboratorio recientemente.'}</p>
                   </div>
                 ) : (
                   <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
@@ -1116,12 +1116,12 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                                 {isApproving ? (
                                   <>
                                     <div className="h-3 w-3 animate-spin rounded-full border border-white border-t-transparent" />
-                                    <span>Firmando...</span>
+                                    <span>{isBrazilianDoctor ? 'Assinando...' : 'Firmando...'}</span>
                                   </>
                                 ) : (
                                   <>
                                     <Check className="h-3.5 w-3.5" />
-                                    <span>Firmar y Aprobar</span>
+                                    <span>{isBrazilianDoctor ? 'Assinar e aprovar' : 'Firmar y Aprobar'}</span>
                                   </>
                                 )}
                               </button>
