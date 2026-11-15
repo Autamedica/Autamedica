@@ -26,6 +26,8 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
     loading,
     toggling,
     claimingId,
+    decliningId,
+    declinePatient,
     queue,
     queueCount,
     error,
@@ -65,8 +67,8 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
     <div
       className={`rounded-2xl border transition-all duration-300 ${
         onDuty
-          ? 'bg-gradient-to-br from-am-surface-800/95 via-am-surface-800 to-emerald-950/20 border-emerald-500/40 shadow-xl shadow-emerald-950/20'
-          : 'bg-am-surface-800/80 border-am-surface-700/60 shadow-md'
+          ? 'bg-[#0F2537] border-emerald-400/40 shadow-xl shadow-slate-950/20'
+          : 'bg-[#0F2537] border-white/10 shadow-md'
       } p-4 sm:p-5 ${className}`}
     >
       {/* Header & Toggle */}
@@ -76,7 +78,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
             className={`w-10 h-10 rounded-xl flex items-center justify-center transition ${
               onDuty
                 ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
-                : 'bg-am-surface-700 text-am-surface-400'
+                : 'bg-am-surface-700 text-slate-300'
             }`}
           >
             <Pill className="w-5 h-5" />
@@ -151,8 +153,8 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
         <div className="mt-4 pt-4 border-t border-am-surface-700/50">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-am-surface-200">
-                Pacientes en Espera
+              <span className="text-xs font-semibold text-slate-100">
+                RADAR AO VIVO
               </span>
               <span
                 className={`px-2 py-0.5 rounded-full text-xs font-bold ${
@@ -169,7 +171,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
               <button
                 type="button"
                 onClick={() => setExpanded(!expanded)}
-                className="text-xs text-am-primary-400 hover:text-am-primary-300 transition"
+                className="text-xs text-teal-300 hover:text-teal-200 transition"
               >
                 {expanded ? 'Ocultar' : 'Ver cola'}
               </button>
@@ -177,13 +179,13 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
           </div>
 
           {queueCount === 0 ? (
-            <div className="py-5 px-4 rounded-xl bg-am-surface-900/60 border border-am-surface-700/40 text-center flex flex-col items-center justify-center">
+            <div className="py-5 px-4 rounded-xl bg-white/5 border border-white/10 text-center flex flex-col items-center justify-center">
               <Activity className="w-5 h-5 text-emerald-400/60 mb-1.5 animate-pulse" />
               <p className="text-xs text-am-surface-300 font-medium">
-                Sin pacientes esperando en este momento
+                Radar ativo · Sem solicitações pendentes
               </p>
               <p className="text-[11px] text-am-surface-500 mt-0.5">
-                Te notificaremos con un tono sonoro en cuanto una farmacia ingrese una solicitud.
+                Você receberá um alerta quando uma farmácia enviar uma solicitação.
               </p>
             </div>
           ) : (
@@ -192,7 +194,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
                 {queue.map((item) => (
                   <div
                     key={item.id}
-                    className="p-3.5 rounded-xl bg-am-surface-900/90 border border-am-surface-700/70 hover:border-emerald-500/50 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner"
+                    className="p-3.5 rounded-xl bg-white/5 border border-white/10 hover:border-emerald-500/50 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner"
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -222,6 +224,15 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
                     </div>
 
                     <div className="self-end sm:self-center">
+                      <div className="flex flex-wrap items-center gap-2 self-end sm:self-center">
+                      <button
+                        type="button"
+                        disabled={!item.offerId || decliningId === item.offerId}
+                        onClick={() => item.offerId && void declinePatient(item.offerId)}
+                        className="rounded-xl border border-rose-300/40 bg-rose-400/10 px-3 py-2 text-xs font-semibold text-rose-100 transition hover:bg-rose-400/20 disabled:opacity-50"
+                      >
+                        {decliningId === item.offerId ? 'Recusando...' : 'Recusar / Rechazar'}
+                      </button>
                       <button
                         type="button"
                         disabled={claimingId === item.id}
@@ -240,6 +251,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
                           </>
                         )}
                       </button>
+                      </div>
                     </div>
                   </div>
                 ))}
