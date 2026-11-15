@@ -6,10 +6,12 @@
  */
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser';
 import { logger } from '@autamedica/shared';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface DoctorStats {
   activeCount: number;
   todayCount: number;
+  todayPharmacyCount: number;
   patientsCount: number;
   historyCount: number;
   pendingClarifications: number;
@@ -109,6 +111,7 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
     notificationsResult,
     clarificationsResult,
     triageMandatesResult,
+    pharmacyDispatchesResult,
   ] = await Promise.all([
     supabase
       .from('appointments')
@@ -168,6 +171,13 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
       .eq('assigned_doctor_id', doctorId)
       .neq('triage_priority', 'routine')
       .in('triage_status', ['pending', 'acknowledged', 'in_progress']),
+    (supabase as unknown as SupabaseClient)
+      .from('pharmacy_dispatch_requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('assigned_doctor_id', doctorId)
+      .eq('status', 'completed')
+      .gte('call_ended_at', startOfDay)
+      .lte('call_ended_at', endOfDay),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ]) as any[];
 
@@ -217,7 +227,8 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
 
   return {
     activeCount: activeAppointments.length,
-    todayCount: todayAppointments.length,
+    todayCount: todayAppointments.length + (pharmacyDispatchesResult?.count ?? 0),
+    todayPharmacyCount: pharmacyDispatchesResult?.count ?? 0,
     patientsCount: patientsResult.count ?? 0,
     historyCount: recordsResult.count ?? 0,
     pendingClarifications: clarificationsResult?.count ?? 0,

@@ -44,7 +44,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
     const { data: offers, error: offersError } = await dispatchAdmin
       .from('dispatch_offers')
-      .select('dispatch_request_id')
+      .select('id, dispatch_request_id')
       .eq('doctor_id', doctor.id)
       .eq('status', 'pending')
       .gt('expires_at', new Date().toISOString())
@@ -56,6 +56,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     }
     const offeredRequestIds = (offers || []).map(offer => offer.dispatch_request_id)
     if (offeredRequestIds.length === 0) return jsonOk({ queue: [], count: 0 })
+    const offerIdByRequestId = new Map((offers || []).map(offer => [offer.dispatch_request_id, offer.id]))
 
     const { data, error } = await admin
       .from('pharmacy_dispatch_requests')
@@ -76,6 +77,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       const diffMs = Math.max(0, now - createdTime)
       return {
         id: String(row.id),
+        offerId: offerIdByRequestId.get(row.id) ?? null,
         pharmacyId: row.pharmacy_id ? String(row.pharmacy_id) : null,
         pharmacyName: 'Farmacia / Kiosco On-Demand',
         patientDni: String(row.care_country === 'BR' ? (row.patient_cpf ?? '') : (row.patient_dni ?? '')),

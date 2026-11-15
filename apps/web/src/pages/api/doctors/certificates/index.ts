@@ -6,6 +6,7 @@ import { doctorHasPatientAccess } from "@/lib/doctors/lib/resolve-room";
 import { logger } from "@autamedica/shared";
 import { z } from "zod";
 import { resolveBrazilianCidDisclosure } from "@/lib/doctors/services/brazilian-certificate-cid";
+import { isMemedEnabled, isMemedPilotDoctor } from "@/lib/prescriptions/brazil/memed-pilot";
 
 const MedicalCertificateCreateSchema = z.object({
   patient_id: z.string().uuid("ID de paciente inválido"),
@@ -107,7 +108,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const externalProviderEnabled = context.countryCode === "AR"
       ? env?.FARMALINK_ENABLED === "true"
       : context.countryCode === "BR"
-        ? env?.MEMED_RX_ENABLED === "true" && env?.MEMED_PILOT_DOCTOR_ID === context.doctorId
+        ? isMemedEnabled(env as unknown as Record<string, unknown> | undefined)
+          && isMemedPilotDoctor(env as unknown as Record<string, unknown> | undefined, context.doctorId)
         : false;
     const response = jsonOk({ countryCode: context.countryCode, externalProvider, externalProviderEnabled });
     response.headers.set("Cache-Control", "private, no-store");

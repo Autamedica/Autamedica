@@ -25,6 +25,7 @@ import { ConsultationContextPanel } from './ConsultationContextPanel'
 import { PrescriptionCreateModal } from '@/components/doctors/medical/PrescriptionCreateModal'
 import { prescriptionService } from '@/lib/doctors/services/prescription.service'
 import { MedicalOrderCreateModal } from '@/components/doctors/medical/MedicalOrderCreateModal'
+import { MemedPrescriptionWidget } from '@/components/doctors/medical/MemedPrescriptionWidget'
 import { medicalOrderService } from '@/lib/doctors/services/medical-order.service'
 import type { UUID, Prescription, MedicalOrder } from '@/types/medical'
 
@@ -77,6 +78,9 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const [captionText, setCaptionText] = useState('')
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false)
   const [showStudyOrderModal, setShowStudyOrderModal] = useState(false)
+  const [showMemedWidget, setShowMemedWidget] = useState(false)
+  const [callCompletionError, setCallCompletionError] = useState<string | null>(null)
+  const [isCompletingDispatch, setIsCompletingDispatch] = useState(false)
   const { context, loading: contextLoading, error: contextError } = useConsultationContext(roomId)
   const {
     session: callSession,
@@ -227,6 +231,13 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   }, [showDoctorWaitingRoom])
 
   const typedProfile = profile as (UserProfile & { role?: string; email?: string }) | null
+  const hasClinicalPatientId = Boolean(context?.patient?.id
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(context.patient.id))
+  const isBrazilianDispatch = context?.dispatchTriage?.careCountry === 'BR'
+  const dispatchDocument = isBrazilianDispatch
+    ? context?.dispatchTriage?.patientCpf
+    : context?.dispatchTriage?.patientDni
+  const maskedDispatchDocument = dispatchDocument ? '•••• ' + dispatchDocument.slice(-4) : null
   const callSessionId = callSession?.callId?.trim() ?? ''
   const renderableCallSession =
     Boolean(callSession)
@@ -302,14 +313,38 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     }
   }, [roomId])
 
+  const finishDispatchBeforeReport = useCallback(async () => {
+    setIsCompletingDispatch(true)
+    setCallCompletionError(null)
+    try {
+      await fetchApi('/api/doctors/on-duty/complete', {
+        method: 'POST',
+        body: {
+          roomId,
+          ...(context?.dispatchTriage?.dispatchRequestId
+            ? { requestId: context.dispatchTriage.dispatchRequestId }
+            : {}),
+        },
+      })
+      window.location.href = '/doctors/call/' + roomId + '/report'
+    } catch (error) {
+      logger.error('[DoctorCallPage] pharmacy dispatch completion failed', error)
+      setCallCompletionError('No se pudo confirmar el cierre de la guardia. Reintentá para liberar la solicitud y registrar los honorarios.')
+    } finally {
+      setIsCompletingDispatch(false)
+    }
+  }, [roomId, context?.dispatchTriage?.dispatchRequestId])
+
   const handleCallEnd = useCallback(async () => {
     setVoiceNotesEnabled(false)
-    if (transcriptionState.isTranscribing) {
-      transcriptionActions.stop()
+    if (transcriptionState.isTranscribing) transcriptionActions.stop()
+    try {
+      await saveTranscription(transcriptionState.segments)
+    } catch (error) {
+      logger.warn('[DoctorCallPage] transcription save failed while ending call', error)
     }
-    await saveTranscription(transcriptionState.segments)
-    window.location.href = `/doctors/call/${roomId}/report`
-  }, [roomId, transcriptionState.segments, transcriptionState.isTranscribing, transcriptionActions, saveTranscription])
+    await finishDispatchBeforeReport()
+  }, [transcriptionState.segments, transcriptionState.isTranscribing, transcriptionActions, saveTranscription, finishDispatchBeforeReport])
 
   const handleAcceptCall = useCallback(async () => {
     if (!callSession?.callId) return
@@ -537,6 +572,22 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
 
   return (
     <div className="h-screen bg-am-surface-900 overflow-hidden flex">
+      {callCompletionError && (
+        <div role="alert" className="fixed inset-x-4 top-4 z-50 mx-auto flex max-w-xl items-center justify-between gap-3 rounded-xl border border-rose-500/40 bg-rose-950/95 p-4 text-sm text-rose-100 shadow-xl">
+          <span>{callCompletionError}</span>
+          <button type="button" disabled={isCompletingDispatch} onClick={() => void finishDispatchBeforeReport()}
+            className="shrink-0 rounded-lg bg-rose-500 px-3 py-2 font-semibold text-white disabled:opacity-50">
+            {isCompletingDispatch ? 'Cerrando...' : 'Reintentar cierre'}
+          </button>
+        </div>
+      )}
+      {context?.dispatchTriage && (
+        <div className="fixed left-4 top-20 z-40 flex flex-wrap items-center gap-2 rounded-xl border border-slate-700 bg-slate-950/95 px-3 py-2 text-xs text-slate-100 shadow-lg">
+          <strong>{context.dispatchTriage.patientName || context.patient?.name || 'Paciente'}</strong>
+          <span className="text-slate-400">{isBrazilianDispatch ? 'CPF' : 'DNI'}: {maskedDispatchDocument || 'No informado'}</span>
+          <span className="rounded-md bg-slate-800 px-2 py-1">{context.dispatchTriage.careCountry || 'País no definido'}</span>
+        </div>
+      )}
       {/* Video Call */}
       <div className={`flex-1 min-w-0 transition-all duration-300 relative ${panelCollapsed ? '' : 'mr-0'}`}>
         {showWaitingRoomOverlay ? (
@@ -648,19 +699,19 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             className="h-screen"
             onLocalAudioLevelChange={handleAudioLevelChange}
             auxiliaryControls={
-              context?.patient?.id && !context.dispatchTriage &&
-              /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(context.patient.id) ? (
+              hasClinicalPatientId ? (
                 <>
-                  <CallAuxiliaryButton
-                    icon={<Pill className="h-5 w-5 md:h-5.5 md:w-5.5" />}
-                    label="Receta"
-                    onClick={() => setShowPrescriptionModal(true)}
-                  />
-                  <CallAuxiliaryButton
-                    icon={<FileText className="h-5 w-5 md:h-5.5 md:w-5.5" />}
-                    label="Estudio"
-                    onClick={() => setShowStudyOrderModal(true)}
-                  />
+                  {isBrazilianDispatch ? (
+                    <CallAuxiliaryButton icon={<Pill className="h-5 w-5 md:h-5.5 md:w-5.5" />}
+                      label="Receta Memed" onClick={() => setShowMemedWidget(true)} />
+                  ) : (
+                    <CallAuxiliaryButton icon={<Pill className="h-5 w-5 md:h-5.5 md:w-5.5" />}
+                      label="Receta" onClick={() => setShowPrescriptionModal(true)} />
+                  )}
+                  {!isBrazilianDispatch && (
+                    <CallAuxiliaryButton icon={<FileText className="h-5 w-5 md:h-5.5 md:w-5.5" />}
+                      label="Estudio" onClick={() => setShowStudyOrderModal(true)} />
+                  )}
                 </>
               ) : null
             }
@@ -708,7 +759,31 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
         />
       </div>
 
-      {showPrescriptionModal && context?.patient?.id && !context.dispatchTriage &&
+      {showMemedWidget && isBrazilianDispatch && context?.patient?.id && context.dispatchTriage?.dispatchRequestId && (
+        <MemedPrescriptionWidget
+          patientId={context.patient.id}
+          requestId={context.dispatchTriage.dispatchRequestId}
+          onPrescriptionSaved={async (prescriptionId) => {
+            await fetchApi('/api/doctors/prescriptions/memed-event', {
+              method: 'POST',
+              body: { action: 'issued', patientId: context.patient?.id, requestId: context.dispatchTriage?.dispatchRequestId, prescriptionId },
+            })
+          }}
+          onPrescriptionDeleted={async (prescriptionId) => {
+            await fetchApi('/api/doctors/prescriptions/memed-event', {
+              method: 'POST',
+              body: { action: 'deleted', patientId: context.patient?.id, requestId: context.dispatchTriage?.dispatchRequestId, prescriptionId },
+            })
+          }}
+          onClose={() => setShowMemedWidget(false)}
+          onFallbackToNativePrescription={() => {
+            setShowMemedWidget(false)
+            setShowPrescriptionModal(true)
+          }}
+        />
+      )}
+
+      {showPrescriptionModal && context?.patient?.id &&
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(context.patient.id) && (
         <PrescriptionCreateModal
           patientId={context.patient.id as UUID}
@@ -734,7 +809,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
         />
       )}
 
-      {showStudyOrderModal && context?.patient?.id && !context.dispatchTriage &&
+      {showStudyOrderModal && context?.patient?.id &&
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(context.patient.id) && (
         <MedicalOrderCreateModal
           patientId={context.patient.id as UUID}

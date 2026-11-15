@@ -36,6 +36,19 @@ import type {
 } from "@/lib/doctors/types/accounting.types";
 import { MONOTRIBUTO_CATEGORIES_2026 } from "@/lib/doctors/types/accounting.types";
 
+interface DoctorEarning {
+  id: string;
+  gross_amount: number;
+  net_amount: number;
+  currency: 'BRL' | 'ARS';
+  status: 'pending' | 'paid' | 'cancelled' | 'refunded';
+  created_at: string;
+  paid_at: string | null;
+  metadata: Record<string, unknown>;
+  dispatch_request_id: string | null;
+  appointment_id: string | null;
+}
+
 interface DashboardData {
   profile: DoctorFiscalProfile | null;
   income: IncomeRecord[];
@@ -63,6 +76,13 @@ interface OverviewData {
 
 function formatCurrency(cents: number): string {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(cents / 100);
+}
+
+function formatEarningCurrency(minorAmount: number, currency: 'BRL' | 'ARS'): string {
+  return new Intl.NumberFormat(currency === 'BRL' ? 'pt-BR' : 'es-AR', {
+    style: 'currency',
+    currency,
+  }).format(minorAmount / 100);
 }
 
 function MonthSelector({ year, month, onChange }: { year: number; month: number; onChange: (y: number, m: number) => void }) {
@@ -104,6 +124,9 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [overview, setOverview] = useState<OverviewData | null>(null);
+  const [earnings, setEarnings] = useState<DoctorEarning[]>([]);
+  const [earningsLoading, setEarningsLoading] = useState(true);
+  const [earningsError, setEarningsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -217,6 +240,24 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
   useEffect(() => {
     if (user?.id) fetchDashboard(year, month);
   }, [user?.id, year, month, fetchDashboard]);
+
+  const fetchEarnings = useCallback(async () => {
+    if (!user?.id) return;
+    setEarningsLoading(true);
+    setEarningsError(null);
+    try {
+      const result = await fetchApi<{ earnings: DoctorEarning[] }>('/api/doctors/accounting/earnings');
+      setEarnings(result.earnings ?? []);
+    } catch (err) {
+      setEarningsError(err instanceof Error ? err.message : 'No se pudieron cargar los honorarios');
+    } finally {
+      setEarningsLoading(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    void fetchEarnings();
+  }, [fetchEarnings]);
 
   const handlePeriodChange = (y: number, m: number) => {
     setYear(y);
@@ -545,6 +586,63 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
             ))}
           </div>
         )}
+
+        <section className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-sm md:p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold text-am-surface-900">Honorarios y liquidaciones</h2>
+              <p className="text-xs text-am-surface-500">Movimientos reales de doctor_earnings, separados por moneda.</p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => void fetchEarnings()} icon={<RefreshCw className="h-4 w-4" />}>
+              Actualizar
+            </Button>
+          </div>
+          {earningsLoading ? (
+            <p className="py-5 text-center text-sm text-am-surface-400">Cargando liquidaciones...</p>
+          ) : earningsError ? (
+            <p role="alert" className="py-3 text-sm text-red-600">{earningsError}</p>
+          ) : earnings.length === 0 ? (
+            <p className="py-5 text-center text-sm text-am-surface-400">Todavía no hay honorarios liquidados.</p>
+          ) : (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {Array.from(new Set(earnings.map((earning) => earning.currency))).map((currency) => {
+                  const currencyRows = earnings.filter((earning) => earning.currency === currency);
+                  const pending = currencyRows.filter((earning) => earning.status === 'pending')
+                    .reduce((sum, earning) => sum + earning.net_amount, 0);
+                  const paid = currencyRows.filter((earning) => earning.status === 'paid')
+                    .reduce((sum, earning) => sum + earning.net_amount, 0);
+                  return (
+                    <div key={currency} className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-am-surface-500">{currency === 'BRL' ? 'Brasil · BRL' : 'Argentina · ARS'}</p>
+                      <p className="mt-1 text-xl font-bold text-am-surface-900">{formatEarningCurrency(pending, currency)}</p>
+                      <p className="text-xs text-am-surface-500">Saldo pendiente</p>
+                      <p className="mt-2 text-xs text-am-surface-600">Liquidado: {formatEarningCurrency(paid, currency)}</p>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-4 divide-y divide-am-surface-100">
+                {earnings.slice(0, 8).map((earning) => (
+                  <div key={earning.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
+                    <div>
+                      <p className="text-sm font-medium text-am-surface-900">
+                        {earning.dispatch_request_id ? 'Consulta de farmacia' : 'Consulta médica'}
+                      </p>
+                      <p className="text-xs text-am-surface-500">
+                        {new Date(earning.created_at).toLocaleDateString(earning.currency === 'BRL' ? 'pt-BR' : 'es-AR')}
+                        {' · '}{earning.status === 'paid' ? 'Liquidado' : earning.status === 'pending' ? 'Pendiente' : earning.status}
+                      </p>
+                    </div>
+                    <span className="text-sm font-semibold text-am-surface-900">
+                      {formatEarningCurrency(earning.net_amount, earning.currency)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </section>
 
         {/* Stats cards */}
         {!loading && profile && (

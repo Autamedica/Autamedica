@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { fetchApi } from '@/lib/api-client'
-import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
 import type {
   ClaimConsultationResult,
   DoctorOnDutyStatus,
@@ -15,11 +14,13 @@ interface UseDoctorOnDutyReturn {
   loading: boolean
   toggling: boolean
   claimingId: string | null
+  decliningId: string | null
   queue: OnDemandQueueItem[]
   queueCount: number
   error: string | null
   toggleDuty: (targetState?: boolean) => Promise<boolean>
   claimPatient: (requestId: string) => Promise<ClaimConsultationResult | null>
+  declinePatient: (requestId: string) => Promise<boolean>
   refreshQueue: () => Promise<void>
 }
 
@@ -29,6 +30,7 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
   const [loading, setLoading] = useState<boolean>(true)
   const [toggling, setToggling] = useState<boolean>(false)
   const [claimingId, setClaimingId] = useState<string | null>(null)
+  const [decliningId, setDecliningId] = useState<string | null>(null)
   const [queue, setQueue] = useState<OnDemandQueueItem[]>([])
   const [error, setError] = useState<string | null>(null)
 
@@ -49,53 +51,13 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
     }
   }, [])
 
-  // Fetch pending queue Gen 2 (pharmacy_dispatch_requests con status = 'searching')
+  // Protected queue is the only source: country, approval, heartbeat and offer assignment are checked server-side.
   const fetchQueue = useCallback(async () => {
     try {
-      let items: OnDemandQueueItem[] = []
-      const supabase = getBrowserSupabaseClient()
-      const { data, error: dbError } = await supabase
-        .from('pharmacy_dispatch_requests')
-        .select(`
-          id,
-          pharmacy_id,
-          patient_dni,
-          patient_name,
-          patient_phone,
-          tier_requested,
-          symptom_summary,
-          status,
-          created_at,
-          cloudflare_room_id
-        `)
-        .eq('status', 'searching')
-        .order('created_at', { ascending: true })
-
-      if (!dbError && data) {
-        const now = Date.now()
-        items = data.map((row) => {
-          const createdTime = new Date(row.created_at).getTime()
-          const diffMs = Math.max(0, now - createdTime)
-          return {
-            id: String(row.id),
-            pharmacyId: row.pharmacy_id ? String(row.pharmacy_id) : null,
-            pharmacyName: 'Farmacia / Kiosco On-Demand',
-            patientDni: String(row.patient_dni),
-            patientName: String(row.patient_name || 'Paciente Kiosco'),
-            patientPhone: String(row.patient_phone),
-            reason: String(row.symptom_summary || `Consulta ${row.tier_requested || 'General'}`),
-            status: row.status,
-            createdAt: String(row.created_at),
-            minutesWaiting: Math.floor(diffMs / 60000),
-          }
-        })
-      } else {
-        const dataRes = await fetchApi<{ queue: OnDemandQueueItem[]; count: number }>(
-          '/api/doctors/on-duty/queue',
-        )
-        items = dataRes.queue || []
-      }
-
+      const dataRes = await fetchApi<{ queue: OnDemandQueueItem[]; count: number }>(
+        '/api/doctors/on-duty/queue',
+      )
+      const items = dataRes.queue || []
       setQueue(items)
 
       // Audio notification if new patients arrived in queue and doctor is on duty
@@ -170,6 +132,30 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
     // Cancelar intervalo al salir de guardia o desmontar el hook
     return () => clearInterval(interval)
   }, [onDuty])
+
+  const declinePatient = useCallback(async (requestId: string): Promise<boolean> => {
+    const item = queue.find((candidate) => candidate.id === requestId)
+    if (!item?.offerId) {
+      setError('No se encontró una oferta activa para rechazar')
+      return false
+    }
+    try {
+      setDecliningId(requestId)
+      setError(null)
+      await fetchApi('/api/pharmacy/dispatch/decline', {
+        method: 'POST',
+        body: { offerId: item.offerId },
+      })
+      setQueue((current) => current.filter((candidate) => candidate.id !== requestId))
+      void fetchQueue()
+      return true
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo rechazar la oferta')
+      return false
+    } finally {
+      setDecliningId(null)
+    }
+  }, [queue, fetchQueue])
 
   // Toggle onDuty status
   const toggleDuty = useCallback(
@@ -263,11 +249,13 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
     loading,
     toggling,
     claimingId,
+    decliningId,
     queue,
     queueCount: queue.length,
     error,
     toggleDuty,
     claimPatient,
+    declinePatient,
     refreshQueue: fetchQueue,
   }
 }

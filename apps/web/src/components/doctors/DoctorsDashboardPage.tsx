@@ -401,6 +401,12 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                     </span>
                   </div>
 
+                  <p className="text-[11px] text-neutral-400">
+
+                    Farmacia completadas hoy: <strong className="text-emerald-300">{stats?.todayPharmacyCount ?? 0}</strong>
+
+                  </p>
+
                   {activeTelemedAppt ? (
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div>

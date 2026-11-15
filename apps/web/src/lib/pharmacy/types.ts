@@ -47,6 +47,7 @@ export interface DoctorOnDutyStatus {
 
 export interface OnDemandQueueItem {
   id: string
+  offerId?: string | null
   pharmacyId: string | null
   pharmacyName: string
   patientDni: string
