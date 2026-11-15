@@ -57,14 +57,7 @@ class PrescriptionRepositoryImpl @Inject constructor(
         // Read the service-owned Memed feed as well as the normalized prescription
         // feed so Brazilian patients see provider records without a mirror dependency.
         val memedRows = supabaseClient.postgrest
-            .from("memed_prescriptions")
-            .select(Columns.ALL) {
-                filter {
-                    eq("patient_id", patientId)
-                    neq("status", "deleted")
-                }
-                order("created_at", Order.DESCENDING)
-            }
+            .rpc("patient_memed_prescriptions_get")
             .decodeList<MemedPrescriptionRowDto>()
 
         val doctorIds = (rows.mapNotNull { it.doctorId } + memedRows.map { it.doctorId }).distinct()
