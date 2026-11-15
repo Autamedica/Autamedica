@@ -3,6 +3,7 @@ package com.autamedica.android.presentation.videocall
 import android.Manifest
 import androidx.activity.compose.BackHandler
 import android.webkit.CookieManager
+import android.util.Base64
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -194,8 +195,10 @@ fun VideoCallScreen(
     // The doctor authenticates in the portal WebView; no JWT or provider token enters the URL.
     val memedLaunchUrl = uiState.memedLaunchUrl
     var memedInCallUrl by remember { mutableStateOf<String?>(null) }
+    var memedSessionTokens by remember { mutableStateOf<Pair<String, String>?>(null) }
     LaunchedEffect(memedLaunchUrl) {
         if (memedLaunchUrl != null) {
+            memedSessionTokens = viewModel.memedSessionTokens()
             memedInCallUrl = memedLaunchUrl
             viewModel.consumeMemedLaunchUrl()
             clinicalSheetMode = null
@@ -702,7 +705,11 @@ fun VideoCallScreen(
     memedInCallUrl?.let { launchUrl ->
         MemedInCallWebView(
             url = launchUrl,
-            onClose = { memedInCallUrl = null },
+            sessionTokens = memedSessionTokens,
+            onClose = {
+                memedInCallUrl = null
+                memedSessionTokens = null
+            },
         )
     }
 }
@@ -727,6 +734,7 @@ private fun Context.hasTelemedicineMediaPermissions(): Boolean {
 @Composable
 private fun MemedInCallWebView(
     url: String,
+    sessionTokens: Pair<String, String>?,
     onClose: () -> Unit,
 ) {
     val webViewRef = remember { mutableStateOf<WebView?>(null) }
@@ -809,7 +817,7 @@ private fun MemedInCallWebView(
                                 host.endsWith(".google.com") ||
                                 host.endsWith(".gstatic.com") ||
                                 host.endsWith(".googleapis.com") ||
-                                host.endsWith(".memed.com.br")
+                                host == "memed.com.br" || host.endsWith(".memed.com.br")
                             return !trustedHost
                         }
 
@@ -821,7 +829,22 @@ private fun MemedInCallWebView(
                             handler.cancel()
                         }
                     }
-                    loadUrl(url)
+                    val tokens = sessionTokens
+                    if (tokens == null) {
+                        onClose()
+                    } else {
+                        val projectRef = BuildConfig.SUPABASE_URL.substringAfter("https://").substringBefore('.')
+                        val sessionJson = """{"access_token":"\${tokens.first}","refresh_token":"\${tokens.second}","token_type":"bearer"}"""
+                        val encodedSession = "base64-" + Base64.encodeToString(
+                            sessionJson.toByteArray(Charsets.UTF_8),
+                            Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING,
+                        )
+                        val sessionCookie = "sb-$projectRef-auth-token=$encodedSession; Domain=.autamedica.com; Path=/; Secure; SameSite=Lax"
+                        CookieManager.getInstance().setCookie("https://doctor.autamedica.com", sessionCookie) {
+                            CookieManager.getInstance().flush()
+                            post { loadUrl(url) }
+                        }
+                    }
                 }
             },
             update = {},
