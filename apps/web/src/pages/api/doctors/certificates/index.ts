@@ -19,6 +19,7 @@ const MedicalCertificateCreateSchema = z.object({
     "otro",
   ]),
   days_of_rest: z.number().int().min(0).default(0),
+  rest_hours: z.number().int().min(0).max(8760).default(0),
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato de fecha de inicio inválido (AAAA-MM-DD)"),
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato de fecha de fin inválido (AAAA-MM-DD)").optional().nullable(),
   diagnosis: z.string().optional().nullable(),
@@ -28,6 +29,21 @@ const MedicalCertificateCreateSchema = z.object({
   observations: z.string().optional().nullable(),
   treatment: z.string().trim().max(2000).optional().nullable(),
   country_code: z.enum(["AR", "BR"]).default("AR"),
+}).superRefine((value, context) => {
+  if (value.days_of_rest > 0 && value.rest_hours > 0) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["rest_hours"],
+      message: "Informe a dispensa em dias ou em horas, não nas duas unidades",
+    });
+  }
+  if (value.rest_hours > 0 && value.end_date) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["end_date"],
+      message: "A dispensa por horas não utiliza data de reintegração por dias",
+    });
+  }
 });
 
 async function resolveAuthedDoctorContext(
@@ -196,6 +212,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         status: "draft",
         certificate_type: result.data.certificate_type,
         days_of_rest: result.data.days_of_rest,
+        rest_hours: result.data.rest_hours,
         start_date: result.data.start_date,
         end_date: result.data.end_date ?? null,
         diagnosis: result.data.diagnosis ?? null,
