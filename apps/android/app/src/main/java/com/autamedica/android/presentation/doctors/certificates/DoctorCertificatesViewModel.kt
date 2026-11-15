@@ -304,7 +304,7 @@ class DoctorCertificatesViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 diagnosis = diagnosis,
-                diagnosisCode = code,
+                diagnosisCode = code?.trim()?.takeIf { value -> value.isNotEmpty() } ?: it.diagnosisCode,
                 createError = null,
                 createErrorRes = null,
                 createErrorArg = null,
