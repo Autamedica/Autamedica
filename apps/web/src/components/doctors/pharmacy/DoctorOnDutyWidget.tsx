@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Activity,
   AlertCircle,
@@ -40,6 +40,11 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
 
   const careCountry = providedCareCountry ?? queueCareCountry
   const [expanded, setExpanded] = useState(false)
+
+  useEffect(() => {
+    if (queueCount > 0) setExpanded(true)
+    else setExpanded(false)
+  }, [queueCount])
 
   const handleClaim = async (requestId: string) => {
     const result = await claimPatient(requestId)
