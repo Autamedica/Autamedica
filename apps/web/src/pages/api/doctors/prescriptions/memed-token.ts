@@ -41,7 +41,7 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
       .maybeSingle();
     if (clinicalScopeError) return internalError('brazil_clinical_status_unavailable');
     const clinicalStatus = clinicalScope?.clinical_status?.toLowerCase();
-    if (clinicalStatus === 'disabled' || clinicalStatus === 'suspended' || clinicalStatus === 'pending_issuance') {
+    if (clinicalStatus === 'disabled' || clinicalStatus === 'suspended') {
       return forbidden('brazil_clinical_issuance_disabled');
     }
 
