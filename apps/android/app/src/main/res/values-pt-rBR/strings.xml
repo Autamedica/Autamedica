@@ -285,4 +285,5 @@
     <string name="doctor_guard_notification_title">Plantão ativo</string>
     <string name="doctor_guard_notification_text">Aguardando pacientes</string>
     <string name="jordan_payment_start_message">Confirme o pagamento para iniciar sua videoconsulta agora.</string>
+    <string name="pharmacy_lgpd_consent">Autorizo o tratamento dos meus dados pessoais para gerenciar esta consulta, conforme a LGPD.</string>
 </resources>

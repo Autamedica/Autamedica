@@ -8,6 +8,11 @@ import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.logging.SecureLog
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import java.time.Instant
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
@@ -32,6 +37,7 @@ data class PharmacyIntakeUiState(
     val patientName: String = "",
     val patientPhone: String = "",
     val patientDni: String = "",
+    val hasAcceptedLgpdConsent: Boolean = false,
     val careCountry: String? = null,
     val selectedReasonChip: String? = null,
     val reasonText: String = "",
@@ -72,9 +78,8 @@ data class PharmacyIntakeUiState(
         get() = patientName.trim().isNotBlank() &&
             patientPhone.trim().length >= 6 &&
             careCountry in setOf("AR", "BR") &&
-            (if (careCountry == "BR")
-                patientDni.count(Char::isDigit) == 11
-             else patientDni.count(Char::isDigit) in 5..10) &&
+            (if (careCountry == "BR") isValidBrazilianCpf(patientDni) else patientDni.count(Char::isDigit) in 5..10) &&
+            (careCountry != "BR" || hasAcceptedLgpdConsent) &&
             effectiveReason.trim().isNotBlank()
 }
 
@@ -84,6 +89,7 @@ class PharmacyIntakeViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
     private val pharmacyDispatchRepository: PharmacyDispatchRepository,
+    private val supabaseClient: SupabaseClient,
 ) : ViewModel() {
 
     private val pharmacyIdParam: String = savedStateHandle["pharmacyId"] ?: ""
@@ -248,6 +254,10 @@ class PharmacyIntakeViewModel @Inject constructor(
         _uiState.update { it.copy(patientDni = dni, error = null) }
     }
 
+    fun onLgpdConsentChanged(accepted: Boolean) {
+        _uiState.update { it.copy(hasAcceptedLgpdConsent = accepted, error = null) }
+    }
+
     fun onCountrySelected(country: String) {
         require(country == "AR" || country == "BR")
         // Brazil-only QR partner may never be submitted as an Argentine intake.
@@ -300,8 +310,10 @@ class PharmacyIntakeViewModel @Inject constructor(
                     error = when {
                         state.patientName.isBlank() -> "Ingresá el nombre completo del paciente"
                         state.careCountry !in setOf("AR", "BR") -> "Seleccioná Argentina o Brasil"
-                        state.careCountry == "BR" && state.patientDni.count(Char::isDigit) != 11 ->
-                            "Ingresá un CPF de 11 dígitos"
+                        state.careCountry == "BR" && !isValidBrazilianCpf(state.patientDni) ->
+                            "Ingresá un CPF válido con dígitos verificadores correctos"
+                        state.careCountry == "BR" && !state.hasAcceptedLgpdConsent ->
+                            "Aceptá el consentimiento de tratamiento de datos para continuar"
                         state.patientDni.count(Char::isDigit) !in 5..10 -> "Ingresá un DNI válido"
                         state.patientPhone.length < 6 -> "Ingresá un teléfono de contacto válido"
                         state.effectiveReason.isBlank() -> "Indicá el motivo de consulta o medicamento solicitado"
@@ -314,6 +326,35 @@ class PharmacyIntakeViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null, statusNotice = null) }
+            try {
+                if (state.careCountry == "BR" && state.isAuthenticated) {
+                    val userId = authRepository.getCurrentUser()?.id
+                        ?: throw IllegalStateException("Iniciá sesión para registrar el consentimiento LGPD")
+                    val acceptedAt = Instant.now().toString()
+                    supabaseClient.postgrest.from("patients").update(
+                        buildJsonObject {
+                            put("lgpd_consent", true)
+                            put("lgpd_consent_date", acceptedAt)
+                            put("lgpd_consent_version", "1.0")
+                        }
+                    ) {
+                        filter { eq("user_id", userId) }
+                    }
+                    val consent = supabaseClient.postgrest.from("patients")
+                        .select(io.github.jan.supabase.postgrest.query.Columns.list("lgpd_consent", "lgpd_consent_date", "lgpd_consent_version")) {
+                            filter { eq("user_id", userId) }
+                            limit(1)
+                        }.decodeSingleOrNull<PharmacyLgpdConsentDto>()
+                    check(consent?.lgpdConsent == true && !consent.lgpdConsentDate.isNullOrBlank() &&
+                        consent.lgpdConsentVersion == "1.0") {
+                        "No se confirmó la persistencia del consentimiento LGPD"
+                    }
+                }
+            } catch (consentError: Exception) {
+                SecureLog.error("[PharmacyIntakeVM] LGPD consent persistence failed", consentError)
+                _uiState.update { it.copy(isSubmitting = false, error = consentError.message) }
+                return@launch
+            }
             pharmacyDispatchRepository.createPatientDispatchRequest(
                 patientDni = state.patientDni.trim(),
                 patientPhone = state.patientPhone.trim(),
@@ -579,3 +620,23 @@ internal fun classifyIntakeCreationFailure(error: Throwable): String {
             "No pudimos registrar tu consulta. Intentá nuevamente o contactá soporte."
     }
 }
+
+private fun isValidBrazilianCpf(value: String): Boolean {
+    val digits = value.filter(Char::isDigit)
+    if (digits.length != 11 || digits.all { it == digits.first() }) return false
+    fun verifier(length: Int): Int {
+        val sum = (0 until length).sumOf { index ->
+            digits[index].digitToInt() * (length + 1 - index)
+        }
+        val remainder = (sum * 10) % 11
+        return if (remainder == 10) 0 else remainder
+    }
+    return verifier(9) == digits[9].digitToInt() && verifier(10) == digits[10].digitToInt()
+}
+
+@kotlinx.serialization.Serializable
+private data class PharmacyLgpdConsentDto(
+    @kotlinx.serialization.SerialName("lgpd_consent") val lgpdConsent: Boolean = false,
+    @kotlinx.serialization.SerialName("lgpd_consent_date") val lgpdConsentDate: String? = null,
+    @kotlinx.serialization.SerialName("lgpd_consent_version") val lgpdConsentVersion: String? = null,
+)

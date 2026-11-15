@@ -39,6 +39,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -274,6 +275,7 @@ fun PharmacyIntakeScreen(
                 onPatientNameChanged = viewModel::onPatientNameChanged,
                 onPatientDniChanged = viewModel::onPatientDniChanged,
                 onPatientPhoneChanged = viewModel::onPatientPhoneChanged,
+                onLgpdConsentChanged = viewModel::onLgpdConsentChanged,
                 onCountrySelected = { country ->
                     viewModel.onCountrySelected(country)
                     CareCountryLocale.applyCountry(context, country)
@@ -296,6 +298,7 @@ private fun PharmacyIntakeFormView(
     onPatientNameChanged: (String) -> Unit,
     onPatientDniChanged: (String) -> Unit,
     onPatientPhoneChanged: (String) -> Unit,
+    onLgpdConsentChanged: (Boolean) -> Unit,
     onCountrySelected: (String) -> Unit,
     onSubmit: () -> Unit,
     modifier: Modifier = Modifier,
@@ -473,6 +476,18 @@ private fun PharmacyIntakeFormView(
                 unfocusedContainerColor = AuSurface,
             ),
         )
+
+        if (uiState.careCountry == "BR") {
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = uiState.hasAcceptedLgpdConsent, onCheckedChange = onLgpdConsentChanged)
+                Text(
+                    text = stringResource(R.string.pharmacy_lgpd_consent),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AuTextSecondary,
+                )
+            }
+        }
 
         // Ended/cancelled legacy requests are an informational state, not a red error.
         AnimatedVisibility(

@@ -275,4 +275,5 @@
     <string name="doctor_guard_notification_title">Guardia activa</string>
     <string name="doctor_guard_notification_text">Esperando pacientes</string>
     <string name="jordan_payment_start_message">Confirmá el pago para iniciar tu videoconsulta ahora.</string>
+    <string name="pharmacy_lgpd_consent">Autorizo el tratamiento de mis datos personales para gestionar esta consulta, conforme a la LGPD.</string>
 </resources>
