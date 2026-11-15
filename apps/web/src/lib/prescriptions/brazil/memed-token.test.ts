@@ -35,6 +35,7 @@ beforeEach(() => {
   mocks.patient.mockResolvedValue({ idExterno: 'authorized-patient', cpf: '52998224725' });
   mocks.token.mockResolvedValue({ token: 'synthetic-token' });
   rows = { doctors: doctor, profiles: { first_name: 'Synthetic', last_name: 'Doctor' },
+    platform_operational_domains: { clinical_status: 'ready' },
     doctor_licenses: [{ license_number: '9236', uf_brazil: 'RS', cfm_evidence_path: 'ci/doctor/evidence.pdf', cfm_review_notes: 'Synthetic CI review evidence', cfm_reviewed_by: '00000000-0000-4000-8000-000000000001', cfm_reviewed_at: '2026-11-12T00:00:00Z', cfm_last_checked_at: '2026-11-12T00:00:00Z' }] };
   mocks.admin.mockReturnValue({ from: (table: string) => {
     const chain = { select: vi.fn(), eq: vi.fn(), limit: vi.fn(),
@@ -53,6 +54,13 @@ describe('Memed token boundary', () => {
   });
   it('enforces the kill switch', async () => {
     expect((await POST(context({}, 'false'))).status).toBe(403);
+    expect(mocks.token).not.toHaveBeenCalled();
+  });
+  it('blocks Memed token issuance while Brazil clinical governance is pending', async () => {
+    rows.platform_operational_domains = { clinical_status: 'pending_issuance' };
+    const response = await POST(context());
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ error: { message: 'brazil_clinical_issuance_pending' } });
     expect(mocks.token).not.toHaveBeenCalled();
   });
   it('rejects cross-origin mutations', async () => {
