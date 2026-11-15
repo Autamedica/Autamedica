@@ -326,7 +326,6 @@ export function PharmacyExpressConsultation({
 
   // 1. STEP: CALL
   if (step === 'CALL' && callRoomId) {
-    const requiresBrazilPayment = formData.careCountry === 'BR'
     return (
       <div className="w-full h-full min-h-[100dvh] bg-slate-50">
         <div className="fixed top-3 left-4 z-50 flex items-center gap-2.5 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-slate-200 shadow-lg text-xs font-medium text-slate-900">
