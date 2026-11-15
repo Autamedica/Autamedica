@@ -7,6 +7,7 @@ interface MemedPrescriptionWidgetProps {
   onPrescriptionSaved: (memedId: string) => Promise<void>;
   onPrescriptionDeleted: (memedId: string) => Promise<void>;
   onClose: () => void;
+  onFallbackToNativePrescription: () => void;
 }
 
 export function MemedPrescriptionWidget({
@@ -14,6 +15,7 @@ export function MemedPrescriptionWidget({
   onPrescriptionSaved,
   onPrescriptionDeleted,
   onClose,
+  onFallbackToNativePrescription,
 }: MemedPrescriptionWidgetProps) {
   const [patientLabel, setPatientLabel] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,9 +72,18 @@ export function MemedPrescriptionWidget({
           return;
         }
         if (!response.ok || json.success !== true || !json.data?.token || !json.data?.scriptUrl || !json.data?.patient) {
-          throw new Error(json.error?.message === 'memed_issuance_not_enabled'
-            ? 'A emissão de receitas está desativada enquanto concluímos a validação da integração.'
-            : 'Não foi possível autorizar o médico e o paciente para a Memed. Confira os dados do cadastro.');
+          const code = json.error?.message;
+          const patientGate = ['memed_patient_consent_required', 'memed_patient_identity_incomplete',
+            'memed_patient_required', 'memed_patient_country_required'].includes(code);
+          const doctorGate = ['verified_brazilian_license_required', 'memed_doctor_identity_incomplete',
+            'active_brazilian_doctor_required', 'memed_pilot_prescriber_only'].includes(code);
+          throw new Error(code === 'memed_issuance_not_enabled'
+            ? 'Memed está em validação clínica. A consulta continua normalmente e você pode emitir a receita nativa Autamedica.'
+            : patientGate
+              ? 'Paciente sem consentimento LGPD ativo ou identidade completa. A receita Memed foi bloqueada; continue pela receita nativa Autamedica.'
+              : doctorGate
+                ? 'Identidade ou habilitação do prescritor ainda não está validada para Memed. Continue pela receita nativa Autamedica.'
+                : 'Memed não autorizou esta emissão. Continue pela receita nativa Autamedica; a videoconsulta permanece ativa.');
         }
         if (cancelled) return;
         setPatientLabel(json.data.patient.nome);
@@ -136,7 +147,13 @@ export function MemedPrescriptionWidget({
           </form>
         )}
         {loading && <div className="flex items-center gap-2 p-5 text-slate-700"><Loader2 className="h-5 w-5 animate-spin" />Carregando Memed...</div>}
-        {errorMessage && <div role="alert" className="flex items-start gap-2 p-5 text-red-700"><AlertCircle className="h-5 w-5 shrink-0" />{errorMessage}</div>}
+        {errorMessage && <div role="alert" className="space-y-3 border-b border-amber-200 bg-amber-50 p-5 text-amber-950">
+          <div className="flex items-start gap-2 text-sm"><AlertCircle className="h-5 w-5 shrink-0" />{errorMessage}</div>
+          <button type="button" onClick={onFallbackToNativePrescription}
+            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+            Continuar con receta nativa Autamedica
+          </button>
+        </div>}
         {issuedId && <div role="status" className="p-3 text-sm text-amber-800">
           Prescrição confirmada na API Memed e registrada como pendente (ID {issuedId}). Confirme a assinatura e a entrega ao paciente antes de concluir o atendimento.
         </div>}
