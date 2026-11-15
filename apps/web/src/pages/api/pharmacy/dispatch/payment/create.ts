@@ -47,7 +47,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return badRequest('unsupported_or_inactive_pharmacy_referral')
     }
 
-    const { data: pricing, error: pricingError } = await admin
+    const { data: pricing, error: pricingError } = await (admin as any)
       .from('pharmacy_dispatch_pricing_configs')
       .select('country_code,currency,consultation_price_minor,doctor_fee_minor,partner_commission_minor,require_payment_before_dispatch')
       .eq('country_code', dispatch.care_country)
