@@ -10,12 +10,21 @@ type PaymentStatus = 'not_started' | 'initializing' | 'pending' | 'approved' | '
 export function JordanPaymentWidget({
   dispatchId,
   guestToken,
+  currency = 'BRL',
+  amountMinor = 7900,
+  countryCode = 'BR',
   onStatusChange,
 }: {
   dispatchId: string
   guestToken: string
+  currency?: 'BRL' | 'ARS'
+  amountMinor?: number
+  countryCode?: 'BR' | 'AR'
   onStatusChange?: (status: PaymentStatus) => void
 }) {
+  const amountLabel = new Intl.NumberFormat(currency === 'BRL' ? 'pt-BR' : 'es-AR', {
+    style: 'currency', currency, minimumFractionDigits: 2,
+  }).format(amountMinor / 100)
   const [status, setStatus] = useState<PaymentStatus>('not_started')
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -68,8 +77,8 @@ export function JordanPaymentWidget({
   }
 
   return (
-    <aside className="mx-auto w-full max-w-sm rounded-2xl border border-sky-200 bg-white p-3.5 text-sm text-slate-900 shadow-sm" aria-label="Pagamento da consulta">
-      <div className="flex items-center justify-between gap-3"><span className="font-semibold text-slate-900">Consulta médica</span><strong className="text-base tabular-nums text-slate-900">R$ 79,00</strong></div>
+    <aside className="mx-auto w-full max-w-sm rounded-2xl border border-sky-200 bg-white p-3.5 text-sm text-slate-900 shadow-sm" aria-label={countryCode === 'AR' ? 'Pago de la consulta' : 'Pagamento da consulta'}>
+      <div className="flex items-center justify-between gap-3"><span className="font-semibold text-slate-900">Consulta médica</span><strong className="text-base tabular-nums text-slate-900">{amountLabel}</strong></div>
       {status === 'approved' ? <p role="status" className="mt-2 text-sm font-semibold text-emerald-700">Pagamento confirmado.</p> : (
         <>
           {checkoutUrl ? <a href={checkoutUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#0EA5E9] px-4 py-3 font-semibold text-white transition hover:bg-sky-600">Continuar pagamento</a> : <button onClick={() => void beginCheckout()} disabled={busy} type="button" className="mt-3 min-h-12 w-full rounded-xl bg-[#0EA5E9] px-4 py-3 font-semibold text-white transition hover:bg-sky-600 disabled:opacity-50">{busy ? 'Abrindo pagamento...' : 'Pagar consulta'}</button>}
