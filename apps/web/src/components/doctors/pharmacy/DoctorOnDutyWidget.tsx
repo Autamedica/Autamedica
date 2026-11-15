@@ -17,12 +17,13 @@ import { useDoctorOnDuty } from '@/hooks/doctors/useDoctorOnDuty'
 interface DoctorOnDutyWidgetProps {
   className?: string
   compact?: boolean
+  careCountry?: 'AR' | 'BR'
 }
 
-export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOnDutyWidgetProps) {
+export function DoctorOnDutyWidget({ className = '', compact = false, careCountry: providedCareCountry }: DoctorOnDutyWidgetProps) {
   const {
     onDuty,
-    careCountry,
+    careCountry: queueCareCountry,
     since,
     loading,
     toggling,
@@ -37,6 +38,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
     refreshQueue,
   } = useDoctorOnDuty()
 
+  const careCountry = providedCareCountry ?? queueCareCountry
   const [expanded, setExpanded] = useState(true)
 
   const handleClaim = async (requestId: string) => {
