@@ -81,6 +81,7 @@ export async function loadMedicalCertificateForDoctor(
       treatment: (cert as typeof cert & { treatment?: string | null }).treatment,
       observations: cert.observations,
       daysOfRest: cert.days_of_rest,
+      restHours: (cert as typeof cert & { rest_hours?: number | null }).rest_hours ?? 0,
       startDate: cert.start_date,
       endDate: cert.end_date,
       createdAt: cert.created_at,
