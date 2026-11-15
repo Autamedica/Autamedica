@@ -64,7 +64,8 @@ const activeTabDoctor =
   doctorPath.includes('/patients') || doctorPath.includes('/consultations') ? 'pacientes' :
   doctorPath.includes('/prescriptions') ? 'recetas' :
   doctorPath.includes('/perfil') ? 'perfil' :
-  'inicio';
+  doctorPath === '/' || doctorPath.endsWith('/dashboard') ? 'inicio' :
+  undefined;
 if (isPatientHost || isDoctorHost || Astro.locals.session) {
   Astro.response.headers.set('Cache-Control', 'private, no-store');
   Astro.response.headers.append('Vary', 'Cookie, Authorization');
