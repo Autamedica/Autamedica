@@ -16,10 +16,11 @@ export function resolveMemedMobilePilotDoctorId(mobilePilotId: string | undefine
 export function validMemedMobileAppointment(input: unknown): input is string {
   return typeof input === 'string' && MEMED_MOBILE_UUID.test(input);
 }
-export function buildMemedMobileLaunchUrl(appointmentId: string): string {
-  if (!validMemedMobileAppointment(appointmentId)) throw new Error('INVALID_APPOINTMENT_ID');
+export function buildMemedMobileLaunchUrl(encounterId: string, queryKey: 'appointmentId'|'requestId' = 'appointmentId'): string {
+  if (!validMemedMobileAppointment(encounterId)) throw new Error('INVALID_ENCOUNTER_ID');
+  if (queryKey !== 'appointmentId' && queryKey !== 'requestId') throw new Error('INVALID_ENCOUNTER_TYPE');
   const url = new URL(MEMED_MOBILE_URL_BASE);
-  url.searchParams.set('appointmentId', appointmentId);
+  url.searchParams.set(queryKey, encounterId);
   return url.toString();
 }
 export function appointmentPermitsPrescription(

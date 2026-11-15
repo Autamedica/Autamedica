@@ -662,6 +662,7 @@ fun VideoCallScreen(
             // Keep the linked patient's clinical jurisdiction aligned with the doctor's license.
             patientCareCountryCode = uiState.patientCareCountryCode,
             patientLinked = uiState.patientId.isNotBlank(),
+            memedEncounterAvailable = viewModel.hasMemedEncounter,
             isSubmitting = uiState.isIssuingPrescription || uiState.isIssuingCertificate ||
                 uiState.isOpeningMemed,
             onOpenMemed = if (uiState.doctorCountryCode == "BR" && !isPreviewRoute) {

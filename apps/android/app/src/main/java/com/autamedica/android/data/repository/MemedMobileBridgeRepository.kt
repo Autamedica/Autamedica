@@ -19,11 +19,17 @@ import javax.inject.Singleton
 class MemedMobileBridgeRepository @Inject constructor(private val client: SupabaseClient) {
     private val json = Json { ignoreUnknownKeys = true }
 
-    suspend fun createLaunch(appointmentId: String): Result<String> = runCatching {
-        require(MemedMobileLaunchUrl.isUuid(appointmentId)) { "Consulta inválida" }
+    suspend fun createLaunch(appointmentId: String): Result<String> =
+        createLaunchForEncounter("appointmentId", appointmentId)
+
+    suspend fun createLaunchForDispatch(requestId: String): Result<String> =
+        createLaunchForEncounter("requestId", requestId)
+
+    private suspend fun createLaunchForEncounter(key: String, encounterId: String): Result<String> = runCatching {
+        require(MemedMobileLaunchUrl.isUuid(encounterId)) { "Consulta inválida" }
         val response = client.functions(
             "memed-mobile-preflight",
-            buildJsonObject { put("appointmentId", appointmentId) },
+            buildJsonObject { put(key, encounterId) },
         )
         check(response.status.value in 200..299) {
             "Memed indisponível: autorização médica ou habilitação pendente"
@@ -33,7 +39,7 @@ class MemedMobileBridgeRepository @Inject constructor(private val client: Supaba
             result.country == "BR" && result.requiresBrowserSignIn) {
             "Resposta Memed não autorizada"
         }
-        MemedMobileLaunchUrl.validate(result.launchUrl, appointmentId)
+        MemedMobileLaunchUrl.validate(result.launchUrl, encounterId, key)
     }
 }
 
@@ -51,8 +57,12 @@ object MemedMobileLaunchUrl {
     private val uuid = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
     fun isUuid(value: String): Boolean = uuid.matches(value)
 
-    fun validate(raw: String, expectedAppointmentId: String): String {
-        require(isUuid(expectedAppointmentId)) { "Consulta inválida" }
+    fun validate(raw: String, expectedAppointmentId: String): String =
+        validate(raw, expectedAppointmentId, "appointmentId")
+
+    fun validate(raw: String, expectedEncounterId: String, queryKey: String): String {
+        require(queryKey == "appointmentId" || queryKey == "requestId") { "Consulta inválida" }
+        require(isUuid(expectedEncounterId)) { "Consulta inválida" }
         require(raw.length < 512) { "Endereço Memed inválido" }
         val uri = URI(raw)
         require(uri.scheme == "https" && uri.host == "doctor.autamedica.com" &&
@@ -60,7 +70,7 @@ object MemedMobileLaunchUrl {
             uri.path == "/doctors/prescriptions/memed-mobile") {
             "Destino Memed não autorizado"
         }
-        require(uri.rawQuery == "appointmentId=$expectedAppointmentId") {
+        require(uri.rawQuery == "$queryKey=$expectedEncounterId") {
             "Consulta Memed não corresponde à consulta atual"
         }
         return uri.toASCIIString()

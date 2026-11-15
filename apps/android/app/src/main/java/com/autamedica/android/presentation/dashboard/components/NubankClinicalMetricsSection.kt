@@ -37,7 +37,7 @@ fun NubankClinicalMetricsSection(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            text = "MÉTRICAS CLÍNICAS",
+            text = stringResource(R.string.ui_clinical_metrics_title),
             style = MaterialTheme.typography.labelSmall.copy(
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 1.sp,
@@ -51,9 +51,9 @@ fun NubankClinicalMetricsSection(
         ) {
             item {
                 ClinicalMetricCard(
-                    title = "Consultas atendidas hoy",
+                    title = stringResource(R.string.ui_clinical_completed_today),
                     value = if (statsAvailable) stats.completedToday.toString() else "—",
-                    subtext = "Citas con estado completado",
+                    subtext = stringResource(R.string.ui_clinical_completed_today_hint),
                 )
             }
             item {

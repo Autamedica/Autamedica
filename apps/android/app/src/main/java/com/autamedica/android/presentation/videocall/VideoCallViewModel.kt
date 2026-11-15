@@ -1515,9 +1515,13 @@ class VideoCallViewModel @Inject constructor(
      * Brazil-only handoff to the official Memed browser module.
      * The server performs the authoritative doctor, patient, consent and encounter checks.
      */
+    val hasMemedEncounter: Boolean
+        get() = appointmentId.isNotBlank() || !activePharmacyDispatchId.isNullOrBlank()
+
     fun openMemedForBrazil() {
         val state = _uiState.value
-        if (!state.isDoctor || previewOnlyMode || appointmentId.isBlank() ||
+        val dispatchRequestId = activePharmacyDispatchId?.takeIf { it.isNotBlank() }
+        if (!state.isDoctor || previewOnlyMode || (appointmentId.isBlank() && dispatchRequestId == null) ||
             state.doctorCountryCode != "BR" || state.patientCareCountryCode != "BR" ||
             state.patientId.isBlank()
         ) {
@@ -1531,8 +1535,12 @@ class VideoCallViewModel @Inject constructor(
             _uiState.update {
                 it.copy(isOpeningMemed = true, memedLaunchError = null, memedLaunchUrl = null)
             }
-            memedMobileBridgeRepository.createLaunch(appointmentId)
-                .onSuccess { url ->
+            val launch = if (appointmentId.isNotBlank()) {
+                memedMobileBridgeRepository.createLaunch(appointmentId)
+            } else {
+                memedMobileBridgeRepository.createLaunchForDispatch(dispatchRequestId!!)
+            }
+            launch.onSuccess { url ->
                     _uiState.update { it.copy(isOpeningMemed = false, memedLaunchUrl = url) }
                 }
                 .onFailure {

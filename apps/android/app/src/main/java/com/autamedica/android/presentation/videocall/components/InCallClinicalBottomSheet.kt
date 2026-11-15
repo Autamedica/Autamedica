@@ -90,6 +90,7 @@ fun InCallClinicalBottomSheet(
     countryCode: String? = null,
     patientCareCountryCode: String? = null,
     patientLinked: Boolean = false,
+    memedEncounterAvailable: Boolean = patientLinked,
     isSubmitting: Boolean,
     onOpenMemed: (() -> Unit)? = null,
     memedLaunchError: String? = null,
@@ -459,7 +460,7 @@ fun InCallClinicalBottomSheet(
                             )
                             Button(
                                 onClick = { onOpenMemed?.invoke() },
-                                enabled = onOpenMemed != null && !isSubmitting && patientLinked && countriesMatch,
+                                enabled = onOpenMemed != null && !isSubmitting && patientLinked && memedEncounterAvailable && countriesMatch,
                                 modifier = Modifier.fillMaxWidth().height(50.dp),
                                 shape = RoundedCornerShape(12.dp),
                             ) {

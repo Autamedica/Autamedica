@@ -61,6 +61,7 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Verified
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
@@ -85,6 +86,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -192,6 +194,31 @@ fun DoctorDashboardScreen(
     viewModel: DoctorDashboardViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showBrazilMemedPatientPrompt by remember { mutableStateOf(false) }
+    val isBrazilianDoctor = uiState.doctorProfile?.let { profile ->
+        profile.countryCode == "BR" || (profile.licenseType.equals("CRM", ignoreCase = true) &&
+            !profile.ufBrazil.isNullOrBlank())
+    } == true
+
+
+    if (showBrazilMemedPatientPrompt && isBrazilianDoctor) {
+        AlertDialog(
+            onDismissRequest = { showBrazilMemedPatientPrompt = false },
+            title = { Text(stringResource(R.string.ui_memed_select_patient_title)) },
+            text = { Text(stringResource(R.string.ui_memed_select_patient_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showBrazilMemedPatientPrompt = false
+                    onNavigateToTab(DOCTOR_TAB_PATIENTS)
+                }) { Text(stringResource(R.string.ui_memed_select_patient_action)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBrazilMemedPatientPrompt = false }) {
+                    Text(stringResource(R.string.ui_action_cancel))
+                }
+            },
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -349,7 +376,7 @@ fun DoctorDashboardScreen(
                                     onClick = { viewModel.retryAcceptedVideo(onNavigateToVideoCall) },
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
-                                    Text("Reintentar ingreso a la videoconsulta")
+                                    Text(stringResource(R.string.ui_doctor_retry_video))
                                 }
                             }
                         }
@@ -394,8 +421,14 @@ fun DoctorDashboardScreen(
                         // 4. QUICK CLINICAL ACTIONS BAR (Herramientas de 1 toque)
                         item {
                             QuickClinicalActionsBar(
-                                onNavigateToPrescriptions = onNavigateToDoctorPrescriptions,
-                                onNavigateToCertificates = onNavigateToDoctorCertificates,
+                                onNavigateToPrescriptions = {
+                                    if (isBrazilianDoctor) showBrazilMemedPatientPrompt = true
+                                    else onNavigateToDoctorPrescriptions()
+                                },
+                                onNavigateToCertificates = {
+                                    if (isBrazilianDoctor) showBrazilMemedPatientPrompt = true
+                                    else onNavigateToDoctorCertificates()
+                                },
                                 onNavigateToMedicalOrders = onNavigateToDoctorMedicalOrders,
                                 onNavigateToDoctorOnDemand = onNavigateToDoctorOnDemand,
                                 onNavigateToCreateAppointment = { onNavigateToTab(DOCTOR_TAB_APPOINTMENTS) },
@@ -581,9 +614,9 @@ private fun AutaMedicaOsDutyHero(
                         )
                         Text(
                             text = when {
-                                guardApproved != true -> "Requiere aprobación administrativa de matrícula"
-                                isOnDuty -> "Recibiendo consultas on-demand"
-                                else -> "Toca para conectar con la red de farmacias"
+                                guardApproved != true -> stringResource(R.string.ui_doctor_duty_requires_approval)
+                                isOnDuty -> stringResource(R.string.ui_doctor_duty_receiving)
+                                else -> stringResource(R.string.ui_doctor_duty_activate)
                             },
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                             color = if (isOnDuty) AutaGreen else Slate500,
@@ -1585,7 +1618,7 @@ private fun LivePatientQueueSection(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "En escucha de derivaciones de farmacia. El motor notificará con alerta sonora y visual de 30s al ingresar un paciente.",
+                                text = stringResource(R.string.ui_doctor_duty_dispatch_notification_hint),
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     fontSize = 12.sp,
                                     lineHeight = 16.sp,

@@ -16,6 +16,14 @@ class MemedMobileLaunchUrlTest {
         assertFalse(MemedMobileLaunchUrl.isUuid("../admin"))
     }
 
+    @Test fun acceptsPharmacyDispatchRequestIdAndRejectsMismatchedKeys() {
+        val dispatchUrl = "https://doctor.autamedica.com/doctors/prescriptions/memed-mobile?requestId=$appointment"
+        assertEquals(dispatchUrl, MemedMobileLaunchUrl.validate(dispatchUrl, appointment, "requestId"))
+        assertThrows(IllegalArgumentException::class.java) {
+            MemedMobileLaunchUrl.validate(dispatchUrl, appointment, "appointmentId")
+        }
+    }
+
     @Test fun blocksUrlTamperingAndCredentialLeakage() {
         val bad = listOf(
             allowed + "&patientId=123",

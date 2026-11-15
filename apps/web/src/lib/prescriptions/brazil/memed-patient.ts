@@ -37,16 +37,20 @@ export async function resolveMemedPatient(
   }
   const now = new Date();
   const recent = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
-  const [team, visit] = await Promise.all([
+  const [team, visit, dispatch] = await Promise.all([
     admin.from('patient_care_team').select('id').eq('doctor_id', doctorId)
       .eq('patient_id', patientId).eq('active', true).limit(1).maybeSingle(),
     admin.from('appointments').select('id').eq('doctor_id', doctorId)
       .eq('patient_id', patientId).is('deleted_at', null)
       .or(`status.eq.completed,and(status.eq.in_progress,start_time.lte.${now.toISOString()},start_time.gte.${recent})`)
       .limit(1).maybeSingle(),
+    admin.from('pharmacy_dispatch_requests').select('id')
+      .eq('assigned_doctor_id', doctorId).eq('patient_id', patientId)
+      .in('status', ['in_call', 'completed']).gte('call_started_at', recent)
+      .limit(1).maybeSingle(),
   ]);
-  if (team.error || visit.error) throw new Error('memed_patient_authorization_unavailable');
-  if (!team.data && !visit.data) throw new Error('doctor_patient_access_required');
+  if (team.error || visit.error || dispatch.error) throw new Error('memed_patient_authorization_unavailable');
+  if (!team.data && !visit.data && !dispatch.data) throw new Error('doctor_patient_access_required');
   if (demographics) {
     if (!validBirthDate(demographics.birthDate)
         || !/^(male|female)$/.test(demographics.gender)) {

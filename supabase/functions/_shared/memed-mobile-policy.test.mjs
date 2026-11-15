@@ -11,6 +11,13 @@ test('accepts only UUID appointment identifiers, not arbitrary URLs', () => {
     assert.throws(() => buildMemedMobileLaunchUrl(bad));
   }
 });
+test('pharmacy dispatch launches use requestId on the fixed doctor portal', () => {
+  const url = new URL(buildMemedMobileLaunchUrl(appointment, 'requestId'));
+  assert.equal(url.origin, 'https://doctor.autamedica.com');
+  assert.equal(url.pathname, '/doctors/prescriptions/memed-mobile');
+  assert.deepEqual([...url.searchParams.keys()], ['requestId']);
+  assert.equal(url.searchParams.get('requestId'), appointment);
+});
 test('launch destination is fixed HTTPS, doctor portal, no bearer, CPF or patient ID', () => {
   const url = new URL(buildMemedMobileLaunchUrl(appointment));
   assert.equal(url.origin, 'https://doctor.autamedica.com');

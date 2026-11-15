@@ -83,7 +83,21 @@ class DoctorRepositoryImpl @Inject constructor(
             }
             .decodeList<AppointmentStatusDto>()
 
-        val completedToday = todayAppointments.count { it.status == "completed" }
+        val completedPharmacyDispatchesToday = supabaseClient.postgrest
+            .from("pharmacy_dispatch_requests")
+            .select(Columns.list("id")) {
+                filter {
+                    eq("assigned_doctor_id", doctorId)
+                    eq("status", "completed")
+                    gte("call_ended_at", todayStart)
+                    lt("call_ended_at", todayEnd)
+                }
+            }
+            .decodeList<IdDto>()
+            .size
+
+        val completedToday = todayAppointments.count { it.status == "completed" } +
+            completedPharmacyDispatchesToday
         val cancelledToday = supabaseClient.postgrest
             .from("appointments")
             .select(Columns.list("id")) {

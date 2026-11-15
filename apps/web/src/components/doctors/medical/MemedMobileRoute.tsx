@@ -11,13 +11,20 @@ export function MemedMobileRoute() {
   const [revision, setRevision] = useState(0);
   useEffect(() => {
     const controller = new AbortController();
-    const id = new URLSearchParams(window.location.search).get('appointmentId') ?? '';
-    if (!UUID.test(id)) {
+    const params = new URLSearchParams(window.location.search);
+    const appointmentId = params.get('appointmentId') ?? '';
+    const requestId = params.get('requestId') ?? '';
+    const isAppointment = UUID.test(appointmentId) && !requestId;
+    const isDispatch = UUID.test(requestId) && !appointmentId;
+    if (!isAppointment && !isDispatch) {
       setState({status: 'error', error: 'Consulta inválida.'});
       return () => controller.abort();
     }
-    void fetch('/api/doctors/prescriptions/memed-mobile-context?appointmentId=' +
-        encodeURIComponent(id), {credentials: 'include', cache: 'no-store', signal: controller.signal})
+    const encounterQuery = isAppointment
+      ? 'appointmentId=' + encodeURIComponent(appointmentId)
+      : 'requestId=' + encodeURIComponent(requestId);
+    void fetch('/api/doctors/prescriptions/memed-mobile-context?' + encounterQuery,
+        {credentials: 'include', cache: 'no-store', signal: controller.signal})
       .then(async response => {
         // The Astro middleware can redirect unauthenticated API calls to
         // /auth/login (302); fetch follows it and surfaces 200 HTML instead

@@ -18,8 +18,12 @@ export const GET: APIRoute = async ({request, locals}) => {
       locals.runtime?.env?.MEMED_RX_ENABLED !== 'true') {
     return forbidden('memed_mobile_not_enabled');
   }
-  const appointmentId = new URL(request.url).searchParams.get('appointmentId') ?? '';
-  if (!UUID.test(appointmentId)) return badRequest('invalid_appointment');
+  const params = new URL(request.url).searchParams;
+  const appointmentId = params.get('appointmentId') ?? '';
+  const requestId = params.get('requestId') ?? '';
+  const isAppointment = UUID.test(appointmentId) && !requestId;
+  const isDispatch = UUID.test(requestId) && !appointmentId;
+  if (!isAppointment && !isDispatch) return badRequest('invalid_encounter');
   try {
     const admin = createAstroAdminClient(locals.runtime?.env);
     const {data: profile, error: profileError} = await admin.from('profiles')
@@ -45,20 +49,37 @@ export const GET: APIRoute = async ({request, locals}) => {
       digits(lic.license_number) === digits(doctor.license_number) &&
       lic.uf_brazil?.toUpperCase() === doctor.uf_brazil?.toUpperCase());
     if (!validLicense) return forbidden('verified_crm_required');
-    const {data: appt, error: apptError} = await admin.from('appointments')
-      .select('doctor_id, patient_id, status, start_time, type')
-      .is('deleted_at', null)
-      .eq('id', appointmentId).eq('doctor_id', doctor.id).maybeSingle();
-    const start = appt?.start_time ? Date.parse(appt.start_time) : NaN;
-    if (apptError || appt?.type !== 'telemedicine' ||
-      !['in_progress', 'completed'].includes(appt?.status ?? '') ||
-      !Number.isFinite(start) || start < Date.now() - 24 * 60 * 60_000 || start > Date.now() + 5 * 60_000) {
-      return forbidden('clinical_encounter_required');
+    let patientId: string | null = null;
+    if (isAppointment) {
+      const {data: appt, error: apptError} = await admin.from('appointments')
+        .select('doctor_id, patient_id, status, start_time, type')
+        .is('deleted_at', null)
+        .eq('id', appointmentId).eq('doctor_id', doctor.id).maybeSingle();
+      const start = appt?.start_time ? Date.parse(appt.start_time) : NaN;
+      if (apptError || appt?.type !== 'telemedicine' ||
+        !['in_progress', 'completed'].includes(appt?.status ?? '') ||
+        !Number.isFinite(start) || start < Date.now() - 24 * 60 * 60_000 || start > Date.now() + 5 * 60_000) {
+        return forbidden('clinical_encounter_required');
+      }
+      patientId = appt.patient_id;
+    } else {
+      const {data: dispatch, error: dispatchError} = await admin.from('pharmacy_dispatch_requests')
+        .select('assigned_doctor_id, patient_id, status, call_started_at')
+        .eq('id', requestId).maybeSingle();
+      const started = dispatch?.call_started_at ? Date.parse(dispatch.call_started_at) : NaN;
+      if (dispatchError || dispatch?.assigned_doctor_id !== doctor.id || !dispatch.patient_id ||
+        !['in_call', 'completed'].includes(dispatch.status) ||
+        !Number.isFinite(started) || started < Date.now() - 24 * 60 * 60_000 ||
+        started > Date.now() + 5 * 60_000) {
+        return forbidden('clinical_encounter_required');
+      }
+      patientId = dispatch.patient_id;
     }
+    if (!patientId) return forbidden('clinical_encounter_required');
     // Reuse the same patient access policy as /memed-token: consent, country,
     // linked doctor-patient encounter and verified identification.
-    await resolveMemedPatient(admin, doctor.id, appt.patient_id);
-    const response = jsonOk({patientId: appt.patient_id});
+    await resolveMemedPatient(admin, doctor.id, patientId);
+    const response = jsonOk({patientId});
     response.headers.set('Cache-Control', 'private, no-store');
     response.headers.set('Referrer-Policy', 'no-referrer');
     return response;

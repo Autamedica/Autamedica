@@ -42,10 +42,11 @@ export async function handler(req: Request): Promise<Response> {
     } catch {
       return reply({code: 'INVALID_REQUEST'}, 400, cors);
     }
-    if (Object.keys(payload).length !== 1 || !validMemedMobileAppointment(payload.appointmentId)) {
-      return reply({code: 'INVALID_APPOINTMENT'}, 400, cors);
-    }
-    const appointmentId = payload.appointmentId;
+    const isAppointment = Object.keys(payload).length === 1 && validMemedMobileAppointment(payload.appointmentId);
+    const isDispatch = Object.keys(payload).length === 1 && validMemedMobileAppointment(payload.requestId);
+    if (!isAppointment && !isDispatch) return reply({code: 'INVALID_ENCOUNTER'}, 400, cors);
+    const appointmentId = isAppointment ? payload.appointmentId as string : null;
+    const requestId = isDispatch ? payload.requestId as string : null;
     const {serviceClient: db, user} = auth;
     const {data: profile, error: profileError} = await db.from('profiles')
       .select('role, active').eq('user_id', user.id).maybeSingle();
@@ -66,16 +67,33 @@ export async function handler(req: Request): Promise<Response> {
     if (licenseError || !verifiedBrazilLicense(doctor, licenses ?? [])) {
       return reply({code: 'CFM_LICENSE_NOT_VERIFIED'}, 403, cors);
     }
-    const {data: appointment, error: apptError} = await db.from('appointments')
-      .select('doctor_id, patient_id, status, start_time, end_time, type')
-      .is('deleted_at', null)
-      .eq('id', appointmentId).eq('doctor_id', doctor.id).maybeSingle();
-    if (apptError || !appointment || !appointmentPermitsPrescription(
-      appointment.status, appointment.start_time, appointment.end_time, Date.now(), appointment.type,
-    )) return reply({code: 'CLINICAL_ENCOUNTER_REQUIRED'}, 403, cors);
+    let patientId: string | null = null;
+    if (appointmentId) {
+      const {data: appointment, error: apptError} = await db.from('appointments')
+        .select('doctor_id, patient_id, status, start_time, end_time, type')
+        .is('deleted_at', null)
+        .eq('id', appointmentId).eq('doctor_id', doctor.id).maybeSingle();
+      if (apptError || !appointment || !appointmentPermitsPrescription(
+        appointment.status, appointment.start_time, appointment.end_time, Date.now(), appointment.type,
+      )) return reply({code: 'CLINICAL_ENCOUNTER_REQUIRED'}, 403, cors);
+      patientId = appointment.patient_id;
+    } else if (requestId) {
+      const {data: dispatch, error: dispatchError} = await db.from('pharmacy_dispatch_requests')
+        .select('assigned_doctor_id, patient_id, status, call_started_at')
+        .eq('id', requestId).maybeSingle();
+      const callStarted = dispatch?.call_started_at ? Date.parse(dispatch.call_started_at) : NaN;
+      if (dispatchError || dispatch?.assigned_doctor_id !== doctor.id ||
+        !dispatch.patient_id || !['in_call', 'completed'].includes(dispatch.status) ||
+        !Number.isFinite(callStarted) || callStarted < Date.now() - 24 * 60 * 60_000 ||
+        callStarted > Date.now() + 5 * 60_000) {
+        return reply({code: 'CLINICAL_ENCOUNTER_REQUIRED'}, 403, cors);
+      }
+      patientId = dispatch.patient_id;
+    }
+    if (!patientId) return reply({code: 'CLINICAL_ENCOUNTER_REQUIRED'}, 403, cors);
     const {data: patient, error: patientError} = await db.from('patients')
       .select('id, active, care_country, lgpd_consent, cpf, birth_date, gender')
-      .eq('id', appointment.patient_id).maybeSingle();
+      .eq('id', patientId).maybeSingle();
     if (patientError || patient?.active !== true || patient.care_country !== 'BR' ||
       patient.lgpd_consent !== true) return reply({code: 'BRAZIL_PATIENT_CONSENT_REQUIRED'}, 403, cors);
     if (!validBrazilPatientIdentity(patient.cpf, patient.birth_date, patient.gender, Date.now())) {
@@ -83,7 +101,7 @@ export async function handler(req: Request): Promise<Response> {
     }
     return reply({
       success: true,
-      launchUrl: buildMemedMobileLaunchUrl(appointmentId),
+      launchUrl: buildMemedMobileLaunchUrl(appointmentId ?? requestId!, appointmentId ? 'appointmentId' : 'requestId'),
       requiresBrowserSignIn: true,
       provider: 'memed',
       country: 'BR',

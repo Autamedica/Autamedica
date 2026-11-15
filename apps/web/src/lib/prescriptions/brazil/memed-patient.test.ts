@@ -8,12 +8,12 @@ const identity = { care_country: 'BR', user_id: 'synthetic-user', active: true, 
 
 function database(overrides: Record<string, unknown> = {}): SupabaseClient {
   const rows: Record<string, unknown> = { patient_care_team: { id: 'synthetic-team' },
-    appointments: null, patients: identity,
+    appointments: null, pharmacy_dispatch_requests: null, patients: identity,
     profiles: { first_name: 'Synthetic', last_name: 'Patient' }, ...overrides };
   return { from: vi.fn((table: string) => {
-    const chain = { select: vi.fn(), update: vi.fn(), eq: vi.fn(), is: vi.fn(), or: vi.fn(), limit: vi.fn(),
+    const chain = { select: vi.fn(), update: vi.fn(), eq: vi.fn(), is: vi.fn(), or: vi.fn(), in: vi.fn(), gte: vi.fn(), limit: vi.fn(),
       maybeSingle: vi.fn(async () => ({ data: rows[table], error: null })) };
-    chain.is.mockReturnValue(chain); chain.or.mockReturnValue(chain);
+    chain.is.mockReturnValue(chain); chain.or.mockReturnValue(chain); chain.in.mockReturnValue(chain); chain.gte.mockReturnValue(chain);
     chain.select.mockReturnValue(chain); chain.update.mockReturnValue(chain); chain.eq.mockReturnValue(chain); chain.limit.mockReturnValue(chain);
     return chain;
   }) } as unknown as SupabaseClient;
@@ -40,6 +40,13 @@ describe('Memed patient authorization', () => {
     const db = database({ patient_care_team: null });
     await expect(resolveMemedPatient(db, 'doctor', patientId)).rejects.toThrow('doctor_patient_access_required');
     expect(db.from).not.toHaveBeenCalledWith('patients');
+  });
+  it('accepts a completed pharmacy dispatch assigned to the doctor without an appointment', async () => {
+    await expect(resolveMemedPatient(database({
+      patient_care_team: null,
+      appointments: null,
+      pharmacy_dispatch_requests: { id: 'dispatch' },
+    }), 'doctor', patientId)).resolves.toHaveProperty('cpf', identity.cpf);
   });
   it('accepts a legitimate completed consultation', async () => {
     await expect(resolveMemedPatient(database({ patient_care_team: null, appointments: { id: 'visit' } }),
