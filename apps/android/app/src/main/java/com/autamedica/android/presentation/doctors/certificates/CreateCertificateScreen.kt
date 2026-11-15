@@ -221,8 +221,11 @@ fun CreateCertificateScreen(
             // 5. Clinical Diagnosis & Secreto Médico Toggle
             DiagnosisAndPrivacySection(
                 diagnosis = uiState.diagnosis,
+                cid10Code = uiState.diagnosisCode.orEmpty(),
+                showCid10Field = uiState.doctorEligibility?.countryCode == "BR",
                 hideDiagnosis = uiState.hideDiagnosis,
                 onDiagnosisChange = { viewModel.onDiagnosisChange(it) },
+                onCid10CodeChange = { viewModel.onDiagnosisCodeChange(it) },
                 onToggleHide = { viewModel.onToggleHideDiagnosis(it) }
             )
 
@@ -807,8 +810,11 @@ private fun DaysOfRestSection(
 @Composable
 private fun DiagnosisAndPrivacySection(
     diagnosis: String,
+    cid10Code: String,
+    showCid10Field: Boolean,
     hideDiagnosis: Boolean,
     onDiagnosisChange: (String) -> Unit,
+    onCid10CodeChange: (String) -> Unit,
     onToggleHide: (Boolean) -> Unit,
 ) {
     Surface(
@@ -863,6 +869,23 @@ private fun DiagnosisAndPrivacySection(
                     unfocusedBorderColor = AuBorder,
                 )
             )
+
+            if (showCid10Field) {
+                OutlinedTextField(
+                    value = cid10Code,
+                    onValueChange = onCid10CodeChange,
+                    label = { Text(stringResource(R.string.cert_cid10_optional_label)) },
+                    placeholder = { Text(stringResource(R.string.cert_cid10_optional_placeholder)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    maxLines = 1,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PortalDoctors,
+                        unfocusedBorderColor = AuBorder,
+                    )
+                )
+            }
 
             // Secreto Médico Switch Card
             Surface(
