@@ -1502,6 +1502,8 @@ class VideoCallViewModel @Inject constructor(
         diagnosis: String,
         validationMessage: String,
         fallbackErrorMessage: String,
+        patientMissingMessage: String,
+        nativeIssuerUnavailableMessage: String,
         defaultDosage: String,
         defaultFrequency: String,
         defaultDuration: String,
@@ -1524,7 +1526,7 @@ class VideoCallViewModel @Inject constructor(
             runCatching {
                 val country = InCallDocumentPolicy.requireCountry(_uiState.value.doctorCountryCode)
                 if (!InCallDocumentPolicy.canUseNativePrescriptionIssuer(country)) {
-                    throw IllegalStateException("Recetas de Brasil: emitir mediante Memed desde el portal médico. El emisor Android aún no está homologado.")
+                    throw IllegalStateException(nativeIssuerUnavailableMessage)
                 }
                 var targetPatientId = _uiState.value.patientId.takeIf { it.isNotBlank() }
                 if (targetPatientId == null && appointmentId.isNotBlank() && !previewOnlyMode) {
@@ -1535,7 +1537,7 @@ class VideoCallViewModel @Inject constructor(
                     }
                 }
                 if (targetPatientId.isNullOrBlank()) {
-                    throw IllegalStateException("No se pudo identificar al paciente de la llamada")
+                    throw IllegalStateException(patientMissingMessage)
                 }
 
                 val item = PrescriptionItem(
@@ -1599,6 +1601,7 @@ class VideoCallViewModel @Inject constructor(
         diagnosisRequiredMessage: String,
         draftObservations: String,
         fallbackErrorMessage: String,
+        patientMissingMessage: String,
         onResult: (Boolean, String?) -> Unit,
     ) {
         val trimmedDiagnosis = diagnosis.trim()
