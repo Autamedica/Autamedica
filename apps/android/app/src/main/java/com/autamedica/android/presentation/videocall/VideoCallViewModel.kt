@@ -1500,6 +1500,13 @@ class VideoCallViewModel @Inject constructor(
         dosage: String,
         instructions: String,
         diagnosis: String,
+        validationMessage: String,
+        fallbackErrorMessage: String,
+        defaultDosage: String,
+        defaultFrequency: String,
+        defaultDuration: String,
+        defaultInstructions: String,
+        prescriptionNotes: String,
         onResult: (Boolean, String?) -> Unit,
     ) {
         val trimmedMed = medicationName.trim()
@@ -1508,7 +1515,7 @@ class VideoCallViewModel @Inject constructor(
         val trimmedDiagnosis = diagnosis.trim()
 
         if (trimmedMed.isEmpty() || trimmedDiagnosis.isEmpty()) {
-            onResult(false, if (_uiState.value.patientCareCountryCode == "BR") "Informe o medicamento e o diagnóstico clínico." else "Indique medicamento y diagnóstico clínico.")
+            onResult(false, validationMessage)
             return
         }
 
@@ -1534,17 +1541,17 @@ class VideoCallViewModel @Inject constructor(
                 val item = PrescriptionItem(
                     medicationName = trimmedMed,
                     genericName = trimmedMed,
-                    dosage = trimmedDosage.ifBlank { "Según indicación médica" },
-                    frequency = "Según indicación",
-                    duration = "Tratamiento ambulatorio",
-                    instructions = trimmedInstructions.ifBlank { "Tomar según indicaciones clínicas durante la videoconsulta." },
+                    dosage = trimmedDosage.ifBlank { defaultDosage },
+                    frequency = defaultFrequency,
+                    duration = defaultDuration,
+                    instructions = trimmedInstructions.ifBlank { defaultInstructions },
                 )
 
                 val request = CreatePrescriptionRequest(
                     patientId = targetPatientId,
                     items = listOf(item),
                     diagnosis = trimmedDiagnosis,
-                    notes = if (country == "BR") "Receita emitida durante teleconsulta AutaMedica." else "Receta emitida durante videoconsulta AutaMedica.",
+                    notes = prescriptionNotes,
                     countryCode = country,
                 )
 
@@ -1570,7 +1577,7 @@ class VideoCallViewModel @Inject constructor(
                 }
                 onResult(true, cuir)
             }.onFailure { err ->
-                val errorMsg = UiErrorMapper.map(err, if (_uiState.value.patientCareCountryCode == "BR") "Não foi possível emitir a receita." else "No se pudo emitir la receta.")
+                val errorMsg = UiErrorMapper.map(err, fallbackErrorMessage)
                 SecureLog.error("[Telemedicine] Failed issuing prescription in-call", err)
                 _uiState.update { state ->
                     state.copy(
@@ -1588,6 +1595,10 @@ class VideoCallViewModel @Inject constructor(
         daysOfRest: Int,
         diagnosis: String,
         hideDiagnosis: Boolean,
+        invalidDaysMessage: String,
+        diagnosisRequiredMessage: String,
+        draftObservations: String,
+        fallbackErrorMessage: String,
         onResult: (Boolean, String?) -> Unit,
     ) {
         val trimmedDiagnosis = diagnosis.trim()
@@ -1597,9 +1608,9 @@ class VideoCallViewModel @Inject constructor(
             _uiState.update { it.copy(isIssuingCertificate = true, inCallClinicalError = null) }
             runCatching {
                 val country = InCallDocumentPolicy.requireCountry(_uiState.value.doctorCountryCode)
-                require(effectiveRest in 0..365) { "Los días de reposo deben estar entre 0 y 365" }
+                require(effectiveRest in 0..365) { invalidDaysMessage }
                 require(effectiveRest == 0 || trimmedDiagnosis.isNotBlank()) {
-                    "El médico debe indicar el diagnóstico para justificar el reposo"
+                    diagnosisRequiredMessage
                 }
                 var targetPatientId = _uiState.value.patientId.takeIf { it.isNotBlank() }
                 if (targetPatientId == null && appointmentId.isNotBlank() && !previewOnlyMode) {
@@ -1627,7 +1638,7 @@ class VideoCallViewModel @Inject constructor(
                     endDate = endDateStr,
                     diagnosis = trimmedDiagnosis.takeIf { it.isNotBlank() },
                     hideDiagnosis = hideDiagnosis || country == "BR",
-                    observations = "Borrador preparado durante videoconsulta AutaMedica; pendiente de firma",
+                    observations = draftObservations,
                     countryCode = country,
                 )
 
@@ -1654,7 +1665,7 @@ class VideoCallViewModel @Inject constructor(
                 }
                 onResult(true, cuir)
             }.onFailure { err ->
-                val errorMsg = UiErrorMapper.map(err, if (_uiState.value.patientCareCountryCode == "BR") "Não foi possível preparar o atestado." else "No se pudo preparar el certificado.")
+                val errorMsg = UiErrorMapper.map(err, fallbackErrorMessage)
                 SecureLog.error("[Telemedicine] Failed issuing certificate in-call", err)
                 _uiState.update { state ->
                     state.copy(
