@@ -206,7 +206,7 @@ export const POST: APIRoute = async (context) => {
     return badRequest('memed_patient_demographics_invalid');
   }
   const patientDemographics = patientBirthDate && patientGender
-    ? { birthDate: patientBirthDate, gender: patientGender as 'male' | 'female' } : undefined;
+    ? { birthDate: patientBirthDate as string, gender: patientGender as 'male' | 'female' } : undefined;
   return handleMemedToken(context, birthDate as string | undefined, providedCpf as string | undefined,
     body && typeof body === 'object' && 'patientId' in body ? body.patientId : undefined, patientDemographics);
 };
