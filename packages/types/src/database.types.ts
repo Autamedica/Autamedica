@@ -3808,7 +3808,6 @@ export type Database = {
           id: string
           languages: Json | null
           license_number: string
-          memed_birth_date?: string | null
           memed_birth_date: string | null
           payout_alias: string | null
           payout_cbu: string | null
@@ -3844,6 +3843,7 @@ export type Database = {
           id?: string
           languages?: Json | null
           license_number: string
+          memed_birth_date?: string | null
           payout_alias?: string | null
           payout_cbu?: string | null
           professional_address?: string | null
