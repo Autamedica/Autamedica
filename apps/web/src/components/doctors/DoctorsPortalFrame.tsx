@@ -415,7 +415,7 @@ export function DoctorsPortalFrame({
           <div className="flex w-full max-w-sm flex-col items-center rounded-2xl border border-neutral-200 bg-white px-8 py-10 text-center shadow-sm">
             {/* Avatar with Golden Badge */}
             <div className="relative mb-5 flex-shrink-0">
-              <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-neutral-900 text-base font-semibold text-white ring-1 ring-neutral-200 shadow-inner">
+              <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-[#0F2537] text-base font-semibold text-white ring-2 ring-[#0D9488]/70 shadow-inner">
                 {cachedProfile.avatarUrl ? (
                   <img
                     src={cachedProfile.avatarUrl}
@@ -428,7 +428,7 @@ export function DoctorsPortalFrame({
               </div>
               {cachedProfile.isValidOrExempt && (
                 <div
-                  className="absolute -bottom-1 -right-1 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-400 text-white ring-2 ring-white shadow-sm"
+                  className="absolute -bottom-1 -right-1 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#0D9488] text-white ring-2 ring-white shadow-sm"
                   title="Matrícula validada en SSS / REFEPS"
                 >
                   <Check className="h-3 w-3 text-white" strokeWidth={3.5} />
@@ -437,7 +437,7 @@ export function DoctorsPortalFrame({
             </div>
 
             {/* Doctor Name with Verified icon */}
-            <h2 className="flex items-center gap-1.5 text-base font-semibold text-neutral-900">
+            <h2 className="flex items-center gap-1.5 text-base font-semibold text-[#0F2537]">
               {cachedProfile.doctorName}
               {cachedProfile.isValidOrExempt && (
                 <span
@@ -448,7 +448,7 @@ export function DoctorsPortalFrame({
                 </span>
               )}
             </h2>
-            <p className="mt-0.5 text-xs text-neutral-400">{cachedProfile.doctorSpecialty}</p>
+            <p className="mt-0.5 text-xs text-slate-500">{cachedProfile.doctorSpecialty}</p>
 
             <hr className="my-5 w-full border-neutral-100" />
 
