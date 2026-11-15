@@ -196,6 +196,17 @@ function canIssueWithPrescriberValidationStatus(status?: string | null): boolean
   return status === 'valid' || status === 'exempt';
 }
 
+function shouldRegisterFarmalink(country: string | null): boolean {
+  return country === 'AR';
+}
+
+function farmalinkRegistrationRequired(
+  country: string | null,
+  registration: FarmalinkRegistration | undefined,
+): boolean {
+  return country === 'AR' && !registration;
+}
+
 interface FarmalinkRegistration {
   vendorName: 'farmalink';
   genericMode: 'S' | 'N';
@@ -721,7 +732,7 @@ export async function issuePrescription(
   }
 
   let externalRegistration: FarmalinkRegistration | undefined;
-  if (prescriptionCountry === 'AR') {
+  if (shouldRegisterFarmalink(prescriptionCountry)) {
     const farmalinkRegistration = await registerFarmalinkIfEnabled({
       supabase,
       prescriptionId,
@@ -741,7 +752,7 @@ export async function issuePrescription(
 
   // Farmalink is exclusively Argentine. Brazil uses an independent, unique
   // AutaMedica validation code and never creates an RCTA/CUIR registration.
-  if (prescriptionCountry === 'AR' && !externalRegistration) {
+  if (farmalinkRegistrationRequired(prescriptionCountry, externalRegistration)) {
     return fail({ code: 'farmalink_registration_required' });
   }
   const vendorName = externalRegistration?.vendorName ?? 'autamedica_br_pades';
@@ -1052,6 +1063,8 @@ export async function regenerateIssuedPrescriptionPdf(
 
 export const __testables = {
   registerFarmalinkIfEnabled,
+  shouldRegisterFarmalink,
+  farmalinkRegistrationRequired,
   buildFarmalinkPrescriptionMapInput,
   canIssueWithPrescriberValidationStatus,
 };
