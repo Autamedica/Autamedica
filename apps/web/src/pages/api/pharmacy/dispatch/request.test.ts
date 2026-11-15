@@ -48,6 +48,8 @@ type TableChain = {
   maybeSingle: ReturnType<typeof vi.fn>
   single: ReturnType<typeof vi.fn>
   insert: ReturnType<typeof vi.fn>
+  update: ReturnType<typeof vi.fn>
+  or: ReturnType<typeof vi.fn>
 }
 
 function pricingRow(country: 'AR' | 'BR') {
@@ -66,12 +68,16 @@ function buildTableChain(data: unknown, error: unknown = null): TableChain {
     maybeSingle: vi.fn(),
     single: vi.fn(),
     insert: vi.fn(),
+    update: vi.fn(),
+    or: vi.fn(),
   }
   chain.select.mockReturnValue(chain)
   chain.eq.mockReturnValue(chain)
   chain.maybeSingle.mockReturnValue(chain)
   chain.single.mockReturnValue(chain)
   chain.insert.mockReturnValue(chain)
+  chain.update.mockReturnValue(chain)
+  chain.or.mockReturnValue(chain)
   return chain
 }
 
@@ -146,6 +152,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
       id: '22222222-2222-4222-8222-222222222222',
       cloudflare_room_id: 'cf-room-native-1', care_country: 'BR',
       status: 'searching', patient_name: 'Paciente BR', requested_by_user_id: ownerId,
+      patient_id: 'patient-row-99',
       referral_partner_id: partnerId,
     }
     const dispatchTable = buildTableChain(dispatchRow)
@@ -155,6 +162,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
       if (table === 'commercial_referral_partners') return buildTableChain({ id: partnerId })
       if (table === 'pharmacy_dispatch_requests') return dispatchTable
       if (table === 'pharmacy_guest_dispatch_sessions') return recoveryTable
+      if (table === 'patients') return buildTableChain({ id: 'patient-row-99' })
       return buildTableChain(null)
     })
     const response = await POST(makeContext({

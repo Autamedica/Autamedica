@@ -640,14 +640,6 @@ export async function issuePrescription(
       : doctor.license_type === 'MN' || doctor.license_type === 'MP' ? 'AR'
         : null;
   
-  // Provider routing is canonical and independent from browser locale or mutable UI input.
-  // The BR route points to the separate Memed mobile module; the generic BR PDF
-  // remains an internal document and never masquerades as a provider issuance.
-  const providerRoute = resolvePrescriptionProviderRoute(
-    doctor.care_country, prescriptionCountry, patient.care_country,
-  );
-  if (!providerRoute) return fail({ code: 'prescription_country_mismatch' });
-
   const issuanceGate = checkDirectPrescriptionIssuance({
     prescriptionCountry,
     doctorCountry,
@@ -655,6 +647,14 @@ export async function issuePrescription(
     argentinaProductionApproved: runtimeEnv?.AR_RX_PRODUCTION_APPROVED === 'true',
   });
   if ('code' in issuanceGate) return fail({ code: issuanceGate.code });
+
+  // Provider routing is canonical and independent from browser locale or mutable UI input.
+  // The BR route points to the separate Memed mobile module; the generic BR PDF
+  // remains an internal document and never masquerades as a provider issuance.
+  const providerRoute = resolvePrescriptionProviderRoute(
+    doctorCountry, prescriptionCountry, patient.care_country,
+  );
+  if (!providerRoute) return fail({ code: 'prescription_country_mismatch' });
 
   // 4. Parse clinical data
   const clinicalData = rx.clinical_data as ClinicalData;
