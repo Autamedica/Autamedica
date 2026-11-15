@@ -119,7 +119,7 @@ export function MemedPrescriptionWidget({
       void hub?.module.hide?.('plataforma.prescricao').catch(() => undefined);
       // Leave the script in place to prevent duplicate initialization.
     };
-  }, [patientId, doctorIdentitySubmitted]);
+  }, [patientId, doctorIdentitySubmitted, patientDemographicsSubmitted]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
