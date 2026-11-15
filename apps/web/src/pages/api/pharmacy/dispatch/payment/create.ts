@@ -65,14 +65,33 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
     const amountCents = pricing.consultation_price_minor
     const currency = pricing.currency as 'BRL' | 'ARS'
+    const argentinaProviderToken = dispatch.care_country === 'AR'
+      ? (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN_AR as string | undefined)
+        ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN_AR')
+      : undefined
+    // Never send ARS through a Brazilian merchant token. Without a dedicated
+    // Argentina PSP credential, leave an auditable manual-pilot payment row.
+    const manualPilot = dispatch.care_country === 'AR' && !argentinaProviderToken
     const { data: old, error: oldError } = await admin.from('pharmacy_dispatch_payments')
-      .select('id,status,checkout_url,amount_minor,currency').eq('dispatch_request_id',dispatch.id).maybeSingle()
+      .select('id,status,checkout_url,amount_minor,currency,provider,provider_preference_id,provider_payment_id,metadata')
+      .eq('dispatch_request_id',dispatch.id).maybeSingle()
     if (oldError) throw oldError
     if (old) {
       if (old.amount_minor !== amountCents || old.currency !== currency) throw new Error('checkout_amount_changed')
       if (old.status === 'approved') return jsonOk({ status: 'approved', checkoutUrl: null, amountCents, currency })
       if (old.status === 'pending' && old.checkout_url) {
         return jsonOk({ status: 'pending', checkoutUrl: old.checkout_url, amountCents, currency })
+      }
+      if (manualPilot && old.status === 'pending' && old.provider === 'manual'
+          && old.metadata?.manual_approval_pending === true) {
+        return jsonOk({ status: 'pending', checkoutUrl: null, amountCents, currency, manualApprovalRequired: true })
+      }
+      if (manualPilot && old.status === 'failed' && !old.provider_preference_id && !old.provider_payment_id) {
+        const { data: recovered, error: recoverError } = await admin.from('pharmacy_dispatch_payments')
+          .update({ status: 'pending', metadata: { ...(old.metadata ?? {}), payment_mode: 'manual_pilot', manual_approval_pending: true, country_code: 'AR' } })
+          .eq('id', old.id).eq('status', 'failed').select('id').maybeSingle()
+        if (recoverError || !recovered) throw recoverError ?? new Error('manual_pilot_payment_recovery_failed')
+        return jsonOk({ status: 'pending', checkoutUrl: null, amountCents, currency, manualApprovalRequired: true })
       }
       // A provider request may have succeeded even if the response was lost.
       // Do not create a second preference for the same dispatch automatically.
@@ -108,21 +127,23 @@ export const POST: APIRoute = async ({ request, locals }) => {
           dispatch_request_id: dispatch.id,
           amount_minor: amountCents,
           currency,
-          status: 'initializing',
-          provider: 'mercadopago',
+          status: manualPilot ? 'pending' : 'initializing',
+          provider: manualPilot ? 'manual' : 'mercadopago',
+          ...(manualPilot ? { metadata: { payment_mode: 'manual_pilot', manual_approval_pending: true, country_code: 'AR' } } : {}),
         })
         .select('id').single()
       if (createError?.code === '23505') return serviceUnavailable('checkout_already_initializing')
       if (createError || !created) throw createError ?? new Error('payment_row_creation_failed')
       initializedPaymentId = created.id
+      if (manualPilot) {
+        return jsonOk({ status: 'pending', checkoutUrl: null, amountCents, currency, manualApprovalRequired: true })
+      }
     }
 
-    const secret = (dispatch.care_country === 'AR'
-      ? (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN_AR as string | undefined)
-        ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN_AR')
-      : undefined)
-      ?? (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN as string | undefined)
-      ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN')
+    const secret = dispatch.care_country === 'AR'
+      ? argentinaProviderToken
+      : (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN as string | undefined)
+        ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN')
     if (!secret) throw new Error('mercadopago_access_not_configured')
     const appUrl = ((locals.runtime?.env?.PUBLIC_APP_URL as string | undefined)
       ?? getRuntimeEnvValue('PUBLIC_APP_URL')
