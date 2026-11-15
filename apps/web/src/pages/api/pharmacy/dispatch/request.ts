@@ -35,12 +35,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return badRequest('Cuerpo de solicitud inválido')
     }
 
-    const { patientDni, patientCpf, careCountry, patientPhone, patientName, tier, kioskId, pharmacyId, symptomSummary, referralCode } = body
+    const { patientDni, patientCpf, careCountry, patientPhone, patientName, tier, kioskId, pharmacyId, symptomSummary, referralCode, lgpdConsent } = body
 
     // Choose the country explicitly. A DNI/CPF or mobile dialing prefix cannot
     // determine clinical jurisdiction or grant access to an existing patient.
     if (careCountry !== 'AR' && careCountry !== 'BR') {
       return badRequest('Seleccioná Argentina o Brasil como país de atención')
+    }
+    if (careCountry === 'BR' && lgpdConsent !== true) {
+      return badRequest('lgpd_consent_required')
     }
 
     // Do not send a referred Jordan patient into a clinical queue without
@@ -257,6 +260,36 @@ export const POST: APIRoute = async ({ request, locals }) => {
         code: typeof error.code === 'string' && /^[A-Z0-9]{5}$/.test(error.code) ? error.code : 'INTERNAL',
       })
       return internalError('dispatch_request_failed')
+    }
+
+    // Persist only an explicit kiosk acceptance, with immutable evidence metadata.
+    // A conflicting AR patient record is never relabelled as Brazilian.
+    if (careCountry === 'BR') {
+      if (!data.patient_id) {
+        await supabase.from('pharmacy_dispatch_requests')
+          .update({ status: 'cancelled' }).eq('id', data.id).eq('status', 'searching')
+        return serviceUnavailable('patient_consent_persistence_failed')
+      }
+      const { data: consentedPatient, error: consentError } = await (supabase as unknown as SupabaseClient)
+        .from('patients')
+        .update({
+          care_country: 'BR',
+          lgpd_consent: true,
+          lgpd_consent_date: new Date().toISOString(),
+          lgpd_consent_version: 'pharmacy-express-lgpd-v1',
+        })
+        .eq('id', data.patient_id)
+        .or('care_country.eq.BR,care_country.is.null')
+        .select('id')
+        .maybeSingle()
+      if (consentError || !consentedPatient) {
+        await supabase.from('pharmacy_dispatch_requests')
+          .update({ status: 'cancelled' }).eq('id', data.id).eq('status', 'searching')
+        logger.error('[api/pharmacy/dispatch/request] patient_consent_persistence_failed', {
+          code: consentError?.code ?? 'NO_PATIENT_ROW',
+        })
+        return serviceUnavailable('patient_consent_persistence_failed')
+      }
     }
 
     // Generar token de acceso criptográfico (JWT firmado con HS256)
