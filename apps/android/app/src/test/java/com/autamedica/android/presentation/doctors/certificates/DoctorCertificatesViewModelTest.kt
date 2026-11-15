@@ -19,6 +19,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -178,7 +179,7 @@ class DoctorCertificatesViewModelTest {
         assertThat(state.certificateType).isEqualTo(CertificateType.REPOSO_LABORAL)
         assertThat(state.daysOfRest).isEqualTo(2)
 
-        val expectedEnd = LocalDate.now().plusDays(2).format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val expectedEnd = LocalDate.now(ZoneId.of("America/Argentina/Buenos_Aires")).plusDays(2).format(DateTimeFormatter.ISO_LOCAL_DATE)
         assertThat(state.endDate).isEqualTo(expectedEnd)
     }
 
@@ -188,7 +189,7 @@ class DoctorCertificatesViewModelTest {
         viewModel.onDaysOfRestChange(5)
         val state = viewModel.uiState.value
         assertThat(state.daysOfRest).isEqualTo(5)
-        val expectedEnd = LocalDate.now().plusDays(5).format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val expectedEnd = LocalDate.parse(state.startDate).plusDays(5).format(DateTimeFormatter.ISO_LOCAL_DATE)
         assertThat(state.endDate).isEqualTo(expectedEnd)
     }
 
