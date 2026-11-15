@@ -24,7 +24,7 @@ function providerPrescription(response: JSONObject): JSONObject {
 export const POST: APIRoute = async ({ request, locals }) => {
   const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
   if (!isAuthed(auth)) return auth;
-  if (locals.runtime?.env?.MEMED_RX_ENABLED !== 'true') {
+  if (!(locals.runtime?.env?.MEMED_RX_ENABLED === 'true' || locals.runtime?.env?.MEMED_MOBILE_ENABLED === 'true')) {
     return forbidden('memed_issuance_not_enabled');
   }
 
