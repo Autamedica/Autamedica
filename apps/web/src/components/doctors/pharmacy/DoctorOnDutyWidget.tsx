@@ -239,7 +239,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
                         type="button"
                         disabled={claimingId === item.id}
                         onClick={() => void handleClaim(item.id)}
-                        className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:bg-[#0D9488] transition shadow-md shadow-emerald-950/40 flex items-center gap-1.5 active:scale-[0.98] disabled:opacity-50"
+                        className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#10B981] hover:bg-[#0D9488] transition shadow-md shadow-emerald-950/40 flex items-center gap-1.5 active:scale-[0.98] disabled:opacity-50"
                       >
                         {claimingId === item.id ? (
                           <>
