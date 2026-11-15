@@ -209,6 +209,12 @@ export function DoctorsPortalFrame({
   const doctorName = getDoctorDisplayName(doctor, user);
   const doctorInitials = getInitials(doctorName);
   const doctorSpecialty = doctor?.specialty || "Especialidad pendiente";
+  const doctorCredential = doctor as (NonNullable<typeof doctor> & { care_country?: string; uf_brazil?: string }) | null;
+  const credentialLabel = doctorCredential?.care_country === "BR"
+    ? `CRM${doctorCredential.uf_brazil ? `-${doctorCredential.uf_brazil}` : ""} ${doctorCredential.license_number}`
+    : doctorCredential?.care_country === "AR"
+      ? `MN/MP ${doctorCredential.profile?.matricula_nacional || doctorCredential.license_number}`
+      : null;
   const sssStatus = (doctor?.profile as { sssValidationStatus?: string | null } | undefined)?.sssValidationStatus ?? "pending";
   const isValidOrExempt = sssStatus === "valid" || sssStatus === "exempt";
 
@@ -642,6 +648,12 @@ export function DoctorsPortalFrame({
                     <span className="mt-1 inline-flex max-w-full rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700">
                       {doctorSpecialty}
                     </span>
+                    {isValidOrExempt && credentialLabel && (
+                      <span className="mt-1 inline-flex max-w-full items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700">
+                        <Check className="h-3 w-3 text-[#0D9488]" />
+                        {credentialLabel}
+                      </span>
+                    )}
                   </div>
                 ) : null}
                 <button
