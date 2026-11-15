@@ -6,12 +6,13 @@ interface Props {
 }
 
 const { activeTab } = Astro.props;
+const isPortuguese = Astro.locals.locale === 'pt';
 
 const TABS = [
-  { key: 'inicio', label: 'Inicio', href: '/doctors/dashboard', icon: LayoutDashboard },
+  { key: 'inicio', label: isPortuguese ? 'Início' : 'Inicio', href: '/doctors/dashboard', icon: LayoutDashboard },
   { key: 'agenda', label: 'Agenda', href: '/doctors/agenda', icon: Calendar },
   { key: 'pacientes', label: 'Pacientes', href: '/doctors/patients', icon: Users },
-  { key: 'recetas', label: 'Recetas', href: '/doctors/prescriptions', icon: FileText },
+  { key: 'recetas', label: isPortuguese ? 'Receitas' : 'Recetas', href: '/doctors/prescriptions', icon: FileText },
   { key: 'perfil', label: 'Perfil', href: '/doctors/perfil', icon: User },
 ];
 ---
