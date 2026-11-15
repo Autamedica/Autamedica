@@ -345,3 +345,32 @@ Deno.test("patients-wallet-topup - forged user_metadata role cannot create walle
     globalThis.fetch = originalFetch;
   }
 });
+
+
+Deno.test("patients-wallet-topup - Rejects non-finite and fractional minor-unit amounts", async () => {
+  Deno.env.set("SUPABASE_URL", "https://dummy.supabase.co");
+  Deno.env.set("SUPABASE_ANON_KEY", "dummy_anon");
+  Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", "dummy_service_role");
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (url.includes("/auth/v1/user")) {
+      return new Response(JSON.stringify({ id: "user-123", email: "patient@example.com" }), {
+        status: 200, headers: { "Content-Type": "application/json" },
+      });
+    }
+    return await originalFetch(input, init);
+  };
+  try {
+    for (const amount of [Number.POSITIVE_INFINITY, 1.001]) {
+      const res = await handler(new Request("http://localhost/patients-wallet-topup", {
+        method: "POST",
+        headers: { Authorization: "Bearer valid-token", "Content-Type": "application/json" },
+        body: JSON.stringify({ amount }),
+      }));
+      assertEquals(res.status, 400);
+    }
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

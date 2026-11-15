@@ -105,7 +105,9 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     const amount = Number(body?.amount)
-    if (isNaN(amount) || amount <= 0) {
+    const amountCents = Math.round(amount * 100)
+    if (!Number.isFinite(amount) || amount <= 0 || !Number.isSafeInteger(amountCents) ||
+        Math.abs(amount * 100 - amountCents) > 0.001) {
       return new Response(
         JSON.stringify({ error: 'invalid_amount' }),
         {
@@ -115,7 +117,6 @@ export async function handler(req: Request): Promise<Response> {
       )
     }
 
-    const amountCents = Math.round(amount * 100)
 
     // 3. Database operations using supabaseAdmin
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
@@ -149,7 +150,7 @@ export async function handler(req: Request): Promise<Response> {
       const { data: insertedPatient, error: insertError } = await supabaseAdmin
         .from('patients')
         .upsert({ user_id: user.id, active: true }, { onConflict: 'user_id' })
-        .select('id, cpf, dni')
+        .select('id, cpf, dni, care_country')
         .maybeSingle<PatientRow>()
 
       if (insertError) {

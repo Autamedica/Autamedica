@@ -136,10 +136,10 @@ class DashboardViewModel @Inject constructor(
         _uiState.update { it.copy(isTopupDialogOpen = visible) }
     }
 
-    fun topupWallet(amountArs: Double) {
+    fun topupWallet(amount: Double) {
         viewModelScope.launch {
             _uiState.update { it.copy(isTopupLoading = true) }
-            walletRepository.createTopupPreference(amountArs).fold(
+            walletRepository.createTopupPreference(amount).fold(
                 onSuccess = { checkoutUrl ->
                     _uiState.update {
                         it.copy(

@@ -16,5 +16,5 @@ interface WalletRepository {
     suspend fun getWalletBalanceDetails(): Result<WalletBalanceDetails> =
         getWalletBalance().map { WalletBalanceDetails(it, null) }
 
-    suspend fun createTopupPreference(amountArs: Double): Result<String>
+    suspend fun createTopupPreference(amount: Double): Result<String>
 }

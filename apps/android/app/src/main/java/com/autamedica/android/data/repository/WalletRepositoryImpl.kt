@@ -36,12 +36,12 @@ class WalletRepositoryImpl @Inject constructor(
         SecureLog.warn("[WalletRepository] Could not verify wallet denomination: ${e.message}")
     }
 
-    override suspend fun createTopupPreference(amountArs: Double): Result<String> = runCatching {
-        require(amountArs.isFinite() && amountArs > 0) { "Importe inválido" }
+    override suspend fun createTopupPreference(amount: Double): Result<String> = runCatching {
+        require(amount.isFinite() && amount > 0) { "Importe inválido" }
         val verifiedCurrency = getWalletBalanceDetails().getOrThrow().currency
             ?: error("No se pudo verificar la moneda de la billetera")
         val payload = buildJsonObject {
-            put("amount", amountArs)
+            put("amount", amount)
         }
         val response = supabaseClient.functions("patients-wallet-topup", payload)
         val text = response.bodyAsText()
