@@ -42,7 +42,7 @@
     <string name="prescriptions_pdf_badge">PDF</string>
     <string name="prescriptions_present_code_pharmacy">APRESENTE ESTE CÓDIGO NA FARMÁCIA</string>
     <string name="prescriptions_official_validation">Validação oficial CFM nº 2.314/2022 / ICP-Brasil</string>
-    <string name="prescriptions_cuir_code_label">CÓDIGO DE VALIDAÇÃO:</string>
+    <string name="prescriptions_cuir_code_label">CÓDIGO CUIR:</string>
     <string name="prescriptions_download_recipe_pdf">Baixar Prescrição (PDF)</string>
     <string name="prescriptions_how_to_take_title">COMO TOMAR (INSTRUÇÕES MÉDICAS)</string>
     <string name="prescriptions_indication_label">INDICAÇÃO</string>
@@ -99,6 +99,6 @@
     <!-- Prescriptions: Toasts -->
     <string name="prescriptions_toast_pdf_error">Não foi possível abrir o PDF oficial.</string>
     <string name="prescriptions_toast_cert_pdf_error">Não foi possível abrir o atestado oficial.</string>
-    <string name="prescriptions_toast_cuir_copied">Código de validação copiado para a área de transferência</string>
+    <string name="prescriptions_toast_cuir_copied">CUIR copiado para a área de transferência</string>
 
 </resources>
