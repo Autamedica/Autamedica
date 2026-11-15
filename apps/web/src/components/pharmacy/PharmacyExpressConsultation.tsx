@@ -370,7 +370,7 @@ export function PharmacyExpressConsultation({
                   const selected = formData.careCountry === country
                   return (
                     <label key={country} className={selected ? 'flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#0EA5E9] bg-sky-50 px-3 text-sm font-medium text-sky-800' : 'flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700'}>
-                      <input type="radio" name="careCountry" required checked={selected} disabled={disabled} onChange={() => { setFormData({ ...formData, careCountry: country, dni: '', reason: '' }); setReasonCategory('') }} className="sr-only" />
+                      <input type="radio" name="careCountry" required checked={selected} disabled={disabled} onChange={() => { setFormData({ ...formData, careCountry: country, dni: '', reason: '' }); setReasonCategory(''); setLgpdConsent(false) }} className="sr-only" />
                       <span aria-hidden="true">{country === 'BR' ? '🇧🇷' : '🇦🇷'}</span>
                       <span>{country === 'BR' ? 'Brasil' : 'Argentina'}</span>
                     </label>
@@ -533,6 +533,7 @@ export function PharmacyExpressConsultation({
                 setAccessToken(null)
                 setFormData({ careCountry: isJordanReferral ? 'BR' : '', dni: '', name: '', phone: '', reason: '' })
                 setReasonCategory('')
+                setLgpdConsent(false)
                 setStep('FORM')
               }}
               className="py-2.5 px-6 rounded-xl bg-[#0EA5E9] hover:bg-sky-600 text-white font-medium text-xs transition"
