@@ -485,7 +485,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
       <div className="flex min-h-screen items-center justify-center bg-[#0D1F2D] px-4">
         <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0D1F2D] p-8 text-center shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2DD4BF]">
-            {isBrazilianDoctor ? 'Telemedicina profissional' : 'Telemedicina profesional'}
+            {isBrazilianDoctor ? 'Telemedicina profissional' : '{isBrazilianDoctor ? 'Telemedicina profissional' : 'Telemedicina profesional'}'}
           </p>
           <div className="mx-auto mb-4 mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
             <svg className="h-7 w-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -523,7 +523,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
       <div className="flex min-h-screen items-center justify-center bg-[#0D1F2D] px-4">
         <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0D1F2D] p-8 text-center shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2DD4BF]">
-            Telemedicina profesional
+            {isBrazilianDoctor ? 'Telemedicina profissional' : 'Telemedicina profesional'}
           </p>
           <div className="mx-auto mb-4 mt-5 h-12 w-12 animate-spin rounded-full border-b-2 border-am-doctor-400"></div>
           <h1 className="text-xl font-semibold text-white">{isBrazilianDoctor ? 'Preparando videochamada...' : 'Preparando videollamada...'}</h1>
@@ -540,7 +540,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
       <div className="min-h-screen bg-[#0D1F2D] flex items-center justify-center px-4">
         <div className="max-w-md w-full rounded-3xl border border-white/10 bg-[#0D1F2D] p-8 text-center shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2DD4BF]">
-            Telemedicina profesional
+            {isBrazilianDoctor ? 'Telemedicina profissional' : 'Telemedicina profesional'}
           </p>
           <div className="mx-auto mb-4 mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-amber-50">
             <svg className="h-7 w-7 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -557,14 +557,14 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
               onClick={() => void refreshCallSession()}
               className="rounded-2xl bg-[#0D9488] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#0F766E]"
             >
-              Reintentar
+              {isBrazilianDoctor ? 'Tentar novamente' : 'Reintentar'}
             </button>
             <button
               type="button"
               onClick={() => { window.location.href = '/doctors' }}
               className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-200 transition-colors hover:bg-[#0D1F2D]"
             >
-              Volver al portal
+              {isBrazilianDoctor ? 'Voltar ao portal' : 'Volver al portal'}
             </button>
           </div>
         </div>
@@ -667,7 +667,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                     onClick={() => { window.location.href = '/doctors' }}
                     className="inline-flex items-center justify-center rounded-2xl bg-[#0D9488] px-5 py-3 text-sm font-semibold text-white hover:bg-[#0F766E] transition-colors"
                   >
-                    Volver al portal
+                    {isBrazilianDoctor ? 'Voltar ao portal' : 'Volver al portal'}
                   </button>
                 )}
 
