@@ -43,7 +43,7 @@ class DoctorSignatureViewModel @Inject constructor(
     private val _state = MutableStateFlow(DoctorSignatureState())
     val state: StateFlow<DoctorSignatureState> = _state.asStateFlow()
 
-    fun validateWithSisaRefeps(dni: String, medicalLicense: String) {
+    fun validateDoctorLicense(dni: String, medicalLicense: String) {
         val normalizedDocument = dni.trim()
         val normalizedLicense = medicalLicense.trim()
         if (normalizedLicense.length < 3) {
