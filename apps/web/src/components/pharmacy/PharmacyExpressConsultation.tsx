@@ -263,6 +263,7 @@ export function PharmacyExpressConsultation({
 
     try {
       setSubmitting(true)
+      setCountryPaymentApproved(false)
 
       // Consumir el motor Gen 2 (POST /api/pharmacy/dispatch/request)
       const res = await fetchApi<{
@@ -544,7 +545,8 @@ export function PharmacyExpressConsultation({
                 window.sessionStorage.removeItem('autamedica:pharmacy-express:active-session')
                 setRequestId(null)
                 setAccessToken(null)
-                setFormData({ careCountry: isJordanReferral ? 'BR' : '', dni: '', name: '', phone: '', reason: '' })
+                setFormData({ careCountry: formData.careCountry, dni: '', name: '', phone: '', reason: '' })
+                setCountryPaymentApproved(false)
                 setReasonCategory('')
                 setLgpdConsent(false)
                 setStep('FORM')
