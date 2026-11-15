@@ -54,14 +54,23 @@ class PrescriptionRepositoryImpl @Inject constructor(
             }
             .decodeList<PrescriptionRowDto>()
 
-        if (rows.isEmpty()) {
-            return@runCatching emptyList()
-        }
+        // Read the service-owned Memed feed as well as the normalized prescription
+        // feed so Brazilian patients see provider records without a mirror dependency.
+        val memedRows = supabaseClient.postgrest
+            .from("memed_prescriptions")
+            .select(Columns.ALL) {
+                filter {
+                    eq("patient_id", patientId)
+                    neq("status", "deleted")
+                }
+                order("created_at", Order.DESCENDING)
+            }
+            .decodeList<MemedPrescriptionRowDto>()
 
-        val doctorIds = rows.mapNotNull { it.doctorId }.distinct()
+        val doctorIds = (rows.mapNotNull { it.doctorId } + memedRows.map { it.doctorId }).distinct()
         val (doctorNameMap, doctorLicenseMap) = resolveDoctorsInfo(doctorIds)
 
-        rows.map { row ->
+        val normalized = rows.map { row ->
             val clinical = parseClinicalData(row.clinicalData)
             val docId = row.doctorId
             Prescription(
@@ -85,6 +94,41 @@ class PrescriptionRepositoryImpl @Inject constructor(
                 items = clinical.items,
             )
         }
+
+        val memed = memedRows.map { row ->
+            val provider = row.providerData as? JsonObject
+            val links = row.digitalLinkData as? JsonObject
+            val clinical = parseClinicalData(provider)
+            val documentUrl = links?.memedString("pdf_url", "document_url", "url", "link")
+                ?: provider?.memedString("pdf_url", "document_url", "digital_link", "url")
+            Prescription(
+                id = "memed:${row.memedId}",
+                status = if (row.status == "deleted") "cancelled" else "verified_at_provider",
+                cuir = null,
+                signedPdfUrl = documentUrl,
+                qrCodeContent = links?.memedString("qr_code", "qrCode"),
+                medicationName = clinical.medicationName.ifBlank { "Prescripción Memed" },
+                dosage = clinical.dosage,
+                frequency = clinical.frequency,
+                instructions = clinical.instructions,
+                doctorName = doctorNameMap[row.doctorId],
+                doctorLicense = doctorLicenseMap[row.doctorId],
+                createdAt = row.createdAt,
+                countryCode = "BR",
+                duration = clinical.duration,
+                diagnosis = clinical.diagnosis,
+                notes = clinical.notes,
+                prescribedDate = clinical.prescribedDate ?: row.createdAt,
+                items = clinical.items,
+            )
+        }
+
+        val mirroredMemedIds = rows.mapNotNull { row ->
+            (row.clinicalData as? JsonObject)?.memedString("memed_prescription_id", "vendor_id")
+        }.toSet()
+        (normalized + memed.filterNot { it.id.removePrefix("memed:") in mirroredMemedIds })
+            .distinctBy { it.id }
+            .sortedByDescending { runCatching { Instant.parse(it.createdAt) }.getOrNull() ?: Instant.EPOCH }
     }.onFailure {
         SecureLog.error("[Prescriptions] Failed fetching prescriptions", it)
     }
@@ -887,6 +931,21 @@ class PrescriptionRepositoryImpl @Inject constructor(
 
     @Serializable
     private data class RecordIdDto(val id: String)
+
+    @Serializable
+    private data class MemedPrescriptionRowDto(
+        val id: String,
+        @SerialName("doctor_id") val doctorId: String,
+        @SerialName("patient_id") val patientId: String,
+        @SerialName("memed_id") val memedId: String,
+        val status: String = "verified_at_provider",
+        @SerialName("provider_data") val providerData: JsonElement? = null,
+        @SerialName("digital_link_data") val digitalLinkData: JsonElement? = null,
+        @SerialName("created_at") val createdAt: String,
+    )
+
+    private fun JsonObject.memedString(vararg keys: String): String? =
+        keys.firstNotNullOfOrNull { key -> this[key]?.jsonPrimitive?.contentOrNull?.takeIf(String::isNotBlank) }
 
     @Serializable
     private data class PrescriptionRowDto(
