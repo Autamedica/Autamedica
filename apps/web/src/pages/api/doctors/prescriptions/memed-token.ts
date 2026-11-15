@@ -33,6 +33,16 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
 
   try {
     const admin = createAstroAdminClient(locals?.runtime?.env);
+    const { data: clinicalScope, error: clinicalScopeError } = await admin
+      .from('platform_operational_domains')
+      .select('clinical_status')
+      .eq('scope_key', 'BR')
+      .maybeSingle();
+    if (clinicalScopeError) return internalError('brazil_clinical_status_unavailable');
+    if (clinicalScope?.clinical_status !== 'ready') {
+      return forbidden('brazil_clinical_issuance_pending');
+    }
+
     const { data: doctor, error: doctorError } = await admin
       .from('doctors')
       .select('id, active, license_type, license_number, uf_brazil, cpf')
