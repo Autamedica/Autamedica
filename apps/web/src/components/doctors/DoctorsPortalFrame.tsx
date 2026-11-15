@@ -639,9 +639,9 @@ export function DoctorsPortalFrame({
                         </span>
                       )}
                     </p>
-                    <p className="text-[11px] text-slate-500">
+                    <span className="mt-1 inline-flex max-w-full rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700">
                       {doctorSpecialty}
-                    </p>
+                    </span>
                   </div>
                 ) : null}
                 <button
