@@ -84,7 +84,7 @@ export function PharmacyExpressConsultation({
   const [requestId, setRequestId] = useState<string | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [callRoomId, setCallRoomId] = useState<string | null>(null)
-  const [countryPaymentApproved, setBrazilPaymentApproved] = useState(false)
+  const [countryPaymentApproved, setCountryPaymentApproved] = useState(false)
   const [onlineDoctorCount, setOnlineDoctorCount] = useState<number | null>(null)
 
   useEffect(() => {
@@ -347,7 +347,7 @@ export function PharmacyExpressConsultation({
             currency={currentPricing.currency}
             amountMinor={currentPricing.consultation_price_minor}
             countryCode={formData.careCountry as 'AR' | 'BR'}
-            onStatusChange={(status) => setBrazilPaymentApproved(status === 'approved')}
+            onStatusChange={(status) => setCountryPaymentApproved(status === 'approved')}
           />
         )}
       </div>
@@ -510,7 +510,7 @@ export function PharmacyExpressConsultation({
               </>
             )}
             <div className="mb-4 rounded-xl bg-slate-50 px-3 py-2.5 text-left text-xs"><p className="font-semibold text-slate-900">{copy.patient}: {formData.name}</p>{reasonSummary && <p className="mt-1 text-slate-600">{copy.reasonLabel}: {reasonSummary}</p>}</div>
-            {requiresCountryPayment && requestId && accessToken && currentPricing && <div className="mb-4 w-full"><JordanPaymentWidget dispatchId={requestId} guestToken={accessToken} currency={currentPricing.currency} amountMinor={currentPricing.consultation_price_minor} countryCode={formData.careCountry as 'AR' | 'BR'} onStatusChange={(status) => setBrazilPaymentApproved(status === 'approved')} /></div>}
+            {requiresCountryPayment && requestId && accessToken && currentPricing && <div className="mb-4 w-full"><JordanPaymentWidget dispatchId={requestId} guestToken={accessToken} currency={currentPricing.currency} amountMinor={currentPricing.consultation_price_minor} countryCode={formData.careCountry as 'AR' | 'BR'} onStatusChange={(status) => setCountryPaymentApproved(status === 'approved')} /></div>}
             <div className="flex items-center justify-center">
               <button type="button" onClick={handleCancelRequest} className="min-h-11 w-full rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100">{copy.cancel}</button>
             </div>
