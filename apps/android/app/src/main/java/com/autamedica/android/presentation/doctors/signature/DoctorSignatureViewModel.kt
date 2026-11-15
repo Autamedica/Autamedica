@@ -70,10 +70,13 @@ class DoctorSignatureViewModel @Inject constructor(
                     if (cpfOnRecord.isNotBlank() && cpfOnRecord != digits(normalizedDocument)) {
                         throw IllegalArgumentException("brazil_cpf_mismatch")
                     }
-                    val crm = digits(normalizedLicense)
+                    val enteredCrm = parseBrazilianCrm(normalizedLicense)
+                        ?: throw IllegalArgumentException("cfm_license_invalid")
                     val doctorCrm = digits(doctor.licenseNumber)
                     val uf = doctor.ufBrazil?.uppercase().orEmpty()
-                    if (doctor.licenseType != "CRM" || crm.length < 3 || crm != doctorCrm ||
+                    if (doctor.licenseType != "CRM" ||
+                        enteredCrm.first != doctorCrm ||
+                        enteredCrm.second != uf ||
                         !uf.matches(Regex("^[A-Z]{2}$"))) {
                         throw IllegalArgumentException("cfm_license_invalid")
                     }
@@ -151,6 +154,24 @@ class DoctorSignatureViewModel @Inject constructor(
                 ) }
             }
         }
+    }
+
+    private fun parseBrazilianCrm(value: String): Pair<String, String>? {
+        val input = value.trim().uppercase()
+        val patterns = listOf(
+            Regex("^CRM\\s*[-/]\\s*([A-Z]{2})\\s*(\\d{3,})$"),
+            Regex("^CRM\\s*(\\d{3,})\\s*[-/]\\s*([A-Z]{2})$"),
+            Regex("^(\\d{3,})\\s*[-/]\\s*([A-Z]{2})$"),
+            Regex("^([A-Z]{2})\\s*[-/]?\\s*(\\d{3,})$"),
+        )
+        patterns.forEachIndexed { index, pattern ->
+            val match = pattern.matchEntire(input) ?: return@forEachIndexed
+            return when (index) {
+                0, 3 -> match.groupValues[2] to match.groupValues[1]
+                else -> match.groupValues[1] to match.groupValues[2]
+            }
+        }
+        return null
     }
 
     private fun digits(value: String?): String = value.orEmpty().filter(Char::isDigit)
