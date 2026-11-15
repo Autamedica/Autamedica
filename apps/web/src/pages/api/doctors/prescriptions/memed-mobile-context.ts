@@ -49,8 +49,8 @@ export const GET: APIRoute = async ({request, locals}) => {
       .is('deleted_at', null)
       .eq('id', appointmentId).eq('doctor_id', doctor.id).maybeSingle();
     const start = appt?.start_time ? Date.parse(appt.start_time) : NaN;
-    if (apptError || !appt || appt.type !== 'telemedicine' ||
-      !['in_progress', 'completed'].includes(appt.status) ||
+    if (apptError || appt?.type !== 'telemedicine' ||
+      !['in_progress', 'completed'].includes(appt?.status ?? '') ||
       !Number.isFinite(start) || start < Date.now() - 24 * 60 * 60_000 || start > Date.now() + 5 * 60_000) {
       return forbidden('clinical_encounter_required');
     }
