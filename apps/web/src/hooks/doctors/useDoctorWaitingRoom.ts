@@ -62,7 +62,7 @@ export function getWaitingCopy(
     case 'waiting':
     default:
       return isPortuguese
-        ? { title: `Aguardando ${name}`, description: defaultMessage ?? `A videochamada está pronta. Entraremos assim que ${name} aceitar.` }
+        ? { title: `Aguardando ${name}`, description: `A videochamada está pronta. Entraremos assim que ${name} aceitar.` }
         : { title: `Esperando a ${name}`, description: defaultMessage ?? `La videollamada está lista. Entraremos apenas ${name} acepte.` }
   }
 }
