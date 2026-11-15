@@ -46,14 +46,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return badRequest('lgpd_consent_required')
     }
 
-    const pricingAdmin = createAstroAdminClient(locals.runtime?.env) as any
-    const { data: countryPricing, error: pricingError } = await pricingAdmin
-      .from('pharmacy_dispatch_pricing_configs')
-      .select('country_code,currency,consultation_price_minor,doctor_fee_minor,partner_commission_minor,require_payment_before_dispatch')
-      .eq('country_code', careCountry)
-      .maybeSingle()
-    if (pricingError || !countryPricing) return serviceUnavailable('pharmacy_dispatch_pricing_not_configured')
-
     // Do not send a referred Jordan patient into a clinical queue without
     // a checkout that's explicitly live and secured server-side.
     const operationalSwitches = await getOperationalPaymentSwitches(createAstroAdminClient(locals.runtime?.env)).catch(() => null)
@@ -62,10 +54,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (referralCode === 'JORDAN' && !operationalSwitches.jordan_qr_payments_enabled) {
       return serviceUnavailable('jordan_checkout_not_ready')
     }
-    if (countryPricing.require_payment_before_dispatch && !hasSecureGuestPaymentSecret(locals.runtime?.env)) {
-      return serviceUnavailable('pharmacy_checkout_guest_security_not_configured')
-    }
-
     const rawDocument = careCountry === 'BR' ? (patientCpf ?? patientDni) : patientDni
     if (typeof rawDocument !== 'string' || !rawDocument.trim()) {
       return badRequest('Número de documento requerido')
@@ -220,6 +208,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     const cloudflareRoomId = `cf-room-${selectedTier}-${crypto.randomUUID()}`
+
+    const pricingAdmin = createAstroAdminClient(locals.runtime?.env) as any
+    const { data: countryPricing, error: pricingError } = await pricingAdmin
+      .from('pharmacy_dispatch_pricing_configs')
+      .select('country_code,currency,consultation_price_minor,doctor_fee_minor,partner_commission_minor,require_payment_before_dispatch')
+      .eq('country_code', careCountry)
+      .maybeSingle()
+    if (pricingError || !countryPricing) return serviceUnavailable('pharmacy_dispatch_pricing_not_configured')
+
+    if (countryPricing.require_payment_before_dispatch && !hasSecureGuestPaymentSecret(locals.runtime?.env)) {
+      return serviceUnavailable('pharmacy_checkout_guest_security_not_configured')
+    }
 
      const secret = resolveGuestSecret(locals.runtime?.env)
     if (!secret) {
