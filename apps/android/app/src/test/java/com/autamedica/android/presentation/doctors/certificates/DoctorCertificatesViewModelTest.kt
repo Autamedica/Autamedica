@@ -212,6 +212,18 @@ class DoctorCertificatesViewModelTest {
     }
 
     @Test
+    fun optionalCid10SurvivesDiagnosisEditsAndIsIncludedInDraftRequest() = runTest {
+        viewModel.initCreateCertificate("pat-1")
+        viewModel.onDiagnosisChange("Diagnóstico inicial")
+        viewModel.onDiagnosisCodeChange("J20.9")
+        viewModel.onDiagnosisChange("Diagnóstico actualizado")
+        viewModel.onSubmitCertificate()
+
+        assertThat(fakeCertRepo.lastRequest?.diagnosis).isEqualTo("Diagnóstico actualizado")
+        assertThat(fakeCertRepo.lastRequest?.cid10Code).isEqualTo("J20.9")
+    }
+
+    @Test
     fun submitFailsWhenNoPatientSelected() = runTest {
         viewModel.initCreateCertificate("")
         viewModel.onDiagnosisChange("Diagnóstico válido")
