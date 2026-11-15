@@ -20,6 +20,7 @@ export function MemedPrescriptionWidget({
   const [patientLabel, setPatientLabel] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [fallbackAvailable, setFallbackAvailable] = useState(false);
   const [issuedId, setIssuedId] = useState<string | null>(null);
   const [identityRequired, setIdentityRequired] = useState(false);
   const [doctorCpfInput, setDoctorCpfInput] = useState('');
@@ -36,6 +37,7 @@ export function MemedPrescriptionWidget({
     setPatientLabel(null);
     setIssuedId(null);
     setErrorMessage(null);
+    setFallbackAvailable(false);
     const onIssued = (id: string) => {
       if (cancelled) return;
       void onSavedRef.current(id).then(() => {
@@ -94,6 +96,7 @@ export function MemedPrescriptionWidget({
       } catch (error) {
         if (!cancelled) {
           setLoading(false);
+          setFallbackAvailable(true);
           setErrorMessage(error instanceof Error ? error.message : 'Erro ao iniciar Memed.');
         }
       }
@@ -141,18 +144,24 @@ export function MemedPrescriptionWidget({
                 className="mt-1 block w-full rounded border p-2" />
             </label>
             <p className="text-xs text-slate-600">A data de nascimento será transmitida à Memed apenas para o cadastro, sem armazenamento na AutaMedica.</p>
-            <button type="submit" className="rounded bg-blue-700 px-4 py-2 text-sm font-medium text-white">
-              Validar cadastro Memed
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button type="submit" className="rounded bg-blue-700 px-4 py-2 text-sm font-medium text-white">
+                Validar cadastro Memed
+              </button>
+              <button type="button" onClick={onFallbackToNativePrescription}
+                className="rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800">
+                Continuar con receta nativa Autamedica
+              </button>
+            </div>
           </form>
         )}
         {loading && <div className="flex items-center gap-2 p-5 text-slate-700"><Loader2 className="h-5 w-5 animate-spin" />Carregando Memed...</div>}
         {errorMessage && <div role="alert" className="space-y-3 border-b border-amber-200 bg-amber-50 p-5 text-amber-950">
           <div className="flex items-start gap-2 text-sm"><AlertCircle className="h-5 w-5 shrink-0" />{errorMessage}</div>
-          <button type="button" onClick={onFallbackToNativePrescription}
+          {fallbackAvailable && <button type="button" onClick={onFallbackToNativePrescription}
             className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
             Continuar con receta nativa Autamedica
-          </button>
+          </button>}
         </div>}
         {issuedId && <div role="status" className="p-3 text-sm text-amber-800">
           Prescrição confirmada na API Memed e registrada como pendente (ID {issuedId}). Confirme a assinatura e a entrega ao paciente antes de concluir o atendimento.
