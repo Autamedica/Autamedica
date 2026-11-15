@@ -32,7 +32,8 @@ import {
   Clock,
   Activity,
   Sparkles,
-  Check
+  Check,
+  Home
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -397,6 +398,11 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
             <span className="h-1.5 w-1.5 rounded-full bg-[#0EA5E9]" />
             {isBrazilianDoctor ? "Online" : "En línea"}
           </span>
+          <a href="/doctors/dashboard" aria-label={isBrazilianDoctor ? "Início do portal médico" : "Inicio del portal médico"}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-sky-50 px-3 py-2 text-xs font-bold text-[#0284C7] ring-1 ring-sky-200 transition hover:bg-sky-100">
+            <Home className="h-4 w-4" />
+            {isBrazilianDoctor ? "Início" : "Inicio"}
+          </a>
           <a href="/doctors/agenda" className="hidden shrink-0 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-[#0F2537] sm:inline-flex">
             {isBrazilianDoctor ? "Agenda" : "Agenda"}
           </a>
@@ -482,16 +488,30 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
         </div>
       </div>
       <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0284C7]">{isBrazilianDoctor ? 'FERRAMENTAS CLÍNICAS' : 'HERRAMIENTAS CLÍNICAS'}</p>
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <a href="/doctors/prescriptions" className="flex items-center gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm transition hover:border-sky-200 hover:shadow-md">
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-sky-50 text-sky-700"><FileText className="h-5 w-5" /></span>
-          <span><span className="block text-sm font-semibold text-[#0F2537]">{isBrazilianDoctor ? 'Receita digital' : 'Receta digital'}</span><span className="block text-xs text-slate-500">Memed · Brasil / Farmalink · Argentina</span></span>
-          <ArrowUpRight className="ml-auto h-4 w-4 text-slate-400" />
+      <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <a href="/doctors/prescriptions" aria-label={isBrazilianDoctor ? "Abrir receitas digitais" : "Abrir recetas digitales"}
+          className="group flex min-h-[124px] items-center gap-4 rounded-2xl border-2 border-sky-200 bg-gradient-to-br from-sky-50 to-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[#0EA5E9] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9] sm:p-5">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#0EA5E9] text-white shadow-md shadow-sky-200 transition group-hover:bg-[#0284C7]">
+            <FileText className="h-7 w-7" strokeWidth={2} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-[#0284C7]">{isBrazilianDoctor ? "Prescrição" : "Prescripción"}</span>
+            <span className="mt-1 block text-lg font-bold leading-tight text-[#0F2537]">{isBrazilianDoctor ? "Receitas" : "Recetas"}</span>
+            <span className="mt-1 block text-xs font-medium text-slate-600">{isBrazilianDoctor ? "Memed · Receita digital" : "Farmalink · Receta digital"}</span>
+            <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#0284C7]">{isBrazilianDoctor ? "Emitir receita" : "Emitir receta"} <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></span>
+          </span>
         </a>
-        <a href="/doctors/certificates" className="flex items-center gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm transition hover:border-sky-200 hover:shadow-md">
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-sky-50 text-sky-700"><CheckCircle2 className="h-5 w-5" /></span>
-          <span><span className="block text-sm font-semibold text-[#0F2537]">{isBrazilianDoctor ? 'Atestado' : 'Certificado médico'}</span><span className="block text-xs text-slate-500">{isBrazilianDoctor ? 'Emissão clínica por jurisdição' : 'Emisión clínica por jurisdicción'}</span></span>
-          <ArrowUpRight className="ml-auto h-4 w-4 text-slate-400" />
+        <a href="/doctors/certificates" aria-label={isBrazilianDoctor ? "Abrir atestados médicos" : "Abrir certificados médicos"}
+          className="group flex min-h-[124px] items-center gap-4 rounded-2xl border-2 border-sky-200 bg-gradient-to-br from-sky-50 to-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[#0EA5E9] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9] sm:p-5">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#0EA5E9] text-white shadow-md shadow-sky-200 transition group-hover:bg-[#0284C7]">
+            <CheckCircle2 className="h-7 w-7" strokeWidth={2} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-[#0284C7]">{isBrazilianDoctor ? "Documento clínico" : "Documento clínico"}</span>
+            <span className="mt-1 block text-lg font-bold leading-tight text-[#0F2537]">{isBrazilianDoctor ? "Atestados" : "Certificados médicos"}</span>
+            <span className="mt-1 block text-xs font-medium text-slate-600">{isBrazilianDoctor ? "Emissão de atestado médico" : "Emisión de certificados médicos"}</span>
+            <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#0284C7]">{isBrazilianDoctor ? "Emitir atestado" : "Emitir certificado"} <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></span>
+          </span>
         </a>
       </div>
       {/* ── Stat cards / Rich Dashboard Widgets ── */}
