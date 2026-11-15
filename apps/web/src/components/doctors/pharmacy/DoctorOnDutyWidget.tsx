@@ -97,7 +97,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
                 </span>
               ) : (
                 <span className="px-2 py-0.5 rounded-full bg-am-surface-700/60 text-am-surface-400 text-[10px] font-medium">
-                  {careCountry === 'BR' ? 'INATIVO' : 'INACTIVO'}
+                  {careCountry === 'BR' ? 'INATIVO' : 'INACTIVA'}
                 </span>
               )}
             </div>
@@ -155,7 +155,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-slate-100">
-                RADAR AO VIVO
+                {careCountry === 'BR' ? 'RADAR AO VIVO' : 'RADAR EN VIVO'}
               </span>
               <span
                 className={`px-2 py-0.5 rounded-full text-xs font-bold ${
@@ -204,7 +204,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
                           {item.patientName}
                         </span>
                         <span className="text-[11px] text-am-surface-400">
-                          ({careCountry === 'BR' ? 'CPF' : 'DNI'} {item.patientDni})
+                          ({careCountry === 'BR' ? 'CPF' : 'DNI'} •••• {item.patientDni.slice(-4)})
                         </span>
                         <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-am-surface-800 text-am-surface-300 border border-am-surface-700">
                           <Building2 className="w-3 h-3 text-am-primary-400" />
