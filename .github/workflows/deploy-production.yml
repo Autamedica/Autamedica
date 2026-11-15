@@ -123,12 +123,37 @@ jobs:
             supabase functions deploy "$fn"
           done
 
+  configure-memed-mobile:
+    name: Configure Memed Mobile Edge secrets
+    runs-on: ubuntu-latest
+    needs: [validate, deploy-db]
+    if: always() && !cancelled() && needs.validate.result == 'success' && (needs.deploy-db.result == 'success' || needs.deploy-db.result == 'skipped')
+    steps:
+      - uses: supabase/setup-cli@b60b5899c73b63a2d2d651b1e90db8d4c9392f51 # v1.6.0
+        with:
+          version: latest
+      - name: Configure compatibility and mobile pilot secrets
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID || 'qxjjrpksmwwrmubhvjew' }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SUPABASE_ACCESS_TOKEN}" ]]; then
+            echo "::notice::Supabase access token unavailable; deployed preflight retains legacy MEMED_RX_ENABLED/MEMED_PILOT_DOCTOR_ID fallback."
+            exit 0
+          fi
+          test "${SUPABASE_PROJECT_ID}" = "qxjjrpksmwwrmubhvjew"
+          supabase secrets set --project-ref "${SUPABASE_PROJECT_ID}" \
+            MEMED_MOBILE_ENABLED=true \
+            MEMED_MOBILE_PILOT_DOCTOR_ID=080fb7ae-92b4-44d4-8941-a6db65004b9f
+          echo "Memed mobile Edge Function secrets configured."
+
   build-and-deploy:
     name: Build & Deploy
     runs-on: ubuntu-latest
-    needs: [validate, deploy-db]
+    needs: [validate, deploy-db, configure-memed-mobile]
     timeout-minutes: 20
-    if: always() && !cancelled() && needs.validate.result == 'success' && (needs.deploy-db.result == 'success' || needs.deploy-db.result == 'skipped')
+    if: always() && !cancelled() && needs.validate.result == 'success' && (needs.deploy-db.result == 'success' || needs.deploy-db.result == 'skipped') && (needs.configure-memed-mobile.result == 'success' || needs.configure-memed-mobile.result == 'skipped')
     outputs:
       prev_deployments: ${{ steps.snapshot.outputs.deployments }}
     steps:
