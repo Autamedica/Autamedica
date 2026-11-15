@@ -14,9 +14,9 @@ BEGIN
   SELECT lower(pg_get_functiondef('app_private.dispatch_waiting_patient_on_doctor_presence()'::regprocedure)) INTO v_trigger;
   SELECT lower(pg_get_functiondef('public.set_doctor_duty_status(uuid,boolean,public.dispatch_tier_category[])'::regprocedure)) INTO v_activation;
 
-  IF position('brazil_payment_required' IN v_matcher)=0
+  IF position('country_payment_required' IN v_matcher)=0
      OR position('match_dispatch_doctors_without_switch' IN v_matcher)=0 THEN
-    RAISE EXCEPTION 'Public matcher must enforce paid BR checkout before delegating';
+    RAISE EXCEPTION 'Public matcher must enforce configured country payment before delegating';
   END IF;
   IF position('fcm_token' IN v_private_matcher)=0
      OR position('last_heartbeat_at' IN v_private_matcher)=0
