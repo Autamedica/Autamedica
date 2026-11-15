@@ -917,3 +917,14 @@ class PharmacyIntakeViewModelTest {
         assertThat(vm.uiState.value.activeDoctors).isEmpty()
     }
 }
+
+    @Test
+    fun `configured ARS quote enables dispatch payment in Argentina`() {
+        val state = PharmacyIntakeUiState(
+            careCountry = "AR",
+            currency = "ARS",
+            priceMinor = 1_500_000,
+        )
+        assertThat(state.requiresDispatchPayment).isTrue()
+        assertThat(state.requiresBrazilianPayment).isTrue()
+    }

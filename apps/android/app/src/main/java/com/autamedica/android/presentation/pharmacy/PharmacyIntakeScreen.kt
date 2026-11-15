@@ -609,7 +609,7 @@ private fun PharmacyWaitingRoomView(
             .fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (uiState.requiresBrazilianPayment) {
+        if (uiState.requiresDispatchPayment) {
             Surface(
                 shape = RoundedCornerShape(18.dp),
                 color = AuSurface,

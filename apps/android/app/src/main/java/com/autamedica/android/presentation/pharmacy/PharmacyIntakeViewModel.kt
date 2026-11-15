@@ -64,8 +64,14 @@ data class PharmacyIntakeUiState(
     val onlineDoctorsInMarket: Int? = null,
 ) {
     /** The signed backend resolves partner provenance; recovery must not bypass payment. */
+    val requiresDispatchPayment: Boolean
+        get() = careCountry in setOf("AR", "BR") &&
+            ((priceMinor != null && priceMinor > 0 && currency in setOf("ARS", "BRL")) ||
+                referralCode == "JORDAN" || activeReferralPartnerId != null)
+
+    // Backward-compatible alias for existing call sites and tests.
     val requiresBrazilianPayment: Boolean
-        get() = careCountry == "BR" && (referralCode == "JORDAN" || activeReferralPartnerId != null)
+        get() = requiresDispatchPayment
 
     val effectiveReason: String
         get() = when {
@@ -409,7 +415,7 @@ class PharmacyIntakeViewModel @Inject constructor(
     fun beginBrazilianCheckout() {
         val state = _uiState.value
         val requestId = state.activeRequestId ?: return
-        if (!state.requiresBrazilianPayment || state.isPaymentLoading ||
+        if (!state.requiresDispatchPayment || state.isPaymentLoading ||
             state.status !in setOf(PharmacyConsultationStatus.PENDING, PharmacyConsultationStatus.ASSIGNED, PharmacyConsultationStatus.IN_CALL)) return
         viewModelScope.launch {
             _uiState.update { it.copy(isPaymentLoading = true, paymentError = null) }
@@ -495,7 +501,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                 while (currentCoroutineContext().isActive) {
                     val state = _uiState.value
                     if (state.activeRequestId != requestId) break
-                    val eligible = state.requiresBrazilianPayment && state.status in setOf(
+                    val eligible = state.requiresDispatchPayment && state.status in setOf(
                         PharmacyConsultationStatus.PENDING,
                         PharmacyConsultationStatus.ASSIGNED,
                         PharmacyConsultationStatus.IN_CALL,
