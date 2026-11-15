@@ -337,7 +337,7 @@ export async function handler(req: Request): Promise<Response> {
           })
         }
         if (['AR', 'BR'].includes(mediaDispatch.care_country) && !isPaidPharmacyDispatch) {
-          return new Response(JSON.stringify({ error: 'brazil_pharmacy_payment_required' }), {
+          return new Response(JSON.stringify({ error: 'pharmacy_payment_required' }), {
             status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           })
         }
