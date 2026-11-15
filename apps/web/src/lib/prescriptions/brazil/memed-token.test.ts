@@ -56,11 +56,17 @@ describe('Memed token boundary', () => {
     expect((await POST(context({}, 'false'))).status).toBe(403);
     expect(mocks.token).not.toHaveBeenCalled();
   });
-  it('blocks Memed token issuance while Brazil clinical governance is pending', async () => {
-    rows.platform_operational_domains = { clinical_status: 'pending_issuance' };
+  it.each(['ready', 'pending_issuance', null])('allows Memed initialization when Brazil clinical status is %s', async (clinical_status) => {
+    rows.platform_operational_domains = { clinical_status };
+    const response = await POST(context({ patientId: 'patient' }));
+    expect(response.status).toBe(200);
+    expect(mocks.token).toHaveBeenCalledTimes(1);
+  });
+  it.each(['disabled', 'suspended'])('blocks Memed initialization when Brazil clinical status is %s', async (clinical_status) => {
+    rows.platform_operational_domains = { clinical_status };
     const response = await POST(context());
     expect(response.status).toBe(403);
-    expect(await response.json()).toMatchObject({ error: { message: 'brazil_clinical_issuance_pending' } });
+    expect(await response.json()).toMatchObject({ error: { message: 'brazil_clinical_issuance_disabled' } });
     expect(mocks.token).not.toHaveBeenCalled();
   });
   it('rejects cross-origin mutations', async () => {
