@@ -711,11 +711,11 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                       label={isBrazilianDispatch ? 'Receita Memed' : 'Receta Memed'} onClick={() => setShowMemedWidget(true)} />
                   ) : (
                     <CallAuxiliaryButton icon={<Pill className="h-5 w-5 md:h-5.5 md:w-5.5" />}
-                      label={isBrazilianDispatch ? 'Receita' : 'Receta'} onClick={() => setShowPrescriptionModal(true)} />
+                      label={isBrazilianDoctor ? 'Receita' : 'Receta'} onClick={() => setShowPrescriptionModal(true)} />
                   )}
                   {!isBrazilianDispatch && (
                     <CallAuxiliaryButton icon={<FileText className="h-5 w-5 md:h-5.5 md:w-5.5" />}
-                      label={isBrazilianDispatch ? 'Exame' : 'Estudio'} onClick={() => setShowStudyOrderModal(true)} />
+                      label={isBrazilianDoctor ? 'Exame' : 'Estudio'} onClick={() => setShowStudyOrderModal(true)} />
                   )}
                 </>
               ) : null
@@ -725,7 +725,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
 
         {/* Transcription active indicator — minimal, non-intrusive */}
         {!showDoctorWaitingRoom && transcriptionState.isTranscribing && (
-          <div className="absolute top-3 left-3 z-20 flex items-center gap-2 bg-[#0D1F2D] border border-red-100 rounded-full px-3 py-1.5 shadow-sm" title="Transcripción activa">
+          <div className="absolute top-3 left-3 z-20 flex items-center gap-2 bg-[#0D1F2D] border border-red-100 rounded-full px-3 py-1.5 shadow-sm" title={isBrazilianDoctor ? "Transcrição ativa" : "Transcripción activa"}>
             <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
             <span className="text-[10px] font-bold text-red-600 select-none">REC</span>
           </div>
@@ -810,7 +810,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
           updatePrescription={async (id, updates) => {
             await prescriptionService.update(id, {} as Prescription, updates)
           }}
-          submitLabel="Emitir receta"
+          submitLabel={isBrazilianDoctor ? "Emitir receita" : "Emitir receta"}
         />
       )}
 
@@ -836,7 +836,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
           updateMedicalOrder={async (id, updates) => {
             await medicalOrderService.update(id, {} as MedicalOrder, updates)
           }}
-          submitLabel="Solicitar estudio"
+          submitLabel={isBrazilianDoctor ? "Solicitar exame" : "Solicitar estudio"}
         />
       )}
     </div>
