@@ -417,7 +417,7 @@ fun AppointmentsScreen(
                                             modifier = Modifier.size(22.dp),
                                         )
                                         Text(
-                                            text = errorMsg,
+                                            text = localizedAppointmentMessage(errorMsg),
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = AuDanger,
                                             fontWeight = FontWeight.Medium,
@@ -2221,3 +2221,17 @@ private fun parseLocalDate(value: String): LocalDate? {
     return parseDateTime(value)?.toLocalDate()
 }
 
+
+
+@Composable
+private fun localizedAppointmentMessage(message: String): String = when (message) {
+    "appointments_error_country_save" -> stringResource(R.string.appointments_error_country_save)
+    "appointments_error_cancel" -> stringResource(R.string.appointments_error_cancel)
+    "appointments_error_slot_required" -> stringResource(R.string.appointments_error_slot_required)
+    "appointments_error_reschedule" -> stringResource(R.string.appointments_error_reschedule)
+    "appointments_error_doctor_required" -> stringResource(R.string.appointments_error_doctor_required)
+    "appointments_error_booking" -> stringResource(R.string.appointments_error_booking)
+    "appointments_error_unexpected" -> stringResource(R.string.appointments_error_unexpected)
+    "appointments_error_country_lookup" -> stringResource(R.string.appointments_error_country_lookup)
+    else -> message
+}

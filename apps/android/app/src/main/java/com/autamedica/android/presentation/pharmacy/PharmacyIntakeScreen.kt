@@ -1062,6 +1062,16 @@ private fun CaseDetailsCard(
 
 @Composable
 private fun localizedPharmacyMessage(message: String): String = when (message) {
+    "pharmacy_error_patient_name" -> stringResource(R.string.pharmacy_flow_error_name)
+    "pharmacy_error_country" -> stringResource(R.string.pharmacy_flow_error_country)
+    "pharmacy_error_cpf_checksum" -> stringResource(R.string.pharmacy_error_cpf_checksum)
+    "pharmacy_error_lgpd_required" -> stringResource(R.string.pharmacy_error_lgpd_required)
+    "pharmacy_error_dni" -> stringResource(R.string.pharmacy_flow_error_dni)
+    "pharmacy_error_phone" -> stringResource(R.string.pharmacy_flow_error_phone)
+    "pharmacy_error_reason" -> stringResource(R.string.pharmacy_flow_error_reason)
+    "pharmacy_error_complete" -> stringResource(R.string.pharmacy_flow_error_complete)
+    "pharmacy_error_lgpd_login" -> stringResource(R.string.pharmacy_error_lgpd_login)
+    "pharmacy_error_lgpd_persist" -> stringResource(R.string.pharmacy_error_lgpd_persist)
     "Ingresá el nombre completo del paciente" -> stringResource(R.string.pharmacy_flow_error_name)
     "Seleccioná Argentina o Brasil" -> stringResource(R.string.pharmacy_flow_error_country)
     "Ingresá un CPF de 11 dígitos" -> stringResource(R.string.pharmacy_flow_error_cpf)

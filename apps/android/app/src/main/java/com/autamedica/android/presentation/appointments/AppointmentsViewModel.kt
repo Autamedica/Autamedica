@@ -100,7 +100,7 @@ class AppointmentsViewModel @Inject constructor(
                 }
                 .onFailure { error ->
                     _uiState.update { it.copy(isSavingCareCountry = false,
-                        bookingErrorMessage = UiErrorMapper.map(error, "No se pudo guardar el país / Não foi possível salvar o país")) }
+                        bookingErrorMessage = UiErrorMapper.map(error, "appointments_error_country_save")) }
                 }
         }
     }
@@ -129,7 +129,7 @@ class AppointmentsViewModel @Inject constructor(
                 .onFailure { err ->
                     SecureLog.error("[AppointmentsVM] Failed canceling appointment", err)
                     _uiState.update {
-                        it.copy(bookingErrorMessage = UiErrorMapper.map(err, "No se pudo cancelar el turno. Reintentá."))
+                        it.copy(bookingErrorMessage = UiErrorMapper.map(err, "appointments_error_cancel"))
                     }
                 }
         }
@@ -141,7 +141,7 @@ class AppointmentsViewModel @Inject constructor(
         newSlot: String,
     ) {
         if (newSlot.isBlank()) {
-            _uiState.update { it.copy(bookingErrorMessage = "Seleccioná un horario disponible.") }
+            _uiState.update { it.copy(bookingErrorMessage = "appointments_error_slot_required") }
             return
         }
         viewModelScope.launch {
@@ -167,7 +167,7 @@ class AppointmentsViewModel @Inject constructor(
                 .onFailure { err ->
                     SecureLog.error("[AppointmentsVM] Failed rescheduling appointment", err)
                     _uiState.update {
-                        it.copy(bookingErrorMessage = UiErrorMapper.map(err, "No se pudo reprogramar el turno. Reintentá."))
+                        it.copy(bookingErrorMessage = UiErrorMapper.map(err, "appointments_error_reschedule"))
                     }
                 }
         }
@@ -292,11 +292,11 @@ class AppointmentsViewModel @Inject constructor(
     fun confirmQuickBooking() {
         val state = _uiState.value
         val doctor = state.selectedDoctor ?: run {
-            _uiState.update { it.copy(bookingErrorMessage = "Seleccioná un profesional médico para tu consulta.") }
+            _uiState.update { it.copy(bookingErrorMessage = "appointments_error_doctor_required") }
             return
         }
         val slot = state.selectedSlot ?: run {
-            _uiState.update { it.copy(bookingErrorMessage = "Seleccioná un horario disponible.") }
+            _uiState.update { it.copy(bookingErrorMessage = "appointments_error_slot_required") }
             return
         }
 
@@ -343,7 +343,7 @@ class AppointmentsViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isBooking = false,
-                            bookingErrorMessage = UiErrorMapper.map(err, "No se pudo confirmar el turno. Reintentá."),
+                            bookingErrorMessage = UiErrorMapper.map(err, "appointments_error_booking"),
                         )
                     }
                 }
@@ -352,7 +352,7 @@ class AppointmentsViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isBooking = false,
-                        bookingErrorMessage = "Ocurrió un error inesperado al agendar.",
+                        bookingErrorMessage = "appointments_error_unexpected",
                     )
                 }
             }
@@ -389,7 +389,7 @@ class AppointmentsViewModel @Inject constructor(
                             _uiState.update { it.copy(careCountry = country, needsCareCountry = country != "AR" && country != "BR") }
                         }
                         .onFailure { error ->
-                            _uiState.update { it.copy(bookingErrorMessage = UiErrorMapper.map(error, "No se pudo consultar el país de atención")) }
+                            _uiState.update { it.copy(bookingErrorMessage = UiErrorMapper.map(error, "appointments_error_country_lookup")) }
                         }
                 }
             }

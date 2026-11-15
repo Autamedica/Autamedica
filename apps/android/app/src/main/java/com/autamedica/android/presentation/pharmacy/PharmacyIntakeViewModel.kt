@@ -312,16 +312,16 @@ class PharmacyIntakeViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     error = when {
-                        state.patientName.isBlank() -> "Ingresá el nombre completo del paciente"
-                        state.careCountry !in setOf("AR", "BR") -> "Seleccioná Argentina o Brasil"
+                        state.patientName.isBlank() -> "pharmacy_error_patient_name"
+                        state.careCountry !in setOf("AR", "BR") -> "pharmacy_error_country"
                         state.careCountry == "BR" && !isValidBrazilianCpf(state.patientDni) ->
-                            "Ingresá un CPF válido con dígitos verificadores correctos"
+                            "pharmacy_error_cpf_checksum"
                         state.careCountry == "BR" && !state.hasAcceptedLgpdConsent ->
-                            "Aceptá el consentimiento de tratamiento de datos para continuar"
-                        state.patientDni.count(Char::isDigit) !in 5..10 -> "Ingresá un DNI válido"
-                        state.patientPhone.length < 6 -> "Ingresá un teléfono de contacto válido"
-                        state.effectiveReason.isBlank() -> "Indicá el motivo de consulta o medicamento solicitado"
-                        else -> "Completá los datos obligatorios"
+                            "pharmacy_error_lgpd_required"
+                        state.patientDni.count(Char::isDigit) !in 5..10 -> "pharmacy_error_dni"
+                        state.patientPhone.length < 6 -> "pharmacy_error_phone"
+                        state.effectiveReason.isBlank() -> "pharmacy_error_reason"
+                        else -> "pharmacy_error_complete"
                     }
                 )
             }
@@ -333,7 +333,7 @@ class PharmacyIntakeViewModel @Inject constructor(
             try {
                 if (state.careCountry == "BR" && state.isAuthenticated) {
                     val userId = authRepository.getCurrentUser()?.id
-                        ?: throw IllegalStateException("Iniciá sesión para registrar el consentimiento LGPD")
+                        ?: throw IllegalStateException("pharmacy_error_lgpd_login")
                     val acceptedAt = Instant.now().toString()
                     supabaseClient.postgrest.from("patients").update(
                         buildJsonObject {
@@ -351,12 +351,12 @@ class PharmacyIntakeViewModel @Inject constructor(
                         }.decodeSingleOrNull<PharmacyLgpdConsentDto>()
                     check(consent?.lgpdConsent == true && !consent.lgpdConsentDate.isNullOrBlank() &&
                         consent.lgpdConsentVersion == "1.0") {
-                        "No se confirmó la persistencia del consentimiento LGPD"
+                        "pharmacy_error_lgpd_persist"
                     }
                 }
             } catch (consentError: Exception) {
                 SecureLog.error("[PharmacyIntakeVM] LGPD consent persistence failed", consentError)
-                _uiState.update { it.copy(isSubmitting = false, error = consentError.message) }
+                _uiState.update { it.copy(isSubmitting = false, error = "pharmacy_error_lgpd_persist") }
                 return@launch
             }
             pharmacyDispatchRepository.createPatientDispatchRequest(
