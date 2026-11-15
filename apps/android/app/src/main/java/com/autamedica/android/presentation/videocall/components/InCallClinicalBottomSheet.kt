@@ -367,7 +367,7 @@ fun InCallClinicalBottomSheet(
                             color = AuTextPrimary,
                         )
                         Text(
-                            text = "Registro enviado al chat de la consulta. No constituye constancia de firma digital ni de homologación del proveedor.",
+                            text = stringResource(R.string.in_call_chat_recorded),
                             style = MaterialTheme.typography.bodySmall,
                             color = AuTextSecondary,
                         )
