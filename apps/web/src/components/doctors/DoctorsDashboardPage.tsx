@@ -343,7 +343,13 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
   );
 
   const doctorName = getDoctorDisplayName(doctor, user);
-  const doctorCountry = (doctor as (NonNullable<typeof doctor> & { care_country?: string }) | null)?.care_country;
+  const doctorRecord = doctor as (NonNullable<typeof doctor> & { care_country?: string; license_type?: string | null; license_number?: string | null; uf_brazil?: string | null }) | null;
+  const doctorCountry = doctorRecord?.care_country;
+  const doctorCredential = doctorRecord?.license_number?.trim()
+    ? doctorRecord.license_type === 'CRM'
+      ? `CRM-${doctorRecord.uf_brazil || 'BR'} ${doctorRecord.license_number.trim()}`
+      : `${doctorRecord.license_type || 'Matrícula'} ${doctorRecord.license_number.trim()}`
+    : null;
   const isBrazilianDoctor = doctorCountry === 'BR';
   const pendingMandates = (stats?.pendingClarifications ?? 0) + (stats?.pendingTriageMandates ?? 0);
   const todayCount = stats?.todayCount ?? 0;
@@ -385,6 +391,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#0D9488]">Portal Médico</p>
             <p className="break-words text-sm font-semibold leading-snug text-[#0F2537]">{doctorName}</p>
+            {doctorCredential && <p className="mt-0.5 break-words text-[10px] font-medium text-slate-500">✓ {doctorCredential}</p>}
           </div>
           <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-700">
             <span className="h-1.5 w-1.5 rounded-full bg-[#10B981]" />
