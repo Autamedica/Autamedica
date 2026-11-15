@@ -235,15 +235,14 @@ export function DoctorsPortalFrame({
       .then(({ data, error }) => {
         if (!active) return;
         const verified = !error && Boolean(data?.some((license) =>
-          String(license.license_number ?? "").replace(/\\D/g, "") === String(doctorCredential.license_number ?? "").replace(/\\D/g, "")
+          String(license.license_number ?? "").replace(/\D/g, "") === String(doctorCredential.license_number ?? "").replace(/\D/g, "")
           && license.uf_brazil?.toUpperCase() === doctorCredential.uf_brazil?.toUpperCase()
           && Boolean(license.cfm_evidence_path?.trim())
           && (license.cfm_review_notes?.trim().length ?? 0) >= 10
           && Boolean(license.cfm_reviewed_by && license.cfm_reviewed_at && license.cfm_last_checked_at)
         ));
         setCfmCredentialVerified(verified);
-      })
-      .catch(() => { if (active) setCfmCredentialVerified(false); });
+      }, () => { if (active) setCfmCredentialVerified(false); });
     return () => { active = false; };
   }, [doctor?.id, doctorCredential?.care_country, doctorCredential?.license_number, doctorCredential?.uf_brazil]);
 
