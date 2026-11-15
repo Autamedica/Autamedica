@@ -50,6 +50,12 @@ type TableChain = {
   insert: ReturnType<typeof vi.fn>
 }
 
+function pricingRow(country: 'AR' | 'BR') {
+  return country === 'BR'
+    ? { country_code: 'BR', currency: 'BRL', consultation_price_minor: 7900, doctor_fee_minor: 4000, partner_commission_minor: 1000, require_payment_before_dispatch: true }
+    : { country_code: 'AR', currency: 'ARS', consultation_price_minor: 1500000, doctor_fee_minor: 800000, partner_commission_minor: 200000, require_payment_before_dispatch: true }
+}
+
 function buildTableChain(data: unknown, error: unknown = null): TableChain {
   const chain: TableChain = {
     then(resolve: (value: unknown) => void) {
@@ -145,6 +151,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     const dispatchTable = buildTableChain(dispatchRow)
     const recoveryTable = buildTableChain(null)
     supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_pricing_configs') return buildTableChain(pricingRow('BR'))
       if (table === 'commercial_referral_partners') return buildTableChain({ id: partnerId })
       if (table === 'pharmacy_dispatch_requests') return dispatchTable
       if (table === 'pharmacy_guest_dispatch_sessions') return recoveryTable
@@ -217,7 +224,8 @@ describe('API: /api/pharmacy/dispatch/request', () => {
       status: 'searching',
     }
     const table = buildTableChain(dispatch)
-    supabaseMock.from.mockReturnValue(table)
+    supabaseMock.from.mockImplementation((tableName: string) => tableName === 'pharmacy_dispatch_pricing_configs'
+      ? buildTableChain(pricingRow('BR')) : table)
 
     const response = await POST(makeContext({
       body: {
@@ -418,6 +426,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     }
     const dispatchTable = buildTableChain(row)
     supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_pricing_configs') return buildTableChain(pricingRow('BR'))
       if (table === 'commercial_referral_partners') return buildTableChain({ id: partnerId })
       if (table === 'pharmacy_dispatch_requests') return dispatchTable
       return buildTableChain(null)
@@ -456,20 +465,35 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     expect(supabaseMock.from).not.toHaveBeenCalled()
   })
 
-  it('rechaza Jordan Argentina y especialidades sin consumir guardia médica', async () => {
+  it('accepts Jordan general consultation in Argentina and rejects specialist tiers', async () => {
+    const partnerId = 'aaaaaaa1-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    const dispatch = buildTableChain({
+      id: 'dispatch-jordan-ar-demo', cloudflare_room_id: 'cf-room-jordan-ar',
+      patient_name: 'Paciente AR', status: 'searching',
+    })
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_pricing_configs') return buildTableChain(pricingRow('AR'))
+      if (table === 'commercial_referral_partners') return buildTableChain({ id: partnerId })
+      if (table === 'pharmacy_dispatch_requests') return dispatch
+      return buildTableChain(null)
+    })
     const ar = await POST(makeContext({
       body: {
-        careCountry: 'AR', patientDni: '38123456',
+        careCountry: 'AR', patientDni: '38123456', patientName: 'Paciente AR',
         patientPhone: '+549112345678', referralCode: 'JORDAN',
       },
       jordanEnabled: true,
     }))
-    expect(ar.status).toBe(400)
+    expect(ar.status).toBe(200)
+    expect(dispatch.insert).toHaveBeenCalledWith(expect.objectContaining({
+      care_country: 'AR', referral_partner_id: partnerId, patient_dni: '38123456',
+    }))
+    supabaseMock.from.mockClear()
     const specialist = await POST(makeContext({
       body: {
         careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909',
-        patientPhone: '+5551999998888', referralCode: 'JORDAN',
-        tier: 'cardiologia',
+        patientName: 'Paciente BR', patientPhone: '+5551999998888',
+        referralCode: 'JORDAN', tier: 'cardiologia',
       },
       jordanEnabled: true,
     }))
@@ -492,6 +516,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     const dispatchTable = buildTableChain(dispatchRow)
     const recoveryTable = buildTableChain(null)
     supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_pricing_configs') return buildTableChain(pricingRow('AR'))
       if (table === 'pharmacy_dispatch_requests') return dispatchTable
       if (table === 'pharmacy_guest_dispatch_sessions') return recoveryTable
       return buildTableChain(null)
@@ -536,7 +561,8 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     const dispatchTable = buildTableChain({
       id: 'dispatch-no-ref-demo', cloudflare_room_id: 'cf-room-demo', status: 'searching',
     })
-    supabaseMock.from.mockReturnValue(dispatchTable)
+    supabaseMock.from.mockImplementation((tableName: string) => tableName === 'pharmacy_dispatch_pricing_configs'
+      ? buildTableChain(pricingRow('AR')) : dispatchTable)
     const response = await POST(makeContext())
     expect(response.status).toBe(200)
     expect(dispatchTable.insert).toHaveBeenCalledWith(expect.objectContaining({ referral_partner_id: null }))
@@ -574,7 +600,8 @@ describe('API: /api/pharmacy/dispatch/request', () => {
 
   it('nunca devuelve detalles clínicos presentes en errores SQL', async () => {
     const table = buildTableChain(null, { code: '23514', message: 'PRIVATE CLINICAL DETAILS 123456789' })
-    supabaseMock.from.mockReturnValue(table)
+    supabaseMock.from.mockImplementation((tableName: string) => tableName === 'pharmacy_dispatch_pricing_configs'
+      ? buildTableChain(pricingRow('AR')) : table)
 
     const response = await POST(makeContext())
     expect(response.status).toBe(500)
