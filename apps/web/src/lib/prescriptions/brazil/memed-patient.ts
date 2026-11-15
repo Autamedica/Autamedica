@@ -23,8 +23,8 @@ export interface MemedPatient {
   idExterno: string;
   nome: string;
   cpf: string;
-  data_nascimento: string;
-  sexo: 'Masculino' | 'Feminino';
+  data_nascimento?: string;
+  sexo?: 'Masculino' | 'Feminino';
 }
 
 /** Patient identity is resolved exclusively on the server, before issuing a token. */
@@ -58,12 +58,18 @@ export async function resolveMemedPatient(
   const cpf = String(patient.cpf ?? '').replace(/\D/g, '');
   const birthDate = String(patient.birth_date ?? '');
   const gender = String(patient.gender ?? '').toLowerCase();
-  if (!profile?.first_name?.trim() || !profile.last_name?.trim() || !validCpf(cpf)
-      || !validBirthDate(birthDate) || !/^(male|female|masculino|feminino|m|f)$/.test(gender)) {
+  if (!profile?.first_name?.trim() || !profile.last_name?.trim() || !validCpf(cpf)) {
     throw new Error('memed_patient_identity_incomplete');
   }
-  return { idExterno: `autamedica-${patientId}`, nome: name, cpf,
-    data_nascimento: birthDate.split('-').reverse().join('/'),
-    sexo: /^(male|masculino|m)$/.test(gender) ? 'Masculino' : 'Feminino' };
+  const patientData: MemedPatient = { idExterno: `autamedica-${patientId}`, nome: name, cpf };
+  // Express pharmacy/Jordan intake intentionally collects no DOB or gender.
+  // Memed accepts these demographic attributes as optional; never fabricate them.
+  if (birthDate && validBirthDate(birthDate)) {
+    patientData.data_nascimento = birthDate.split('-').reverse().join('/');
+  }
+  if (/^(male|female|masculino|feminino|m|f)$/.test(gender)) {
+    patientData.sexo = /^(male|masculino|m)$/.test(gender) ? 'Masculino' : 'Feminino';
+  }
+  return patientData;
 }
 
