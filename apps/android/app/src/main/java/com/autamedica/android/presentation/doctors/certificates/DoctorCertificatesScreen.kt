@@ -315,8 +315,14 @@ fun DoctorCertificatesScreen(
                             color = AuTextSecondary
                         )
                     }
-                    if (cert.daysOfRest > 0) {
-                        Text(
+                    when {
+                        cert.restHours > 0 -> Text(
+                            text = stringResource(R.string.cert_rest_hours_detail, cert.restHours, cert.startDate),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF16A34A)
+                        )
+                        cert.daysOfRest > 0 -> Text(
                             text = stringResource(R.string.cert_days_of_rest_detail, cert.daysOfRest, cert.endDate ?: cert.startDate),
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold,
@@ -473,6 +479,7 @@ private fun DoctorCertificateCard(
                         color = PortalDoctors
                     )
                     val restText = when {
+                        certificate.restHours > 0 -> stringResource(R.string.cert_rest_hours_format, certificate.restHours)
                         certificate.daysOfRest <= 0 -> stringResource(R.string.cert_no_rest)
                         certificate.daysOfRest == 1 -> stringResource(R.string.cert_days_of_rest_one)
                         else -> stringResource(R.string.cert_days_of_rest_count, certificate.daysOfRest)
