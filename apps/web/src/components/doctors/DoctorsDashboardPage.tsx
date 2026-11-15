@@ -286,12 +286,8 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
       );
       setToast({ message: "Examen firmado y aprobado exitosamente", type: "success" });
     } catch (err) {
-      console.error(err);
-      // Fallback update in case of policy restrictions
-      setLabResults(prev => 
-        prev.map(l => l.id === labId ? { ...l, status: 'reviewed', reviewed_at: new Date().toISOString() } : l)
-      );
-      setToast({ message: "Examen firmado de manera optimista", type: "success" });
+      console.error("No se pudo guardar la revisión del examen:", err);
+      setToast({ message: "No se pudo guardar la revisión del examen. El estado no fue modificado.", type: "error" });
     } finally {
       setIsApprovingLabId(null);
     }
@@ -328,9 +324,8 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
       // Filter out or update expiring prescription
       setExpiringPrescriptions(prev => prev.filter(p => p.id !== pres.id));
     } catch (err) {
-      console.error(err);
-      setToast({ message: `Renovación anticipada creada para ${patientName}`, type: "success" });
-      setExpiringPrescriptions(prev => prev.filter(p => p.id !== pres.id));
+      console.error("No se pudo crear el borrador de renovación:", err);
+      setToast({ message: `No se pudo crear la renovación para ${patientName}. La receta original sigue en la lista.`, type: "error" });
     } finally {
       setIsAnticipatingPresId(null);
     }
@@ -466,7 +461,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
             <span className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-[#0EA5E9] px-3 py-2 text-xs font-bold text-white transition group-hover:bg-[#0284C7]">{isBrazilianDoctor ? "Emitir receita" : "Emitir receta"} <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></span>
           </span>
         </a>
-        <a href="/doctors/certificates" aria-label={isBrazilianDoctor ? "Abrir atestados médicos" : "Abrir certificados médicos"}
+        <a href="/doctors/prescriptions" aria-label={isBrazilianDoctor ? "Abrir documentos clínicos" : "Abrir documentos clínicos"}
           className="group flex min-h-[124px] items-center gap-4 rounded-2xl border-2 border-sky-200 bg-gradient-to-br from-sky-50 to-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[#0EA5E9] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9] sm:p-5">
           <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#0EA5E9] text-white shadow-md shadow-sky-200 transition group-hover:bg-[#0284C7]">
             <CheckCircle2 className="h-7 w-7" strokeWidth={2} />
