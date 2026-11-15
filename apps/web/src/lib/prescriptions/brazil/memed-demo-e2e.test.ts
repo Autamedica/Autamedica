@@ -112,6 +112,8 @@ function readTable(table: string, filters: Map<string, unknown>): Row | Row[] | 
         && filters.get('patient_id') === patientId ? { id: 'demo-care-link' } : null;
     case 'appointments':
       return null;
+    case 'pharmacy_dispatch_requests':
+      return null;
     case 'patients':
       return filters.get('id') === patientId ? state.patient : null;
     case 'prescriptions':
@@ -133,6 +135,8 @@ function db() {
         eq(key: string, value: unknown) { filters.set(key, value); return query; },
         is(_key: string, _value: unknown) { return query; },
         or(_expression: string) { return query; },
+        in(_key: string, _values: unknown[]) { return query; },
+        gte(_key: string, _value: unknown) { return query; },
         limit(_n: number) { return query; },
         maybeSingle: async () => ({ data: Array.isArray(readTable(table, filters))
           ? (readTable(table, filters) as Row[])[0] ?? null : readTable(table, filters), error: null }),
