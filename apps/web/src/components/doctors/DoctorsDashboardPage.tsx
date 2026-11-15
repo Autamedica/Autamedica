@@ -387,7 +387,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
       <section className="mb-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4" aria-label={isBrazilianDoctor ? "Portal Médico" : "Portal Médico"}>
         <div className="mb-3 flex min-w-0 items-center gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#0F2537] text-sm font-bold text-white">
-            {doctorName.split(/\\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase()}
+            {doctorName.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#0284C7]">Portal Médico</p>
