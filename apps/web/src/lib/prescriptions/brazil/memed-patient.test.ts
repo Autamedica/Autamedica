@@ -55,6 +55,16 @@ describe('Memed patient authorization', () => {
       { birthDate: '2099-01-01', gender: 'female' }))
       .rejects.toThrow('memed_patient_demographics_invalid');
   });
+  it('accepts clinician-confirmed demographics for express patients', async () => {
+    await expect(resolveMemedPatient(database({ patients: { ...identity, birth_date: null, gender: null } }),
+      'doctor', patientId, { birthDate: '2000-02-29', gender: 'female' }))
+      .resolves.toHaveProperty('cpf', identity.cpf);
+  });
+  it('rejects invalid clinician-entered demographics', async () => {
+    await expect(resolveMemedPatient(database(), 'doctor', patientId,
+      { birthDate: '2099-01-01', gender: 'female' }))
+      .rejects.toThrow('memed_patient_demographics_invalid');
+  });
   it.each([{ lgpd_consent: false }, { active: false }])('requires authorized active patient %j', async (change) => {
     await expect(resolveMemedPatient(database({ patients: { ...identity, ...change } }), 'doctor', patientId))
       .rejects.toThrow('memed_patient_consent_required');
