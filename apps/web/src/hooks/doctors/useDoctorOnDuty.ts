@@ -10,6 +10,7 @@ import type {
 
 interface UseDoctorOnDutyReturn {
   onDuty: boolean
+  careCountry: 'AR' | 'BR' | null
   since: string | null
   loading: boolean
   toggling: boolean
@@ -26,6 +27,7 @@ interface UseDoctorOnDutyReturn {
 
 export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
   const [onDuty, setOnDuty] = useState<boolean>(false)
+  const [careCountry, setCareCountry] = useState<'AR' | 'BR' | null>(null)
   const [since, setSince] = useState<string | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [toggling, setToggling] = useState<boolean>(false)
@@ -54,10 +56,11 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
   // Protected queue is the only source: country, approval, heartbeat and offer assignment are checked server-side.
   const fetchQueue = useCallback(async () => {
     try {
-      const dataRes = await fetchApi<{ queue: OnDemandQueueItem[]; count: number }>(
+      const dataRes = await fetchApi<{ queue: OnDemandQueueItem[]; count: number; careCountry?: 'AR' | 'BR' }>(
         '/api/doctors/on-duty/queue',
       )
       const items = dataRes.queue || []
+      setCareCountry(dataRes.careCountry === 'BR' || dataRes.careCountry === 'AR' ? dataRes.careCountry : null)
       setQueue(items)
 
       // Audio notification if new patients arrived in queue and doctor is on duty
@@ -81,7 +84,7 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
       }
       prevQueueLengthRef.current = items.length
     } catch {
-      // Ignorar fallos transitorios
+      setError('No se pudo actualizar el radar de guardia')
     }
   }, [onDuty])
 
@@ -92,6 +95,7 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
   // Poll queue every 5 seconds when onDuty is active
   useEffect(() => {
     if (!onDuty) {
+      void fetchQueue()
       setQueue([])
       prevQueueLengthRef.current = 0
       return
@@ -245,6 +249,7 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
 
   return {
     onDuty,
+    careCountry,
     since,
     loading,
     toggling,

@@ -6,6 +6,7 @@ import { useClock } from "@/hooks/doctors/useClock";
 import { useDoctorStats } from "@/hooks/doctors/useDoctorStats";
 import { useCurrentDoctor } from "@/hooks/doctors/useRealDoctors";
 import { fetchApi } from "@/lib/api-client";
+import { getBrowserSupabaseClient } from "@/lib/supabase-browser";
 import { signOutLocal } from "@/lib/auth/service";
 import { getOnboardingStatus } from "@/lib/onboarding-grace";
 import DoctorNotificationsBell from "@/components/doctors/DoctorNotificationsBell";
@@ -104,8 +105,8 @@ function getInitials(name: string): string {
   );
 }
 
-function formatDateLabel(date: Date): string {
-  return date.toLocaleDateString("es-AR", {
+function formatDateLabel(date: Date, locale = "es-AR"): string {
+  return date.toLocaleDateString(locale, {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -124,7 +125,7 @@ function MobileNavBar({
   const allLinks = [...primaryLinks, ...platformLinks];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-neutral-200/60 bg-white/95 pb-safe pt-2 backdrop-blur-xl md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 pb-safe pt-2 backdrop-blur-xl md:hidden">
       <div className="flex items-center justify-around px-2">
         {allLinks.slice(0, 5).map((item) => {
           const isActive = item.key === activeSection;
@@ -133,7 +134,7 @@ function MobileNavBar({
               key={item.key}
               href={item.href}
               className={`relative flex flex-col items-center gap-1.5 rounded-xl px-3 py-2 transition-colors ${
-                isActive ? "text-neutral-900" : "text-neutral-400"
+                isActive ? "text-[#0D9488]" : "text-neutral-400"
               }`}
             >
               <div className="relative">
@@ -149,7 +150,7 @@ function MobileNavBar({
               </div>
               <span className="text-[10px] font-medium">{item.label}</span>
               {isActive ? (
-                <span className="absolute top-0 h-0.5 w-8 rounded-full bg-neutral-900" />
+                <span className="absolute top-0 h-0.5 w-8 rounded-full bg-[#0D9488]" />
               ) : null}
             </a>
           );
@@ -208,9 +209,48 @@ export function DoctorsPortalFrame({
 
   const doctorName = getDoctorDisplayName(doctor, user);
   const doctorInitials = getInitials(doctorName);
-  const doctorSpecialty = doctor?.specialty || "Especialidad pendiente";
+  const doctorCredential = doctor as (NonNullable<typeof doctor> & { care_country?: string; uf_brazil?: string }) | null;
+  const isBrazilianPortal = doctorCredential?.care_country === "BR";
+  const doctorSpecialty = doctor?.specialty || (isBrazilianPortal ? "Especialidade pendente" : "Especialidad pendiente");
+  const [cfmCredentialVerified, setCfmCredentialVerified] = useState(false);
+  const credentialLabel = doctorCredential?.care_country === "BR"
+    ? `CRM${doctorCredential.uf_brazil ? `-${doctorCredential.uf_brazil}` : ""} ${doctorCredential.license_number}`
+    : doctorCredential?.care_country === "AR"
+      ? `MN/MP ${doctorCredential.profile?.matricula_nacional || doctorCredential.license_number}`
+      : null;
+
+  useEffect(() => {
+    if (!doctor?.id || doctorCredential?.care_country !== "BR") {
+      setCfmCredentialVerified(false);
+      return;
+    }
+    let active = true;
+    void getBrowserSupabaseClient()
+      .from("doctor_licenses")
+      .select("license_number, uf_brazil, cfm_evidence_path, cfm_review_notes, cfm_reviewed_by, cfm_reviewed_at, cfm_last_checked_at")
+      .eq("doctor_id", doctor.id)
+      .eq("license_type", "CRM")
+      .eq("status", "active")
+      .eq("cfm_validation_status", "valid")
+      .limit(20)
+      .then(({ data, error }) => {
+        if (!active) return;
+        const verified = !error && Boolean(data?.some((license) =>
+          String(license.license_number ?? "").replace(/\D/g, "") === String(doctorCredential.license_number ?? "").replace(/\D/g, "")
+          && license.uf_brazil?.toUpperCase() === doctorCredential.uf_brazil?.toUpperCase()
+          && Boolean(license.cfm_evidence_path?.trim())
+          && (license.cfm_review_notes?.trim().length ?? 0) >= 10
+          && Boolean(license.cfm_reviewed_by && license.cfm_reviewed_at && license.cfm_last_checked_at)
+        ));
+        setCfmCredentialVerified(verified);
+      }, () => { if (active) setCfmCredentialVerified(false); });
+    return () => { active = false; };
+  }, [doctor?.id, doctorCredential?.care_country, doctorCredential?.license_number, doctorCredential?.uf_brazil]);
+
   const sssStatus = (doctor?.profile as { sssValidationStatus?: string | null } | undefined)?.sssValidationStatus ?? "pending";
-  const isValidOrExempt = sssStatus === "valid" || sssStatus === "exempt";
+  const isValidOrExempt = doctorCredential?.care_country === "BR"
+    ? cfmCredentialVerified
+    : sssStatus === "valid" || sssStatus === "exempt";
 
   const doctorProfile = doctor?.profile as
     | { avatar_url?: string | null; avatarUrl?: string | null; updated_at?: string | null; updatedAt?: string | null }
@@ -261,7 +301,7 @@ export function DoctorsPortalFrame({
     () => [
       {
         href: "/doctors/dashboard",
-        label: "Dashboard",
+        label: isBrazilianPortal ? "Painel" : "Dashboard",
         icon: Home,
         key: "dashboard",
       },
@@ -273,38 +313,38 @@ export function DoctorsPortalFrame({
       },
       {
         href: "/doctors/agenda",
-        label: "Citas",
+        label: isBrazilianPortal ? "Agenda" : "Citas",
         icon: Calendar,
         key: "appointments",
         badge: stats?.todayCount ? String(stats.todayCount) : undefined,
       },
       {
         href: "/doctors/consultations",
-        label: "Historiales",
+        label: isBrazilianPortal ? "Prontuários" : "Historiales",
         icon: FileText,
         key: "consultations",
       },
       {
         href: "/doctors/prescriptions",
-        label: "Recetas",
+        label: isBrazilianPortal ? "Receitas" : "Recetas",
         icon: Pill,
         key: "prescriptions",
       },
       {
         href: "/doctors/medical-orders",
-        label: "Exámenes",
+        label: isBrazilianPortal ? "Exames" : "Exámenes",
         icon: ClipboardList,
         key: "medical-orders",
       },
     ],
-    [stats?.todayCount],
+    [stats?.todayCount, isBrazilianPortal],
   );
 
   const platformLinks = useMemo<NavigationItem[]>(
     () => [
       {
         href: "/doctors/community",
-        label: "Comunidad",
+        label: isBrazilianPortal ? "Comunidade" : "Comunidad",
         icon: Trophy,
         key: "community",
         badge: stats?.unreadCommunityCount
@@ -313,30 +353,30 @@ export function DoctorsPortalFrame({
       },
       {
         href: "/doctors/accounting",
-        label: "Contabilidad",
+        label: isBrazilianPortal ? "Financeiro" : "Contabilidad",
         icon: Calculator,
         key: "accounting",
       },
       {
         href: "/doctors/subscription",
-        label: "Suscripción",
+        label: isBrazilianPortal ? "Assinatura" : "Suscripción",
         icon: CreditCard,
         key: "subscription",
       },
       {
         href: "/doctors/perfil",
-        label: "Configuración",
+        label: isBrazilianPortal ? "Configurações" : "Configuración",
         icon: Settings,
         key: "profile",
       },
       {
         href: "/doctors/faq",
-        label: "Ayuda",
+        label: isBrazilianPortal ? "Ajuda" : "Ayuda",
         icon: HelpCircle,
         key: "faq",
       },
     ],
-    [stats?.unreadCommunityCount],
+    [stats?.unreadCommunityCount, isBrazilianPortal],
   );
 
   useEffect(() => {
@@ -415,7 +455,7 @@ export function DoctorsPortalFrame({
           <div className="flex w-full max-w-sm flex-col items-center rounded-2xl border border-neutral-200 bg-white px-8 py-10 text-center shadow-sm">
             {/* Avatar with Golden Badge */}
             <div className="relative mb-5 flex-shrink-0">
-              <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-neutral-900 text-base font-semibold text-white ring-1 ring-neutral-200 shadow-inner">
+              <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-[#0F2537] text-base font-semibold text-white ring-2 ring-[#0D9488]/70 shadow-inner">
                 {cachedProfile.avatarUrl ? (
                   <img
                     src={cachedProfile.avatarUrl}
@@ -428,8 +468,8 @@ export function DoctorsPortalFrame({
               </div>
               {cachedProfile.isValidOrExempt && (
                 <div
-                  className="absolute -bottom-1 -right-1 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-400 text-white ring-2 ring-white shadow-sm"
-                  title="Matrícula validada en SSS / REFEPS"
+                  className="absolute -bottom-1 -right-1 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#0D9488] text-white ring-2 ring-white shadow-sm"
+                  title={doctorCredential?.care_country === "BR" ? "CRM validado por CFM" : "Matrícula validada en SSS / REFEPS"}
                 >
                   <Check className="h-3 w-3 text-white" strokeWidth={3.5} />
                 </div>
@@ -437,18 +477,18 @@ export function DoctorsPortalFrame({
             </div>
 
             {/* Doctor Name with Verified icon */}
-            <h2 className="flex items-center gap-1.5 text-base font-semibold text-neutral-900">
+            <h2 className="flex items-center gap-1.5 text-base font-semibold text-[#0F2537]">
               {cachedProfile.doctorName}
               {cachedProfile.isValidOrExempt && (
                 <span
-                  className="inline-flex items-center justify-center text-amber-500"
+                  className="inline-flex items-center justify-center text-[#0D9488]"
                   title="Matrícula validada en SSS / REFEPS"
                 >
-                  <CheckCircle2 className="h-4 w-4 fill-amber-50 text-amber-500" />
+                  <CheckCircle2 className="h-4 w-4 fill-teal-50 text-[#0D9488]" />
                 </span>
               )}
             </h2>
-            <p className="mt-0.5 text-xs text-neutral-400">{cachedProfile.doctorSpecialty}</p>
+            <p className="mt-0.5 text-xs text-slate-500">{cachedProfile.doctorSpecialty}</p>
 
             <hr className="my-5 w-full border-neutral-100" />
 
@@ -508,7 +548,7 @@ export function DoctorsPortalFrame({
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 text-neutral-900">
+    <div className="portal-doctor min-h-screen bg-[#F8FAFC] text-[#0F2537]">
       {mobileMenuOpen ? (
         <button
           type="button"
@@ -519,7 +559,7 @@ export function DoctorsPortalFrame({
       ) : null}
 
       {/* ── Header ── */}
-      <header className="sticky top-0 z-30 border-b border-neutral-200/60 bg-white/95 px-4 py-3 backdrop-blur-xl md:px-8">
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-xl md:px-8">
         <div className="flex items-center justify-between gap-3">
           <a href="/" className="flex items-center gap-3">
             <img
@@ -528,11 +568,11 @@ export function DoctorsPortalFrame({
               className="h-8 w-8 object-contain md:h-9 md:w-9"
             />
             <div>
-              <div className="text-base font-semibold text-neutral-900 md:text-lg">
+              <div className="text-base font-bold tracking-tight text-[#0F2537] md:text-lg">
                 AutaMedica
               </div>
-              <div className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-400">
-                Portal médico
+              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#0D9488]">
+                {doctorCredential?.care_country === "BR" ? "Portal Médico" : "Portal Médico"}
               </div>
             </div>
           </a>
@@ -556,7 +596,7 @@ export function DoctorsPortalFrame({
                 {currentTime || "--:--"}
               </time>
               <time className="text-[11px] capitalize text-neutral-400">
-                {formatDateLabel(currentDate)}
+                {formatDateLabel(currentDate, isBrazilianPortal ? "pt-BR" : "es-AR")}
               </time>
             </div>
           </div>
@@ -578,7 +618,7 @@ export function DoctorsPortalFrame({
               >
                 <div className="relative flex-shrink-0">
                   <label
-                    className="group/avatar relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl bg-neutral-900 text-[13px] font-semibold text-white ring-1 ring-neutral-200 transition hover:ring-neutral-400"
+                    className="group/avatar relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#0F2537] text-[13px] font-semibold text-white ring-2 ring-[#0D9488]/70 transition hover:ring-neutral-400"
                     title={
                       avatarUrl
                         ? "Editar foto profesional"
@@ -601,7 +641,8 @@ export function DoctorsPortalFrame({
                         </span>
                       </>
                     )}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover/avatar:opacity-100">
+                    <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" aria-label="Presencia online" />
+                    <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity duration-300 group-hover/avatar:opacity-100">
                       {uploadingPhoto ? (
                         <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                       ) : (
@@ -627,20 +668,26 @@ export function DoctorsPortalFrame({
                 </div>
                 {!isSidebarCollapsed ? (
                   <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-1.5 truncate text-[13px] font-semibold text-neutral-900">
+                    <p className="flex flex-wrap items-center gap-1.5 whitespace-normal break-words text-[13px] font-semibold text-[#0F2537]">
                       {doctorName}
                       {isValidOrExempt && (
                         <span
-                          className="inline-flex items-center justify-center text-amber-500"
+                          className="inline-flex items-center justify-center text-[#0D9488]"
                           title="Matrícula validada en SSS / REFEPS"
                         >
-                          <CheckCircle2 className="h-3.5 w-3.5 fill-amber-50 text-amber-500" />
+                          <CheckCircle2 className="h-3.5 w-3.5 fill-teal-50 text-[#0D9488]" />
                         </span>
                       )}
                     </p>
-                    <p className="truncate text-[11px] text-neutral-400">
+                    <span className="mt-1 inline-flex max-w-full rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700">
                       {doctorSpecialty}
-                    </p>
+                    </span>
+                    {isValidOrExempt && credentialLabel && (
+                      <span className="mt-1 inline-flex max-w-full items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700">
+                        <Check className="h-3 w-3 text-[#0D9488]" />
+                        {credentialLabel}
+                      </span>
+                    )}
                   </div>
                 ) : null}
                 <button
@@ -671,18 +718,18 @@ export function DoctorsPortalFrame({
                     href={item.href}
                     className={`group flex items-center justify-between rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors ${
                       isActive
-                        ? "bg-neutral-100 text-neutral-900"
+                        ? "bg-teal-50 text-teal-800"
                         : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <item.icon
-                        className={`h-4 w-4 ${isActive ? "text-neutral-900" : "text-neutral-400 group-hover:text-neutral-600"}`}
+                        className={`h-4 w-4 ${isActive ? "text-[#0D9488]" : "text-neutral-400 group-hover:text-neutral-600"}`}
                       />
                       {!isSidebarCollapsed && <span>{item.label}</span>}
                     </div>
                     {!isSidebarCollapsed && item.badge && (
-                      <span className="flex h-5 items-center justify-center rounded-md bg-neutral-900 px-1.5 text-[10px] font-bold text-white">
+                      <span className="flex h-5 items-center justify-center rounded-md bg-[#0D9488] px-1.5 text-[10px] font-bold text-white">
                         {item.badge}
                       </span>
                     )}
@@ -702,18 +749,18 @@ export function DoctorsPortalFrame({
                       href={item.href}
                       className={`group flex items-center justify-between rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors ${
                         isActive
-                          ? "bg-neutral-100 text-neutral-900"
+                          ? "bg-teal-50 text-teal-800"
                           : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         <item.icon
-                          className={`h-4 w-4 ${isActive ? "text-neutral-900" : "text-neutral-400 group-hover:text-neutral-600"}`}
+                          className={`h-4 w-4 ${isActive ? "text-[#0D9488]" : "text-neutral-400 group-hover:text-neutral-600"}`}
                         />
                         {!isSidebarCollapsed && <span>{item.label}</span>}
                       </div>
                       {!isSidebarCollapsed && item.badge && (
-                        <span className="flex h-5 items-center justify-center rounded-md bg-neutral-900 px-1.5 text-[10px] font-bold text-white">
+                        <span className="flex h-5 items-center justify-center rounded-md bg-[#0D9488] px-1.5 text-[10px] font-bold text-white">
                           {item.badge}
                         </span>
                       )}
