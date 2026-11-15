@@ -45,7 +45,7 @@ data class DoctorCertificatesUiState(
     val restHours: Int = 0,
     val restPeriodUnit: String = "days",
     val startDate: String = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE),
-    val endDate: String? = LocalDate.now().plusDays(2).format(DateTimeFormatter.ISO_LOCAL_DATE),
+    val endDate: String? = LocalDate.now().plusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE),
     val diagnosis: String = "",
     val diagnosisCode: String? = null,
     val hideDiagnosis: Boolean = false,
@@ -156,7 +156,7 @@ class DoctorCertificatesViewModel @Inject constructor(
             }
             val today = LocalDate.now(zoneId)
             val todayStr = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
-            val defaultEndStr = today.plusDays(2).format(DateTimeFormatter.ISO_LOCAL_DATE)
+            val defaultEndStr = today.plusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE)
 
             _uiState.update {
                 it.copy(
@@ -263,7 +263,7 @@ class DoctorCertificatesViewModel @Inject constructor(
     fun onDaysOfRestChange(days: Int) {
         val safeDays = days.coerceIn(0, 365)
         _uiState.update { current ->
-            val calculatedEnd = calculateEndDate(current.startDate, safeDays)
+            val calculatedEnd = if (safeDays > 0) calculateEndDate(current.startDate, safeDays) else null
             current.copy(
                 daysOfRest = safeDays,
                 restHours = 0,
@@ -438,7 +438,7 @@ class DoctorCertificatesViewModel @Inject constructor(
         if (days <= 0) return startDateStr
         return runCatching {
             val start = LocalDate.parse(startDateStr)
-            start.plusDays(days.toLong()).format(DateTimeFormatter.ISO_LOCAL_DATE)
+            start.plusDays(days.toLong() - 1).format(DateTimeFormatter.ISO_LOCAL_DATE)
         }.getOrDefault(startDateStr)
     }
 
