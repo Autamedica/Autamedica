@@ -47,6 +47,9 @@ export interface DoctorOnDutyStatus {
 
 export interface OnDemandQueueItem {
   id: string
+  /** Authenticated physician's individual dispatch offer, required to decline safely. */
+  offerId?: string
+  expiresAt?: string
   pharmacyId: string | null
   pharmacyName: string
   patientDni: string
