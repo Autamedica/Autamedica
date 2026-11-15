@@ -59,7 +59,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .eq('user_id', auth.user.id)
       .maybeSingle();
     if (doctorError) throw doctorError;
-    const pilotDoctorId = locals.runtime?.env?.MEMED_PILOT_DOCTOR_ID;
+    const pilotDoctorId = locals.runtime?.env?.MEMED_PILOT_DOCTOR_ID || locals.runtime?.env?.MEMED_MOBILE_PILOT_DOCTOR_ID;
     if (typeof pilotDoctorId !== 'string' || pilotDoctorId !== doctor?.id) {
       return forbidden('memed_pilot_prescriber_only');
     }
