@@ -166,6 +166,8 @@ fun VideoCallScreen(
     val remoteTrack by viewModel.remoteVideoTrack.collectAsStateWithLifecycle()
     val inCallPrescriptionValidation = stringResource(R.string.in_call_prescription_validation)
     val inCallPrescriptionFallback = stringResource(R.string.in_call_prescription_error)
+    val inCallPatientMissing = stringResource(R.string.in_call_patient_missing)
+    val inCallPrescriptionIssuerUnavailable = stringResource(R.string.in_call_prescription_issuer_unavailable)
     val inCallDefaultDosage = stringResource(R.string.in_call_default_dosage)
     val inCallDefaultFrequency = stringResource(R.string.in_call_default_frequency)
     val inCallDefaultDuration = stringResource(R.string.in_call_default_duration)
@@ -175,6 +177,7 @@ fun VideoCallScreen(
     val inCallCertificateDiagnosisRequired = stringResource(R.string.in_call_certificate_diagnosis_required)
     val inCallCertificateDraftObservations = stringResource(R.string.in_call_certificate_draft_observations)
     val inCallCertificateFallback = stringResource(R.string.in_call_certificate_error)
+    val inCallCertificatePatientMissing = inCallPatientMissing
     var clinicalSheetMode by remember { mutableStateOf<InCallClinicalMode?>(null) }
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
@@ -641,6 +644,8 @@ fun VideoCallScreen(
                     diagnosis = diagnosis,
                     validationMessage = inCallPrescriptionValidation,
                     fallbackErrorMessage = inCallPrescriptionFallback,
+                    patientMissingMessage = inCallPatientMissing,
+                    nativeIssuerUnavailableMessage = inCallPrescriptionIssuerUnavailable,
                     defaultDosage = inCallDefaultDosage,
                     defaultFrequency = inCallDefaultFrequency,
                     defaultDuration = inCallDefaultDuration,
@@ -659,6 +664,7 @@ fun VideoCallScreen(
                     diagnosisRequiredMessage = inCallCertificateDiagnosisRequired,
                     draftObservations = inCallCertificateDraftObservations,
                     fallbackErrorMessage = inCallCertificateFallback,
+                    patientMissingMessage = inCallCertificatePatientMissing,
                     onResult = onResult,
                 )
             },
