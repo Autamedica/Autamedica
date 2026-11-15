@@ -655,7 +655,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                               {patientName.slice(0, 2)}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-[13px] font-semibold text-neutral-800 truncate capitalize">{patientName}</p>
+                              <p className="text-[13px] font-semibold text-neutral-800 whitespace-normal break-words capitalize">{patientName}</p>
                               <div className="flex items-center gap-2 mt-0.5">
                                 <span className="text-[11px] font-bold text-neutral-500">{timeStr}</span>
                                 <span className="h-1 w-1 rounded-full bg-neutral-300" />
@@ -743,8 +743,8 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                               {patientName.slice(0, 2)}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-[12px] font-semibold text-neutral-800 truncate capitalize">{patientName}</p>
-                              <p className="text-[11px] text-neutral-400 truncate mt-0.5">
+                              <p className="text-[12px] font-semibold text-neutral-800 whitespace-normal break-words capitalize">{patientName}</p>
+                              <p className="text-[11px] text-neutral-400 whitespace-normal break-words mt-0.5">
                                 {genderLabel}{age ? ` · ${age} años` : ''}
                               </p>
                             </div>
@@ -810,7 +810,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                       return (
                         <div key={c.id} className="py-2.5 first:pt-0 last:pb-0 hover:bg-neutral-50/30 px-1 rounded-lg transition-colors border-l-2 border-red-500 pl-2.5 mb-2 last:mb-0">
                           <div className="flex items-center justify-between min-w-0">
-                            <span className="text-[12px] font-bold text-neutral-800 truncate capitalize">{patientName}</span>
+                            <span className="text-[12px] font-bold text-neutral-800 whitespace-normal break-words capitalize">{patientName}</span>
                             <span className="rounded-full bg-red-50 border border-red-200 px-1.5 py-0.5 text-[8px] font-extrabold text-red-600 uppercase">
                               Prioridad
                             </span>
@@ -836,7 +836,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                               Intake
                             </span>
                           </div>
-                          <p className="text-[11px] text-neutral-500 mt-1 truncate">
+                          <p className="text-[11px] text-neutral-500 mt-1 whitespace-normal break-words">
                             Contexto: {contextLabel}
                           </p>
                         </div>
