@@ -347,6 +347,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
   const isBrazilianDoctor = doctorCountry === 'BR';
   const pendingMandates = (stats?.pendingClarifications ?? 0) + (stats?.pendingTriageMandates ?? 0);
   const todayCount = stats?.todayCount ?? 0;
+  const todayCompletedCount = stats?.todayCompletedCount ?? 0;
   const patientsCount = stats?.patientsCount ?? 0;
   const _historyCount = stats?.historyCount ?? 0;
   const pharmacyDispatchCount = stats?.pharmacyDispatchCount ?? 0;
@@ -580,7 +581,17 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
       </div>
 
       <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0D9488]">MÉTRICAS CLÍNICAS</p>
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">{isBrazilianDoctor ? 'Consultas atendidas hoje' : 'Consultas atendidas hoy'}</p>
+          <p className="mt-2 text-3xl font-bold tracking-tight text-[#0F2537]">{todayCompletedCount}</p>
+          <p className="mt-1 text-xs text-slate-500">{isBrazilianDoctor ? 'Agenda e farmácia concluídas' : 'Agenda y farmacia finalizadas'}</p>
+        </div>
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">{isBrazilianDoctor ? 'Agendamentos não cancelados' : 'Citas no canceladas'}</p>
+          <p className="mt-2 text-3xl font-bold tracking-tight text-[#0F2537]">{activeCount}</p>
+          <p className="mt-1 text-xs text-slate-500">{isBrazilianDoctor ? 'Consultas agendadas ou em andamento' : 'Consultas agendadas o en curso'}</p>
+        </div>
         <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">{isBrazilianDoctor ? 'Plantões de farmácia' : 'Guardias de farmacia'}</p>
           <p className="mt-2 text-3xl font-bold tracking-tight text-[#0F2537]">{pharmacyDispatchCount}</p>
