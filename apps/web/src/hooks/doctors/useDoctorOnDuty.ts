@@ -234,7 +234,7 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
       const { data, error: rpcError } = await getBrowserSupabaseClient()
         .rpc('decline_my_pharmacy_dispatch_offer', { p_offer_id: offerId })
       if (rpcError) throw rpcError
-      if (!data || data.declined !== true) throw new Error('Esta oferta ya no está disponible')
+      if (data?.declined !== true) throw new Error('Esta oferta ya no está disponible')
       await fetchQueue()
       return true
     } catch (err) {
