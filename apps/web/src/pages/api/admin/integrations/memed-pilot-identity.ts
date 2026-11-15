@@ -1,5 +1,4 @@
 import type { APIRoute } from 'astro';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { ADMIN_ROLES, isAuthed, withAuthRole } from '@/lib/api-auth';
 import { badRequest, forbidden, internalError, jsonOk, serviceUnavailable } from '@/lib/api-helpers';
 import { createAstroAdminClient } from '@/lib/supabase';
