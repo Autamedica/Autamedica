@@ -56,7 +56,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     }
     const offerByRequestId = new Map((offers || []).map(offer => [offer.dispatch_request_id, offer]))
     const offeredRequestIds = [...offerByRequestId.keys()]
-    if (offeredRequestIds.length === 0) return jsonOk({ queue: [], count: 0 })
+    if (offeredRequestIds.length === 0) return jsonOk({ queue: [], count: 0, careCountry: doctor.care_country })
 
     const { data, error } = await admin
       .from('pharmacy_dispatch_requests')
