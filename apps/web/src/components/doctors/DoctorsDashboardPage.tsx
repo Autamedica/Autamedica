@@ -412,7 +412,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div>
                         <h2 className="text-2xl font-light tracking-tight text-white sm:text-3xl">
-                          {new Date(activeTelemedAppt.start_time).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} hs · {activeTelemedPatientName}
+                          {new Date(activeTelemedAppt.start_time).toLocaleTimeString(isBrazilianDoctor ? 'pt-BR' : 'es-AR', { hour: '2-digit', minute: '2-digit' })} hs · {activeTelemedPatientName}
                         </h2>
                         <p className="mt-1 text-[13px] text-slate-300">
                           {isBrazilianDoctor ? 'O paciente está pronto na sala de espera. Ative sua conexão para entrar.' : 'El paciente está listo en sala de espera. Habilitá tu señal para ingresar.'}
@@ -655,7 +655,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                 ) : (
                   <div className="divide-y divide-neutral-100 max-h-[220px] overflow-y-auto pr-1">
                     {todayAppointments.map((apt: any) => {
-                      const timeStr = new Date(apt.start_time).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+                      const timeStr = new Date(apt.start_time).toLocaleTimeString(isBrazilianDoctor ? 'pt-BR' : 'es-AR', { hour: '2-digit', minute: '2-digit' });
                       const patientName = patientNames[apt.id] || "Paciente";
                       const isTelemedicine = apt.type === 'telemedicine';
                       const isConfirmed = apt.status === 'confirmed';
