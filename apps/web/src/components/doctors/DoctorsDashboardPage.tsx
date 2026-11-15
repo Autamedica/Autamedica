@@ -831,7 +831,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                       return (
                         <div key={i.id} className="py-2.5 first:pt-0 last:pb-0 hover:bg-neutral-50/30 px-1 rounded-lg transition-colors border-l-2 border-blue-500 pl-2.5 mb-2 last:mb-0">
                           <div className="flex items-center justify-between min-w-0">
-                            <span className="text-[12px] font-bold text-neutral-800 truncate capitalize">{patientName}</span>
+                            <span className="text-[12px] font-bold text-neutral-800 whitespace-normal break-words capitalize">{patientName}</span>
                             <span className="rounded-full bg-blue-50 border border-blue-200 px-1.5 py-0.5 text-[8px] font-extrabold text-blue-600 uppercase">
                               Intake
                             </span>
