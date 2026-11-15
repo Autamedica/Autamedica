@@ -5,6 +5,7 @@ import assert from 'node:assert/strict'
 
 const source = (path) => readFileSync(path, 'utf8')
 const migration = source('supabase/migrations/20261115110000_country_aware_pharmacy_pricing.sql')
+const manualGuard = source('supabase/migrations/20261115123000_allow_audited_manual_pharmacy_payment_override.sql')
 const request = source('apps/web/src/pages/api/pharmacy/dispatch/request.ts')
 const checkout = source('apps/web/src/pages/api/pharmacy/dispatch/payment/create.ts')
 const widget = source('apps/web/src/components/pharmacy/JordanPaymentWidget.tsx')
@@ -58,6 +59,11 @@ test('both web and Edge media gates require tariff-matched provider or audited m
   assert.match(edge, /MANUAL_OVERRIDE_/)
   assert.match(edge, /isPaidPharmacyDispatch/)
   assert.match(migration, /manual_override_by/)
+  assert.match(manualGuard, /MANUAL_OVERRIDE_/)
+  assert.match(manualGuard, /manual_override_at/)
+  assert.match(manualGuard, /manual_override_reason/)
+  assert.match(manualGuard, /manual_override_evidence_reference/)
+  assert.match(manualGuard, /pharmacy_payment_identity_immutable/)
 })
 
 test('referral commission recognition accepts both configured settlement currencies', () => {
