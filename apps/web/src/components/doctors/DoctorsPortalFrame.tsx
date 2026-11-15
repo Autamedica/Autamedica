@@ -6,6 +6,7 @@ import { useClock } from "@/hooks/doctors/useClock";
 import { useDoctorStats } from "@/hooks/doctors/useDoctorStats";
 import { useCurrentDoctor } from "@/hooks/doctors/useRealDoctors";
 import { fetchApi } from "@/lib/api-client";
+import { getBrowserSupabaseClient } from "@/lib/supabase-browser";
 import { signOutLocal } from "@/lib/auth/service";
 import { getOnboardingStatus } from "@/lib/onboarding-grace";
 import DoctorNotificationsBell from "@/components/doctors/DoctorNotificationsBell";
@@ -210,13 +211,45 @@ export function DoctorsPortalFrame({
   const doctorInitials = getInitials(doctorName);
   const doctorSpecialty = doctor?.specialty || "Especialidad pendiente";
   const doctorCredential = doctor as (NonNullable<typeof doctor> & { care_country?: string; uf_brazil?: string }) | null;
+  const [cfmCredentialVerified, setCfmCredentialVerified] = useState(false);
   const credentialLabel = doctorCredential?.care_country === "BR"
     ? `CRM${doctorCredential.uf_brazil ? `-${doctorCredential.uf_brazil}` : ""} ${doctorCredential.license_number}`
     : doctorCredential?.care_country === "AR"
       ? `MN/MP ${doctorCredential.profile?.matricula_nacional || doctorCredential.license_number}`
       : null;
+
+  useEffect(() => {
+    if (!doctor?.id || doctorCredential?.care_country !== "BR") {
+      setCfmCredentialVerified(false);
+      return;
+    }
+    let active = true;
+    void getBrowserSupabaseClient()
+      .from("doctor_licenses")
+      .select("license_number, uf_brazil, cfm_evidence_path, cfm_review_notes, cfm_reviewed_by, cfm_reviewed_at, cfm_last_checked_at")
+      .eq("doctor_id", doctor.id)
+      .eq("license_type", "CRM")
+      .eq("status", "active")
+      .eq("cfm_validation_status", "valid")
+      .limit(20)
+      .then(({ data, error }) => {
+        if (!active) return;
+        const verified = !error && Boolean(data?.some((license) =>
+          String(license.license_number ?? "").replace(/\\D/g, "") === String(doctorCredential.license_number ?? "").replace(/\\D/g, "")
+          && license.uf_brazil?.toUpperCase() === doctorCredential.uf_brazil?.toUpperCase()
+          && Boolean(license.cfm_evidence_path?.trim())
+          && (license.cfm_review_notes?.trim().length ?? 0) >= 10
+          && Boolean(license.cfm_reviewed_by && license.cfm_reviewed_at && license.cfm_last_checked_at)
+        ));
+        setCfmCredentialVerified(verified);
+      });
+    return () => { active = false; };
+  }, [doctor?.id, doctorCredential?.care_country, doctorCredential?.license_number, doctorCredential?.uf_brazil]);
+
   const sssStatus = (doctor?.profile as { sssValidationStatus?: string | null } | undefined)?.sssValidationStatus ?? "pending";
-  const isValidOrExempt = sssStatus === "valid" || sssStatus === "exempt";
+  const isValidOrExempt = doctorCredential?.care_country === "BR"
+    ? cfmCredentialVerified
+    : sssStatus === "valid" || sssStatus === "exempt";
 
   const doctorProfile = doctor?.profile as
     | { avatar_url?: string | null; avatarUrl?: string | null; updated_at?: string | null; updatedAt?: string | null }
@@ -538,7 +571,7 @@ export function DoctorsPortalFrame({
                 AutaMedica
               </div>
               <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#0D9488]">
-                Portal médico
+                {doctorCredential?.care_country === "BR" ? "Portal Médico" : "Portal Médico"}
               </div>
             </div>
           </a>
