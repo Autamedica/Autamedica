@@ -870,6 +870,8 @@ private data class DispatchRequestDto(
     @SerialName("referral_partner_id") val referralPartnerId: String? = null,
     @SerialName("offer_id") val offerId: String? = null,
     @SerialName("offer_expires_at") val offerExpiresAt: String? = null,
+    val currency: String? = null,
+    @SerialName("price_minor") val priceMinor: Int? = null,
 ) {
     fun toDomain() = PharmacyDispatchRequest(
         id = id,
@@ -877,6 +879,8 @@ private data class DispatchRequestDto(
         offerExpiresAt = offerExpiresAt,
         careCountry = careCountry,
         referralPartnerId = referralPartnerId,
+        currency = currency,
+        priceMinor = priceMinor,
         patientDni = if (careCountry == "BR") patientCpf.orEmpty() else patientDni.orEmpty(),
         patientPhone = patientPhone,
         patientName = patientName,

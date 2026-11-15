@@ -107,6 +107,9 @@ import com.autamedica.android.presentation.theme.PortalPharmacistsSoft
 import com.autamedica.android.presentation.theme.SuccessContainer
 import com.autamedica.android.presentation.pharmacy.components.DispatchTelemetryTicker
 import com.autamedica.android.presentation.pharmacy.components.LiveMedicalPresenceRadar
+import java.text.NumberFormat
+import java.util.Currency
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -617,8 +620,13 @@ private fun PharmacyWaitingRoomView(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text("Consulta médica · R$ 79,00", style = MaterialTheme.typography.titleMedium,
-                        color = AuTextPrimary, fontWeight = FontWeight.Bold)
+                    val consultationPrice = formatDispatchPrice(uiState.priceMinor, uiState.currency)
+                    Text(
+                        text = consultationPrice?.let { "Consulta médica · $it" } ?: "Consulta médica",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = AuTextPrimary,
+                        fontWeight = FontWeight.Bold,
+                    )
                     val confirmed = uiState.paymentStatus == "approved"
                     val canStartCheckout = uiState.status == PharmacyConsultationStatus.PENDING ||
                         uiState.status == PharmacyConsultationStatus.ASSIGNED ||
@@ -639,7 +647,7 @@ private fun PharmacyWaitingRoomView(
                             if (uiState.isPaymentLoading) {
                                 CircularProgressIndicator(modifier = Modifier.size(18.dp),
                                     strokeWidth = 2.dp)
-                            } else Text("Pagar R$ 79,00")
+                            } else Text(consultationPrice?.let { "Pagar $it" } ?: "Pagar")
                         }
                     }
                     uiState.paymentError?.let { error ->
@@ -1073,4 +1081,15 @@ private fun localizedPharmacyMessage(message: String): String = when (message) {
     "Esta solicitud anterior finalizó. Podés iniciar una nueva consulta." -> stringResource(R.string.pharmacy_flow_notice_expired)
     "La solicitud fue cancelada." -> stringResource(R.string.pharmacy_flow_notice_cancelled)
     else -> message // Keep unexpected backend failures visible for diagnostics.
+}
+
+private fun formatDispatchPrice(priceMinor: Int?, currencyCode: String?): String? {
+    if (priceMinor == null || priceMinor <= 0 || currencyCode !in setOf("BRL", "ARS")) return null
+    val locale = if (currencyCode == "BRL") Locale.forLanguageTag("pt-BR")
+        else Locale.forLanguageTag("es-AR")
+    return NumberFormat.getCurrencyInstance(locale).apply {
+        currency = Currency.getInstance(currencyCode)
+        maximumFractionDigits = 2
+        minimumFractionDigits = 2
+    }.format(priceMinor / 100.0)
 }
