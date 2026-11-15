@@ -3,9 +3,12 @@ import Layout from '@/layouts/Layout.astro';
 import { DoctorsPrescriptionsPage } from '@/components/doctors/DoctorsPrescriptionsPage';
 
 const title = 'Recetas | Portal Médico | AutaMedica';
-const description = 'Gestión de prescripciones médicas electrónicas';
+const description = 'Gestión de prescripciones y atestados médicos';
+const initialDocMode = Astro.url.searchParams.get('document') === 'certificate'
+  ? 'certificates'
+  : 'prescriptions';
 ---
 
 <Layout title={title} description={description}>
-  <DoctorsPrescriptionsPage client:load />
+  <DoctorsPrescriptionsPage client:load initialDocMode={initialDocMode} />
 </Layout>
