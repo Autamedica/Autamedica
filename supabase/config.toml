@@ -44,6 +44,10 @@ ip_version = "IPv4"
 
 [functions]
 
+# Android Memed preflight; JWT is mandatory and the pilot remains independently gated.
+[functions.memed-mobile-preflight]
+verify_jwt = true
+
 # The handler verifies Supabase JWTs and a scoped HMAC guest token itself.
 [functions.cloudflare-calls]
 verify_jwt = false

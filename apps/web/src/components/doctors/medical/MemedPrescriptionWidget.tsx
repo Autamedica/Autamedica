@@ -8,6 +8,8 @@ interface MemedPrescriptionWidgetProps {
   onPrescriptionDeleted: (memedId: string) => Promise<void>;
   onClose: () => void;
   onFallbackToNativePrescription: () => void;
+  /** Use the full viewport inside Android Custom Tabs. */
+  mobileFullscreen?: boolean;
 }
 
 export function MemedPrescriptionWidget({
@@ -16,6 +18,7 @@ export function MemedPrescriptionWidget({
   onPrescriptionDeleted,
   onClose,
   onFallbackToNativePrescription,
+  mobileFullscreen = false,
 }: MemedPrescriptionWidgetProps) {
   const [patientLabel, setPatientLabel] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -122,8 +125,12 @@ export function MemedPrescriptionWidget({
   }, [patientId, doctorIdentitySubmitted, patientDemographicsSubmitted]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="relative flex h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
+    <div className={mobileFullscreen
+      ? "fixed inset-0 z-50 flex min-h-0 items-stretch bg-white"
+      : "fixed inset-0 z-50 flex items-center justify-center bg-black/50"}>
+      <div className={mobileFullscreen
+        ? "relative flex h-[100dvh] min-h-0 w-full flex-col overflow-hidden bg-white"
+        : "relative flex h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl"}>
         <div className="flex items-center justify-between border-b p-4">
           <div>
             <h2 className="font-semibold text-slate-900">Prescrição digital Brasil — Memed</h2>
@@ -212,7 +219,9 @@ export function MemedPrescriptionWidget({
         {issuedId && <div role="status" className="p-3 text-sm text-amber-800">
           Prescrição confirmada na API Memed e registrada como pendente (ID {issuedId}). Confirme a assinatura e a entrega ao paciente antes de concluir o atendimento.
         </div>}
-        <div id="memed-prescricao-container" className="min-h-[400px] flex-1 overflow-auto" />
+        <div id="memed-prescricao-container" className={mobileFullscreen
+          ? "min-h-0 flex-1 overflow-auto overscroll-contain"
+          : "min-h-[400px] flex-1 overflow-auto"} />
       </div>
     </div>
   );

@@ -2,6 +2,8 @@ package com.autamedica.android.presentation.videocall
 
 import android.Manifest
 import android.content.Context
+import android.net.Uri
+import androidx.browser.customtabs.CustomTabsIntent
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -179,6 +181,23 @@ fun VideoCallScreen(
     val inCallCertificateFallback = stringResource(R.string.in_call_certificate_error)
     val inCallCertificatePatientMissing = inCallPatientMissing
     var clinicalSheetMode by remember { mutableStateOf<InCallClinicalMode?>(null) }
+
+    // The browser signs in independently; never place Supabase or Memed tokens in URLs.
+    val memedLaunchUrl = uiState.memedLaunchUrl
+    LaunchedEffect(memedLaunchUrl) {
+        if (memedLaunchUrl != null) {
+            viewModel.consumeMemedLaunchUrl()
+            try {
+                CustomTabsIntent.Builder()
+                    .setShareState(CustomTabsIntent.SHARE_STATE_OFF)
+                    .build()
+                    .launchUrl(context, Uri.parse(memedLaunchUrl))
+                clinicalSheetMode = null
+            } catch (_: Exception) {
+                viewModel.reportMemedBrowserError()
+            }
+        }
+    }
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
         com.autamedica.android.telemetry.CallTelemetry.recordMilestone(null, "T2_COMPOSE_MOUNTED")
@@ -635,7 +654,12 @@ fun VideoCallScreen(
             // Keep the linked patient's clinical jurisdiction aligned with the doctor's license.
             patientCareCountryCode = uiState.patientCareCountryCode,
             patientLinked = uiState.patientId.isNotBlank(),
-            isSubmitting = uiState.isIssuingPrescription || uiState.isIssuingCertificate,
+            isSubmitting = uiState.isIssuingPrescription || uiState.isIssuingCertificate ||
+                uiState.isOpeningMemed,
+            onOpenMemed = if (uiState.doctorCountryCode == "BR" && !isPreviewRoute) {
+                viewModel::openMemedForBrazil
+            } else null,
+            memedLaunchError = uiState.memedLaunchError,
             onIssuePrescription = { med, dosage, instructions, diagnosis, onResult ->
                 viewModel.issueInCallPrescription(
                     medicationName = med,

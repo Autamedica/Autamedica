@@ -14,6 +14,7 @@ import {
 } from './prescription-issuance-gate';
 import { FarmalinkClient } from './farmalink.client';
 import { claimFarmalinkIssue, recordFarmalinkIssue } from './farmalink.issue-gate';
+import { resolvePrescriptionProviderRoute } from './prescription-provider-route';
 import {
   FarmalinkMappingError,
   buildFarmalinkAltaRecetaRequest,
@@ -125,6 +126,7 @@ export type IssuanceError =
   | { code: 'missing_license_number' }
   | { code: 'missing_refeps_id' }
   | { code: 'prescriber_validation_required' }
+  | { code: 'prescription_country_mismatch' }
   | { code: 'missing_professional_address' }
   | { code: 'prescription_not_found' }
   | { code: 'not_your_prescription' }
@@ -637,6 +639,14 @@ export async function issuePrescription(
     : doctor.license_type === 'CRM' && doctor.uf_brazil ? 'BR'
       : doctor.license_type === 'MN' || doctor.license_type === 'MP' ? 'AR'
         : null;
+  
+  // Provider routing is canonical and independent from browser locale or mutable UI input.
+  // The BR route points to the separate Memed mobile module; the generic BR PDF
+  // remains an internal document and never masquerades as a provider issuance.
+  const providerRoute = resolvePrescriptionProviderRoute(
+    doctor.care_country, prescriptionCountry, patient.care_country,
+  );
+  if (!providerRoute) return fail({ code: 'prescription_country_mismatch' });
 
   const issuanceGate = checkDirectPrescriptionIssuance({
     prescriptionCountry,
