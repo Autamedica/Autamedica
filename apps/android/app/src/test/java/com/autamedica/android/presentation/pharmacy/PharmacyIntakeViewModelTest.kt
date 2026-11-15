@@ -916,8 +916,6 @@ class PharmacyIntakeViewModelTest {
         // Immediately updates to empty list
         assertThat(vm.uiState.value.activeDoctors).isEmpty()
     }
-}
-
     @Test
     fun `configured ARS quote enables dispatch payment in Argentina`() {
         val state = PharmacyIntakeUiState(
@@ -928,3 +926,4 @@ class PharmacyIntakeViewModelTest {
         assertThat(state.requiresDispatchPayment).isTrue()
         assertThat(state.requiresBrazilianPayment).isTrue()
     }
+}
