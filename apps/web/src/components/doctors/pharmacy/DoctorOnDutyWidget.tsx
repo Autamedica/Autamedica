@@ -75,7 +75,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
     <div
       className={`rounded-2xl border transition-all duration-300 ${
         onDuty
-          ? 'bg-[#0F2537] border-emerald-400/40 shadow-xl shadow-slate-950/20'
+          ? 'bg-[#0F2537] border-sky-400/50 shadow-md shadow-slate-950/20'
           : 'bg-[#0F2537] border-white/10 shadow-md'
       } p-3 sm:p-3 ${className}`}
     >
@@ -85,7 +85,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
           <div
             className={`w-9 h-9 rounded-lg flex items-center justify-center transition ${
               onDuty
-                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                ? 'bg-[#0EA5E9] text-white shadow-md shadow-sky-950/20'
                 : 'bg-am-surface-700 text-slate-300'
             }`}
           >
@@ -98,8 +98,8 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
                 {careCountry === 'BR' ? 'Plantão de Farmácia / Consultas Expressas' : 'Guardia Farmacia / Consultas Exprés'}
               </h3>
               {onDuty ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/40 bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-400/40 bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold text-sky-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-sky-300 animate-ping" />
                   {careCountry === 'BR' ? 'EM PLANTÃO' : 'CONECTADO A GUARDIA'}
                 </span>
               ) : (
@@ -136,7 +136,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
             className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow-md ${
               onDuty
                 ? 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40'
-                : 'bg-[#10B981] hover:bg-[#0D9488] text-white shadow-emerald-950/40'
+                : 'bg-[#0EA5E9] hover:bg-[#0284C7] text-white shadow-sky-950/30'
             } disabled:opacity-50`}
           >
             {toggling ? (
@@ -167,14 +167,14 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
               <span
                 className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                   queueCount > 0
-                    ? 'bg-emerald-500 text-white animate-pulse'
+                    ? 'bg-[#0EA5E9] text-white animate-pulse'
                     : 'bg-am-surface-700 text-am-surface-400'
                 }`}
               >
                 {queueCount}
               </span>
               {queueCount > 0 && (
-                <span className="rounded-full border border-emerald-400/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold tracking-wide text-emerald-300">
+                <span className="rounded-full border border-sky-400/40 bg-sky-500/15 px-2 py-0.5 text-[10px] font-bold tracking-wide text-sky-200">
                   {careCountry === 'BR' ? 'OFERTA RECEBIDA' : 'OFERTA ENTRANTE'}
                 </span>
               )}
@@ -184,7 +184,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
               <button
                 type="button"
                 onClick={() => setExpanded(!expanded)}
-                className="text-xs text-teal-300 hover:text-teal-200 transition"
+                className="text-xs text-sky-300 hover:text-sky-200 transition"
               >
                 {expanded ? 'Ocultar' : 'Ver cola'}
               </button>
@@ -193,7 +193,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
 
           {queueCount === 0 ? (
             <div className="py-5 px-4 rounded-xl bg-white/5 border border-white/10 text-center flex flex-col items-center justify-center">
-              <Activity className="w-5 h-5 text-emerald-400/60 mb-1.5 animate-pulse" />
+              <Activity className="w-5 h-5 text-sky-300/80 mb-1.5 animate-pulse" />
               <p className="text-xs text-slate-200 font-medium">
                 {careCountry === 'BR' ? 'Radar ativo · Sem solicitações pendentes' : 'Radar activo · Sin solicitudes pendientes'}
               </p>
@@ -207,7 +207,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
                 {queue.map((item) => (
                   <div
                     key={item.id}
-                    className="p-3.5 rounded-xl bg-white/5 border border-white/10 hover:border-emerald-500/50 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner"
+                    className="p-3.5 rounded-xl bg-white/5 border border-white/10 hover:border-sky-400/50 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner"
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -225,7 +225,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
                       </div>
 
                       <div className="flex items-center gap-3 text-[11px] text-am-surface-300">
-                        <span className="flex items-center gap-1 text-teal-200 font-medium min-w-0 flex-wrap">
+                        <span className="flex items-center gap-1 text-sky-200 font-medium min-w-0 flex-wrap">
                           <FileText className="w-3 h-3 text-am-primary-400" />
                           <span className="break-words">{item.reason}</span>
                         </span>
@@ -251,7 +251,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
                         type="button"
                         disabled={claimingId === item.id}
                         onClick={() => void handleClaim(item.id)}
-                        className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#10B981] hover:bg-[#0D9488] transition shadow-md shadow-emerald-950/40 flex items-center gap-1.5 active:scale-[0.98] disabled:opacity-50"
+                        className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#0EA5E9] hover:bg-[#0284C7] transition shadow-md shadow-sky-950/30 flex items-center gap-1.5 active:scale-[0.98] disabled:opacity-50"
                       >
                         {claimingId === item.id ? (
                           <>
