@@ -26,6 +26,10 @@ export function MemedPrescriptionWidget({
   const [doctorCpfInput, setDoctorCpfInput] = useState('');
   const [doctorBirthInput, setDoctorBirthInput] = useState('');
   const [doctorIdentitySubmitted, setDoctorIdentitySubmitted] = useState<{ cpf: string; birthDate: string } | null>(null);
+  const [patientDemographicsRequired, setPatientDemographicsRequired] = useState(false);
+  const [patientBirthInput, setPatientBirthInput] = useState('');
+  const [patientGenderInput, setPatientGenderInput] = useState<'male' | 'female' | ''>('');
+  const [patientDemographicsSubmitted, setPatientDemographicsSubmitted] = useState<{ patientBirthDate: string; patientGender: 'male' | 'female' } | null>(null);
   const onSavedRef = useRef(onPrescriptionSaved);
   const onDeletedRef = useRef(onPrescriptionDeleted);
   onSavedRef.current = onPrescriptionSaved;
@@ -38,6 +42,7 @@ export function MemedPrescriptionWidget({
     setIssuedId(null);
     setErrorMessage(null);
     setFallbackAvailable(false);
+    setPatientDemographicsRequired(false);
     const onIssued = (id: string) => {
       if (cancelled) return;
       void onSavedRef.current(id).then(() => {
@@ -59,7 +64,7 @@ export function MemedPrescriptionWidget({
         const tokenRequest: RequestInit = {
           method: 'POST', credentials: 'include', cache: 'no-store',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ patientId, ...doctorIdentitySubmitted }),
+          body: JSON.stringify({ patientId, ...doctorIdentitySubmitted, ...patientDemographicsSubmitted }),
         };
         const response = await fetch('/api/doctors/prescriptions/memed-token', tokenRequest);
         const json = await response.json();
@@ -89,6 +94,11 @@ export function MemedPrescriptionWidget({
         }
         if (cancelled) return;
         setPatientLabel(json.data.patient.nome);
+        if (json.data.patientDemographicsMissing) {
+          setPatientDemographicsRequired(true);
+          setLoading(false);
+          return;
+        }
         await ensureMemedScript(json.data.token, json.data.scriptUrl, json.data.doctor.userId);
         if (cancelled) return;
         await openMemedPatient(json.data.patient, () => !cancelled);
@@ -147,6 +157,42 @@ export function MemedPrescriptionWidget({
             <div className="flex flex-wrap gap-2">
               <button type="submit" className="rounded bg-blue-700 px-4 py-2 text-sm font-medium text-white">
                 Validar cadastro Memed
+              </button>
+              <button type="button" onClick={onFallbackToNativePrescription}
+                className="rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800">
+                Continuar con receta nativa Autamedica
+              </button>
+            </div>
+          </form>
+        )}
+        {patientDemographicsRequired && !loading && (
+          <form className="space-y-3 border-b p-5" onSubmit={(event) => {
+            event.preventDefault();
+            if (!patientBirthInput || !patientGenderInput) return;
+            setPatientDemographicsRequired(false);
+            setErrorMessage(null);
+            setLoading(true);
+            setPatientDemographicsSubmitted({ patientBirthDate: patientBirthInput, patientGender: patientGenderInput });
+          }}>
+            <p className="text-sm text-slate-800">Complete os dados que faltam do paciente, confirmando a informação diretamente com ele. A Memed pode exigir data de nascimento e sexo para determinados medicamentos e receituários.</p>
+            <label className="block text-sm text-slate-700">
+              Data de nascimento do paciente
+              <input type="date" required max={new Date().toISOString().slice(0, 10)}
+                value={patientBirthInput} onChange={(event) => setPatientBirthInput(event.target.value)}
+                className="mt-1 block w-full rounded border p-2" />
+            </label>
+            <label className="block text-sm text-slate-700">
+              Sexo cadastral do paciente
+              <select required value={patientGenderInput} onChange={(event) => setPatientGenderInput(event.target.value as 'male' | 'female' | '')}
+                className="mt-1 block w-full rounded border p-2">
+                <option value="">Selecione</option>
+                <option value="female">Feminino</option>
+                <option value="male">Masculino</option>
+              </select>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button type="submit" className="rounded bg-blue-700 px-4 py-2 text-sm font-medium text-white">
+                Salvar dados e abrir Memed
               </button>
               <button type="button" onClick={onFallbackToNativePrescription}
                 className="rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800">
