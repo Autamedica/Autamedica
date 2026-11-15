@@ -211,8 +211,8 @@ jobs:
         run: |
           set -euo pipefail
           for project in autamedica-web autamedica-doctors; do
-            printf '%s' 'true' | pnpm dlx wrangler pages secret put MEMED_MOBILE_ENABLED --project-name "$project"
-            printf '%s' '080fb7ae-92b4-44d4-8941-a6db65004b9f' | pnpm dlx wrangler pages secret put MEMED_MOBILE_PILOT_DOCTOR_ID --project-name "$project"
+            printf '%s' 'true' | pnpm dlx wrangler@4.162.0 pages secret put MEMED_MOBILE_ENABLED --project-name "$project"
+            printf '%s' '080fb7ae-92b4-44d4-8941-a6db65004b9f' | pnpm dlx wrangler@4.162.0 pages secret put MEMED_MOBILE_PILOT_DOCTOR_ID --project-name "$project"
             settings="$(curl --fail --silent --show-error --max-time 30 \
               "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$project" \
               -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN")"
@@ -294,6 +294,7 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/web
           packageManager: pnpm
+          wranglerVersion: 4.162.0
           command: pages deploy dist --project-name=autamedica-web --branch=main
 
       - name: Deploy (subdomains)
@@ -303,7 +304,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           for project in autamedica-doctors autamedica-patients autamedica-companies autamedica-admin; do
-            pnpm dlx wrangler pages deploy dist --project-name="$project" --branch=main
+            pnpm dlx wrangler@4.162.0 pages deploy dist --project-name="$project" --branch=main
           done
 
       - name: Create Sentry Release
