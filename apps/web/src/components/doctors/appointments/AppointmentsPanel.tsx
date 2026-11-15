@@ -290,8 +290,18 @@ export function AppointmentsPanel() {
             <div className="rounded-[28px] border border-neutral-200/70 bg-white p-6 shadow-xl shadow-neutral-900/5">
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-neutral-400">Turno actual</h2>
-                <button className="text-neutral-300 hover:text-neutral-500 transition-colors">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="6" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="18" r="1.5"/></svg>
+                <button
+                  type="button"
+                  onClick={() => setSelectedAppointmentId(currentTurno.id)}
+                  aria-label="Abrir detalles y acciones de la cita"
+                  title="Abrir detalles y acciones"
+                  className="rounded-lg p-2 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <circle cx="12" cy="6" r="1.5"/>
+                    <circle cx="12" cy="12" r="1.5"/>
+                    <circle cx="12" cy="18" r="1.5"/>
+                  </svg>
                 </button>
               </div>
               
