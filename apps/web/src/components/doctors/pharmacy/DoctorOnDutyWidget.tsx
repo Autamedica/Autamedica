@@ -39,7 +39,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
   } = useDoctorOnDuty()
 
   const careCountry = providedCareCountry ?? queueCareCountry
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(false)
 
   const handleClaim = async (requestId: string) => {
     const result = await claimPatient(requestId)
@@ -72,13 +72,13 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
         onDuty
           ? 'bg-[#0F2537] border-emerald-400/40 shadow-xl shadow-slate-950/20'
           : 'bg-[#0F2537] border-white/10 shadow-md'
-      } p-4 sm:p-5 ${className}`}
+      } p-3 sm:p-3 ${className}`}
     >
       {/* Header & Toggle */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-3">
           <div
-            className={`w-10 h-10 rounded-xl flex items-center justify-center transition ${
+            className={`w-9 h-9 rounded-lg flex items-center justify-center transition ${
               onDuty
                 ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
                 : 'bg-am-surface-700 text-slate-300'
@@ -89,7 +89,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
 
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold text-white">
+              <h3 className="text-[13px] font-semibold leading-tight text-white">
                 {careCountry === 'BR' ? 'Plantão de Farmácia / Consultas Expressas' : 'Guardia Farmacia / Consultas Exprés'}
               </h3>
               {onDuty ? (
@@ -103,9 +103,9 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
                 </span>
               )}
             </div>
-            <p className="text-xs text-am-surface-400">
+            <p className="text-[11px] text-am-surface-400">
               {onDuty
-                ? (careCountry === 'BR' ? `Plantão conectado · Radar ativo · Disponível para receitas e teleconsultas imediatas ${since ? `• desde ${new Date(since).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : ''}` : `Guardia conectada · Radar activo · Disponible para recetas y videoconsultas inmediatas ${since ? `• desde ${new Date(since).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}` : ''}`)
+                ? (careCountry === 'BR' ? `Plantão conectado · Radar ativo${since ? ` · desde ${new Date(since).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : ''}` : `Guardia conectada · Radar activo${since ? ` · desde ${new Date(since).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}` : ''}`)
                 : (careCountry === 'BR' ? 'Ative o plantão para receber pacientes das farmácias' : 'Activá la guardia para recibir pacientes de farmacias')}
             </p>
           </div>
@@ -152,8 +152,8 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
       )}
 
       {/* Queue View when On-Duty */}
-      {onDuty && !compact && (
-        <div className="mt-4 pt-4 border-t border-am-surface-700/50">
+      {onDuty && !compact && queueCount > 0 && (
+        <div className="mt-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-slate-100">
