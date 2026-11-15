@@ -1570,7 +1570,7 @@ class VideoCallViewModel @Inject constructor(
                 }
                 onResult(true, cuir)
             }.onFailure { err ->
-                val errorMsg = UiErrorMapper.map(err, "Error al emitir la receta")
+                val errorMsg = UiErrorMapper.map(err, if (_uiState.value.patientCareCountryCode == "BR") "Não foi possível emitir a receita." else "No se pudo emitir la receta.")
                 SecureLog.error("[Telemedicine] Failed issuing prescription in-call", err)
                 _uiState.update { state ->
                     state.copy(
@@ -1654,7 +1654,7 @@ class VideoCallViewModel @Inject constructor(
                 }
                 onResult(true, cuir)
             }.onFailure { err ->
-                val errorMsg = UiErrorMapper.map(err, "Error al emitir el certificado")
+                val errorMsg = UiErrorMapper.map(err, if (_uiState.value.patientCareCountryCode == "BR") "Não foi possível preparar o atestado." else "No se pudo preparar el certificado.")
                 SecureLog.error("[Telemedicine] Failed issuing certificate in-call", err)
                 _uiState.update { state ->
                     state.copy(
