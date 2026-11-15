@@ -58,16 +58,13 @@ const isDoctorHost =
   Astro.url.pathname.startsWith('/doctors') ||
   devPortal === 'doctor';
 
-// Prioridad: Query Params > Pathname
-const section = Astro.url.searchParams.get('section');
-const activeTabDoctor = 
-  section === 'ranking' ? 'ranking' :
-  section === 'telemedicina' ? 'telemedicina' :
-  Astro.url.pathname.includes('/agenda') ? 'agenda' :
-  Astro.url.pathname.includes('/dashboard') ? 'ranking' :
-  Astro.url.pathname.includes('/call') ? 'telemedicina' :
-  Astro.url.pathname.includes('/community') ? 'comunidad' :
-  Astro.url.pathname.includes('/perfil') ? 'perfil' : 'agenda';
+const doctorPath = Astro.url.pathname;
+const activeTabDoctor =
+  doctorPath.includes('/agenda') || doctorPath.includes('/call') ? 'agenda' :
+  doctorPath.includes('/patients') || doctorPath.includes('/consultations') ? 'pacientes' :
+  doctorPath.includes('/prescriptions') ? 'recetas' :
+  doctorPath.includes('/perfil') ? 'perfil' :
+  'inicio';
 if (isPatientHost || isDoctorHost || Astro.locals.session) {
   Astro.response.headers.set('Cache-Control', 'private, no-store');
   Astro.response.headers.append('Vary', 'Cookie, Authorization');
