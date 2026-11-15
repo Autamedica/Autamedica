@@ -223,7 +223,8 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             put("start_date", request.startDate)
             request.endDate?.let { put("end_date", it) }
             request.diagnosis?.let { put("diagnosis", it) }
-            put("hide_diagnosis", request.hideDiagnosis)
+            put("hide_diagnosis", request.hideDiagnosis || resolvedCountry == "BR")
+            request.cid10Code?.takeIf { it.isNotBlank() }?.let { put("cid10_code", it) }
             request.observations?.let { put("observations", it) }
             put("country_code", resolvedCountry)
             put("created_at", now)
@@ -244,7 +245,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             startDate = request.startDate,
             endDate = request.endDate,
             diagnosis = if (request.hideDiagnosis) null else request.diagnosis,
-            hideDiagnosis = request.countryCode == "BR" || request.hideDiagnosis,
+            hideDiagnosis = resolvedCountry == "BR" || request.hideDiagnosis,
             observations = request.observations,
             doctorName = doctorNameMap[doctor.id],
             doctorLicense = doctorLicenseMap[doctor.id] ?: doctor.licenseNumber,
