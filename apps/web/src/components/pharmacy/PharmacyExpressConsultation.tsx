@@ -84,7 +84,7 @@ export function PharmacyExpressConsultation({
   const [requestId, setRequestId] = useState<string | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [callRoomId, setCallRoomId] = useState<string | null>(null)
-  const [brazilPaymentApproved, setBrazilPaymentApproved] = useState(false)
+  const [countryPaymentApproved, setBrazilPaymentApproved] = useState(false)
   const [onlineDoctorCount, setOnlineDoctorCount] = useState<number | null>(null)
 
   useEffect(() => {
@@ -106,7 +106,7 @@ export function PharmacyExpressConsultation({
       if (!saved.requestId || !saved.guestToken || (saved.careCountry !== 'AR' && saved.careCountry !== 'BR')) return
       setRequestId(saved.requestId)
       setAccessToken(saved.guestToken)
-      setFormData((current) => ({ ...current, careCountry: isJordanReferral ? 'BR' : saved.careCountry! }))
+      setFormData((current) => ({ ...current, careCountry: saved.careCountry! }))
       setStep('WAITING')
     } catch {
       window.sessionStorage.removeItem('autamedica:pharmacy-express:active-session')
@@ -376,20 +376,19 @@ export function PharmacyExpressConsultation({
             )}
 
             <form onSubmit={handleSubmit} className="space-y-3.5">
-              {<fieldset className="grid grid-cols-2 gap-2">
+              <fieldset className="grid grid-cols-2 gap-2">
                 <legend className="mb-2 text-xs font-medium text-slate-600">{copy.country}</legend>
                 {(['BR', 'AR'] as const).map((country) => {
-                  const disabled = false
                   const selected = formData.careCountry === country
                   return (
                     <label key={country} className={selected ? 'flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#0EA5E9] bg-sky-50 px-3 text-sm font-medium text-sky-800' : 'flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700'}>
-                      <input type="radio" name="careCountry" required checked={selected} disabled={disabled} onChange={() => { setFormData({ ...formData, careCountry: country, dni: '', reason: '' }); setReasonCategory(''); setLgpdConsent(false) }} className="sr-only" />
+                      <input type="radio" name="careCountry" required checked={selected} onChange={() => { setFormData({ ...formData, careCountry: country, dni: '', reason: '' }); setReasonCategory(''); setLgpdConsent(false) }} className="sr-only" />
                       <span aria-hidden="true">{country === 'BR' ? '🇧🇷' : '🇦🇷'}</span>
                       <span>{country === 'BR' ? 'Brasil' : 'Argentina'}</span>
                     </label>
                   )
                 })}
-              </fieldset>}
+              </fieldset>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor={dniInputId} className="block text-xs font-medium text-slate-600 mb-1.5 flex items-center gap-1.5">
