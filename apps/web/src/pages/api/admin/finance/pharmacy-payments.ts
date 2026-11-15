@@ -31,7 +31,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
  if(error) return internalError('pharmacy_payments_unavailable')
  const ids=(payments??[]).map((p:any)=>p.dispatch_request_id).filter(Boolean)
  const {data:requests}=ids.length?await db.from('pharmacy_dispatch_requests')
-  .select('id,assigned_doctor_id,doctor_fee_brl,price_brl').in('id',ids):{data:[]}
+  .select('id,assigned_doctor_id,doctor_fee_brl,doctor_fee_minor,price_brl,price_minor,currency').in('id',ids):{data:[]}
  const byId=new Map<string, any>((requests??[]).map((r:any)=>[r.id,r]))
  const doctorIds=[...new Set((requests??[]).map((r:any)=>r.assigned_doctor_id).filter(Boolean))]
  const {data:doctors}=doctorIds.length?await db.from('doctors').select('id,user_id').in('id',doctorIds):{data:[]}
@@ -43,7 +43,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
  return jsonOk((payments??[]).map((p:any)=>{
   const req=byId.get(p.dispatch_request_id)
   const doctor=req?.assigned_doctor_id?doctorById.get(req.assigned_doctor_id):null
-  const doctorFeeMinor=req?.doctor_fee_brl?Math.round(Number(req.doctor_fee_brl)*100):null
+  const doctorFeeMinor=Number.isFinite(Number(req?.doctor_fee_minor))?Number(req?.doctor_fee_minor):(req?.doctor_fee_brl?Math.round(Number(req.doctor_fee_brl)*100):null)
   return {...p,request_id:p.dispatch_request_id,assigned_doctor_id:req?.assigned_doctor_id??null,
    doctor_user_id:doctor?.user_id??null,doctor_fee_minor:doctorFeeMinor,
    jordan_commission_minor:commissionByDispatch.get(p.dispatch_request_id)?.status==='eligible'||commissionByDispatch.get(p.dispatch_request_id)?.status==='paid'?commissionByDispatch.get(p.dispatch_request_id).amount_minor:0,
