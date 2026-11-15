@@ -196,9 +196,7 @@ BEGIN
   IF v_partner_code IS NULL OR v_active IS DISTINCT FROM TRUE THEN
     RAISE EXCEPTION 'referral_partner_inactive_or_missing' USING ERRCODE='23514';
   END IF;
-  IF v_partner_code='JORDAN' AND (
-    NEW.care_country NOT IN ('AR','BR') OR NEW.tier_requested::text<>'general'
-  ) THEN
+  IF v_partner_code='JORDAN' AND (NEW.care_country NOT IN ('AR','BR') OR NEW.tier_requested::text<>'general') THEN
     RAISE EXCEPTION 'jordan_general_consultation_only' USING ERRCODE='23514';
   END IF;
   RETURN NEW;
