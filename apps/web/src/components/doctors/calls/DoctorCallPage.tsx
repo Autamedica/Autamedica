@@ -418,7 +418,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
       return null
     }
 
-    return toSubtitleText(transcriptionState.interimText)
+    return toSubtitleText(transcriptionState.interimText, transcriptionLocale)
   }, [transcriptionState.interimText, voiceNotesEnabled])
 
   const handlePersistCallStatus = useCallback(
