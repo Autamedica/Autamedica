@@ -70,6 +70,7 @@ export function PharmacyExpressConsultation({
   const [waitingSeconds, setWaitingSeconds] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [lgpdConsent, setLgpdConsent] = useState(false)
 
   // Active request state (Gen 2: pharmacy_dispatch_requests)
   const [requestId, setRequestId] = useState<string | null>(null)
@@ -223,6 +224,10 @@ export function PharmacyExpressConsultation({
       setFormError(isPortuguese ? 'O canal Jordan atende exclusivamente no Brasil.' : 'El canal Jordan atiende exclusivamente en Brasil.')
       return
     }
+    if (formData.careCountry === 'BR' && !lgpdConsent) {
+      setFormError('Ao continuar, você precisa aceitar os termos de teleconsulta e o tratamento de dados conforme a LGPD.')
+      return
+    }
     if (isJordanReferral && !jordanPaymentsEnabled) {
       setFormError(isPortuguese ? 'Este canal ainda não está disponível para atendimento.' : 'Este canal todavía no está disponible para atención.')
       return
@@ -257,7 +262,7 @@ export function PharmacyExpressConsultation({
         method: 'POST',
         body: {
           careCountry: formData.careCountry,
-          ...(formData.careCountry === 'BR' ? { patientCpf: documentNumber } : { patientDni: documentNumber }),
+          ...(formData.careCountry === 'BR' ? { patientCpf: documentNumber, lgpdConsent: true } : { patientDni: documentNumber }),
           patientName: formData.name.trim(),
           patientPhone: formData.phone.trim(),
           symptomSummary: reasonSummary,
@@ -445,6 +450,14 @@ export function PharmacyExpressConsultation({
                 />}
               </div>
 
+              {formData.careCountry === 'BR' && (
+                <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-relaxed text-slate-700">
+                  <input type="checkbox" required checked={lgpdConsent}
+                    onChange={(event) => setLgpdConsent(event.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-sky-600" />
+                  <span>Ao continuar, você concorda com os termos de teleconsulta e o tratamento de dados conforme a LGPD</span>
+                </label>
+              )}
               <div className="pt-2">
                 <button
                   type="submit"
