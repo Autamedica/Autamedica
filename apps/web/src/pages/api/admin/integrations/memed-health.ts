@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 /**
  * Read-only production credential smoke test for Memed.
  * Restricted to authenticated platform administrators. Does not create
@@ -39,7 +40,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(env.MEMED_PILOT_DOCTOR_ID)
       ? env.MEMED_PILOT_DOCTOR_ID : null;
     const admin = createAstroAdminClient(locals.runtime?.env);
-    const { data: clinicalScope, error: clinicalScopeError } = await admin
+    const { data: clinicalScope, error: clinicalScopeError } = await (admin as unknown as SupabaseClient)
       .from('platform_operational_domains')
       .select('clinical_status')
       .eq('scope_key', 'BR')
