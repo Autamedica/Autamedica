@@ -12,6 +12,7 @@ import { logger } from '@autamedica/shared'
 import { fetchApi } from '@/lib/api-client'
 import { useCallSession } from '@/hooks/calls/useCallSession'
 import { useConsultationContext } from '@/hooks/doctors/useConsultationContext'
+import { useCurrentDoctor } from '@/hooks/doctors/useRealDoctors'
 import { useDoctorWaitingRoom, formatWaitingCountdown, getWaitingCopy } from '@/hooks/doctors/useDoctorWaitingRoom'
 import { translateCallError } from '@/lib/calls/lib/call-error-messages'
 import { GuestLinkButton } from '@/components/doctors/calls/GuestLinkButton'
@@ -39,11 +40,11 @@ const NOTES_AUTOSAVE_DELAY_MS = 900
 const CAPTION_HIDE_DELAY_MS = 3200
 const MAX_SUBTITLE_CHARS = 180
 
-function formatTranscriptForUi(value: string): string {
+function formatTranscriptForUi(value: string, locale: string): string {
   return value
     .replace(/\s+/g, ' ')
     .trim()
-    .toLocaleLowerCase('es-AR')
+    .toLocaleLowerCase(locale)
 }
 
 function appendTranscriptChunk(current: string, chunk: string): string {
@@ -53,8 +54,8 @@ function appendTranscriptChunk(current: string, chunk: string): string {
   return `${current}${/[\s\n]$/.test(current) ? '' : ' '}${nextChunk}`
 }
 
-function toSubtitleText(value: string): string {
-  const normalized = formatTranscriptForUi(value)
+function toSubtitleText(value: string, locale: string): string {
+  const normalized = formatTranscriptForUi(value, locale)
   if (normalized.length <= MAX_SUBTITLE_CHARS) return normalized
   return `…${normalized.slice(-MAX_SUBTITLE_CHARS)}`
 }
@@ -82,6 +83,10 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const [callCompletionError, setCallCompletionError] = useState<string | null>(null)
   const [isCompletingDispatch, setIsCompletingDispatch] = useState(false)
   const { context, loading: contextLoading, error: contextError } = useConsultationContext(roomId)
+  const { doctor } = useCurrentDoctor(session?.user?.id)
+  const doctorCountry = (doctor as (NonNullable<typeof doctor> & { care_country?: string }) | null)?.care_country
+  const isBrazilianDoctor = doctorCountry === 'BR' || context?.dispatchTriage?.careCountry === 'BR'
+  const transcriptionLocale = isBrazilianDoctor ? 'pt-BR' : 'es-AR'
   const {
     session: callSession,
     loading: callSessionLoading,
@@ -93,7 +98,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const { iceServers: clientTurnServers, loading: turnLoading } = useTurnCredentials('/api/doctors/turn-credentials')
 
   // Transcription — mandatory, automatic, silent
-  const [transcriptionState, transcriptionActions] = useAudioTranscription('es-AR')
+  const [transcriptionState, transcriptionActions] = useAudioTranscription(transcriptionLocale)
   const callStartTimeRef = useRef<number | null>(null)
   const transcriptionSavedRef = useRef(false)
   const transcriptionStartedRef = useRef(false)
@@ -172,7 +177,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     if (freshSegments.length === 0) return
 
     const nextChunk = freshSegments
-      .map((segment) => formatTranscriptForUi(segment.text))
+      .map((segment) => formatTranscriptForUi(segment.text, transcriptionLocale))
       .filter(Boolean)
       .join(' ')
 
@@ -198,7 +203,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
         clearTimeout(captionTimeoutRef.current)
         captionTimeoutRef.current = null
       }
-      setCaptionText(toSubtitleText(transcriptionState.interimText))
+      setCaptionText(toSubtitleText(transcriptionState.interimText, transcriptionLocale))
       return
     }
 
@@ -208,7 +213,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     }
 
     latestCaptionTimestampRef.current = latestFinalSegment.timestamp
-    setCaptionText(toSubtitleText(latestFinalSegment.text))
+    setCaptionText(toSubtitleText(latestFinalSegment.text, transcriptionLocale))
     if (captionTimeoutRef.current) clearTimeout(captionTimeoutRef.current)
     captionTimeoutRef.current = setTimeout(() => {
       setCaptionText('')
