@@ -109,6 +109,10 @@
     <string name="cert_rest_24h">24 hs</string>
     <string name="cert_rest_48h">48 hs</string>
     <string name="cert_rest_days_format">%1$d días</string>
+    <string name="cert_rest_unit_days">Por días</string>
+    <string name="cert_rest_unit_hours">Por horas</string>
+    <string name="cert_rest_unit_none">Sin dispensa</string>
+    <string name="cert_rest_hours_format">%1$d horas</string>
     <string name="cert_rest_start_date_label">Fecha de inicio:</string>
     <string name="cert_rest_end_date_label">Reintegro previsto:</string>
     <string name="cert_diag_section_title">Diagnóstico y Certificación Clínica</string>
