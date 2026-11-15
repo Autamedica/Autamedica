@@ -84,7 +84,7 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
       }
       prevQueueLengthRef.current = items.length
     } catch {
-      // Ignorar fallos transitorios
+      setError('No se pudo actualizar el radar de guardia')
     }
   }, [onDuty])
 
@@ -95,6 +95,7 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
   // Poll queue every 5 seconds when onDuty is active
   useEffect(() => {
     if (!onDuty) {
+      void fetchQueue()
       setQueue([])
       prevQueueLengthRef.current = 0
       return
