@@ -1049,6 +1049,11 @@ export function DoctorsPrescriptionsPage() {
             refresh();
           }}
           onClose={() => setShowMemedWidget(false)}
+          onFallbackToNativePrescription={() => {
+            setShowMemedWidget(false);
+            setEditingPrescription(null);
+            setShowCreateModal(true);
+          }}
         />
       )}
     </DoctorsPortalFrame>
