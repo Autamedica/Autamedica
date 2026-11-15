@@ -193,6 +193,24 @@ class DoctorCertificatesViewModelTest {
     }
 
     @Test
+    fun certificateCanBePreparedForAnHourBasedLeavePeriod() = runTest {
+        viewModel.initCreateCertificate("pat-1")
+        viewModel.onRestPeriodUnitChange("hours")
+        viewModel.onRestHoursChange(4)
+        viewModel.onDiagnosisChange("Consulta e avaliação clínica")
+
+        viewModel.onSubmitCertificate()
+
+        val state = viewModel.uiState.value
+        assertThat(state.daysOfRest).isEqualTo(0)
+        assertThat(state.restHours).isEqualTo(4)
+        assertThat(state.endDate).isNull()
+        assertThat(fakeCertRepo.lastRequest?.daysOfRest).isEqualTo(0)
+        assertThat(fakeCertRepo.lastRequest?.restHours).isEqualTo(4)
+        assertThat(state.createdCertificate?.restHours).isEqualTo(4)
+    }
+
+    @Test
     fun submitFailsWhenNoPatientSelected() = runTest {
         viewModel.initCreateCertificate("")
         viewModel.onDiagnosisChange("Diagnóstico válido")
@@ -234,6 +252,8 @@ private class FakeDoctorCertificateRepository(
     private val certificates: List<MedicalCertificate>,
     private val patients: List<PrescriptionPatientItem>,
 ) : MedicalCertificateRepository {
+    var lastRequest: CreateCertificateRequest? = null
+
     override suspend fun getPatientCertificates(): Result<List<MedicalCertificate>> =
         Result.success(certificates)
 
@@ -244,12 +264,14 @@ private class FakeDoctorCertificateRepository(
         Result.success(certificates)
 
     override suspend fun createCertificate(request: CreateCertificateRequest): Result<MedicalCertificate> {
+        lastRequest = request
         val cert = MedicalCertificate(
             id = "new-cert",
             cuir = "AR-CERT-20260912-TEST01",
             status = "draft",
             certificateType = request.certificateType,
             daysOfRest = request.daysOfRest,
+            restHours = request.restHours,
             startDate = request.startDate,
             endDate = request.endDate,
             diagnosis = if (request.hideDiagnosis) null else request.diagnosis,
@@ -281,5 +303,5 @@ private class FakeDoctorPrescriptionRepository(
     override suspend fun cancelPrescription(prescriptionId: String, reason: String): Result<Unit> = Result.success(Unit)
     override suspend fun getEligiblePatients(): Result<List<PrescriptionPatientItem>> = Result.success(patients)
     override suspend fun getDoctorEligibility(): Result<DoctorEligibility> =
-        Result.success(DoctorEligibility(true, "MP006402", "valid"))
+        Result.success(DoctorEligibility(true, "MP006402", "valid", countryCode = "AR"))
 }
