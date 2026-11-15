@@ -288,12 +288,12 @@ describe('Memed DEMO flow: synthetic doctor + synthetic patient, no real provide
     expect(state.rows).toHaveLength(1);
   });
 
-  it('blocks new Memed issuance while Brazil clinical governance is pending', async () => {
-    state.clinicalStatus = 'pending_issuance';
+  it.each(['ready', 'pending_issuance'] as const)('allows Memed initialization while Brazil clinical governance is %s', async (clinicalStatus) => {
+    state.clinicalStatus = clinicalStatus;
     const token = await callToken();
-    expect(token.status).toBe(403);
-    expect(token.error?.message).toBe('brazil_clinical_issuance_pending');
-    expect(state.requests).toEqual([]);
+    expect(token.status).toBe(200);
+    expect(token.data.patient).toHaveProperty('cpf', fakePatientCpf);
+    expect(state.requests).toContain(`GET /v1/sinapse-prescricao/usuarios/${fakeDoctorCpf}`);
     expect(state.rows).toHaveLength(0);
   });
 
