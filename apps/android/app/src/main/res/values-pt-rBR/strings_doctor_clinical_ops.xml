@@ -164,6 +164,7 @@
     <string name="in_call_prescription_issued">Receita emitida na AutaMedica</string>
     <string name="in_call_document_reference">Código de validação: %1$s</string>
     <string name="in_call_document_chat_notice">O documento fica disponível no chat da consulta.</string>
+    <string name="in_call_chat_recorded">O registro foi enviado ao chat da consulta. Isso não comprova assinatura digital nem homologação do fornecedor.</string>
     <string name="in_call_back_to_call">Voltar à chamada</string>
     <string name="in_call_prepare_another">Preparar outro documento</string>
     <string name="in_call_medication_label">Medicamento *</string>
