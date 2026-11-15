@@ -633,7 +633,7 @@ fun VideoCallScreen(
         )
     }
 
-    if (uiState.showSoapEvolution) {
+    if (uiState.isDoctor) {\n        if (uiState.showSoapEvolution) {
         SoapEvolutionSheet(
             soapData = uiState.soapData,
             isSaving = uiState.isSavingSoap,
@@ -703,7 +703,7 @@ fun VideoCallScreen(
         )
     }
 
-    memedInCallUrl?.let { launchUrl ->
+\n    }\n\n    memedInCallUrl?.let { launchUrl ->
         MemedInCallWebView(
             url = launchUrl,
             sessionTokens = memedSessionTokens,

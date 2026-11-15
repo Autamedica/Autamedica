@@ -149,7 +149,7 @@ class AppointmentsViewModel @Inject constructor(
             val hour = timeParts.getOrNull(0)?.toIntOrNull() ?: 9
             val minute = timeParts.getOrNull(1)?.toIntOrNull() ?: 0
 
-            val argZone = ZoneId.of("America/Argentina/Buenos_Aires")
+            val argZone = careZone(_uiState.value.careCountry)
             val startDateTime = newDate.atTime(hour, minute).atZone(argZone).toOffsetDateTime()
             val durationMinutes = appointment.durationMinutes ?: 45
             val endDateTime = startDateTime.plusMinutes(durationMinutes.toLong())
@@ -308,7 +308,7 @@ class AppointmentsViewModel @Inject constructor(
                 val hour = timeParts.getOrNull(0)?.toIntOrNull() ?: 9
                 val minute = timeParts.getOrNull(1)?.toIntOrNull() ?: 0
 
-                val argZone = ZoneId.of("America/Argentina/Buenos_Aires")
+                val argZone = careZone(state.careCountry)
                 val startDateTime = state.selectedDate.atTime(hour, minute).atZone(argZone).toOffsetDateTime()
                 val endDateTime = startDateTime.plusMinutes(45)
 
@@ -359,12 +359,20 @@ class AppointmentsViewModel @Inject constructor(
         }
     }
 
+    private fun careZone(country: String?): ZoneId =
+        if (country == "BR") ZoneId.of("America/Sao_Paulo")
+        else ZoneId.of("America/Argentina/Buenos_Aires")
+
+    private fun careLocale(country: String?): Locale =
+        if (country == "BR") Locale.forLanguageTag("pt-BR")
+        else Locale.forLanguageTag("es-AR")
+
     private fun formatConfirmationDate(date: LocalDate): String {
         val today = LocalDate.now()
         return when (date) {
             today -> "hoy"
             today.plusDays(1) -> "mañana"
-            else -> date.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Locale("es", "AR")))
+            else -> date.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", careLocale(_uiState.value.careCountry)))
         }
     }
 
