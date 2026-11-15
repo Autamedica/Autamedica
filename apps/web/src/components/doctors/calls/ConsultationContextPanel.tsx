@@ -28,6 +28,7 @@ interface ConsultationContextPanelProps {
   voiceNotesAvailable: boolean;
   liveTranscriptPreview: string | null;
   onToggleVoiceNotes: () => void;
+  locale?: 'es-AR' | 'pt-BR';
 }
 
 const PRIORITY_STYLES: Record<string, { bg: string; text: string; label: string; icon: LucideIcon }> = {
@@ -36,13 +37,13 @@ const PRIORITY_STYLES: Record<string, { bg: string; text: string; label: string;
   medium: { bg: 'bg-am-doctor-50', text: 'text-am-doctor-700', label: 'Medio', icon: Info },
 };
 
-function PriorityBadge({ priority }: { priority: string }) {
+function PriorityBadge({ priority, locale = 'es-AR' }: { priority: string; locale?: 'es-AR' | 'pt-BR' }) {
   const style = PRIORITY_STYLES[priority] ?? PRIORITY_STYLES.medium;
   const Icon = style.icon;
   return (
     <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${style.bg} ${style.text}`}>
       <Icon className="h-2.5 w-2.5" />
-      {style.label}
+      {locale === 'pt-BR' ? (priority === 'medium' ? 'Médio' : style.label) : style.label}
     </span>
   );
 }
@@ -89,7 +90,7 @@ function SectionContainer({
   );
 }
 
-function RedFlagsPanel({ flags }: { flags: string[] }) {
+function RedFlagsPanel({ flags, locale = 'es-AR' }: { flags: string[]; locale?: 'es-AR' | 'pt-BR' }) {
   if (flags.length === 0) return null;
 
   return (
@@ -97,7 +98,7 @@ function RedFlagsPanel({ flags }: { flags: string[] }) {
       <div className="flex items-center gap-2 mb-2">
         <AlertCircle className="h-4 w-4 text-red-600" />
         <h4 className="text-xs font-bold text-red-700 uppercase tracking-widest">
-          Alertas de seguridad
+          {locale === 'pt-BR' ? 'Alertas de segurança' : 'Alertas de seguridad'}
         </h4>
       </div>
       <ul className="space-y-1.5">
@@ -112,7 +113,7 @@ function RedFlagsPanel({ flags }: { flags: string[] }) {
   );
 }
 
-function QuestionsList({ questions }: { questions: SuggestedQuestion[] }) {
+function QuestionsList({ questions, locale = 'es-AR' }: { questions: SuggestedQuestion[]; locale?: 'es-AR' | 'pt-BR' }) {
   const [checked, setChecked] = useState<Set<number>>(new Set());
 
   if (questions.length === 0) return null;
@@ -150,7 +151,7 @@ function QuestionsList({ questions }: { questions: SuggestedQuestion[] }) {
               {q.question}
             </p>
             <div className="mt-1.5">
-              <PriorityBadge priority={q.priority} />
+              <PriorityBadge priority={q.priority} locale={locale} />
             </div>
           </div>
         </button>
@@ -189,7 +190,9 @@ function LiveNotesSection({
   voiceNotesAvailable,
   liveTranscriptPreview,
   onToggleVoiceNotes,
+  locale = 'es-AR',
 }: {
+  locale?: 'es-AR' | 'pt-BR';
   liveNotes: string;
   onLiveNotesChange: (value: string) => void;
   notesSaveState: NotesSaveState;
@@ -206,10 +209,10 @@ function LiveNotesSection({
       <div className="px-4 pt-4 pb-2 flex items-center justify-between">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-am-surface-400">
-            Notas en vivo
+            {locale === 'pt-BR' ? 'Notas ao vivo' : 'Notas en vivo'}
           </p>
           <p className="mt-0.5 text-sm font-bold text-am-surface-900">
-            Texto + voz durante la llamada
+            {locale === 'pt-BR' ? 'Texto + voz durante a chamada' : 'Texto + voz durante la llamada'}
           </p>
         </div>
         
@@ -219,9 +222,9 @@ function LiveNotesSection({
           notesSaveState === 'error' ? 'bg-red-50 border-red-200 text-red-700' :
           'bg-am-doctor-50 border-am-doctor-200 text-am-doctor-700'
         }`}>
-          {notesSaveState === 'saving' ? 'GUARDANDO...' : 
-           notesSaveState === 'error' ? 'ERROR LOCAL' :
-           hasContent ? 'BORRADOR GUARDADO' : 'SIN NOTAS'}
+          {notesSaveState === 'saving' ? (locale === 'pt-BR' ? 'SALVANDO...' : 'GUARDANDO...') :
+           notesSaveState === 'error' ? (locale === 'pt-BR' ? 'ERRO LOCAL' : 'ERROR LOCAL') :
+           hasContent ? (locale === 'pt-BR' ? 'RASCUNHO SALVO' : 'BORRADOR GUARDADO') : (locale === 'pt-BR' ? 'SEM NOTAS' : 'SIN NOTAS')}
         </div>
       </div>
 
@@ -232,7 +235,7 @@ function LiveNotesSection({
           <textarea
             value={liveNotes}
             onChange={(event) => onLiveNotesChange(event.target.value)}
-            placeholder="Escribe o dicta observaciones breves..."
+            placeholder={locale === "pt-BR" ? "Escreva ou dite observações breves..." : "Escribe o dicta observaciones breves..."}
             className="h-36 w-full resize-none rounded-2xl border border-am-surface-200 bg-white px-4 py-3.5 text-sm leading-relaxed text-am-surface-800 placeholder:text-am-surface-400 focus:outline-none focus:ring-2 focus:ring-am-doctor-500/20 focus:border-am-doctor-500 transition-all shadow-am-sm"
           />
           <div className="absolute bottom-3 right-3 text-[10px] font-mono text-am-surface-300 group-focus-within:text-am-doctor-400 transition-colors">
@@ -254,12 +257,12 @@ function LiveNotesSection({
             {voiceNotesEnabled ? (
               <>
                 <Square className="h-3.5 w-3.5 fill-current" />
-                <span>DETENER DICTADO</span>
+                <span>{locale === 'pt-BR' ? 'PARAR DITADO' : 'DETENER DICTADO'}</span>
               </>
             ) : (
               <>
                 <Mic className="h-3.5 w-3.5" />
-                <span>ACTIVAR DICTADO</span>
+                <span>{locale === 'pt-BR' ? 'ATIVAR DITADO' : 'ACTIVAR DICTADO'}</span>
               </>
             )}
           </button>
@@ -271,7 +274,7 @@ function LiveNotesSection({
             <div className="flex items-center gap-1.5 mb-1">
               <span className="h-1.5 w-1.5 rounded-full bg-am-doctor-500 animate-pulse" />
               <p className="text-[10px] font-bold uppercase tracking-widest text-am-doctor-600">
-                Dictado en curso
+                {locale === 'pt-BR' ? 'Ditado em andamento' : 'Dictado en curso'}
               </p>
             </div>
             <p className="text-sm leading-relaxed text-am-surface-700 italic">
@@ -281,7 +284,7 @@ function LiveNotesSection({
         )}
 
         <p className="text-[10px] leading-4 text-am-surface-400 text-center font-medium">
-          Autoguardado cada 900ms · Reaparece en el reporte final
+          {locale === 'pt-BR' ? 'Salvamento automático a cada 900ms · Disponível no relatório final' : 'Autoguardado cada 900ms · Reaparece en el reporte final'}
         </p>
       </div>
     </div>
@@ -302,13 +305,15 @@ export function ConsultationContextPanel({
   voiceNotesAvailable,
   liveTranscriptPreview,
   onToggleVoiceNotes,
+  locale = 'es-AR',
 }: ConsultationContextPanelProps) {
+  const isPortuguese = locale === 'pt-BR';
   // Toggle button
   const toggleButton = (
     <button
       onClick={onToggle}
       className="absolute top-4 -left-5 z-20 h-10 w-10 rounded-xl bg-white border border-am-surface-200 shadow-am-md flex items-center justify-center hover:bg-am-surface-50 transition-all hover:scale-105 active:scale-95"
-      title={collapsed ? 'Ver Paciente' : 'Ocultar'}
+      title={collapsed ? (isPortuguese ? 'Ver paciente' : 'Ver paciente') : (isPortuguese ? 'Ocultar' : 'Ocultar')}
     >
       <ChevronDown className={`w-5 h-5 text-am-surface-600 transition-transform duration-500 ${collapsed ? '-rotate-90' : 'rotate-90'}`} />
     </button>
@@ -320,7 +325,7 @@ export function ConsultationContextPanel({
 
   const patientName = context?.patient?.name ?? 'Paciente';
   const age = context?.patient?.dateOfBirth ? calculateAge(context.patient.dateOfBirth) : null;
-  const gender = context?.patient?.gender === 'male' ? 'Masculino' : context?.patient?.gender === 'female' ? 'Femenino' : null;
+  const gender = context?.patient?.gender === 'male' ? (isPortuguese ? 'Masculino' : 'Masculino') : context?.patient?.gender === 'female' ? (isPortuguese ? 'Feminino' : 'Femenino') : null;
 
   return (
     <div className="relative h-full flex flex-col bg-white border-l border-am-surface-200 shadow-am-lg animate-in slide-in-from-right duration-500">
@@ -335,11 +340,11 @@ export function ConsultationContextPanel({
           <div className="min-w-0">
             <h3 className="text-base font-bold text-am-surface-900 truncate tracking-tight">{patientName}</h3>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-xs font-semibold text-am-surface-500">{gender || 'Género no especificado'}</span>
+              <span className="text-xs font-semibold text-am-surface-500">{gender || (isPortuguese ? 'Gênero não informado' : 'Género no especificado')}</span>
               {age && (
                 <>
                   <span className="h-1 w-1 rounded-full bg-am-surface-300" />
-                  <span className="text-xs font-semibold text-am-surface-500">{age} años</span>
+                  <span className="text-xs font-semibold text-am-surface-500">{age} {isPortuguese ? 'anos' : 'años'}</span>
                 </>
               )}
             </div>
@@ -351,7 +356,7 @@ export function ConsultationContextPanel({
             <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-am-surface-500">
               <span className="flex items-center gap-1">
                 <span className={`h-2 w-2 rounded-full ${context.completionPercentage >= 80 ? 'bg-am-doctor-500' : 'bg-amber-500'}`} />
-                Anamnesis
+                {isPortuguese ? 'Anamnese' : 'Anamnesis'}
               </span>
               <span>{context.completionPercentage}%</span>
             </div>
@@ -375,13 +380,14 @@ export function ConsultationContextPanel({
           voiceNotesAvailable={voiceNotesAvailable}
           liveTranscriptPreview={liveTranscriptPreview}
           onToggleVoiceNotes={onToggleVoiceNotes}
+          locale={locale}
         />
 
         <div className="py-2">
           {loading && (
             <div className="py-12 flex flex-col items-center justify-center opacity-50">
               <Loader2 className="h-8 w-8 text-am-doctor-500 animate-spin mb-4" />
-              <p className="text-xs font-bold text-am-surface-400 uppercase tracking-widest">Sincronizando ficha...</p>
+              <p className="text-xs font-bold text-am-surface-400 uppercase tracking-widest">{isPortuguese ? 'Sincronizando prontuário...' : 'Sincronizando ficha...'}</p>
             </div>
           )}
 
@@ -397,11 +403,11 @@ export function ConsultationContextPanel({
               <div className="mx-auto h-16 w-16 rounded-3xl bg-am-surface-50 flex items-center justify-center text-am-surface-200 mb-4 border border-am-surface-100">
                 <Clipboard className="h-8 w-8" />
               </div>
-              <h4 className="text-sm font-bold text-am-surface-800 uppercase tracking-tight">Sin anamnesis activa</h4>
+              <h4 className="text-sm font-bold text-am-surface-800 uppercase tracking-tight">{isPortuguese ? 'Sem anamnese ativa' : 'Sin anamnesis activa'}</h4>
               <p className="mt-2 text-xs text-am-surface-500 leading-relaxed max-w-[200px] mx-auto">
                 {context?.reason === 'not_shared' 
-                  ? 'El paciente optó por no compartir su historial clínico digital.' 
-                  : 'El paciente aún no ha completado el formulario pre-consulta.'}
+                  ? (isPortuguese ? 'O paciente optou por não compartilhar seu histórico clínico digital.' : 'El paciente optó por no compartir su historial clínico digital.')
+                  : (isPortuguese ? 'O paciente ainda não preencheu o formulário pré-consulta.' : 'El paciente aún no ha completado el formulario pre-consulta.')}
               </p>
             </div>
           )}
@@ -409,14 +415,14 @@ export function ConsultationContextPanel({
           {!loading && !error && context?.hasAnamnesis && (
             <div className="divide-y divide-am-surface-50">
               {/* Safety/Critical Info */}
-              <RedFlagsPanel flags={context.redFlags} />
+              <RedFlagsPanel flags={context.redFlags} locale={locale} />
 
               {/* Chief Complaint */}
               {context.extraction?.chiefComplaint && (
                 <div className="px-5 py-4 bg-white">
                   <div className="flex items-center gap-2 mb-2">
                     <Search className="h-3.5 w-3.5 text-am-doctor-500" />
-                    <h4 className="text-[10px] font-bold text-am-doctor-600 uppercase tracking-[0.15em]">Motivo de consulta</h4>
+                    <h4 className="text-[10px] font-bold text-am-doctor-600 uppercase tracking-[0.15em]">{isPortuguese ? 'Motivo da consulta' : 'Motivo de consulta'}</h4>
                   </div>
                   <p className="text-sm font-bold text-am-surface-900 leading-relaxed border-l-2 border-am-doctor-200 pl-3">
                     {context.extraction.chiefComplaint.normalizedMedicalText || context.extraction.chiefComplaint.rawText}
@@ -425,23 +431,23 @@ export function ConsultationContextPanel({
               )}
 
               {/* Clinical Sections */}
-              <SectionContainer title="Relato de enfermedad actual" icon={Activity} defaultOpen={true}>
+              <SectionContainer title={isPortuguese ? "Relato da doença atual" : "Relato de enfermedad actual"} icon={Activity} defaultOpen={true}>
                 <p className="text-sm text-am-surface-700 leading-relaxed font-medium">
-                  {context.extraction?.presentIllness?.clinicalNarrative || 'No se extrajo relato estructurado.'}
+                  {context.extraction?.presentIllness?.clinicalNarrative || (isPortuguese ? 'Não foi extraído um relato estruturado.' : 'No se extrajo relato estructurado.')}
                 </p>
               </SectionContainer>
 
-              <SectionContainer title="Repreguntas prioritarias" icon={HelpCircle} defaultOpen={true} badge={
+              <SectionContainer title={isPortuguese ? "Perguntas complementares prioritárias" : "Repreguntas prioritarias"} icon={HelpCircle} defaultOpen={true} badge={
                 context.suggestedQuestions.length > 0 && (
                   <span className="ml-1 px-1.5 rounded-full bg-am-doctor-600 text-white text-[9px] font-bold">{context.suggestedQuestions.length}</span>
                 )
               }>
-                <QuestionsList questions={context.suggestedQuestions} />
+                <QuestionsList questions={context.suggestedQuestions} locale={locale} />
               </SectionContainer>
 
               {/* Physiological History */}
               {context.extraction?.personalHistory?.physiological && (
-                <SectionContainer title="Antecedentes fisiológicos" icon={User}>
+                <SectionContainer title={isPortuguese ? "Antecedentes fisiológicos" : "Antecedentes fisiológicos"} icon={User}>
                   <ul className="grid gap-1.5">
                     {context.extraction.personalHistory.physiological.map((item, i) => (
                       <li key={i} className="flex items-center gap-2 text-xs font-semibold text-am-surface-600 bg-am-surface-50 px-3 py-2 rounded-xl">
@@ -455,7 +461,7 @@ export function ConsultationContextPanel({
 
               {/* Pathological History */}
               {context.extraction?.personalHistory?.pathological && (
-                <SectionContainer title="Antecedentes patológicos" icon={AlertCircle}>
+                <SectionContainer title={isPortuguese ? "Antecedentes patológicos" : "Antecedentes patológicos"} icon={AlertCircle}>
                    <ul className="grid gap-1.5">
                     {context.extraction.personalHistory.pathological.map((item, i) => (
                       <li key={i} className="flex items-center gap-2 text-xs font-semibold text-am-surface-800 bg-red-50/30 px-3 py-2 rounded-xl border border-red-100/50">
@@ -469,7 +475,7 @@ export function ConsultationContextPanel({
 
               {/* Family History */}
               {context.extraction?.familyHistory && context.extraction.familyHistory.length > 0 && (
-                <SectionContainer title="Antecedentes familiares" icon={Users}>
+                <SectionContainer title={isPortuguese ? "Histórico familiar" : "Antecedentes familiares"} icon={Users}>
                   <ul className="grid gap-1.5">
                     {context.extraction.familyHistory.map((item, i) => (
                       <li key={i} className="flex items-start gap-2 text-xs font-semibold text-am-surface-600 bg-am-surface-50 px-3 py-2 rounded-xl">
@@ -486,7 +492,7 @@ export function ConsultationContextPanel({
                 <div className="px-5 py-6 bg-amber-50/30">
                   <div className="flex items-center gap-2 mb-3">
                     <History className="h-4 w-4 text-amber-600" />
-                    <h4 className="text-[10px] font-bold text-amber-700 uppercase tracking-widest">Alertas de calidad del relato</h4>
+                    <h4 className="text-[10px] font-bold text-amber-700 uppercase tracking-widest">{isPortuguese ? 'Alertas de qualidade do relato' : 'Alertas de calidad del relato'}</h4>
                   </div>
                   <ul className="space-y-3">
                     {context.extraction.qualityAlerts.map((alert, i) => (
@@ -509,7 +515,7 @@ export function ConsultationContextPanel({
       
       <div className="px-4 py-3 bg-am-surface-50 border-t border-am-surface-100 text-center">
         <p className="text-[9px] font-bold text-am-surface-400 uppercase tracking-tighter">
-          AutaMedica AI · Procesamiento clínico en tiempo real
+          AutaMedica AI · {isPortuguese ? 'Processamento clínico em tempo real' : 'Procesamiento clínico en tiempo real'}
         </p>
       </div>
     </div>
