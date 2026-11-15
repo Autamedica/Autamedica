@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { badRequest, forbidden, internalError, jsonOk } from '@/lib/api-helpers';
 import { DOCTOR_ROLES, isAuthed, withAuthRole } from '@/lib/api-auth';
 import { createAstroAdminClient } from '@/lib/supabase';
@@ -33,7 +34,7 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
 
   try {
     const admin = createAstroAdminClient(locals?.runtime?.env);
-    const { data: clinicalScope, error: clinicalScopeError } = await admin
+    const { data: clinicalScope, error: clinicalScopeError } = await (admin as unknown as SupabaseClient)
       .from('platform_operational_domains')
       .select('clinical_status')
       .eq('scope_key', 'BR')
