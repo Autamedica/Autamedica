@@ -605,7 +605,16 @@ fun InCallClinicalBottomSheet(
                                             )
                                         }
                                         Text(
-                                            text = type.displayName,
+                                            text = stringResource(
+                                                when (type) {
+                                                    CertificateType.REPOSO_LABORAL -> R.string.cert_type_reposo_laboral
+                                                    CertificateType.REPOSO_ESCOLAR -> R.string.cert_type_reposo_escolar
+                                                    CertificateType.APTITUD_FISICA -> R.string.cert_type_aptitud_fisica
+                                                    CertificateType.CONSTANCIA_ATENCION -> R.string.cert_type_constancia_atencion
+                                                    CertificateType.TRATAMIENTO -> R.string.cert_type_tratamiento
+                                                    CertificateType.OTRO -> R.string.cert_type_otro
+                                                },
+                                            ),
                                             style = MaterialTheme.typography.bodySmall,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                             color = if (isSelected) PortalDoctor else AuTextPrimary,
@@ -629,7 +638,8 @@ fun InCallClinicalBottomSheet(
                         ) {
                             listOf(0, 1, 2, 3, 5, 7, 10, 14).forEach { days ->
                                 val isSelected = daysOfRest == days
-                                val label = if (days == 0) "Sin reposo" else "$days d"
+                                val label = if (days == 0) stringResource(R.string.cert_no_rest)
+                                else stringResource(R.string.cert_rest_days_format, days)
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
                                     color = if (isSelected) PortalDoctor else AuBackground,
