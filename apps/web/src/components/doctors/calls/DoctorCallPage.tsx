@@ -484,9 +484,9 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   if (callSessionError) {
     const errorInfo = translateCallError(callSessionError)
     return (
-      <div className="flex min-h-screen items-center justify-center bg-am-surface-900 px-4">
-        <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-am-surface-900 p-8 text-center shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-am-doctor-400">
+      <div className="flex min-h-screen items-center justify-center bg-[#0D1F2D] px-4">
+        <div className="w-full max-w-md rounded-3xl border border-white/10 bg-am-surface-900 p-8 text-center shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2DD4BF]">
             Telemedicina profesional
           </p>
           <div className="mx-auto mb-4 mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
@@ -494,8 +494,8 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-1.333-2.694-1.333-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
-          <h1 className="text-xl font-semibold text-am-surface-50">{errorInfo.title}</h1>
-          <p className="mt-3 text-sm text-slate-500">{errorInfo.description}</p>
+          <h1 className="text-xl font-semibold text-white">{errorInfo.title}</h1>
+          <p className="mt-3 text-sm text-slate-300">{errorInfo.description}</p>
           {errorInfo.retryHint && (
             <p className="mt-2 text-sm text-amber-600">{errorInfo.retryHint}</p>
           )}
@@ -503,14 +503,14 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             <button
               type="button"
               onClick={() => void refreshCallSession()}
-              className="rounded-2xl bg-am-doctor-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-am-doctor-700"
+              className="rounded-2xl bg-[#0D9488] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#0F766E]"
             >
               Reintentar
             </button>
             <button
               type="button"
               onClick={() => { window.location.href = '/doctors' }}
-              className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-am-surface-900"
+              className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-200 transition-colors hover:bg-am-surface-900"
             >
               Volver al portal
             </button>
@@ -610,11 +610,11 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                 </div>
               </div>
 
-              <p className="mt-4 text-base leading-7 text-am-surface-300">
+              <p className="mt-4 text-base leading-7 text-slate-300">
                 {waitingCopy.description}
               </p>
 
-              <div className="mt-8 rounded-2xl border border-slate-100 bg-am-surface-900 p-5">
+              <div className="mt-8 rounded-2xl border border-white/10 bg-am-surface-900 p-5">
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm font-semibold text-am-surface-50">Estado de invitacion</p>
@@ -651,7 +651,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                   <button
                     type="button"
                     onClick={() => { window.location.href = '/doctors' }}
-                    className="inline-flex items-center justify-center rounded-2xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white hover:bg-sky-700 transition-colors"
+                    className="inline-flex items-center justify-center rounded-2xl bg-[#0D9488] px-5 py-3 text-sm font-semibold text-white hover:bg-[#0F766E] transition-colors"
                   >
                     Volver al portal
                   </button>
