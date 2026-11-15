@@ -26,8 +26,8 @@ const isValidIsoDate = (value: string): boolean => {
 async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: string, providedCpf?: string, patientId?: unknown, patientDemographics?: { birthDate: string; gender: 'male' | 'female' }): Promise<Response> {
   const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
   if (!isAuthed(auth)) return auth;
-  // Clinical Memed issuance remains disabled until signature and patient
-  // delivery are validated in a controlled end-to-end production encounter.
+  // Allow Memed initialization in ready/pending_issuance; provider signing and
+  // patient delivery remain separate, explicit lifecycle validations.
   if (locals.runtime?.env?.MEMED_RX_ENABLED !== 'true') {
     return forbidden('memed_issuance_not_enabled');
   }
