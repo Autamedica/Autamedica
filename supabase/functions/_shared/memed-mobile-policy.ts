@@ -2,6 +2,17 @@
 export const MEMED_MOBILE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const MEMED_MOBILE_URL_BASE = 'https://doctor.autamedica.com/doctors/prescriptions/memed-mobile';
 
+/** Legacy Memed RX settings remain valid while mobile-specific settings roll out. */
+export function memedMobileFeatureEnabled(mobileEnabled: string | undefined, rxEnabled: string | undefined): boolean {
+  return mobileEnabled === 'true' || rxEnabled === 'true';
+}
+
+export function resolveMemedMobilePilotDoctorId(mobilePilotId: string | undefined, legacyPilotId: string | undefined): string | null {
+  const mobileId = mobilePilotId?.trim();
+  const legacyId = legacyPilotId?.trim();
+  return mobileId || legacyId || null;
+}
+
 export function validMemedMobileAppointment(input: unknown): input is string {
   return typeof input === 'string' && MEMED_MOBILE_UUID.test(input);
 }

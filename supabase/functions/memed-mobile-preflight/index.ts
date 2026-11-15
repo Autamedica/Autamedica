@@ -10,6 +10,8 @@ import {
   validMemedMobileAppointment,
   verifiedBrazilLicense,
   validBrazilPatientIdentity,
+  memedMobileFeatureEnabled,
+  resolveMemedMobilePilotDoctorId,
 } from '../_shared/memed-mobile-policy.ts';
 
 const NO_STORE = {'Cache-Control': 'private, no-store', 'Referrer-Policy': 'no-referrer'};
@@ -27,7 +29,7 @@ export async function handler(req: Request): Promise<Response> {
   try {
     const auth = await requireAuth(req, cors);
     // Fail closed until a verified live pilot is explicitly provisioned.
-    if (Deno.env.get('MEMED_MOBILE_ENABLED') !== 'true') {
+    if (!memedMobileFeatureEnabled(Deno.env.get('MEMED_MOBILE_ENABLED'), Deno.env.get('MEMED_RX_ENABLED'))) {
       return reply({code: 'MEMED_MOBILE_DISABLED'}, 503, cors);
     }
     const bodyText = await req.text();
@@ -51,7 +53,10 @@ export async function handler(req: Request): Promise<Response> {
     const {data: doctor, error: doctorError} = await db.from('doctors')
       .select('id, active, license_type, license_number, uf_brazil, care_country')
       .eq('user_id', user.id).maybeSingle();
-    const pilotId = Deno.env.get('MEMED_MOBILE_PILOT_DOCTOR_ID');
+    const pilotId = resolveMemedMobilePilotDoctorId(
+      Deno.env.get('MEMED_MOBILE_PILOT_DOCTOR_ID'),
+      Deno.env.get('MEMED_PILOT_DOCTOR_ID'),
+    );
     if (doctorError || !doctor || !pilotId || pilotId !== doctor.id) {
       return reply({code: 'PILOT_DOCTOR_REQUIRED'}, 403, cors);
     }

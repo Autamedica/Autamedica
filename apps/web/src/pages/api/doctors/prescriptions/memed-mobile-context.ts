@@ -14,8 +14,8 @@ export const GET: APIRoute = async ({request, locals}) => {
   if (!isAuthed(auth)) return auth;
   // Clinical issuance remains separately gated; never open the SDK on a
   // mobile route when the existing clinical pilot is disabled.
-  if (locals.runtime?.env?.MEMED_RX_ENABLED !== 'true' ||
-      locals.runtime?.env?.MEMED_MOBILE_ENABLED !== 'true') {
+  if (locals.runtime?.env?.MEMED_MOBILE_ENABLED !== 'true' &&
+      locals.runtime?.env?.MEMED_RX_ENABLED !== 'true') {
     return forbidden('memed_mobile_not_enabled');
   }
   const appointmentId = new URL(request.url).searchParams.get('appointmentId') ?? '';
@@ -32,7 +32,8 @@ export const GET: APIRoute = async ({request, locals}) => {
       .eq('user_id', auth.user.id).maybeSingle();
     if (doctorError || !doctor?.active || doctor.license_type !== 'CRM' ||
       doctor.care_country !== 'BR' ||
-      doctor.id !== locals.runtime?.env?.MEMED_PILOT_DOCTOR_ID) {
+      doctor.id !== (locals.runtime?.env?.MEMED_MOBILE_PILOT_DOCTOR_ID ||
+        locals.runtime?.env?.MEMED_PILOT_DOCTOR_ID)) {
       return forbidden('memed_pilot_doctor_required');
     }
     const {data: licenses, error: licenseError} = await admin.from('doctor_licenses')
