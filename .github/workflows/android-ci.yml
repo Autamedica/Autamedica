@@ -9,6 +9,7 @@ on:
       - 'supabase/functions/_shared/memed-mobile-policy.ts'
       - 'supabase/functions/memed-mobile-preflight/**'
       - 'apps/web/src/pages/api/doctors/prescriptions/memed-mobile-context.ts'
+      - '.github/workflows/deploy-production.yml'
       - '.github/workflows/android-ci.yml'
   push:
     branches: [main]
@@ -17,6 +18,7 @@ on:
       - 'supabase/functions/_shared/memed-mobile-policy.ts'
       - 'supabase/functions/memed-mobile-preflight/**'
       - 'apps/web/src/pages/api/doctors/prescriptions/memed-mobile-context.ts'
+      - '.github/workflows/deploy-production.yml'
       - '.github/workflows/android-ci.yml'
   workflow_dispatch:
 
