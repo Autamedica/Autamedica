@@ -867,7 +867,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                 href="/doctors/consultations"
                 className="inline-flex items-center gap-1.5 text-[12px] font-bold text-neutral-900 hover:text-cyan-600 transition-colors"
               >
-                Ver historiales
+                {isBrazilianDoctor ? 'Ver prontuários' : 'Ver historiales'}
                 <ArrowRight className="h-3.5 w-3.5" />
               </a>
             </div>
@@ -890,10 +890,10 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
         <div className="mb-5 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-normal tracking-tight text-neutral-900">
-              Inteligencia Clínica y Alertas del Motor
+              {isBrazilianDoctor ? 'Inteligência clínica e alertas do sistema' : 'Inteligencia clínica y alertas del motor'}
             </h2>
             <p className="text-[13px] text-neutral-400 mt-0.5">
-              Eventos clínicos en tiempo real y vencimientos generados por nuestro motor de reglas.
+              {isBrazilianDoctor ? 'Eventos clínicos em tempo real e vencimentos gerados pelo nosso mecanismo de regras.' : 'Eventos clínicos en tiempo real y vencimientos generados por nuestro motor de reglas.'}
             </p>
           </div>
           <div className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-[11px] font-medium text-neutral-600">
@@ -954,8 +954,8 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                           <h4 className="mt-1 text-[12px] font-bold text-neutral-900">{alert.title}</h4>
                           <p className="mt-1 text-[11px] leading-relaxed text-neutral-600">{alert.message}</p>
                           <div className="mt-2.5 flex items-center justify-between text-[10px] text-neutral-400">
-                            <span>Origen: {alert.source_table === 'medication_logs' ? (isBrazilianDoctor ? 'Tomada' : 'Toma') : 'Chatbot'}</span>
-                            <span>{new Date(alert.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}</span>
+                            <span>{isBrazilianDoctor ? 'Origem' : 'Origen'}: {alert.source_table === 'medication_logs' ? (isBrazilianDoctor ? 'Tomada' : 'Toma') : 'Chatbot'}</span>
+                            <span>{new Date(alert.created_at).toLocaleDateString(isBrazilianDoctor ? 'pt-BR' : 'es-AR', { day: '2-digit', month: 'short' })}</span>
                           </div>
                         </div>
                       );
