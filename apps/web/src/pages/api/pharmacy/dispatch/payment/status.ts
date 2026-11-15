@@ -24,7 +24,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!dispatch) return unauthorized('pharmacy_request_token_required')
 
     const fetchPayment = async () => admin!.from('pharmacy_dispatch_payments')
-      .select('id,provider_payment_id,status,amount_minor,currency')
+      .select('id,provider,provider_payment_id,status,amount_minor,currency,metadata')
       .eq('dispatch_request_id',dispatch.id)
       .maybeSingle()
 
@@ -63,6 +63,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       status: latest?.status ?? 'not_started',
       amountCents: latest?.amount_minor ?? null,
       currency: latest?.currency ?? null,
+      manualApprovalRequired: latest?.status === 'pending' && latest?.provider === 'manual'
+        && latest?.metadata?.manual_approval_pending === true,
     })
   } catch (error) {
     logger.error('[pharmacy-payment/status] Error checking payment', {
