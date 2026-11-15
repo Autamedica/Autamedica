@@ -45,6 +45,7 @@ const state = {
   doctorProfile: {} as Row,
   patientProfile: {} as Row,
   license: {} as Row,
+  clinicalStatus: 'ready' as 'ready' | 'pending_issuance',
   careLink: true,
   providerDoctorCpf: fakeDoctorCpf,
   providerPatientCpf: fakePatientCpf,
@@ -79,6 +80,7 @@ function resetState() {
     cfm_reviewed_at: '2026-11-12T18:00:00.000Z',
     cfm_last_checked_at: '2026-11-12T18:00:00.000Z',
   };
+  state.clinicalStatus = 'ready';
   state.careLink = true;
   state.providerDoctorCpf = fakeDoctorCpf;
   state.providerPatientCpf = fakePatientCpf;
@@ -92,6 +94,9 @@ function resetState() {
 
 function readTable(table: string, filters: Map<string, unknown>): Row | Row[] | null {
   switch (table) {
+    case 'platform_operational_domains':
+      return filters.get('scope_key') === 'BR'
+        ? { scope_key: 'BR', clinical_status: state.clinicalStatus } : null;
     case 'doctors':
       return filters.get('user_id') === doctorUserId ? state.doctor : null;
     case 'doctor_licenses':
@@ -281,6 +286,15 @@ describe('Memed DEMO flow: synthetic doctor + synthetic patient, no real provide
     expect(duplicate.status).toBe(200);
     expect(duplicate.data).toMatchObject({ duplicate: true, status: 'draft' });
     expect(state.rows).toHaveLength(1);
+  });
+
+  it('blocks new Memed issuance while Brazil clinical governance is pending', async () => {
+    state.clinicalStatus = 'pending_issuance';
+    const token = await callToken();
+    expect(token.status).toBe(403);
+    expect(token.error?.message).toBe('brazil_clinical_issuance_pending');
+    expect(state.requests).toEqual([]);
+    expect(state.rows).toHaveLength(0);
   });
 
   it('blocks both Memed routes when a legacy valid CRM has no manual review evidence', async () => {
