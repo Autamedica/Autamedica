@@ -57,6 +57,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
                 status = row.status,
                 certificateType = CertificateType.fromCode(row.certificateType),
                 daysOfRest = row.daysOfRest,
+                restHours = row.restHours,
                 startDate = row.startDate,
                 endDate = row.endDate,
                 diagnosis = if (row.hideDiagnosis) null else row.diagnosis,
@@ -95,6 +96,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             status = row.status,
             certificateType = CertificateType.fromCode(row.certificateType),
             daysOfRest = row.daysOfRest,
+            restHours = row.restHours,
             startDate = row.startDate,
             endDate = row.endDate,
             diagnosis = if (row.hideDiagnosis) null else row.diagnosis,
@@ -167,10 +169,20 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
     override suspend fun createCertificate(request: CreateCertificateRequest): Result<MedicalCertificate> = runCatching {
         require(request.patientId.isNotBlank()) { "ID de paciente requerido" }
         val startDate = LocalDate.parse(request.startDate)
+        require(request.daysOfRest in 0..365) { "Días de dispensa fuera del rango permitido" }
+        require(request.restHours in 0..8760) { "Horas de dispensa fuera del rango permitido" }
+        require(request.daysOfRest == 0 || request.restHours == 0) {
+            "La dispensa debe expresarse en días o en horas, no en ambas unidades"
+        }
         val expectedEndDate = InCallDocumentPolicy.inclusiveEndDate(startDate, request.daysOfRest)?.toString()
         require(request.endDate == expectedEndDate) { "Período de reposo inconsistente" }
-        require(request.daysOfRest == 0 || !request.diagnosis.isNullOrBlank()) {
-            "El diagnóstico clínico es obligatorio para un certificado de reposo"
+        require(request.restHours == 0 || request.endDate == null) {
+            "Una dispensa por horas no debe definir una fecha de reintegro por días"
+        }
+        require(
+            (request.daysOfRest == 0 && request.restHours == 0) || !request.diagnosis.isNullOrBlank()
+        ) {
+            "El diagnóstico clínico es obligatorio para justificar la dispensa"
         }
 
         val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
@@ -220,6 +232,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             put("status", "draft")
             put("certificate_type", request.certificateType.code)
             put("days_of_rest", request.daysOfRest)
+            put("rest_hours", request.restHours)
             put("start_date", request.startDate)
             request.endDate?.let { put("end_date", it) }
             request.diagnosis?.let { put("diagnosis", it) }
@@ -242,6 +255,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             status = "draft",
             certificateType = request.certificateType,
             daysOfRest = request.daysOfRest,
+            restHours = request.restHours,
             startDate = request.startDate,
             endDate = request.endDate,
             diagnosis = if (request.hideDiagnosis) null else request.diagnosis,
@@ -407,6 +421,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
         val status: String = "draft",
         @SerialName("certificate_type") val certificateType: String = "reposo_laboral",
         @SerialName("days_of_rest") val daysOfRest: Int = 0,
+        @SerialName("rest_hours") val restHours: Int = 0,
         @SerialName("start_date") val startDate: String,
         @SerialName("end_date") val endDate: String? = null,
         val diagnosis: String? = null,
