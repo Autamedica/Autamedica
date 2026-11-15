@@ -64,7 +64,7 @@ class DoctorSignatureViewModel @Inject constructor(
                     }.decodeSingleOrNull<DoctorValidationRecordDto>()
                     ?: throw IllegalStateException("doctor_profile_missing")
 
-                if (doctor.licenseType == "CRM" || doctor.careCountry == "BR") {
+                if (doctor.licenseType?.uppercase() == "CRM" || doctor.careCountry?.uppercase() == "BR") {
                     if (!validCpf(normalizedDocument)) throw IllegalArgumentException("invalid_brazil_cpf")
                     val cpfOnRecord = digits(doctor.cpf)
                     if (cpfOnRecord.isNotBlank() && cpfOnRecord != digits(normalizedDocument)) {
@@ -74,7 +74,7 @@ class DoctorSignatureViewModel @Inject constructor(
                         ?: throw IllegalArgumentException("cfm_license_invalid")
                     val doctorCrm = digits(doctor.licenseNumber)
                     val uf = doctor.ufBrazil?.uppercase().orEmpty()
-                    if (doctor.licenseType != "CRM" ||
+                    if (doctor.licenseType?.uppercase() != "CRM" ||
                         enteredCrm.first != doctorCrm ||
                         enteredCrm.second != uf ||
                         !uf.matches(Regex("^[A-Z]{2}$"))) {
