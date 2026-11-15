@@ -461,7 +461,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
             <span className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-[#0EA5E9] px-3 py-2 text-xs font-bold text-white transition group-hover:bg-[#0284C7]">{isBrazilianDoctor ? "Emitir receita" : "Emitir receta"} <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></span>
           </span>
         </a>
-        <a href="/doctors/prescriptions" aria-label={isBrazilianDoctor ? "Abrir documentos clínicos" : "Abrir documentos clínicos"}
+        <a href="/doctors/prescriptions?document=certificate" aria-label={isBrazilianDoctor ? "Abrir atestados médicos" : "Abrir certificados médicos"}
           className="group flex min-h-[124px] items-center gap-4 rounded-2xl border-2 border-sky-200 bg-gradient-to-br from-sky-50 to-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[#0EA5E9] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9] sm:p-5">
           <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#0EA5E9] text-white shadow-md shadow-sky-200 transition group-hover:bg-[#0284C7]">
             <CheckCircle2 className="h-7 w-7" strokeWidth={2} />
