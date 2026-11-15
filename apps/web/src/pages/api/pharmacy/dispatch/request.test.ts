@@ -155,7 +155,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
       session: null,
       jordanEnabled: true,
       body: {
-        careCountry: 'BR', patientCpf: '12345678909',
+        careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909',
         patientPhone: '+5551987654321', patientName: 'Paciente BR',
         referralCode: 'JORDAN',
       },
@@ -179,7 +179,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     const response = await POST(makeContext({
       bearerToken: 'Bearer forged-native-jwt',
       jordanEnabled: true,
-      body: { careCountry: 'BR', patientCpf: '12345678909', patientPhone: '+5551987654321', referralCode: 'JORDAN' },
+      body: { careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909', patientPhone: '+5551987654321', referralCode: 'JORDAN' },
     }))
     expect(response.status).toBe(401)
     expect(supabaseMock.from).not.toHaveBeenCalled()
@@ -193,7 +193,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
       bearerToken: 'Bearer valid-native-jwt',
       jordanEnabled: true,
       session: { user: { id: 'different-browser-patient' } },
-      body: { careCountry: 'BR', patientCpf: '12345678909', patientPhone: '+5551987654321', referralCode: 'JORDAN' },
+      body: { careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909', patientPhone: '+5551987654321', referralCode: 'JORDAN' },
     }))
     expect(response.status).toBe(403)
     expect(supabaseMock.from).not.toHaveBeenCalled()
@@ -202,7 +202,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
   it('rejects malformed Authorization headers rather than silently creating a guest', async () => {
     const response = await POST(makeContext({
       bearerToken: 'TokenNotBearer random',
-      body: { careCountry: 'BR', patientCpf: '12345678909', patientPhone: '+5551987654321' },
+      body: { careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909', patientPhone: '+5551987654321' },
     }))
     expect(response.status).toBe(401)
     expect(supabaseMock.from).not.toHaveBeenCalled()
@@ -221,7 +221,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
 
     const response = await POST(makeContext({
       body: {
-        careCountry: 'BR',
+        careCountry: 'BR', lgpdConsent: true,
         patientCpf: '12345678909',
         patientPhone: '+5551987654321',
         patientName: 'PACIENTE DEMO',
@@ -239,7 +239,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
 
   it('rechaza CPF brasileño incompleto', async () => {
     const response = await POST(makeContext({
-      body: { careCountry: 'BR', patientCpf: '1234', patientPhone: '+5551987654321' },
+      body: { careCountry: 'BR', lgpdConsent: true, patientCpf: '1234', patientPhone: '+5551987654321' },
     }))
     expect(response.status).toBe(400)
     expect(supabaseMock.from).not.toHaveBeenCalled()
@@ -425,7 +425,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
 
     const response = await POST(makeContext({
       body: {
-        careCountry: 'BR', patientCpf: '12345678909',
+        careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909',
         patientPhone: '+5551999998888', patientName: 'Paciente sintético',
         referralCode: 'JORDAN',
       },
@@ -448,7 +448,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     })
     const response = await POST(makeContext({
       body: {
-        careCountry: 'BR', patientCpf: '12345678909', patientName: 'Paciente sintético',
+        careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909', patientName: 'Paciente sintético',
         patientPhone: '+5551999998888', referralCode: 'JORDAN',
       },
     }))
@@ -467,7 +467,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     expect(ar.status).toBe(400)
     const specialist = await POST(makeContext({
       body: {
-        careCountry: 'BR', patientCpf: '12345678909',
+        careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909',
         patientPhone: '+5551999998888', referralCode: 'JORDAN',
         tier: 'cardiologia',
       },
@@ -527,7 +527,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
 
   it('rejects a request country that differs from the authenticated patient country', async () => {
     vi.mocked(resolvePatientContext).mockResolvedValue({ userId: 'p', patientId: 'p-row', careCountry: 'AR' })
-    const response = await POST(makeContext({ body: { careCountry: 'BR', patientCpf: '12345678909', patientPhone: '+5551987654321' } }))
+    const response = await POST(makeContext({ body: { careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909', patientPhone: '+5551987654321' } }))
     expect(response.status).toBe(403)
     expect(supabaseMock.from).not.toHaveBeenCalledWith('pharmacy_dispatch_requests')
   })
@@ -546,7 +546,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
   it('rechaza referralCode manipulados antes de realizar cualquier escritura', async () => {
     const response = await POST(makeContext({
       body: {
-        careCountry: 'BR', patientCpf: '12345678909',
+        careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909',
         patientPhone: '+5551999998888', patientName: 'Paciente sintético',
         referralCode: 'jordan<script>',
       },
@@ -563,7 +563,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     })
     const response = await POST(makeContext({
       body: {
-        careCountry: 'BR', patientCpf: '12345678909',
+        careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909',
         patientPhone: '+5551999998888', patientName: 'Paciente sintético',
         referralCode: 'FAKEPARTNER',
       },
