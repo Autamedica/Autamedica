@@ -193,7 +193,7 @@ export class MemedService {
           email: doctor.email,
           telefone: doctor.telefone ? doctor.telefone.replace(/\D/g, '') : undefined,
           ...(doctor.sexo ? { sexo: doctor.sexo } : {}),
-          data_nascimento: doctor.dataNascimento,
+          ...(doctor.dataNascimento ? { data_nascimento: doctor.dataNascimento } : {}),
         },
       },
     };
