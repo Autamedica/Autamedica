@@ -233,8 +233,8 @@ class PharmacyIntakeViewModel @Inject constructor(
                                     // Dispatch state alone never authorizes a Jordan video call after process death.
                                     readyToJoinCall = request.doctorAttendedCall &&
                                         request.cloudflareRoomId.isNotBlank() &&
-                                        !(request.careCountry == "BR" &&
-                                            (referralCodeParam == "JORDAN" || request.referralPartnerId != null)),
+                                        !(request.priceMinor != null && request.priceMinor > 0 &&
+                                            request.currency in setOf("ARS", "BRL")),
                                     error = null,
                                     statusNotice = null,
                                 )
@@ -454,8 +454,8 @@ class PharmacyIntakeViewModel @Inject constructor(
                     val joinable = request.doctorAttendedCall
                     val terminal = request.status == "cancelled" || request.status == "expired"
                     val hasRoom = request.cloudflareRoomId.isNotBlank()
-                    val paymentRequired = (_uiState.value.referralCode == "JORDAN" ||
-                        request.referralPartnerId != null) && request.careCountry == "BR"
+                    val paymentRequired = request.priceMinor != null && request.priceMinor > 0 &&
+                        request.currency in setOf("ARS", "BRL")
 
                     if (request.status == "searching" || request.status == "matched") {
                         refreshCountryDoctorCount(_uiState.value.careCountry)
