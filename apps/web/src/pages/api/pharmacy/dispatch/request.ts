@@ -46,22 +46,24 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return badRequest('lgpd_consent_required')
     }
 
+    const pricingAdmin = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient
+    const { data: countryPricing, error: pricingError } = await pricingAdmin
+      .from('pharmacy_dispatch_pricing_configs')
+      .select('country_code,currency,consultation_price_minor,doctor_fee_minor,partner_commission_minor,require_payment_before_dispatch')
+      .eq('country_code', careCountry)
+      .maybeSingle()
+    if (pricingError || !countryPricing) return serviceUnavailable('pharmacy_dispatch_pricing_not_configured')
+
     // Do not send a referred Jordan patient into a clinical queue without
     // a checkout that's explicitly live and secured server-side.
     const operationalSwitches = await getOperationalPaymentSwitches(createAstroAdminClient(locals.runtime?.env)).catch(() => null)
     if (!operationalSwitches?.pharmacy_express_payments_enabled) return serviceUnavailable('pharmacy_express_payments_disabled')
-    if (referralCode === 'JORDAN') {
-      if (careCountry !== 'BR') return badRequest('jordan_referral_brazil_only')
-      if (tier && tier !== 'general') return badRequest('jordan_general_consultation_only')
-      if (!operationalSwitches.jordan_qr_payments_enabled || !hasSecureGuestPaymentSecret(locals.runtime?.env)) {
-        return serviceUnavailable('jordan_checkout_not_ready')
-      }
+    if (tier && tier !== 'general') return badRequest('pharmacy_general_consultation_only')
+    if (referralCode === 'JORDAN' && !operationalSwitches.jordan_qr_payments_enabled) {
+      return serviceUnavailable('jordan_checkout_not_ready')
     }
-    if (careCountry === 'BR' && referralCode !== 'JORDAN' && tier && tier !== 'general') {
-      return badRequest('brazil_general_consultation_only')
-    }
-    if (careCountry === 'BR' && !hasSecureGuestPaymentSecret(locals.runtime?.env)) {
-      return serviceUnavailable('brazil_pharmacy_checkout_not_ready')
+    if (countryPricing.require_payment_before_dispatch && !hasSecureGuestPaymentSecret(locals.runtime?.env)) {
+      return serviceUnavailable('pharmacy_checkout_guest_security_not_configured')
     }
 
     const rawDocument = careCountry === 'BR' ? (patientCpf ?? patientDni) : patientDni
@@ -191,11 +193,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return forbidden('kiosk_country_not_configured')
     }
 
-    // Jordan is a Brazil-only commercial referral source, never an Argentina channel.
-    // Reject before registration so AR requests cannot contaminate partner reporting.
-    if (referralCode === 'JORDAN' && careCountry !== 'BR') {
-      return badRequest('jordan_referral_brazil_only')
-    }
+    // Referral attribution is country-scoped by the tariff config and matcher.
+    // Jordan supports both BR and AR general-consultation channels.
 
     // Attribution only at creation time, resolving the QR code on the server.
     // Never trust a client-submitted partner ID or pharmacy ID as commercial proof.
