@@ -7602,6 +7602,7 @@ export type Database = {
           id: string
           languages: Json | null
           license_number: string
+          memed_birth_date: string | null
           license_type: string | null
           on_duty_pharmacy: boolean
           on_duty_since: string | null
@@ -7646,6 +7647,7 @@ export type Database = {
           id?: string
           languages?: Json | null
           license_number: string
+          memed_birth_date?: string | null
           license_type?: string | null
           on_duty_pharmacy?: boolean
           on_duty_since?: string | null
@@ -7690,6 +7692,7 @@ export type Database = {
           id?: string
           languages?: Json | null
           license_number?: string
+          memed_birth_date?: string | null
           license_type?: string | null
           on_duty_pharmacy?: boolean
           on_duty_since?: string | null
