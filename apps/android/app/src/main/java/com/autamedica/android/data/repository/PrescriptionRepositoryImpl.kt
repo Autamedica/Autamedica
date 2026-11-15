@@ -506,7 +506,7 @@ class PrescriptionRepositoryImpl @Inject constructor(
                         eq("cfm_validation_status", "valid")
                     }
                 }.decodeList<CfmLicenseEligibilityDto>()
-            val verified = hasLicense && doctor.licenseType == "CRM" &&
+            val verified = hasLicense && doctor.licenseType.equals("CRM", ignoreCase = true) &&
                 crmNumber.isNotBlank() && uf.matches(Regex("^[A-Z]{2}$")) &&
                 licenses.any { license ->
                     license.licenseNumber.orEmpty().filter(Char::isDigit) == crmNumber &&
