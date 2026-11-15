@@ -548,7 +548,7 @@ export function DoctorsPortalFrame({
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F2537]">
+    <div className="portal-doctor min-h-screen bg-[#F8FAFC] text-[#0F2537]">
       {mobileMenuOpen ? (
         <button
           type="button"
