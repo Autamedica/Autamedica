@@ -103,7 +103,10 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
     const crm = crmDigits(doctor.license_number);
     const uf = (doctor.uf_brazil ?? '').toUpperCase();
     const storedCpf = await getMemedDoctorCpf(admin, doctor.id);
-    const existingCpf = cpfDigits(storedCpf || doctor.cpf || profile?.cpf);
+    // Ignore stale/invalid legacy CPF values and select the first checksum-valid
+    // identity from private Memed storage, doctor directory, or profile.
+    const existingCpf = [storedCpf, doctor.cpf, profile?.cpf]
+      .map(cpfDigits).find(candidate => validCpf(candidate)) ?? '';
     if (existingCpf && providedCpf && existingCpf !== cpfDigits(providedCpf)) {
       return forbidden('memed_doctor_cpf_mismatch');
     }
