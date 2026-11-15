@@ -228,8 +228,12 @@ class PharmacyIntakeViewModel @Inject constructor(
                                     // Dispatch state alone never authorizes a Jordan video call after process death.
                                     readyToJoinCall = request.doctorAttendedCall &&
                                         request.cloudflareRoomId.isNotBlank() &&
-                                        !(request.priceMinor != null && request.priceMinor > 0 &&
-                                            request.currency in setOf("ARS", "BRL")),
+                                        !(
+                                            (request.priceMinor != null && request.priceMinor > 0 &&
+                                                request.currency in setOf("ARS", "BRL")) ||
+                                                (request.careCountry == "BR" &&
+                                                    (referralCodeParam == "JORDAN" || request.referralPartnerId != null))
+                                        ),
                                     error = null,
                                     statusNotice = null,
                                 )
@@ -435,8 +439,11 @@ class PharmacyIntakeViewModel @Inject constructor(
                     val joinable = request.doctorAttendedCall
                     val terminal = request.status == "cancelled" || request.status == "expired"
                     val hasRoom = request.cloudflareRoomId.isNotBlank()
-                    val paymentRequired = request.priceMinor != null && request.priceMinor > 0 &&
-                        request.currency in setOf("ARS", "BRL")
+                    val paymentRequired =
+                        (request.priceMinor != null && request.priceMinor > 0 &&
+                            request.currency in setOf("ARS", "BRL")) ||
+                            (request.careCountry == "BR" &&
+                                (state.referralCode == "JORDAN" || request.referralPartnerId != null))
 
                     if (request.status == "searching" || request.status == "matched") {
                         refreshCountryDoctorCount(_uiState.value.careCountry)

@@ -308,11 +308,11 @@ class PharmacyIntakeViewModelTest {
         assertThat(vm.uiState.value.careCountry).isEqualTo("BR")
         vm.onPatientNameChanged("Paciente brasileiro")
         vm.onPatientPhoneChanged("+5551987654321")
-        vm.onPatientDniChanged("12345678909")
+        vm.onPatientDniChanged("52998224725")
         vm.onReasonTextChanged("Consulta geral")
         pharmacyRepo.createResult = Result.success(
             PharmacyDispatchRequest(
-                id = "guest-jordan-br", patientDni = "12345678909",
+                id = "guest-jordan-br", patientDni = "52998224725",
                 patientPhone = "+5551987654321", patientName = "Paciente brasileiro",
                 tierRequested = "general", status = "searching",
                 cloudflareRoomId = "cf-room-br", createdAt = "2026-11-05T18:00:00Z",
@@ -340,7 +340,7 @@ class PharmacyIntakeViewModelTest {
         vm.onPatientPhoneChanged("+5551987654321")
         vm.onReasonTextChanged("Consulta de demonstração")
         vm.onCountrySelected("BR")
-        vm.onPatientDniChanged("12345678909")
+        vm.onPatientDniChanged("52998224725")
         assertThat(vm.uiState.value.isFormValid).isTrue()
 
         pharmacyRepo.createResult = Result.success(
@@ -403,7 +403,7 @@ class PharmacyIntakeViewModelTest {
         assertThat(vm.uiState.value.selectedReasonChip).isNull()
         assertThat(vm.uiState.value.reasonText).isEmpty()
 
-        vm.onPatientDniChanged("12345678909")
+        vm.onPatientDniChanged("52998224725")
         vm.onReasonTextChanged("Consulta particular")
         vm.onCountrySelected("AR")
 
@@ -710,7 +710,7 @@ class PharmacyIntakeViewModelTest {
     fun `Jordan consultation does not enter video until payment provider approves`() = runTest(testDispatcher) {
         val req = PharmacyDispatchRequest(
             id = "synthetic-jordan-br", careCountry = "BR", referralPartnerId = "partner-jordan-br",
-            patientDni = "12345678909", patientPhone = "+5551987654321",
+            patientDni = "52998224725", patientPhone = "+5551987654321",
             patientName = "Paciente BR", status = "searching",
             cloudflareRoomId = "cf-room-br-test", createdAt = "2026-11-05T18:00:00Z",
         )
@@ -725,7 +725,7 @@ class PharmacyIntakeViewModelTest {
         advanceUntilIdle()
         vm.onPatientNameChanged("Paciente BR")
         vm.onPatientPhoneChanged("+5551987654321")
-        vm.onPatientDniChanged("12345678909")
+        vm.onPatientDniChanged("52998224725")
         vm.onReasonTextChanged("Consulta geral")
         vm.submitRequest()
         testScheduler.runCurrent()
@@ -759,7 +759,7 @@ class PharmacyIntakeViewModelTest {
     fun `Jordan app restore keeps in-call patient on checkout while payment is pending and polls PSP`() = runTest(testDispatcher) {
         val restored = PharmacyDispatchRequest(
             id = "restored-jordan-pending", careCountry = "BR", referralPartnerId = "partner-jordan-br",
-            patientDni = "12345678909", patientPhone = "+5551987654321", patientName = "Paciente BR",
+            patientDni = "52998224725", patientPhone = "+5551987654321", patientName = "Paciente BR",
             status = "in_call", cloudflareRoomId = "cf-room-restored-jordan",
             createdAt = "2026-11-12T00:00:00Z",
         )
@@ -797,7 +797,7 @@ class PharmacyIntakeViewModelTest {
     fun `Jordan app restore unlocks in-call navigation only after PSP approval`() = runTest(testDispatcher) {
         val restored = PharmacyDispatchRequest(
             id = "restored-jordan-approved", careCountry = "BR", referralPartnerId = "partner-jordan-br",
-            patientDni = "12345678909", patientPhone = "+5551987654321", patientName = "Paciente BR",
+            patientDni = "52998224725", patientPhone = "+5551987654321", patientName = "Paciente BR",
             status = "in_call", cloudflareRoomId = "cf-room-restored-approved",
             createdAt = "2026-11-12T00:00:00Z",
         )
@@ -819,7 +819,7 @@ class PharmacyIntakeViewModelTest {
     fun `Jordan app restore never unlocks in-call navigation for refunded payment`() = runTest(testDispatcher) {
         val restored = PharmacyDispatchRequest(
             id = "restored-jordan-refunded", careCountry = "BR", referralPartnerId = "partner-jordan-br",
-            patientDni = "12345678909", patientPhone = "+5551987654321", patientName = "Paciente BR",
+            patientDni = "52998224725", patientPhone = "+5551987654321", patientName = "Paciente BR",
             status = "in_call", cloudflareRoomId = "cf-room-restored-refunded",
             createdAt = "2026-11-12T00:00:00Z",
         )
