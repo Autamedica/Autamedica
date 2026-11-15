@@ -329,7 +329,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
       window.location.href = '/doctors/call/' + roomId + '/report'
     } catch (error) {
       logger.error('[DoctorCallPage] pharmacy dispatch completion failed', error)
-      setCallCompletionError('No se pudo confirmar el cierre de la guardia. Reintentá para liberar la solicitud y registrar los honorarios.')
+      setCallCompletionError(isBrazilianDispatch ? 'Não foi possível confirmar o encerramento do plantão. Tente novamente para liberar a solicitação e registrar os honorários.' : 'No se pudo confirmar el cierre de la guardia. Reintentá para liberar la solicitud y registrar los honorarios.')
     } finally {
       setIsCompletingDispatch(false)
     }
@@ -577,7 +577,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
           <span>{callCompletionError}</span>
           <button type="button" disabled={isCompletingDispatch} onClick={() => void finishDispatchBeforeReport()}
             className="shrink-0 rounded-lg bg-rose-500 px-3 py-2 font-semibold text-white disabled:opacity-50">
-            {isCompletingDispatch ? 'Cerrando...' : 'Reintentar cierre'}
+            {isCompletingDispatch ? (isBrazilianDispatch ? 'Encerrando...' : 'Cerrando...') : (isBrazilianDispatch ? 'Tentar novamente' : 'Reintentar cierre')}
           </button>
         </div>
       )}
@@ -585,7 +585,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
         <div className="fixed left-4 top-20 z-40 flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-slate-950/95 px-3 py-2 text-xs text-slate-100 shadow-lg">
           <strong>{context.dispatchTriage.patientName || context.patient?.name || 'Paciente'}</strong>
           <span className="text-slate-400">{isBrazilianDispatch ? 'CPF' : 'DNI'}: {maskedDispatchDocument || 'No informado'}</span>
-          <span className="rounded-md bg-slate-800 px-2 py-1">{context.dispatchTriage.careCountry || 'País no definido'}</span>
+          <span className="rounded-md bg-slate-800 px-2 py-1">{context.dispatchTriage.careCountry || (isBrazilianDispatch ? 'País não definido' : 'País no definido')}</span>
         </div>
       )}
       {/* Video Call */}
@@ -703,14 +703,14 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                 <>
                   {isBrazilianDispatch ? (
                     <CallAuxiliaryButton icon={<Pill className="h-5 w-5 md:h-5.5 md:w-5.5" />}
-                      label="Receta Memed" onClick={() => setShowMemedWidget(true)} />
+                      label={isBrazilianDispatch ? 'Receita Memed' : 'Receta Memed'} onClick={() => setShowMemedWidget(true)} />
                   ) : (
                     <CallAuxiliaryButton icon={<Pill className="h-5 w-5 md:h-5.5 md:w-5.5" />}
-                      label="Receta" onClick={() => setShowPrescriptionModal(true)} />
+                      label={isBrazilianDispatch ? 'Receita' : 'Receta'} onClick={() => setShowPrescriptionModal(true)} />
                   )}
                   {!isBrazilianDispatch && (
                     <CallAuxiliaryButton icon={<FileText className="h-5 w-5 md:h-5.5 md:w-5.5" />}
-                      label="Estudio" onClick={() => setShowStudyOrderModal(true)} />
+                      label={isBrazilianDispatch ? 'Exame' : 'Estudio'} onClick={() => setShowStudyOrderModal(true)} />
                   )}
                 </>
               ) : null
