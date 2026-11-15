@@ -389,12 +389,12 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
             {doctorName.split(/\\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#0D9488]">Portal Médico</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#0284C7]">Portal Médico</p>
             <p className="break-words text-sm font-semibold leading-snug text-[#0F2537]">{doctorName}</p>
             {doctorCredential && <p className="mt-0.5 break-words text-[10px] font-medium text-slate-500">✓ {doctorCredential}</p>}
           </div>
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-700">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#10B981]" />
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-semibold text-sky-700">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#0EA5E9]" />
             {isBrazilianDoctor ? "Online" : "En línea"}
           </span>
           <a href="/doctors/agenda" className="hidden shrink-0 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-[#0F2537] sm:inline-flex">
@@ -418,7 +418,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                 </div>
                 {activeTelemedAppt ? (
                   <button type="button" onClick={() => void handleStartCall(activePatientId, activeTelemedAppt.id)} disabled={isStartingCall}
-                    className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#10B981] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-600 disabled:opacity-60">
+                    className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#0EA5E9] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#0284C7] disabled:opacity-60">
                     <Video className="h-4 w-4" /> {isStartingCall ? (isBrazilianDoctor ? "Conectando..." : "Conectando...") : (isBrazilianDoctor ? "Atender" : "Atender")}
                   </button>
                 ) : (
@@ -432,7 +432,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                       })}
                     </select>
                     <button type="button" onClick={() => void handleStartCall(selectedAdHocPatientId)} disabled={isStartingCall || !selectedAdHocPatientId}
-                      className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#10B981] px-4 py-2.5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">
+                      className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#0EA5E9] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#0284C7] disabled:cursor-not-allowed disabled:opacity-40">
                       <Video className="h-4 w-4" /> {isBrazilianDoctor ? "Ligar" : "Llamar"}
                     </button>
                   </div>
