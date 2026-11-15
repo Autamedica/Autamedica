@@ -20,7 +20,7 @@
     <string name="accounting_status_credited">Creditado</string>
     <string name="accounting_status_in_process">Em processamento</string>
 
-    <!-- 2. Firma Digital y Validación SISA / CRM (DoctorSignature) -->
+    <!-- 2. Assinatura Digital e Validação CFM / CRM (DoctorSignature) -->
     <string name="signature_title">Assinatura Digital Qualificada</string>
     <string name="signature_label_dni">CPF do profissional médico</string>
     <string name="signature_label_license">CRM do profissional médico</string>
@@ -84,7 +84,7 @@
     <!-- 5. Emisión de Certificado (CreateCertificateScreen) -->
     <string name="cert_create_title">Preparar atestado (rascunho)</string>
     <string name="cert_create_legal_basis">Referência interna AutaMedica · Assinatura pendente</string>
-    <string name="cert_create_submitting">Assinando com Certificado ICP-Brasil...</string>
+    <string name="cert_create_submitting">Salvando rascunho do atestado...</string>
     <string name="cert_create_submit_button">Salvar rascunho sem assinatura</string>
     <string name="cert_reg_active_title">Habilitação Médica Ativa</string>
     <string name="cert_reg_pending_title">Verificação de CRM Pendente</string>
