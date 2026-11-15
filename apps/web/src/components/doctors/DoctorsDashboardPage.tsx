@@ -347,6 +347,9 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
   const todayCount = stats?.todayCount ?? 0;
   const patientsCount = stats?.patientsCount ?? 0;
   const _historyCount = stats?.historyCount ?? 0;
+  const pharmacyDispatchCount = stats?.pharmacyDispatchCount ?? 0;
+  const todayPharmacyCount = stats?.todayPharmacyCount ?? 0;
+  const pharmacyEarnings = stats?.pharmacyEarningsByCurrency ?? { BRL: 0, ARS: 0 };
 
   const _nextApptName = useMemo(() => {
     if (!stats?.nextAppointment) return null;
@@ -370,10 +373,10 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
       hideDefaultHeader={true}
     >
       {/* ── CLINICAL COMMAND COCKPIT (Sala de Telemedicina y Monitoreo) ── */}
-      <div className="mb-6 overflow-hidden rounded-2xl border border-neutral-800 bg-gradient-to-br from-neutral-900 via-neutral-950 to-neutral-900 p-5 text-white md:p-6 shadow-xl relative">
+      <div className="mb-6 overflow-hidden rounded-2xl border border-[#1B3A50] bg-gradient-to-br from-[#0D1F2D] via-[#0F2537] to-[#0F293A] p-5 text-white md:p-6 shadow-xl relative">
         {/* Background glow decoration */}
-        <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
-        <div className="absolute left-1/3 bottom-0 h-48 w-48 rounded-full bg-emerald-500/5 blur-3xl pointer-events-none" />
+        <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-[#38BDF8]/10 blur-3xl pointer-events-none" />
+        <div className="absolute left-1/3 bottom-0 h-48 w-48 rounded-full bg-[#2DD4BF]/5 blur-3xl pointer-events-none" />
 
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -382,7 +385,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
           className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] items-center"
         >
           {/* Col 1: Telemedicina & Cockpit Activo */}
-          <div className="border-b border-neutral-800/40 pb-5 lg:border-b-0 lg:pb-0 lg:pr-6 lg:border-r lg:border-neutral-800/40">
+          <div className="border-b border-white/10 pb-5 lg:border-b-0 lg:pb-0 lg:pr-6 lg:border-r lg:border-neutral-800/40">
             {(() => {
               const activeTelemedAppt = todayAppointments.find((a: any) => canStartTelemedicineCall(a));
               const activeTelemedPatientId = activeTelemedAppt?.patient_id || "";
@@ -401,19 +404,13 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                     </span>
                   </div>
 
-                  <p className="text-[11px] text-neutral-400">
-
-                    Farmacia completadas hoy: <strong className="text-emerald-300">{stats?.todayPharmacyCount ?? 0}</strong>
-
-                  </p>
-
                   {activeTelemedAppt ? (
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div>
                         <h2 className="text-2xl font-light tracking-tight text-white sm:text-3xl">
                           {new Date(activeTelemedAppt.start_time).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} hs · {activeTelemedPatientName}
                         </h2>
-                        <p className="mt-1 text-[13px] text-neutral-400">
+                        <p className="mt-1 text-[13px] text-slate-300">
                           El paciente está listo en sala de espera. Habilitá tu señal para ingresar.
                         </p>
                       </div>
@@ -421,7 +418,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                       <button
                         onClick={() => handleStartCall(activeTelemedPatientId, activeTelemedAppt.id)}
                         disabled={isStartingCall}
-                        className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 px-5 py-2.5 text-[13px] font-bold text-white transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-emerald-500/10"
+                        className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#10B981] to-[#0D9488] px-5 py-2.5 text-[13px] font-bold text-white transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-emerald-500/10"
                       >
                         {isStartingCall ? (
                           <>
@@ -451,7 +448,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                         <select
                           value={selectedAdHocPatientId}
                           onChange={(e) => setSelectedAdHocPatientId(e.target.value)}
-                          className="rounded-lg border border-neutral-800 bg-neutral-950/80 px-2.5 py-2 text-[12px] text-white focus:border-cyan-500 focus:outline-none min-w-[160px] max-w-[200px]"
+                          className="rounded-lg border border-neutral-800 bg-neutral-950/80 px-2.5 py-2 text-[12px] text-white focus:border-[#2DD4BF] focus:outline-none min-w-[160px] max-w-[200px]"
                         >
                           <option value="" className="bg-neutral-950 text-neutral-400">Seleccionar...</option>
                           {assignedPatients.map((p: any) => {
@@ -580,6 +577,36 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
         <DoctorOnDutyWidget />
       </div>
 
+      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0D9488]">MÉTRICAS CLÍNICAS</p>
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">Guardias de farmacia</p>
+          <p className="mt-2 text-3xl font-bold tracking-tight text-[#0F2537]">{pharmacyDispatchCount}</p>
+          <p className="mt-1 text-xs text-slate-500">Consultas despachadas y contabilizadas</p>
+          <p className="mt-1 text-xs font-medium text-emerald-700">Hoy: {todayPharmacyCount} completadas</p>
+        </div>
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:col-span-1 lg:col-span-2">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">Ganancias de farmacia</p>
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-6 gap-y-2">
+            <span className="text-2xl font-bold tracking-tight text-[#0F2537]">{pharmacyEarnings.BRL.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            <span className="text-2xl font-bold tracking-tight text-[#0F2537]">{pharmacyEarnings.ARS.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 2 })}</span>
+          </div>
+          <p className="mt-1 text-xs text-slate-500">Importes netos registrados en BRL y ARS</p>
+        </div>
+      </div>
+      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0D9488]">FERRAMENTAS CLÍNICAS</p>
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <a href="/doctors/prescriptions" className="flex items-center gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm transition hover:border-sky-200 hover:shadow-md">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-sky-50 text-sky-700"><FileText className="h-5 w-5" /></span>
+          <span><span className="block text-sm font-semibold text-[#0F2537]">Receita digital</span><span className="block text-xs text-slate-500">Memed · Brasil / Farmalink · Argentina</span></span>
+          <ArrowUpRight className="ml-auto h-4 w-4 text-slate-400" />
+        </a>
+        <a href="/doctors/certificates" className="flex items-center gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm transition hover:border-emerald-200 hover:shadow-md">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50 text-emerald-700"><CheckCircle2 className="h-5 w-5" /></span>
+          <span><span className="block text-sm font-semibold text-[#0F2537]">Atestado</span><span className="block text-xs text-slate-500">Emissão clínica por jurisdição</span></span>
+          <ArrowUpRight className="ml-auto h-4 w-4 text-slate-400" />
+        </a>
+      </div>
       {/* ── Stat cards / Rich Dashboard Widgets ── */}
       <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:col-span-2">
