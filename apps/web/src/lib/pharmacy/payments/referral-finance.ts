@@ -40,9 +40,9 @@ export function classifyVerifiedPharmacyPayment(
 ): 'pending' | 'approved' | 'rejected' | 'cancelled' | 'refunded' | null {
   const providerId = String(payment.id)
   if (!/^\d{1,20}$/.test(providerId)) return null
-  if (local.provider !== 'mercadopago' || local.currency !== 'BRL') return null
+  if (local.provider !== 'mercadopago' || !['BRL', 'ARS'].includes(local.currency)) return null
   if (local.provider_payment_id && local.provider_payment_id !== providerId) return null
-  if (payment.currency_id !== 'BRL') return null
+  if (payment.currency_id !== local.currency) return null
   if (local.amount_minor !== Math.round(payment.transaction_amount * 100)) return null
   if (payment.external_reference !== `pharm:${local.dispatch_request_id}`) return null
   if (payment.metadata?.payment_type !== 'pharmacy_consultation' ||
