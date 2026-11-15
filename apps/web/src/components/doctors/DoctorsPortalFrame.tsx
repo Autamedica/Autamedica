@@ -113,53 +113,6 @@ function formatDateLabel(date: Date, locale = "es-AR"): string {
   });
 }
 
-function MobileNavBar({
-  activeSection,
-  primaryLinks,
-  platformLinks,
-}: {
-  activeSection: ActiveSection;
-  primaryLinks: NavigationItem[];
-  platformLinks: NavigationItem[];
-}) {
-  const allLinks = [...primaryLinks, ...platformLinks];
-
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 pb-safe pt-2 backdrop-blur-xl md:hidden">
-      <div className="flex items-center justify-around px-2">
-        {allLinks.slice(0, 5).map((item) => {
-          const isActive = item.key === activeSection;
-          return (
-            <a
-              key={item.key}
-              href={item.href}
-              className={`relative flex flex-col items-center gap-1.5 rounded-xl px-3 py-2 transition-colors ${
-                isActive ? "text-[#0D9488]" : "text-neutral-400"
-              }`}
-            >
-              <div className="relative">
-                <item.icon
-                  className="h-5 w-5"
-                  strokeWidth={isActive ? 2 : 1.5}
-                />
-                {item.badge ? (
-                  <span className="absolute -right-2 -top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white ring-2 ring-white">
-                    {item.badge}
-                  </span>
-                ) : null}
-              </div>
-              <span className="text-[10px] font-medium">{item.label}</span>
-              {isActive ? (
-                <span className="absolute top-0 h-0.5 w-8 rounded-full bg-[#0D9488]" />
-              ) : null}
-            </a>
-          );
-        })}
-      </div>
-    </nav>
-  );
-}
-
 export function DoctorsPortalFrame({
   title,
   description,
@@ -823,7 +776,7 @@ export function DoctorsPortalFrame({
             </div>
           )}
           <div
-            className={`p-6 md:p-10 ${!hideDefaultHeader ? "mx-auto max-w-5xl" : ""}`}
+            className={`p-6 pb-24 md:p-10 ${!hideDefaultHeader ? "mx-auto max-w-5xl" : ""}`}
           >
             {children}
           </div>
@@ -834,18 +787,12 @@ export function DoctorsPortalFrame({
       <button
         type="button"
         onClick={() => setMobileMenuOpen(true)}
-        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-neutral-900 text-white shadow-xl transition-transform hover:scale-105 active:scale-95 md:hidden"
+        className="fixed bottom-20 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-neutral-900 text-white shadow-xl transition-transform hover:scale-105 active:scale-95 md:hidden"
         aria-label="Abrir menú"
       >
         <Menu className="h-6 w-6" />
       </button>
 
-      {/* Mobile Navigation Bar */}
-      <MobileNavBar
-        activeSection={activeSection}
-        primaryLinks={primaryLinks}
-        platformLinks={platformLinks}
-      />
     </div>
   );
 }
