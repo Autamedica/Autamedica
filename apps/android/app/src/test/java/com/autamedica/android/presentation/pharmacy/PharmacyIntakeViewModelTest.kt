@@ -309,6 +309,7 @@ class PharmacyIntakeViewModelTest {
         vm.onPatientNameChanged("Paciente brasileiro")
         vm.onPatientPhoneChanged("+5551987654321")
         vm.onPatientDniChanged("52998224725")
+        vm.onLgpdConsentChanged(true)
         vm.onReasonTextChanged("Consulta geral")
         pharmacyRepo.createResult = Result.success(
             PharmacyDispatchRequest(
@@ -341,6 +342,7 @@ class PharmacyIntakeViewModelTest {
         vm.onReasonTextChanged("Consulta de demonstração")
         vm.onCountrySelected("BR")
         vm.onPatientDniChanged("52998224725")
+        vm.onLgpdConsentChanged(true)
         assertThat(vm.uiState.value.isFormValid).isTrue()
 
         pharmacyRepo.createResult = Result.success(
@@ -726,6 +728,7 @@ class PharmacyIntakeViewModelTest {
         vm.onPatientNameChanged("Paciente BR")
         vm.onPatientPhoneChanged("+5551987654321")
         vm.onPatientDniChanged("52998224725")
+        vm.onLgpdConsentChanged(true)
         vm.onReasonTextChanged("Consulta geral")
         vm.submitRequest()
         testScheduler.runCurrent()
