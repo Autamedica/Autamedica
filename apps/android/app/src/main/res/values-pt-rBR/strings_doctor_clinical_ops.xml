@@ -184,6 +184,15 @@
     <string name="in_call_certificate_saving">Preparando atestado...</string>
     <string name="in_call_certificate_submit">Preparar atestado médico</string>
     <string name="in_call_validation_medication_diagnosis">Informe o medicamento e o diagnóstico clínico.</string>
+    <string name="in_call_prescription_validation">Informe o medicamento e o diagnóstico clínico.</string>
+    <string name="in_call_default_dosage">Conforme indicação médica</string>
+    <string name="in_call_default_frequency">Conforme indicação</string>
+    <string name="in_call_default_duration">Tratamento ambulatorial</string>
+    <string name="in_call_default_instructions">Tomar conforme as orientações clínicas durante a teleconsulta.</string>
+    <string name="in_call_default_prescription_notes">Receita emitida durante teleconsulta AutaMedica.</string>
+    <string name="in_call_certificate_invalid_days">Os dias de afastamento devem estar entre 0 e 365.</string>
+    <string name="in_call_certificate_diagnosis_required">O médico deve informar o diagnóstico para justificar o afastamento.</string>
+    <string name="in_call_certificate_draft_observations">Rascunho preparado durante teleconsulta AutaMedica; assinatura pendente.</string>
     <string name="in_call_prescription_error">Não foi possível emitir a receita.</string>
     <string name="in_call_certificate_error">Não foi possível preparar o atestado.</string>
     <string name="signature_status_cfm_verified">CRM validado com evidência CFM</string>
