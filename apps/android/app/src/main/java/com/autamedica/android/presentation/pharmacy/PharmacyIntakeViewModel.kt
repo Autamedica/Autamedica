@@ -91,7 +91,7 @@ class PharmacyIntakeViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
     private val pharmacyDispatchRepository: PharmacyDispatchRepository,
-    private val supabaseClient: SupabaseClient,
+    private val supabaseClient: SupabaseClient? = null,
 ) : ViewModel() {
 
     private val pharmacyIdParam: String = savedStateHandle["pharmacyId"] ?: ""
@@ -335,7 +335,8 @@ class PharmacyIntakeViewModel @Inject constructor(
                     val userId = authRepository.getCurrentUser()?.id
                         ?: throw IllegalStateException("pharmacy_error_lgpd_login")
                     val acceptedAt = Instant.now().toString()
-                    supabaseClient.postgrest.from("patients").update(
+                    val client = supabaseClient ?: throw IllegalStateException("Supabase session client unavailable")
+                    client.postgrest.from("patients").update(
                         buildJsonObject {
                             put("lgpd_consent", true)
                             put("lgpd_consent_date", acceptedAt)
@@ -344,7 +345,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                     ) {
                         filter { eq("user_id", userId) }
                     }
-                    val consent = supabaseClient.postgrest.from("patients")
+                    val consent = client.postgrest.from("patients")
                         .select(io.github.jan.supabase.postgrest.query.Columns.list("lgpd_consent", "lgpd_consent_date", "lgpd_consent_version")) {
                             filter { eq("user_id", userId) }
                             limit(1)
