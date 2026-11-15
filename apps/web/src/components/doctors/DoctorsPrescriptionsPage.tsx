@@ -212,7 +212,13 @@ const CERT_TYPE_LABELS: Record<string, string> = {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function DoctorsPrescriptionsPage() {
+interface DoctorsPrescriptionsPageProps {
+  initialDocMode?: "prescriptions" | "certificates";
+}
+
+export function DoctorsPrescriptionsPage({
+  initialDocMode = "prescriptions",
+}: DoctorsPrescriptionsPageProps = {}) {
   // Patient selection
   const { patients, loading: patientsLoading } = useRealPatients();
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
@@ -244,7 +250,7 @@ export function DoctorsPrescriptionsPage() {
   const [selectedPrescription, setSelectedPrescription] = useState<IssuedPrescription | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [search, setSearch] = useState("");
-  const [docMode, setDocMode] = useState<"prescriptions" | "certificates">("prescriptions");
+  const [docMode, setDocMode] = useState<"prescriptions" | "certificates">(initialDocMode);
   const [certificateCountry, setCertificateCountry] = useState<"AR" | "BR" | null>(null);
   const [externalProviderEnabled, setExternalProviderEnabled] = useState(false);
   useEffect(() => {
