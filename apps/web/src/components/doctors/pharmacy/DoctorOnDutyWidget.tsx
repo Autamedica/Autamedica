@@ -97,14 +97,14 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
                 </span>
               ) : (
                 <span className="px-2 py-0.5 rounded-full bg-am-surface-700/60 text-am-surface-400 text-[10px] font-medium">
-                  DESCONECTADO
+                  {careCountry === 'BR' ? 'INATIVO' : 'INACTIVO'}
                 </span>
               )}
             </div>
             <p className="text-xs text-am-surface-400">
               {onDuty
-                ? `Activo para recetas y videoconsultas inmediatas en mostrador ${since ? `• desde ${new Date(since).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}`
-                : 'Ativá la guardia para receber pacientes de farmácias'}
+                ? (careCountry === 'BR' ? `Conectado para receitas e teleconsultas imediatas ${since ? `• desde ${new Date(since).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : ''}` : `Conectado para recetas y videoconsultas inmediatas ${since ? `• desde ${new Date(since).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}` : ''}`)
+                : (careCountry === 'BR' ? 'Ative o plantão para receber pacientes das farmácias' : 'Activá la guardia para recibir pacientes de farmacias')}
             </p>
           </div>
         </div>
@@ -115,7 +115,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
             <button
               type="button"
               onClick={() => void refreshQueue()}
-              title="Actualizar cola"
+              title={careCountry === 'BR' ? 'Atualizar fila' : 'Actualizar cola'}
               className="p-2 rounded-xl bg-am-surface-700/50 hover:bg-am-surface-700 text-am-surface-300 transition"
             >
               <RefreshCw className="w-3.5 h-3.5" />
@@ -129,7 +129,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
             className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow-md ${
               onDuty
                 ? 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40'
-                : 'bg-gradient-to-r from-am-primary-600 to-emerald-600 hover:from-am-primary-500 hover:to-emerald-500 text-white shadow-emerald-950/40'
+                : 'bg-[#10B981] hover:bg-[#0D9488] text-white shadow-emerald-950/40'
             } disabled:opacity-50`}
           >
             {toggling ? (
@@ -244,12 +244,12 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
                         {claimingId === item.id ? (
                           <>
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            <span>Conectando...</span>
+                            <span>{careCountry === 'BR' ? 'Conectando...' : 'Conectando...'}</span>
                           </>
                         ) : (
                           <>
                             <Video className="w-3.5 h-3.5" />
-                            <span>Atender Paciente</span>
+                            <span>{careCountry === 'BR' ? 'Atender paciente' : 'Atender paciente'}</span>
                           </>
                         )}
                       </button>
