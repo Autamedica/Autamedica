@@ -44,6 +44,13 @@ const MedicalCertificateCreateSchema = z.object({
       message: "A dispensa por horas não utiliza data de reintegração por dias",
     });
   }
+  if ((value.days_of_rest > 0 || value.rest_hours > 0) && !value.diagnosis?.trim()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["diagnosis"],
+      message: "Informe o diagnóstico clínico para justificar o afastamento",
+    });
+  }
 });
 
 async function resolveAuthedDoctorContext(
