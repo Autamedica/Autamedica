@@ -63,7 +63,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       status: latest?.status ?? 'not_started',
       amountCents: latest?.amount_minor ?? null,
       currency: latest?.currency ?? null,
-      manualApprovalRequired: latest?.status === 'pending' && latest?.provider === 'manual'
+      manualApprovalRequired: latest?.status === 'pending'
+        && latest?.metadata?.payment_mode === 'manual_pilot'
         && latest?.metadata?.manual_approval_pending === true,
     })
   } catch (error) {
