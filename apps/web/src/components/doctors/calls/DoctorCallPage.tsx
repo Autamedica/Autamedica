@@ -572,7 +572,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     )
   }
 
-  const waitingCopy = getWaitingCopy(doctorWaitingState, callSession.waitingRoom.message, callSession.peer?.displayName)
+  const waitingCopy = getWaitingCopy(doctorWaitingState, callSession.waitingRoom.message, callSession.peer?.displayName, transcriptionLocale)
   const showWaitingRoomOverlay = showDoctorWaitingRoom && doctorWaitingState !== 'waiting'
 
   return (
