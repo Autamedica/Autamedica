@@ -273,18 +273,25 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
     setIsApprovingLabId(labId);
     try {
       const supabase = getBrowserSupabaseClient();
-      const { error } = await supabase
+      const reviewedAt = new Date().toISOString();
+      const { data, error } = await supabase
         .from('lab_results')
-        .update({ status: 'reviewed', reviewed_at: new Date().toISOString() })
-        .eq('id', labId);
-      
+        .update({ status: 'reviewed', reviewed_at: reviewedAt })
+        .eq('id', labId)
+        .select('id, status, reviewed_at')
+        .maybeSingle();
+
       if (error) throw error;
-      
-      // Update local state
-      setLabResults(prev => 
-        prev.map(l => l.id === labId ? { ...l, status: 'reviewed', reviewed_at: new Date().toISOString() } : l)
+      if (!data || data.id !== labId || data.status !== 'reviewed') {
+        throw new Error('lab_review_not_persisted');
+      }
+
+      setLabResults(prev =>
+        prev.map(l => l.id === labId
+          ? { ...l, status: data.status, reviewed_at: data.reviewed_at ?? reviewedAt }
+          : l)
       );
-      setToast({ message: "Examen firmado y aprobado exitosamente", type: "success" });
+      setToast({ message: "Resultado de laboratorio revisado y guardado", type: "success" });
     } catch (err) {
       console.error("No se pudo guardar la revisión del examen:", err);
       setToast({ message: "No se pudo guardar la revisión del examen. El estado no fue modificado.", type: "error" });
