@@ -204,4 +204,9 @@
     <string name="signature_error_invalid_cpf">Ingrese un CPF brasileño válido de 11 dígitos.</string>
     <string name="signature_error_cpf_mismatch">El CPF no coincide con el registrado en el perfil médico.</string>
     <string name="in_call_hide_diagnosis">Ocultar diagnóstico en el certificado</string>
+
+    <!-- In-call clinical sheet -->
+    <string name="in_call_clinical_ops_title">Utilidad Clínica In-Call</string>
+    <string name="in_call_clinical_ops_status">Llamada activa • Documentos sujetos a verificación</string>
+    <string name="in_call_chat_send_error">No se pudo enviar. Verifica la conexión del chat.</string>
 </resources>

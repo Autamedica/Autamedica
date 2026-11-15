@@ -135,7 +135,7 @@ class DoctorCertificatesViewModelTest {
     fun initialStateLoadsCertificatesAndCounts() = runTest {
         val state = viewModel.uiState.value
         assertThat(state.certificates).hasSize(4)
-        assertThat(state.totalCount).isEqualTo(3)
+        assertThat(state.totalCount).isEqualTo(4)
         assertThat(state.validCount).isEqualTo(1)
         assertThat(state.cancelledCount).isEqualTo(1)
         assertThat(state.filteredCertificates).hasSize(4)
