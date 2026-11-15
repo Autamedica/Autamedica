@@ -136,7 +136,7 @@ export function PharmacyExpressConsultation({
   useEffect(() => {
     const active = step === 'WAITING' &&
       (formData.careCountry === 'AR' || formData.careCountry === 'BR') &&
-      (!pricingByCountry[formData.careCountry]?.require_payment_before_dispatch || brazilPaymentApproved)
+      (!pricingByCountry[formData.careCountry]?.require_payment_before_dispatch || countryPaymentApproved)
     if (!active) { setOnlineDoctorCount(null); return }
     let current = true
     const refresh = async () => {
@@ -156,13 +156,13 @@ export function PharmacyExpressConsultation({
     void refresh()
     const timer = window.setInterval(() => void refresh(), 15000)
     return () => { current = false; window.clearInterval(timer) }
-  }, [step, formData.careCountry, brazilPaymentApproved, pricingByCountry])
+  }, [step, formData.careCountry, countryPaymentApproved, pricingByCountry])
 
   useEffect(() => {
-    if (step !== 'WAITING' || (requiresCountryPayment && !brazilPaymentApproved)) { setWaitingSeconds(0); return }
+    if (step !== 'WAITING' || (requiresCountryPayment && !countryPaymentApproved)) { setWaitingSeconds(0); return }
     const timer = window.setInterval(() => setWaitingSeconds((seconds) => seconds + 1), 1000)
     return () => window.clearInterval(timer)
-  }, [step, formData.careCountry, brazilPaymentApproved, requiresCountryPayment])
+  }, [step, formData.careCountry, countryPaymentApproved, requiresCountryPayment])
 
   // Polling / escucha para consultar GET /api/pharmacy/dispatch/${requestId}?token=${accessToken}
   const checkStatus = useCallback(async (id: string, token: string | null) => {
@@ -339,7 +339,7 @@ export function PharmacyExpressConsultation({
           </span>
           <span className="text-slate-400 hidden sm:inline">•</span>
         </div>
-        {(!requiresCountryPayment || brazilPaymentApproved) && <GuestCallPage roomId={callRoomId} language={isPortuguese ? 'pt' : 'es'} />}
+        {(!requiresCountryPayment || countryPaymentApproved) && <GuestCallPage roomId={callRoomId} language={isPortuguese ? 'pt' : 'es'} />}
         {requiresCountryPayment && requestId && accessToken && currentPricing && (
           <JordanPaymentWidget
             dispatchId={requestId}
@@ -499,7 +499,7 @@ export function PharmacyExpressConsultation({
         {/* STEP: WAITING */}
         {step === 'WAITING' && (
           <div className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm sm:p-5">
-            {(!requiresCountryPayment || brazilPaymentApproved) && (
+            {(!requiresCountryPayment || countryPaymentApproved) && (
               <>
                 <div className="mb-2 w-full"><LiveMedicalPresenceRadar onlineCount={onlineDoctorCount} isPortuguese={isPortuguese} /></div>
                 <p className="mb-3 text-xs font-medium text-slate-600" aria-live="polite">{copy.searching}</p>
