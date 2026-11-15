@@ -57,6 +57,13 @@ describe('Memed pilot readiness is no-PII and fail-closed', () => {
       profile: { ...profile, first_name: '' },
     }).readyForPilot).toBe(false);
   });
+  it('ignores an invalid legacy doctor CPF when the profile has a valid CPF', () => {
+    expect(assessMemedPilotReadiness({
+      ...standard,
+      doctor: { ...doctor, cpf: '12345678909' },
+      profile: { ...profile, cpf: '52998224725' },
+    }).identityComplete).toBe(true);
+  });
   it('never exposes CPF, CRM or identity fields in the returned result', () => {
     const r = assessMemedPilotReadiness(standard);
     expect(JSON.stringify(r)).not.toContain(doctor.cpf);
