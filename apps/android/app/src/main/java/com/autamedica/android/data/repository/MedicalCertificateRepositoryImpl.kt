@@ -146,6 +146,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
                 status = row.status,
                 certificateType = CertificateType.fromCode(row.certificateType),
                 daysOfRest = row.daysOfRest,
+                restHours = row.restHours,
                 startDate = row.startDate,
                 endDate = row.endDate,
                 diagnosis = if (row.hideDiagnosis) null else row.diagnosis,
