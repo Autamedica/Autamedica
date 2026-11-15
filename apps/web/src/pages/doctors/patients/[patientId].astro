@@ -1,16 +1,15 @@
 ---
 import Layout from '@/layouts/Layout.astro';
-import { DoctorsDashboardPage } from '@/components/doctors/DoctorsDashboardPage';
+import { DoctorsConsultationsPage } from '@/components/doctors/DoctorsConsultationsPage';
 
-const patientId = Astro.params.patientId;
-const title = 'Workspace Clínico | AutaMedica';
-const description = 'Workspace clínico del paciente dentro del portal médico';
-const locale = Astro.locals.locale ?? 'es';
+const patientId = Astro.params.patientId ?? null;
+const title = 'Ficha del paciente | Portal Médico | AutaMedica';
+const description = 'Ficha personal del paciente dentro del portal médico';
 const canonical = patientId
-  ? `https://www.autamedica.com/doctors/patients/${patientId}`
-  : 'https://www.autamedica.com/doctors/dashboard';
+  ? `https://www.autamedica.com/doctors/patients/${encodeURIComponent(patientId)}`
+  : 'https://www.autamedica.com/doctors/patients';
 ---
 
 <Layout title={title} description={description} canonical={canonical} robots="noindex, nofollow, noarchive">
-  <DoctorsDashboardPage client:load locale={locale} />
+  <DoctorsConsultationsPage client:load initialPatientId={patientId} initialView="profile" />
 </Layout>
