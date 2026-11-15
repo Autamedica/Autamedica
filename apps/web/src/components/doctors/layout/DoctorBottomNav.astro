@@ -1,49 +1,36 @@
 ---
-import { Calendar, LayoutDashboard, MessageCircle, User, Video } from 'lucide-react';
+import { Calendar, FileText, LayoutDashboard, User, Users } from 'lucide-react';
 
 interface Props {
-  activeTab?: 'agenda' | 'ranking' | 'telemedicina' | 'comunidad' | 'perfil';
+  activeTab?: 'inicio' | 'agenda' | 'pacientes' | 'recetas' | 'perfil';
 }
 
 const { activeTab } = Astro.props;
 
 const TABS = [
-  { key: 'agenda', label: 'Cita', href: '/doctors/agenda', icon: Calendar },
-  { key: 'ranking', label: 'Ranking', href: '/doctors/dashboard?section=ranking', icon: LayoutDashboard },
-  { key: 'telemedicina', label: 'Telemedicina', href: '/doctors/agenda?section=telemedicina', icon: Video, center: true },
-  { key: 'comunidad', label: 'Comunidad', href: '/doctors/community', icon: MessageCircle },
+  { key: 'inicio', label: 'Inicio', href: '/doctors/dashboard', icon: LayoutDashboard },
+  { key: 'agenda', label: 'Agenda', href: '/doctors/agenda', icon: Calendar },
+  { key: 'pacientes', label: 'Pacientes', href: '/doctors/patients', icon: Users },
+  { key: 'recetas', label: 'Recetas', href: '/doctors/prescriptions', icon: FileText },
   { key: 'perfil', label: 'Perfil', href: '/doctors/perfil', icon: User },
 ];
 ---
 
-<nav class="fixed inset-x-0 bottom-0 z-40 border-t border-gray-100 bg-white/95 backdrop-blur-xl md:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
-  <div class="mx-auto flex max-w-lg items-end justify-around px-2 pb-[env(safe-area-inset-bottom)]">
-    {TABS.map(({ key, label, href, icon: Icon, center }) => {
+<nav aria-label="Navegación médica" class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] backdrop-blur-xl md:hidden">
+  <div class="mx-auto flex max-w-lg items-center justify-around px-1 pb-[env(safe-area-inset-bottom)]">
+    {TABS.map(({ key, label, href, icon: Icon }) => {
       const isActive = activeTab === key;
 
-      if (center) {
-        return (
-          <a href={href} class="group -mt-8 flex flex-col items-center gap-1 pb-3">
-            <div
-              class={`flex h-16 w-16 items-center justify-center rounded-full shadow-xl ring-4 ring-white transition-all hover:scale-105 active:scale-95 ${
-                isActive 
-                  ? 'bg-gradient-to-tr from-blue-600 to-indigo-700' 
-                  : 'bg-gradient-to-tr from-cyan-500 to-blue-600'
-              }`}
-            >
-              <Icon className={`h-8 w-8 text-white ${isActive ? '' : 'animate-pulse'}`} />
-            </div>
-            <span class={`text-[10px] font-bold mt-0.5 ${isActive ? 'text-indigo-700' : 'text-blue-600'}`}>
-              {label}
-            </span>
-          </a>
-        );
-      }
-
       return (
-        <a href={href} class="flex flex-col items-center gap-1 px-3 py-3">
-          <Icon className={`h-6 w-6 transition-all \${isActive ? 'text-blue-600 scale-110' : 'text-gray-400'}`} />
-          <span class={`text-[10px] font-medium transition-colors \${isActive ? 'text-blue-600 font-bold' : 'text-gray-500'}`}>
+        <a
+          href={href}
+          aria-current={isActive ? 'page' : undefined}
+          class={`flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-3 transition-colors ${
+            isActive ? 'text-sky-700' : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <Icon class={`h-5 w-5 transition-transform ${isActive ? 'scale-110' : ''}`} />
+          <span class={`text-[10px] font-medium ${isActive ? 'font-bold' : ''}`}>
             {label}
           </span>
         </a>
