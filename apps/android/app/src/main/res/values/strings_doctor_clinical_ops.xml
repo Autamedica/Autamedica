@@ -113,6 +113,7 @@
     <string name="cert_rest_unit_hours">Por horas</string>
     <string name="cert_rest_unit_none">Sin dispensa</string>
     <string name="cert_rest_hours_format">%1$d horas</string>
+    <string name="cert_rest_hours_detail">%1$d horas (desde: %2$s)</string>
     <string name="cert_rest_start_date_label">Fecha de inicio:</string>
     <string name="cert_rest_end_date_label">Reintegro previsto:</string>
     <string name="cert_diag_section_title">Diagnóstico y Certificación Clínica</string>
