@@ -184,6 +184,15 @@
     <string name="in_call_certificate_saving">Preparando atestado...</string>
     <string name="in_call_certificate_submit">Preparar atestado médico</string>
     <string name="in_call_validation_medication_diagnosis">Indique medicamento y diagnóstico clínico.</string>
+    <string name="in_call_prescription_validation">Indique medicamento y diagnóstico clínico.</string>
+    <string name="in_call_default_dosage">Según indicación médica</string>
+    <string name="in_call_default_frequency">Según indicación</string>
+    <string name="in_call_default_duration">Tratamiento ambulatorio</string>
+    <string name="in_call_default_instructions">Tomar según indicaciones clínicas durante la videoconsulta.</string>
+    <string name="in_call_default_prescription_notes">Receta emitida durante videoconsulta AutaMedica.</string>
+    <string name="in_call_certificate_invalid_days">Los días de reposo deben estar entre 0 y 365.</string>
+    <string name="in_call_certificate_diagnosis_required">El médico debe indicar el diagnóstico para justificar el reposo.</string>
+    <string name="in_call_certificate_draft_observations">Borrador preparado durante videoconsulta AutaMedica; pendiente de firma.</string>
     <string name="in_call_prescription_error">No se pudo emitir la receta.</string>
     <string name="in_call_certificate_error">No se pudo preparar el atestado.</string>
     <string name="signature_status_cfm_verified">Matrícula CRM validada con evidencia CFM</string>
