@@ -1,6 +1,7 @@
 package com.autamedica.android.presentation.videocall
 
 import android.Manifest
+import com.autamedica.android.BuildConfig
 import androidx.activity.compose.BackHandler
 import android.webkit.CookieManager
 import android.util.Base64
@@ -834,7 +835,7 @@ private fun MemedInCallWebView(
                         onClose()
                     } else {
                         val projectRef = BuildConfig.SUPABASE_URL.substringAfter("https://").substringBefore('.')
-                        val sessionJson = """{"access_token":"\${tokens.first}","refresh_token":"\${tokens.second}","token_type":"bearer"}"""
+                        val sessionJson = """{"access_token":"${tokens.first}","refresh_token":"${tokens.second}","token_type":"bearer"}"""
                         val encodedSession = "base64-" + Base64.encodeToString(
                             sessionJson.toByteArray(Charsets.UTF_8),
                             Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING,
