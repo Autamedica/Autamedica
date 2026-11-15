@@ -312,6 +312,17 @@ class DoctorCertificatesViewModel @Inject constructor(
         }
     }
 
+    fun onDiagnosisCodeChange(code: String) {
+        _uiState.update {
+            it.copy(
+                diagnosisCode = code.trim().take(8).takeIf { value -> value.isNotEmpty() },
+                createError = null,
+                createErrorRes = null,
+                createErrorArg = null,
+            )
+        }
+    }
+
     fun onToggleHideDiagnosis(hide: Boolean) {
         _uiState.update { it.copy(hideDiagnosis = hide) }
     }
