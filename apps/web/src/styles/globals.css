@@ -75,7 +75,7 @@
   /* Portal colors — single accent source */
   --portal-patients: #0ea5e9;
   --portal-patients-action: #0369a1; /* Accessible filled action; matches Android PortalPatientsAction */
-  --portal-doctors: #0ea5e9;
+  --portal-doctors: #0D9488;
   --portal-companies: #0ea5e9;
 
   /* Spacing */
@@ -229,7 +229,7 @@ a {
 }
 
 /* ═══════════════════════════════════════════
-   Doctor Portal — Warm Light Theme Scope
+   Doctor Portal — Clinical Light Theme Scope
    ═══════════════════════════════════════════ */
 .portal-doctor {
   --am-bg: #F8FAFC;
@@ -244,7 +244,16 @@ a {
   --am-accent-soft: rgba(13, 148, 136, 0.10);
 }
 
-.portal-doctor h1,\n.portal-doctor h2,\n.portal-doctor h3,\n.portal-doctor h4,\n.portal-doctor h5,\n.portal-doctor h6 {\n  font-family: var(--font-sans);\n}\n\n.portal-doctor ::selection {
+.portal-doctor h1,
+.portal-doctor h2,
+.portal-doctor h3,
+.portal-doctor h4,
+.portal-doctor h5,
+.portal-doctor h6 {
+  font-family: var(--font-sans);
+}
+
+.portal-doctor ::selection {
   background: rgba(13, 148, 136, 0.15);
   color: var(--am-text-primary);
 }
