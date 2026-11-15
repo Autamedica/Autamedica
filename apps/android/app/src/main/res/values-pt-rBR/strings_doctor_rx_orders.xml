@@ -64,7 +64,7 @@
     <!-- 2. EMISIÓN DE RECETA DIGITAL (CreatePrescriptionScreen)              -->
     <!-- =================================================================== -->
     <string name="doctor_create_rx_title">Emitir Receita Digital</string>
-    <string name="doctor_create_rx_subtitle">CFM Resolução nº 2.381/2024 · ANVISA RDC nº 1.000/2025</string>
+    <string name="doctor_create_rx_subtitle">CFM Resolução nº 2.299/2021 e nº 2.381/2024 · ANVISA RDC nº 1.000/2025</string>
     <string name="doctor_create_rx_action_back">Voltar</string>
     <string name="doctor_create_rx_submitting">Assinando e Gerando código de validação digital...</string>
     <string name="doctor_create_rx_submit_button">Assinar e Emitir Receita Oficial</string>
