@@ -454,26 +454,26 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
         <DoctorOnDutyWidget careCountry={doctorCountry === 'BR' ? 'BR' : doctorCountry === 'AR' ? 'AR' : undefined} />
       </div>
 
-      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0D9488]">MÉTRICAS CLÍNICAS</p>
+      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0284C7]">MÉTRICAS CLÍNICAS</p>
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">{isBrazilianDoctor ? 'Consultas atendidas hoje' : 'Consultas atendidas hoy'}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0284C7]">{isBrazilianDoctor ? 'Consultas atendidas hoje' : 'Consultas atendidas hoy'}</p>
           <p className="mt-2 text-3xl font-bold tracking-tight text-[#0F2537]">{todayCompletedCount}</p>
           <p className="mt-1 text-xs text-slate-500">{isBrazilianDoctor ? 'Agenda e farmácia concluídas' : 'Agenda y farmacia finalizadas'}</p>
         </div>
         <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">{isBrazilianDoctor ? 'Agendamentos não cancelados' : 'Citas no canceladas'}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0284C7]">{isBrazilianDoctor ? 'Agendamentos não cancelados' : 'Citas no canceladas'}</p>
           <p className="mt-2 text-3xl font-bold tracking-tight text-[#0F2537]">{activeCount}</p>
           <p className="mt-1 text-xs text-slate-500">{isBrazilianDoctor ? 'Consultas agendadas ou em andamento' : 'Consultas agendadas o en curso'}</p>
         </div>
         <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">{isBrazilianDoctor ? 'Plantões de farmácia' : 'Guardias de farmacia'}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0284C7]">{isBrazilianDoctor ? 'Plantões de farmácia' : 'Guardias de farmacia'}</p>
           <p className="mt-2 text-3xl font-bold tracking-tight text-[#0F2537]">{pharmacyDispatchCount}</p>
           <p className="mt-1 text-xs text-slate-500">{isBrazilianDoctor ? 'Consultas despachadas e contabilizadas' : 'Consultas despachadas y contabilizadas'}</p>
           <p className="mt-1 text-xs font-medium text-emerald-700">{isBrazilianDoctor ? 'Hoje' : 'Hoy'}: {todayPharmacyCount} {isBrazilianDoctor ? 'concluídas' : 'completadas'}</p>
         </div>
         <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:col-span-1 lg:col-span-2">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">{isBrazilianDoctor ? 'Ganhos de farmácia' : 'Ganancias de farmacia'}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0284C7]">{isBrazilianDoctor ? 'Ganhos de farmácia' : 'Ganancias de farmacia'}</p>
           <div className="mt-2 flex flex-wrap items-baseline gap-x-6 gap-y-2">
             <span className="text-2xl font-bold tracking-tight text-[#0F2537]">{(pharmacyEarnings.BRL / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
             <span className="text-2xl font-bold tracking-tight text-[#0F2537]">{(pharmacyEarnings.ARS / 100).toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 2 })}</span>
@@ -481,15 +481,15 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
           <p className="mt-1 text-xs text-slate-500">{isBrazilianDoctor ? 'Valores líquidos registrados em BRL e ARS' : 'Importes netos registrados en BRL y ARS'}</p>
         </div>
       </div>
-      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0D9488]">{isBrazilianDoctor ? 'FERRAMENTAS CLÍNICAS' : 'HERRAMIENTAS CLÍNICAS'}</p>
+      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0284C7]">{isBrazilianDoctor ? 'FERRAMENTAS CLÍNICAS' : 'HERRAMIENTAS CLÍNICAS'}</p>
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <a href="/doctors/prescriptions" className="flex items-center gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm transition hover:border-sky-200 hover:shadow-md">
           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-sky-50 text-sky-700"><FileText className="h-5 w-5" /></span>
           <span><span className="block text-sm font-semibold text-[#0F2537]">{isBrazilianDoctor ? 'Receita digital' : 'Receta digital'}</span><span className="block text-xs text-slate-500">Memed · Brasil / Farmalink · Argentina</span></span>
           <ArrowUpRight className="ml-auto h-4 w-4 text-slate-400" />
         </a>
-        <a href="/doctors/certificates" className="flex items-center gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm transition hover:border-emerald-200 hover:shadow-md">
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50 text-emerald-700"><CheckCircle2 className="h-5 w-5" /></span>
+        <a href="/doctors/certificates" className="flex items-center gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm transition hover:border-sky-200 hover:shadow-md">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-sky-50 text-sky-700"><CheckCircle2 className="h-5 w-5" /></span>
           <span><span className="block text-sm font-semibold text-[#0F2537]">{isBrazilianDoctor ? 'Atestado' : 'Certificado médico'}</span><span className="block text-xs text-slate-500">{isBrazilianDoctor ? 'Emissão clínica por jurisdição' : 'Emisión clínica por jurisdicción'}</span></span>
           <ArrowUpRight className="ml-auto h-4 w-4 text-slate-400" />
         </a>
@@ -930,7 +930,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
             <div>
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-50 text-sky-700 border border-sky-100">
                     <FileText className="h-4.5 w-4.5" strokeWidth={2} />
                   </div>
                   <div>
