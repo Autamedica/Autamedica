@@ -176,6 +176,14 @@ jobs:
         # Memed is optional; provider credential rejection must not block unrelated production releases.
         continue-on-error: true
         run: node scripts/ops/sync-memed-secrets.mjs
+      - name: Read-only Memed provider preflight
+        env:
+          MEMED_API_KEY: ${{ secrets.MEMED_API_KEY }}
+          MEMED_SECRET_KEY: ${{ secrets.MEMED_SECRET_KEY }}
+          MEMED_API_URL: https://api.memed.com.br/v1
+        # Report the exact upstream HTTP status without blocking unrelated production deployment.
+        continue-on-error: true
+        run: node scripts/ops/memed-preflight.mjs
       - name: Build workspace packages
         run: pnpm build:packages:core
 
