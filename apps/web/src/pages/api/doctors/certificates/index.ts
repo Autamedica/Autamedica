@@ -107,7 +107,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const externalProviderEnabled = context.countryCode === "AR"
       ? env?.FARMALINK_ENABLED === "true"
       : context.countryCode === "BR"
-        ? env?.MEMED_RX_ENABLED === "true" && env?.MEMED_PILOT_DOCTOR_ID === context.doctorId
+        ? (env?.MEMED_RX_ENABLED === "true" || env?.MEMED_MOBILE_ENABLED === "true") &&
+          (env?.MEMED_PILOT_DOCTOR_ID || env?.MEMED_MOBILE_PILOT_DOCTOR_ID) === context.doctorId
         : false;
     const response = jsonOk({ countryCode: context.countryCode, externalProvider, externalProviderEnabled });
     response.headers.set("Cache-Control", "private, no-store");
