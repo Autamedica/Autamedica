@@ -54,7 +54,7 @@ function buildChain(data: unknown, error: unknown = null) {
   return chain
 }
 
-function makeContext(country: 'AR' | 'BR' = 'BR'): Parameters<typeof POST>[0] {
+function makeContext(): Parameters<typeof POST>[0] {
   return {
     request: new Request('https://autamedica.test/api/pharmacy/dispatch/payment/create', {
       method: 'POST',
@@ -208,7 +208,7 @@ describe('API: /api/pharmacy/dispatch/payment/create pay-first', () => {
       return next
     })
 
-    const response = await POST(makeContext('AR'))
+    const response = await POST(makeContext())
     const body = await response.json()
 
     expect(response.status).toBe(200)
