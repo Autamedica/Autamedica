@@ -46,10 +46,6 @@ try {
 // The DEV guard makes this fixture override unavailable in production builds.
 if (import.meta.env.DEV && process.env.AUTAMEDICA_E2E_PHARMACY_DISPATCH === 'true') {
   pharmacyPaymentsEnabled = true;
-  pricingByCountry = {
-    AR: { currency: 'ARS', consultation_price_minor: 1500000, doctor_fee_minor: 800000, partner_commission_minor: 200000, require_payment_before_dispatch: false },
-    BR: { currency: 'BRL', consultation_price_minor: 7900, doctor_fee_minor: 4000, partner_commission_minor: 1000, require_payment_before_dispatch: false },
-  };
 }
 
 
@@ -69,6 +65,13 @@ try {
   }
 } catch {
   // The form reports an explicit pricing configuration error when a tariff is absent.
+}
+
+if (import.meta.env.DEV && process.env.AUTAMEDICA_E2E_PHARMACY_DISPATCH === 'true') {
+  pricingByCountry = {
+    AR: { currency: 'ARS', consultation_price_minor: 1500000, doctor_fee_minor: 800000, partner_commission_minor: 200000, require_payment_before_dispatch: false },
+    BR: { currency: 'BRL', consultation_price_minor: 7900, doctor_fee_minor: 4000, partner_commission_minor: 1000, require_payment_before_dispatch: false },
+  };
 }
 
 const title = 'Consulta Exprés en Farmacia • Red AutaMedica';
