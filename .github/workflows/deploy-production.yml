@@ -224,7 +224,7 @@ jobs:
           MEMED_API_KEY: ${{ secrets.MEMED_API_KEY }}
           MEMED_SECRET_KEY: ${{ secrets.MEMED_SECRET_KEY }}
           MEMED_API_URL: https://api.memed.com.br/v1
-          MEMED_PREFLIGHT_DOCTOR_EXTERNAL_ID: 5ddfda98-fae0-46ab-8d17-a6f40b665d67
+          MEMED_PREFLIGHT_DOCTOR_EXTERNAL_ID: 080fb7ae-92b4-44d4-8941-a6db65004b9f
         # Report the exact upstream HTTP status without blocking unrelated production deployment.
         continue-on-error: true
         run: node scripts/ops/memed-preflight.mjs
