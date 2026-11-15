@@ -219,6 +219,22 @@ jobs:
             jq -e '.success == true and .result.deployment_configs.production.env_vars.MEMED_MOBILE_ENABLED.type == "secret_text" and .result.deployment_configs.production.env_vars.MEMED_MOBILE_PILOT_DOCTOR_ID.type == "secret_text"' <<< "$settings" >/dev/null
             echo "$project: Memed mobile flags verified (values masked)"
           done
+      - name: Register or verify the Memed pilot prescriber
+        env:
+          SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MEMED_API_KEY: ${{ secrets.MEMED_API_KEY }}
+          MEMED_SECRET_KEY: ${{ secrets.MEMED_SECRET_KEY }}
+          MEMED_API_URL: https://api.memed.com.br/v1
+          MEMED_PILOT_DOCTOR_ID: 080fb7ae-92b4-44d4-8941-a6db65004b9f
+        # Provider identity setup is best-effort for the rest of the production deployment.
+        continue-on-error: true
+        run: |
+          if [[ -z "${SUPABASE_SERVICE_ROLE_KEY}" ]]; then
+            echo "MEMED_PILOT_REGISTRATION_SKIPPED=service_role_secret_missing"
+            exit 0
+          fi
+          node scripts/ops/memed-register-pilot.mjs
       - name: Read-only Memed provider preflight
         env:
           MEMED_API_KEY: ${{ secrets.MEMED_API_KEY }}
