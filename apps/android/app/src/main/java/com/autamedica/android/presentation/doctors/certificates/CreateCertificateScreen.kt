@@ -208,9 +208,13 @@ fun CreateCertificateScreen(
             DaysOfRestSection(
                 certificateType = uiState.certificateType,
                 daysOfRest = uiState.daysOfRest,
+                restHours = uiState.restHours,
+                restPeriodUnit = uiState.restPeriodUnit,
                 startDate = uiState.startDate,
                 endDate = uiState.endDate,
+                onRestPeriodUnitChange = { viewModel.onRestPeriodUnitChange(it) },
                 onDaysChange = { viewModel.onDaysOfRestChange(it) },
+                onHoursChange = { viewModel.onRestHoursChange(it) },
                 onStartDateChange = { viewModel.onStartDateChange(it) }
             )
 
@@ -624,12 +628,17 @@ private fun CertificateTypeSelectorSection(
 private fun DaysOfRestSection(
     certificateType: CertificateType,
     daysOfRest: Int,
+    restHours: Int,
+    restPeriodUnit: String,
     startDate: String,
     endDate: String?,
+    onRestPeriodUnitChange: (String) -> Unit,
     onDaysChange: (Int) -> Unit,
+    onHoursChange: (Int) -> Unit,
     onStartDateChange: (String) -> Unit,
 ) {
     val presetDays = listOf(1, 2, 3, 5, 7, 14, 30)
+    val presetHours = listOf(1, 2, 4, 6, 8, 12, 24)
 
     Surface(
         shape = RoundedCornerShape(16.dp),
@@ -648,34 +657,32 @@ private fun DaysOfRestSection(
                 color = AuTextPrimary
             )
 
-            // Quick preset chips
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                presetDays.forEach { days ->
-                    val isSelected = daysOfRest == days
-                    val chipText = when (days) {
-                        1 -> stringResource(R.string.cert_rest_24h)
-                        2 -> stringResource(R.string.cert_rest_48h)
-                        else -> stringResource(R.string.cert_rest_days_format, days)
-                    }
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { onDaysChange(days) },
-                        label = { Text(chipText) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = PortalDoctors,
-                            selectedLabelColor = Color.White,
-                        )
-                    )
-                }
                 FilterChip(
-                    selected = daysOfRest == 0,
-                    onClick = { onDaysChange(0) },
-                    label = { Text(stringResource(R.string.cert_no_rest)) },
+                    selected = restPeriodUnit == "days",
+                    onClick = { onRestPeriodUnitChange("days") },
+                    label = { Text(stringResource(R.string.cert_rest_unit_days)) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = PortalDoctors,
+                        selectedLabelColor = Color.White,
+                    )
+                )
+                FilterChip(
+                    selected = restPeriodUnit == "hours",
+                    onClick = { onRestPeriodUnitChange("hours") },
+                    label = { Text(stringResource(R.string.cert_rest_unit_hours)) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = PortalDoctors,
+                        selectedLabelColor = Color.White,
+                    )
+                )
+                FilterChip(
+                    selected = restPeriodUnit == "none",
+                    onClick = { onRestPeriodUnitChange("none") },
+                    label = { Text(stringResource(R.string.cert_rest_unit_none)) },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = PortalDoctors,
                         selectedLabelColor = Color.White,
@@ -683,7 +690,50 @@ private fun DaysOfRestSection(
                 )
             }
 
-            // Summary Card
+            when (restPeriodUnit) {
+                "days" -> Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    presetDays.forEach { days ->
+                        val chipText = when (days) {
+                            1 -> stringResource(R.string.cert_rest_24h)
+                            2 -> stringResource(R.string.cert_rest_48h)
+                            else -> stringResource(R.string.cert_rest_days_format, days)
+                        }
+                        FilterChip(
+                            selected = daysOfRest == days,
+                            onClick = { onDaysChange(days) },
+                            label = { Text(chipText) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = PortalDoctors,
+                                selectedLabelColor = Color.White,
+                            )
+                        )
+                    }
+                }
+                "hours" -> Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    presetHours.forEach { hours ->
+                        FilterChip(
+                            selected = restHours == hours,
+                            onClick = { onHoursChange(hours) },
+                            label = { Text(stringResource(R.string.cert_rest_hours_format, hours)) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = PortalDoctors,
+                                selectedLabelColor = Color.White,
+                            )
+                        )
+                    }
+                }
+            }
+
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = AuSurfaceHover,
@@ -694,20 +744,58 @@ private fun DaysOfRestSection(
                     modifier = Modifier.padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(stringResource(R.string.cert_rest_start_date_label), style = MaterialTheme.typography.bodySmall, color = AuTextSecondary)
-                        Text(startDate, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = AuTextPrimary)
-                    }
-                    if (daysOfRest > 0 && endDate != null) {
+                    if (restPeriodUnit == "days" || restPeriodUnit == "hours") {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(stringResource(R.string.cert_rest_end_date_label), style = MaterialTheme.typography.bodySmall, color = AuTextSecondary)
-                            Text(endDate, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = Color(0xFF16A34A))
+                            Text(
+                                stringResource(R.string.cert_rest_start_date_label),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = AuTextSecondary
+                            )
+                            Text(
+                                startDate,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = AuTextPrimary
+                            )
+                        }
+                    }
+                    when (restPeriodUnit) {
+                        "days" -> if (daysOfRest > 0 && endDate != null) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    stringResource(R.string.cert_rest_end_date_label),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = AuTextSecondary
+                                )
+                                Text(
+                                    endDate,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF16A34A)
+                                )
+                            }
+                        }
+                        "hours" -> Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                stringResource(R.string.cert_rest_unit_hours),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = AuTextSecondary
+                            )
+                            Text(
+                                stringResource(R.string.cert_rest_hours_format, restHours),
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF16A34A)
+                            )
                         }
                     }
                 }
