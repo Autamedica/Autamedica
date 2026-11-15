@@ -164,6 +164,17 @@ fun VideoCallScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val localTrack by viewModel.localVideoTrack.collectAsStateWithLifecycle()
     val remoteTrack by viewModel.remoteVideoTrack.collectAsStateWithLifecycle()
+    val inCallPrescriptionValidation = stringResource(R.string.in_call_prescription_validation)
+    val inCallPrescriptionFallback = stringResource(R.string.in_call_prescription_error)
+    val inCallDefaultDosage = stringResource(R.string.in_call_default_dosage)
+    val inCallDefaultFrequency = stringResource(R.string.in_call_default_frequency)
+    val inCallDefaultDuration = stringResource(R.string.in_call_default_duration)
+    val inCallDefaultInstructions = stringResource(R.string.in_call_default_instructions)
+    val inCallPrescriptionNotes = stringResource(R.string.in_call_default_prescription_notes)
+    val inCallCertificateInvalidDays = stringResource(R.string.in_call_certificate_invalid_days)
+    val inCallCertificateDiagnosisRequired = stringResource(R.string.in_call_certificate_diagnosis_required)
+    val inCallCertificateDraftObservations = stringResource(R.string.in_call_certificate_draft_observations)
+    val inCallCertificateFallback = stringResource(R.string.in_call_certificate_error)
     var clinicalSheetMode by remember { mutableStateOf<InCallClinicalMode?>(null) }
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
@@ -623,10 +634,33 @@ fun VideoCallScreen(
             patientLinked = uiState.patientId.isNotBlank(),
             isSubmitting = uiState.isIssuingPrescription || uiState.isIssuingCertificate,
             onIssuePrescription = { med, dosage, instructions, diagnosis, onResult ->
-                viewModel.issueInCallPrescription(med, dosage, instructions, diagnosis, onResult)
+                viewModel.issueInCallPrescription(
+                    medicationName = med,
+                    dosage = dosage,
+                    instructions = instructions,
+                    diagnosis = diagnosis,
+                    validationMessage = inCallPrescriptionValidation,
+                    fallbackErrorMessage = inCallPrescriptionFallback,
+                    defaultDosage = inCallDefaultDosage,
+                    defaultFrequency = inCallDefaultFrequency,
+                    defaultDuration = inCallDefaultDuration,
+                    defaultInstructions = inCallDefaultInstructions,
+                    prescriptionNotes = inCallPrescriptionNotes,
+                    onResult = onResult,
+                )
             },
             onIssueCertificate = { type, days, diag, hideDiagnosis, onResult ->
-                viewModel.issueInCallCertificate(type, days, diag, hideDiagnosis, onResult)
+                viewModel.issueInCallCertificate(
+                    type = type,
+                    daysOfRest = days,
+                    diagnosis = diag,
+                    hideDiagnosis = hideDiagnosis,
+                    invalidDaysMessage = inCallCertificateInvalidDays,
+                    diagnosisRequiredMessage = inCallCertificateDiagnosisRequired,
+                    draftObservations = inCallCertificateDraftObservations,
+                    fallbackErrorMessage = inCallCertificateFallback,
+                    onResult = onResult,
+                )
             },
             onDismiss = { clinicalSheetMode = null },
         )
