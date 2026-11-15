@@ -136,7 +136,17 @@ class DoctorCertificatesViewModel @Inject constructor(
 
     fun initCreateCertificate(patientId: String = "") {
         viewModelScope.launch {
-            val countryCode = _uiState.value.doctorEligibility?.countryCode
+            var eligibility = _uiState.value.doctorEligibility
+            if (eligibility == null) {
+                eligibility = prescriptionRepository.getDoctorEligibility().getOrNull()
+                _uiState.update {
+                    it.copy(
+                        doctorEligibility = eligibility,
+                        isLoadingEligibility = false,
+                    )
+                }
+            }
+            val countryCode = eligibility?.countryCode
             val zoneId = when (countryCode) {
                 "BR" -> ZoneId.of("America/Sao_Paulo")
                 "AR" -> ZoneId.of("America/Argentina/Buenos_Aires")
