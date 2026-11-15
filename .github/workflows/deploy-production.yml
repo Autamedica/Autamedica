@@ -50,6 +50,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
       - run: pnpm typecheck
+      - name: Run explicit Astro check
+        run: pnpm --filter @autamedica/web check
       - run: pnpm lint
       - run: pnpm hardcode:check
       - name: Require encrypted guest call signing secret in every public portal
