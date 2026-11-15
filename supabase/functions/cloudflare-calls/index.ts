@@ -257,6 +257,7 @@ export async function handler(req: Request): Promise<Response> {
           status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }
+      if (partner.code === 'JORDAN') isJordanRoom = true
       if (partner.code === 'JORDAN'
           && (!['AR', 'BR'].includes(mediaDispatch.care_country)
             || mediaDispatch.tier_requested !== 'general')) {
@@ -295,7 +296,7 @@ export async function handler(req: Request): Promise<Response> {
           })
         }
         const providerId = String(payment?.provider_payment_id ?? '')
-        const numericMercadoPago = payment?.provider === 'mercadopago' && /^\\d{1,20}$/.test(providerId)
+        const numericMercadoPago = payment?.provider === 'mercadopago' && /^\d{1,20}$/.test(providerId)
         const auditedManualOverride = providerId.startsWith('MANUAL_OVERRIDE_')
           && typeof payment?.metadata?.manual_override_by === 'string'
           && Boolean(payment.metadata.manual_override_by)
