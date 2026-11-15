@@ -124,7 +124,7 @@ function MobileNavBar({
   const allLinks = [...primaryLinks, ...platformLinks];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-neutral-200/60 bg-white/95 pb-safe pt-2 backdrop-blur-xl md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 pb-safe pt-2 backdrop-blur-xl md:hidden">
       <div className="flex items-center justify-around px-2">
         {allLinks.slice(0, 5).map((item) => {
           const isActive = item.key === activeSection;
@@ -133,7 +133,7 @@ function MobileNavBar({
               key={item.key}
               href={item.href}
               className={`relative flex flex-col items-center gap-1.5 rounded-xl px-3 py-2 transition-colors ${
-                isActive ? "text-neutral-900" : "text-neutral-400"
+                isActive ? "text-[#0D9488]" : "text-neutral-400"
               }`}
             >
               <div className="relative">
@@ -149,7 +149,7 @@ function MobileNavBar({
               </div>
               <span className="text-[10px] font-medium">{item.label}</span>
               {isActive ? (
-                <span className="absolute top-0 h-0.5 w-8 rounded-full bg-neutral-900" />
+                <span className="absolute top-0 h-0.5 w-8 rounded-full bg-[#0D9488]" />
               ) : null}
             </a>
           );
@@ -441,10 +441,10 @@ export function DoctorsPortalFrame({
               {cachedProfile.doctorName}
               {cachedProfile.isValidOrExempt && (
                 <span
-                  className="inline-flex items-center justify-center text-amber-500"
+                  className="inline-flex items-center justify-center text-[#0D9488]"
                   title="Matrícula validada en SSS / REFEPS"
                 >
-                  <CheckCircle2 className="h-4 w-4 fill-amber-50 text-amber-500" />
+                  <CheckCircle2 className="h-4 w-4 fill-teal-50 text-[#0D9488]" />
                 </span>
               )}
             </h2>
@@ -508,7 +508,7 @@ export function DoctorsPortalFrame({
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 text-neutral-900">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F2537]">
       {mobileMenuOpen ? (
         <button
           type="button"
@@ -519,7 +519,7 @@ export function DoctorsPortalFrame({
       ) : null}
 
       {/* ── Header ── */}
-      <header className="sticky top-0 z-30 border-b border-neutral-200/60 bg-white/95 px-4 py-3 backdrop-blur-xl md:px-8">
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-xl md:px-8">
         <div className="flex items-center justify-between gap-3">
           <a href="/" className="flex items-center gap-3">
             <img
@@ -528,10 +528,10 @@ export function DoctorsPortalFrame({
               className="h-8 w-8 object-contain md:h-9 md:w-9"
             />
             <div>
-              <div className="text-base font-semibold text-neutral-900 md:text-lg">
+              <div className="text-base font-bold tracking-tight text-[#0F2537] md:text-lg">
                 AutaMedica
               </div>
-              <div className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-400">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#0D9488]">
                 Portal médico
               </div>
             </div>
@@ -578,7 +578,7 @@ export function DoctorsPortalFrame({
               >
                 <div className="relative flex-shrink-0">
                   <label
-                    className="group/avatar relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl bg-neutral-900 text-[13px] font-semibold text-white ring-1 ring-neutral-200 transition hover:ring-neutral-400"
+                    className="group/avatar relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#0F2537] text-[13px] font-semibold text-white ring-2 ring-[#0D9488]/70 transition hover:ring-neutral-400"
                     title={
                       avatarUrl
                         ? "Editar foto profesional"
@@ -601,7 +601,8 @@ export function DoctorsPortalFrame({
                         </span>
                       </>
                     )}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover/avatar:opacity-100">
+                    <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" aria-label="Presencia online" />
+                    <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity duration-300 group-hover/avatar:opacity-100">
                       {uploadingPhoto ? (
                         <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                       ) : (
@@ -627,18 +628,18 @@ export function DoctorsPortalFrame({
                 </div>
                 {!isSidebarCollapsed ? (
                   <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-1.5 truncate text-[13px] font-semibold text-neutral-900">
+                    <p className="flex flex-wrap items-center gap-1.5 whitespace-normal break-words text-[13px] font-semibold text-[#0F2537]">
                       {doctorName}
                       {isValidOrExempt && (
                         <span
-                          className="inline-flex items-center justify-center text-amber-500"
+                          className="inline-flex items-center justify-center text-[#0D9488]"
                           title="Matrícula validada en SSS / REFEPS"
                         >
-                          <CheckCircle2 className="h-3.5 w-3.5 fill-amber-50 text-amber-500" />
+                          <CheckCircle2 className="h-3.5 w-3.5 fill-teal-50 text-[#0D9488]" />
                         </span>
                       )}
                     </p>
-                    <p className="truncate text-[11px] text-neutral-400">
+                    <p className="text-[11px] text-slate-500">
                       {doctorSpecialty}
                     </p>
                   </div>
@@ -671,7 +672,7 @@ export function DoctorsPortalFrame({
                     href={item.href}
                     className={`group flex items-center justify-between rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors ${
                       isActive
-                        ? "bg-neutral-100 text-neutral-900"
+                        ? "bg-teal-50 text-teal-800"
                         : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
                     }`}
                   >
@@ -702,7 +703,7 @@ export function DoctorsPortalFrame({
                       href={item.href}
                       className={`group flex items-center justify-between rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors ${
                         isActive
-                          ? "bg-neutral-100 text-neutral-900"
+                          ? "bg-teal-50 text-teal-800"
                           : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
                       }`}
                     >
