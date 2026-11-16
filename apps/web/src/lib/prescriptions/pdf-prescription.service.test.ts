@@ -1,13 +1,19 @@
 import { writeFileSync } from 'node:fs';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { primeRuntimeEnv, resetRuntimeEnvCache } from '@/lib/runtime-env';
 import { generatePrescriptionPdf } from './pdf-prescription.service';
 import { rctaService } from './rcta.service';
 
 describe('generatePrescriptionPdf', () => {
+  beforeEach(() => {
+    // Keep this suite deterministic and prevent logo/signature fetches from leaving the test process.
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('external fetch disabled in PDF tests')));
+  });
+
   afterEach(() => {
     resetRuntimeEnvCache();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('renders a visible barcode block tied to the CUIR', async () => {
@@ -249,7 +255,7 @@ describe('generatePrescriptionPdf', () => {
     const rctaSpy = vi.spyOn(rctaService, 'registerPrescription');
     for (const scenario of [
       { mode: 'S' as const, number: '9600000421228', commercialName: undefined, filename: 'generica' },
-      { mode: 'N' as const, number: '9600000421242', commercialName: 'ESFUMEL blanqueadora cr. x 20 g', filename: 'marca' },
+      { mode: 'N' as const, number: '9600000421242', commercialName: 'ESFUMEL blanqueadora cr.x 20 g', filename: 'marca' },
     ]) {
       const artifacts = await generatePrescriptionPdf({
         prescriptionId: `farmalink-homologation-${scenario.mode}-${scenario.number}`,
@@ -295,6 +301,11 @@ describe('generatePrescriptionPdf', () => {
       expect(pdfText).toContain('Nro. afiliado / Credencial: 20123456786');
       expect(pdfText).toContain('Entidad: 7110');
       expect(pdfText).toContain('Plan: NO POSEE');
+      expect(pdfText).toContain('DNI: 12345678');
+      expect(pdfText).toContain('Fecha de Nacimiento: 01/01/2025');
+      expect(pdfText).toContain('Cantidad: 1 unidades');
+      expect(pdfText).toContain('Matrícula: MN 11111');
+      expect(pdfText).toContain('Domicilio profesional: Consultorio particular CALLE 11 Nro 2300');
       expect(pdfText).not.toContain('CUIL: 27123456780');
       expect(pdfText).toContain('PAN / CREDENCIAL');
       expect(pdfText).toContain('PAN: 20123456786');
