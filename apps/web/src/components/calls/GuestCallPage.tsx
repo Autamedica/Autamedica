@@ -20,7 +20,7 @@ interface GuestCallPageProps {
 
 type EncounterDocument = {
   id: string; kind: 'memed' | 'core' | 'certificate'; title: string; provider: string;
-  createdAt: string; status: string; verificationCode: string | null; downloadUrl: string;
+  createdAt: string; status: string; verificationCode: string | null; accessCode?: string | null; downloadUrl: string;
 }
 
 export interface CallEndedScreenProps {
@@ -135,6 +135,7 @@ export function CallEndedScreen({
                       </h2>
                       <p className="mt-1 truncate text-xs text-slate-600">{document.title} · {document.provider}</p>
                       {document.verificationCode && <p className="mt-1 text-[11px] text-slate-500">{language === 'pt' ? 'Código de verificação' : 'Código de verificación'}: <span className="font-mono font-semibold text-slate-800">{document.verificationCode}</span></p>}
+                      {document.accessCode && <p className="mt-1 text-[11px] text-slate-500">{language === 'pt' ? 'Código de acesso à farmácia' : 'Código de acceso en farmacia'}: <span className="font-mono font-semibold text-slate-800">{document.accessCode}</span></p>}
                     </div>
                     <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
                   </div>
