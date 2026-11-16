@@ -203,6 +203,55 @@ async function listReadModelPrescriptions(
   return prescriptions.map((row) => normalizeCorePrescription(row, doctorMap));
 }
 
+function findMemedUrl(value: unknown, depth = 0): string | null {
+  if (depth > 6 || !value || typeof value !== "object") return null;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findMemedUrl(item, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+  const object = value as Record<string, unknown>;
+  for (const [key, nested] of Object.entries(object)) {
+    if (/(url|link|pdf|document)/i.test(key) && typeof nested === "string") {
+      try {
+        const parsed = new URL(nested);
+        if (parsed.protocol === "https:" && /(^|[.])memed[.]com(?:[.]br)?$/i.test(parsed.hostname)) return parsed.toString();
+      } catch { /* Ignore malformed provider links. */ }
+    }
+  }
+  for (const nested of Object.values(object)) {
+    const found = findMemedUrl(nested, depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
+function findMemedAccessCode(value: unknown, depth = 0): string | null {
+  const accepted = new Set(["unlockcode", "accesscode", "password", "senha", "codigodesbloqueio", "codigoacesso", "pin"]);
+  if (depth > 6 || !value || typeof value !== "object") return null;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findMemedAccessCode(item, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+  const object = value as Record<string, unknown>;
+  for (const [key, nested] of Object.entries(object)) {
+    if (accepted.has(key.toLowerCase().replace(/[^a-z0-9]/g, ""))
+      && typeof nested === "string" && nested.trim().length >= 4 && nested.trim().length <= 32) {
+      return nested.trim();
+    }
+  }
+  for (const nested of Object.values(object)) {
+    const found = findMemedAccessCode(nested, depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
 function normalizeMemedRows(rows: unknown[], admin: Db): Promise<MedicalRecord[]> {
   return (async () => {
     const records = rows.filter((row): row is Record<string, unknown> => Boolean(row && typeof row === "object"));
@@ -219,15 +268,15 @@ function normalizeMemedRows(rows: unknown[], admin: Db): Promise<MedicalRecord[]
     }
     return records.map((row) => {
       const provider = asObject(row.provider_data);
-      const digital = asObject(row.digital_link_data);
+      const digital = row.digital_link_data;
       const medicationName = asString(provider.medication_name)
         ?? asString(provider.medicationName)
         ?? asString(provider.nome)
         ?? asString(provider.name)
         ?? asString(provider.title)
         ?? "Receita digital Memed";
-      const digitalUrl = [digital.url, digital.link, digital.pdf_url, digital.document_url]
-        .find((value) => typeof value === "string" && /^https:\/\//i.test(value as string));
+      const digitalUrl = findMemedUrl(digital);
+      const accessCode = findMemedAccessCode(digital);
       const id = asString(row.id) ?? asString(row.memed_id) ?? crypto.randomUUID();
       const doctorId = asString(row.doctor_id) ?? "";
       const createdAt = asString(row.created_at) ?? new Date().toISOString();
@@ -250,8 +299,9 @@ function normalizeMemedRows(rows: unknown[], admin: Db): Promise<MedicalRecord[]
           doctor_name: doctorMap.get(doctorId) ?? null,
           vendor_name: "Memed BR",
           vendor_id: asString(row.memed_id),
-          signed_pdf_url: typeof digitalUrl === "string" ? digitalUrl : null,
-          cuir: asString(provider.cuir) ?? asString(row.memed_id),
+          signed_pdf_url: digitalUrl,
+          access_code: accessCode,
+          cuir: asString(provider.cuir),
           is_digital_artifact_ready: Boolean(digitalUrl),
           source: "memed_br",
         },
