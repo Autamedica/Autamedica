@@ -127,7 +127,7 @@ export default function MedicalHistoryPage() {
   const { patient } = usePatientSession()
   const { prescriptions, certificates, orders, loading, error } = useMedicalHistory(patient?.id)
   const [activeTab, setActiveTab] = useState<'prescriptions' | 'certificates' | 'orders'>('prescriptions')
-  const patientCountry = (patient as unknown as { care_country?: string } | null)?.care_country
+  const patientCountry = (patient as unknown as { careCountry?: string; care_country?: string } | null)?.careCountry ?? (patient as unknown as { care_country?: string } | null)?.care_country
   const isPortuguese = patientCountry === 'BR' || (typeof navigator !== 'undefined' && navigator.language.toLowerCase().startsWith('pt'))
   const locale = isPortuguese ? 'pt-BR' : 'es-AR'
   const [selectedPrescription, setSelectedPrescription] = useState<PatientPrescription | null>(null)
@@ -179,7 +179,7 @@ export default function MedicalHistoryPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
             />
-            <p className="mt-4 text-neutral-500">Cargando recetas...</p>
+            <p className="mt-4 text-neutral-500">{isPortuguese ? 'Carregando receitas...' : 'Cargando recetas...'}</p>
           </div>
         )}
 
@@ -205,18 +205,18 @@ export default function MedicalHistoryPage() {
                 <div className="size-20 rounded-full bg-neutral-100 flex items-center justify-center mx-auto mb-8">
                   <Pill className="size-10 text-neutral-400" />
                 </div>
-                <h2 className="text-3xl text-neutral-900 mb-4">Sin recetas activas</h2>
+                <h2 className="text-3xl text-neutral-900 mb-4">{isPortuguese ? 'Nenhuma receita ativa' : 'Sin recetas activas'}</h2>
                 <p className="text-neutral-500 mb-10 max-w-md mx-auto">
-                  Cuando tu médico te prescriba un medicamento, aparecerá aquí con verificación digital.
+                  {isPortuguese ? 'Quando seu médico prescrever um medicamento, ele aparecerá aqui com verificação digital.' : 'Cuando tu médico te prescriba un medicamento, aparecerá aquí con verificación digital.'}
                 </p>
                 <motion.a
                   href="/patients/appointments?type=telemedicine"
-                  className="group inline-flex items-center gap-2 px-7 py-4 bg-neutral-900 text-white rounded-full font-medium hover:bg-neutral-800 transition-all"
+                  className="group inline-flex min-h-12 items-center gap-2 px-7 py-4 bg-[#10B981] text-white rounded-full font-medium hover:bg-[#0D9488] transition-all"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
                   <CalendarPlus className="size-5" />
-                  Solicitar consulta médica
+                  {isPortuguese ? 'Agendar consulta médica' : 'Solicitar consulta médica'}
                   <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
                 </motion.a>
               </motion.div>
