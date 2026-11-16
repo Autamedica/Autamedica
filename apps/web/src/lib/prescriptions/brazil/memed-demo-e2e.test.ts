@@ -64,7 +64,7 @@ function resetState() {
   };
   state.doctorProfile = {
     user_id: doctorUserId, first_name: 'Medico', last_name: 'Demonstração',
-    email: 'medico-demo@example.invalid', phone: null, cpf: null,
+    email: 'medico-demo@example.invalid', phone: null, cpf: fakeDoctorCpf,
   };
   state.patient = {
     id: patientId, user_id: patientUserId, active: true, care_country: 'BR',
