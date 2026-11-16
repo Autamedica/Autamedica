@@ -160,7 +160,7 @@ export function CallEndedScreen({
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="relative group w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 overflow-hidden rounded-full bg-[#0EA5E9] hover:bg-sky-600 text-white font-semibold px-6 py-3 text-sm shadow-xl shadow-sky-100 transition-all active:scale-[0.99]"
+              className="relative group w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 overflow-hidden rounded-full bg-[#10B981] hover:bg-[#0D9488] text-white font-semibold px-6 py-3 text-sm shadow-xl shadow-emerald-100 transition-all active:scale-[0.99]"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:animate-[am-shimmer_2s_infinite]" />
               <MessageCircle className="w-4 h-4 fill-current" />
@@ -198,7 +198,7 @@ function LoadingScreen({ language }: { language: 'pt' | 'es' }) {
   return (
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-slate-50 p-6 text-slate-900">
       <div className="text-center">
-        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-[#0EA5E9]" />
+        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-[#10B981]" />
         <p className="mt-4 text-sm text-slate-600">{language === 'pt' ? 'Preparando a videochamada...' : 'Preparando la videollamada...'}</p>
       </div>
     </div>
