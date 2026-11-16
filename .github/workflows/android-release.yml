@@ -451,28 +451,15 @@ jobs:
           print(f"✅ versionCode {BUILD_VERSION_CODE} is safe to deploy")
           PY
 
-      - name: Upload signed bundle to Google Play internal track (non-production)
-        id: play_production
+      - name: Upload signed bundle to the selected Google Play track
+        id: play_upload
         if: steps.check_sa.outputs.has_secret == 'true'
-        continue-on-error: true
         uses: r0adkll/upload-google-play@v1.1.4
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
           packageName: com.autamedica.android
           releaseFiles: ./aab/*.aab
           tracks: ${{ github.event_name == 'push' && 'internal' || github.event.inputs.track || 'internal' }}
-          status: completed
-
-      - name: Fallback to Google Play internal track
-        id: play_internal_fallback
-        if: steps.check_sa.outputs.has_secret == 'true' && steps.play_production.outcome == 'failure' && (github.event_name == 'push' || github.event.inputs.track == 'production')
-        continue-on-error: true
-        uses: r0adkll/upload-google-play@v1.1.4
-        with:
-          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
-          packageName: com.autamedica.android
-          releaseFiles: ./aab/*.aab
-          tracks: internal
           status: completed
 
       - name: Deploy Summary
@@ -482,10 +469,10 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ "${{ steps.check_sa.outputs.has_secret }}" != "true" ]; then
             echo "- **Estado:** ⚠️ AAB compilado y firmado; no se intentó la subida porque falta \`GOOGLE_PLAY_SERVICE_ACCOUNT\`." >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ steps.play_production.outcome }}" = "success" ]; then
+          elif [ "${{ steps.play_upload.outcome }}" = "success" ]; then
             echo "- **Estado:** ✅ Google Play aceptó y confirmó la edición." >> $GITHUB_STEP_SUMMARY
-            echo "- **Pista:** \`production\`" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ steps.play_internal_fallback.outcome }}" = "success" ]; then
+            echo "- **Pista:** \`${{ github.event_name == 'push' && 'internal' || github.event.inputs.track || 'internal' }}\`" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ 'failure' }}" = "success" ]; then
             echo "- **Estado:** ✅ Google Play aceptó la edición en la pista interna." >> $GITHUB_STEP_SUMMARY
             echo "- **Pista:** \`internal\`" >> $GITHUB_STEP_SUMMARY
           else
