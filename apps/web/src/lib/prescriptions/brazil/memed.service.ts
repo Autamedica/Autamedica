@@ -235,7 +235,7 @@ export class MemedService {
     if (!doctorToken) throw new Error('memed_missing_doctor_token');
     // Memed's structured-prescription endpoint requires the doctor's Bearer token.
     // Never append the doctor token or partner keys to a loggable URL.
-    const apiBase = this.config.apiUrl.replace(/\/$/, '');
+    const apiBase = this.config.apiUrl.endsWith('/') ? this.config.apiUrl.slice(0, -1) : this.config.apiUrl;
     const url = `${apiBase}/prescricoes/${encodeURIComponent(id)}?structuredDocuments=true`;
     const response = await this.request(url, {
       headers: {
