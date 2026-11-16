@@ -145,7 +145,34 @@ export default function MedicalReportsPage() {
               </motion.button>
             </motion.div>
           ))}
-        </div>
+        </div>}
+        {activeTab === 'certificates' && (
+          <div className="space-y-4">
+            {certificatesLoading ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">{isPortuguese ? 'Carregando atestados...' : 'Cargando certificados...'}</div>
+            ) : certificates.length === 0 ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">{isPortuguese ? 'Nenhum atestado foi emitido.' : 'Todavía no hay certificados ni atestados emitidos.'}</div>
+            ) : certificates.map((certificate) => {
+              const id = String(certificate.id ?? '')
+              const status = String(certificate.status ?? 'draft')
+              const code = String(certificate.cuir ?? '')
+              const type = String(certificate.certificate_type ?? 'otro').replace(/_/g, ' ')
+              return (
+                <article key={id} className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="font-semibold capitalize text-slate-900">{type}</h3>
+                    <p className="mt-1 text-sm text-slate-500">{formatDate(String(certificate.created_at ?? ''), locale)} · {status === 'signed' ? (isPortuguese ? 'Assinado' : 'Firmado') : status}</p>
+                    {code && <p className="mt-1 text-xs text-slate-500">{isPortuguese ? 'Código de verificação' : 'Código de verificación'}: <span className="font-mono font-semibold text-slate-800">{code}</span></p>}
+                  </div>
+                  <div className="flex gap-2">
+                    {status === 'signed' && <a href={'/api/doctors/certificates/' + encodeURIComponent(id) + '/pdf'} target="_blank" rel="noreferrer" className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl bg-[#10B981] px-4 text-xs font-semibold text-white hover:bg-[#0D9488]">Abrir PDF</a>}
+                    {code && <a href={'/verify/' + encodeURIComponent(code)} className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 px-4 text-xs font-semibold text-slate-700">Verificar</a>}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
       </section>
     </div>
   )
