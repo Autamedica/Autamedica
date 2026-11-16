@@ -11,6 +11,7 @@ import { isMemedEnabled, isMemedPilotDoctor } from '@/lib/prescriptions/brazil/m
 import { MemedService } from '@/lib/prescriptions/brazil/memed.service';
 import { getMemedDoctorCpf } from '@/lib/prescriptions/brazil/memed-identity.repository';
 import { logger } from '@autamedica/shared';
+import type { Json } from '@autamedica/types';
 
 type JSONObject = Record<string, unknown>;
 const asObject = (value: unknown): JSONObject =>
@@ -52,7 +53,7 @@ function safeMemedDocumentUrl(value: unknown): string | null {
   }
 }
 
-function sanitizeMemedDocumentReferences(value: unknown): JSONObject[] {
+function sanitizeMemedDocumentReferences(value: unknown): Array<Record<string, Json>> {
   if (!Array.isArray(value)) return [];
   return value.slice(0, 20).map((entry) => {
     const document = asObject(entry);
@@ -261,7 +262,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     const documentReferences = sanitizeMemedDocumentReferences(rx.documents);
-    const clinicalData = {
+    const clinicalData: Json = {
       source: 'memed',
       memed_prescription_id: prescriptionId,
       items,
@@ -285,9 +286,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Existing records may have been created by a callback retry before the
     // provider link was reachable. Enrich only that doctor's exact verified row.
     if (existing) {
-      const previousClinicalData = asObject(existing.clinical_data);
+      const previousClinicalData: Record<string, Json> =
+        existing.clinical_data !== null && typeof existing.clinical_data === 'object' && !Array.isArray(existing.clinical_data)
+          ? existing.clinical_data as Record<string, Json>
+          : {};
       const hasPreviousDigitalLink = Boolean(previousClinicalData.memed_digital_prescription);
-      const enrichedClinicalData = {
+      const enrichedClinicalData: Json = {
         ...previousClinicalData,
         ...clinicalData,
         ...(!digitalLinkUrl && hasPreviousDigitalLink
