@@ -500,8 +500,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                                   : "Iniciar videollamada"}
                             </span>
                           </button>
-                        ) : (
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   )}
