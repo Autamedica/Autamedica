@@ -60,7 +60,7 @@ const state = {
 function resetState() {
   state.doctor = {
     id: doctorId, user_id: doctorUserId, active: true, license_type: 'CRM',
-    license_number: fakeCrm, uf_brazil: 'RS', cpf: null,
+    license_number: fakeCrm, uf_brazil: 'RS', cpf: fakeDoctorCpf,
   };
   state.doctorProfile = {
     user_id: doctorUserId, first_name: 'Medico', last_name: 'Demonstração',
