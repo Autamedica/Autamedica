@@ -159,8 +159,8 @@ function AuthenticatedPatientProfilePage({
                     {appointmentsLoading
                       ? (isPortuguese ? 'Sincronizando...' : 'Sincronizando...')
                       : upcomingAppointment?.specialty
-                        ? `${upcomingAppointment.specialty}. ${appointmentsCount} turno(s) activos y ${completedConsultations} consulta(s) realizadas.`
-                        : `${appointmentsCount} turno(s) activos y ${completedConsultations} consulta(s) realizadas.`}
+                        ? `${upcomingAppointment.specialty}. ${appointmentsCount} ${isPortuguese ? 'consulta(s) ativa(s) e' : 'turno(s) activos y'} ${completedConsultations} ${isPortuguese ? 'consulta(s) realizadas.' : 'consulta(s) realizadas.'}`
+                        : `${appointmentsCount} ${isPortuguese ? 'consulta(s) ativa(s) e' : 'turno(s) activos y'} ${completedConsultations} ${isPortuguese ? 'consulta(s) realizadas.' : 'consulta(s) realizadas.'}`}
                   </p>
                 </div>
 
@@ -265,19 +265,19 @@ function AuthenticatedPatientProfilePage({
                     <>
                   <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <div className="flex flex-wrap items-start justify-between gap-4">
-                      <p className="text-sm font-semibold text-sky-950">Identidad oficial</p>
+                      <p className="text-sm font-semibold text-sky-950">{isPortuguese ? 'Identidade oficial' : 'Identidad oficial'}</p>
                       <button
                         type="button"
                         onClick={lookupOfficialIdentity}
                         disabled={isLookingUpIdentity || !form.dni.trim() || !form.gender}
-                        className="inline-flex items-center gap-2 rounded-full bg-[#10B981] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0D9488] disabled:cursor-not-allowed disabled:bg-sky-200"
+                        className="inline-flex items-center gap-2 rounded-full bg-[#10B981] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0D9488] disabled:cursor-not-allowed disabled:bg-emerald-200"
                       >
                         {isLookingUpIdentity ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <BadgeCheck className="h-4 w-4" />
                         )}
-                        {isLookingUpIdentity ? 'Consultando...' : 'Completar'}
+                        {isLookingUpIdentity ? 'Consultando...' : (isPortuguese ? 'Completar' : 'Completar')}
                       </button>
                     </div>
                     <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.75fr)]">
@@ -320,7 +320,7 @@ function AuthenticatedPatientProfilePage({
                   <div className="mt-4 rounded-2xl border border-neutral-200 bg-white p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-gray-950">Resultado</p>
+                        <p className="text-sm font-semibold text-gray-950">{isPortuguese ? 'Resultado' : 'Resultado'}</p>
                       </div>
                       <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${hasOfficialIdentity ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'bg-amber-50 text-amber-700 ring-1 ring-amber-100'}`}>
                         {hasOfficialIdentity ? (
@@ -401,7 +401,7 @@ function AuthenticatedPatientProfilePage({
 
                 <div>
                   <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-gray-400">
-                    Contacto de emergencia
+                    {isPortuguese ? 'Contato de emergência' : 'Contacto de emergencia'}
                   </h3>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <Field
@@ -417,17 +417,17 @@ function AuthenticatedPatientProfilePage({
                       placeholder={isPortuguese ? "Irmã, pai, companheiro(a)..." : "Hermana, padre, pareja..."}
                     />
                     <Field
-                      label="Teléfono"
+                      label={isPortuguese ? "Telefone" : "Teléfono"}
                       value={form.emergencyContactPhone}
                       onChange={(event) => setField('emergencyContactPhone', event.target.value)}
-                      placeholder="+54 11 5555 5555"
+                      placeholder={isPortuguese ? "+55 51 99999-9999" : "+54 11 5555 5555"}
                       icon={<ShieldAlert className="h-4 w-4" />}
                     />
                     <Field
                       label={isPortuguese ? "E-mail" : "Email"}
                       value={form.emergencyContactEmail}
                       onChange={(event) => setField('emergencyContactEmail', event.target.value)}
-                      placeholder="contacto@ejemplo.com"
+                      placeholder={isPortuguese ? "contato@exemplo.com" : "contacto@ejemplo.com"}
                       icon={<Mail className="h-4 w-4" />}
                     />
                   </div>
@@ -454,10 +454,10 @@ function AuthenticatedPatientProfilePage({
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:border-sky-200 hover:text-gray-950"
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:border-[#10B981] hover:text-gray-950"
                   >
                     <RefreshCcw className="h-4 w-4" />
-                    Restablecer
+                    {isPortuguese ? 'Redefinir' : 'Restablecer'}
                   </button>
                   <button
                     type="button"
@@ -465,7 +465,7 @@ function AuthenticatedPatientProfilePage({
                       void saveProfile();
                     }}
                     disabled={isSaving}
-                    className="inline-flex items-center gap-2 rounded-full bg-slate-500 px-5 py-2.5 text-sm font-semibold text-white shadow-am-primary-sm transition-transform disabled:cursor-wait disabled:opacity-80 active:scale-[0.98]"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#10B981] px-5 py-2.5 text-sm font-semibold text-white shadow-am-primary-sm transition-colors hover:bg-[#0D9488] disabled:cursor-wait disabled:opacity-80 active:scale-[0.98]"
                   >
                     {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     {isSaving ? (isPortuguese ? 'Salvando...' : 'Guardando...') : (isPortuguese ? 'Salvar alterações' : 'Guardar cambios')}
@@ -604,7 +604,7 @@ function AuthenticatedPatientProfilePage({
             />
 
             <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-am-card-xl">
-              <h2 className="font-heading text-2xl text-gray-950">Falta completar</h2>
+              <h2 className="font-heading text-2xl text-gray-950">{isPortuguese ? 'Falta completar' : 'Falta completar'}</h2>
               {missingFields.length > 0 ? (
                 <div className="mt-5 space-y-3">
                   {missingFields.map((field) => (
@@ -620,18 +620,18 @@ function AuthenticatedPatientProfilePage({
                 <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
                   <div className="flex items-start gap-3">
                     <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0" />
-                    <p>Perfil completo.</p>
+                    <p>{isPortuguese ? 'Perfil completo.' : 'Perfil completo.'}</p>
                   </div>
                 </div>
               )}
             </div>
 
             <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-am-card-xl">
-              <h2 className="font-heading text-2xl text-gray-950">Lectura transversal</h2>
+              <h2 className="font-heading text-2xl text-gray-950">{isPortuguese ? 'Visão integrada' : 'Lectura transversal'}</h2>
               <div className="mt-5 space-y-4">
                 <div className="rounded-2xl bg-slate-50 px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
-                    Screenings
+                    {isPortuguese ? 'Rastreamentos' : 'Screenings'}
                   </p>
                   <div className="mt-2 space-y-2">
                     {screeningsHighlights.map((item) => (
@@ -644,7 +644,7 @@ function AuthenticatedPatientProfilePage({
 
                 <div className="rounded-2xl bg-slate-50 px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
-                    Condiciones crónicas
+                    {isPortuguese ? 'Condições crônicas' : 'Condiciones crónicas'}
                   </p>
                   <p className="mt-2 text-sm leading-6 text-gray-700">
                     {medicalSummary?.chronic_conditions?.length
@@ -655,7 +655,7 @@ function AuthenticatedPatientProfilePage({
 
                 <div className="rounded-2xl bg-slate-50 px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
-                    Medicación actual
+                    {isPortuguese ? 'Medicação atual' : 'Medicación actual'}
                   </p>
                   <p className="mt-2 text-sm leading-6 text-gray-700">
                     {medicalSummary?.current_medications?.length
@@ -677,9 +677,9 @@ export default function PatientProfilePage() {
 
   if (session.loading) {
     return (
-      <main className="min-h-screen bg-white px-5 py-8 text-gray-900">
+      <main className="min-h-screen bg-slate-50 px-5 py-8 text-gray-900">
         <div className="mx-auto max-w-6xl space-y-4">
-          <div className="h-6 w-40 animate-pulse rounded-full bg-sky-100" />
+          <div className="h-6 w-40 animate-pulse rounded-full bg-slate-100" />
           <div className="h-64 animate-pulse rounded-[2rem] bg-slate-50" />
           <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(340px,1fr)]">
             <div className="h-[560px] animate-pulse rounded-[2rem] bg-slate-50" />
