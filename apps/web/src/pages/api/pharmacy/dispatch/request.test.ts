@@ -99,7 +99,7 @@ function makeContext(options?: {
   const body = typeof rawBody === 'object' && rawBody !== null && !Array.isArray(rawBody)
     && (rawBody as { careCountry?: string }).careCountry === 'AR'
     && !Object.prototype.hasOwnProperty.call(rawBody, 'patientGenderCode')
-    ? { ...rawBody, patientGenderCode: '2' }
+    ? { ...rawBody, patientGenderCode: 'M' }
     : rawBody;
   const request = new Request('http://localhost/api/pharmacy/dispatch/request', {
     method: 'POST',
