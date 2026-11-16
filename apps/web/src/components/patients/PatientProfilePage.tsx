@@ -555,7 +555,7 @@ function AuthenticatedPatientProfilePage({
                   value: appointmentsLoading
                     ? (isPortuguese ? 'Sincronizando...' : 'Sincronizando...')
                     : upcomingAppointment
-                      ? formatCompactDate(upcomingAppointment.scheduledAt)
+                      ? formatPatientDate(upcomingAppointment.scheduledAt)
                       : (isPortuguese ? 'Sem agenda' : 'Sin agenda'),
                 },
                 {
