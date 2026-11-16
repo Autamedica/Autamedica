@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ auth: vi.fn(), admin: vi.fn(), patient: vi.fn(),
-  token: vi.fn(), prescription: vi.fn(), insert: vi.fn() }));
+  token: vi.fn(), prescription: vi.fn(), digitalLink: vi.fn(), pdfUrl: vi.fn(), insert: vi.fn(), update: vi.fn() }));
 vi.mock('@/lib/api-auth', () => ({ DOCTOR_ROLES: ['doctor'], withAuthRole: mocks.auth,
   isAuthed: (result: unknown) => !(result instanceof Response) }));
 vi.mock('@/lib/supabase', () => ({ createAstroAdminClient: mocks.admin }));
@@ -11,8 +11,10 @@ vi.mock('@/lib/prescriptions/brazil/memed-patient', async (original) => ({
 vi.mock('@/lib/prescriptions/brazil/memed.service', () => ({ MemedService: class {
   getOrCreateDoctorToken = mocks.token;
   getIssuedPrescription = mocks.prescription;
+  getDigitalPrescriptionLink = mocks.digitalLink;
+  getFullPrescriptionDocumentUrl = mocks.pdfUrl;
 } }));
-vi.mock('@autamedica/shared', () => ({ logger: { error: vi.fn() } }));
+vi.mock('@autamedica/shared', () => ({ logger: { error: vi.fn(), warn: vi.fn() } }));
 import { POST } from '@/pages/api/doctors/prescriptions/memed-event';
 
 const patientId = '11111111-1111-4111-8111-111111111111';
@@ -27,6 +29,8 @@ function context(prescriptionId = 'rx-test', enabled = 'true'): Parameters<typeo
 }
 beforeEach(() => {
   vi.clearAllMocks(); existing = null;
+  mocks.digitalLink.mockResolvedValue({});
+  mocks.pdfUrl.mockResolvedValue({});
   mocks.auth.mockResolvedValue({ user: { id: 'authenticated-doctor' } });
   mocks.patient.mockResolvedValue({ idExterno: `autamedica-${patientId}`, cpf: doctor.cpf });
   mocks.token.mockResolvedValue({ token: 'synthetic-token' });
@@ -38,7 +42,9 @@ beforeEach(() => {
     const rows: Record<string, unknown> = { doctors: doctor, prescriptions: existing,
       profiles: { first_name: 'Synthetic', last_name: 'Doctor' },
       doctor_licenses: [{ license_number: '9236', uf_brazil: 'RS', cfm_evidence_path: 'ci/doctor/evidence.pdf', cfm_review_notes: 'Synthetic CI review evidence', cfm_reviewed_by: '00000000-0000-4000-8000-000000000001', cfm_reviewed_at: '2026-11-12T00:00:00Z', cfm_last_checked_at: '2026-11-12T00:00:00Z' }] };
+    const updateQuery = { eq: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ error: null }) })) };
     const chain = { select: vi.fn(), eq: vi.fn(), limit: vi.fn(), or: vi.fn(), insert: mocks.insert,
+      update: vi.fn((payload: unknown) => { mocks.update(payload); return updateQuery; }),
       maybeSingle: vi.fn(async () => ({ data: rows[table], error: null })) };
     chain.select.mockReturnValue(chain); chain.eq.mockReturnValue(chain); chain.or.mockReturnValue(chain);
     chain.limit.mockResolvedValue({ data: rows[table], error: null });
@@ -75,10 +81,54 @@ describe('Memed event persistence boundary', () => {
       signature_status: signed ? 'provider_reported_signed' : 'pending',
     } });
   });
-  it('does not regress an existing prescription on duplicate callbacks', async () => {
-    existing = { id: 'local-id', status: 'signed' };
+  it('stores the patient digital link, unlock code and full PDF resource', async () => {
+    mocks.digitalLink.mockResolvedValue({
+      data: { attributes: { link: 'https://receita.memed.com.br/rx-test', password: 'LOCK-123' } },
+    });
+    mocks.pdfUrl.mockResolvedValue({
+      data: { attributes: { url: 'https://documentos.memed.com.br/rx-test.pdf' } },
+    });
+
+    expect((await POST(context())).status).toBe(200);
+    expect(mocks.insert.mock.calls[0][0]).toMatchObject({
+      physical_pdf_url: 'https://documentos.memed.com.br/rx-test.pdf',
+      clinical_data: {
+        dispatch_request_id: null,
+        memed_digital_prescription: {
+          url: 'https://receita.memed.com.br/rx-test',
+          unlock_code: 'LOCK-123',
+        },
+        memed_full_pdf_url: 'https://documentos.memed.com.br/rx-test.pdf',
+        delivery_status: 'provider_link_available',
+        signature_verified: false,
+      },
+    });
+  });
+  it('does not regress an existing prescription or discard links on duplicate callbacks', async () => {
+    existing = {
+      id: 'local-id',
+      status: 'signed',
+      physical_pdf_url: 'https://documentos.memed.com.br/old.pdf',
+      clinical_data: {
+        memed_digital_prescription: {
+          url: 'https://receita.memed.com.br/old',
+          unlock_code: 'OLD-CODE',
+        },
+        delivery_status: 'provider_link_available',
+      },
+    };
     const response = await POST(context());
-    expect((await response.json()).data).toMatchObject({ status: 'signed', duplicate: true });
+    expect((await response.json()).data).toMatchObject({ status: 'signed', duplicate: true, documentAvailable: true });
     expect(mocks.insert).not.toHaveBeenCalled();
+    expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({
+      clinical_data: expect.objectContaining({
+        memed_digital_prescription: expect.objectContaining({
+          url: 'https://receita.memed.com.br/old',
+          unlock_code: 'OLD-CODE',
+        }),
+        delivery_status: 'provider_link_available',
+      }),
+      physical_pdf_url: 'https://documentos.memed.com.br/old.pdf',
+    }));
   });
 });
