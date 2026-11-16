@@ -35,6 +35,7 @@ export interface MemedPatient {
   idExterno: string;
   nome: string;
   cpf: string;
+  telefone?: string;
   data_nascimento?: string;
   sexo?: 'Masculino' | 'Feminino';
 }
@@ -81,6 +82,7 @@ export async function resolveMemedPatient(
   let firstName = '';
   let lastName = '';
   let cpf = String(patient.cpf ?? '').replace(/\D/g, '');
+  let telefone: string | undefined;
   const birthDate = String(patient.birth_date ?? '');
   const gender = String(patient.gender ?? '').toLowerCase();
   if (!patient.user_id) {
@@ -102,8 +104,8 @@ export async function resolveMemedPatient(
     firstName = nameParts.shift() ?? '';
     lastName = nameParts.join(' ');
     cpf = String(guestDispatch.patient_cpf ?? '').replace(/\D/g, '');
-    const phone = String(guestDispatch.patient_phone ?? '').replace(/[^\d+]/g, '');
-    if (!firstName || !lastName || phone.replace(/\D/g, '').length < 6 || !validCpf(cpf)) {
+    telefone = String(guestDispatch.patient_phone ?? '').trim().replace(/[^\d+]/g, '');
+    if (!firstName || !lastName || !/^\+?\d{6,20}$/.test(telefone) || !validCpf(cpf)) {
       throw new Error('memed_patient_identity_incomplete');
     }
   } else {
@@ -117,7 +119,7 @@ export async function resolveMemedPatient(
     }
   }
   const name = [firstName, lastName].filter(Boolean).join(' ').trim();
-  const patientData: MemedPatient = { idExterno: `autamedica-${patientId}`, nome: name, cpf };
+  const patientData: MemedPatient = { idExterno: `autamedica-${patientId}`, nome: name, cpf, ...(telefone ? { telefone } : {}) };
   // Express pharmacy/Jordan intake intentionally collects no DOB or gender.
   // Memed accepts these demographic attributes as optional; never fabricate them.
   if (birthDate && validBirthDate(birthDate)) {
