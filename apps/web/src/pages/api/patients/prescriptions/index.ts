@@ -110,11 +110,21 @@ export const GET: APIRoute = async ({ request, locals }) => {
         : 'Medico');
     }
 
-    const coreDtos = coreRows.map((row) => mapCore(row, doctorNameMap.get(row.doctor_id) ?? 'Medico'));
-    const coreMemedIds = new Set(coreRows
+    // The provider table is the canonical Memed BR record. Hide a mirrored
+    // Core row when its vendor_id matches a canonical Memed prescription.
+    const canonicalMemedIds = new Set(memedRows
+      .filter((row) => row.status !== 'deleted')
+      .map((row) => row.memed_id));
+    const visibleCoreRows = coreRows.filter((row) => !(
+      row.vendor_name?.toLowerCase() === 'memed'
+      && row.vendor_id
+      && canonicalMemedIds.has(row.vendor_id)
+    ));
+    const coreDtos = visibleCoreRows.map((row) => mapCore(row, doctorNameMap.get(row.doctor_id) ?? 'Medico'));
+    const coreMemedIds = new Set(visibleCoreRows
       .filter((row) => row.vendor_name?.toLowerCase() === 'memed')
       .map((row) => row.vendor_id).filter((id): id is string => Boolean(id)));
-    const coreIds = new Set(coreRows.map((row) => row.id));
+    const coreIds = new Set(visibleCoreRows.map((row) => row.id));
     const memedDtos = memedRows
       .filter((row) => row.status !== 'deleted' && !coreMemedIds.has(row.memed_id) && !coreIds.has(row.id))
       .map((row) => {
