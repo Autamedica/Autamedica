@@ -254,7 +254,7 @@ export class MemedService {
   async getDigitalPrescriptionLink(id: string, doctorToken: string): Promise<Record<string, unknown>> {
     if (!/^[a-zA-Z0-9-]{1,80}$/.test(id)) throw new Error('memed_invalid_prescription_id');
     if (!doctorToken) throw new Error('memed_missing_doctor_token');
-    const url = `${this.config.apiUrl.replace(/\\/$/, '')}/prescricoes/${encodeURIComponent(id)}/get-digital-prescription-link?token=${encodeURIComponent(doctorToken)}`;
+    const url = `${this.config.apiUrl.replace(/\/$/, '')}/prescricoes/${encodeURIComponent(id)}/get-digital-prescription-link?token=${encodeURIComponent(doctorToken)}`;
     const response = await this.request(url, {
       method: 'GET',
       headers: { Accept: 'application/vnd.api+json', 'Content-Type': 'application/json' },
@@ -271,7 +271,7 @@ export class MemedService {
   async getFullPrescriptionPdfUrl(id: string, doctorToken: string): Promise<Record<string, unknown>> {
     if (!/^[a-zA-Z0-9-]{1,80}$/.test(id)) throw new Error('memed_invalid_prescription_id');
     if (!doctorToken) throw new Error('memed_missing_doctor_token');
-    const url = `${this.config.apiUrl.replace(/\\/$/, '')}/prescricoes/${encodeURIComponent(id)}/url-document/full?token=${encodeURIComponent(doctorToken)}`;
+    const url = `${this.config.apiUrl.replace(/\/$/, '')}/prescricoes/${encodeURIComponent(id)}/url-document/full?token=${encodeURIComponent(doctorToken)}`;
     const response = await this.request(url, {
       method: 'GET',
       headers: { Accept: 'application/vnd.api+json', 'Content-Type': 'application/json' },
