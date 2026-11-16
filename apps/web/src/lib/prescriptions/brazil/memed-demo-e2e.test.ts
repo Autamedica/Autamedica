@@ -100,7 +100,7 @@ function readTable(table: string, filters: Map<string, unknown>): Row | Row[] | 
     case 'doctors':
       return filters.get('user_id') === doctorUserId ? state.doctor : null;
     case 'doctor_licenses':
-      return state.license && state.license.doctor_id === filters.get('doctor_id') ? [state.license] : [];
+      return state.license?.doctor_id === filters.get('doctor_id') ? [state.license] : [];
     case 'profiles':
       return filters.get('user_id') === doctorUserId ? state.doctorProfile
         : filters.get('user_id') === patientUserId ? state.patientProfile : null;
@@ -284,7 +284,7 @@ describe('Memed DEMO flow: synthetic doctor + synthetic patient, no real provide
 
   it('accepts DEMO doctor + authorized BR patient, verifies mocked provider and records pending signature', async () => {
     const token = await callToken();
-    expect(token.status).toBe(200);
+    expect(token.status, JSON.stringify(token.error)).toBe(200);
     expect(token.data.patient).toMatchObject({
       idExterno: `autamedica-${patientId}`, nome: 'Paciente Demonstração',
       cpf: fakePatientCpf, sexo: 'Feminino', data_nascimento: '29/02/2000',
