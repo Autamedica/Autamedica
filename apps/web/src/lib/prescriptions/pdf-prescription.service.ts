@@ -753,6 +753,21 @@ export async function generatePrescriptionPdf(
     }
   }
 
+  const drawStampPlaceholder = () => {
+    doc.setFillColor(patientBgColor[0], patientBgColor[1], patientBgColor[2]);
+    doc.rect(marginLeft + 40, signatureY, 35, 20, 'F');
+    doc.setDrawColor(203, 213, 225);
+    doc.setLineWidth(0.3);
+    doc.rect(marginLeft + 40, signatureY, 35, 20, 'S');
+    doc.setFontSize(5.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
+    doc.text('SELLO PROFESIONAL', marginLeft + 42, signatureY + 10, {
+      align: 'center',
+      maxWidth: 31,
+    });
+  };
+
   if (input.prescriber.stampImageUrl) {
     // Stamp professional seal image
     try {
@@ -763,12 +778,14 @@ export async function generatePrescriptionPdf(
       const stampDataUrl = `data:image/${stampFormat.toLowerCase()};base64,${stampBase64}`;
       doc.addImage(stampDataUrl, stampFormat, marginLeft + 40, signatureY, 35, 20);
     } catch {
-      // Silently skip stamp if fetch fails
+      drawStampPlaceholder();
     }
+  } else {
+    drawStampPlaceholder();
   }
 
-  // Digital signature info box (next to visual signature)
-  const infoBoxX = input.prescriber.stampImageUrl ? marginLeft + 80 : marginLeft + 40;
+  // Prescriber identity panel beside the signature and seal areas.
+  const infoBoxX = marginLeft + 80;
   const infoBoxWidth = pageWidth - 20 - infoBoxX;
   doc.setFillColor(patientBgColor[0], patientBgColor[1], patientBgColor[2]);
   doc.rect(infoBoxX, signatureY, infoBoxWidth, 25, 'F');
@@ -789,20 +806,23 @@ export async function generatePrescriptionPdf(
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
-  doc.text('VERIFICACIÓN DE FIRMA', infoBoxX + sigInfoOffset, signatureY + 5);
-  doc.setFontSize(5.5);
+  doc.text('EMISOR DE LA RECETA', infoBoxX + sigInfoOffset, signatureY + 5);
+
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text(input.prescriber.name, infoBoxX + sigInfoOffset, signatureY + 12, {
+    maxWidth: infoBoxWidth - sigInfoOffset - 4,
+  });
+
+  doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
-  const signatureLegend = doc.splitTextToSize(
-    'Verificar la firma en el certificado PDF o registro del emisor.',
-    infoBoxWidth - 6,
+  doc.setTextColor(infoTextColor[0], infoTextColor[1], infoTextColor[2]);
+  doc.text(
+    `Matrícula: ${input.prescriber.license} (${input.prescriber.licenseJurisdiction || 'MN'})`,
+    infoBoxX + sigInfoOffset,
+    signatureY + 19,
+    { maxWidth: infoBoxWidth - sigInfoOffset - 4 },
   );
-  doc.text(signatureLegend, infoBoxX + 3, signatureY + 10);
-  const validatorY = signatureY + 10 + signatureLegend.length * 3.5;
-  if (cuir) {
-    doc.text(`Validador RCTA: ${cuir}`, infoBoxX + 3, validatorY);
-    doc.text(`Fecha de registro: ${formatDate(input.issuedAt)}`, infoBoxX + 3, validatorY + 4);
-    doc.text('Hash: verificable vía QR', infoBoxX + 3, validatorY + 8);
-  }
 
   // Footer (Compliance & Privacy)
   const footerY = 276;
