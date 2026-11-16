@@ -493,12 +493,12 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                         className={`flex h-7 w-7 items-center justify-center rounded-md border transition-all ${
                           cameraActive ? 'border-cyan-500/30 bg-cyan-950/20 text-cyan-400' : 'border-neutral-800 bg-neutral-900 text-neutral-500'
                         }`}
-                        title={cameraActive ? "Apagar Cámara" : "Encender Cámara"}
+                        title={cameraActive ? (isBrazilianDoctor ? 'Desligar câmera' : 'Apagar cámara') : (isBrazilianDoctor ? 'Ligar câmera' : 'Encender cámara')}
                       >
                         <Camera className="h-3.5 w-3.5" />
                       </button>
                       <span className="text-[10px] font-semibold text-neutral-400">
-                        Cámara <span className={cameraActive ? 'text-cyan-400' : 'text-neutral-500'}>{cameraActive ? 'ON' : 'OFF'}</span>
+                        {isBrazilianDoctor ? 'Câmera' : 'Cámara'} <span className={cameraActive ? 'text-cyan-400' : 'text-neutral-500'}>{cameraActive ? 'ON' : 'OFF'}</span>
                       </span>
                     </div>
 
@@ -509,12 +509,12 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                         className={`flex h-7 w-7 items-center justify-center rounded-md border transition-all ${
                           micActive ? 'border-cyan-500/30 bg-cyan-950/20 text-cyan-400' : 'border-neutral-800 bg-neutral-900 text-neutral-500'
                         }`}
-                        title={micActive ? "Silenciar Mic" : "Encender Mic"}
+                        title={micActive ? (isBrazilianDoctor ? 'Silenciar microfone' : 'Silenciar micrófono') : (isBrazilianDoctor ? 'Ligar microfone' : 'Encender micrófono')}
                       >
                         <Mic className="h-3.5 w-3.5" />
                       </button>
                       <span className="text-[10px] font-semibold text-neutral-400">
-                        Mic <span className={micActive ? 'text-cyan-400' : 'text-neutral-500'}>{micActive ? 'ON' : 'OFF'}</span>
+                        {isBrazilianDoctor ? 'Microfone' : 'Micrófono'} <span className={micActive ? 'text-cyan-400' : 'text-neutral-500'}>{micActive ? 'ON' : 'OFF'}</span>
                       </span>
                     </div>
 
@@ -564,7 +564,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
         <DoctorOnDutyWidget careCountry={doctorCountry === 'BR' ? 'BR' : doctorCountry === 'AR' ? 'AR' : undefined} />
       </div>
 
-      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0D9488]">MÉTRICAS CLÍNICAS</p>
+      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0D9488]">{isBrazilianDoctor ? 'INDICADORES CLÍNICOS' : 'MÉTRICAS CLÍNICAS'}</p>
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-xl border border-[#E2E8F0] bg-white p-3.5 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">{isBrazilianDoctor ? 'Consultas atendidas hoje' : 'Consultas atendidas hoy'}</p>
