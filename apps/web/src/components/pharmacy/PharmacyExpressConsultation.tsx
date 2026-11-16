@@ -648,7 +648,8 @@ export function PharmacyExpressConsultation({
             <div className="mb-6 w-full space-y-3 text-left">
               {documents.length > 0 ? documents.map((document) => {
                 const documentUrl = new URL(document.downloadUrl, window.location.origin).toString()
-                const shareUrl = `https://wa.me/?text=${encodeURIComponent(`${document.title} · AutaMedica: ${documentUrl}`)}`
+                const shareText = [document.title, 'AutaMedica', document.accessCode ? `${isPortuguese ? 'Código de acesso' : 'Código de acceso'}: ${document.accessCode}` : null, documentUrl].filter(Boolean).join('\n')
+                const shareUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`
                 return (
                   <article key={document.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                     <div className="flex items-start justify-between gap-3">
@@ -656,6 +657,7 @@ export function PharmacyExpressConsultation({
                         <p className="text-sm font-semibold text-slate-900">{document.kind === 'certificate' ? (isPortuguese ? 'Atestado / Certificado Médico' : 'Atestado / Certificado Médico') : document.kind === 'memed' ? 'Receita Digital Memed' : 'Receta Digital RCTA'}</p>
                         <p className="mt-0.5 truncate text-xs text-slate-600">{document.title} · {document.provider}</p>
                         {document.verificationCode && <p className="mt-1 text-[11px] text-slate-500">{isPortuguese ? 'Código de verificação' : 'Código de verificación'}: <span className="font-mono font-semibold text-slate-800">{document.verificationCode}</span></p>}
+                        {document.accessCode && <p className="mt-1 text-[11px] text-slate-500">{isPortuguese ? 'Código de acesso' : 'Código de acceso'}: <span className="font-mono font-semibold text-slate-800">{document.accessCode}</span></p>}
                         {document.accessCode && <p className="mt-1 text-[11px] text-slate-500">{isPortuguese ? 'Código de acesso à farmácia' : 'Código de acceso en farmacia'}: <span className="font-mono font-semibold text-slate-800">{document.accessCode}</span></p>}
                       </div>
                       <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
