@@ -50,6 +50,7 @@ export interface ResolvedRoomParticipants {
     patientDni: string | null;
     patientCpf: string | null;
     patientName: string | null;
+    patientPhone: string | null;
     careCountry: string | null;
     symptomSummary: string | null;
     dispatchRequestId: string;
@@ -63,7 +64,7 @@ async function resolvePharmacyDispatchRoom(
   // 3. Pharmacy dispatch: a document number is NOT patient identity verification.
   const { data: dispatchRow, error: dispatchError } = await admin
     .from('pharmacy_dispatch_requests')
-    .select('id, patient_id, patient_dni, patient_cpf, patient_name, care_country, assigned_doctor_id, symptom_summary')
+    .select('id, patient_id, patient_dni, patient_cpf, patient_name, patient_phone, care_country, assigned_doctor_id, symptom_summary')
     .eq('cloudflare_room_id', roomId)
     .in('status', ['matched', 'in_call', 'transferring', 'transferred', 'completed'])
     .order('created_at', { ascending: false })
@@ -77,6 +78,7 @@ async function resolvePharmacyDispatchRoom(
       patient_dni: string | null;
       patient_cpf: string | null;
       patient_name: string | null;
+      patient_phone: string | null;
       care_country: string | null;
       assigned_doctor_id: string | null;
       symptom_summary: string | null;
@@ -96,6 +98,7 @@ async function resolvePharmacyDispatchRoom(
         patientDni: dispatch.patient_dni,
         patientCpf: dispatch.patient_cpf,
         patientName: dispatch.patient_name,
+        patientPhone: dispatch.patient_phone,
         careCountry: dispatch.care_country,
         symptomSummary: dispatch.symptom_summary,
         dispatchRequestId: dispatch.id,
