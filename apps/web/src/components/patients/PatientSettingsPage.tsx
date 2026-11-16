@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import { fetchApi } from '@/lib/api-client';
+import { usePatientSession } from '@/hooks/patients/usePatientSession';
 import { updatePassword } from '@/lib/auth/service';
 import { AuthAlert } from '@/components/auth/AuthAlert';
 import { AuthButton } from '@/components/auth/AuthButton';
@@ -346,7 +347,8 @@ function DangerZoneSection({ isPortuguese }: { isPortuguese: boolean }) {
 /* ------------------------------------------------------------------ */
 
 export default function PatientSettingsPage() {
-  const isPortuguese = typeof navigator !== 'undefined' && navigator.language.toLowerCase().startsWith('pt');
+  const { patient } = usePatientSession();
+  const isPortuguese = patient?.careCountry === 'BR' || (typeof navigator !== 'undefined' && navigator.language.toLowerCase().startsWith('pt'));
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Hero */}
