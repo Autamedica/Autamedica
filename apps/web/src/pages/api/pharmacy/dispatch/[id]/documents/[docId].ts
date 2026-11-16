@@ -136,10 +136,9 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
       const { data: pdf, error: downloadError } = await admin.storage.from('medical-documents').download(path)
       if (downloadError || !pdf) return notFound('signed_pdf_missing')
       const pdfBytes = new Uint8Array(await pdf.arrayBuffer())
-      const digest = await crypto.subtle.digest('SHA-256', pdfBytes)
-      const actualHash = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
+      const actualHash = await certificateSha256(pdfBytes)
       if (actualHash !== hash) return forbidden('prescription_pdf_integrity_mismatch')
-      return new Response(pdfBytes.buffer, {
+      return new Response(Uint8Array.from(pdfBytes).buffer, {
         headers: {
           'Content-Type': 'application/pdf',
           'Content-Disposition': `inline; filename="receita-${recordId}.pdf"`,
