@@ -95,7 +95,7 @@ export async function resolveMemedPatient(
   const cpf = String(patient.cpf ?? '').replace(/\D/g, '');
   const birthDate = String(patient.birth_date ?? '');
   const gender = String(patient.gender ?? '').toLowerCase();
-  if (!profile?.first_name?.trim() || !profile.last_name?.trim() || !validCpf(cpf)) {
+  if (!profile?.first_name?.trim() || !profile?.last_name?.trim() || !validCpf(cpf)) {
     throw new Error('memed_patient_identity_incomplete');
   }
   const patientData: MemedPatient = { idExterno: `autamedica-${patientId}`, nome: name, cpf };
