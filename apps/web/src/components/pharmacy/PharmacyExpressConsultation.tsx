@@ -39,6 +39,11 @@ interface PharmacyExpressConsultationProps {
 
 type Step = 'FORM' | 'WAITING' | 'CALL' | 'ENDED' | 'CANCELLED'
 
+type EncounterDocument = {
+  id: string; kind: 'memed' | 'core' | 'certificate'; title: string; provider: string;
+  createdAt: string; status: string; verificationCode: string | null; downloadUrl: string;
+}
+
 const COPY = {
   AR: { brand: 'Consulta médica', ready: 'Médico conectado', restart: 'Nueva consulta', country: 'País de atención', document: 'DNI', name: 'Nombre y apellido', phone: 'WhatsApp', reason: 'Motivo', nameExample: 'Ej. Juan Pérez', phoneExample: 'Ej. 11 2345-6789', reasonExample: 'Describí brevemente el motivo', submit: 'Continuar', submitting: 'Conectando...', searching: 'Buscando médico', elapsed: 'Tiempo', patient: 'Paciente', reasonLabel: 'Motivo', cancel: 'Cancelar', ended: 'Consulta finalizada', endedHint: 'La consulta terminó.', cancelled: 'Consulta cancelada', back: 'Volver' },
   BR: { brand: 'Consulta médica de plantão', ready: 'Médico conectado', restart: 'Nova consulta', country: 'País de atendimento', document: 'CPF', name: 'Nome completo', phone: 'WhatsApp', reason: 'Motivo', nameExample: 'Ex.: João da Silva', phoneExample: 'Ex.: (51) 99999-9999', reasonExample: 'Descreva o motivo em poucas palavras', submit: 'Iniciar consulta', submitting: 'Conectando...', searching: 'Buscando médico',  elapsed: 'Tempo', patient: 'Paciente', reasonLabel: 'Motivo', cancel: 'Cancelar', ended: 'Consulta finalizada', endedHint: 'A consulta foi concluída.', cancelled: 'Consulta cancelada', back: 'Voltar' },
@@ -88,6 +93,7 @@ export function PharmacyExpressConsultation({
   const [callRoomId, setCallRoomId] = useState<string | null>(null)
   const [countryPaymentApproved, setCountryPaymentApproved] = useState(false)
   const [onlineDoctorCount, setOnlineDoctorCount] = useState<number | null>(null)
+  const [documents, setDocuments] = useState<EncounterDocument[]>([])
 
   useEffect(() => {
     if (isJordanReferral) {
@@ -200,10 +206,12 @@ export function PharmacyExpressConsultation({
           license_number: string
           specialty: string
         } | null
+        documents?: EncounterDocument[]
       }>(`/api/pharmacy/dispatch/${encodeURIComponent(id)}${tokenParam}`)
 
       const req = data?.request
       if (!req) return
+      if (Array.isArray(data.documents)) setDocuments(data.documents)
 
       // `assigned` no pertenece al enum `dispatch_request_status` de la tabla
       // `pharmacy_dispatch_requests` (ver #530). La comparacion era codigo muerto
@@ -220,10 +228,10 @@ export function PharmacyExpressConsultation({
           setStep('CALL')
         }
       } else if (req.status === 'completed') {
-        window.sessionStorage.removeItem('autamedica:pharmacy-express:active-session')
         setStep('ENDED')
       } else if (req.status === 'cancelled' || req.status === 'expired') {
         window.sessionStorage.removeItem('autamedica:pharmacy-express:active-session')
+        window.localStorage.removeItem('autamedica:pharmacy-express:active-session')
         setStep('CANCELLED')
       }
     } catch {
@@ -232,7 +240,7 @@ export function PharmacyExpressConsultation({
   }, [callRoomId])
 
   useEffect(() => {
-    if (step !== 'WAITING' || !requestId) return
+    if ((step !== 'WAITING' && step !== 'CALL') || !requestId) return
 
     // Chequeo inmediato
     void checkStatus(requestId, accessToken)
@@ -369,7 +377,7 @@ export function PharmacyExpressConsultation({
           </span>
           <span className="text-slate-400 hidden sm:inline">•</span>
         </div>
-        {(!requiresCountryPayment || countryPaymentApproved) && <GuestCallPage roomId={callRoomId} language={isPortuguese ? 'pt' : 'es'} />}
+        {(!requiresCountryPayment || countryPaymentApproved) && <GuestCallPage roomId={callRoomId} dispatchId={requestId ?? undefined} guestToken={accessToken ?? undefined} language={isPortuguese ? 'pt' : 'es'} />}
         {requiresCountryPayment && requestId && accessToken && currentPricing && (
           <JordanPaymentWidget
             dispatchId={requestId}
@@ -565,9 +573,31 @@ export function PharmacyExpressConsultation({
             <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
               {copy.ended}
             </h2>
-            <p className="text-sm text-slate-600 max-w-sm mb-6 leading-relaxed">
+            <p className="text-sm text-slate-600 max-w-sm mb-5 leading-relaxed">
               {copy.endedHint}
             </p>
+            <div className="mb-6 w-full space-y-3 text-left">
+              {documents.length > 0 ? documents.map((document) => {
+                const documentUrl = new URL(document.downloadUrl, window.location.origin).toString()
+                const shareUrl = `https://wa.me/?text=${encodeURIComponent(`${document.title} · AutaMedica: ${documentUrl}`)}`
+                return (
+                  <article key={document.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-900">{document.kind === 'certificate' ? (isPortuguese ? 'Atestado / Certificado Médico' : 'Atestado / Certificado Médico') : document.kind === 'memed' ? 'Receita Digital Memed' : 'Receta Digital RCTA'}</p>
+                        <p className="mt-0.5 truncate text-xs text-slate-600">{document.title} · {document.provider}</p>
+                        {document.verificationCode && <p className="mt-1 text-[11px] text-slate-500">{isPortuguese ? 'Código de verificação' : 'Código de verificación'}: <span className="font-mono font-semibold text-slate-800">{document.verificationCode}</span></p>}
+                      </div>
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <a href={documentUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-10 flex-1 items-center justify-center rounded-lg bg-[#10B981] px-3 text-xs font-semibold text-white hover:bg-[#0D9488]">{isPortuguese ? 'Abrir documento' : 'Abrir documento'}</a>
+                      <a href={shareUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700">{isPortuguese ? 'Compartilhar' : 'Compartir'}</a>
+                    </div>
+                  </article>
+                )
+              }) : <p className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">{isPortuguese ? 'Nenhum documento foi emitido nesta consulta.' : 'No se emitieron documentos en esta consulta.'}</p>}
+            </div>
             <button
               type="button"
               onClick={() => {
@@ -601,7 +631,7 @@ export function PharmacyExpressConsultation({
             </p>
             <button
               type="button"
-              onClick={() => { window.sessionStorage.removeItem('autamedica:pharmacy-express:active-session'); setRequestId(null); setAccessToken(null); setReasonCategory(''); setStep('FORM') }}
+              onClick={() => { window.sessionStorage.removeItem('autamedica:pharmacy-express:active-session'); window.localStorage.removeItem('autamedica:pharmacy-express:active-session'); setRequestId(null); setAccessToken(null); setRecoveryToken(null); setDocuments([]); setReasonCategory(''); setStep('FORM') }}
               className="py-2.5 px-6 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium text-xs transition"
             >
               {copy.back}
