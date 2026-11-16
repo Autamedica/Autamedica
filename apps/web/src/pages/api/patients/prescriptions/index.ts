@@ -168,7 +168,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
       .filter((row) => row.status !== 'deleted' && !coreMemedIds.has(row.memed_id) && !coreIds.has(row.id))
       .map((row) => {
         const provider = asObject(row.provider_data);
-        const url = memedLink(row.digital_link_data);
+        const digitalData = asObject(row.digital_link_data);
+        const url = memedLink(digitalData.pdf) ?? memedLink(digitalData.digital) ?? memedLink(row.digital_link_data);
         return {
           id: 'memed-' + row.id,
           medicationName: asText(provider.medication_name) ?? asText(provider.medicationName) ?? asText(provider.nome) ?? asText(provider.name) ?? 'Receita digital Memed',
