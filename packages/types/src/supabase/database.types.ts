@@ -10457,6 +10457,7 @@ export type Database = {
           patient_cpf: string | null
           patient_dni: string | null
           patient_id: string | null
+          lgpd_consent: boolean
           patient_name: string | null
           patient_phone: string
           pharmacy_id: string | null
@@ -10485,6 +10486,7 @@ export type Database = {
           patient_cpf?: string | null
           patient_dni?: string | null
           patient_id?: string | null
+          lgpd_consent?: boolean
           patient_name?: string | null
           patient_phone: string
           pharmacy_id?: string | null
@@ -10513,6 +10515,7 @@ export type Database = {
           patient_cpf?: string | null
           patient_dni?: string | null
           patient_id?: string | null
+          lgpd_consent?: boolean
           patient_name?: string | null
           patient_phone?: string
           pharmacy_id?: string | null
