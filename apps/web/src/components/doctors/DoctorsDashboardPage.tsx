@@ -383,15 +383,15 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
       hideDefaultHeader={true}
     >
       {/* ── CLINICAL COMMAND COCKPIT (Sala de Telemedicina y Monitoreo) ── */}
-      <div className="mb-4 min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 text-[#0F2537] shadow-sm sm:p-4 md:p-5">
+      <div className="mb-3 min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-2.5 text-[#0F2537] shadow-sm sm:p-3">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: EDITORIAL_EASE }}
-          className="relative grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] items-center"
+          className="relative grid gap-3 lg:grid-cols-[minmax(0,1fr)_260px] items-center"
         >
           {/* Col 1: Telemedicina & Cockpit Activo */}
-          <div className="border-b border-slate-200 pb-4 lg:border-b-0 lg:pb-0 lg:pr-4 lg:border-r lg:border-slate-200">
+          <div className="border-b border-slate-200 pb-3 lg:border-b-0 lg:pb-0 lg:pr-3 lg:border-r lg:border-slate-200">
             {(() => {
               const activeTelemedAppt = todayAppointments.find((a: any) =>
                 canStartTelemedicineCall(a),
@@ -402,35 +402,18 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                 : "";
 
               return (
-                <div className="space-y-3">
-                  {/* Top Badge */}
-                  <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-emerald-700">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    <span className="text-[10px] font-bold uppercase tracking-wider">
-                      {activeTelemedAppt
-                        ? isBrazilianDoctor
-                          ? "CONSULTA ATIVA"
-                          : "CONSULTA ACTIVA EN LÍNEA"
-                        : isBrazilianDoctor
-                          ? "SALA DE TELEMEDICINA ATIVA"
-                          : "SALA DE TELEMEDICINA ACTIVA"}
-                    </span>
-                  </div>
-
+                <div className="space-y-2">
                   {activeTelemedAppt ? (
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div>
-                        <h2 className="text-xl font-semibold tracking-tight text-[#0F2537] sm:text-2xl">
+                        <h2 className="text-base font-semibold tracking-tight text-[#0F2537] sm:text-lg">
                           {new Date(activeTelemedAppt.start_time).toLocaleTimeString(
                             isBrazilianDoctor ? "pt-BR" : "es-AR",
                             { hour: "2-digit", minute: "2-digit" },
                           )}{" "}
                           hs · {activeTelemedPatientName}
                         </h2>
-                        <p className="mt-1 text-[13px] text-slate-600">
+                        <p className="mt-0.5 text-[11px] text-slate-600">
                           {isBrazilianDoctor
                             ? "O paciente está pronto na sala de espera. Ative sua conexão para entrar."
                             : "El paciente está listo en sala de espera. Habilitá tu señal para ingresar."}
@@ -442,7 +425,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                           handleStartCall(activeTelemedPatientId, activeTelemedAppt.id)
                         }
                         disabled={isStartingCall}
-                        className="flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0D9488] to-[#0F766E] px-5 py-3 text-sm font-bold text-white transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-sky-500/15 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300 sm:w-auto"
+                        className="flex min-h-9 w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-[#087FB9] px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-[#066FA5] active:scale-[0.98] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:w-auto"
                       >
                         {isStartingCall ? (
                           <>
@@ -460,25 +443,25 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                       </button>
                     </div>
                   ) : (
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div className="max-w-md">
-                        <h2 className="text-lg font-semibold tracking-tight text-[#0F2537] sm:text-xl">
+                        <h2 className="text-sm font-semibold tracking-tight text-[#0F2537] sm:text-base">
                           {isBrazilianDoctor
                             ? "Sala de teleconsulta direta"
                             : "Sala de videoconsulta directa"}
                         </h2>
-                        <p className="mt-1 text-[12px] text-slate-600">
+                        <p className="mt-0.5 text-[10px] text-slate-500">
                           {isBrazilianDoctor
                             ? "Inicie uma videochamada com pacientes vinculados em tempo real."
                             : "Iniciá una videollamada ad-hoc con pacientes asignados en tiempo real."}
                         </p>
                       </div>
 
-                      <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+                      <div className="flex w-full min-w-0 flex-col gap-1.5 sm:w-auto sm:flex-row sm:items-center">
                         <select
                           value={selectedAdHocPatientId}
                           onChange={(e) => setSelectedAdHocPatientId(e.target.value)}
-                          className="min-h-11 w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 focus:border-[#0D9488] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:w-auto sm:min-w-[160px] sm:max-w-[220px]"
+                          className="min-h-9 w-full min-w-0 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs text-slate-900 focus:border-[#087FB9] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:w-auto sm:min-w-[140px] sm:max-w-[200px]"
                         >
                           <option value="" className="bg-white text-slate-500">
                             {isBrazilianDoctor ? "Selecionar..." : "Seleccionar..."}
@@ -500,7 +483,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                             type="button"
                             onClick={() => handleStartCall(selectedAdHocPatientId)}
                             disabled={isStartingCall}
-                            className="flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-[#0D9488] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#0F766E] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300 disabled:opacity-60 sm:w-auto"
+                            className="flex min-h-9 w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-[#087FB9] px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#066FA5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 disabled:opacity-60 sm:w-auto"
                           >
                             {isStartingCall ? (
                               <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -518,11 +501,6 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                             </span>
                           </button>
                         ) : (
-                          <span className="px-2 text-[11px] font-medium text-slate-400">
-                            {isBrazilianDoctor
-                              ? "Selecione um paciente para iniciar"
-                              : "Seleccioná un paciente para iniciar"}
-                          </span>
                         )}
                       </div>
                     </div>
@@ -533,39 +511,36 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
           </div>
 
           {/* Col 2: Info & Stats */}
-          <div className="flex flex-col justify-between h-full">
+          <div className="flex min-w-0 flex-col justify-center gap-2">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.15em] text-slate-500">
-                  {isBrazilianDoctor ? "MÉDICO ATIVO" : "MÉDICO ACTIVO"}
-                </p>
-                <p className="text-[13px] font-semibold text-slate-700">{doctorName}</p>
+                <p className="text-xs font-semibold text-slate-700">{doctorName}</p>
               </div>
               <a
                 href="/doctors/agenda"
-                className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50 hover:text-[#0F2537] transition-colors"
+                className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-[10px] font-medium text-slate-600 hover:bg-slate-50 hover:text-[#0F2537] transition-colors"
               >
                 Ver agenda
                 <ArrowUpRight className="h-3 w-3" />
               </a>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 mt-4 border-t border-slate-200 pt-4">
+            <div className="grid grid-cols-3 gap-2 mt-2 border-t border-slate-200 pt-2">
               <div>
-                <p className="text-[9px] uppercase tracking-[0.15em] text-slate-500">
+                <p className="text-[8px] uppercase tracking-[0.12em] text-slate-500">
                   {isBrazilianDoctor ? "Hoje" : "Hoy"}
                 </p>
-                <p className="text-xl font-semibold text-[#0F2537] mt-0.5">{todayCount}</p>
+                <p className="text-lg font-semibold text-[#0F2537] mt-0">{todayCount}</p>
               </div>
               <div>
-                <p className="text-[9px] uppercase tracking-[0.15em] text-slate-500">Pacientes</p>
-                <p className="text-xl font-semibold text-[#0F2537] mt-0.5">{patientsCount}</p>
+                <p className="text-[8px] uppercase tracking-[0.12em] text-slate-500">Pacientes</p>
+                <p className="text-lg font-semibold text-[#0F2537] mt-0">{patientsCount}</p>
               </div>
               <div>
-                <p className="text-[9px] uppercase tracking-[0.15em] text-slate-500">
+                <p className="text-[8px] uppercase tracking-[0.12em] text-slate-500">
                   {isBrazilianDoctor ? "Pendências" : "Mandatos"}
                 </p>
-                <p className="text-xl font-semibold text-[#0F2537] mt-0.5">{pendingMandates}</p>
+                <p className="text-lg font-semibold text-[#0F2537] mt-0">{pendingMandates}</p>
               </div>
             </div>
           </div>
@@ -594,40 +569,40 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
           <a
             href="/doctors/prescriptions?mode=prescriptions&new=1"
             aria-label={isBrazilianDoctor ? "Nova receita" : "Nueva receta"}
-            className="group flex min-h-[280px] min-w-0 flex-col rounded-[26px] border border-sky-100 bg-[#E8F5FD] p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200 active:translate-y-0 sm:min-h-[300px] sm:p-6"
+            className="group flex min-h-[148px] min-w-0 flex-col rounded-2xl border border-sky-100 bg-[#E8F5FD] p-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200 active:translate-y-0 sm:min-h-[160px] sm:p-4"
           >
-            <span className="mb-5 flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] bg-[#D5ECFC] text-[#087FB9]">
-              <Pill aria-hidden="true" className="h-9 w-9" strokeWidth={2.2} />
+            <span className="mb-3 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#D5ECFC] text-[#087FB9]">
+              <Pill aria-hidden="true" className="h-6 w-6" strokeWidth={2.2} />
             </span>
-            <span className="block text-2xl font-bold leading-tight tracking-tight text-[#123F5A] sm:text-[28px]">
+            <span className="block text-lg font-bold leading-tight tracking-tight text-[#123F5A] sm:text-xl">
               {isBrazilianDoctor ? "Receita" : "Receta"}
             </span>
-            <span className="mt-3 block text-base leading-relaxed text-[#405B6C] sm:text-lg">
+            <span className="mt-1 block text-xs leading-relaxed text-[#405B6C] sm:text-sm">
               {isBrazilianDoctor ? "Prescrever e enviar" : "Prescribir y enviar"}
             </span>
-            <span className="mt-auto flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#087FB9] px-4 py-3 text-base font-semibold text-white shadow-sm transition-colors group-hover:bg-[#066FA5] sm:text-lg">
+            <span className="mt-auto flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#087FB9] px-3 py-2 text-sm font-semibold text-white shadow-sm transition-colors group-hover:bg-[#066FA5]">
               <span>{isBrazilianDoctor ? "Nova receita" : "Nueva receta"}</span>
-              <ArrowRight aria-hidden="true" className="h-5 w-5 shrink-0 transition-transform group-hover:translate-x-1" />
+              <ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1" />
             </span>
           </a>
 
           <a
             href="/doctors/prescriptions?document=certificate"
             aria-label={isBrazilianDoctor ? "Novo atestado" : "Nuevo atestado"}
-            className="group flex min-h-[280px] min-w-0 flex-col rounded-[26px] border border-sky-100 bg-[#E8F5FD] p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200 active:translate-y-0 sm:min-h-[300px] sm:p-6"
+            className="group flex min-h-[148px] min-w-0 flex-col rounded-2xl border border-sky-100 bg-[#E8F5FD] p-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200 active:translate-y-0 sm:min-h-[160px] sm:p-4"
           >
-            <span className="mb-5 flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] bg-[#D5ECFC] text-[#087FB9]">
-              <FileCheck aria-hidden="true" className="h-9 w-9" strokeWidth={2.2} />
+            <span className="mb-3 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#D5ECFC] text-[#087FB9]">
+              <FileCheck aria-hidden="true" className="h-6 w-6" strokeWidth={2.2} />
             </span>
-            <span className="block text-2xl font-bold leading-tight tracking-tight text-[#123F5A] sm:text-[28px]">
+            <span className="block text-lg font-bold leading-tight tracking-tight text-[#123F5A] sm:text-xl">
               {isBrazilianDoctor ? "Atestado" : "Atestado"}
             </span>
-            <span className="mt-3 block text-base leading-relaxed text-[#405B6C] sm:text-lg">
+            <span className="mt-1 block text-xs leading-relaxed text-[#405B6C] sm:text-sm">
               {isBrazilianDoctor ? "Criar e enviar" : "Crear y enviar"}
             </span>
-            <span className="mt-auto flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#087FB9] px-4 py-3 text-base font-semibold text-white shadow-sm transition-colors group-hover:bg-[#066FA5] sm:text-lg">
+            <span className="mt-auto flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#087FB9] px-3 py-2 text-sm font-semibold text-white shadow-sm transition-colors group-hover:bg-[#066FA5]">
               <span>{isBrazilianDoctor ? "Novo atestado" : "Nuevo atestado"}</span>
-              <ArrowRight aria-hidden="true" className="h-5 w-5 shrink-0 transition-transform group-hover:translate-x-1" />
+              <ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1" />
             </span>
           </a>
         </div>
@@ -671,7 +646,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
               ? "Consultas despachadas e contabilizadas"
               : "Consultas despachadas y contabilizadas"}
           </p>
-          <p className="mt-1 text-xs font-medium text-emerald-700">
+          <p className="mt-1 text-xs font-medium text-slate-500">
             {isBrazilianDoctor ? "Hoje" : "Hoy"}: {todayPharmacyCount}{" "}
             {isBrazilianDoctor ? "concluídas" : "completadas"}
           </p>
@@ -798,7 +773,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                             <span
                               className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
                                 isConfirmed
-                                  ? "bg-emerald-50 border border-emerald-200/60 text-emerald-700"
+                                  ? "bg-sky-50 border border-sky-200/60 text-sky-700"
                                   : "bg-amber-50 border border-amber-200/60 text-amber-700"
                               }`}
                             >
@@ -1310,7 +1285,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
             <div>
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#E8F5FD] text-[#087FB9] border border-sky-100">
                     <FileText className="h-4.5 w-4.5" strokeWidth={2} />
                   </div>
                   <div>
@@ -1363,7 +1338,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                               className={`rounded-full px-2 py-0.5 text-[8px] font-extrabold uppercase tracking-wide shrink-0 ${
                                 isPending
                                   ? "bg-amber-50 border border-amber-200 text-amber-700"
-                                  : "bg-emerald-50 border border-emerald-200 text-emerald-700"
+                                  : "bg-sky-50 border border-sky-200 text-sky-700"
                               }`}
                             >
                               {isPending ? "Pendiente" : "Revisado"}
@@ -1443,7 +1418,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border border-neutral-200/80 bg-white/95 p-4 shadow-lg backdrop-blur-md transition-all duration-300 animate-slide-in">
           {toast.type === "success" ? (
-            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+            <CheckCircle2 className="h-5 w-5 text-[#087FB9]" />
           ) : toast.type === "error" ? (
             <AlertCircle className="h-5 w-5 text-red-500" />
           ) : (
