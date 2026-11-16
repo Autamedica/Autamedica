@@ -116,6 +116,9 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
+          # Read-only inventory: expose migration ledger drift before any production write.
+          supabase migration list --remote
+          supabase db query --remote --read-only "SELECT version, COALESCE(cardinality(statements), 0) AS statement_count FROM supabase_migrations.schema_migrations ORDER BY version;"
           supabase db push --remote --include-all
           for fn_dir in supabase/functions/*; do
             [[ ! -f "$fn_dir/index.ts" ]] && continue
