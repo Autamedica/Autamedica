@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback, useId, type FormEvent } from 'react'
+import { useState, useEffect, useCallback, useId, useRef, type FormEvent } from 'react'
 import {
   AlertCircle,
   CheckCircle2,
@@ -94,6 +94,7 @@ export function PharmacyExpressConsultation({
   const [countryPaymentApproved, setCountryPaymentApproved] = useState(false)
   const [onlineDoctorCount, setOnlineDoctorCount] = useState<number | null>(null)
   const [documents, setDocuments] = useState<EncounterDocument[]>([])
+  const recoveryInProgress = useRef(false)
 
   useEffect(() => {
     if (isJordanReferral) {
@@ -235,9 +236,58 @@ export function PharmacyExpressConsultation({
         setStep('CANCELLED')
       }
     } catch {
-      // Ignorar fallas transitorias de red durante polling
+      // Re-issue a short-lived room JWT with the device-scoped recovery secret
+      // when the active guest token has expired or been rejected.
+      if (recoveryInProgress.current) return
+      recoveryInProgress.current = true
+      try {
+        const key = 'autamedica:pharmacy-express:active-session'
+        const raw = window.sessionStorage.getItem(key) || window.localStorage.getItem(key)
+        const saved = raw ? JSON.parse(raw) as {
+          requestId?: string; recoveryToken?: string; country?: 'AR' | 'BR';
+          careCountry?: 'AR' | 'BR'; referralCode?: string | null;
+          partnerName?: string | null; savedAt?: number;
+        } : null
+        const secret = saved?.requestId === id ? (saved.recoveryToken || recoveryToken) : recoveryToken
+        if (!secret) return
+        const restored = await fetchApi<{ request: DispatchRequest; accessToken: string }>('/api/pharmacy/dispatch/resume', {
+          method: 'POST',
+          body: { requestId: id, recoveryToken: secret },
+        })
+        const country = saved?.country ?? saved?.careCountry ?? formData.careCountry
+        const next = {
+          requestId: id,
+          guestToken: restored.accessToken,
+          recoveryToken: secret,
+          country,
+          referralCode: saved?.referralCode ?? referralCode,
+          partnerName: saved?.partnerName ?? referralPartnerName,
+          savedAt: Date.now(),
+        }
+        setAccessToken(restored.accessToken)
+        setRecoveryToken(secret)
+        setCallRoomId(restored.request.cloudflare_room_id)
+        setFormData((current) => ({ ...current, careCountry: country === 'BR' || country === 'AR' ? country : current.careCountry }))
+        window.sessionStorage.setItem(key, JSON.stringify(next))
+        window.localStorage.setItem(key, JSON.stringify(next))
+        const url = new URL(window.location.href)
+        url.searchParams.set('token', restored.accessToken)
+        window.history.replaceState(null, '', url.toString())
+        if (restored.request.status === 'in_call' || restored.request.status === 'matched') setStep('CALL')
+        else if (restored.request.status === 'completed') setStep('ENDED')
+        else setStep('WAITING')
+      } catch {
+        // Keep the recovery secret so the next healthy poll can retry.
+      } finally {
+        recoveryInProgress.current = false
+      }
     }
-  }, [callRoomId])
+  }, [callRoomId, recoveryToken, formData.careCountry, referralCode, referralPartnerName])
+
+  useEffect(() => {
+    if (step !== 'ENDED' || !requestId) return
+    void checkStatus(requestId, accessToken)
+  }, [step, requestId, accessToken, checkStatus])
 
   useEffect(() => {
     if ((step !== 'WAITING' && step !== 'CALL') || !requestId) return
