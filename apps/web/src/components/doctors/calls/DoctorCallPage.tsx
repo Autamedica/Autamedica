@@ -719,9 +719,11 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                     <CallAuxiliaryButton icon={<FileText className="h-5 w-5 md:h-5.5 md:w-5.5" />}
                       label={isBrazilianDoctor ? 'Exame' : 'Estudio'} onClick={() => setShowStudyOrderModal(true)} />
                   )}
-                  {context?.dispatchTriage?.dispatchRequestId && (
-                    <CallAuxiliaryButton icon={<FileText className="h-5 w-5 md:h-5.5 md:w-5.5" />}
-                      label={isBrazilianDoctor ? 'Atestado' : 'Certificado'} onClick={() => setShowCertificateModal(true)} />
+                  {context?.dispatchTriage?.dispatchRequestId
+                    && context?.patient?.id
+                    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(context.patient.id) && (
+                      <CallAuxiliaryButton icon={<FileText className="h-5 w-5 md:h-5.5 md:w-5.5" />}
+                        label={isBrazilianDoctor ? 'Atestado' : 'Certificado'} onClick={() => setShowCertificateModal(true)} />
                   )}
                 </>
               ) : null
