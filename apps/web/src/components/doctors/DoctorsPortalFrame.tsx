@@ -134,7 +134,7 @@ function MobileNavBar({
               key={item.key}
               href={item.href}
               className={`relative flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2.5 transition-colors ${
-                isActive ? "text-[#0D9488]" : "text-neutral-400"
+                isActive ? "text-[#0284C7]" : "text-neutral-400
               }`}
             >
               <div className="relative">
@@ -150,7 +150,7 @@ function MobileNavBar({
               </div>
               <span className="max-w-full truncate text-[10px] font-semibold leading-tight">{item.label}</span>
               {isActive ? (
-                <span className="absolute top-0 h-0.5 w-8 rounded-full bg-[#0D9488]" />
+                <span className="absolute top-0 h-0.5 w-8 rounded-full bg-[#0284C7]" />
               ) : null}
             </a>
           );
@@ -610,7 +610,7 @@ export function DoctorsPortalFrame({
             mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
           } ${isSidebarCollapsed ? "w-[72px]" : "w-[232px]"}`}
         >
-          <div className="flex h-full flex-col">
+          <div className="flex h-full flex-col overflow-y-auto overscroll-contain">
             {/* Doctor profile */}
             <div className="border-b border-neutral-100 p-4">
               <div
@@ -716,9 +716,9 @@ export function DoctorsPortalFrame({
                   <a
                     key={item.key}
                     href={item.href}
-                    className={`group flex items-center justify-between rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors ${
+                    className={`group flex items-center justify-between min-h-11 rounded-xl px-3 py-3 text-[13px] font-medium transition-colors ${
                       isActive
-                        ? "bg-teal-50 text-teal-800"
+                        ? "bg-sky-50 text-sky-800"
                         : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
                     }`}
                   >
@@ -747,9 +747,9 @@ export function DoctorsPortalFrame({
                     <a
                       key={item.key}
                       href={item.href}
-                      className={`group flex items-center justify-between rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors ${
+                      className={`group flex items-center justify-between min-h-11 rounded-xl px-3 py-3 text-[13px] font-medium transition-colors ${
                         isActive
-                          ? "bg-teal-50 text-teal-800"
+                          ? "bg-sky-50 text-sky-800"
                           : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
                       }`}
                     >
