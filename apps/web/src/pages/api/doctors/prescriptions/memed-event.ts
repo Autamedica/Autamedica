@@ -13,6 +13,23 @@ import { getMemedDoctorCpf } from '@/lib/prescriptions/brazil/memed-identity.rep
 import { logger } from '@autamedica/shared';
 
 type JSONObject = Record<string, unknown>;
+type MemedDbError = { code?: string; message?: string } | null;
+type MemedSelectRow = { id: string; doctor_id: string; patient_id: string; status?: string };
+type MemedSelectQuery<T> = {
+  eq(column: string, value: string): MemedSelectQuery<T>;
+  maybeSingle(): Promise<{ data: T | null; error: MemedDbError }>;
+};
+type MemedMutationResult = { error: MemedDbError };
+type MemedMutationQuery = PromiseLike<MemedMutationResult> & {
+  eq(column: string, value: string): MemedMutationQuery;
+};
+type MemedAdminClient = {
+  from(table: 'memed_prescriptions'): {
+    select(columns: string): MemedSelectQuery<MemedSelectRow>;
+    update(values: Record<string, unknown>): MemedMutationQuery;
+    insert(values: Record<string, unknown>): Promise<MemedMutationResult>;
+  };
+};
 const asObject = (value: unknown): JSONObject =>
   value !== null && typeof value === 'object' && !Array.isArray(value) ? value as JSONObject : {};
 
@@ -56,6 +73,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   try {
     const admin = createAstroAdminClient(locals.runtime?.env);
+    const memedAdmin = admin as unknown as MemedAdminClient;
     const { data: doctor, error: doctorError } = await admin
       .from('doctors')
       .select('id, active, license_type, license_number, uf_brazil, cpf')
@@ -171,7 +189,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return forbidden('memed_patient_mismatch');
     }
 
-    const { data: existingMemed, error: existingMemedError } = await admin
+    const { data: existingMemed, error: existingMemedError } = await memedAdmin
       .from('memed_prescriptions')
       .select('id,doctor_id,patient_id,status')
       .eq('memed_id', prescriptionId)
@@ -243,18 +261,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
       patient_delivery_confirmed: false,
     };
     if (existingMemed) {
-      const { error: updateMemedError } = await admin.from('memed_prescriptions')
+      const { error: updateMemedError } = await memedAdmin.from('memed_prescriptions')
         .update(memedDocumentPayload)
         .eq('id', existingMemed.id)
         .eq('doctor_id', doctor.id)
         .eq('patient_id', patientId);
       if (updateMemedError) throw updateMemedError;
     } else {
-      const { error: insertMemedError } = await admin.from('memed_prescriptions').insert(memedDocumentPayload);
+      const { error: insertMemedError } = await memedAdmin.from('memed_prescriptions').insert(memedDocumentPayload);
       if (insertMemedError?.code === '23505') {
-        const { data: winner, error: winnerError } = await admin.from('memed_prescriptions')
+        const { data: winner, error: winnerError } = await memedAdmin.from('memed_prescriptions')
           .select('id,doctor_id,patient_id').eq('memed_id', prescriptionId).maybeSingle();
-        if (winnerError || winner?.doctor_id !== doctor.id || winner.patient_id !== patientId) {
+        if (winnerError || !winner || winner.doctor_id !== doctor.id || winner.patient_id !== patientId) {
           return forbidden('memed_prescription_ownership_conflict');
         }
       } else if (insertMemedError) {

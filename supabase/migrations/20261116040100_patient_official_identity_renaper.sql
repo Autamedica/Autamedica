@@ -169,7 +169,8 @@ CREATE OR REPLACE FUNCTION public.persist_renaper_identity_result(
  p_official_gender text,
  p_puco_coverage_name text,
  p_puco_coverage_code text,
- p_verified_at timestamptz
+ p_verified_at timestamptz,
+ p_sync_profile_name boolean DEFAULT false
 )
 RETURNS boolean
 LANGUAGE plpgsql
@@ -248,7 +249,7 @@ BEGIN
    WHERE id = p_dispatch_request_id;
  END IF;
 
- IF p_identity_status = 'verified_renaper' AND p_user_id IS NOT NULL
+ IF p_sync_profile_name IS TRUE AND p_identity_status = 'verified_renaper' AND p_user_id IS NOT NULL
    AND NULLIF(btrim(p_official_first_name), '') IS NOT NULL
    AND NULLIF(btrim(p_official_last_name), '') IS NOT NULL THEN
   UPDATE public.profiles
@@ -263,10 +264,10 @@ END;
 $function$;
 
 REVOKE ALL ON FUNCTION public.persist_renaper_identity_result(
- uuid, uuid, uuid, text, text, text, text, text, text, date, text, text, text, timestamptz
+ uuid, uuid, uuid, text, text, text, text, text, text, date, text, text, text, timestamptz, boolean
 ) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.persist_renaper_identity_result(
- uuid, uuid, uuid, text, text, text, text, text, text, date, text, text, text, timestamptz
+ uuid, uuid, uuid, text, text, text, text, text, text, date, text, text, text, timestamptz, boolean
 ) TO service_role;
 
 COMMIT;

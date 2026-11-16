@@ -93,6 +93,9 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     if (error instanceof Error && 'code' in error && error.code === 'RENAPER_LOOKUP_LIMIT_REACHED') {
       return jsonFail('RATE_LIMITED', 'Se alcanzó el límite de tres consultas RENAPER para este paciente.', 429);
     }
+    if (error instanceof Error && 'code' in error && error.code === 'RENAPER_DOCUMENT_MISMATCH') {
+      return jsonFail('CONFLICT', 'La identidad oficial no coincide con el DNI registrado.', 409);
+    }
     logger.warn('[doctor-identity-renaper] live lookup unavailable', {
       code: error instanceof Error && 'code' in error ? String(error.code) : 'RENAPER_LOOKUP_UNAVAILABLE',
     });

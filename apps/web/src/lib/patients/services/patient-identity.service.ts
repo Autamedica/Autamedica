@@ -36,6 +36,7 @@ type PersistIdentityRpcClient = {
       p_puco_coverage_name: string | null;
       p_puco_coverage_code: string | null;
       p_verified_at: string | null;
+      p_sync_profile_name: boolean;
     },
   ): Promise<{ data: boolean | null; error: { message?: string; code?: string } | null }>;
 };
@@ -195,6 +196,7 @@ export async function persistOfficialIdentityResult(input: {
     p_puco_coverage_name: identity.pucoCoverageName,
     p_puco_coverage_code: identity.pucoCoverageCode,
     p_verified_at: identity.identityStatus === 'verified_renaper' ? new Date().toISOString() : null,
+    p_sync_profile_name: input.syncProfileName ?? false,
   });
   if (error) throw error;
 
@@ -211,6 +213,7 @@ export async function fetchAndPersistOfficialIdentity(input: {
   declaredName?: string | null;
   runtimeEnv?: Record<string, unknown>;
   timeoutMs?: number;
+  syncProfileName?: boolean;
 }): Promise<PersistedOfficialIdentity | null> {
   await claimRenaperIdentityLookup({
     supabase: input.supabase,

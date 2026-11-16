@@ -87,6 +87,7 @@ describe('patient identity persistence (synthetic RENAPER / PUCO fixtures)', () 
       p_dispatch_request_id: 'dispatch-1',
       p_user_id: 'user-1',
       p_identity_status: 'mismatch',
+      p_sync_profile_name: true,
     });
   });
 
