@@ -317,7 +317,7 @@ export const medicalHistoryService = {
   async getFullHistory(supabase: Db, patientId: string, authenticatedClient: SupabaseClient = supabase): Promise<MedicalHistorySnapshot> {
     const medicalHistoryRepo = createMedicalHistoryAdapter(supabase);
 
-    const [corePrescriptions, memedPrescriptions, medications, conditions, allergies, timeline, anamnesisRes, clinicalDocuments] =
+    const [corePrescriptions, memedPrescriptions, medications, conditions, allergies, timeline, clinicalDocuments, anamnesisRes] =
       await Promise.all([
         listReadModelPrescriptions(supabase, patientId).catch((err) => {
           logger.error("[medicalHistoryService] prescriptions failed", err);
