@@ -310,6 +310,7 @@ export async function generatePrescriptionPdf(
       ...originalInput.patient,
       name: sanitizePdfText(originalInput.patient.name),
       insurancePlan: sanitizePdfText(originalInput.patient.insurancePlan),
+      cuil: sanitizePdfText(originalInput.patient.cuil)?.replace(/\D/g, ''),
       affiliateCredential: sanitizePdfText(originalInput.patient.affiliateCredential),
       address: sanitizePdfText(originalInput.patient.address),
     },
