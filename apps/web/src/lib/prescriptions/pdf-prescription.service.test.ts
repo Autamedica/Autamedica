@@ -295,7 +295,7 @@ describe('generatePrescriptionPdf', () => {
       expect(pdfText).toContain('Nro. afiliado / Credencial: 20123456786');
       expect(pdfText).toContain('Entidad: 7110');
       expect(pdfText).toContain('Plan: NO POSEE');
-      expect(pdfText).toContain('CUIL: 27123456780');
+      expect(pdfText).not.toContain('CUIL: 27123456780');
       expect(pdfText).toContain('PAN / CREDENCIAL');
       expect(pdfText).toContain('PAN: 20123456786');
       expect(pdfText).not.toContain('CUIL PACIENTE');
