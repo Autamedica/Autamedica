@@ -95,6 +95,7 @@ export function PharmacyExpressConsultation({
   const [onlineDoctorCount, setOnlineDoctorCount] = useState<number | null>(null)
   const [documents, setDocuments] = useState<EncounterDocument[]>([])
   const recoveryInProgress = useRef(false)
+  const lastRecoveryAttemptAt = useRef(0)
 
   useEffect(() => {
     if (isJordanReferral) {
@@ -238,8 +239,9 @@ export function PharmacyExpressConsultation({
     } catch {
       // Re-issue a short-lived room JWT with the device-scoped recovery secret
       // when the active guest token has expired or been rejected.
-      if (recoveryInProgress.current) return
+      if (recoveryInProgress.current || Date.now() - lastRecoveryAttemptAt.current < 15000) return
       recoveryInProgress.current = true
+      lastRecoveryAttemptAt.current = Date.now()
       try {
         const key = 'autamedica:pharmacy-express:active-session'
         const raw = window.sessionStorage.getItem(key) || window.localStorage.getItem(key)
@@ -248,7 +250,8 @@ export function PharmacyExpressConsultation({
           careCountry?: 'AR' | 'BR'; referralCode?: string | null;
           partnerName?: string | null; savedAt?: number;
         } : null
-        const secret = saved?.requestId === id ? (saved.recoveryToken || recoveryToken) : recoveryToken
+        if (!saved || saved.requestId !== id) return
+        const secret = saved.recoveryToken || recoveryToken
         if (!secret) return
         const restored = await fetchApi<{ request: DispatchRequest; accessToken: string }>('/api/pharmacy/dispatch/resume', {
           method: 'POST',
