@@ -105,6 +105,7 @@ export interface PatientPrescriptionDTO {
   doctorName: string;
   isDigitalReady: boolean;
   provider?: 'Memed BR' | 'RCTA / Core AR';
+  accessCode?: string | null;
 }
 
 /**
