@@ -490,6 +490,8 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                       <button
                         type="button"
                         onClick={() => setCameraActive(!cameraActive)}
+                        aria-label={cameraActive ? (isBrazilianDoctor ? "Desligar câmera" : "Apagar cámara") : (isBrazilianDoctor ? "Ligar câmera" : "Encender cámara")}
+                        aria-pressed={cameraActive}
                         className={`flex h-11 w-11 items-center justify-center rounded-xl border transition-all ${
                           cameraActive ? 'border-sky-400/40 bg-sky-400/10 text-sky-300' : 'border-neutral-800 bg-neutral-900 text-neutral-500'
                         }`}
@@ -506,7 +508,9 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                       <button
                         type="button"
                         onClick={() => setMicActive(!micActive)}
-                        className={`flex h-7 w-7 items-center justify-center rounded-md border transition-all ${
+                        aria-label={micActive ? (isBrazilianDoctor ? "Silenciar microfone" : "Silenciar micrófono") : (isBrazilianDoctor ? "Ligar microfone" : "Encender micrófono")}
+                        aria-pressed={micActive}
+                        className={`flex h-11 w-11 items-center justify-center rounded-xl border transition-all ${
                           micActive ? 'border-sky-400/40 bg-sky-400/10 text-sky-300' : 'border-neutral-800 bg-neutral-900 text-neutral-500'
                         }`}
                         title={micActive ? (isBrazilianDoctor ? 'Silenciar microfone' : 'Silenciar micrófono') : (isBrazilianDoctor ? 'Ligar microfone' : 'Encender micrófono')}
