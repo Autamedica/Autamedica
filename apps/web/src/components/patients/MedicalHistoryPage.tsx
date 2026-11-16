@@ -15,8 +15,8 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 const STATUS_STYLE: Record<string, string> = {
-  activa: 'bg-neutral-900 text-white', active: 'bg-neutral-900 text-white',
-  sent: 'bg-neutral-900 text-white', dispensed_total: 'bg-sky-500 text-white',
+  activa: 'bg-[#10B981] text-white', active: 'bg-[#10B981] text-white',
+  sent: 'bg-[#10B981] text-white', dispensed_total: 'bg-[#10B981] text-white',
   dispensed_partial: 'bg-neutral-600 text-white', completed: 'bg-neutral-400 text-white',
   completada: 'bg-neutral-400 text-white', expired: 'bg-neutral-200 text-neutral-500',
   cancelled: 'bg-neutral-200 text-neutral-500', cancelada: 'bg-neutral-200 text-neutral-500',
@@ -56,9 +56,12 @@ function toPrescriptionModalData(p: PatientPrescription) {
 function PrescriptionCard({ prescription, onClick, index, locale }: {
   prescription: PatientPrescription; onClick: () => void; index: number; locale: string
 }) {
-  const statusLabel = STATUS_LABEL[prescription.status] ?? prescription.status
+  const isPortuguese = locale === 'pt-BR'
+  const statusLabel = isPortuguese
+    ? ({ activa: 'Ativa', active: 'Ativa', completada: 'Concluída', completed: 'Concluída', cancelada: 'Cancelada', cancelled: 'Cancelada', pausada: 'Pausada', draft: 'Rascunho', signed: 'Assinada', sent: 'Emitida', dispensed_partial: 'Parcial', dispensed_total: 'Dispensada', expired: 'Expirada' }[prescription.status] ?? prescription.status)
+    : (STATUS_LABEL[prescription.status] ?? prescription.status)
   const statusStyle = STATUS_STYLE[prescription.status] ?? 'bg-neutral-100 text-neutral-500'
-  const doctorName = prescription.doctor_name ? `Dr. ${prescription.doctor_name}` : 'Profesional'
+  const doctorName = prescription.doctor_name ? `Dr. ${prescription.doctor_name}` : (locale === 'pt-BR' ? 'Profissional' : 'Profesional')
   const dateStr = formatDate(prescription.prescribed_date || prescription.start_date, locale)
   const verifyUrl = getVerifyUrl(prescription.cuir)
   const downloadablePdfUrl = getDownloadablePdfUrl(prescription.signed_pdf_url, verifyUrl)
@@ -69,12 +72,12 @@ function PrescriptionCard({ prescription, onClick, index, locale }: {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.08 }}
       whileHover={{ y: -4 }}
-      className="group border border-neutral-200 rounded-2xl p-6 hover:border-neutral-900 transition-all bg-white"
+      className="group rounded-2xl border border-slate-200 bg-white p-5 transition-all hover:border-[#10B981] sm:p-6"
     >
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="min-w-0 flex-1">
           <h3 className="text-lg font-semibold text-neutral-900 truncate">
-            {prescription.medication_name || 'Prescripción médica'}
+            {prescription.medication_name || (locale === 'pt-BR' ? 'Receita médica' : 'Prescripción médica')}
           </h3>
           <p className="text-sm text-neutral-500 mt-0.5">{doctorName} · {dateStr}</p>
           <p className="mt-1 text-[11px] font-semibold text-emerald-700">{prescription.source === 'memed_br' ? 'Memed BR' : prescription.source === 'prescriptions_core' ? 'RCTA / Core AR' : 'Historial clínico'}</p>
@@ -94,7 +97,7 @@ function PrescriptionCard({ prescription, onClick, index, locale }: {
       )}
 
       {prescription.cuir && (
-        <div className="mb-4 rounded-xl bg-neutral-50 border border-neutral-100 px-4 py-3 text-sm text-neutral-600">
+        <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
           CUIR: <span className="font-mono font-medium text-neutral-900">{prescription.cuir}</span>
         </div>
       )}
@@ -106,7 +109,7 @@ function PrescriptionCard({ prescription, onClick, index, locale }: {
             target="_blank"
             rel="noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="flex-1 flex items-center justify-center gap-2 py-3 border border-neutral-200 text-neutral-700 rounded-full font-medium hover:border-neutral-900 transition-all"
+            className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full border border-slate-200 py-3 font-medium text-slate-700 transition-all hover:border-[#10B981]"
           >
             <ExternalLink className="size-4" /> PDF
           </a>
@@ -114,9 +117,9 @@ function PrescriptionCard({ prescription, onClick, index, locale }: {
         <button
           type="button"
           onClick={onClick}
-          className="flex-1 flex items-center justify-center gap-2 py-3 bg-neutral-900 text-white rounded-full font-medium hover:bg-neutral-800 transition-all"
+          className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full bg-[#10B981] py-3 font-medium text-white transition-all hover:bg-[#0D9488]"
         >
-          <FileText className="size-4" /> Ver detalle
+          <FileText className="size-4" /> {locale === 'pt-BR' ? 'Ver detalhes' : 'Ver detalle'}
         </button>
       </div>
     </motion.div>
@@ -143,7 +146,7 @@ export default function MedicalHistoryPage() {
             animate={{ opacity: 1, scale: 1 }}
           >
             <Pill className="size-3.5" />
-            {prescriptions.length} {prescriptions.length === 1 ? 'receta' : 'recetas'}
+            {prescriptions.length} {isPortuguese ? (prescriptions.length === 1 ? 'receita' : 'receitas') : (prescriptions.length === 1 ? 'receta' : 'recetas')}
           </motion.div>
 
           <motion.h1
@@ -175,7 +178,7 @@ export default function MedicalHistoryPage() {
         {loading && (
           <div className="flex flex-col items-center justify-center py-24">
             <motion.div
-              className="size-12 rounded-full border-2 border-neutral-300 border-t-neutral-900 animate-spin"
+              className="size-12 animate-spin rounded-full border-2 border-slate-200 border-t-[#10B981]"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
             />
@@ -240,7 +243,7 @@ export default function MedicalHistoryPage() {
             {certificates.length === 0 ? <div className="col-span-full rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">{isPortuguese ? 'Nenhum atestado foi emitido.' : 'Todavía no hay certificados ni atestados emitidos.'}</div> : certificates.map((certificate) => {
               const id = String(certificate.id ?? '')
               const status = String(certificate.status ?? 'draft')
-              const type = String(certificate.certificate_type ?? 'otro').replaceAll('_', ' ')
+              const type = String(certificate.certificate_type ?? (isPortuguese ? 'outro' : 'otro')).replace(/_/g, ' ')
               const code = String(certificate.cuir ?? '')
               const pdfUrl = `/api/doctors/certificates/${encodeURIComponent(id)}/pdf`
               return (
