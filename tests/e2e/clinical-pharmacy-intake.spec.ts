@@ -19,7 +19,7 @@ test.describe('Pharmacy intake AR/BR clinical country', () => {
     { country: 'AR', countryLabel: 'Argentina', idLabel: 'DNI', nameLabel: 'Nombre y apellido', reasonOption: 'Dolor / malestar', submitLabel: 'Continuar',
       document: '38123456', phone: '+5491122223333', docField: 'patientDni', absentField: 'patientCpf' },
     { country: 'BR', countryLabel: 'Brasil', idLabel: 'CPF', nameLabel: 'Nome completo', reasonOption: 'Dor / mal-estar', submitLabel: 'Iniciar consulta',
-      document: '12345678909', phone: '+5551999998888', docField: 'patientCpf', absentField: 'patientDni' },
+      document: '11144477735', phone: '+5551999998888', docField: 'patientCpf', absentField: 'patientDni' },
   ] as const
 
   for (const c of cases) {
@@ -56,8 +56,9 @@ test.describe('Pharmacy intake AR/BR clinical country', () => {
       await expect(page.getByRole('heading', { name: /Consulta médica/ })).toBeVisible()
       await page.getByText(c.countryLabel, { exact: true }).click()
       await expect(page.getByRole('radio', { name: c.countryLabel })).toBeChecked()
-      await expect(page.getByLabel(c.idLabel)).toBeVisible({ timeout: 10000 })
-      await page.getByLabel(c.idLabel).fill(c.document)
+      await expect(page.getByRole('textbox', { name: c.idLabel })).toBeVisible({ timeout: 10000 })
+      await page.getByRole('textbox', { name: c.idLabel }).fill(c.document)
+      if (c.country === 'AR') await page.getByLabel('Sexo según DNI').selectOption('F')
       await page.getByLabel(c.nameLabel).fill('PACIENTE SINTETICO TEST')
       await page.getByLabel('WhatsApp').fill(c.phone)
       await page.getByRole('button', { name: c.reasonOption }).click()

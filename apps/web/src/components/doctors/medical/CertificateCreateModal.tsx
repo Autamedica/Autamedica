@@ -21,6 +21,7 @@ interface CertificateCreateModalProps {
   patientName?: string;
   patientDni?: string;
   appointmentId?: string;
+  dispatchRequestId?: string;
   countryCode?: "AR" | "BR";
   onClose: () => void;
   onCreated?: (certificate: CreatedCertificate) => void;
@@ -28,6 +29,7 @@ interface CertificateCreateModalProps {
 
 export interface CreatedCertificate {
   id: string;
+  patient_id: string;
   cuir: string;
   status: string;
   certificate_type: string;
@@ -93,6 +95,7 @@ export function CertificateCreateModal({
   patientName: initialPatientName,
   patientDni: initialPatientDni,
   appointmentId,
+  dispatchRequestId,
   countryCode = "AR",
   onClose,
   onCreated,
@@ -227,6 +230,7 @@ export function CertificateCreateModal({
       const payload = {
         patient_id: selectedPatientId,
         appointment_id: appointmentId ?? null,
+        dispatch_request_id: dispatchRequestId ?? null,
         certificate_type: certType,
         days_of_rest: daysOfRest,
         start_date: startDate,

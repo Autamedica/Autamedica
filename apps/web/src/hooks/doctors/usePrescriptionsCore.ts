@@ -27,7 +27,7 @@ interface UsePrescriptionsCoreResult {
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
-  createDraft: (data: Record<string, unknown>) => Promise<string>;
+  createDraft: (data: Record<string, unknown>) => Promise<Prescription>;
   updatePrescription: (id: string, updates: Record<string, unknown>) => Promise<void>;
   issuePrescription: (id: string) => Promise<IssuanceResult>;
 }
@@ -108,7 +108,7 @@ export function usePrescriptionsCore(
     }
   }, [patientId, filterStatus, filterMedication, filterActive, isClient]);
 
-  const createDraft = useCallback(async (data: Record<string, unknown>): Promise<string> => {
+  const createDraft = useCallback(async (data: Record<string, unknown>): Promise<Prescription> => {
     const res = await fetch('/api/doctors/prescriptions', {
       method: 'POST',
       credentials: 'include',
@@ -127,7 +127,7 @@ export function usePrescriptionsCore(
     }
 
     window.dispatchEvent(new Event(PRESCRIPTIONS_CHANGED_EVENT));
-    return json.data.id;
+    return json.data;
   }, []);
 
   const updatePrescription = useCallback(async (id: string, updates: Record<string, unknown>): Promise<void> => {

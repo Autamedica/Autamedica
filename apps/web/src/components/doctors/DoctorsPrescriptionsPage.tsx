@@ -245,6 +245,30 @@ export function DoctorsPrescriptionsPage() {
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [search, setSearch] = useState("");
   const [docMode, setDocMode] = useState<"prescriptions" | "certificates">("prescriptions");
+
+  const [countryContextReady, setCountryContextReady] = useState(false);
+  const [requestedQuickAction, setRequestedQuickAction] = useState<"prescriptions" | "certificates" | null>(null);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get("mode");
+    if (mode === "prescriptions" || mode === "certificates") {
+      setDocMode(mode);
+      if (params.get("new") === "1") setRequestedQuickAction(mode);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!requestedQuickAction) return;
+    if (requestedQuickAction === "prescriptions") {
+      setShowCreateModal(true);
+      setRequestedQuickAction(null);
+      return;
+    }
+    if (countryContextReady) {
+      setShowCertificateModal(true);
+      setRequestedQuickAction(null);
+    }
+  }, [requestedQuickAction, countryContextReady]);
   const [certificateCountry, setCertificateCountry] = useState<"AR" | "BR" | null>(null);
   const [externalProviderEnabled, setExternalProviderEnabled] = useState(false);
   useEffect(() => {
@@ -264,6 +288,8 @@ export function DoctorsPrescriptionsPage() {
         setCertificateCountry(null);
         setExternalProviderEnabled(false);
       }
+    }).finally(() => {
+      if (!controller.signal.aborted) setCountryContextReady(true);
     });
     return () => controller.abort();
   }, []);
@@ -419,8 +445,8 @@ export function DoctorsPrescriptionsPage() {
 
   const handleCreateDraft = async (
     p: PrescriptionDraftForm,
-  ): Promise<{ id: string }> => {
-    const id = await createDraft({
+  ): Promise<{ id: string; patient_id: string | null }> => {
+    const created = await createDraft({
       patient_id: selectedPatientId ?? undefined,
       external_patient: p.external_patient,
       medication_name: p.medication_name,
@@ -434,14 +460,17 @@ export function DoctorsPrescriptionsPage() {
       start_date: p.start_date,
       end_date: p.end_date,
     });
-    return { id, ...p };
+    if (created.patient_id && created.patient_id !== selectedPatientId) {
+      setSelectedPatientId(created.patient_id);
+    }
+    return { id: created.id, patient_id: created.patient_id, ...p };
   };
 
   return (
     <DoctorsPortalFrame
       title="Recetas Médicas"
       description="Gestión completa de recetas y prescripciones médicas"
-      activeSection="consultations"
+      activeSection="prescriptions"
       hideDefaultHeader
       hideRightSidebar
     >
@@ -997,6 +1026,7 @@ export function DoctorsPrescriptionsPage() {
       {showCreateModal && (certificateCountry === 'AR' || certificateCountry === 'BR') && (
         <PrescriptionCreateModal
           patientId={(selectedPatientId ?? undefined) as UUID | undefined}
+          onPatientSelected={setSelectedPatientId}
           doctorCareCountry={certificateCountry ?? undefined}
           onClose={() => setShowCreateModal(false)}
           onSaved={handleSaved}
@@ -1022,11 +1052,14 @@ export function DoctorsPrescriptionsPage() {
           patientName={selectedPatient ? getPatientDisplayName(selectedPatient) : undefined}
           patientDni={selectedPatient?.dni ?? undefined}
           onClose={() => setShowCertificateModal(false)}
-          onCreated={() => {
-            if (certificateCountry === 'BR') { void fetchCertificates(); return; }
-            setShowCertificateModal(false);
+          onCreated={(created) => {
+            if (created.patient_id === selectedPatientId) {
+              void fetchCertificates();
+            } else {
+              setSelectedPatientId(created.patient_id);
+            }
             setDocMode("certificates");
-            void fetchCertificates();
+            if (certificateCountry !== "BR") setShowCertificateModal(false);
           }}
         />
       )}

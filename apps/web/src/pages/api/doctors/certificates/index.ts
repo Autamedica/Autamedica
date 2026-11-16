@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { badRequest, forbidden, internalError, jsonOk } from "@/lib/api-helpers";
 import { DOCTOR_ROLES, isAuthed, withAuthRole } from "@/lib/api-auth";
 import { createAstroAdminClient } from "@/lib/supabase";
@@ -11,6 +12,7 @@ import { isMemedEnabled, isMemedPilotDoctor } from "@/lib/prescriptions/brazil/m
 const MedicalCertificateCreateSchema = z.object({
   patient_id: z.string().uuid("ID de paciente inválido"),
   appointment_id: z.string().uuid().optional().nullable(),
+  dispatch_request_id: z.string().uuid().optional().nullable(),
   certificate_type: z.enum([
     "reposo_laboral",
     "reposo_escolar",
@@ -214,10 +216,27 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return badRequest(error instanceof Error ? error.message : "cid10_invalid");
     }
     const admin = createAstroAdminClient(locals?.runtime?.env);
+    const db = admin as unknown as SupabaseClient;
 
-    // Verify doctor patient access
-    const hasAccess = await doctorHasPatientAccess(admin, context.doctorId, result.data.patient_id);
-    if (!hasAccess) return forbidden("forbidden_patient_access");
+    // A dispatch encounter grants access only to its assigned doctor and linked patient.
+    // Other certificates continue to require the patient's established care relationship.
+    if (result.data.dispatch_request_id) {
+      const { data: dispatch, error: dispatchError } = await db
+        .from("pharmacy_dispatch_requests")
+        .select("id, patient_id, assigned_doctor_id, care_country, status")
+        .eq("id", result.data.dispatch_request_id)
+        .eq("patient_id", result.data.patient_id)
+        .eq("assigned_doctor_id", context.doctorId)
+        .eq("care_country", context.countryCode)
+        .in("status", ["matched", "in_call", "transferring", "transferred", "completed"])
+        .maybeSingle();
+
+      if (dispatchError) throw dispatchError;
+      if (!dispatch) return forbidden("dispatch_patient_access_required");
+    } else {
+      const hasAccess = await doctorHasPatientAccess(admin, context.doctorId, result.data.patient_id);
+      if (!hasAccess) return forbidden("forbidden_patient_access");
+    }
 
     // Generate an internal draft reference; this is not a national ReNaPDiS registration.
     const timestampHex = Date.now().toString(16).toUpperCase();
@@ -225,12 +244,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const cuir = `${result.data.country_code}-CERT-${timestampHex}-${randomHex}`;
     const qrContent = `https://autamedica.com/verify/${cuir}`;
 
-    const { data: created, error } = await admin
+    const { data: created, error } = await db
       .from("medical_certificates")
       .insert({
         doctor_id: context.doctorId,
         patient_id: result.data.patient_id,
         appointment_id: result.data.appointment_id ?? null,
+        dispatch_request_id: result.data.dispatch_request_id ?? null,
         cuir,
         status: "draft",
         certificate_type: result.data.certificate_type,

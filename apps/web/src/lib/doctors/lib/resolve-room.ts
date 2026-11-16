@@ -50,6 +50,7 @@ export interface ResolvedRoomParticipants {
     patientDni: string | null;
     patientCpf: string | null;
     patientName: string | null;
+    patientPhone: string | null;
     careCountry: string | null;
     symptomSummary: string | null;
     dispatchRequestId: string;
@@ -67,7 +68,7 @@ async function resolvePharmacyDispatchRoom(
   // 3. Pharmacy dispatch: a document number is NOT patient identity verification.
   const { data: dispatchRow, error: dispatchError } = await admin
     .from('pharmacy_dispatch_requests')
-    .select('id, patient_id, patient_dni, patient_cpf, patient_name, care_country, assigned_doctor_id, symptom_summary, patient_gender_code, identity_status, official_full_name, official_cuil, official_birth_date, official_gender, puco_coverage_name, puco_coverage_code')
+    .select('id, patient_id, patient_dni, patient_cpf, patient_name, patient_phone, care_country, assigned_doctor_id, symptom_summary, patient_gender_code, identity_status, official_full_name, official_cuil, official_birth_date, official_gender, puco_coverage_name, puco_coverage_code')
     .eq('cloudflare_room_id', roomId)
     .in('status', ['matched', 'in_call', 'transferring', 'transferred', 'completed'])
     .order('created_at', { ascending: false })
@@ -81,13 +82,14 @@ async function resolvePharmacyDispatchRoom(
       patient_dni: string | null;
       patient_cpf: string | null;
       patient_name: string | null;
+      patient_phone: string | null;
       care_country: string | null;
-      assigned_doctor_id: string | null;
-      symptom_summary: string | null;
       patient_gender_code: 'F' | 'M' | 'X' | null;
       identity_status: 'verified_renaper' | 'unverified' | 'mismatch' | null;
       official_full_name: string | null; official_cuil: string | null; official_birth_date: string | null;
       official_gender: string | null; puco_coverage_name: string | null; puco_coverage_code: string | null;
+      assigned_doctor_id: string | null;
+      symptom_summary: string | null;
     };
 
     // New dispatches have a visit-scoped UUID. Legacy requests without a
@@ -104,6 +106,7 @@ async function resolvePharmacyDispatchRoom(
         patientDni: dispatch.patient_dni,
         patientCpf: dispatch.patient_cpf,
         patientName: dispatch.patient_name,
+        patientPhone: dispatch.patient_phone,
         careCountry: dispatch.care_country,
         symptomSummary: dispatch.symptom_summary,
         dispatchRequestId: dispatch.id,
@@ -193,31 +196,40 @@ export async function resolveRoomParticipants(
  * Resolve patient profile (name, date of birth, gender) from patient record ID.
  */
 export async function resolvePatientProfile(
-  admin: AdminClient, patientId: string | null,
-): Promise<{
-  name: string; dateOfBirth: string | null; gender: string | null;
-  identityStatus: 'verified_renaper' | 'unverified' | 'mismatch';
-  officialFullName: string | null; dni: string | null; cuil: string | null; pucoCoverage: string | null;
-}> {
-  const empty = { name: 'Paciente', dateOfBirth: null, gender: null, identityStatus: 'unverified' as const,
-    officialFullName: null, dni: null, cuil: null, pucoCoverage: null };
-  if (!patientId || !isClinicalPatientId(patientId)) return empty;
-  const { data: row, error } = await admin.from('patients').select(
-    'user_id,birth_date,gender,dni,cuil,identity_status,official_full_name,official_cuil,official_birth_date,official_gender,puco_coverage_name'
-  ).eq('id', patientId).maybeSingle();
+  admin: AdminClient,
+  patientId: string | null,
+): Promise<{ name: string; dateOfBirth: string | null; gender: string | null }> {
+  if (!patientId) {
+    return { name: 'Paciente', dateOfBirth: null, gender: null };
+  }
+
+  const { data: patientRow, error } = await admin
+    .from('patients')
+    .select('user_id')
+    .eq('id', patientId)
+    .maybeSingle();
+
   if (error) throw error;
-  if (!row) return empty;
-  const p = row as { user_id:string|null; birth_date:string|null; gender:string|null; dni:string|null; cuil:string|null; identity_status?:string|null; official_full_name?:string|null; official_cuil?:string|null; official_birth_date?:string|null; official_gender?:string|null; puco_coverage_name?:string|null };
-  const { data: profileRow } = p.user_id ? await admin.from('profiles').select('first_name,last_name,date_of_birth,gender').eq('user_id',p.user_id).maybeSingle() : {data:null};
-  const profile = profileRow as {first_name:string|null;last_name:string|null;date_of_birth:string|null;gender:string|null}|null;
-  const verified = p.identity_status === 'verified_renaper';
+
+
+  const userId = (patientRow as { user_id: string | null } | null)?.user_id;
+  if (!userId) {
+    return { name: 'Paciente', dateOfBirth: null, gender: null };
+  }
+
+  const { data: profileRow } = await admin
+    .from('profiles')
+    .select('first_name, last_name, date_of_birth, gender')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  const profile = profileRow as { first_name: string | null; last_name: string | null; date_of_birth: string | null; gender: string | null } | null;
+  const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim();
+
   return {
-    name: verified && p.official_full_name ? p.official_full_name : [profile?.first_name,profile?.last_name].filter(Boolean).join(' ').trim() || 'Paciente',
-    dateOfBirth: verified ? p.official_birth_date ?? p.birth_date : p.birth_date ?? profile?.date_of_birth ?? null,
-    gender: verified ? p.official_gender ?? p.gender : p.gender ?? profile?.gender ?? null,
-    identityStatus: verified ? 'verified_renaper' : p.identity_status === 'mismatch' ? 'mismatch' : 'unverified',
-    officialFullName: verified ? p.official_full_name ?? null : null, dni: p.dni,
-    cuil: verified ? p.official_cuil ?? p.cuil : p.cuil, pucoCoverage: verified ? p.puco_coverage_name ?? null : null,
+    name: fullName || 'Paciente',
+    dateOfBirth: profile?.date_of_birth ?? null,
+    gender: profile?.gender ?? null,
   };
 }
 
