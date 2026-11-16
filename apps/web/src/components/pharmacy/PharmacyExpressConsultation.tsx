@@ -70,8 +70,7 @@ export function PharmacyExpressConsultation({
   const nameInputId = useId()
   const phoneInputId = useId()
   const reasonInputId = useId()
-  const isJordanReferral = referralCode?.toUpperCase() === 'JORDAN'
-
+  const [restoredReferralCode, setRestoredReferralCode] = useState<string | null>(null)
   const [step, setStep] = useState<Step>('FORM')
   const [formData, setFormData] = useState({
     careCountry: (initialCareCountry ?? (isJordanReferral ? 'BR' : '')) as '' | 'AR' | 'BR',
@@ -93,6 +92,8 @@ export function PharmacyExpressConsultation({
   const [callRoomId, setCallRoomId] = useState<string | null>(null)
   const [countryPaymentApproved, setCountryPaymentApproved] = useState(false)
   const [onlineDoctorCount, setOnlineDoctorCount] = useState<number | null>(null)
+  const effectiveReferralCode = referralCode ?? restoredReferralCode
+  const isJordanReferral = effectiveReferralCode?.toUpperCase() === 'JORDAN'
   const [documents, setDocuments] = useState<EncounterDocument[]>([])
   const recoveryInProgress = useRef(false)
   const lastRecoveryAttemptAt = useRef(0)
@@ -130,6 +131,7 @@ export function PharmacyExpressConsultation({
         })
         if (!active || !restored?.accessToken) return
         setRequestId(saved.requestId)
+        setRestoredReferralCode(saved.referralCode ?? null)
         setAccessToken(restored.accessToken)
         setRecoveryToken(saved.recoveryToken)
         setCallRoomId(restored.request.cloudflare_room_id)
@@ -267,6 +269,7 @@ export function PharmacyExpressConsultation({
           partnerName: saved?.partnerName ?? referralPartnerName,
           savedAt: Date.now(),
         }
+        setRestoredReferralCode(saved?.referralCode ?? referralCode ?? null)
         setAccessToken(restored.accessToken)
         setRecoveryToken(secret)
         setCallRoomId(restored.request.cloudflare_room_id)
@@ -366,7 +369,7 @@ export function PharmacyExpressConsultation({
           patientPhone: formData.phone.trim(),
           symptomSummary: reasonSummary,
           pharmacyId: pharmacyId || undefined,
-          referralCode: referralCode || undefined,
+          referralCode: effectiveReferralCode || undefined,
           tier: 'general',
         },
       })
@@ -379,7 +382,7 @@ export function PharmacyExpressConsultation({
       setAccessToken(token)
       setRecoveryToken(res.recoveryToken ?? null)
       setCallRoomId(roomId)
-      const activeSession = { requestId: reqId, guestToken: token, recoveryToken: res.recoveryToken ?? null, country: formData.careCountry, referralCode, partnerName: referralPartnerName, savedAt: Date.now() }
+      const activeSession = { requestId: reqId, guestToken: token, recoveryToken: res.recoveryToken ?? null, country: formData.careCountry, referralCode: effectiveReferralCode, partnerName: referralPartnerName, savedAt: Date.now() }
       window.sessionStorage.setItem('autamedica:pharmacy-express:active-session', JSON.stringify(activeSession))
       window.localStorage.setItem('autamedica:pharmacy-express:active-session', JSON.stringify(activeSession))
       setStep('WAITING')
