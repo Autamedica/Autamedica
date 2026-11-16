@@ -14,6 +14,12 @@ const STATUS_LABEL: Record<string, string> = {
   signed: 'Firmada', sent: 'Emitida', dispensed_partial: 'Parcial', dispensed_total: 'Dispensada', expired: 'Vencida',
 }
 
+const STATUS_LABEL_PT: Record<string, string> = {
+  activa: 'Ativa', active: 'Ativa', completada: 'Concluída', completed: 'Concluída',
+  cancelada: 'Cancelada', cancelled: 'Cancelada', pausada: 'Pausada', draft: 'Rascunho',
+  signed: 'Assinada', sent: 'Emitida', dispensed_partial: 'Parcial', dispensed_total: 'Dispensada', expired: 'Expirada',
+}
+
 const STATUS_STYLE: Record<string, string> = {
   activa: 'bg-[#10B981] text-white', active: 'bg-[#10B981] text-white',
   sent: 'bg-[#10B981] text-white', dispensed_total: 'bg-[#10B981] text-white',
@@ -57,9 +63,7 @@ function PrescriptionCard({ prescription, onClick, index, locale }: {
   prescription: PatientPrescription; onClick: () => void; index: number; locale: string
 }) {
   const isPortuguese = locale === 'pt-BR'
-  const statusLabel = isPortuguese
-    ? ({ activa: 'Ativa', active: 'Ativa', completada: 'Concluída', completed: 'Concluída', cancelada: 'Cancelada', cancelled: 'Cancelada', pausada: 'Pausada', draft: 'Rascunho', signed: 'Assinada', sent: 'Emitida', dispensed_partial: 'Parcial', dispensed_total: 'Dispensada', expired: 'Expirada' }[prescription.status] ?? prescription.status)
-    : (STATUS_LABEL[prescription.status] ?? prescription.status)
+  const statusLabel = (isPortuguese ? STATUS_LABEL_PT[prescription.status] : STATUS_LABEL[prescription.status]) ?? prescription.status
   const statusStyle = STATUS_STYLE[prescription.status] ?? 'bg-neutral-100 text-neutral-500'
   const doctorName = prescription.doctor_name ? `Dr. ${prescription.doctor_name}` : (locale === 'pt-BR' ? 'Profissional' : 'Profesional')
   const dateStr = formatDate(prescription.prescribed_date || prescription.start_date, locale)
