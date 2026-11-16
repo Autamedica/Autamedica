@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { fetchApi } from '@/lib/api-client';
 import { updatePassword } from '@/lib/auth/service';
 import { AuthAlert } from '@/components/auth/AuthAlert';
 import { AuthButton } from '@/components/auth/AuthButton';
@@ -68,7 +69,7 @@ function ChangePasswordSection() {
       <div className="flex items-center gap-2 mb-4">
         <KeyRound className="w-5 h-5 text-[var(--au-accent)]" />
         <h2 className="text-lg font-semibold text-[var(--au-text-primary)]">
-          Cambiar contrasena
+          {isPortuguese ? 'Alterar senha' : 'Cambiar contraseña'}
         </h2>
       </div>
 
@@ -82,7 +83,7 @@ function ChangePasswordSection() {
             htmlFor="settings-new-pw"
             className="block text-sm font-medium text-[var(--au-text-secondary)] mb-1"
           >
-            Nueva contrasena
+            {isPortuguese ? 'Nova senha' : 'Nueva contraseña'}
           </label>
           <div className="relative">
             <input
@@ -115,7 +116,7 @@ function ChangePasswordSection() {
             htmlFor="settings-confirm-pw"
             className="block text-sm font-medium text-[var(--au-text-secondary)] mb-1"
           >
-            Confirmar contrasena
+            {isPortuguese ? 'Confirmar senha' : 'Confirmar contraseña'}
           </label>
           <div className="relative">
             <input
@@ -151,7 +152,7 @@ function ChangePasswordSection() {
           loading={loading}
           disabled={loading || newPassword.length < 6 || newPassword !== confirmPassword}
         >
-          Actualizar contrasena
+          {isPortuguese ? 'Atualizar senha' : 'Actualizar contraseña'}
         </AuthButton>
       </form>
     </section>
@@ -162,48 +163,78 @@ function ChangePasswordSection() {
 /*  Notifications Section                                             */
 /* ------------------------------------------------------------------ */
 
-function NotificationsSection() {
+function NotificationsSection({ isPortuguese }: { isPortuguese: boolean }) {
   const STORAGE_KEY = 'autamedica:notification-prefs';
+  const [prefs, setPrefs] = useState({ email: true, push: true });
+  const [saving, setSaving] = useState(false);
 
-  function loadPrefs(): { email: boolean; push: boolean } {
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const serverPrefs = await fetchApi<{ email: boolean; push: boolean }>('/api/patients/notification-preferences');
+        if (!active) return;
+        const next = { email: serverPrefs.email, push: serverPrefs.push };
+        setPrefs(next);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        try {
+          const cached = localStorage.getItem(STORAGE_KEY);
+          if (active && cached) {
+            const parsed = JSON.parse(cached) as { email?: unknown; push?: unknown };
+            if (typeof parsed.email === 'boolean' && typeof parsed.push === 'boolean') {
+              setPrefs({ email: parsed.email, push: parsed.push });
+            }
+          }
+        } catch { /* Optimistic cache only; Supabase remains authoritative. */ }
+      }
+    };
+    void load();
+    return () => { active = false; };
+  }, []);
+
+  async function toggle(key: 'email' | 'push') {
+    const previous = prefs;
+    const next = { ...prefs, [key]: !prefs[key] };
+    setPrefs(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    setSaving(true);
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
-    } catch { /* noop */ }
-    return { email: true, push: true };
-  }
-
-  const [prefs, setPrefs] = useState(loadPrefs);
-
-  function toggle(key: 'email' | 'push') {
-    setPrefs((prev) => {
-      const next = { ...prev, [key]: !prev[key] };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      return next;
-    });
+      const saved = await fetchApi<{ email: boolean; push: boolean }>('/api/patients/notification-preferences', {
+        method: 'PATCH',
+        body: next,
+      });
+      const confirmed = { email: saved.email, push: saved.push };
+      setPrefs(confirmed);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(confirmed));
+    } catch {
+      setPrefs(previous);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(previous));
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
-    <section className="rounded-2xl border border-[var(--au-border)] bg-[var(--au-surface)] p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Bell className="w-5 h-5 text-[var(--au-accent)]" />
-        <h2 className="text-lg font-semibold text-[var(--au-text-primary)]">
-          Notificaciones
-        </h2>
+    <section className="rounded-2xl border border-slate-200 bg-white p-6">
+      <div className="mb-4 flex items-center gap-2">
+        <Bell className="h-5 w-5 text-emerald-600" />
+        <h2 className="text-lg font-semibold text-slate-900">{isPortuguese ? 'Notificações' : 'Notificaciones'}</h2>
       </div>
-
-      <div className="space-y-4 max-w-md">
+      <div className="max-w-md space-y-4">
         <ToggleRow
-          label="Notificaciones por email"
-          description="Recordatorios de citas, resultados y novedades."
+          label={isPortuguese ? 'Notificações por e-mail' : 'Notificaciones por email'}
+          description={isPortuguese ? 'Lembretes de consultas, resultados e novidades.' : 'Recordatorios de citas, resultados y novedades.'}
           checked={prefs.email}
-          onChange={() => toggle('email')}
+          onChange={() => void toggle('email')}
+          disabled={saving}
         />
         <ToggleRow
-          label="Notificaciones push"
-          description="Alertas en tiempo real en tu navegador."
+          label={isPortuguese ? 'Notificações push' : 'Notificaciones push'}
+          description={isPortuguese ? 'Alertas em tempo real no navegador.' : 'Alertas en tiempo real en tu navegador.'}
           checked={prefs.push}
-          onChange={() => toggle('push')}
+          onChange={() => void toggle('push')}
+          disabled={saving}
         />
       </div>
     </section>
@@ -215,11 +246,13 @@ function ToggleRow({
   description,
   checked,
   onChange,
+  disabled = false,
 }: {
   label: string;
   description: string;
   checked: boolean;
   onChange: () => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between gap-4">
@@ -232,6 +265,7 @@ function ToggleRow({
         role="switch"
         aria-checked={checked}
         onClick={onChange}
+        disabled={disabled}
         className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--au-accent)] ${
           checked ? 'bg-[var(--au-accent)]' : 'bg-[var(--au-border)]'
         }`}
@@ -250,13 +284,13 @@ function ToggleRow({
 /*  Privacy Section                                                   */
 /* ------------------------------------------------------------------ */
 
-function PrivacySection() {
+function PrivacySection({ isPortuguese }: { isPortuguese: boolean }) {
   return (
     <section className="rounded-2xl border border-[var(--au-border)] bg-[var(--au-surface)] p-6">
       <div className="flex items-center gap-2 mb-4">
         <Shield className="w-5 h-5 text-[var(--au-accent)]" />
         <h2 className="text-lg font-semibold text-[var(--au-text-primary)]">
-          Privacidad
+          {isPortuguese ? 'Privacidade' : 'Privacidad'}
         </h2>
       </div>
 
@@ -265,14 +299,14 @@ function PrivacySection() {
           href="/privacidad"
           className="flex items-center justify-between rounded-xl border border-[var(--au-border)] px-4 py-3 text-sm text-[var(--au-text-primary)] hover:bg-[var(--au-hover)] transition-colors"
         >
-          Politica de privacidad
+          {isPortuguese ? 'Política de privacidade' : 'Política de privacidad'}
           <ExternalLink className="w-4 h-4 text-[var(--au-text-tertiary)]" />
         </a>
         <a
           href="/eliminar-cuenta"
           className="flex items-center justify-between rounded-xl border border-[var(--au-border)] px-4 py-3 text-sm text-[var(--au-text-primary)] hover:bg-[var(--au-hover)] transition-colors"
         >
-          Solicitar eliminacion de cuenta
+          {isPortuguese ? 'Solicitar exclusão da conta' : 'Solicitar eliminación de cuenta'}
           <ExternalLink className="w-4 h-4 text-[var(--au-text-tertiary)]" />
         </a>
       </div>
@@ -284,7 +318,7 @@ function PrivacySection() {
 /*  Danger Zone                                                       */
 /* ------------------------------------------------------------------ */
 
-function DangerZoneSection() {
+function DangerZoneSection({ isPortuguese }: { isPortuguese: boolean }) {
   return (
     <section className="rounded-2xl border border-red-300 bg-red-50/50 p-6">
       <div className="flex items-center gap-2 mb-4">
@@ -293,7 +327,7 @@ function DangerZoneSection() {
       </div>
 
       <p className="text-sm text-[var(--au-text-secondary)] mb-4">
-        Esta accion es irreversible. Se eliminaran todos tus datos medicos y de cuenta.
+        {isPortuguese ? 'Esta ação é irreversível. Todos os seus dados médicos e da conta serão excluídos.' : 'Esta acción es irreversible. Se eliminarán todos tus datos médicos y de cuenta.'}
       </p>
 
       <a
@@ -301,7 +335,7 @@ function DangerZoneSection() {
         className="inline-flex items-center gap-2 rounded-xl border-2 border-red-300 px-4 py-2.5 text-sm font-medium text-red-700 hover:bg-red-100 transition-colors"
       >
         <Trash2 className="w-4 h-4" />
-        Eliminar mi cuenta
+        {isPortuguese ? 'Excluir minha conta' : 'Eliminar mi cuenta'}
       </a>
     </section>
   );
@@ -312,27 +346,28 @@ function DangerZoneSection() {
 /* ------------------------------------------------------------------ */
 
 export default function PatientSettingsPage() {
+  const isPortuguese = typeof navigator !== 'undefined' && navigator.language.toLowerCase().startsWith('pt');
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-slate-50">
       {/* Hero */}
-      <section className="bg-neutral-900 px-6 lg:px-12 pt-16 pb-20">
+      <section className="bg-[#0F2537] px-6 lg:px-12 pt-10 pb-16">
         <div className="max-w-7xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 text-white/80 rounded-full text-xs font-medium mb-6">
             <Shield className="w-3.5 h-3.5" />
-            Cuenta y privacidad
+            {isPortuguese ? 'Conta e privacidade' : 'Cuenta y privacidad'}
           </div>
-          <h1 className="text-4xl lg:text-5xl text-white mb-4 leading-tight">Configuración</h1>
+          <h1 className="text-4xl lg:text-5xl text-white mb-4 leading-tight">{isPortuguese ? 'Configurações' : 'Configuración'}</h1>
           <p className="text-lg text-white/60 max-w-lg">
-            Administra tu cuenta, notificaciones y privacidad
+            {isPortuguese ? 'Gerencie sua conta, notificações e privacidade' : 'Administra tu cuenta, notificaciones y privacidad'}
           </p>
         </div>
       </section>
 
       <div className="max-w-3xl mx-auto px-6 lg:px-12 -mt-8 pb-32 space-y-6">
-        <ChangePasswordSection />
-        <NotificationsSection />
-        <PrivacySection />
-        <DangerZoneSection />
+        <ChangePasswordSection isPortuguese={isPortuguese} />
+        <NotificationsSection isPortuguese={isPortuguese} />
+        <PrivacySection isPortuguese={isPortuguese} />
+        <DangerZoneSection isPortuguese={isPortuguese} />
       </div>
     </div>
   );
