@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ auth: vi.fn(), admin: vi.fn(), patient: vi.fn(),
-  token: vi.fn(), prescription: vi.fn(), digitalLink: vi.fn(), pdfUrl: vi.fn(), insert: vi.fn(), update: vi.fn() }));
+  token: vi.fn(), prescription: vi.fn(), digitalLink: vi.fn(), pdfUrl: vi.fn(), dispatchEncounter: vi.fn(), insert: vi.fn(), update: vi.fn() }));
 vi.mock('@/lib/api-auth', () => ({ DOCTOR_ROLES: ['doctor'], withAuthRole: mocks.auth,
   isAuthed: (result: unknown) => !(result instanceof Response) }));
 vi.mock('@/lib/supabase', () => ({ createAstroAdminClient: mocks.admin }));
 vi.mock('@/lib/prescriptions/brazil/memed-patient', async (original) => ({
-  ...await original<typeof import('./memed-patient')>(), resolveMemedPatient: mocks.patient,
+  ...await original<typeof import('./memed-patient')>(),
+  resolveMemedPatient: mocks.patient,
+  assertMemedDispatchEncounter: mocks.dispatchEncounter,
 }));
 vi.mock('@/lib/prescriptions/brazil/memed.service', () => ({ MemedService: class {
   getOrCreateDoctorToken = mocks.token;
@@ -22,15 +24,16 @@ const doctor = { id: 'doctor', active: true, license_type: 'CRM', license_number
   uf_brazil: 'RS', cpf: '52998224725' };
 let rx: Record<string, unknown>;
 let existing: unknown;
-function context(prescriptionId = 'rx-test', enabled = 'true'): Parameters<typeof POST>[0] {
+function context(prescriptionId = 'rx-test', enabled = 'true', requestId?: string): Parameters<typeof POST>[0] {
   return { request: new Request('https://www.autamedica.com/api/doctors/prescriptions/memed-event', {
-    method: 'POST', body: JSON.stringify({ action: 'issued', patientId, prescriptionId }),
+    method: 'POST', body: JSON.stringify({ action: 'issued', patientId, prescriptionId, ...(requestId ? { requestId } : {}) }),
   }), locals: { runtime: { env: { MEMED_RX_ENABLED: enabled, MEMED_PILOT_DOCTOR_ID: 'doctor' } } } } as unknown as Parameters<typeof POST>[0];
 }
 beforeEach(() => {
   vi.clearAllMocks(); existing = null;
   mocks.digitalLink.mockResolvedValue({});
   mocks.pdfUrl.mockResolvedValue({});
+  mocks.dispatchEncounter.mockResolvedValue(undefined);
   mocks.auth.mockResolvedValue({ user: { id: 'authenticated-doctor' } });
   mocks.patient.mockResolvedValue({ idExterno: `autamedica-${patientId}`, cpf: doctor.cpf });
   mocks.token.mockResolvedValue({ token: 'synthetic-token' });
@@ -80,6 +83,14 @@ describe('Memed event persistence boundary', () => {
       signature_verified: false, delivery_verified: false, delivery_status: 'pending',
       signature_status: signed ? 'provider_reported_signed' : 'pending',
     } });
+  });
+  it('binds the issued prescription to the authenticated pharmacy dispatch', async () => {
+    const requestId = '22222222-2222-4222-8222-222222222222';
+    expect((await POST(context('rx-test', 'true', requestId))).status).toBe(200);
+    expect(mocks.dispatchEncounter).toHaveBeenCalledWith(expect.anything(), 'doctor', patientId, requestId);
+    expect(mocks.insert.mock.calls[0][0].clinical_data).toMatchObject({
+      dispatch_request_id: requestId,
+    });
   });
   it('stores the patient digital link, unlock code and full PDF resource', async () => {
     mocks.digitalLink.mockResolvedValue({
