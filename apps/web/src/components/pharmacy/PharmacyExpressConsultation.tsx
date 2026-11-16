@@ -70,7 +70,9 @@ export function PharmacyExpressConsultation({
   const nameInputId = useId()
   const phoneInputId = useId()
   const reasonInputId = useId()
-  const isJordanReferral = referralCode?.toUpperCase() === 'JORDAN'
+  const [sessionReferralCode, setSessionReferralCode] = useState<string | null>(referralCode)
+  const [sessionPartnerName, setSessionPartnerName] = useState<string | null>(referralPartnerName)
+  const isJordanReferral = sessionReferralCode?.toUpperCase() === 'JORDAN'
 
   const [step, setStep] = useState<Step>('FORM')
   const [formData, setFormData] = useState({
@@ -131,6 +133,8 @@ export function PharmacyExpressConsultation({
         })
         if (!active || !restored?.accessToken) return
         setRequestId(saved.requestId)
+        setSessionReferralCode(saved.referralCode ?? referralCode)
+        setSessionPartnerName(saved.partnerName ?? referralPartnerName)
         setAccessToken(restored.accessToken)
         setRecoveryToken(saved.recoveryToken)
         setCallRoomId(restored.request.cloudflare_room_id)
@@ -264,8 +268,8 @@ export function PharmacyExpressConsultation({
           guestToken: restored.accessToken,
           recoveryToken: secret,
           country,
-          referralCode: saved?.referralCode ?? referralCode,
-          partnerName: saved?.partnerName ?? referralPartnerName,
+          referralCode: saved?.referralCode ?? sessionReferralCode,
+          partnerName: saved?.partnerName ?? sessionPartnerName,
           savedAt: Date.now(),
         }
         setAccessToken(restored.accessToken)
@@ -286,7 +290,7 @@ export function PharmacyExpressConsultation({
         recoveryInProgress.current = false
       }
     }
-  }, [callRoomId, recoveryToken, formData.careCountry, referralCode, referralPartnerName])
+  }, [callRoomId, recoveryToken, formData.careCountry, sessionReferralCode, sessionPartnerName])
 
   useEffect(() => {
     if (step !== 'ENDED' || !requestId) return
@@ -371,7 +375,7 @@ export function PharmacyExpressConsultation({
           patientPhone: formData.phone.trim(),
           symptomSummary: reasonSummary,
           pharmacyId: pharmacyId || undefined,
-          referralCode: referralCode || undefined,
+          referralCode: sessionReferralCode || undefined,
           tier: 'general',
         },
       })
@@ -384,7 +388,7 @@ export function PharmacyExpressConsultation({
       setAccessToken(token)
       setRecoveryToken(res.recoveryToken ?? null)
       setCallRoomId(roomId)
-      const activeSession = { requestId: reqId, guestToken: token, recoveryToken: res.recoveryToken ?? null, country: formData.careCountry, referralCode, partnerName: referralPartnerName, savedAt: Date.now() }
+      const activeSession = { requestId: reqId, guestToken: token, recoveryToken: res.recoveryToken ?? null, country: formData.careCountry, referralCode: sessionReferralCode, partnerName: sessionPartnerName, savedAt: Date.now() }
       window.sessionStorage.setItem('autamedica:pharmacy-express:active-session', JSON.stringify(activeSession))
       window.localStorage.setItem('autamedica:pharmacy-express:active-session', JSON.stringify(activeSession))
       setStep('WAITING')
@@ -428,7 +432,7 @@ export function PharmacyExpressConsultation({
         <div className="fixed top-3 left-4 z-50 flex items-center gap-2.5 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-slate-200 shadow-lg text-xs font-medium text-slate-900">
           <img src="/logo_bioceramic.png" alt="AutaMedica" className="w-5 h-5 rounded-md object-contain" />
           <span className="font-bold tracking-tight text-slate-900">{pharmacyName || copy.brand}</span>
-          {referralPartnerName && <span className="hidden text-slate-500 sm:inline">· {referralPartnerName}</span>}
+          {sessionPartnerName && <span className="hidden text-slate-500 sm:inline">· {sessionPartnerName}</span>}
           <span className="text-slate-400">•</span>
           <span className="text-emerald-700 flex items-center gap-1.5 font-semibold">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
