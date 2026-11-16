@@ -284,7 +284,7 @@ export default function MedicalHistoryPage() {
             {orders.length === 0 ? <div className="col-span-full rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">{isPortuguese ? 'Nenhuma ordem ou exame registrado.' : 'Todavía no hay órdenes ni estudios registrados.'}</div> : orders.map((order) => {
               const id = String(order.id ?? '')
               const rawStatus = String(order.status ?? '').toLowerCase()
-              const statusLabel = /available|disponible/.test(rawStatus) ? (isPortuguese ? 'Disponível' : 'Disponible')
+              const statusLabel = rawStatus === 'signed' || /available|disponible/.test(rawStatus) ? (isPortuguese ? 'Disponível' : 'Disponible')
                 : /done|completed|performed|realizado/.test(rawStatus) ? (isPortuguese ? 'Realizado' : 'Realizado')
                 : /pending|pendiente/.test(rawStatus) ? (isPortuguese ? 'Pendente' : 'Pendiente')
                 : /cancelled|canceled|cancelado/.test(rawStatus) ? (isPortuguese ? 'Cancelado' : 'Cancelado')
@@ -298,7 +298,8 @@ export default function MedicalHistoryPage() {
                   {practices && <p className="mt-3 text-sm text-slate-700">{practices}</p>}
                   {order.diagnosis && <p className="mt-2 text-xs text-slate-500">{String(order.diagnosis)}</p>}
                   {code && <p className="mt-3 text-xs text-slate-500">CUIR: <span className="font-mono font-semibold text-slate-800">{code}</span></p>}
-                  {code && <a href={`/verify/${encodeURIComponent(code)}`} className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700">{isPortuguese ? 'Verificar ordem' : 'Verificar orden'}</a>}
+                  {rawStatus === 'signed' && <a href={`/api/patients/medical-orders/${encodeURIComponent(id)}/pdf`} target="_blank" rel="noreferrer" className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-[#10B981] px-3 text-xs font-semibold text-white hover:bg-[#0D9488]">{isPortuguese ? 'Abrir PDF do pedido' : 'Abrir PDF de la orden'}</a>}
+                  {code && <a href={`/verify/${encodeURIComponent(code)}`} className="mt-2 inline-flex min-h-10 w-full items-center justify-center rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700">{isPortuguese ? 'Verificar ordem' : 'Verificar orden'}</a>}
                 </article>
               )
             })}
