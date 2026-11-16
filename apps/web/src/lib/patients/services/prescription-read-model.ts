@@ -76,6 +76,7 @@ export function mapPrescriptionRecordToPatientPrescription(
     vendor_id: asString(content.vendor_id),
     qr_code_content: qrCodeContent,
     signed_pdf_url: signedPdfUrl,
+    access_code: asString(content.access_code),
     artifact_warning:
       asString(content.artifact_warning) ??
       buildStrictPrescriptionArtifactWarning(medicationName, digitalArtifactReady),
