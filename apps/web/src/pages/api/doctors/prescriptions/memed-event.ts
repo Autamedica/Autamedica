@@ -171,7 +171,34 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return forbidden('memed_patient_mismatch');
     }
 
-    if (existing) return jsonOk({ status: existing.status, prescriptionId, duplicate: true });
+    const { data: existingMemed, error: existingMemedError } = await admin
+      .from('memed_prescriptions')
+      .select('id,doctor_id,patient_id,status')
+      .eq('memed_id', prescriptionId)
+      .maybeSingle();
+    if (existingMemedError) throw existingMemedError;
+    if (existingMemed && (existingMemed.doctor_id !== doctor.id || existingMemed.patient_id !== patientId)) {
+      return forbidden('memed_prescription_ownership_conflict');
+    }
+
+    // Provider links are returned only by server-side endpoints. Keep them out
+    // of the browser event payload and never mark the provider's signed flag as
+    // independent signature evidence.
+    const digitalLinkData: JSONObject = {};
+    try {
+      digitalLinkData.digital = await memed.getDigitalPrescriptionLink(prescriptionId, authorizedDoctor.token);
+    } catch (linkError) {
+      logger.warn('[memed-event] patient digital link could not be retrieved', {
+        errorName: linkError instanceof Error ? linkError.name : typeof linkError,
+      });
+    }
+    try {
+      digitalLinkData.pdf = await memed.getFullPrescriptionPdfUrl(prescriptionId, authorizedDoctor.token);
+    } catch (pdfError) {
+      logger.warn('[memed-event] full prescription PDF URL could not be retrieved', {
+        errorName: pdfError instanceof Error ? pdfError.name : typeof pdfError,
+      });
+    }
 
     const rawItems = Array.isArray(rx.medicamentos) ? rx.medicamentos : [];
     const items = rawItems.map((item) => {
@@ -200,6 +227,45 @@ export const POST: APIRoute = async ({ request, locals }) => {
         signature_verified: false, delivery_status: 'pending', delivery_verified: false },
       updated_at: new Date().toISOString(),
     };
+    const memedDocumentPayload = {
+      doctor_id: doctor.id,
+      patient_id: patientId,
+      memed_id: prescriptionId,
+      status: 'verified_at_provider',
+      provider_data: {
+        medication_name: String(items[0]?.commercial_name || items[0]?.generic_name || 'Receita digital Memed'),
+        medications: items,
+        provider_reported_signed: rx.signed === 1 || rx.signed === true,
+        provider_verified_at: new Date().toISOString(),
+      },
+      digital_link_data: digitalLinkData,
+      pdf_signature_verified: false,
+      patient_delivery_confirmed: false,
+    };
+    if (existingMemed) {
+      const { error: updateMemedError } = await admin.from('memed_prescriptions')
+        .update(memedDocumentPayload)
+        .eq('id', existingMemed.id)
+        .eq('doctor_id', doctor.id)
+        .eq('patient_id', patientId);
+      if (updateMemedError) throw updateMemedError;
+    } else {
+      const { error: insertMemedError } = await admin.from('memed_prescriptions').insert(memedDocumentPayload);
+      if (insertMemedError?.code === '23505') {
+        const { data: winner, error: winnerError } = await admin.from('memed_prescriptions')
+          .select('id,doctor_id,patient_id').eq('memed_id', prescriptionId).maybeSingle();
+        if (winnerError || winner?.doctor_id !== doctor.id || winner.patient_id !== patientId) {
+          return forbidden('memed_prescription_ownership_conflict');
+        }
+      } else if (insertMemedError) {
+        throw insertMemedError;
+      }
+    }
+
+    if (existing) {
+      return jsonOk({ status: existing.status, prescriptionId, duplicate: true, documentPersisted: true });
+    }
+
     const { error: insertError } = await admin.from('prescriptions').insert(payload);
     if (insertError?.code === '23505') {
       // Concurrent callbacks can race; the unique provider index arbitrates.
