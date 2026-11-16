@@ -467,7 +467,7 @@ export function DoctorsPrescriptionsPage() {
     <DoctorsPortalFrame
       title="Recetas Médicas"
       description="Gestión completa de recetas y prescripciones médicas"
-      activeSection="consultations"
+      activeSection="prescriptions"
       hideDefaultHeader
       hideRightSidebar
     >
