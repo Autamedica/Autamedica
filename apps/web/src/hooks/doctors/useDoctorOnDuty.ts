@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { fetchApi } from '@/lib/api-client'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { ApiError, fetchApi } from '@/lib/api-client'
+import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
 import type {
   ClaimConsultationResult,
   DoctorOnDutyStatus,
@@ -53,25 +55,72 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
     }
   }, [])
 
-  // Protected queue is the only source: country, approval, heartbeat and offer assignment are checked server-side.
+  // Use the protected endpoint first. On a genuine network failure only,
+  // the authenticated SECURITY DEFINER RPC provides the same doctor/country/
+  // approval/heartbeat/assigned-offer gates without exposing table reads.
   const fetchQueue = useCallback(async () => {
     try {
-      const dataRes = await fetchApi<{ queue: OnDemandQueueItem[]; count: number; careCountry?: 'AR' | 'BR' }>(
-        '/api/doctors/on-duty/queue',
-      )
-      const items = dataRes.queue || []
-      setCareCountry(dataRes.careCountry === 'BR' || dataRes.careCountry === 'AR' ? dataRes.careCountry : null)
+      let items: OnDemandQueueItem[]
+      let resolvedCountry: 'AR' | 'BR' | null = null
+
+      try {
+        const dataRes = await fetchApi<{ queue: OnDemandQueueItem[]; count: number; careCountry?: 'AR' | 'BR' }>(
+          '/api/doctors/on-duty/queue',
+        )
+        items = dataRes.queue || []
+        resolvedCountry = dataRes.careCountry === 'BR' || dataRes.careCountry === 'AR'
+          ? dataRes.careCountry
+          : null
+      } catch (requestError) {
+        // HTTP authorization/business errors must never be bypassed by fallback.
+        if (requestError instanceof ApiError || !(requestError instanceof TypeError)) {
+          throw requestError
+        }
+
+        const client = getBrowserSupabaseClient() as unknown as SupabaseClient
+        const { data, error: fallbackError } = await client.rpc('get_my_pending_dispatch_offers')
+        if (fallbackError) throw fallbackError
+
+        const rows = Array.isArray(data) ? data as Array<Record<string, unknown>> : []
+        const now = Date.now()
+        items = rows.map((row) => {
+          const careCountry = row.care_country === 'BR' || row.care_country === 'AR'
+            ? row.care_country
+            : null
+          const createdAt = typeof row.created_at === 'string' ? row.created_at : new Date(now).toISOString()
+          const expiresAt = typeof row.offer_expires_at === 'string' ? row.offer_expires_at : null
+          const createdTime = new Date(createdAt).getTime()
+          return {
+            id: String(row.id ?? ''),
+            offerId: typeof row.offer_id === 'string' ? row.offer_id : null,
+            expiresAt,
+            pharmacyId: null,
+            pharmacyName: careCountry === 'BR' ? 'Farmácia / Quiosque On-Demand' : 'Farmacia / Kiosco On-Demand',
+            patientDni: String(careCountry === 'BR' ? (row.patient_cpf ?? '') : (row.patient_dni ?? '')),
+            patientName: String(row.patient_name || 'Paciente Kiosco'),
+            patientPhone: String(row.patient_phone ?? ''),
+            reason: String(row.symptom_summary || row.tier_requested || 'Motivo não informado'),
+            status: String(row.status ?? 'searching') as OnDemandQueueItem['status'],
+            createdAt,
+            minutesWaiting: Number.isFinite(createdTime) ? Math.floor(Math.max(0, now - createdTime) / 60000) : 0,
+          }
+        }).filter((item) => Boolean(item.id && item.offerId))
+        const firstCountry = rows.find((row) => row.care_country === 'BR' || row.care_country === 'AR')?.care_country
+        resolvedCountry = firstCountry === 'BR' || firstCountry === 'AR' ? firstCountry : null
+      }
+
+      if (resolvedCountry) setCareCountry(resolvedCountry)
       setQueue(items)
 
-      // Audio notification if new patients arrived in queue and doctor is on duty
+      // Audio notification if new patients arrived in queue and doctor is on duty.
       if (onDuty && items.length > prevQueueLengthRef.current && typeof window !== 'undefined') {
         try {
           const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
           const osc = ctx.createOscillator()
           const gain = ctx.createGain()
           osc.type = 'sine'
-          osc.frequency.setValueAtTime(587.33, ctx.currentTime) // D5
-          osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.1) // A5
+          osc.frequency.setValueAtTime(587.33, ctx.currentTime)
+          osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.1)
           gain.gain.setValueAtTime(0.15, ctx.currentTime)
           gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3)
           osc.connect(gain)
@@ -79,12 +128,15 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
           osc.start()
           osc.stop(ctx.currentTime + 0.3)
         } catch {
-          // Audio autoplay might be blocked
+          // Audio autoplay might be blocked.
         }
       }
       prevQueueLengthRef.current = items.length
-    } catch {
-      setError('No se pudo actualizar el radar de guardia')
+      setError(null)
+    } catch (requestError) {
+      setError(requestError instanceof Error
+        ? requestError.message
+        : 'No se pudo actualizar el radar de guardia')
     }
   }, [onDuty])
 
