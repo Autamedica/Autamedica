@@ -287,6 +287,8 @@ export default function MedicalHistoryPage() {
               const statusLabel = /available|disponible/.test(rawStatus) ? (isPortuguese ? 'Disponível' : 'Disponible')
                 : /done|completed|performed|realizado/.test(rawStatus) ? (isPortuguese ? 'Realizado' : 'Realizado')
                 : /pending|pendiente/.test(rawStatus) ? (isPortuguese ? 'Pendente' : 'Pendiente')
+                : /cancelled|canceled|cancelado/.test(rawStatus) ? (isPortuguese ? 'Cancelado' : 'Cancelado')
+                : /expired|vencido/.test(rawStatus) ? (isPortuguese ? 'Expirado' : 'Vencido')
                 : (isPortuguese ? 'Solicitado' : 'Solicitado')
               const code = String(order.cuir ?? '')
               const practices = Array.isArray(order.practices) ? (order.practices as unknown[]).map((item) => typeof item === 'string' ? item : String((item as Record<string, unknown>)?.name ?? '')).filter(Boolean).join(', ') : ''
