@@ -85,6 +85,7 @@ function PrescriptionCard({ prescription, onClick, index, locale }: {
           </h3>
           <p className="text-sm text-neutral-500 mt-0.5">{doctorName} · {dateStr}</p>
           <p className="mt-1 text-[11px] font-semibold text-emerald-700">{prescription.source === 'memed_br' ? 'Memed BR' : prescription.source === 'prescriptions_core' ? 'RCTA / Core AR' : 'Historial clínico'}</p>
+          {prescription.access_code && <p className="mt-1 text-xs text-slate-600">{isPortuguese ? 'Código de acesso' : 'Código de acceso'}: <span className="font-mono font-semibold text-slate-900">{prescription.access_code}</span></p>}
         </div>
         <span className={`rounded-full px-3 py-1 text-xs font-bold shrink-0 ${statusStyle}`}>
           {statusLabel}
@@ -115,7 +116,18 @@ function PrescriptionCard({ prescription, onClick, index, locale }: {
             onClick={(e) => e.stopPropagation()}
             className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full border border-slate-200 py-3 font-medium text-slate-700 transition-all hover:border-[#10B981]"
           >
-            <ExternalLink className="size-4" /> PDF
+            <ExternalLink className="size-4" /> {prescription.source === 'memed_br' ? (isPortuguese ? 'Abrir Memed' : 'Abrir Memed') : 'PDF'}
+          </a>
+        )}
+        {prescription.source === 'memed_br' && downloadablePdfUrl && (
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent([prescription.medication_name, 'AutaMedica', prescription.access_code ? `${isPortuguese ? 'Código de acesso' : 'Código de acceso'}: ${prescription.access_code}` : null, downloadablePdfUrl].filter(Boolean).join('\\n'))}`}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="flex min-h-11 items-center justify-center gap-2 rounded-full border border-slate-200 px-3 py-3 font-medium text-slate-700 transition-all hover:border-[#10B981]"
+          >
+            WhatsApp
           </a>
         )}
         <button
