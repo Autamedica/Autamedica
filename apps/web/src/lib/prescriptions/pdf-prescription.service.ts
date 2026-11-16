@@ -492,9 +492,12 @@ export async function generatePrescriptionPdf(
   doc.text(input.patient.name, marginLeft + textOffset, y + 14);
 
   const patientSex = formatPatientSex(input.patient.sex);
+  const isFarmalinkPdf = input.externalPrescription?.provider === 'farmalink';
   const patientMeta = [
     input.patient.dni ? `DNI: ${input.patient.dni}` : null,
-    input.patient.cuil ? `CUIL: ${input.patient.cuil}` : null,
+    // Farmalink reconciles the affiliate number against the electronic record.
+    // Never expose the patient's CUIL in this PDF: it is not the affiliate PAN.
+    !isFarmalinkPdf && input.patient.cuil ? `CUIL: ${input.patient.cuil}` : null,
     patientSex ? `Sexo: ${patientSex}` : null,
     input.patient.dateOfBirth ? `Fecha de Nacimiento: ${formatDate(input.patient.dateOfBirth)}` : null,
   ].filter(Boolean).join('  |  ');
