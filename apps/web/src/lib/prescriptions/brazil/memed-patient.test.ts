@@ -11,10 +11,10 @@ function database(overrides: Record<string, unknown> = {}): SupabaseClient {
     appointments: null, pharmacy_dispatch_requests: null, patients: identity,
     profiles: { first_name: 'Synthetic', last_name: 'Patient' }, ...overrides };
   return { from: vi.fn((table: string) => {
-    const chain = { select: vi.fn(), update: vi.fn(), eq: vi.fn(), is: vi.fn(), or: vi.fn(), in: vi.fn(), gte: vi.fn(), limit: vi.fn(),
+    const chain = { select: vi.fn(), update: vi.fn(), eq: vi.fn(), is: vi.fn(), or: vi.fn(), in: vi.fn(), gte: vi.fn(), order: vi.fn(), limit: vi.fn(),
       maybeSingle: vi.fn(async () => ({ data: rows[table], error: null })) };
     chain.is.mockReturnValue(chain); chain.or.mockReturnValue(chain); chain.in.mockReturnValue(chain); chain.gte.mockReturnValue(chain);
-    chain.select.mockReturnValue(chain); chain.update.mockReturnValue(chain); chain.eq.mockReturnValue(chain); chain.limit.mockReturnValue(chain);
+    chain.select.mockReturnValue(chain); chain.update.mockReturnValue(chain); chain.eq.mockReturnValue(chain); chain.order.mockReturnValue(chain); chain.limit.mockReturnValue(chain);
     return chain;
   }) } as unknown as SupabaseClient;
 }
@@ -48,6 +48,51 @@ describe('Memed patient authorization', () => {
       pharmacy_dispatch_requests: { id: 'dispatch' },
     }), 'doctor', patientId)).resolves.toHaveProperty('cpf', identity.cpf);
   });
+  it('resolves an isolated QR guest from the active dispatch identity and consent', async () => {
+    const dispatch = {
+      id: 'synthetic-dispatch',
+      patient_name: 'Synthetic Guest',
+      patient_cpf: '529.982.247-25',
+      patient_phone: '+55 51 99999-1111',
+      lgpd_consent: true,
+    };
+    const result = await resolveMemedPatient(database({
+      patient_care_team: null,
+      appointments: null,
+      pharmacy_dispatch_requests: dispatch,
+      patients: { ...identity, user_id: null, cpf: null, birth_date: null, gender: null },
+    }), 'doctor', patientId);
+    expect(result).toEqual({
+      idExterno: `autamedica-${patientId}`,
+      nome: 'Synthetic Guest',
+      cpf: '52998224725',
+    });
+  });
+
+  it('rejects QR guest dispatches without recorded LGPD consent', async () => {
+    await expect(resolveMemedPatient(database({
+      patient_care_team: null,
+      appointments: null,
+      pharmacy_dispatch_requests: {
+        id: 'synthetic-dispatch', patient_name: 'Synthetic Guest',
+        patient_cpf: '52998224725', patient_phone: '+55 51 99999-1111', lgpd_consent: false,
+      },
+      patients: { ...identity, user_id: null, cpf: null },
+    }), 'doctor', patientId)).rejects.toThrow('memed_patient_consent_required');
+  });
+
+  it('rejects invalid CPF in the QR dispatch identity', async () => {
+    await expect(resolveMemedPatient(database({
+      patient_care_team: null,
+      appointments: null,
+      pharmacy_dispatch_requests: {
+        id: 'synthetic-dispatch', patient_name: 'Synthetic Guest',
+        patient_cpf: '52998224724', patient_phone: '+55 51 99999-1111', lgpd_consent: true,
+      },
+      patients: { ...identity, user_id: null, cpf: null },
+    }), 'doctor', patientId)).rejects.toThrow('memed_patient_identity_incomplete');
+  });
+
   it('accepts a legitimate completed consultation', async () => {
     await expect(resolveMemedPatient(database({ patient_care_team: null, appointments: { id: 'visit' } }),
       'doctor', patientId)).resolves.toHaveProperty('cpf', identity.cpf);
