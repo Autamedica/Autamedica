@@ -58,6 +58,7 @@ test.describe('Pharmacy intake AR/BR clinical country', () => {
       await expect(page.getByRole('radio', { name: c.countryLabel })).toBeChecked()
       await expect(page.getByRole('textbox', { name: c.idLabel })).toBeVisible({ timeout: 10000 })
       await page.getByRole('textbox', { name: c.idLabel }).fill(c.document)
+      if (c.country === 'AR') await page.getByLabel('Sexo según DNI').selectOption('F')
       await page.getByLabel(c.nameLabel).fill('PACIENTE SINTETICO TEST')
       await page.getByLabel('WhatsApp').fill(c.phone)
       await page.getByRole('button', { name: c.reasonOption }).click()
