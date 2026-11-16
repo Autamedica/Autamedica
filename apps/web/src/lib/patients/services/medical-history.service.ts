@@ -265,6 +265,7 @@ function normalizeMemedRows(rows: unknown[], admin: Db): Promise<MedicalRecord[]
 async function listMemedPrescriptions(
   admin: Db,
   authenticatedClient: SupabaseClient,
+  patientId: string,
 ): Promise<MedicalRecord[]> {
   const scoped = authenticatedClient as unknown as {
     rpc: (name: string) => Promise<{ data: unknown[] | null; error: { message?: string } | null }>;
@@ -272,8 +273,16 @@ async function listMemedPrescriptions(
   if (typeof scoped.rpc !== "function") return [];
   const { data, error } = await scoped.rpc("patient_memed_prescriptions_get");
   if (error) {
-    logger.warn("[medicalHistoryService] patient Memed RPC failed", { message: error.message });
-    return [];
+    logger.warn("[medicalHistoryService] patient Memed RPC failed; using patient-scoped server read", { message: error.message });
+    const { data: fallback, error: fallbackError } = await admin.from("memed_prescriptions")
+      .select("id,doctor_id,patient_id,memed_id,status,provider_data,digital_link_data,created_at")
+      .eq("patient_id", patientId).neq("status", "deleted")
+      .order("created_at", { ascending: false });
+    if (fallbackError) {
+      logger.warn("[medicalHistoryService] patient-scoped Memed fallback failed", { code: fallbackError.code });
+      return [];
+    }
+    return normalizeMemedRows(fallback ?? [], admin);
   }
   return normalizeMemedRows(data ?? [], admin);
 }
@@ -326,7 +335,7 @@ export const medicalHistoryService = {
           logger.error("[medicalHistoryService] prescriptions failed", err);
           return [];
         }),
-        listMemedPrescriptions(supabase, authenticatedClient).catch((err) => {
+        listMemedPrescriptions(supabase, authenticatedClient, patientId).catch((err) => {
           logger.error("[medicalHistoryService] Memed prescriptions failed", err);
           return [];
         }),
@@ -360,8 +369,18 @@ export const medicalHistoryService = {
           }),
       ]);
 
-    const coreRecords = corePrescriptions ?? [];
-    const memedIds = new Set(coreRecords.map((record) => asString(asObject(record.content).vendor_id)).filter((value): value is string => Boolean(value)));
+    const memedProviderIds = new Set(memedPrescriptions
+      .map((record) => asString(asObject(record.content).vendor_id))
+      .filter((value): value is string => Boolean(value)));
+    const coreRecords = (corePrescriptions ?? []).filter((record) => {
+      const content = asObject(record.content);
+      const provider = asString(content.vendor_name)?.toLowerCase();
+      const providerId = asString(content.vendor_id);
+      return !(provider === "memed" && providerId && memedProviderIds.has(providerId));
+    });
+    const memedIds = new Set(coreRecords
+      .map((record) => asString(asObject(record.content).vendor_id))
+      .filter((value): value is string => Boolean(value)));
     const coreIds = new Set(coreRecords.map((record) => record.id));
     const uniqueMemed = memedPrescriptions.filter((record) => {
       const vendorId = asString(asObject(record.content).vendor_id);
