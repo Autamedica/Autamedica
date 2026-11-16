@@ -204,6 +204,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
               </p>
             </div>
           ) : (
+            expanded && (
               <div className="space-y-2.5">
                 {queue.map((item) => (
                   <div
@@ -271,6 +272,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
                   </div>
                 ))}
               </div>
+            )
             )
           )}
         </div>
