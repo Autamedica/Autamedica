@@ -81,7 +81,7 @@ export function mapPrescriptionRecordToPatientPrescription(
       buildStrictPrescriptionArtifactWarning(medicationName, digitalArtifactReady),
     is_digital_artifact_ready: digitalArtifactReady,
     requires_strict_validation: strictValidation,
-    source: asString(content.source) === "prescriptions_core" ? "prescriptions_core" : "legacy",
+    source: asString(content.source) === "memed_br" ? "memed_br" : asString(content.source) === "prescriptions_core" ? "prescriptions_core" : "legacy",
   };
 }
 
