@@ -419,7 +419,7 @@ export function PharmacyExpressConsultation({
                 {(['BR', 'AR'] as const).map((country) => {
                   const selected = formData.careCountry === country
                   return (
-                    <label key={country} className={selected ? 'flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#0EA5E9] bg-sky-50 px-3 text-sm font-medium text-sky-800' : 'flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700'}>
+                    <label key={country} className={selected ? 'flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#10B981] bg-sky-50 px-3 text-sm font-medium text-sky-800' : 'flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700'}>
                       <input type="radio" name="careCountry" required checked={selected} onChange={() => { setFormData({ ...formData, careCountry: country, dni: '', reason: '' }); setReasonCategory(''); setLgpdConsent(false) }} className="sr-only" />
                       <span aria-hidden="true">{country === 'BR' ? '🇧🇷' : '🇦🇷'}</span>
                       <span>{country === 'BR' ? 'Brasil' : 'Argentina'}</span>
@@ -442,7 +442,7 @@ export function PharmacyExpressConsultation({
                     placeholder={isPortuguese ? '123.456.789-09' : '35.123.456'}
                     value={formData.dni}
                     onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
-                    className="min-h-12 w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition"
+                    className="min-h-12 w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] transition"
                   />
                 </div>
 
@@ -458,7 +458,7 @@ export function PharmacyExpressConsultation({
                     placeholder={copy.nameExample}
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="min-h-12 w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition"
+                    className="min-h-12 w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] transition"
                   />
                 </div>
               </div>
@@ -477,7 +477,7 @@ export function PharmacyExpressConsultation({
                   placeholder={copy.phoneExample}
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="min-h-12 w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition"
+                  className="min-h-12 w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] transition"
                 />
               </div>
 
@@ -486,7 +486,7 @@ export function PharmacyExpressConsultation({
                 <div className="mb-2 flex flex-wrap gap-2">
                   {reasonOptions.map(({ value, label }) => {
                     const selected = reasonCategory === value
-                    return <button key={value} type="button" aria-pressed={selected} onClick={() => { setReasonCategory(value); if (value !== 'other') setFormData((current) => ({ ...current, reason: '' })) }} className={selected ? 'min-h-11 rounded-lg border border-[#0EA5E9] bg-sky-50 px-3 py-2 text-xs font-medium text-sky-800' : 'min-h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600'}>{label}</button>
+                    return <button key={value} type="button" aria-pressed={selected} onClick={() => { setReasonCategory(value); if (value !== 'other') setFormData((current) => ({ ...current, reason: '' })) }} className={selected ? 'min-h-11 rounded-lg border border-[#10B981] bg-sky-50 px-3 py-2 text-xs font-medium text-sky-800' : 'min-h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600'}>{label}</button>
                   })}
                 </div>
                 {reasonCategory === 'other' && <textarea
@@ -496,7 +496,7 @@ export function PharmacyExpressConsultation({
                   placeholder={copy.reasonExample}
                   value={formData.reason}
                   onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                  className="min-h-24 w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition resize-none"
+                  className="min-h-24 w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] transition resize-none"
                 />}
               </div>
 
@@ -513,7 +513,7 @@ export function PharmacyExpressConsultation({
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="min-h-12 w-full py-3.5 px-4 rounded-xl font-semibold text-sm text-white bg-[#0EA5E9] hover:bg-sky-600 active:scale-[0.99] transition shadow-md shadow-sky-200 flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="min-h-12 w-full py-3.5 px-4 rounded-xl font-semibold text-sm text-white bg-[#10B981] hover:bg-[#0D9488] active:scale-[0.99] transition shadow-md shadow-emerald-200 flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {submitting ? (
                     <>
@@ -610,7 +610,7 @@ export function PharmacyExpressConsultation({
                 setLgpdConsent(false)
                 setStep('FORM')
               }}
-              className="py-2.5 px-6 rounded-xl bg-[#0EA5E9] hover:bg-sky-600 text-white font-medium text-xs transition"
+              className="py-2.5 px-6 rounded-xl bg-[#10B981] hover:bg-[#0D9488] text-white font-medium text-xs transition"
             >
               {copy.restart}
             </button>
