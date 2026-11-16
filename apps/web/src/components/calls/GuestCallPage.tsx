@@ -63,13 +63,14 @@ const CALL_ENDED_I18N = {
 }
 
 export function CallEndedScreen({
-  doctorName = 'Dr. Felipe Silva',
+  doctorName,
   clinicName = 'AutaMedica',
   language = 'pt',
   whatsappUrl = 'https://wa.me/',
   documents = [],
 }: CallEndedScreenProps) {
   const t = CALL_ENDED_I18N[language] || CALL_ENDED_I18N.pt
+  const displayDoctorName = doctorName || (language === 'pt' ? 'médico responsável' : 'médico asignado')
 
   const handleClose = () => {
     if (typeof window !== 'undefined') {
@@ -118,7 +119,7 @@ export function CallEndedScreen({
 
           {/* Subtitle with Doctor Name */}
           <p className="mt-2 text-xs sm:text-sm text-slate-600 max-w-sm">
-            {t.subtitle(doctorName)}
+            {t.subtitle(displayDoctorName)}
           </p>
 
           {/* ── Issued encounter documents ── */}
@@ -270,7 +271,7 @@ export default function GuestCallPage({ roomId, dispatchId, guestToken, language
     [callSession],
   )
 
-  const doctorDisplayName = callSession?.peer?.displayName || 'Dr. Felipe Silva'
+  const doctorDisplayName = callSession?.peer?.displayName || (language === 'pt' ? 'médico responsável' : 'médico asignado')
 
   if (ended) {
     return (
