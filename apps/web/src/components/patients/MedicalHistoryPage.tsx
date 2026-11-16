@@ -24,10 +24,10 @@ const STATUS_STYLE: Record<string, string> = {
   pausada: 'bg-neutral-200 text-neutral-600',
 }
 
-function formatDate(value: string) {
+function formatDate(value: string, locale = 'es-AR') {
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return ''
-  return new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'long', year: 'numeric' }).format(parsed)
+  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' }).format(parsed)
 }
 
 function getVerifyUrl(cuir: string | null): string | null {
@@ -53,13 +53,13 @@ function toPrescriptionModalData(p: PatientPrescription) {
   }
 }
 
-function PrescriptionCard({ prescription, onClick, index }: {
-  prescription: PatientPrescription; onClick: () => void; index: number
+function PrescriptionCard({ prescription, onClick, index, locale }: {
+  prescription: PatientPrescription; onClick: () => void; index: number; locale: string
 }) {
   const statusLabel = STATUS_LABEL[prescription.status] ?? prescription.status
   const statusStyle = STATUS_STYLE[prescription.status] ?? 'bg-neutral-100 text-neutral-500'
   const doctorName = prescription.doctor_name ? `Dr. ${prescription.doctor_name}` : 'Profesional'
-  const dateStr = formatDate(prescription.prescribed_date || prescription.start_date)
+  const dateStr = formatDate(prescription.prescribed_date || prescription.start_date, locale)
   const verifyUrl = getVerifyUrl(prescription.cuir)
   const downloadablePdfUrl = getDownloadablePdfUrl(prescription.signed_pdf_url, verifyUrl)
 
@@ -77,6 +77,7 @@ function PrescriptionCard({ prescription, onClick, index }: {
             {prescription.medication_name || 'Prescripción médica'}
           </h3>
           <p className="text-sm text-neutral-500 mt-0.5">{doctorName} · {dateStr}</p>
+          <p className="mt-1 text-[11px] font-semibold text-emerald-700">{prescription.source === 'memed_br' ? 'Memed BR' : prescription.source === 'prescriptions_core' ? 'RCTA / Core AR' : 'Historial clínico'}</p>
         </div>
         <span className={`rounded-full px-3 py-1 text-xs font-bold shrink-0 ${statusStyle}`}>
           {statusLabel}
@@ -124,13 +125,17 @@ function PrescriptionCard({ prescription, onClick, index }: {
 
 export default function MedicalHistoryPage() {
   const { patient } = usePatientSession()
-  const { prescriptions, loading, error } = useMedicalHistory(patient?.id)
+  const { prescriptions, certificates, orders, loading, error } = useMedicalHistory(patient?.id)
+  const [activeTab, setActiveTab] = useState<'prescriptions' | 'certificates' | 'orders'>('prescriptions')
+  const patientCountry = (patient as unknown as { care_country?: string } | null)?.care_country
+  const isPortuguese = patientCountry === 'BR' || (typeof navigator !== 'undefined' && navigator.language.toLowerCase().startsWith('pt'))
+  const locale = isPortuguese ? 'pt-BR' : 'es-AR'
   const [selectedPrescription, setSelectedPrescription] = useState<PatientPrescription | null>(null)
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-slate-50">
       {/* Hero */}
-      <section className="bg-neutral-900 px-6 lg:px-12 pt-16 pb-20">
+      <section className="bg-[#0F2537] px-6 lg:px-12 pt-10 pb-16">
         <div className="max-w-7xl mx-auto">
           <motion.div
             className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 text-white/80 rounded-full text-xs font-medium mb-6"
@@ -147,7 +152,7 @@ export default function MedicalHistoryPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            Mis Recetas
+            {isPortuguese ? 'Minhas receitas' : 'Mis Recetas'}
           </motion.h1>
           <motion.p
             className="text-lg text-white/60 max-w-lg"
@@ -155,13 +160,18 @@ export default function MedicalHistoryPage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
-            Prescripciones registradas y recetas electrónicas
+            {isPortuguese ? 'Receitas digitais e prescrições registradas' : 'Prescripciones registradas y recetas electrónicas'}
           </motion.p>
         </div>
       </section>
 
       {/* Content */}
-      <section className="max-w-7xl mx-auto px-6 lg:px-12 -mt-8 pb-32">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 -mt-8 pb-32">
+        <div className="mb-5 grid grid-cols-3 gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+          <button type="button" onClick={() => setActiveTab('prescriptions')} className={`min-h-11 rounded-xl px-2 text-xs font-semibold transition ${activeTab === 'prescriptions' ? 'bg-[#10B981] text-white' : 'text-slate-600 hover:bg-slate-50'}`}>{isPortuguese ? 'Receitas digitais' : 'Recetas digitales'}</button>
+          <button type="button" onClick={() => setActiveTab('certificates')} className={`min-h-11 rounded-xl px-2 text-xs font-semibold transition ${activeTab === 'certificates' ? 'bg-[#10B981] text-white' : 'text-slate-600 hover:bg-slate-50'}`}>{isPortuguese ? 'Atestados' : 'Certificados / Atestados'}</button>
+          <button type="button" onClick={() => setActiveTab('orders')} className={`min-h-11 rounded-xl px-2 text-xs font-semibold transition ${activeTab === 'orders' ? 'bg-[#10B981] text-white' : 'text-slate-600 hover:bg-slate-50'}`}>{isPortuguese ? 'Exames e ordens' : 'Órdenes y estudios'}</button>
+        </div>
         {loading && (
           <div className="flex flex-col items-center justify-center py-24">
             <motion.div
@@ -184,7 +194,7 @@ export default function MedicalHistoryPage() {
           </motion.div>
         )}
 
-        {!loading && !error && (
+        {!loading && !error && activeTab === 'prescriptions' && (
           <>
             {prescriptions.length === 0 ? (
               <motion.div
@@ -218,11 +228,60 @@ export default function MedicalHistoryPage() {
                     prescription={p}
                     onClick={() => setSelectedPrescription(p)}
                     index={i}
+                    locale={locale}
                   />
                 ))}
               </div>
             )}
           </>
+        )}
+        {!loading && !error && activeTab === 'certificates' && (
+          <div className="grid gap-4 md:grid-cols-2">
+            {certificates.length === 0 ? <div className="col-span-full rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">{isPortuguese ? 'Nenhum atestado foi emitido.' : 'Todavía no hay certificados ni atestados emitidos.'}</div> : certificates.map((certificate) => {
+              const id = String(certificate.id ?? '')
+              const status = String(certificate.status ?? 'draft')
+              const type = String(certificate.certificate_type ?? 'otro').replaceAll('_', ' ')
+              const code = String(certificate.cuir ?? '')
+              const pdfUrl = `/api/doctors/certificates/${encodeURIComponent(id)}/pdf`
+              return (
+                <article key={id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div><h3 className="font-semibold capitalize text-slate-900">{type}</h3><p className="mt-1 text-xs text-slate-500">{formatDate(String(certificate.created_at ?? ''), locale)}</p></div>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{status === 'signed' ? (isPortuguese ? 'Assinado' : 'Firmado') : status}</span>
+                  </div>
+                  {certificate.days_of_rest ? <p className="mt-3 text-sm text-slate-700">{String(certificate.days_of_rest)} {isPortuguese ? 'dias de afastamento' : 'días de reposo'}</p> : null}
+                  {code && <p className="mt-3 text-xs text-slate-500">{isPortuguese ? 'Código de verificação' : 'Código de verificación'}: <span className="font-mono font-semibold text-slate-800">{code}</span></p>}
+                  <div className="mt-4 flex gap-2">
+                    {status === 'signed' && <a href={pdfUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl bg-[#10B981] px-3 text-xs font-semibold text-white hover:bg-[#0D9488]">{isPortuguese ? 'Abrir PDF assinado' : 'Abrir PDF firmado'}</a>}
+                    {code && <a href={`/verify/${encodeURIComponent(code)}`} className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700">{isPortuguese ? 'Verificar' : 'Verificar'}</a>}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
+        {!loading && !error && activeTab === 'orders' && (
+          <div className="grid gap-4 md:grid-cols-2">
+            {orders.length === 0 ? <div className="col-span-full rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">{isPortuguese ? 'Nenhuma ordem ou exame registrado.' : 'Todavía no hay órdenes ni estudios registrados.'}</div> : orders.map((order) => {
+              const id = String(order.id ?? '')
+              const rawStatus = String(order.status ?? '').toLowerCase()
+              const statusLabel = /available|disponible/.test(rawStatus) ? (isPortuguese ? 'Disponível' : 'Disponible')
+                : /done|completed|performed|realizado/.test(rawStatus) ? (isPortuguese ? 'Realizado' : 'Realizado')
+                : /pending|pendiente/.test(rawStatus) ? (isPortuguese ? 'Pendente' : 'Pendiente')
+                : (isPortuguese ? 'Solicitado' : 'Solicitado')
+              const code = String(order.cuir ?? '')
+              const practices = Array.isArray(order.practices) ? (order.practices as unknown[]).map((item) => typeof item === 'string' ? item : String((item as Record<string, unknown>)?.name ?? '')).filter(Boolean).join(', ') : ''
+              return (
+                <article key={id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold text-slate-900">{String(order.study_type ?? (isPortuguese ? 'Estudo diagnóstico' : 'Estudio diagnóstico'))}</h3><p className="mt-1 text-xs text-slate-500">{formatDate(String(order.created_at ?? ''), locale)}</p></div><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">{statusLabel}</span></div>
+                  {practices && <p className="mt-3 text-sm text-slate-700">{practices}</p>}
+                  {order.diagnosis && <p className="mt-2 text-xs text-slate-500">{String(order.diagnosis)}</p>}
+                  {code && <p className="mt-3 text-xs text-slate-500">CUIR: <span className="font-mono font-semibold text-slate-800">{code}</span></p>}
+                  {code && <a href={`/verify/${encodeURIComponent(code)}`} className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700">{isPortuguese ? 'Verificar ordem' : 'Verificar orden'}</a>}
+                </article>
+              )
+            })}
+          </div>
         )}
       </section>
 
