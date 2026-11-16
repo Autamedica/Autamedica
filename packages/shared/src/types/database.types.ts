@@ -7602,7 +7602,6 @@ export type Database = {
           id: string
           languages: Json | null
           license_number: string
-          license_number: string
           dni: string | null
           gender: string | null
           cuil: string | null
@@ -7662,7 +7661,6 @@ export type Database = {
           id?: string
           languages?: Json | null
           license_number: string
-          license_number: string
           dni?: string | null
           gender?: string | null
           cuil?: string | null
@@ -7721,7 +7719,6 @@ export type Database = {
           free_videoconsultas_remaining?: number
           id?: string
           languages?: Json | null
-          license_number?: string
           license_number?: string
           dni?: string | null
           gender?: string | null
@@ -10525,7 +10522,6 @@ export type Database = {
           patient_cf_session_id: string | null
           patient_cpf: string | null
           patient_dni: string | null
-          patient_dni: string | null
           patient_gender_code: string | null
           identity_status: string
           official_full_name: string | null
@@ -10563,7 +10559,6 @@ export type Database = {
           patient_cf_session_id?: string | null
           patient_cpf?: string | null
           patient_dni?: string | null
-          patient_dni?: string | null
           patient_gender_code?: string | null
           identity_status?: string
           official_full_name?: string | null
@@ -10600,7 +10595,6 @@ export type Database = {
           matched_at?: string | null
           patient_cf_session_id?: string | null
           patient_cpf?: string | null
-          patient_dni?: string | null
           patient_dni?: string | null
           patient_gender_code?: string | null
           identity_status?: string
