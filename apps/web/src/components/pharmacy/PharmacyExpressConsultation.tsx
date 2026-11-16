@@ -71,6 +71,8 @@ export function PharmacyExpressConsultation({
   const phoneInputId = useId()
   const reasonInputId = useId()
   const [restoredReferralCode, setRestoredReferralCode] = useState<string | null>(null)
+  const effectiveReferralCode = referralCode ?? restoredReferralCode
+  const isJordanReferral = effectiveReferralCode?.toUpperCase() === 'JORDAN'
   const [step, setStep] = useState<Step>('FORM')
   const [formData, setFormData] = useState({
     careCountry: (initialCareCountry ?? (isJordanReferral ? 'BR' : '')) as '' | 'AR' | 'BR',
@@ -92,8 +94,6 @@ export function PharmacyExpressConsultation({
   const [callRoomId, setCallRoomId] = useState<string | null>(null)
   const [countryPaymentApproved, setCountryPaymentApproved] = useState(false)
   const [onlineDoctorCount, setOnlineDoctorCount] = useState<number | null>(null)
-  const effectiveReferralCode = referralCode ?? restoredReferralCode
-  const isJordanReferral = effectiveReferralCode?.toUpperCase() === 'JORDAN'
   const [documents, setDocuments] = useState<EncounterDocument[]>([])
   const recoveryInProgress = useRef(false)
   const lastRecoveryAttemptAt = useRef(0)
