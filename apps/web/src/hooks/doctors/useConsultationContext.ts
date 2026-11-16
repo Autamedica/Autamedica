@@ -65,6 +65,7 @@ export interface ConsultationContext {
     patientDni: string | null;
     patientCpf: string | null;
     patientName: string | null;
+    patientPhone: string | null;
     careCountry: 'AR' | 'BR' | string | null;
     symptomSummary: string | null;
     dispatchRequestId: string;
