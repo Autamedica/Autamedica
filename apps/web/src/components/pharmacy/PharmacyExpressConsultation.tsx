@@ -84,6 +84,7 @@ export function PharmacyExpressConsultation({
   // Active request state (Gen 2: pharmacy_dispatch_requests)
   const [requestId, setRequestId] = useState<string | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
+  const [recoveryToken, setRecoveryToken] = useState<string | null>(null)
   const [callRoomId, setCallRoomId] = useState<string | null>(null)
   const [countryPaymentApproved, setCountryPaymentApproved] = useState(false)
   const [onlineDoctorCount, setOnlineDoctorCount] = useState<number | null>(null)
@@ -100,18 +101,41 @@ export function PharmacyExpressConsultation({
   }, [isJordanReferral])
 
   useEffect(() => {
-    try {
-      const raw = window.sessionStorage.getItem('autamedica:pharmacy-express:active-session')
-      if (!raw) return
-      const saved = JSON.parse(raw) as { requestId?: string; guestToken?: string; careCountry?: 'AR' | 'BR' }
-      if (!saved.requestId || !saved.guestToken || (saved.careCountry !== 'AR' && saved.careCountry !== 'BR')) return
-      setRequestId(saved.requestId)
-      setAccessToken(saved.guestToken)
-      setFormData((current) => ({ ...current, careCountry: saved.careCountry! }))
-      setStep('WAITING')
-    } catch {
-      window.sessionStorage.removeItem('autamedica:pharmacy-express:active-session')
+    let active = true
+    const restore = async () => {
+      const key = 'autamedica:pharmacy-express:active-session'
+      try {
+        const raw = window.sessionStorage.getItem(key) || window.localStorage.getItem(key)
+        if (!raw) return
+        const saved = JSON.parse(raw) as {
+          requestId?: string; guestToken?: string; recoveryToken?: string;
+          country?: 'AR' | 'BR'; careCountry?: 'AR' | 'BR';
+          referralCode?: string | null; partnerName?: string | null; savedAt?: number;
+        }
+        const country = saved.country ?? saved.careCountry
+        if (!saved.requestId || !saved.recoveryToken || (country !== 'AR' && country !== 'BR')
+          || !saved.savedAt || Date.now() - saved.savedAt > 12 * 60 * 60 * 1000) {
+          window.sessionStorage.removeItem(key); window.localStorage.removeItem(key); return
+        }
+        const restored = await fetchApi<{ request: DispatchRequest; accessToken: string }>('/api/pharmacy/dispatch/resume', {
+          method: 'POST', body: { requestId: saved.requestId, recoveryToken: saved.recoveryToken },
+        })
+        if (!active || !restored?.accessToken) return
+        setRequestId(saved.requestId)
+        setAccessToken(restored.accessToken)
+        setRecoveryToken(saved.recoveryToken)
+        setCallRoomId(restored.request.cloudflare_room_id)
+        setFormData((current) => ({ ...current, careCountry: country }))
+        const next = { ...saved, guestToken: restored.accessToken, country, careCountry: country, savedAt: Date.now() }
+        window.sessionStorage.setItem(key, JSON.stringify(next))
+        window.localStorage.setItem(key, JSON.stringify(next))
+        setStep(restored.request.status === 'in_call' ? 'CALL' : restored.request.status === 'completed' ? 'ENDED' : 'WAITING')
+      } catch {
+        // Retain the device-scoped backup after transient network failures.
+      }
     }
+    void restore()
+    return () => { active = false }
   }, [isJordanReferral])
 
   const isPortuguese = formData.careCountry === 'BR'
@@ -271,6 +295,7 @@ export function PharmacyExpressConsultation({
         request: DispatchRequest
         cloudflare_room_id: string
         accessToken: string
+        recoveryToken?: string
       }>('/api/pharmacy/dispatch/request', {
         method: 'POST',
         body: {
@@ -291,8 +316,11 @@ export function PharmacyExpressConsultation({
 
       setRequestId(reqId)
       setAccessToken(token)
+      setRecoveryToken(res.recoveryToken ?? null)
       setCallRoomId(roomId)
-      window.sessionStorage.setItem('autamedica:pharmacy-express:active-session', JSON.stringify({ requestId: reqId, guestToken: token, careCountry: formData.careCountry }))
+      const activeSession = { requestId: reqId, guestToken: token, recoveryToken: res.recoveryToken ?? null, country: formData.careCountry, referralCode, partnerName: referralPartnerName, savedAt: Date.now() }
+      window.sessionStorage.setItem('autamedica:pharmacy-express:active-session', JSON.stringify(activeSession))
+      window.localStorage.setItem('autamedica:pharmacy-express:active-session', JSON.stringify(activeSession))
       setStep('WAITING')
     } catch {
       setFormError(isPortuguese ? 'Não foi possível iniciar a consulta. Tente novamente.' : 'No pudimos iniciar la consulta. Volvé a intentar.')
