@@ -114,6 +114,7 @@ function MonthSelector({ year, month, onChange }: { year: number; month: number;
 type ActiveView = "dashboard" | "income" | "expenses" | "compare" | "setup";
 
 export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) {
+  const isPortuguese = _locale?.toLowerCase().startsWith('pt') ?? false;
   const { user } = useAuthenticatedUser();
   useCurrentDoctor(user?.id);
 
@@ -590,19 +591,19 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
         <section className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-sm md:p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-semibold text-am-surface-900">{_locale === 'pt-BR' ? 'Honorários e repasses' : 'Honorarios y liquidaciones'}</h2>
-              <p className="text-xs text-am-surface-500">{_locale === 'pt-BR' ? 'Extrato de pagamentos médicos, separado por moeda.' : 'Historial de honorarios médicos, separado por moneda.'}</p>
+              <h2 className="text-base font-semibold text-am-surface-900">{isPortuguese ? 'Honorários e repasses' : 'Honorarios y liquidaciones'}</h2>
+              <p className="text-xs text-am-surface-500">{isPortuguese ? 'Extrato de pagamentos médicos, separado por moeda.' : 'Historial de honorarios médicos, separado por moneda.'}</p>
             </div>
             <Button variant="ghost" size="sm" onClick={() => void fetchEarnings()} icon={<RefreshCw className="h-4 w-4" />}>
-              {_locale === 'pt-BR' ? 'Atualizar' : 'Actualizar'}
+              {isPortuguese ? 'Atualizar' : 'Actualizar'}
             </Button>
           </div>
           {earningsLoading ? (
-            <p className="py-5 text-center text-sm text-am-surface-400">{_locale === 'pt-BR' ? 'Carregando repasses...' : 'Cargando liquidaciones...'}</p>
+            <p className="py-5 text-center text-sm text-am-surface-400">{isPortuguese ? 'Carregando repasses...' : 'Cargando liquidaciones...'}</p>
           ) : earningsError ? (
             <p role="alert" className="py-3 text-sm text-red-600">{earningsError}</p>
           ) : earnings.length === 0 ? (
-            <p className="py-5 text-center text-sm text-am-surface-400">{_locale === 'pt-BR' ? 'Ainda não há honorários registrados.' : 'Todavía no hay honorarios registrados.'}</p>
+            <p className="py-5 text-center text-sm text-am-surface-400">{isPortuguese ? 'Ainda não há honorários registrados.' : 'Todavía no hay honorarios registrados.'}</p>
           ) : (
             <>
               <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -619,29 +620,29 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
                       <p className="text-xs font-semibold uppercase tracking-wide text-am-surface-500">{label}</p>
                       <div className="mt-3 grid grid-cols-2 gap-3">
                         <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-am-surface-500">{_locale === 'pt-BR' ? 'Pendente' : 'Pendiente'}</p>
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-am-surface-500">{isPortuguese ? 'Pendente' : 'Pendiente'}</p>
                           <p className="mt-1 text-base font-bold text-am-surface-900">{formatEarningCurrency(pending, currency)}</p>
                         </div>
                         <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-am-surface-500">{_locale === 'pt-BR' ? 'Liquidado' : 'Pagado'}</p>
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-am-surface-500">{isPortuguese ? 'Liquidado' : 'Pagado'}</p>
                           <p className="mt-1 text-base font-bold text-am-surface-900">{formatEarningCurrency(paid, currency)}</p>
                         </div>
                       </div>
                       <div className="mt-3 border-t border-am-surface-200 pt-2">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-am-surface-500">{_locale === 'pt-BR' ? 'Histórico acumulado' : 'Histórico acumulado'}</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-am-surface-500">{isPortuguese ? 'Histórico acumulado' : 'Histórico acumulado'}</p>
                         <p className="mt-1 text-lg font-bold text-am-surface-900">{formatEarningCurrency(historical, currency)}</p>
                       </div>
                     </div>
                   );
                 })}
                 <div className="rounded-xl border border-am-surface-200 bg-white p-3.5">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-am-surface-500">{_locale === 'pt-BR' ? 'Plantões concluídos' : 'Guardias completadas'}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-am-surface-500">{isPortuguese ? 'Plantões concluídos' : 'Guardias completadas'}</p>
                   <p className="mt-2 text-2xl font-bold text-am-surface-900">
                     {new Set(earnings
                       .filter((earning) => Boolean(earning.dispatch_request_id) && ['pending', 'paid'].includes(earning.status))
                       .map((earning) => earning.dispatch_request_id)).size}
                   </p>
-                  <p className="mt-1 text-xs text-am-surface-500">{_locale === 'pt-BR' ? 'Consultas de farmácia registradas' : 'Consultas de farmacia registradas'}</p>
+                  <p className="mt-1 text-xs text-am-surface-500">{isPortuguese ? 'Consultas de farmácia registradas' : 'Consultas de farmacia registradas'}</p>
                 </div>
               </div>
 
@@ -649,10 +650,10 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
                 <table className="w-full min-w-[620px] text-left text-sm">
                   <thead className="bg-am-surface-50 text-[10px] font-semibold uppercase tracking-wide text-am-surface-500">
                     <tr>
-                      <th className="px-3 py-2.5">{_locale === 'pt-BR' ? 'Data' : 'Fecha'}</th>
-                      <th className="px-3 py-2.5">{_locale === 'pt-BR' ? 'Origem' : 'Origen'}</th>
-                      <th className="px-3 py-2.5">{_locale === 'pt-BR' ? 'Status' : 'Estado'}</th>
-                      <th className="px-3 py-2.5 text-right">{_locale === 'pt-BR' ? 'Valor' : 'Monto'}</th>
+                      <th className="px-3 py-2.5">{isPortuguese ? 'Data' : 'Fecha'}</th>
+                      <th className="px-3 py-2.5">{isPortuguese ? 'Origem' : 'Origen'}</th>
+                      <th className="px-3 py-2.5">{isPortuguese ? 'Status' : 'Estado'}</th>
+                      <th className="px-3 py-2.5 text-right">{isPortuguese ? 'Valor' : 'Monto'}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-am-surface-100">
@@ -663,14 +664,14 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
                         </td>
                         <td className="px-3 py-2.5 text-xs font-medium text-am-surface-800">
                           {earning.dispatch_request_id
-                            ? (_locale === 'pt-BR' ? 'Consulta de farmácia' : 'Consulta de farmacia')
-                            : (_locale === 'pt-BR' ? 'Consulta médica' : 'Consulta médica')}
+                            ? (isPortuguese ? 'Consulta de farmácia' : 'Consulta de farmacia')
+                            : (isPortuguese ? 'Consulta médica' : 'Consulta médica')}
                         </td>
                         <td className="px-3 py-2.5 text-xs text-am-surface-600">
                           {earning.status === 'paid'
-                            ? (_locale === 'pt-BR' ? 'Liquidado' : 'Pagado')
+                            ? (isPortuguese ? 'Liquidado' : 'Pagado')
                             : earning.status === 'pending'
-                              ? (_locale === 'pt-BR' ? 'Pendente' : 'Pendiente')
+                              ? (isPortuguese ? 'Pendente' : 'Pendiente')
                               : earning.status}
                         </td>
                         <td className="whitespace-nowrap px-3 py-2.5 text-right text-xs font-semibold text-am-surface-900">
