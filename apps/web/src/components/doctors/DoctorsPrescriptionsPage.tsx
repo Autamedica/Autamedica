@@ -245,6 +245,30 @@ export function DoctorsPrescriptionsPage() {
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [search, setSearch] = useState("");
   const [docMode, setDocMode] = useState<"prescriptions" | "certificates">("prescriptions");
+
+  const [countryContextReady, setCountryContextReady] = useState(false);
+  const [requestedQuickAction, setRequestedQuickAction] = useState<"prescriptions" | "certificates" | null>(null);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get("mode");
+    if (mode === "prescriptions" || mode === "certificates") {
+      setDocMode(mode);
+      if (params.get("new") === "1") setRequestedQuickAction(mode);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!requestedQuickAction) return;
+    if (requestedQuickAction === "prescriptions") {
+      setShowCreateModal(true);
+      setRequestedQuickAction(null);
+      return;
+    }
+    if (countryContextReady) {
+      setShowCertificateModal(true);
+      setRequestedQuickAction(null);
+    }
+  }, [requestedQuickAction, countryContextReady]);
   const [certificateCountry, setCertificateCountry] = useState<"AR" | "BR" | null>(null);
   const [externalProviderEnabled, setExternalProviderEnabled] = useState(false);
   useEffect(() => {
@@ -264,6 +288,8 @@ export function DoctorsPrescriptionsPage() {
         setCertificateCountry(null);
         setExternalProviderEnabled(false);
       }
+    }).finally(() => {
+      if (!controller.signal.aborted) setCountryContextReady(true);
     });
     return () => controller.abort();
   }, []);
