@@ -41,6 +41,8 @@ interface DoctorLookupRow {
 
 export interface MedicalHistorySnapshot {
   prescriptions: MedicalRecord[];
+  certificates: Array<Record<string, unknown>>;
+  orders: Array<Record<string, unknown>>;
   summary: {
     medications: MedicalRecord[];
     conditions: MedicalRecord[];
@@ -198,6 +200,102 @@ async function listReadModelPrescriptions(
   return prescriptions.map((row) => normalizeCorePrescription(row, doctorMap));
 }
 
+function normalizeMemedRows(rows: unknown[], admin: Db): Promise<MedicalRecord[]> {
+  return (async () => {
+    const records = rows.filter((row): row is Record<string, unknown> => Boolean(row && typeof row === "object"));
+    const doctorIds = [...new Set(records.map((row) => asString(row.doctor_id)).filter((id): id is string => Boolean(id)))];
+    const doctorMap = new Map<string, string>();
+    if (doctorIds.length) {
+      const { data: doctors } = await admin.from("doctors")
+        .select("id, user_id, profile:profiles!doctors_user_id_fkey(first_name, last_name)")
+        .in("id", doctorIds);
+      for (const doctor of (doctors ?? []) as DoctorLookupRow[]) {
+        const name = buildDoctorDisplayName(doctor);
+        if (name) doctorMap.set(doctor.id, name);
+      }
+    }
+    return records.map((row) => {
+      const provider = asObject(row.provider_data);
+      const digital = asObject(row.digital_link_data);
+      const medicationName = asString(provider.medication_name)
+        ?? asString(provider.medicationName)
+        ?? asString(provider.nome)
+        ?? asString(provider.name)
+        ?? asString(provider.title)
+        ?? "Receita digital Memed";
+      const digitalUrl = [digital.url, digital.link, digital.pdf_url, digital.document_url]
+        .find((value) => typeof value === "string" && /^https:\/\//i.test(value as string));
+      const id = asString(row.id) ?? asString(row.memed_id) ?? crypto.randomUUID();
+      const doctorId = asString(row.doctor_id) ?? "";
+      const createdAt = asString(row.created_at) ?? new Date().toISOString();
+      return {
+        id: "memed-" + id,
+        patient_id: asString(row.patient_id) ?? "",
+        type: "prescription",
+        title: "Prescripcion: " + medicationName,
+        content: {
+          medication_name: medicationName,
+          dosage: asString(provider.dosage) ?? asString(provider.dose) ?? "",
+          frequency: asString(provider.frequency) ?? "",
+          duration: asString(provider.duration) ?? "",
+          instructions: asString(provider.instructions) ?? "",
+          diagnosis: asString(provider.diagnosis),
+          status: asString(row.status) ?? "verified_at_provider",
+          issuance_status: asString(row.status) ?? "verified_at_provider",
+          prescribed_date: createdAt,
+          start_date: createdAt,
+          doctor_name: doctorMap.get(doctorId) ?? null,
+          vendor_name: "Memed BR",
+          vendor_id: asString(row.memed_id),
+          signed_pdf_url: typeof digitalUrl === "string" ? digitalUrl : null,
+          cuir: asString(provider.cuir) ?? asString(row.memed_id),
+          is_digital_artifact_ready: Boolean(digitalUrl),
+          source: "memed_br",
+        },
+        created_at: createdAt,
+        updated_at: createdAt,
+      } satisfies MedicalRecord;
+    });
+  })();
+}
+
+async function listMemedPrescriptions(
+  admin: Db,
+  authenticatedClient: SupabaseClient,
+): Promise<MedicalRecord[]> {
+  const scoped = authenticatedClient as unknown as {
+    rpc: (name: string) => Promise<{ data: unknown[] | null; error: { message?: string } | null }>;
+  };
+  if (typeof scoped.rpc !== "function") return [];
+  const { data, error } = await scoped.rpc("patient_memed_prescriptions_get");
+  if (error) {
+    logger.warn("[medicalHistoryService] patient Memed RPC failed", { message: error.message });
+    return [];
+  }
+  return normalizeMemedRows(data ?? [], admin);
+}
+
+async function listPatientCertificatesAndOrders(
+  supabase: Db,
+  patientId: string,
+): Promise<{ certificates: Array<Record<string, unknown>>; orders: Array<Record<string, unknown>> }> {
+  const loose = supabase as unknown as SupabaseClient;
+  const [certificatesResult, ordersResult] = await Promise.all([
+    loose.from("medical_certificates")
+      .select("id,doctor_id,patient_id,cuir,status,certificate_type,days_of_rest,start_date,end_date,diagnosis,observations,qr_code_content,signed_pdf_url,country_code,created_at,updated_at,signature_hash,signature_method")
+      .eq("patient_id", patientId).order("created_at", { ascending: false }),
+    loose.from("medical_orders")
+      .select("id,doctor_id,patient_id,appointment_id,study_type,practices,diagnosis,notes,status,cuir,qr_code_content,signed_pdf_url,created_at,updated_at")
+      .eq("patient_id", patientId).order("created_at", { ascending: false }),
+  ]);
+  if (certificatesResult.error) logger.warn("[medicalHistoryService] certificates query failed", { code: certificatesResult.error.code });
+  if (ordersResult.error) logger.warn("[medicalHistoryService] orders query failed", { code: ordersResult.error.code });
+  return {
+    certificates: (certificatesResult.data ?? []) as Array<Record<string, unknown>>,
+    orders: (ordersResult.data ?? []) as Array<Record<string, unknown>>,
+  };
+}
+
 function mergeTimelineRecords(
   primary: MedicalRecord[],
   secondary: MedicalRecord[],
@@ -216,13 +314,17 @@ function mergeTimelineRecords(
 }
 
 export const medicalHistoryService = {
-  async getFullHistory(supabase: Db, patientId: string): Promise<MedicalHistorySnapshot> {
+  async getFullHistory(supabase: Db, patientId: string, authenticatedClient: SupabaseClient = supabase): Promise<MedicalHistorySnapshot> {
     const medicalHistoryRepo = createMedicalHistoryAdapter(supabase);
 
-    const [prescriptions, medications, conditions, allergies, timeline, anamnesisRes] =
+    const [corePrescriptions, memedPrescriptions, medications, conditions, allergies, timeline, anamnesisRes, clinicalDocuments] =
       await Promise.all([
         listReadModelPrescriptions(supabase, patientId).catch((err) => {
           logger.error("[medicalHistoryService] prescriptions failed", err);
+          return [];
+        }),
+        listMemedPrescriptions(supabase, authenticatedClient).catch((err) => {
+          logger.error("[medicalHistoryService] Memed prescriptions failed", err);
           return [];
         }),
         medicalHistoryRepo.listByType(patientId, "prescription").catch((err) => {
@@ -241,6 +343,10 @@ export const medicalHistoryService = {
           logger.error("[medicalHistoryService] timeline failed", err);
           return [];
         }),
+        listPatientCertificatesAndOrders(supabase, patientId).catch((err) => {
+          logger.error("[medicalHistoryService] clinical documents failed", err);
+          return { certificates: [], orders: [] };
+        }),
         supabase
           .from("anamnesis")
           .select("*")
@@ -251,10 +357,21 @@ export const medicalHistoryService = {
           }),
       ]);
 
+    const coreRecords = corePrescriptions ?? [];
+    const memedIds = new Set(coreRecords.map((record) => asString(asObject(record.content).vendor_id)).filter((value): value is string => Boolean(value)));
+    const coreIds = new Set(coreRecords.map((record) => record.id));
+    const uniqueMemed = memedPrescriptions.filter((record) => {
+      const vendorId = asString(asObject(record.content).vendor_id);
+      const sourceId = record.id.replace(/^memed-/, "");
+      return (!vendorId || !memedIds.has(vendorId)) && !coreIds.has(sourceId);
+    });
+    const prescriptions = [...coreRecords, ...uniqueMemed].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     const effectiveMedications = prescriptions.length > 0 ? prescriptions : medications;
 
     return {
       prescriptions: effectiveMedications,
+      certificates: clinicalDocuments.certificates,
+      orders: clinicalDocuments.orders,
       summary: { medications: effectiveMedications, conditions, allergies },
       timeline: mergeTimelineRecords(effectiveMedications, timeline),
       anamnesis: anamnesisRes,
