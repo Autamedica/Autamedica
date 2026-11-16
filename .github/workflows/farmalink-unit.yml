@@ -9,6 +9,7 @@ on:
       - '.github/workflows/farmalink-unit.yml'
   push:
     branches:
+      - main
       - test/farmalink-oauth-smoke-20261103
   workflow_dispatch:
 
@@ -64,7 +65,7 @@ jobs:
             pdftoppm -f 1 -l 1 -singlefile -r 300 -png "/tmp/farmalink-autamedica-$1-test.pdf" "/tmp/farmalink-autamedica-$1"
             decoded="$(zbarimg --quiet --raw -Sdisable -Scode128.enable "/tmp/farmalink-autamedica-$1.png")"
             printf '%s\n' "$decoded" | grep -Fx "$2"
-            printf '%s\n' "$decoded" | grep -Fx '27123456780'
+            printf '%s\n' "$decoded" | grep -Fx '20123456786'
           done
 
       - name: Upload app-rendered TEST homologation PDFs (no network issuance)
