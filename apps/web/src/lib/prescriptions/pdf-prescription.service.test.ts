@@ -58,7 +58,7 @@ describe('generatePrescriptionPdf', () => {
     expect(pdfText).toContain('CÓDIGO DE BARRAS');
     expect(pdfText).toContain('EMISOR DE LA RECETA');
     expect(pdfText).toContain('Dr. Eduardo Marques da Rosa');
-    expect(pdfText).toContain('Matrícula: MN-123456 (MN)');
+    expect(pdfText).toContain('Matrícula: MN-123456 \\(MN\\)');
     expect(pdfText).toContain('SELLO PROFESIONAL');
     expect(pdfText).not.toContain('Este documento ha sido firmado');
     expect(pdfText).toContain('500mg');
@@ -312,7 +312,7 @@ describe('generatePrescriptionPdf', () => {
       expect(pdfText).toContain('CUIR: -');
       expect(pdfText).toContain('EMISOR DE LA RECETA');
       expect(pdfText).toContain('Demo Demo');
-      expect(pdfText).toContain('Matrícula: MN 11111 (MN)');
+      expect(pdfText).toContain('Matrícula: MN 11111 \\(MN\\)');
       expect(pdfText).toContain('SELLO PROFESIONAL');
       expect(pdfText).not.toContain('VERIFICACIÓN DE FIRMA');
       expect(pdfText).not.toContain('Verificar la firma en el certificado PDF o registro del emisor.');
