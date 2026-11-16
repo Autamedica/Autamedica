@@ -239,7 +239,7 @@ export function getGenderLabel(value: PatientProfileFormState['gender']): string
 function hasOfficialIdentityData(form: PatientProfileFormState): boolean {
   return form.identityStatus === 'verified_renaper'
     && form.officialFullName.trim().length > 0
-    && form.officialCuil.replace(/\\D/g, '').length === 11;
+    && form.officialCuil.replace(/\D/g, '').length === 11;
 }
 
 export function buildMissingFields(form: PatientProfileFormState): MissingProfileField[] {
