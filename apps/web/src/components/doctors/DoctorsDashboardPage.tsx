@@ -282,7 +282,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
         .maybeSingle();
 
       if (error) throw error;
-      if (!data || data.id !== labId || data.status !== 'reviewed') {
+      if (data?.id !== labId || data.status !== 'reviewed') {
         throw new Error('lab_review_not_persisted');
       }
 
