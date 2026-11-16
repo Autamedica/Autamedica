@@ -57,7 +57,7 @@ test.describe('Pharmacy intake AR/BR clinical country', () => {
       await page.getByText(c.countryLabel, { exact: true }).click()
       await expect(page.getByRole('radio', { name: c.countryLabel })).toBeChecked()
       await expect(page.getByRole('textbox', { name: c.idLabel })).toBeVisible({ timeout: 10000 })
-      await page.getByLabel(c.idLabel).fill(c.document)
+      await page.getByRole('textbox', { name: c.idLabel }).fill(c.document)
       await page.getByLabel(c.nameLabel).fill('PACIENTE SINTETICO TEST')
       await page.getByLabel('WhatsApp').fill(c.phone)
       await page.getByRole('button', { name: c.reasonOption }).click()
