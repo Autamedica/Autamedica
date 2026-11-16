@@ -92,7 +92,10 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
       if (!row || row.status === 'deleted' || new Date(row.created_at).getTime() < new Date(createdAfter).getTime()) {
         return notFound('document_not_found')
       }
-      const link = findMemedDocumentUrl(row.digital_link_data)
+      const linkData = row.digital_link_data && typeof row.digital_link_data === 'object'
+        ? row.digital_link_data as Record<string, unknown>
+        : {}
+      const link = findMemedDocumentUrl(linkData.pdf) ?? findMemedDocumentUrl(linkData.digital) ?? findMemedDocumentUrl(linkData)
       if (!link) return notFound('memed_document_link_unavailable')
       return new Response(null, {
         status: 302,
