@@ -273,7 +273,6 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
                 ))}
               </div>
             )
-            )
           )}
         </div>
       )}
