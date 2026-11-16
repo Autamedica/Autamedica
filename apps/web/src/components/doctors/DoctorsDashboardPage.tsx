@@ -418,7 +418,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                       <button
                         onClick={() => handleStartCall(activeTelemedPatientId, activeTelemedAppt.id)}
                         disabled={isStartingCall}
-                        className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#10B981] to-[#0D9488] px-5 py-2.5 text-[13px] font-bold text-white transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-emerald-500/10"
+                        className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#38BDF8] to-[#0284C7] px-5 py-2.5 text-[13px] font-bold text-white transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-emerald-500/10"
                       >
                         {isStartingCall ? (
                           <>
@@ -448,7 +448,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                         <select
                           value={selectedAdHocPatientId}
                           onChange={(e) => setSelectedAdHocPatientId(e.target.value)}
-                          className="rounded-lg border border-neutral-800 bg-neutral-950/80 px-2.5 py-2 text-[12px] text-white focus:border-[#2DD4BF] focus:outline-none min-w-[160px] max-w-[200px]"
+                          className="rounded-lg border border-neutral-800 bg-neutral-950/80 px-2.5 py-2 text-[12px] text-white focus:border-[#38BDF8] focus:outline-none min-w-[160px] max-w-[200px]"
                         >
                           <option value="" className="bg-neutral-950 text-neutral-400">{isBrazilianDoctor ? 'Selecionar...' : 'Seleccionar...'}</option>
                           {assignedPatients.map((p: any) => {
@@ -466,7 +466,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                             type="button"
                             onClick={() => handleStartCall(selectedAdHocPatientId)}
                             disabled={isStartingCall}
-                            className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#0D9488] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#0F766E] disabled:opacity-60"
+                            className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#0284C7] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#0369A1] disabled:opacity-60"
                           >
                             {isStartingCall ? (
                               <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -491,14 +491,14 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                         type="button"
                         onClick={() => setCameraActive(!cameraActive)}
                         className={`flex h-7 w-7 items-center justify-center rounded-md border transition-all ${
-                          cameraActive ? 'border-cyan-500/30 bg-cyan-950/20 text-cyan-400' : 'border-neutral-800 bg-neutral-900 text-neutral-500'
+                          cameraActive ? 'border-sky-400/40 bg-sky-400/10 text-sky-300' : 'border-neutral-800 bg-neutral-900 text-neutral-500'
                         }`}
                         title={cameraActive ? (isBrazilianDoctor ? 'Desligar câmera' : 'Apagar cámara') : (isBrazilianDoctor ? 'Ligar câmera' : 'Encender cámara')}
                       >
                         <Camera className="h-3.5 w-3.5" />
                       </button>
                       <span className="text-[10px] font-semibold text-neutral-400">
-                        {isBrazilianDoctor ? 'Câmera' : 'Cámara'} <span className={cameraActive ? 'text-cyan-400' : 'text-neutral-500'}>{cameraActive ? 'ON' : 'OFF'}</span>
+                        {isBrazilianDoctor ? 'Câmera' : 'Cámara'} <span className={cameraActive ? 'text-sky-300' : 'text-neutral-500'}>{cameraActive ? 'ON' : 'OFF'}</span>
                       </span>
                     </div>
 
@@ -507,14 +507,14 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                         type="button"
                         onClick={() => setMicActive(!micActive)}
                         className={`flex h-7 w-7 items-center justify-center rounded-md border transition-all ${
-                          micActive ? 'border-cyan-500/30 bg-cyan-950/20 text-cyan-400' : 'border-neutral-800 bg-neutral-900 text-neutral-500'
+                          micActive ? 'border-sky-400/40 bg-sky-400/10 text-sky-300' : 'border-neutral-800 bg-neutral-900 text-neutral-500'
                         }`}
                         title={micActive ? (isBrazilianDoctor ? 'Silenciar microfone' : 'Silenciar micrófono') : (isBrazilianDoctor ? 'Ligar microfone' : 'Encender micrófono')}
                       >
                         <Mic className="h-3.5 w-3.5" />
                       </button>
                       <span className="text-[10px] font-semibold text-neutral-400">
-                        {isBrazilianDoctor ? 'Microfone' : 'Micrófono'} <span className={micActive ? 'text-cyan-400' : 'text-neutral-500'}>{micActive ? 'ON' : 'OFF'}</span>
+                        {isBrazilianDoctor ? 'Microfone' : 'Micrófono'} <span className={micActive ? 'text-sky-300' : 'text-neutral-500'}>{micActive ? 'ON' : 'OFF'}</span>
                       </span>
                     </div>
 
@@ -564,26 +564,26 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
         <DoctorOnDutyWidget careCountry={doctorCountry === 'BR' ? 'BR' : doctorCountry === 'AR' ? 'AR' : undefined} />
       </div>
 
-      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0D9488]">{isBrazilianDoctor ? 'INDICADORES CLÍNICOS' : 'MÉTRICAS CLÍNICAS'}</p>
+      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0284C7]">{isBrazilianDoctor ? 'INDICADORES CLÍNICOS' : 'MÉTRICAS CLÍNICAS'}</p>
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-xl border border-[#E2E8F0] bg-white p-3.5 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">{isBrazilianDoctor ? 'Consultas atendidas hoje' : 'Consultas atendidas hoy'}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0284C7]">{isBrazilianDoctor ? 'Consultas atendidas hoje' : 'Consultas atendidas hoy'}</p>
           <p className="mt-2 text-2xl font-bold tracking-tight text-[#0F2537]">{todayCompletedCount}</p>
           <p className="mt-1 text-xs text-slate-500">{isBrazilianDoctor ? 'Agenda e farmácia concluídas' : 'Agenda y farmacia finalizadas'}</p>
         </div>
         <div className="rounded-xl border border-[#E2E8F0] bg-white p-3.5 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">{isBrazilianDoctor ? 'Agendamentos não cancelados' : 'Citas no canceladas'}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0284C7]">{isBrazilianDoctor ? 'Agendamentos não cancelados' : 'Citas no canceladas'}</p>
           <p className="mt-2 text-2xl font-bold tracking-tight text-[#0F2537]">{activeCount}</p>
           <p className="mt-1 text-xs text-slate-500">{isBrazilianDoctor ? 'Consultas agendadas ou em andamento' : 'Consultas agendadas o en curso'}</p>
         </div>
         <div className="rounded-xl border border-[#E2E8F0] bg-white p-3.5 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">{isBrazilianDoctor ? 'Plantões de farmácia' : 'Guardias de farmacia'}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0284C7]">{isBrazilianDoctor ? 'Plantões de farmácia' : 'Guardias de farmacia'}</p>
           <p className="mt-2 text-2xl font-bold tracking-tight text-[#0F2537]">{pharmacyDispatchCount}</p>
           <p className="mt-1 text-xs text-slate-500">{isBrazilianDoctor ? 'Consultas despachadas e contabilizadas' : 'Consultas despachadas y contabilizadas'}</p>
           <p className="mt-1 text-xs font-medium text-emerald-700">{isBrazilianDoctor ? 'Hoje' : 'Hoy'}: {todayPharmacyCount} {isBrazilianDoctor ? 'concluídas' : 'completadas'}</p>
         </div>
         <div className="rounded-xl border border-[#E2E8F0] bg-white p-3.5 shadow-sm sm:col-span-1 lg:col-span-2">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">{isBrazilianDoctor ? 'Ganhos de farmácia' : 'Ganancias de farmacia'}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0284C7]">{isBrazilianDoctor ? 'Ganhos de farmácia' : 'Ganancias de farmacia'}</p>
           <div className="mt-2 flex flex-wrap items-baseline gap-x-6 gap-y-2">
             <span className="text-2xl font-bold tracking-tight text-[#0F2537]">{(pharmacyEarnings.BRL / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
             <span className="text-2xl font-bold tracking-tight text-[#0F2537]">{(pharmacyEarnings.ARS / 100).toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 2 })}</span>
@@ -591,7 +591,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
           <p className="mt-1 text-xs text-slate-500">{isBrazilianDoctor ? 'Valores líquidos registrados em BRL e ARS' : 'Importes netos registrados en BRL y ARS'}</p>
         </div>
       </div>
-      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0D9488]">{isBrazilianDoctor ? 'FERRAMENTAS CLÍNICAS' : 'HERRAMIENTAS CLÍNICAS'}</p>
+      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0284C7]">{isBrazilianDoctor ? 'FERRAMENTAS CLÍNICAS' : 'HERRAMIENTAS CLÍNICAS'}</p>
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <a href="/doctors/prescriptions" className="flex items-center gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm transition hover:border-sky-200 hover:shadow-md">
           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-sky-50 text-sky-700"><FileText className="h-5 w-5" /></span>
