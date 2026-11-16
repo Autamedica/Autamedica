@@ -96,5 +96,5 @@ export interface PatientPrescription {
     artifact_warning: string | null;
     is_digital_artifact_ready: boolean;
     requires_strict_validation: boolean;
-    source: 'legacy' | 'prescriptions_core';
+    source: 'legacy' | 'prescriptions_core' | 'memed_br';
 }
