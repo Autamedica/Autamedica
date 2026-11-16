@@ -11,6 +11,8 @@ import { useCallback, useEffect, useState } from 'react'
 
 interface MedicalHistoryApiResponse {
   prescriptions?: unknown[]
+  certificates?: unknown[]
+  orders?: unknown[]
   summary: {
     medications: unknown[]
     conditions: unknown[]
