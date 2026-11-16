@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { fetchApi } from '@/lib/api-client'
 import {
   CheckCircle2,
-  FileText,
   MessageCircle,
   X,
 } from 'lucide-react'
