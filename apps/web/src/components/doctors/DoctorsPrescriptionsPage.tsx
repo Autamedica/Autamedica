@@ -445,8 +445,8 @@ export function DoctorsPrescriptionsPage() {
 
   const handleCreateDraft = async (
     p: PrescriptionDraftForm,
-  ): Promise<{ id: string }> => {
-    const id = await createDraft({
+  ): Promise<{ id: string; patient_id: string | null }> => {
+    const created = await createDraft({
       patient_id: selectedPatientId ?? undefined,
       external_patient: p.external_patient,
       medication_name: p.medication_name,
@@ -460,7 +460,10 @@ export function DoctorsPrescriptionsPage() {
       start_date: p.start_date,
       end_date: p.end_date,
     });
-    return { id, ...p };
+    if (created.patient_id && created.patient_id !== selectedPatientId) {
+      setSelectedPatientId(created.patient_id);
+    }
+    return { id: created.id, patient_id: created.patient_id, ...p };
   };
 
   return (
