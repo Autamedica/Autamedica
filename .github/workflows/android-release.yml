@@ -472,9 +472,6 @@ jobs:
           elif [ "${{ steps.play_upload.outcome }}" = "success" ]; then
             echo "- **Estado:** ✅ Google Play aceptó y confirmó la edición." >> $GITHUB_STEP_SUMMARY
             echo "- **Pista:** \`${{ github.event_name == 'push' && 'internal' || github.event.inputs.track || 'internal' }}\`" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ 'failure' }}" = "success" ]; then
-            echo "- **Estado:** ✅ Google Play aceptó la edición en la pista interna." >> $GITHUB_STEP_SUMMARY
-            echo "- **Pista:** \`internal\`" >> $GITHUB_STEP_SUMMARY
           else
             echo "- **Estado:** ❌ Google Play rechazó la confirmación de la edición; la publicación no se completó." >> $GITHUB_STEP_SUMMARY
             echo "- **Bloqueo detectado:** falta completar App content > Foreground service permissions en Play Console." >> $GITHUB_STEP_SUMMARY
