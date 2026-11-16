@@ -63,7 +63,8 @@ describe('generatePrescriptionPdf', () => {
     expect(pdfText).not.toContain('Este documento ha sido firmado');
     expect(pdfText).toContain('500mg');
     expect(pdfText).toContain('Comprimidos');
-    expect(pdfText).toContain('Fecha de registro: 11/05/2026');
+    expect(pdfText).toContain('Emitida: 11/05/2026  |  Vence: 10/06/2026');
+    // Deterministic issuedAt fixture; Paracetamol uses the standard 30-day validity period.
     expect(pdfText).toContain('Identificador verificable de receta electrónica');
     expect(pdfText).toContain(
       'Esta receta fue creada por un emisor inscripto y validado en el Registro de Recetarios Electrónicos',
