@@ -17,6 +17,7 @@ import GuestCallPage from '@/components/calls/GuestCallPage'
 import { JordanPaymentWidget } from './JordanPaymentWidget'
 import { LiveMedicalPresenceRadar } from './LiveMedicalPresenceRadar'
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
+import { validCpf } from '@/lib/prescriptions/brazil/cpf'
 
 interface PharmacyExpressConsultationProps {
   pharmacyId?: string | null
@@ -244,8 +245,8 @@ export function PharmacyExpressConsultation({
       return
     }
     const documentNumber = formData.dni.replace(/\D/g, '')
-    if (formData.careCountry === 'BR' ? documentNumber.length !== 11 : documentNumber.length < 5 || documentNumber.length > 10) {
-      setFormError(formData.careCountry === 'BR' ? 'Digite um CPF com 11 dígitos.' : 'Ingresá un DNI válido.')
+    if (formData.careCountry === 'BR' ? !validCpf(documentNumber) : documentNumber.length < 5 || documentNumber.length > 10) {
+      setFormError(formData.careCountry === 'BR' ? 'Informe os 11 dígitos válidos do CPF.' : 'Ingresá un DNI válido.')
       return
     }
     if (!formData.name.trim() || formData.name.trim().length < 3) {
