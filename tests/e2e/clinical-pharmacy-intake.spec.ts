@@ -19,7 +19,7 @@ test.describe('Pharmacy intake AR/BR clinical country', () => {
     { country: 'AR', countryLabel: 'Argentina', idLabel: 'DNI', nameLabel: 'Nombre y apellido', reasonOption: 'Dolor / malestar', submitLabel: 'Continuar',
       document: '38123456', phone: '+5491122223333', docField: 'patientDni', absentField: 'patientCpf' },
     { country: 'BR', countryLabel: 'Brasil', idLabel: 'CPF', nameLabel: 'Nome completo', reasonOption: 'Dor / mal-estar', submitLabel: 'Iniciar consulta',
-      document: '12345678909', phone: '+5551999998888', docField: 'patientCpf', absentField: 'patientDni' },
+      document: '11144477735', phone: '+5551999998888', docField: 'patientCpf', absentField: 'patientDni' },
   ] as const
 
   for (const c of cases) {
