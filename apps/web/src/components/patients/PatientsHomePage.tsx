@@ -373,7 +373,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
       >
         <div className="max-w-7xl mx-auto px-6 lg:px-12 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="size-9 rounded-full bg-sky-500 flex items-center justify-center text-white text-sm font-medium">
+            <div className="size-9 rounded-full bg-[#10B981] flex items-center justify-center text-white text-sm font-medium">
               {firstName.charAt(0).toUpperCase()}
             </div>
             <div className="flex items-center gap-2">
@@ -383,7 +383,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   reserveData.subscription_tier === 'cuidado'
                     ? reserveData.subscription_status === 'past_due'
                       ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                      : 'bg-cyan-50 text-cyan-700 border border-cyan-200'
+                      : 'bg-emerald-50 text-emerald-700 border border-cyan-200'
                     : 'bg-neutral-100 text-neutral-600'
                 }`}>
                   {reserveData.subscription_tier === 'cuidado' ? (
@@ -490,7 +490,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             <button type="button" className="relative p-2 hover:bg-neutral-50 rounded-lg transition-colors">
               <Bell className="size-5 text-neutral-600" />
               {hasUpcomingAppointment && (
-                <span className="absolute top-1.5 right-1.5 size-1.5 bg-sky-500 rounded-full" />
+                <span className="absolute top-1.5 right-1.5 size-1.5 bg-[#10B981] rounded-full" />
               )}
             </button>
 
@@ -788,7 +788,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             <div>
               <motion.div
                 className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium mb-6 ${
-                  !anamnesisCompleted ? 'bg-sky-50 text-sky-700' : 'bg-cyan-50 text-cyan-700'
+                  !anamnesisCompleted ? 'bg-emerald-50 text-emerald-700' : 'bg-emerald-50 text-emerald-700'
                 }`}
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -897,7 +897,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 </div>
                 <div className="h-1 bg-neutral-100 rounded-full overflow-hidden">
                   <motion.div
-                    className="h-full bg-sky-500 rounded-full"
+                    className="h-full bg-[#10B981] rounded-full"
                     initial={{ width: 0 }}
                     whileInView={{ width: `${Math.min((freeConsults / 5) * 100, 100)}%` }}
                     viewport={{ once: true }}
@@ -917,7 +917,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               viewport={{ once: true, margin: "-100px" }}
             >
               <motion.div
-                className="inline-flex items-center gap-2 px-3 py-1.5 bg-neutral-900 text-white rounded-full text-xs font-medium mb-8"
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#0F2537] text-white rounded-full text-xs font-medium mb-8"
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
@@ -990,7 +990,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   viewport={{ once: true }}
                   transition={{ delay: 0.4 }}
                 >
-                  <div className="size-32 rounded-full bg-sky-100 flex items-center justify-center">
+                  <div className="size-32 rounded-full bg-emerald-100 flex items-center justify-center">
                     <Calendar className="size-16 text-sky-600" />
                   </div>
                 </motion.div>
