@@ -40,9 +40,21 @@ BEGIN
     RAISE EXCEPTION 'No-doctor search must persist in its country-specific queue';
   END IF;
 
+  -- The production matcher enforces payment-first before looking for a
+  -- clinician. Verify that contract, then disable the gate only inside this
+  -- rollback-only fixture to exercise the persistent no-doctor queue.
+  SELECT public.match_dispatch_doctors(v_ar) INTO v_result;
+  IF v_result->>'code' <> 'COUNTRY_PAYMENT_REQUIRED' THEN
+    RAISE EXCEPTION 'Unpaid AR request bypassed payment-first dispatch: %',v_result;
+  END IF;
+
+  UPDATE public.pharmacy_dispatch_pricing_configs
+  SET require_payment_before_dispatch=false
+  WHERE country_code='AR';
+
   SELECT public.match_dispatch_doctors(v_ar) INTO v_result;
   IF v_result->>'code' <> 'WAITING_FOR_COUNTRY_DOCTOR' THEN
-    RAISE EXCEPTION 'Unexpected no-doctor result: %',v_result;
+    RAISE EXCEPTION 'Unexpected no-doctor result after test-only payment override: %',v_result;
   END IF;
 
   -- Activate one synthetic AR physician; his live heartbeat must trigger
