@@ -66,6 +66,7 @@ describe('Memed patient authorization', () => {
       idExterno: `autamedica-${patientId}`,
       nome: 'Synthetic Guest',
       cpf: '52998224725',
+      telefone: '+5551999991111',
     });
   });
 
