@@ -22,6 +22,8 @@ import {
   ArrowUpRight,
   Calendar,
   FileText,
+  Pill,
+  FileCheck,
   Users,
   Video,
   AlertCircle,
@@ -579,72 +581,54 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
       </div>
 
       <section aria-labelledby="clinical-actions-title" className="mb-6">
-        <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#0284C7]">
-              {isBrazilianDoctor ? "FERRAMENTAS CLÍNICAS" : "HERRAMIENTAS CLÍNICAS"}
-            </p>
-            <h2
-              id="clinical-actions-title"
-              className="mt-1 text-lg font-bold tracking-tight text-[#0F2537] sm:text-xl"
-            >
-              {isBrazilianDoctor ? "Receitas e atestados" : "Recetas y atestados"}
-            </h2>
-          </div>
-          <p className="text-xs text-slate-500">
-            {isBrazilianDoctor
-              ? "Ações essenciais sempre à mão"
-              : "Accesos directos a las tareas clínicas esenciales"}
-          </p>
+        <div className="mb-4">
+          <h2
+            id="clinical-actions-title"
+            className="text-xl font-bold tracking-tight text-[#0F2537] sm:text-2xl"
+          >
+            {isBrazilianDoctor ? "Ações rápidas" : "Acciones rápidas"}
+          </h2>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <a
             href="/doctors/prescriptions?mode=prescriptions&new=1"
-            aria-label={isBrazilianDoctor ? "Abrir receitas digitais" : "Abrir recetas digitales"}
-            className="group flex min-h-[104px] min-w-0 items-center gap-3 rounded-2xl border-2 border-sky-200 bg-gradient-to-br from-sky-50 to-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-400 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200 active:translate-y-0 sm:p-5"
+            aria-label={isBrazilianDoctor ? "Nova receita" : "Nueva receta"}
+            className="group flex min-h-[280px] min-w-0 flex-col rounded-[26px] border border-sky-100 bg-[#E8F5FD] p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200 active:translate-y-0 sm:min-h-[300px] sm:p-6"
           >
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#0284C7] text-white shadow-sm sm:h-14 sm:w-14">
-              <FileText className="h-6 w-6 sm:h-7 sm:w-7" />
+            <span className="mb-5 flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] bg-[#D5ECFC] text-[#087FB9]">
+              <Pill aria-hidden="true" className="h-9 w-9" strokeWidth={2.2} />
             </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-base font-bold leading-tight text-[#0F2537] sm:text-lg">
-                {isBrazilianDoctor ? "Receita Digital" : "Recetas digitales"}
-              </span>
-              <span className="mt-1 block text-xs leading-snug text-slate-600 sm:text-sm">
-                {isBrazilianDoctor
-                  ? "Criar e gerenciar receitas"
-                  : "Crear y gestionar recetas digitales"}
-              </span>
-              <span className="mt-2 inline-flex min-h-8 items-center gap-1 text-xs font-bold text-[#0284C7]">
-                {isBrazilianDoctor ? "Abrir receitas" : "Abrir recetas"}{" "}
-                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-              </span>
+            <span className="block text-2xl font-bold leading-tight tracking-tight text-[#123F5A] sm:text-[28px]">
+              {isBrazilianDoctor ? "Receita" : "Receta"}
             </span>
-            <ArrowUpRight className="h-5 w-5 shrink-0 text-[#0284C7]" />
+            <span className="mt-3 block text-base leading-relaxed text-[#405B6C] sm:text-lg">
+              {isBrazilianDoctor ? "Prescrever e enviar" : "Prescribir y enviar"}
+            </span>
+            <span className="mt-auto flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#087FB9] px-4 py-3 text-base font-semibold text-white shadow-sm transition-colors group-hover:bg-[#066FA5] sm:text-lg">
+              <span>{isBrazilianDoctor ? "Nova receita" : "Nueva receta"}</span>
+              <ArrowRight aria-hidden="true" className="h-5 w-5 shrink-0 transition-transform group-hover:translate-x-1" />
+            </span>
           </a>
+
           <a
             href="/doctors/prescriptions?document=certificate"
-            aria-label={isBrazilianDoctor ? "Emitir atestado médico" : "Emitir certificado médico"}
-            className="group flex min-h-[104px] min-w-0 items-center gap-3 rounded-2xl border-2 border-sky-200 bg-gradient-to-br from-[#E0F2FE] to-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-400 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200 active:translate-y-0 sm:p-5"
+            aria-label={isBrazilianDoctor ? "Novo atestado" : "Nuevo atestado"}
+            className="group flex min-h-[280px] min-w-0 flex-col rounded-[26px] border border-sky-100 bg-[#E8F5FD] p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200 active:translate-y-0 sm:min-h-[300px] sm:p-6"
           >
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#0369A1] text-white shadow-sm sm:h-14 sm:w-14">
-              <CheckCircle2 className="h-6 w-6 sm:h-7 sm:w-7" />
+            <span className="mb-5 flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] bg-[#D5ECFC] text-[#087FB9]">
+              <FileCheck aria-hidden="true" className="h-9 w-9" strokeWidth={2.2} />
             </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-base font-bold leading-tight text-[#0F2537] sm:text-lg">
-                {isBrazilianDoctor ? "Atestado" : "Atestados médicos"}
-              </span>
-              <span className="mt-1 block text-xs leading-snug text-slate-600 sm:text-sm">
-                {isBrazilianDoctor
-                  ? "Emitir e consultar atestados"
-                  : "Emitir y consultar certificados médicos"}
-              </span>
-              <span className="mt-2 inline-flex min-h-8 items-center gap-1 text-xs font-bold text-[#0284C7]">
-                {isBrazilianDoctor ? "Emitir atestado" : "Emitir certificado"}{" "}
-                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-              </span>
+            <span className="block text-2xl font-bold leading-tight tracking-tight text-[#123F5A] sm:text-[28px]">
+              {isBrazilianDoctor ? "Atestado" : "Atestado"}
             </span>
-            <ArrowUpRight className="h-5 w-5 shrink-0 text-[#0284C7]" />
+            <span className="mt-3 block text-base leading-relaxed text-[#405B6C] sm:text-lg">
+              {isBrazilianDoctor ? "Criar e enviar" : "Crear y enviar"}
+            </span>
+            <span className="mt-auto flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#087FB9] px-4 py-3 text-base font-semibold text-white shadow-sm transition-colors group-hover:bg-[#066FA5] sm:text-lg">
+              <span>{isBrazilianDoctor ? "Novo atestado" : "Nuevo atestado"}</span>
+              <ArrowRight aria-hidden="true" className="h-5 w-5 shrink-0 transition-transform group-hover:translate-x-1" />
+            </span>
           </a>
         </div>
       </section>
