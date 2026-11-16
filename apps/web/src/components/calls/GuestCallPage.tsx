@@ -1,6 +1,7 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { fetchApi } from '@/lib/api-client'
 import {
   CheckCircle2,
   FileText,
@@ -15,7 +16,14 @@ import PatientWaitingRoom from '@/components/calls/PatientWaitingRoom'
 
 interface GuestCallPageProps {
   roomId: string
+  dispatchId?: string
+  guestToken?: string
   language?: 'pt' | 'es'
+}
+
+type EncounterDocument = {
+  id: string; kind: 'memed' | 'core' | 'certificate'; title: string; provider: string;
+  createdAt: string; status: string; verificationCode: string | null; downloadUrl: string;
 }
 
 export interface CallEndedScreenProps {
@@ -23,6 +31,7 @@ export interface CallEndedScreenProps {
   clinicName?: string
   language?: 'pt' | 'es'
   whatsappUrl?: string
+  documents?: EncounterDocument[]
 }
 
 const CALL_ENDED_I18N = {
@@ -31,10 +40,10 @@ const CALL_ENDED_I18N = {
     title: 'Consulta Concluída',
     subtitle: (doctor: string) => `Atendimento médico realizado por ${doctor}`,
     prescriptionTitle: 'Receita Médica Digital (ICP-Brasil)',
-    prescriptionDesc: 'Enviada ao seu WhatsApp e SMS cadastrados.',
+    prescriptionDesc: 'Os documentos emitidos nesta consulta aparecem abaixo.',
     prescriptionBadge: 'Assinada digitalmente',
-    continuityTitle: 'Acompanhamento Clínico em 48h',
-    continuityDesc: 'Em 48 horas enviaremos uma mensagem automática pelo WhatsApp para checar sua evolução clínica e sintomas.',
+    continuityTitle: 'Documentos da consulta',
+    continuityDesc: 'Abra ou compartilhe os documentos emitidos durante o atendimento.',
     continuityBadge: 'Linha de cuidado',
     btnWhatsApp: 'Voltar para o WhatsApp',
     btnClose: 'Fechar Janela',
@@ -45,10 +54,10 @@ const CALL_ENDED_I18N = {
     title: 'Consulta Concluida',
     subtitle: (doctor: string) => `Atención médica realizada por ${doctor}`,
     prescriptionTitle: 'Receta Médica Digital',
-    prescriptionDesc: 'Enviada a tu WhatsApp y SMS registrados.',
+    prescriptionDesc: 'Los documentos emitidos en esta consulta aparecen abajo.',
     prescriptionBadge: 'Firmada digitalmente',
-    continuityTitle: 'Seguimiento Clínico en 48h',
-    continuityDesc: 'En 48 horas enviaremos un mensaje automático por WhatsApp para chequear tu evolución clínica y síntomas.',
+    continuityTitle: 'Documentos de la consulta',
+    continuityDesc: 'Abrí o compartí los documentos emitidos durante la atención.',
     continuityBadge: 'Línea de cuidado',
     btnWhatsApp: 'Volver al WhatsApp',
     btnClose: 'Cerrar Ventana',
@@ -61,6 +70,7 @@ export function CallEndedScreen({
   clinicName = 'AutaMedica',
   language = 'pt',
   whatsappUrl = 'https://wa.me/',
+  documents = [],
 }: CallEndedScreenProps) {
   const t = CALL_ENDED_I18N[language] || CALL_ENDED_I18N.pt
 
@@ -114,53 +124,34 @@ export function CallEndedScreen({
             {t.subtitle(doctorName)}
           </p>
 
-          {/* ── Section: Cards ── */}
+          {/* ── Issued encounter documents ── */}
           <div className="w-full space-y-3 mt-6 text-left">
-            {/* Card 1: Receita Médica Digital (ICP-Brasil) */}
-            <div className="w-full rounded-2xl border border-slate-200 bg-slate-50/70 p-4 transition-colors hover:border-am-primary-500/40">
-              <div className="flex items-start gap-3.5">
-                <div className="p-2.5 rounded-xl bg-sky-50 border border-sky-100 text-sky-600 flex-shrink-0 mt-0.5">
-                  <FileText className="w-5 h-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
-                    <h2 className="text-xs sm:text-sm font-semibold text-slate-900">
-                      {t.prescriptionTitle}
-                    </h2>
-                    <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                      <CheckCircle2 className="w-3 h-3" />
-                      {t.prescriptionBadge}
-                    </span>
+            {documents.length > 0 ? documents.map((document) => {
+              const href = new URL(document.downloadUrl, window.location.origin).toString()
+              const share = `https://wa.me/?text=${encodeURIComponent(`${document.title} · AutaMedica: ${href}`)}`
+              return (
+                <article key={document.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h2 className="text-sm font-semibold text-slate-900">
+                        {document.kind === 'certificate' ? (language === 'pt' ? 'Atestado / Certificado Médico' : 'Atestado / Certificado Médico') : document.kind === 'memed' ? 'Receita Digital Memed' : 'Receta Digital RCTA'}
+                      </h2>
+                      <p className="mt-1 truncate text-xs text-slate-600">{document.title} · {document.provider}</p>
+                      {document.verificationCode && <p className="mt-1 text-[11px] text-slate-500">{language === 'pt' ? 'Código de verificação' : 'Código de verificación'}: <span className="font-mono font-semibold text-slate-800">{document.verificationCode}</span></p>}
+                    </div>
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
                   </div>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    {t.prescriptionDesc}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Card 2: Acompanhamento Clínico 48h (Línea 4 de Eduardo) */}
-            <div className="w-full rounded-2xl border border-slate-200 bg-slate-50/70 p-4 transition-colors hover:border-am-primary-500/40">
-              <div className="flex items-start gap-3.5">
-                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex-shrink-0 mt-0.5">
-                  <HeartPulse className="w-5 h-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
-                    <h2 className="text-xs sm:text-sm font-semibold text-slate-900">
-                      {t.continuityTitle}
-                    </h2>
-                    <span className="inline-flex items-center gap-1 text-[10px] font-mono text-am-primary-300 bg-white px-2 py-0.5 rounded-md border border-slate-200">
-                      <Activity className="w-3 h-3 text-am-primary-400" />
-                      {t.continuityBadge}
-                    </span>
+                  <div className="mt-3 flex gap-2">
+                    <a href={href} target="_blank" rel="noreferrer" className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl bg-[#10B981] px-3 text-xs font-semibold text-white hover:bg-[#0D9488]">{language === 'pt' ? 'Abrir documento' : 'Abrir documento'}</a>
+                    <a href={share} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700">{language === 'pt' ? 'Compartilhar' : 'Compartir'}</a>
                   </div>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    {t.continuityDesc}
-                  </p>
-                </div>
-              </div>
-            </div>
+                </article>
+              )
+            }) : (
+              <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
+                {language === 'pt' ? 'Nenhum documento foi emitido nesta consulta.' : 'No se emitieron documentos en esta consulta.'}
+              </p>
+            )}
           </div>
 
           {/* ── Action Buttons ── */}
@@ -213,9 +204,10 @@ function LoadingScreen({ language }: { language: 'pt' | 'es' }) {
     </div>
   )
 }
-export default function GuestCallPage({ roomId, language: requestedLanguage }: GuestCallPageProps) {
+export default function GuestCallPage({ roomId, dispatchId, guestToken, language: requestedLanguage }: GuestCallPageProps) {
   const [ended, setEnded] = useState(false)
   const [inWaitingRoom, setInWaitingRoom] = useState(true)
+  const [documents, setDocuments] = useState<EncounterDocument[]>([])
 
   const { token, inviteId } = useMemo(() => {
     if (typeof window === 'undefined') return { token: null, inviteId: null }
@@ -244,6 +236,30 @@ export default function GuestCallPage({ roomId, language: requestedLanguage }: G
 
   const { session: callSession, loading, error } = useGuestCallSession(roomId, token, inviteId)
 
+  useEffect(() => {
+    if (!ended || !dispatchId || !(guestToken || token)) return
+    let current = true
+    let attempts = 0
+    const loadDocuments = async () => {
+      attempts += 1
+      try {
+        const accessToken = guestToken || token
+        const response = await fetchApi<{ documents?: EncounterDocument[] }>(
+          `/api/pharmacy/dispatch/${encodeURIComponent(dispatchId)}?token=${encodeURIComponent(accessToken!)}`,
+        )
+        if (current && Array.isArray(response.documents)) setDocuments(response.documents)
+      } catch {
+        // The dispatch may still be transitioning to completed; retry briefly.
+      }
+    }
+    void loadDocuments()
+    const timer = window.setInterval(() => {
+      if (attempts >= 12) { window.clearInterval(timer); return }
+      void loadDocuments()
+    }, 2500)
+    return () => { current = false; window.clearInterval(timer) }
+  }, [ended, dispatchId, guestToken, token])
+
   const callProvider = useMemo(
     () => callSession
       ? createCallProvider({
@@ -263,6 +279,7 @@ export default function GuestCallPage({ roomId, language: requestedLanguage }: G
         clinicName="AutaMedica"
         language={language}
         whatsappUrl={whatsappUrl}
+        documents={documents}
       />
     )
   }
