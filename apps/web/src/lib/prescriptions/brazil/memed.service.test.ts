@@ -206,6 +206,56 @@ describe('MemedService', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('retrieves the patient digital prescription link and full PDF URL with the doctor token', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: { attributes: {
+          url: 'https://receita.memed.com.br/prescription/901',
+          unlock_code: 'A1B2C3',
+        } } }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: { attributes: {
+          url: 'https://files.memed.com.br/documents/901.pdf',
+        } } }),
+      });
+    vi.stubGlobal('fetch', fetchMock);
+    const service = new MemedService({
+      MEMED_API_KEY: 'test-api-key',
+      MEMED_SECRET_KEY: 'test-secret-key',
+    });
+
+    const link = await service.getDigitalPrescriptionLink('901', 'doctor-token');
+    const pdf = await service.getFullPrescriptionPdfUrl('901', 'doctor-token');
+
+    expect(link).toMatchObject({ data: { attributes: {
+      url: 'https://receita.memed.com.br/prescription/901',
+      unlock_code: 'A1B2C3',
+    } } });
+    expect(pdf).toMatchObject({ data: { attributes: {
+      url: 'https://files.memed.com.br/documents/901.pdf',
+    } } });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(String(fetchMock.mock.calls[0][0])).toContain('/prescricoes/901/get-digital-prescription-link?token=doctor-token');
+    expect(String(fetchMock.mock.calls[1][0])).toContain('/prescricoes/901/url-document/full?token=doctor-token');
+    for (const [, options] of fetchMock.mock.calls) {
+      expect(options).toMatchObject({ redirect: 'error', cache: 'no-store' });
+    }
+  });
+
+  it('rejects invalid IDs and missing doctor tokens for document retrieval', async () => {
+    const service = new MemedService({
+      MEMED_API_KEY: 'test-api-key',
+      MEMED_SECRET_KEY: 'test-secret-key',
+    });
+    await expect(service.getDigitalPrescriptionLink('../901', 'doctor-token'))
+      .rejects.toThrow('memed_invalid_prescription_id');
+    await expect(service.getFullPrescriptionPdfUrl('901', ''))
+      .rejects.toThrow('memed_missing_doctor_token');
+  });
+
   it('rejects prescription IDs with path traversal characters', async () => {
     const service = new MemedService({
       MEMED_API_KEY: 'test-api-key',
