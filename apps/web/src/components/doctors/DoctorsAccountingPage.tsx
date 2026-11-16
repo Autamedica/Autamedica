@@ -49,6 +49,22 @@ interface DoctorEarning {
   appointment_id: string | null;
 }
 
+interface EarningsCurrencySummary {
+  pending: number;
+  paid: number;
+  cancelled: number;
+  refunded: number;
+  accrued: number;
+}
+
+interface EarningsSummary {
+  BRL: EarningsCurrencySummary;
+  ARS: EarningsCurrencySummary;
+  completedDispatchCount: number;
+  totalCount: number;
+  historyTruncated: boolean;
+}
+
 interface DashboardData {
   profile: DoctorFiscalProfile | null;
   income: IncomeRecord[];
@@ -126,6 +142,7 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [earnings, setEarnings] = useState<DoctorEarning[]>([]);
+  const [earningsSummary, setEarningsSummary] = useState<EarningsSummary | null>(null);
   const [earningsLoading, setEarningsLoading] = useState(true);
   const [earningsError, setEarningsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -247,8 +264,21 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
     setEarningsLoading(true);
     setEarningsError(null);
     try {
-      const result = await fetchApi<{ earnings: DoctorEarning[] }>('/api/doctors/accounting/earnings');
+      const result = await fetchApi<{
+        earnings: DoctorEarning[];
+        summary: Pick<EarningsSummary, 'BRL' | 'ARS'>;
+        completedDispatchCount: number;
+        totalCount: number;
+        historyTruncated: boolean;
+      }>('/api/doctors/accounting/earnings');
       setEarnings(result.earnings ?? []);
+      setEarningsSummary({
+        BRL: result.summary.BRL,
+        ARS: result.summary.ARS,
+        completedDispatchCount: result.completedDispatchCount,
+        totalCount: result.totalCount,
+        historyTruncated: result.historyTruncated,
+      });
     } catch (err) {
       setEarningsError(err instanceof Error ? err.message : 'No se pudieron cargar los honorarios');
     } finally {
@@ -607,13 +637,19 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
           ) : (
             <>
               <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {Array.from(new Set(earnings.map((earning) => earning.currency))).map((currency) => {
+                {(['BRL', 'ARS'] as const).filter((currency) =>
+                  earnings.some((earning) => earning.currency === currency)
+                  || (earningsSummary?.[currency]?.accrued ?? 0) > 0
+                  || (earningsSummary?.[currency]?.cancelled ?? 0) > 0
+                  || (earningsSummary?.[currency]?.refunded ?? 0) > 0
+                ).map((currency) => {
                   const currencyRows = earnings.filter((earning) => earning.currency === currency);
-                  const pending = currencyRows.filter((earning) => earning.status === 'pending')
+                  const totals = earningsSummary?.[currency];
+                  const pending = totals?.pending ?? currencyRows.filter((earning) => earning.status === 'pending')
                     .reduce((sum, earning) => sum + earning.net_amount, 0);
-                  const paid = currencyRows.filter((earning) => earning.status === 'paid')
+                  const paid = totals?.paid ?? currencyRows.filter((earning) => earning.status === 'paid')
                     .reduce((sum, earning) => sum + earning.net_amount, 0);
-                  const historical = pending + paid;
+                  const historical = totals?.accrued ?? pending + paid;
                   const label = currency === 'BRL' ? 'Brasil · BRL' : 'Argentina · ARS';
                   return (
                     <div key={currency} className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-3.5">
@@ -629,7 +665,7 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
                         </div>
                       </div>
                       <div className="mt-3 border-t border-am-surface-200 pt-2">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-am-surface-500">{isPortuguese ? 'Histórico acumulado' : 'Histórico acumulado'}</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-am-surface-500">{isPortuguese ? 'Total histórico creditado' : 'Total histórico acreditado'}</p>
                         <p className="mt-1 text-lg font-bold text-am-surface-900">{formatEarningCurrency(historical, currency)}</p>
                       </div>
                     </div>
@@ -638,13 +674,21 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
                 <div className="rounded-xl border border-am-surface-200 bg-white p-3.5">
                   <p className="text-xs font-semibold uppercase tracking-wide text-am-surface-500">{isPortuguese ? 'Plantões concluídos' : 'Guardias completadas'}</p>
                   <p className="mt-2 text-2xl font-bold text-am-surface-900">
-                    {new Set(earnings
-                      .filter((earning) => Boolean(earning.dispatch_request_id) && ['pending', 'paid'].includes(earning.status))
+                    {earningsSummary?.completedDispatchCount ?? new Set(earnings
+                      .filter((earning) => Boolean(earning.dispatch_request_id))
                       .map((earning) => earning.dispatch_request_id)).size}
                   </p>
                   <p className="mt-1 text-xs text-am-surface-500">{isPortuguese ? 'Consultas de farmácia registradas' : 'Consultas de farmacia registradas'}</p>
                 </div>
               </div>
+              <p className="mb-2 text-[11px] text-am-surface-500">
+                {isPortuguese
+                  ? `Mostrando os ${earnings.length} movimentos mais recentes de ${earningsSummary?.totalCount ?? earnings.length} registros.`
+                  : `Mostrando los ${earnings.length} movimientos más recientes de ${earningsSummary?.totalCount ?? earnings.length} registros.`}
+                {earningsSummary?.historyTruncated
+                  ? (isPortuguese ? ' Resumo limitado a 50.000 movimentos.' : ' Resumen limitado a 50.000 movimientos.')
+                  : ''}
+              </p>
 
               <div className="overflow-x-auto rounded-xl border border-am-surface-200">
                 <table className="w-full min-w-[620px] text-left text-sm">
