@@ -122,19 +122,52 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
 
     if (kind === 'core') {
       const { data: row, error } = await admin.from('prescriptions')
-        .select('id,patient_id,doctor_id,status,cuir,signed_pdf_url,created_at')
+        .select('id,patient_id,doctor_id,status,cuir,signature_method,created_at')
         .eq('id', recordId).eq('patient_id', dispatch.patient_id)
         .eq('doctor_id', dispatch.assigned_doctor_id).maybeSingle()
       if (error) return internalError()
-      if (!row || new Date(row.created_at).getTime() < new Date(createdAfter).getTime()) {
+      if (!row || row.status !== 'active' || !row.cuir
+        || row.signature_method !== 'ac_external'
+        || new Date(row.created_at).getTime() < new Date(createdAfter).getTime()) {
         return notFound('document_not_found')
       }
-      const stored = String(row.signed_pdf_url ?? '')
-      const external = safeExternalDocumentUrl(stored, /(^|[.])(supabase[.]co|autamedica[.]com|autamedica[.]com[.]br)$/i)
-      if (external) {
-        return new Response(null, { status: 302, headers: { Location: external, 'Cache-Control': 'private, no-store' } })
+
+      // Match the clinical prescription PDF endpoint: guest delivery requires
+      // the actual PAdES audit evidence and verified document hash, never a
+      // long-lived Supabase signed URL from the database row.
+      const [{ data: signatureEvent, error: signatureError }, { data: issueEvent, error: issueError }] = await Promise.all([
+        admin.from('prescription_audit_events').select('signature_hash,metadata')
+          .eq('prescription_id', recordId).eq('event_type', 'ACT_DIGITAL_SIGNATURE')
+          .order('timestamp', { ascending: false }).limit(1).maybeSingle(),
+        admin.from('prescription_audit_events').select('signature_hash,metadata')
+          .eq('prescription_id', recordId).eq('event_type', 'issued')
+          .order('timestamp', { ascending: false }).limit(1).maybeSingle(),
+      ])
+      if (signatureError || issueError) return internalError()
+      const signatureMeta = signatureEvent?.metadata as Record<string, unknown> | null
+      const issueMeta = issueEvent?.metadata as Record<string, unknown> | null
+      const hash = signatureEvent?.signature_hash
+      const path = String(issueMeta?.pdfPath ?? '')
+      if (!hash || issueMeta?.signature_hash !== hash
+        || signatureMeta?.method !== 'PAdES_AC_EXTERNAL'
+        || signatureMeta?.document_hash !== hash
+        || !path.startsWith(`prescriptions/${row.cuir}/`) || !path.endsWith('.pdf')) {
+        return forbidden('prescription_signature_evidence_invalid')
       }
-      return serveStoragePdf(admin, stored, `receita-${recordId}.pdf`)
+      const { data: pdf, error: downloadError } = await admin.storage.from('medical-documents').download(path)
+      if (downloadError || !pdf) return notFound('signed_pdf_missing')
+      const pdfBytes = new Uint8Array(await pdf.arrayBuffer())
+      const digest = await crypto.subtle.digest('SHA-256', pdfBytes)
+      const actualHash = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
+      if (actualHash !== hash) return forbidden('prescription_pdf_integrity_mismatch')
+      return new Response(pdfBytes.buffer, {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `inline; filename="receita-${recordId}.pdf"`,
+          'Cache-Control': 'private, no-store, max-age=0',
+          'X-Content-Type-Options': 'nosniff',
+        },
+      })
     }
 
     const { data: certificate, error } = await admin.from('medical_certificates')
