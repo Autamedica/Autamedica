@@ -43,26 +43,6 @@ function findMemedDocumentUrl(value: unknown, depth = 0): string | null {
   return null
 }
 
-async function serveStoragePdf(
-  admin: SupabaseClient,
-  path: string,
-  filename: string,
-): Promise<Response> {
-  if (!path || path.startsWith('/') || path.split('/').some((part) => part === '..')) {
-    return notFound('document_pdf_unavailable')
-  }
-  const { data, error } = await admin.storage.from('medical-documents').download(path)
-  if (error || !data) return notFound('document_pdf_unavailable')
-  return new Response(await data.arrayBuffer(), {
-    headers: {
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `inline; filename="${filename}"`,
-      'Cache-Control': 'private, no-store, max-age=0',
-      'X-Content-Type-Options': 'nosniff',
-    },
-  })
-}
-
 /** Guest-token/session scoped PDF delivery for a pharmacy dispatch encounter. */
 export const GET: APIRoute = async ({ params, request, locals }) => {
   const dispatchId = params.id?.trim()
