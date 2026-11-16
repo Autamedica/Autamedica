@@ -274,7 +274,7 @@ export class MemedService {
     if (!/^[a-zA-Z0-9-]{1,80}$/.test(id)) throw new Error('memed_invalid_prescription_id');
     if (!doctorToken) throw new Error('memed_missing_doctor_token');
 
-    const apiBase = this.config.apiUrl.replace(/\\/$/, '');
+    const apiBase = (this.config.apiUrl.endsWith('/') ? this.config.apiUrl.slice(0, -1) : this.config.apiUrl);
     const url = new URL(`${apiBase}/prescricoes/${encodeURIComponent(id)}/${resource}`);
     url.searchParams.set('token', doctorToken);
     const response = await this.request(url.toString(), {
