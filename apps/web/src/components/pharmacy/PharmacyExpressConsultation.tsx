@@ -414,6 +414,7 @@ export function PharmacyExpressConsultation({
         return
       }
       window.sessionStorage.removeItem('autamedica:pharmacy-express:active-session')
+      window.localStorage.removeItem('autamedica:pharmacy-express:active-session')
       setStep('CANCELLED')
     } catch {
       setFormError(isPortuguese ? 'Não foi possível cancelar a solicitação. Tente novamente.' : 'No pudimos cancelar la solicitud. Volvé a intentar.')
@@ -670,8 +671,11 @@ export function PharmacyExpressConsultation({
               type="button"
               onClick={() => {
                 window.sessionStorage.removeItem('autamedica:pharmacy-express:active-session')
+                window.localStorage.removeItem('autamedica:pharmacy-express:active-session')
                 setRequestId(null)
                 setAccessToken(null)
+                setRecoveryToken(null)
+                setDocuments([])
                 setFormData({ careCountry: formData.careCountry, dni: '', name: '', phone: '', reason: '' })
                 setCountryPaymentApproved(false)
                 setReasonCategory('')
