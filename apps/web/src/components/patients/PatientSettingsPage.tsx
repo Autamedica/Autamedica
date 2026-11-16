@@ -66,10 +66,10 @@ function ChangePasswordSection({ isPortuguese }: { isPortuguese: boolean }) {
     'w-full px-4 py-3 pr-12 bg-[var(--au-hover)] border-2 border-[var(--au-border)] rounded-xl text-[var(--au-text-primary)] placeholder:text-[var(--au-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--au-accent)] focus:border-transparent transition-all disabled:opacity-50';
 
   return (
-    <section className="rounded-2xl border border-[var(--au-border)] bg-[var(--au-surface)] p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <KeyRound className="w-5 h-5 text-[var(--au-accent)]" />
-        <h2 className="text-lg font-semibold text-[var(--au-text-primary)]">
+    <section className="rounded-2xl border border-slate-200 bg-white p-6">
+      <div className="mb-4 flex items-center gap-2">
+        <KeyRound className="h-5 w-5 text-emerald-600" />
+        <h2 className="text-lg font-semibold text-slate-900">
           {isPortuguese ? 'Alterar senha' : 'Cambiar contraseña'}
         </h2>
       </div>
@@ -97,13 +97,13 @@ function ChangePasswordSection({ isPortuguese }: { isPortuguese: boolean }) {
               autoComplete="new-password"
               disabled={loading}
               className={inputClass}
-              placeholder="Minimo 6 caracteres"
+              placeholder={isPortuguese ? "Mínimo 6 caracteres" : "Mínimo 6 caracteres"}
             />
             <button
               type="button"
               onClick={() => setShowNew((v) => !v)}
               disabled={loading}
-              aria-label={showNew ? 'Ocultar contrasena' : 'Mostrar contrasena'}
+              aria-label={showNew ? (isPortuguese ? 'Ocultar senha' : 'Ocultar contraseña') : (isPortuguese ? 'Mostrar senha' : 'Mostrar contraseña')}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--au-text-tertiary)] hover:text-[var(--au-text-secondary)] transition-colors"
             >
               {showNew ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -130,20 +130,20 @@ function ChangePasswordSection({ isPortuguese }: { isPortuguese: boolean }) {
               autoComplete="new-password"
               disabled={loading}
               className={inputClass}
-              placeholder="Repetir contrasena"
+              placeholder={isPortuguese ? "Repetir senha" : "Repetir contraseña"}
             />
             <button
               type="button"
               onClick={() => setShowConfirm((v) => !v)}
               disabled={loading}
-              aria-label={showConfirm ? 'Ocultar contrasena' : 'Mostrar contrasena'}
+              aria-label={showConfirm ? (isPortuguese ? 'Ocultar senha' : 'Ocultar contraseña') : (isPortuguese ? 'Mostrar senha' : 'Mostrar contraseña')}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--au-text-tertiary)] hover:text-[var(--au-text-secondary)] transition-colors"
             >
               {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
           </div>
           {confirmPassword && newPassword !== confirmPassword && (
-            <p className="mt-1 text-xs text-red-400">Las contrasenas no coinciden.</p>
+            <p className="mt-1 text-xs text-red-400">{isPortuguese ? "As senhas não coincidem." : "Las contraseñas no coinciden."}</p>
           )}
         </div>
 
@@ -287,7 +287,7 @@ function ToggleRow({
 
 function PrivacySection({ isPortuguese }: { isPortuguese: boolean }) {
   return (
-    <section className="rounded-2xl border border-[var(--au-border)] bg-[var(--au-surface)] p-6">
+    <section className="rounded-2xl border border-slate-200 bg-white p-6">
       <div className="flex items-center gap-2 mb-4">
         <Shield className="w-5 h-5 text-[var(--au-accent)]" />
         <h2 className="text-lg font-semibold text-[var(--au-text-primary)]">
@@ -298,7 +298,7 @@ function PrivacySection({ isPortuguese }: { isPortuguese: boolean }) {
       <div className="space-y-3 max-w-md">
         <a
           href="/privacidad"
-          className="flex items-center justify-between rounded-xl border border-[var(--au-border)] px-4 py-3 text-sm text-[var(--au-text-primary)] hover:bg-[var(--au-hover)] transition-colors"
+          className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 transition-colors hover:bg-slate-50"
         >
           {isPortuguese ? 'Política de privacidade' : 'Política de privacidad'}
           <ExternalLink className="w-4 h-4 text-[var(--au-text-tertiary)]" />
