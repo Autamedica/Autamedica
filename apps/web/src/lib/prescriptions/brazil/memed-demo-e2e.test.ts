@@ -130,8 +130,10 @@ function db() {
   return {
     from(table: string) {
       const filters = new Map<string, unknown>();
+      let pendingUpdate: Row | null = null;
       const query = {
         select(_columns: string) { return query; },
+        update(row: Row) { pendingUpdate = row; return query; },
         eq(key: string, value: unknown) { filters.set(key, value); return query; },
         is(_key: string, _value: unknown) { return query; },
         or(_expression: string) { return query; },
@@ -140,8 +142,17 @@ function db() {
         limit(_n: number) { return query; },
         maybeSingle: async () => ({ data: Array.isArray(readTable(table, filters))
           ? (readTable(table, filters) as Row[])[0] ?? null : readTable(table, filters), error: null }),
-        then: (accept: (value: unknown) => unknown, reject?: (error: unknown) => unknown) =>
-          Promise.resolve({ data: readTable(table, filters), error: null }).then(accept, reject),
+        then: (accept: (value: unknown) => unknown, reject?: (error: unknown) => unknown) => {
+          if (pendingUpdate && table === 'prescriptions') {
+            const index = state.rows.findIndex(row =>
+              row.id === filters.get('id')
+              && row.doctor_id === filters.get('doctor_id')
+              && row.patient_id === filters.get('patient_id'),
+            );
+            if (index >= 0) state.rows[index] = { ...state.rows[index], ...pendingUpdate };
+          }
+          return Promise.resolve({ data: readTable(table, filters), error: null }).then(accept, reject);
+        },
         insert: async (row: Row) => {
           if (table !== 'prescriptions') throw new Error('Unexpected DEMO insert');
           state.rows.push(row);
@@ -195,6 +206,19 @@ function mockedMemedFetch(input: RequestInfo | URL, options?: RequestInit): Prom
       token: 'token-para-teste-apenas', external_id: doctorId,
       nome: 'Medico', sobrenome: 'Demonstração',
       cpf: state.providerDoctorCpf, crm: fakeCrm, uf: 'RS',
+    } } }));
+  }
+  if (url.pathname === `/v1/prescricoes/${fakeRx}/get-digital-prescription-link`) {
+    expect(url.searchParams.get('token')).toBe('token-para-teste-apenas');
+    return Promise.resolve(json({ data: { attributes: {
+      link: 'https://receita.memed.com.br/DEMO-RX-001',
+      password: 'DEMO-UNLOCK-ONLY',
+    } } }));
+  }
+  if (url.pathname === `/v1/prescricoes/${fakeRx}/url-document/full`) {
+    expect(url.searchParams.get('token')).toBe('token-para-teste-apenas');
+    return Promise.resolve(json({ data: { attributes: {
+      url: 'https://documentos.memed.com.br/DEMO-RX-001.pdf',
     } } }));
   }
   if (url.pathname === `/v1/prescricoes/${fakeRx}`) {
@@ -281,10 +305,25 @@ describe('Memed DEMO flow: synthetic doctor + synthetic patient, no real provide
         signature_verified: false, delivery_status: 'pending', delivery_verified: false,
       },
     });
+    expect(state.rows[0]).toMatchObject({
+      physical_pdf_url: 'https://documentos.memed.com.br/DEMO-RX-001.pdf',
+      clinical_data: {
+        dispatch_request_id: null,
+        memed_digital_prescription: {
+          url: 'https://receita.memed.com.br/DEMO-RX-001',
+          unlock_code: 'DEMO-UNLOCK-ONLY',
+        },
+        memed_full_pdf_url: 'https://documentos.memed.com.br/DEMO-RX-001.pdf',
+        signature_verified: false,
+        delivery_status: 'provider_link_available',
+      },
+    });
     expect(state.requests).toEqual([
       `GET /v1/sinapse-prescricao/usuarios/${fakeDoctorCpf}`,
       `GET /v1/sinapse-prescricao/usuarios/${fakeDoctorCpf}`,
       `GET /v1/prescricoes/${fakeRx}`,
+      `GET /v1/prescricoes/${fakeRx}/get-digital-prescription-link`,
+      `GET /v1/prescricoes/${fakeRx}/url-document/full`,
     ]);
     const duplicate = await callEvent();
     expect(duplicate.status).toBe(200);
