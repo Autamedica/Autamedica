@@ -2955,10 +2955,11 @@ export type Database = {
       }
       doctor_earnings: {
         Row: {
-          appointment_id: string
-          appointment_payment_id: string
+          appointment_id: string | null
+          appointment_payment_id: string | null
           created_at: string
           currency: string
+          dispatch_request_id: string | null
           doctor_id: string
           gross_amount: number
           id: string
@@ -2973,10 +2974,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          appointment_id: string
-          appointment_payment_id: string
+          appointment_id?: string | null
+          appointment_payment_id?: string | null
           created_at?: string
           currency?: string
+          dispatch_request_id?: string | null
           doctor_id: string
           gross_amount: number
           id?: string
@@ -2991,10 +2993,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          appointment_id?: string
-          appointment_payment_id?: string
+          appointment_id?: string | null
+          appointment_payment_id?: string | null
           created_at?: string
           currency?: string
+          dispatch_request_id?: string | null
           doctor_id?: string
           gross_amount?: number
           id?: string
@@ -3021,6 +3024,13 @@ export type Database = {
             columns: ["appointment_payment_id"]
             isOneToOne: true
             referencedRelation: "appointment_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_earnings_dispatch_request_id_fkey"
+            columns: ["dispatch_request_id"]
+            isOneToOne: false
+            referencedRelation: "pharmacy_dispatch_requests"
             referencedColumns: ["id"]
           },
           {
@@ -4604,6 +4614,128 @@ export type Database = {
             columns: ["chat_id"]
             isOneToOne: false
             referencedRelation: "medical_chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_certificates: {
+        Row: {
+          appointment_id: string | null
+          certificate_type: string
+          cid10_code: string | null
+          cid_consent_recorded_at: string | null
+          cid_consent_recorded_by: string | null
+          cid_requested_by_patient: boolean
+          country_code: string
+          created_at: string
+          cuir: string
+          days_of_rest: number
+          diagnosis: string | null
+          dispatch_request_id: string | null
+          doctor_id: string
+          end_date: string | null
+          hide_diagnosis: boolean
+          id: string
+          observations: string | null
+          patient_id: string
+          qr_code_content: string | null
+          rest_hours: number
+          signature_hash: string | null
+          signature_method: string | null
+          signature_verified_at: string | null
+          signed_pdf_url: string | null
+          start_date: string
+          status: string
+          treatment: string | null
+          updated_at: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          certificate_type: string
+          cid10_code?: string | null
+          cid_consent_recorded_at?: string | null
+          cid_consent_recorded_by?: string | null
+          cid_requested_by_patient?: boolean
+          country_code?: string
+          created_at?: string
+          cuir: string
+          days_of_rest?: number
+          diagnosis?: string | null
+          dispatch_request_id?: string | null
+          doctor_id: string
+          end_date?: string | null
+          hide_diagnosis?: boolean
+          id?: string
+          observations?: string | null
+          patient_id: string
+          qr_code_content?: string | null
+          rest_hours?: number
+          signature_hash?: string | null
+          signature_method?: string | null
+          signature_verified_at?: string | null
+          signed_pdf_url?: string | null
+          start_date?: string
+          status?: string
+          treatment?: string | null
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string | null
+          certificate_type?: string
+          cid10_code?: string | null
+          cid_consent_recorded_at?: string | null
+          cid_consent_recorded_by?: string | null
+          cid_requested_by_patient?: boolean
+          country_code?: string
+          created_at?: string
+          cuir?: string
+          days_of_rest?: number
+          diagnosis?: string | null
+          dispatch_request_id?: string | null
+          doctor_id?: string
+          end_date?: string | null
+          hide_diagnosis?: boolean
+          id?: string
+          observations?: string | null
+          patient_id?: string
+          qr_code_content?: string | null
+          rest_hours?: number
+          signature_hash?: string | null
+          signature_method?: string | null
+          signature_verified_at?: string | null
+          signed_pdf_url?: string | null
+          start_date?: string
+          status?: string
+          treatment?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_certificates_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_certificates_dispatch_request_id_fkey"
+            columns: ["dispatch_request_id"]
+            isOneToOne: false
+            referencedRelation: "pharmacy_dispatch_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_certificates_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_certificates_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
             referencedColumns: ["id"]
           },
         ]
