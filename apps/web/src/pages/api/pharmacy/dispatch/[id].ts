@@ -163,7 +163,69 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       }
     }
 
-    return jsonOk({ request: requestRecord, doctor })
+    const documents: Array<{
+      id: string; kind: 'memed' | 'core' | 'certificate'; title: string;
+      provider: string; createdAt: string; status: string; verificationCode: string | null;
+      downloadUrl: string;
+    }> = []
+    if (['in_call', 'completed'].includes(String(requestRecord.status))
+      && requestRecord.patient_id && requestRecord.assigned_doctor_id) {
+      const startedAt = String(requestRecord.call_started_at ?? requestRecord.created_at)
+      const [{ data: memedRows }, { data: coreRows }, { data: certificates }] = await Promise.all([
+        dispatchAdmin.from('memed_prescriptions')
+          .select('id,memed_id,status,provider_data,digital_link_data,created_at')
+          .eq('patient_id', requestRecord.patient_id)
+          .eq('doctor_id', requestRecord.assigned_doctor_id)
+          .gte('created_at', startedAt)
+          .order('created_at', { ascending: false }),
+        dispatchAdmin.from('prescriptions')
+          .select('id,status,cuir,clinical_data,signed_pdf_url,created_at,vendor_name')
+          .eq('patient_id', requestRecord.patient_id)
+          .eq('doctor_id', requestRecord.assigned_doctor_id)
+          .gte('created_at', startedAt)
+          .order('created_at', { ascending: false }),
+        dispatchAdmin.from('medical_certificates')
+          .select('id,status,cuir,certificate_type,signed_pdf_url,created_at')
+          .eq('patient_id', requestRecord.patient_id)
+          .eq('doctor_id', requestRecord.assigned_doctor_id)
+          .gte('created_at', startedAt)
+          .order('created_at', { ascending: false }),
+      ])
+      const tokenSuffix = candidateGuestToken ? `?token=${encodeURIComponent(candidateGuestToken)}` : ''
+      for (const row of memedRows ?? []) {
+        if (row.status === 'deleted') continue
+        const provider = row.provider_data && typeof row.provider_data === 'object' ? row.provider_data as Record<string, unknown> : {}
+        const label = String(provider.medication_name ?? provider.nome ?? provider.title ?? 'Receita digital Memed')
+        documents.push({
+          id: `memed-${row.id}`, kind: 'memed', title: label,
+          provider: 'Memed BR', createdAt: row.created_at, status: row.status,
+          verificationCode: row.memed_id,
+          downloadUrl: `/api/pharmacy/dispatch/${encodeURIComponent(id)}/documents/memed-${encodeURIComponent(row.id)}${tokenSuffix}`,
+        })
+      }
+      for (const row of coreRows ?? []) {
+        const clinical = row.clinical_data && typeof row.clinical_data === 'object' ? row.clinical_data as Record<string, unknown> : {}
+        const items = Array.isArray(clinical.items) ? clinical.items as Array<Record<string, unknown>> : []
+        const title = String(clinical.medication_name ?? items[0]?.commercialName ?? items[0]?.genericName ?? 'Receta médica')
+        documents.push({
+          id: `core-${row.id}`, kind: 'core', title,
+          provider: row.vendor_name === 'memed' ? 'Memed BR' : 'RCTA / Core AR',
+          createdAt: row.created_at, status: row.status, verificationCode: row.cuir,
+          downloadUrl: `/api/pharmacy/dispatch/${encodeURIComponent(id)}/documents/core-${encodeURIComponent(row.id)}${tokenSuffix}`,
+        })
+      }
+      for (const row of certificates ?? []) {
+        documents.push({
+          id: `certificate-${row.id}`, kind: 'certificate',
+          title: row.certificate_type === 'reposo_laboral' ? 'Atestado médico' : 'Certificado médico',
+          provider: 'AutaMedica', createdAt: row.created_at, status: row.status,
+          verificationCode: row.cuir,
+          downloadUrl: `/api/pharmacy/dispatch/${encodeURIComponent(id)}/documents/certificate-${encodeURIComponent(row.id)}${tokenSuffix}`,
+        })
+      }
+    }
+
+    return jsonOk({ request: requestRecord, doctor, documents })
   } catch (err) {
     logger.error('[api/pharmacy/dispatch/[id]] Exception', { err })
     return internalError()
