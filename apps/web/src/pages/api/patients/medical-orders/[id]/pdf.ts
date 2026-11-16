@@ -27,7 +27,7 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
       logger.error('[patients/medical-orders/pdf] lookup failed', { code: error.code ?? 'INTERNAL' })
       return internalError()
     }
-    if (!order || order.status !== 'signed') return notFound('medical_order_not_found')
+    if (order?.status !== 'signed') return notFound('medical_order_not_found')
 
     const path = `medical-orders/${order.id}.pdf`
     const { data, error: signedUrlError } = await admin.storage

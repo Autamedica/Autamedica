@@ -272,7 +272,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (insertMemedError?.code === '23505') {
         const { data: winner, error: winnerError } = await memedAdmin.from('memed_prescriptions')
           .select('id,doctor_id,patient_id').eq('memed_id', prescriptionId).maybeSingle();
-        if (winnerError || !winner || winner.doctor_id !== doctor.id || winner.patient_id !== patientId) {
+        if (winnerError || winner?.doctor_id !== doctor.id || winner?.patient_id !== patientId) {
           return forbidden('memed_prescription_ownership_conflict');
         }
       } else if (insertMemedError) {

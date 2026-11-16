@@ -217,7 +217,7 @@ BEGIN
          identity_source = 'msal_bus_renaper',
          dni = CASE WHEN p_identity_status = 'verified_renaper' THEN p_dni ELSE dni END,
          cuil = CASE WHEN p_identity_status = 'verified_renaper' THEN p_official_cuil ELSE cuil END,
-         birth_date = CASE WHEN p_identity_status = 'verified_renaper' THEN p_official_birth_date ELSE birth_date END,
+         birth_date = CASE WHEN p_identity_status = 'verified_renaper' AND p_official_birth_date IS NOT NULL THEN p_official_birth_date ELSE birth_date END,
          gender = CASE WHEN p_identity_status = 'verified_renaper'
            THEN CASE p_official_gender WHEN 'F' THEN 'female' WHEN 'M' THEN 'male' WHEN 'X' THEN 'other' END
            ELSE gender END,

@@ -91,6 +91,15 @@ describe('patient identity persistence (synthetic RENAPER / PUCO fixtures)', () 
     });
   });
 
+  it('keeps identity pending when RENAPER returns an unsupported sex value', () => {
+    const incompleteResult = {
+      ...RESULT,
+      person: { ...PERSON, sexo: null },
+    };
+    expect(buildOfficialIdentityRecord(incompleteResult, '12345678', 'Maria Jose Garcia').identityStatus)
+      .toBe('pending');
+  });
+
   it('rejects invalid calendar dates instead of storing normalized but impossible dates', () => {
     const invalidResult = {
       ...RESULT,

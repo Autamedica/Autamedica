@@ -114,17 +114,18 @@ export function buildOfficialIdentityRecord(
   const officialCuil = digits(person.cuil);
   const cuil = officialCuil.length === 11 ? officialCuil : null;
   const coverage = result.coverages[0] ?? null;
-  const verified = Boolean(fullName && cuil && declaredNameMatchesOfficial(declaredName, fullName));
+  const gender = normalizeGender(clean(person.sexo));
+  const verified = Boolean(fullName && cuil && gender && declaredNameMatchesOfficial(declaredName, fullName));
 
   return {
-    identityStatus: !fullName || !cuil ? 'pending' : verified ? 'verified_renaper' : 'mismatch',
+    identityStatus: !fullName || !cuil || !gender ? 'pending' : verified ? 'verified_renaper' : 'mismatch',
     officialFullName: fullName,
     officialFirstName: firstName,
     officialLastName: lastName,
     dni: digits(person.numeroDocumento) || digits(requestedDni),
     cuil,
     birthDate: normalizeBirthDate(clean(person.fechaNacimiento)),
-    gender: normalizeGender(clean(person.sexo)),
+    gender,
     pucoCoverageName: clean(coverage?.cobertura),
     pucoCoverageCode: clean(coverage?.rnos),
   };

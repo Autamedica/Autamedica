@@ -27,7 +27,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const dispatch = await authorizePharmacyPaymentRequest(admin, requestId, token, locals.runtime?.env)
     if (!dispatch) return unauthorized('pharmacy_request_token_required')
-    if ((dispatch.care_country !== 'BR' && dispatch.care_country !== 'AR') || dispatch.tier_requested !== 'general') {
+    if (!['BR', 'AR'].includes(dispatch?.care_country ?? '') || dispatch?.tier_requested !== 'general') {
       return badRequest('pharmacy_payment_available_for_ar_br_general_only')
     }
     if (!['searching','matched','in_call'].includes(dispatch.status)) {

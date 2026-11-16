@@ -27,7 +27,7 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
       logger.error('[patients/diagnostic-studies/result] lookup failed', { code: error.code ?? 'INTERNAL' })
       return internalError()
     }
-    if (!study || study.status !== 'available') return notFound('diagnostic_study_result_not_available')
+    if (study?.status !== 'available') return notFound('diagnostic_study_result_not_available')
 
     const storagePath = String(study.result_storage_path ?? '')
     if (!storagePath || storagePath.startsWith('/')
