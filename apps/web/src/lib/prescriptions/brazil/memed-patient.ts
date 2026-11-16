@@ -98,7 +98,7 @@ export async function resolveMemedPatient(
     if (!guestDispatch || guestDispatch.lgpd_consent !== true) {
       throw new Error('memed_patient_consent_required');
     }
-    const nameParts = String(guestDispatch.patient_name ?? '').trim().split(/\\s+/);
+    const nameParts = String(guestDispatch.patient_name ?? '').trim().split(/\s+/);
     firstName = nameParts.shift() ?? '';
     lastName = nameParts.join(' ');
     cpf = String(guestDispatch.patient_cpf ?? '').replace(/\D/g, '');
