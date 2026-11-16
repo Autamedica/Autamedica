@@ -269,13 +269,14 @@ function normalizeMemedRows(rows: unknown[], admin: Db): Promise<MedicalRecord[]
     return records.map((row) => {
       const provider = asObject(row.provider_data);
       const digital = row.digital_link_data;
+      const digitalObject = asObject(digital);
       const medicationName = asString(provider.medication_name)
         ?? asString(provider.medicationName)
         ?? asString(provider.nome)
         ?? asString(provider.name)
         ?? asString(provider.title)
         ?? "Receita digital Memed";
-      const digitalUrl = findMemedUrl(digital);
+      const digitalUrl = findMemedUrl(digitalObject.pdf) ?? findMemedUrl(digitalObject.digital) ?? findMemedUrl(digital);
       const accessCode = findMemedAccessCode(digital);
       const id = asString(row.id) ?? asString(row.memed_id) ?? crypto.randomUUID();
       const doctorId = asString(row.doctor_id) ?? "";
