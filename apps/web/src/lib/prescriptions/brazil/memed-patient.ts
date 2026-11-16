@@ -80,7 +80,7 @@ export async function resolveMemedPatient(
   if (!patient?.active || patient.lgpd_consent !== true) throw new Error('memed_patient_consent_required');
   let firstName = '';
   let lastName = '';
-  let cpf = String(patient.cpf ?? '').replace(/\\D/g, '');
+  let cpf = String(patient.cpf ?? '').replace(/\D/g, '');
   const birthDate = String(patient.birth_date ?? '');
   const gender = String(patient.gender ?? '').toLowerCase();
   if (!patient.user_id) {
@@ -101,9 +101,9 @@ export async function resolveMemedPatient(
     const nameParts = String(guestDispatch.patient_name ?? '').trim().split(/\\s+/);
     firstName = nameParts.shift() ?? '';
     lastName = nameParts.join(' ');
-    cpf = String(guestDispatch.patient_cpf ?? '').replace(/\\D/g, '');
-    const phone = String(guestDispatch.patient_phone ?? '').replace(/[^\\d+]/g, '');
-    if (!firstName || !lastName || phone.replace(/\\D/g, '').length < 6 || !validCpf(cpf)) {
+    cpf = String(guestDispatch.patient_cpf ?? '').replace(/\D/g, '');
+    const phone = String(guestDispatch.patient_phone ?? '').replace(/[^\d+]/g, '');
+    if (!firstName || !lastName || phone.replace(/\D/g, '').length < 6 || !validCpf(cpf)) {
       throw new Error('memed_patient_identity_incomplete');
     }
   } else {
