@@ -89,7 +89,7 @@ export function PharmacyExpressConsultation({
   // Active request state (Gen 2: pharmacy_dispatch_requests)
   const [requestId, setRequestId] = useState<string | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
-  const [recoveryToken, setRecoveryToken] = useState<string | null>(null)
+  const [, setRecoveryToken] = useState<string | null>(null)
   const [callRoomId, setCallRoomId] = useState<string | null>(null)
   const [countryPaymentApproved, setCountryPaymentApproved] = useState(false)
   const [onlineDoctorCount, setOnlineDoctorCount] = useState<number | null>(null)
