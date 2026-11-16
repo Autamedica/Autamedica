@@ -231,6 +231,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const insertPayload = {
       care_country: context?.careCountry ?? careCountry,
       patient_id: context?.patientId ?? null,
+      lgpd_consent: careCountry === 'BR' && lgpdConsent === true,
       patient_dni: sanitizedDni,
       patient_cpf: sanitizedCpf,
       patient_phone: sanitizedPhone,
