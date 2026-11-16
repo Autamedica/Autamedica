@@ -296,17 +296,18 @@ export function PharmacyExpressConsultation({
     if (step !== 'ENDED' || !requestId || documents.length > 0) return
     let attempts = 0
     let active = true
+    let interval: number | null = null
     const refreshDocuments = async () => {
       attempts += 1
       await checkStatus(requestId, accessToken)
-      if (!active || attempts >= 12) window.clearInterval(interval)
+      if ((!active || attempts >= 12) && interval !== null) window.clearInterval(interval)
     }
     void refreshDocuments()
-    const interval = window.setInterval(() => {
-      if (attempts >= 12) { window.clearInterval(interval); return }
+    interval = window.setInterval(() => {
+      if (attempts >= 12) { if (interval !== null) window.clearInterval(interval); return }
       void refreshDocuments()
     }, 2500)
-    return () => { active = false; window.clearInterval(interval) }
+    return () => { active = false; if (interval !== null) window.clearInterval(interval) }
   }, [step, requestId, accessToken, checkStatus, documents.length])
 
   useEffect(() => {
