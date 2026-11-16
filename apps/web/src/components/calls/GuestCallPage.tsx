@@ -5,8 +5,6 @@ import { fetchApi } from '@/lib/api-client'
 import {
   CheckCircle2,
   FileText,
-  HeartPulse,
-  Activity,
   MessageCircle,
   X,
 } from 'lucide-react'
