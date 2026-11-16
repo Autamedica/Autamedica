@@ -73,6 +73,16 @@ function AuthenticatedPatientProfilePage({
     screeningsStats,
     screeningsHighlights,
   } = usePatientProfilePage(session);
+  const isPortuguese = session.patient?.careCountry === 'BR'
+    || (typeof navigator !== 'undefined' && navigator.language.toLowerCase().startsWith('pt'));
+  const dateLocale = isPortuguese ? 'pt-BR' : 'es-AR';
+  const formatPatientDate = (value: string | Date | null | undefined) => {
+    if (!value) return isPortuguese ? 'Sem data' : 'Sin fecha';
+    const parsed = new Date(value);
+    return Number.isFinite(parsed.getTime())
+      ? new Intl.DateTimeFormat(dateLocale, { day: '2-digit', month: 'short', year: 'numeric' }).format(parsed)
+      : (isPortuguese ? 'Sem data' : 'Sin fecha');
+  };
   const insuranceInfo = form.insuranceInfo && typeof form.insuranceInfo === 'object'
     ? form.insuranceInfo as Record<string, unknown>
     : null;
@@ -89,16 +99,16 @@ function AuthenticatedPatientProfilePage({
   ];
 
   return (
-    <main className="min-h-screen bg-white text-neutral-900">
+    <main className="min-h-screen bg-slate-50 text-slate-900">
       {/* Hero */}
-      <section className="bg-neutral-900 px-6 lg:px-12 pt-16 pb-20">
+      <section className="bg-[#0F2537] px-6 lg:px-12 pt-10 pb-16">
         <div className="max-w-7xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 text-white/80 rounded-full text-xs font-medium mb-6">
             <Sparkles className="h-3.5 w-3.5" />
-            Perfil unificado
+            {isPortuguese ? 'Perfil unificado' : 'Perfil unificado'}
           </div>
           <h1 className="text-4xl lg:text-5xl text-white mb-4 leading-tight">{displayName}</h1>
-          <p className="text-lg text-white/60">Última actualización: {formatTimestamp(lastUpdatedAt)}</p>
+          <p className="text-lg text-white/60">{isPortuguese ? 'Última atualização: ' : 'Última actualización: '}{formatPatientDate(lastUpdatedAt as string | Date | null)}</p>
         </div>
       </section>
 
@@ -107,17 +117,17 @@ function AuthenticatedPatientProfilePage({
           <div className="grid gap-6 px-6 py-7 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.8fr)] lg:px-8">
             <div>
               <h2 className="text-2xl font-bold text-neutral-900 mb-3">
-                Información personal
+                {isPortuguese ? 'Informações pessoais' : 'Información personal'}
               </h2>
 
               <div className="mt-4 flex flex-wrap gap-3">
                 <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-sky-100">
                   <Mail className="h-4 w-4 text-sky-600" />
-                  {form.email || 'Sin email'}
+                  {form.email || (isPortuguese ? 'Sem e-mail' : 'Sin email')}
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-sky-100">
                   <Activity className="h-4 w-4 text-sky-600" />
-                  {age !== null ? `${age} años` : 'Edad pendiente'}
+                  {age !== null ? `${age} ${isPortuguese ? 'anos' : 'años'}` : (isPortuguese ? 'Idade pendente' : 'Edad pendiente')}
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-sky-100">
                   <UserCircle2 className="h-4 w-4 text-sky-600" />
@@ -125,25 +135,25 @@ function AuthenticatedPatientProfilePage({
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-sky-100">
                   <Droplets className="h-4 w-4 text-sky-600" />
-                  {form.bloodType || 'Grupo sanguíneo pendiente'}
+                  {form.bloodType || (isPortuguese ? 'Grupo sanguíneo pendente' : 'Grupo sanguíneo pendiente')}
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-sky-100">
                   <HeartPulse className="h-4 w-4 text-sky-600" />
-                  {bmi !== null ? `IMC ${bmi}` : 'IMC pendiente'}
+                  {bmi !== null ? `IMC ${bmi}` : (isPortuguese ? 'IMC pendente' : 'IMC pendiente')}
                 </span>
               </div>
 
               <div className="mt-6 grid gap-3 md:grid-cols-2">
                 <div className="rounded-[1.5rem] border border-sky-100 bg-white/90 p-4 shadow-am-card">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
-                    Agenda
+                    {isPortuguese ? 'Agenda' : 'Agenda'}
                   </p>
                   <p className="mt-3 text-lg font-semibold text-gray-950">
                     {appointmentsLoading
                       ? 'Sincronizando agenda...'
                       : upcomingAppointment
-                        ? `${upcomingAppointment.doctorName} · ${formatCompactDate(upcomingAppointment.scheduledAt)}`
-                        : 'Sin citas próximas'}
+                        ? `${upcomingAppointment.doctorName} · ${formatPatientDate(upcomingAppointment.scheduledAt)}`
+                        : (isPortuguese ? 'Sem próximas consultas' : 'Sin citas próximas')}
                   </p>
                   <p className="mt-2 text-sm leading-6 text-gray-600">
                     {appointmentsLoading
@@ -156,20 +166,20 @@ function AuthenticatedPatientProfilePage({
 
                 <div className="rounded-[1.5rem] border border-sky-100 bg-white/90 p-4 shadow-am-card">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
-                    Informes
+                    {isPortuguese ? 'Relatórios' : 'Informes'}
                   </p>
                   <p className="mt-3 text-lg font-semibold text-gray-950">
                     {reportsLoading
                       ? 'Sincronizando informes...'
                       : latestReport
                         ? latestReport.title
-                        : 'Sin informes clínicos todavía'}
+                        : (isPortuguese ? 'Ainda não há relatórios clínicos' : 'Sin informes clínicos todavía')}
                   </p>
                   <p className="mt-2 text-sm leading-6 text-gray-600">
                     {reportsLoading
                       ? 'Sincronizando...'
                       : reportsCount > 0
-                        ? `${reportsCount} informe(s), ${aiGeneratedReportsCount} generado(s) con IA. Último: ${formatCompactDate(latestReport?.dateRecorded ?? null)}.`
+                        ? `${reportsCount} informe(s), ${aiGeneratedReportsCount} generado(s) con IA. Último: ${formatPatientDate(latestReport?.dateRecorded ?? null)}.`
                         : 'Sin informes cargados.'}
                   </p>
                 </div>
@@ -180,7 +190,7 @@ function AuthenticatedPatientProfilePage({
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
-                    Integridad del perfil
+                    {isPortuguese ? 'Integridade do perfil' : 'Integridad del perfil'}
                   </p>
                   <p className={`mt-2 text-4xl font-semibold ${getCompletionTone(profileCompletion)}`}>
                     {profileCompletion}%
@@ -188,7 +198,7 @@ function AuthenticatedPatientProfilePage({
                 </div>
                 <div className="rounded-2xl bg-sky-50 px-4 py-3 text-right">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
-                    Pendientes
+                    {isPortuguese ? 'Pendentes' : 'Pendientes'}
                   </p>
                   <p className="mt-1 text-lg font-semibold text-gray-900">{missingFields.length}</p>
                 </div>
@@ -196,24 +206,24 @@ function AuthenticatedPatientProfilePage({
 
               <div className="mt-6 h-3 overflow-hidden rounded-full bg-sky-50">
                 <div
-                  className="h-full rounded-full bg-sky-500 transition-[width] duration-500"
+                  className="h-full rounded-full bg-[#10B981] transition-[width] duration-500"
                   style={{ width: `${profileCompletion}%` }}
                 />
               </div>
 
               <div className="mt-5 space-y-3">
                 <div className="flex items-center justify-between text-sm text-gray-600">
-                  <span>Anamnesis</span>
+                  <span>{isPortuguese ? 'Anamnese' : 'Anamnesis'}</span>
                   <span className="font-semibold text-gray-900">{anamnesisCompletion}%</span>
                 </div>
                 <div className="flex items-center justify-between text-sm text-gray-600">
-                  <span>Condiciones activas</span>
+                  <span>{isPortuguese ? 'Condições ativas' : 'Condiciones activas'}</span>
                   <span className="font-semibold text-gray-900">
                     {medicalSummary?.active_conditions_count ?? 0}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm text-gray-600">
-                  <span>Controles preventivos al día</span>
+                  <span>{isPortuguese ? 'Controles preventivos em dia' : 'Controles preventivos al día'}</span>
                   <span className="font-semibold text-gray-900">{screeningsStats.upToDate}</span>
                 </div>
               </div>
@@ -232,7 +242,7 @@ function AuthenticatedPatientProfilePage({
           <div className="flex items-start gap-3 rounded-3xl border border-sky-100 bg-sky-50 px-5 py-4 text-sky-900">
             <Stethoscope className="mt-0.5 h-5 w-5 shrink-0" />
             <p className="text-sm leading-6">
-              Algunos datos clínicos todavía no cargaron.
+              {isPortuguese ? 'Alguns dados clínicos ainda não foram carregados.' : 'Algunos datos clínicos todavía no cargaron.'}
             </p>
           </div>
         ) : null}
@@ -249,7 +259,7 @@ function AuthenticatedPatientProfilePage({
               <div className="mt-6 space-y-8">
                 <div>
                   <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-gray-400">
-                    Identidad y contacto
+                    {isPortuguese ? 'Identidade e contato' : 'Identidad y contacto'}
                   </h3>
                   {session.patient?.careCountry === 'AR' ? (
                     <>
@@ -260,7 +270,7 @@ function AuthenticatedPatientProfilePage({
                         type="button"
                         onClick={lookupOfficialIdentity}
                         disabled={isLookingUpIdentity || !form.dni.trim() || !form.gender}
-                        className="inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-200"
+                        className="inline-flex items-center gap-2 rounded-full bg-[#10B981] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0D9488] disabled:cursor-not-allowed disabled:bg-sky-200"
                       >
                         {isLookingUpIdentity ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -275,7 +285,7 @@ function AuthenticatedPatientProfilePage({
                         label="DNI"
                         value={form.dni}
                         onChange={(event) => setField('dni', event.target.value)}
-                        placeholder="Número de documento"
+                        placeholder={isPortuguese ? "Número do documento" : "Número de documento"}
                         icon={<Hash className="h-4 w-4" />}
                         disabled={!!session.patient?.dni}
                       />
@@ -340,16 +350,16 @@ function AuthenticatedPatientProfilePage({
 
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <Field
-                      label="Email de acceso"
+                      label={isPortuguese ? "E-mail de acesso" : "Email de acceso"}
                       value={form.email}
                       disabled
                       icon={<Mail className="h-4 w-4" />}
                     />
                     <Field
-                      label="Teléfono"
+                      label={isPortuguese ? "Telefone" : "Teléfono"}
                       value={form.phone}
                       onChange={(event) => setField('phone', event.target.value)}
-                      placeholder="+54 11 5555 5555"
+                      placeholder={isPortuguese ? "+55 51 99999-9999" : "+54 11 5555 5555"}
                       icon={<Phone className="h-4 w-4" />}
                     />
                   </div>
@@ -357,7 +367,7 @@ function AuthenticatedPatientProfilePage({
 
                 <div>
                   <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-gray-400">
-                    Datos clínicos base
+                    {isPortuguese ? 'Dados clínicos básicos' : 'Datos clínicos base'}
                   </h3>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <SelectField
@@ -434,7 +444,7 @@ function AuthenticatedPatientProfilePage({
               {saveSuccess ? (
                 <div className="mt-6 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                   <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>Perfil actualizado. Estos datos ya quedan disponibles para el resto del portal.</span>
+                  <span>{isPortuguese ? 'Perfil atualizado. Estes dados já estão disponíveis em todo o portal.' : 'Perfil actualizado. Estos datos ya quedan disponibles para el resto del portal.'}</span>
                 </div>
               ) : null}
 
@@ -573,7 +583,7 @@ function AuthenticatedPatientProfilePage({
                   value: reportsLoading
                     ? 'Sincronizando...'
                     : latestReport
-                      ? formatCompactDate(latestReport.dateRecorded)
+                      ? formatPatientDate(latestReport.dateRecorded)
                       : 'Sin datos',
                 },
                 {
@@ -687,7 +697,7 @@ export default function PatientProfilePage() {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-sky-50 text-sky-600">
             <UserCircle2 className="h-8 w-8" />
           </div>
-          <h1 className="font-heading mt-5 text-4xl text-gray-950">Tu perfil clínico</h1>
+          <h1 className="font-heading mt-5 text-4xl text-gray-950">{isPortuguese ? 'Seu perfil clínico' : 'Tu perfil clínico'}</h1>
           <p className="mt-4 text-base leading-7 text-gray-600">
             Iniciá sesión para ver y actualizar los datos que AutaMedica reutiliza en agenda,
             anamnesis, historial y recomendaciones preventivas.
