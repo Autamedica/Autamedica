@@ -578,7 +578,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <a
-            href="/doctors/prescriptions"
+            href="/doctors/prescriptions?mode=prescriptions&new=1"
             aria-label={isBrazilianDoctor ? 'Abrir receitas digitais' : 'Abrir recetas digitales'}
             className="group flex min-h-[104px] min-w-0 items-center gap-3 rounded-2xl border-2 border-sky-200 bg-gradient-to-br from-sky-50 to-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-400 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200 active:translate-y-0 sm:p-5"
           >
@@ -593,7 +593,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
             <ArrowUpRight className="h-5 w-5 shrink-0 text-[#0284C7]" />
           </a>
           <a
-            href="/doctors/certificates"
+            href="/doctors/prescriptions?mode=certificates&new=1"
             aria-label={isBrazilianDoctor ? 'Emitir atestado médico' : 'Emitir atestado médico'}
             className="group flex min-h-[104px] min-w-0 items-center gap-3 rounded-2xl border-2 border-sky-200 bg-gradient-to-br from-[#E0F2FE] to-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-400 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200 active:translate-y-0 sm:p-5"
           >
