@@ -29,6 +29,7 @@ interface CertificateCreateModalProps {
 
 export interface CreatedCertificate {
   id: string;
+  patient_id: string;
   cuir: string;
   status: string;
   certificate_type: string;
