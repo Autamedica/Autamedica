@@ -14,6 +14,7 @@ import type { Prescription, UUID } from "@/types/medical";
 interface PrescriptionCreateModalProps {
   patientId?: UUID;
   doctorCareCountry?: 'AR' | 'BR';
+  onPatientSelected?: (patientId: UUID | null) => void;
   onClose: () => void;
   onSaved: () => void;
   addPrescription: (
@@ -163,6 +164,7 @@ function unwrapCareGuideResponse(payload: unknown): CareGuideResponse | null {
 export function PrescriptionCreateModal({
   patientId,
   doctorCareCountry,
+  onPatientSelected,
   onClose,
   onSaved,
   addPrescription,
@@ -588,7 +590,7 @@ export function PrescriptionCreateModal({
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setQuickPatientMode("external"); setSelectedPatientId(null); setError(null); }}
+                  onClick={() => { setQuickPatientMode("external"); setSelectedPatientId(null); onPatientSelected?.(null); setError(null); }}
                   aria-pressed={quickPatientMode === "external"}
                   className={`min-h-11 rounded-xl border px-3 py-2 text-xs font-semibold transition ${quickPatientMode === "external" ? "border-sky-600 bg-sky-600 text-white" : "border-am-surface-200 bg-white text-am-surface-700 hover:border-sky-300"}`}
                 >
@@ -605,7 +607,7 @@ export function PrescriptionCreateModal({
                         <p className="truncate text-sm font-semibold text-am-surface-900">{[chosenPatient.profile?.first_name, chosenPatient.profile?.last_name].filter(Boolean).join(" ") || "Paciente"}</p>
                         <p className="text-xs text-am-surface-600">{chosenPatient.dni ? `Documento: ${chosenPatient.dni}` : "Paciente de tu padrón asistencial"}</p>
                       </div>
-                      <button type="button" onClick={() => setSelectedPatientId(null)} className="min-h-10 shrink-0 rounded-lg border border-sky-200 bg-white px-3 text-xs font-semibold text-sky-700 hover:bg-sky-100">Cambiar</button>
+                      <button type="button" onClick={() => { setSelectedPatientId(null); onPatientSelected?.(null); }} className="min-h-10 shrink-0 rounded-lg border border-sky-200 bg-white px-3 text-xs font-semibold text-sky-700 hover:bg-sky-100">Cambiar</button>
                     </div>
                   ) : (
                     <>
@@ -629,7 +631,7 @@ export function PrescriptionCreateModal({
                               <button
                                 key={patient.id}
                                 type="button"
-                                onClick={() => { setSelectedPatientId(patient.id as UUID); setError(null); }}
+                                onClick={() => { setSelectedPatientId(patient.id as UUID); onPatientSelected?.(patient.id as UUID); setError(null); }}
                                 className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-transparent bg-white px-3 py-2 text-left transition hover:border-sky-200 hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
                               >
                                 <span className="min-w-0 truncate text-sm font-medium text-am-surface-900">{name}</span>
