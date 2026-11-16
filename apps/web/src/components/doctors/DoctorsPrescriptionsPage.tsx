@@ -1023,6 +1023,7 @@ export function DoctorsPrescriptionsPage() {
       {showCreateModal && (certificateCountry === 'AR' || certificateCountry === 'BR') && (
         <PrescriptionCreateModal
           patientId={(selectedPatientId ?? undefined) as UUID | undefined}
+          onPatientSelected={setSelectedPatientId}
           doctorCareCountry={certificateCountry ?? undefined}
           onClose={() => setShowCreateModal(false)}
           onSaved={handleSaved}
@@ -1048,11 +1049,14 @@ export function DoctorsPrescriptionsPage() {
           patientName={selectedPatient ? getPatientDisplayName(selectedPatient) : undefined}
           patientDni={selectedPatient?.dni ?? undefined}
           onClose={() => setShowCertificateModal(false)}
-          onCreated={() => {
-            if (certificateCountry === 'BR') { void fetchCertificates(); return; }
-            setShowCertificateModal(false);
+          onCreated={(created) => {
+            if (created.patient_id === selectedPatientId) {
+              void fetchCertificates();
+            } else {
+              setSelectedPatientId(created.patient_id);
+            }
             setDocMode("certificates");
-            void fetchCertificates();
+            if (certificateCountry !== "BR") setShowCertificateModal(false);
           }}
         />
       )}
