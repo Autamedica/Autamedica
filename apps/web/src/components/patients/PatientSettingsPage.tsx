@@ -20,7 +20,7 @@ import {
 /*  Password Change Section                                           */
 /* ------------------------------------------------------------------ */
 
-function ChangePasswordSection() {
+function ChangePasswordSection({ isPortuguese }: { isPortuguese: boolean }) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNew, setShowNew] = useState(false);
@@ -35,12 +35,12 @@ function ChangePasswordSection() {
     setSuccess(null);
 
     if (newPassword.length < 6) {
-      setError('La contrasena debe tener al menos 6 caracteres.');
+      setError(isPortuguese ? 'A senha deve ter pelo menos 6 caracteres.' : 'La contraseña debe tener al menos 6 caracteres.');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError('Las contrasenas no coinciden.');
+      setError(isPortuguese ? 'As senhas não coincidem.' : 'Las contraseñas no coinciden.');
       return;
     }
 
@@ -48,14 +48,14 @@ function ChangePasswordSection() {
     try {
       const result = await updatePassword(newPassword);
       if (!result.ok) {
-        setError(result.errorMessage ?? 'Error al actualizar la contrasena.');
+        setError(result.errorMessage ?? (isPortuguese ? 'Erro ao atualizar a senha.' : 'Error al actualizar la contraseña.'));
         return;
       }
-      setSuccess('Contrasena actualizada correctamente.');
+      setSuccess(isPortuguese ? 'Senha atualizada com sucesso.' : 'Contraseña actualizada correctamente.');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error inesperado.');
+      setError(err instanceof Error ? err.message : (isPortuguese ? 'Erro inesperado.' : 'Error inesperado.'));
     } finally {
       setLoading(false);
     }
@@ -323,7 +323,7 @@ function DangerZoneSection({ isPortuguese }: { isPortuguese: boolean }) {
     <section className="rounded-2xl border border-red-300 bg-red-50/50 p-6">
       <div className="flex items-center gap-2 mb-4">
         <Trash2 className="w-5 h-5 text-red-600" />
-        <h2 className="text-lg font-semibold text-red-700">Zona de peligro</h2>
+        <h2 className="text-lg font-semibold text-red-700">{isPortuguese ? 'Zona de perigo' : 'Zona de peligro'}</h2>
       </div>
 
       <p className="text-sm text-[var(--au-text-secondary)] mb-4">
