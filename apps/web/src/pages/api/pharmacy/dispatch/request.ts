@@ -10,6 +10,7 @@ import { hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payme
 import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { getOperationalPaymentSwitches } from '@/lib/payments/operational-switches'
+import { validCpf } from '@/lib/prescriptions/brazil/cpf'
 
 const VALID_TIERS: DispatchTierCategory[] = [
   'general',
@@ -59,8 +60,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return badRequest('Número de documento requerido')
     }
     const normalizedDocument = rawDocument.replace(/\D/g, '')
-    if (careCountry === 'BR' ? normalizedDocument.length !== 11 : normalizedDocument.length < 5 || normalizedDocument.length > 10) {
-      return badRequest(careCountry === 'BR' ? 'CPF inválido: ingresar 11 dígitos' : 'DNI inválido')
+    if (careCountry === 'BR' ? !validCpf(normalizedDocument) : normalizedDocument.length < 5 || normalizedDocument.length > 10) {
+      return badRequest(careCountry === 'BR' ? 'CPF inválido: informe os 11 dígitos válidos' : 'DNI inválido')
     }
     const sanitizedDni = careCountry === 'AR' ? normalizedDocument : null
     const sanitizedCpf = careCountry === 'BR' ? normalizedDocument : null
