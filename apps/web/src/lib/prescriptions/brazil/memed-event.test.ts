@@ -48,7 +48,8 @@ beforeEach(() => {
       memed_prescriptions: existingMemed,
       doctor_licenses: [{ license_number: '9236', uf_brazil: 'RS', cfm_evidence_path: 'ci/doctor/evidence.pdf', cfm_review_notes: 'Synthetic CI review evidence', cfm_reviewed_by: '00000000-0000-4000-8000-000000000001', cfm_reviewed_at: '2026-11-12T00:00:00Z', cfm_last_checked_at: '2026-11-12T00:00:00Z' }] };
     const chain = { select: vi.fn(), eq: vi.fn(), limit: vi.fn(), or: vi.fn(),
-      update: vi.fn(), insert: table === 'memed_prescriptions' ? mocks.memedInsert : mocks.insert,
+      update: table === 'memed_prescriptions' ? mocks.memedUpdate : vi.fn(),
+      insert: table === 'memed_prescriptions' ? mocks.memedInsert : mocks.insert,
       maybeSingle: vi.fn(async () => ({ data: rows[table], error: null })) };
     chain.select.mockReturnValue(chain); chain.eq.mockReturnValue(chain); chain.or.mockReturnValue(chain); chain.update.mockReturnValue(chain);
     chain.limit.mockResolvedValue({ data: rows[table], error: null });
@@ -110,6 +111,8 @@ describe('Memed event persistence boundary', () => {
     expect((await response.json()).data).toMatchObject({ status: 'signed', duplicate: true });
     expect(mocks.insert).not.toHaveBeenCalled();
     expect(mocks.memedInsert).not.toHaveBeenCalled();
-    expect(mocks.memedUpdate).not.toHaveBeenCalled();
+    expect(mocks.memedUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'verified_at_provider', pdf_signature_verified: false, patient_delivery_confirmed: false,
+    }));
   });
 });
