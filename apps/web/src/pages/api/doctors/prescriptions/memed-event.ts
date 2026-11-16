@@ -171,7 +171,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
 
     const { data: existing, error: existingError } = await admin.from('prescriptions')
-      .select('id, status')
+      .select('id, status, clinical_data, physical_pdf_url')
       .eq('doctor_id', doctor.id)
       .eq('patient_id', patientId)
       .eq('country_code', 'BR')
@@ -245,7 +245,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       ));
       digitalUnlockCode = findProviderValue(
         linkResource,
-        /^(unlock_code|access_code|password|senha|codigo_desbloqueio|codigo_de_desbloqueio)$/i,
+        /^(unlock.?code|access.?code|password|senha|codigo.?desbloqueio|codigo.?de.?desbloqueio|pin|code)$/i,
       );
     } catch {
       logger.warn('[memed-event] patient digital-link retrieval unavailable');
@@ -285,10 +285,26 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Existing records may have been created by a callback retry before the
     // provider link was reachable. Enrich only that doctor's exact verified row.
     if (existing) {
+      const previousClinicalData = asObject(existing.clinical_data);
+      const hasPreviousDigitalLink = Boolean(previousClinicalData.memed_digital_prescription);
+      const enrichedClinicalData = {
+        ...previousClinicalData,
+        ...clinicalData,
+        ...(!digitalLinkUrl && hasPreviousDigitalLink
+          ? { memed_digital_prescription: previousClinicalData.memed_digital_prescription }
+          : {}),
+        delivery_status: digitalLinkUrl
+          ? 'provider_link_available'
+          : (typeof previousClinicalData.delivery_status === 'string'
+            ? previousClinicalData.delivery_status
+            : 'pending'),
+      };
       const { error: updateError } = await admin.from('prescriptions')
         .update({
-          clinical_data: clinicalData,
-          ...(fullDocumentUrl ? { physical_pdf_url: fullDocumentUrl } : {}),
+          clinical_data: enrichedClinicalData,
+          ...((fullDocumentUrl || existing.physical_pdf_url)
+            ? { physical_pdf_url: fullDocumentUrl ?? existing.physical_pdf_url }
+            : {}),
           updated_at: new Date().toISOString(),
         })
         .eq('id', existing.id)
@@ -299,7 +315,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
         status: existing.status,
         prescriptionId,
         duplicate: true,
-        documentAvailable: Boolean(digitalLinkUrl || fullDocumentUrl || documentReferences.length),
+        documentAvailable: Boolean(
+          digitalLinkUrl || fullDocumentUrl || documentReferences.length
+          || hasPreviousDigitalLink || existing.physical_pdf_url
+        ),
       });
     }
 
