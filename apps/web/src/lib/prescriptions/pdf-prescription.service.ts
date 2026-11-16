@@ -633,25 +633,26 @@ export async function generatePrescriptionPdf(
   }
 
   const barcodeOffset = template === 'female' ? 6 : 4;
-  const submittedCuil = input.externalPrescription?.provider === 'farmalink'
-    ? input.patient.cuil?.replace(/\D/g, '')
+  const submittedPan = input.externalPrescription?.provider === 'farmalink'
+    ? input.patient.affiliateCredential?.replace(/\D/g, '')
     : undefined;
-  if (input.externalPrescription?.provider === 'farmalink' && submittedCuil?.length === 11) {
-    // MSAL requires distinct scannable Code128 codes for Farmalink receipt ID and patient CUIL.
+  if (input.externalPrescription?.provider === 'farmalink' && submittedPan && /^\d{8,19}$/.test(submittedPan)) {
+    // Keep the Farmalink receipt ID and PAN as separate, explicitly labelled Code128 values.
+    // The patient CUIL remains printed in the patient identity block and is never used as the PAN barcode.
     const leftX = marginLeft + barcodeOffset;
     const rightX = marginLeft + 91;
     doc.setFontSize(6.3);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
     doc.text('RECETA FARMALINK', leftX, barcodeY + 3.8);
-    doc.text('CUIL PACIENTE', rightX, barcodeY + 3.8);
+    doc.text('PAN / CREDENCIAL', rightX, barcodeY + 3.8);
     drawCode128Barcode(doc, barcodeValue, leftX + 2, barcodeY + 5.2, 69, 6.5);
-    drawCode128Barcode(doc, submittedCuil, rightX + 2, barcodeY + 5.2, 69, 6.5);
+    drawCode128Barcode(doc, submittedPan, rightX + 2, barcodeY + 5.2, 69, 6.5);
     doc.setFontSize(7.2);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
     doc.text(`${barcodeDisplayLabel}: ${barcodeValue}`, leftX + 2, barcodeY + 14.4);
-    doc.text(`CUIL: ${submittedCuil}`, rightX + 2, barcodeY + 14.4);
+    doc.text(`PAN: ${submittedPan}`, rightX + 2, barcodeY + 14.4);
   } else {
     // Other countries and providers retain their pre-existing single-barcode PDF layout.
     doc.setFontSize(7);

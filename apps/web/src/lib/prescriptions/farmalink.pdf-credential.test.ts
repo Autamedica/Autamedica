@@ -37,8 +37,11 @@ describe('Farmalink PDF affiliate reconciliation', () => {
     expect(pdf).toContain('Plan: NO POSEE');
     expect(pdf).toContain('Entidad: 7110');
     expect(pdf).toContain('CUIL: 27123456780');
-    expect(pdf).toContain('CUIL PACIENTE');
+    expect(pdf).toContain('PAN / CREDENCIAL');
+    expect(pdf).toContain('PAN: 20123456786');
+    expect(pdf).toContain('CUIL: 27123456780');
     expect(pdf).toContain('RECETA FARMALINK');
+    expect(pdf).not.toContain('CUIL PACIENTE');
     expect(pdf).toContain('RECETA EXTERNA: 9600000421228');
     expect(pdf).not.toContain('FARMALINK TEST / MODALIDAD GENERICO=');
     vi.restoreAllMocks();
