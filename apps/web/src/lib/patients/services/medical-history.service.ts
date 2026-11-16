@@ -350,7 +350,8 @@ async function listPatientCertificatesAndOrders(
       .select("id,doctor_id,patient_id,appointment_id,study_type,practices,diagnosis,notes,status,cuir,qr_code_content,signed_pdf_url,created_at,updated_at")
       .eq("patient_id", patientId).order("created_at", { ascending: false }),
     loose.from("diagnostic_studies")
-      .select("*").eq("patient_id", patientId).order("created_at", { ascending: false }),
+      .select("id,doctor_id,patient_id,appointment_id,medical_order_id,study_type,name,status,diagnosis,notes,result_summary,cuir,requested_at,performed_at,available_at,created_at,updated_at")
+      .eq("patient_id", patientId).order("created_at", { ascending: false }),
   ]);
   if (certificatesResult.error) logger.warn("[medicalHistoryService] certificates query failed", { code: certificatesResult.error.code });
   if (ordersResult.error) logger.warn("[medicalHistoryService] orders query failed", { code: ordersResult.error.code });
