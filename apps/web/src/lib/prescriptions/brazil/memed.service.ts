@@ -250,6 +250,40 @@ export class MemedService {
     return await response.json() as Record<string, unknown>;
   }
 
+  /** Retrieves the fixed patient-facing digital prescription link and unlock code. */
+  async getDigitalPrescriptionLink(id: string, doctorToken: string): Promise<Record<string, unknown>> {
+    if (!/^[a-zA-Z0-9-]{1,80}$/.test(id)) throw new Error('memed_invalid_prescription_id');
+    if (!doctorToken) throw new Error('memed_missing_doctor_token');
+    const url = `${this.config.apiUrl.replace(/\\/$/, '')}/prescricoes/${encodeURIComponent(id)}/get-digital-prescription-link?token=${encodeURIComponent(doctorToken)}`;
+    const response = await this.request(url, {
+      method: 'GET',
+      headers: { Accept: 'application/vnd.api+json', 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) throw new Error(`memed_digital_link_failed:${response.status}`);
+    try {
+      return await response.json() as Record<string, unknown>;
+    } catch {
+      throw new Error('memed_provider_response_invalid');
+    }
+  }
+
+  /** Retrieves the provider URL for the full prescription PDF; signature status remains independently verified. */
+  async getFullPrescriptionPdfUrl(id: string, doctorToken: string): Promise<Record<string, unknown>> {
+    if (!/^[a-zA-Z0-9-]{1,80}$/.test(id)) throw new Error('memed_invalid_prescription_id');
+    if (!doctorToken) throw new Error('memed_missing_doctor_token');
+    const url = `${this.config.apiUrl.replace(/\\/$/, '')}/prescricoes/${encodeURIComponent(id)}/url-document/full?token=${encodeURIComponent(doctorToken)}`;
+    const response = await this.request(url, {
+      method: 'GET',
+      headers: { Accept: 'application/vnd.api+json', 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) throw new Error(`memed_pdf_url_failed:${response.status}`);
+    try {
+      return await response.json() as Record<string, unknown>;
+    } catch {
+      throw new Error('memed_provider_response_invalid');
+    }
+  }
+
   getScriptUrl(): string {
     return this.config.scriptUrl;
   }
