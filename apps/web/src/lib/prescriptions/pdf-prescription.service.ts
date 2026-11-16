@@ -762,7 +762,7 @@ export async function generatePrescriptionPdf(
     doc.setFontSize(5.5);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
-    doc.text('SELLO PROFESIONAL', marginLeft + 42, signatureY + 10, {
+    doc.text('SELLO PROFESIONAL', marginLeft + 57.5, signatureY + 10, {
       align: 'center',
       maxWidth: 31,
     });
