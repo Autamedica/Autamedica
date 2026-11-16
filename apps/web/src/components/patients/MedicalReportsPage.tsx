@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { FileText, Download, Loader2, AlertCircle, Sparkles, ArrowRight } from 'lucide-react'
 import { fetchApi } from '@/lib/api-client'
 import { usePatientReports } from '@/hooks/patients/usePatientReports'
+import { usePatientSession } from '@/hooks/patients/usePatientSession'
 
 type Certificate = Record<string, unknown>
 
@@ -17,10 +18,11 @@ function formatDate(value: string | null, locale: string): string {
 
 export default function MedicalReportsPage() {
   const { reports, loading, error, downloadPdf, downloading } = usePatientReports()
+  const { patient } = usePatientSession()
   const [certificates, setCertificates] = useState<Certificate[]>([])
   const [certificatesLoading, setCertificatesLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'reports' | 'certificates'>('reports')
-  const isPortuguese = typeof navigator !== 'undefined' && navigator.language.toLowerCase().startsWith('pt')
+  const isPortuguese = patient?.careCountry === 'BR' || (typeof navigator !== 'undefined' && navigator.language.toLowerCase().startsWith('pt'))
   const locale = isPortuguese ? 'pt-BR' : 'es-AR'
 
   useEffect(() => {
