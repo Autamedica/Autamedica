@@ -55,11 +55,10 @@ describe('profile-form official identity requirements', () => {
       heightCm: '170',
       weightKg: '72.5',
       emergencyContactPhone: '+5491111111111',
-      insuranceInfo: {
-        official_data: {
-          dni: '95466020',
-        },
-      },
+      identityStatus: 'verified_renaper',
+      officialFullName: 'EDUARDO DA ROSA',
+      officialCuil: '20954660209',
+      insuranceInfo: null,
     });
 
     expect(buildMissingFields(form)).toEqual([]);

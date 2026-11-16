@@ -154,6 +154,12 @@ $f$;
 DROP TRIGGER IF EXISTS profiles_guard_verified_patient_name ON public.profiles;
 CREATE TRIGGER profiles_guard_verified_patient_name BEFORE INSERT OR UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.guard_verified_patient_profile_name();
 
+-- Trigger functions execute through their owning triggers; revoke direct invocation.
+REVOKE ALL ON FUNCTION public.guard_official_identity_columns() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.guard_official_identity_columns() TO service_role;
+REVOKE ALL ON FUNCTION public.guard_verified_patient_profile_name() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.guard_verified_patient_profile_name() TO service_role;
+
 -- Apply official identity, dispatch evidence and legal profile name in one transaction.
 CREATE OR REPLACE FUNCTION public.persist_renaper_identity_result(
  p_patient_id uuid,

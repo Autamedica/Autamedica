@@ -87,24 +87,28 @@ function makeContext(options?: {
   jordanEnabled?: boolean
   bearerToken?: string
 }): Parameters<typeof POST>[0] {
+  const rawBody = options?.body !== undefined
+    ? options.body
+    : {
+        careCountry: 'AR',
+        patientDni: '38123456',
+        patientPhone: '+5491122334455',
+        patientName: 'Ana Gomez',
+        tier: 'general',
+      };
+  const body = typeof rawBody === 'object' && rawBody !== null && !Array.isArray(rawBody)
+    && (rawBody as { careCountry?: string }).careCountry === 'AR'
+    && !Object.prototype.hasOwnProperty.call(rawBody, 'patientGenderCode')
+    ? { ...rawBody, patientGenderCode: '2' }
+    : rawBody;
   const request = new Request('http://localhost/api/pharmacy/dispatch/request', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      'x-test-care-country': typeof options?.body === 'object' && options.body !== null && 'careCountry' in options.body ? String((options.body as { careCountry?: string }).careCountry ?? '') : 'AR',
+      'x-test-care-country': typeof rawBody === 'object' && rawBody !== null && 'careCountry' in rawBody ? String((rawBody as { careCountry?: string }).careCountry ?? '') : 'AR',
       ...(options?.bearerToken ? { authorization: options.bearerToken } : {}),
     },
-    body: JSON.stringify(
-      options?.body !== undefined
-        ? options.body
-        : {
-            careCountry: 'AR',
-          patientDni: '38123456',
-            patientPhone: '+5491122334455',
-            patientName: 'Ana Gomez',
-            tier: 'general',
-          },
-    ),
+    body: JSON.stringify(body),
   })
 
   return {
