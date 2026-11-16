@@ -78,7 +78,7 @@ function AuthenticatedPatientProfilePage({
   const dateLocale = isPortuguese ? 'pt-BR' : 'es-AR';
   const formatPatientDate = (value: string | Date | null | undefined) => {
     if (!value) return isPortuguese ? 'Sem data' : 'Sin fecha';
-    const parsed = new Date(value);
+    const parsed = value instanceof Date ? value : new Date(value);
     return Number.isFinite(parsed.getTime())
       ? new Intl.DateTimeFormat(dateLocale, { day: '2-digit', month: 'short', year: 'numeric' }).format(parsed)
       : (isPortuguese ? 'Sem data' : 'Sin fecha');
