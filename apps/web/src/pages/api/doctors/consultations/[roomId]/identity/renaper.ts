@@ -1,12 +1,11 @@
 import type { APIRoute } from 'astro';
 import { logger } from '@autamedica/shared';
-import { badRequest, forbidden, internalError, jsonOk } from '@/lib/api-helpers';
+import { badRequest, forbidden, internalError, jsonFail, jsonOk } from '@/lib/api-helpers';
 import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { consultationContextService } from '@/lib/doctors/services/consultation-context.service';
 import { resolveRoomParticipants, isDoctorAssignedToRoom } from '@/lib/doctors/lib/resolve-room';
-import { fetchOfficialIdentity } from '@/lib/interoperability/non-fhir.service';
-import { persistOfficialIdentityResult } from '@/lib/patients/services/patient-identity.service';
+import { fetchAndPersistOfficialIdentity } from '@/lib/patients/services/patient-identity.service';
 
 export const POST: APIRoute = async ({ request, params, locals }) => {
   const roomId = params.roomId;
@@ -33,6 +32,15 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       patientId = participants.triage.patientId;
       dispatchRequestId = participants.triage.dispatchRequestId;
       declaredName = participants.triage.patientName;
+      if (participants.triage.identityStatus === 'verified_renaper') {
+        return jsonOk({
+          identityStatus: 'verified_renaper',
+          officialFullName: participants.triage.officialFullName,
+          officialCuil: participants.triage.officialCuil,
+          officialBirthDate: participants.triage.officialBirthDate,
+          officialGender: participants.triage.officialGender,
+        });
+      }
     } else if (participants?.patientId) {
       patientId = participants.patientId;
       const { data: patient, error } = await admin.from('patients')
@@ -53,31 +61,38 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       }
     }
 
+    if (patientId && !userId) {
+      const { data: patientOwner, error: patientOwnerError } = await admin
+        .from('patients').select('user_id').eq('id', patientId).maybeSingle();
+      if (patientOwnerError) throw patientOwnerError;
+      userId = patientOwner?.user_id ?? null;
+    }
+
     const normalizedGender = String(gender ?? '').toUpperCase();
     const sexId = ['F', 'FEMALE', 'FEMENINO'].includes(normalizedGender) ? 1
       : ['M', 'MALE', 'MASCULINO'].includes(normalizedGender) ? 2
         : ['X', 'OTHER', 'NO BINARIO'].includes(normalizedGender) ? 3 : null;
-    const normalizedDni = String(dni ?? '').replace(/\\D/g, '');
+    const normalizedDni = String(dni ?? '').replace(/\D/g, '');
     if (!normalizedDni || !sexId) return badRequest('patient_dni_and_document_sex_required');
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    try {
-      const lookup = fetchOfficialIdentity({
-        dni: normalizedDni, sexId: sexId as 1 | 2 | 3, runtimeEnv: locals.runtime?.env,
-      });
-      const result = await Promise.race([
-        lookup,
-        new Promise<null>(resolve => { timer = setTimeout(() => resolve(null), 3500); }),
-      ]);
-      if (!result) return jsonOk({ identityStatus: 'unverified', reason: 'renaper_timeout' });
-      const persisted = await persistOfficialIdentityResult({
-        supabase: admin, result, dni: normalizedDni, patientId, dispatchRequestId, userId,
-        declaredName, syncProfileName: true,
-      });
-      return jsonOk(persisted);
-    } finally {
-      if (timer) clearTimeout(timer);
-    }
+    const persisted = await fetchAndPersistOfficialIdentity({
+      supabase: admin,
+      dni: normalizedDni,
+      sexId: sexId as 1 | 2 | 3,
+      patientId,
+      dispatchRequestId,
+      userId,
+      declaredName,
+      syncProfileName: true,
+      runtimeEnv: locals.runtime?.env,
+      timeoutMs: 3500,
+    });
+    return persisted
+      ? jsonOk(persisted)
+      : jsonOk({ identityStatus: 'unverified', reason: 'renaper_timeout' });
   } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'RENAPER_LOOKUP_LIMIT_REACHED') {
+      return jsonFail('RATE_LIMITED', 'Se alcanzó el límite de tres consultas RENAPER para este paciente.', 429);
+    }
     logger.warn('[doctor-identity-renaper] live lookup unavailable', {
       code: error instanceof Error && 'code' in error ? String(error.code) : 'RENAPER_LOOKUP_UNAVAILABLE',
     });

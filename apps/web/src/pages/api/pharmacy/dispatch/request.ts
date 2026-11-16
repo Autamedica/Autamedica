@@ -44,9 +44,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (careCountry !== 'AR' && careCountry !== 'BR') {
       return badRequest('Seleccioná Argentina o Brasil como país de atención')
     }
-    const validationMessage = (spanish: string, portuguese: string) => careCountry === 'BR' ? portuguese : spanish
     if (careCountry === 'BR' && lgpdConsent !== true) {
-      return badRequest(validationMessage('Se requiere el consentimiento LGPD', 'O consentimento LGPD é obrigatório'))
+      return badRequest('lgpd_consent_required')
     }
 
     // Do not send a referred Jordan patient into a clinical queue without
@@ -59,7 +58,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
     const rawDocument = careCountry === 'BR' ? (patientCpf ?? patientDni) : patientDni
     if (typeof rawDocument !== 'string' || !rawDocument.trim()) {
-      return badRequest(validationMessage('Número de documento requerido', 'Informe o CPF de 11 dígitos'))
+      return badRequest('Número de documento requerido')
     }
     const normalizedDocument = rawDocument.replace(/\D/g, '')
     if (careCountry === 'BR' ? !validCpf(normalizedDocument) : normalizedDocument.length < 5 || normalizedDocument.length > 10) {
@@ -71,11 +70,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (careCountry === 'AR' && !sanitizedGenderCode) return badRequest('Sexo según DNI requerido para validar RENAPER')
 
     if (!patientPhone || typeof patientPhone !== 'string') {
-      return badRequest(validationMessage('Teléfono celular requerido', 'Informe um telefone celular'))
+      return badRequest('Teléfono celular requerido')
     }
     const sanitizedPhone = patientPhone.trim().replace(/[^\d+()-\s]/g, '')
     if (sanitizedPhone.replace(/\D/g, '').length < 6 || sanitizedPhone.length > 30) {
-      return badRequest(validationMessage('Teléfono celular inválido', 'Informe um telefone celular válido'))
+      return badRequest('Teléfono celular inválido')
     }
 
     const sanitizedName = typeof patientName === 'string' && patientName.trim()
@@ -116,7 +115,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if (kioskId) {
       if (typeof kioskId !== 'string' || !UUID_REGEX.test(kioskId.trim())) {
-        return badRequest(validationMessage('ID de kiosco con formato inválido', 'O identificador do ponto de atendimento é inválido'))
+        return badRequest('ID de kiosco con formato inválido')
       }
       const cleanKioskId = kioskId.trim()
       const { data: kiosk, error: kioskErr } = await supabase
@@ -126,10 +125,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
         .maybeSingle()
 
       if (kioskErr || !kiosk) {
-        return badRequest(validationMessage('Kiosco no registrado', 'Ponto de atendimento não registrado'))
+        return badRequest('Kiosco no registrado')
       }
       if (!kiosk.active) {
-        return badRequest(validationMessage('El kiosco no se encuentra activo', 'O ponto de atendimento está inativo'))
+        return badRequest('El kiosco no se encuentra activo')
       }
 
       resolvedKioskId = kiosk.id
@@ -141,12 +140,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // 3. Validar pharmacyId si viene provisto
     if (pharmacyId) {
       if (typeof pharmacyId !== 'string' || !UUID_REGEX.test(pharmacyId.trim())) {
-        return badRequest(validationMessage('ID de farmacia con formato inválido', 'O identificador da farmácia é inválido'))
+        return badRequest('ID de farmacia con formato inválido')
       }
       const cleanPharmacyId = pharmacyId.trim()
 
       if (resolvedPharmacyId && resolvedPharmacyId !== cleanPharmacyId) {
-        return badRequest(validationMessage('El kiosco no pertenece a la farmacia indicada', 'O ponto de atendimento não pertence à farmácia informada'))
+        return badRequest('El kiosco no pertenece a la farmacia indicada')
       }
 
       const { data: pharmacy, error: pharmErr } = await supabase
@@ -156,7 +155,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         .maybeSingle()
 
       if (pharmErr || !pharmacy?.active || pharmacy.deleted_at) {
-        return badRequest(validationMessage('Farmacia no registrada o inválida', 'Farmácia não registrada ou inválida'))
+        return badRequest('Farmacia no registrada o inválida')
       }
       resolvedPharmacyId = pharmacy.id
     }
@@ -173,14 +172,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (context && careCountry !== context.careCountry) {
       return forbidden('patient_inactive_or_country_mismatch')
     }
-    if (!sanitizedName) return badRequest(validationMessage('Nombre completo requerido', 'Informe seu nome completo'))
+    if (!sanitizedName) return badRequest('Nombre completo requerido')
     // Resolve the establishment from persisted data, never from the QR payload.
     if (resolvedPharmacyId) {
       const { data: origin, error: originError } = await supabase.from('pharmacies')
         .select('id, active, deleted_at').eq('id', resolvedPharmacyId).maybeSingle()
       if (originError) return internalError()
       if (!origin?.active || origin.deleted_at) {
-        return forbidden(validationMessage('La farmacia del QR no está activa. Usa el acceso de una farmacia adherida', 'A farmácia deste QR está inativa. Use o acesso de uma farmácia credenciada'))
+        return forbidden('La farmacia del QR no está activa. Usa el acceso de una farmacia adherida')
       }
     } else if (resolvedKioskId) {
       return forbidden('kiosk_country_not_configured')
@@ -234,7 +233,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const insertPayload = {
       care_country: context?.careCountry ?? careCountry,
-      lgpd_consent: careCountry === 'BR' && lgpdConsent === true,
       patient_id: context?.patientId ?? null,
       lgpd_consent: careCountry === 'BR' && lgpdConsent === true,
       patient_dni: sanitizedDni,

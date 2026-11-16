@@ -194,62 +194,13 @@ async function listReadModelPrescriptions(
     if (doctorsError) {
       logger.warn("[medicalHistoryService] doctor enrichment failed", doctorsError);
     } else {
-      for (const doctor of (doctors ?? []) as DoctorLookupRow[]) {
+      for (const doctor of (doctors ?? []) as unknown as DoctorLookupRow[]) {
         doctorMap.set(doctor.id, doctor);
       }
     }
   }
 
   return prescriptions.map((row) => normalizeCorePrescription(row, doctorMap));
-}
-
-function findMemedUrl(value: unknown, depth = 0): string | null {
-  if (depth > 6 || !value || typeof value !== "object") return null;
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const found = findMemedUrl(item, depth + 1);
-      if (found) return found;
-    }
-    return null;
-  }
-  const object = value as Record<string, unknown>;
-  for (const [key, nested] of Object.entries(object)) {
-    if (/(url|link|pdf|document)/i.test(key) && typeof nested === "string") {
-      try {
-        const parsed = new URL(nested);
-        if (parsed.protocol === "https:" && /(^|[.])memed[.]com(?:[.]br)?$/i.test(parsed.hostname)) return parsed.toString();
-      } catch { /* Ignore malformed provider links. */ }
-    }
-  }
-  for (const nested of Object.values(object)) {
-    const found = findMemedUrl(nested, depth + 1);
-    if (found) return found;
-  }
-  return null;
-}
-
-function findMemedAccessCode(value: unknown, depth = 0): string | null {
-  const accepted = new Set(["unlockcode", "accesscode", "password", "senha", "codigodesbloqueio", "codigoacesso", "pin"]);
-  if (depth > 6 || !value || typeof value !== "object") return null;
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const found = findMemedAccessCode(item, depth + 1);
-      if (found) return found;
-    }
-    return null;
-  }
-  const object = value as Record<string, unknown>;
-  for (const [key, nested] of Object.entries(object)) {
-    if (accepted.has(key.toLowerCase().replace(/[^a-z0-9]/g, ""))
-      && typeof nested === "string" && nested.trim().length >= 4 && nested.trim().length <= 32) {
-      return nested.trim();
-    }
-  }
-  for (const nested of Object.values(object)) {
-    const found = findMemedAccessCode(nested, depth + 1);
-    if (found) return found;
-  }
-  return null;
 }
 
 function normalizeMemedRows(rows: unknown[], admin: Db): Promise<MedicalRecord[]> {
@@ -261,23 +212,22 @@ function normalizeMemedRows(rows: unknown[], admin: Db): Promise<MedicalRecord[]
       const { data: doctors } = await admin.from("doctors")
         .select("id, user_id, profile:profiles!doctors_user_id_fkey(first_name, last_name)")
         .in("id", doctorIds);
-      for (const doctor of (doctors ?? []) as DoctorLookupRow[]) {
+      for (const doctor of (doctors ?? []) as unknown as DoctorLookupRow[]) {
         const name = buildDoctorDisplayName(doctor);
         if (name) doctorMap.set(doctor.id, name);
       }
     }
     return records.map((row) => {
       const provider = asObject(row.provider_data);
-      const digital = row.digital_link_data;
-      const digitalObject = asObject(digital);
+      const digital = asObject(row.digital_link_data);
       const medicationName = asString(provider.medication_name)
         ?? asString(provider.medicationName)
         ?? asString(provider.nome)
         ?? asString(provider.name)
         ?? asString(provider.title)
         ?? "Receita digital Memed";
-      const digitalUrl = findMemedUrl(digitalObject.pdf) ?? findMemedUrl(digitalObject.digital) ?? findMemedUrl(digital);
-      const accessCode = findMemedAccessCode(digital);
+      const digitalUrl = [digital.url, digital.link, digital.pdf_url, digital.document_url]
+        .find((value) => typeof value === "string" && /^https:\/\//i.test(value as string));
       const id = asString(row.id) ?? asString(row.memed_id) ?? crypto.randomUUID();
       const doctorId = asString(row.doctor_id) ?? "";
       const createdAt = asString(row.created_at) ?? new Date().toISOString();
@@ -300,9 +250,8 @@ function normalizeMemedRows(rows: unknown[], admin: Db): Promise<MedicalRecord[]
           doctor_name: doctorMap.get(doctorId) ?? null,
           vendor_name: "Memed BR",
           vendor_id: asString(row.memed_id),
-          signed_pdf_url: digitalUrl,
-          access_code: accessCode,
-          cuir: asString(provider.cuir),
+          signed_pdf_url: typeof digitalUrl === "string" ? digitalUrl : null,
+          cuir: asString(provider.cuir) ?? asString(row.memed_id),
           is_digital_artifact_ready: Boolean(digitalUrl),
           source: "memed_br",
         },
@@ -325,7 +274,16 @@ async function listMemedPrescriptions(
   const { data, error } = await scoped.rpc("patient_memed_prescriptions_get");
   if (error) {
     logger.warn("[medicalHistoryService] patient Memed RPC failed; using patient-scoped server read", { message: error.message });
-    const { data: fallback, error: fallbackError } = await admin.from("memed_prescriptions")
+    type MemedFallbackResult = { data: unknown[] | null; error: { message?: string; code?: string } | null };
+    type MemedFallbackQuery = {
+      eq(column: string, value: string): MemedFallbackQuery;
+      neq(column: string, value: string): MemedFallbackQuery;
+      order(column: string, options: { ascending: boolean }): Promise<MemedFallbackResult>;
+    };
+    const memedAdmin = admin as unknown as {
+      from(table: "memed_prescriptions"): { select(columns: string): MemedFallbackQuery };
+    };
+    const { data: fallback, error: fallbackError } = await memedAdmin.from("memed_prescriptions")
       .select("id,doctor_id,patient_id,memed_id,status,provider_data,digital_link_data,created_at")
       .eq("patient_id", patientId).neq("status", "deleted")
       .order("created_at", { ascending: false });
@@ -343,37 +301,19 @@ async function listPatientCertificatesAndOrders(
   patientId: string,
 ): Promise<{ certificates: Array<Record<string, unknown>>; orders: Array<Record<string, unknown>> }> {
   const loose = supabase as unknown as SupabaseClient;
-  const [certificatesResult, ordersResult, studiesResult] = await Promise.all([
+  const [certificatesResult, ordersResult] = await Promise.all([
     loose.from("medical_certificates")
       .select("id,doctor_id,patient_id,cuir,status,certificate_type,days_of_rest,start_date,end_date,diagnosis,observations,qr_code_content,signed_pdf_url,country_code,created_at,updated_at,signature_hash,signature_method")
       .eq("patient_id", patientId).order("created_at", { ascending: false }),
     loose.from("medical_orders")
       .select("id,doctor_id,patient_id,appointment_id,study_type,practices,diagnosis,notes,status,cuir,qr_code_content,signed_pdf_url,created_at,updated_at")
       .eq("patient_id", patientId).order("created_at", { ascending: false }),
-    loose.from("diagnostic_studies")
-      .select("id,doctor_id,patient_id,appointment_id,medical_order_id,study_type,name,status,diagnosis,notes,result_summary,cuir,requested_at,performed_at,available_at,created_at,updated_at")
-      .eq("patient_id", patientId).order("created_at", { ascending: false }),
   ]);
   if (certificatesResult.error) logger.warn("[medicalHistoryService] certificates query failed", { code: certificatesResult.error.code });
   if (ordersResult.error) logger.warn("[medicalHistoryService] orders query failed", { code: ordersResult.error.code });
-  if (studiesResult.error) logger.warn("[medicalHistoryService] diagnostic studies query failed", { code: studiesResult.error.code });
-  const orders = (ordersResult.data ?? []) as Array<Record<string, unknown>>;
-  const studies = (studiesResult.data ?? []).map((study: Record<string, unknown>) => ({
-    ...study,
-    id: `diagnostic-${String(study.id ?? '')}`,
-    study_type: study.study_type ?? study.name ?? study.title ?? study.study_name ?? "Estudio diagnóstico",
-    status: study.status ?? study.state ?? "requested",
-    source: "diagnostic_studies",
-  }));
-  const uniqueOrders = new Map<string, Record<string, unknown>>();
-  for (const order of [...orders, ...studies]) {
-    const id = String(order.id ?? "");
-    if (id && !uniqueOrders.has(id)) uniqueOrders.set(id, order);
-  }
   return {
     certificates: (certificatesResult.data ?? []) as Array<Record<string, unknown>>,
-    orders: [...uniqueOrders.values()].sort((a, b) =>
-      new Date(String(b.created_at ?? "")).getTime() - new Date(String(a.created_at ?? "")).getTime()),
+    orders: (ordersResult.data ?? []) as Array<Record<string, unknown>>,
   };
 }
 

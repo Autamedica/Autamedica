@@ -1,34 +1,236 @@
-import { fetchOfficialIdentity, type OfficialIdentityResult, type RenaperSexId } from '@/lib/interoperability/non-fhir.service';
-export type PatientIdentityStatus='unverified'|'pending'|'verified_renaper'|'mismatch'|'not_applicable';
-type UpdateResult={error:{message?:string;code?:string}|null};
-type UpdateQuery=PromiseLike<UpdateResult>&{eq(column:string,value:string):UpdateQuery};
-type IdentityDb={from(table:string):{update(values:Record<string,unknown>):UpdateQuery}};
-export interface PersistedOfficialIdentity {identityStatus:PatientIdentityStatus;officialFullName:string|null;officialFirstName:string|null;officialLastName:string|null;dni:string;cuil:string|null;birthDate:string|null;gender:string|null;pucoCoverageName:string|null;pucoCoverageCode:string|null}
-const digits=(v:string|null|undefined)=>(v??'').replace(/\D/g,'');
-const clean=(v:string|null|undefined)=>v?.trim()||null;
-function tokens(v:string){return v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleUpperCase('es-AR').replace(/[^A-Z0-9 ]/g,' ').split(/\s+/).filter(Boolean)}
-export function declaredNameMatchesOfficial(declared:string|null|undefined,official:string):boolean{
- if(!declared?.trim())return true;const a=tokens(declared),b=tokens(official);if(!a.length||!b.length)return false;
- return new Set(a.filter(t=>b.includes(t))).size/Math.max(a.length,b.length)>=0.5;
+import {
+  fetchOfficialIdentity,
+  type OfficialIdentityResult,
+  type RenaperSexId,
+} from '@/lib/interoperability/non-fhir.service';
+
+export type PatientIdentityStatus =
+  | 'unverified'
+  | 'pending'
+  | 'verified_renaper'
+  | 'mismatch'
+  | 'not_applicable';
+
+type IdentityRpcClient = {
+  rpc(
+    name: 'claim_renaper_identity_lookup',
+    args: { p_patient_id: string | null; p_dispatch_request_id: string | null; p_limit: number },
+  ): Promise<{ data: number | null; error: { message?: string; code?: string } | null }>;
+};
+
+type PersistIdentityRpcClient = {
+  rpc(
+    name: 'persist_renaper_identity_result',
+    args: {
+      p_patient_id: string | null;
+      p_dispatch_request_id: string | null;
+      p_user_id: string | null;
+      p_identity_status: PatientIdentityStatus;
+      p_dni: string;
+      p_official_full_name: string | null;
+      p_official_first_name: string | null;
+      p_official_last_name: string | null;
+      p_official_cuil: string | null;
+      p_official_birth_date: string | null;
+      p_official_gender: string | null;
+      p_puco_coverage_name: string | null;
+      p_puco_coverage_code: string | null;
+      p_verified_at: string | null;
+    },
+  ): Promise<{ data: boolean | null; error: { message?: string; code?: string } | null }>;
+};
+
+export interface PersistedOfficialIdentity {
+  identityStatus: PatientIdentityStatus;
+  officialFullName: string | null;
+  officialFirstName: string | null;
+  officialLastName: string | null;
+  dni: string;
+  cuil: string | null;
+  birthDate: string | null;
+  gender: string | null;
+  pucoCoverageName: string | null;
+  pucoCoverageCode: string | null;
 }
-function normalizeBirthDate(v:string|null){if(!v)return null;if(/^\d{4}-\d{2}-\d{2}$/.test(v))return v;const m=/^(\d{2})[/-](\d{2})[/-](\d{4})$/.exec(v);return m?`${m[3]}-${m[2]}-${m[1]}`:null}
-function normalizeGender(v:string|null){const x=(v??'').trim().toUpperCase();return ['F','FEMENINO','FEMALE'].includes(x)?'F':['M','MASCULINO','MALE'].includes(x)?'M':['X','NO BINARIO','NO_BINARIO'].includes(x)?'X':clean(v)}
-export function buildOfficialIdentityRecord(r:OfficialIdentityResult,dni:string,declaredName?:string|null):PersistedOfficialIdentity{
- const p=r.person,first=clean(p.nombres),last=clean(p.apellido),full=[first,last].filter(Boolean).join(' ')||null,cuil=digits(p.cuil).length===11?digits(p.cuil):null,coverage=r.coverages[0]??null;
- const status:PatientIdentityStatus=!full||!cuil?'pending':!declaredNameMatchesOfficial(declaredName,full)?'mismatch':'verified_renaper';
- return {identityStatus:status,officialFullName:full,officialFirstName:first,officialLastName:last,dni:digits(p.numeroDocumento)||digits(dni),cuil,birthDate:normalizeBirthDate(clean(p.fechaNacimiento)),gender:normalizeGender(clean(p.sexo)),pucoCoverageName:clean(coverage?.cobertura),pucoCoverageCode:clean(coverage?.rnos)};
+
+const digits = (value: string | null | undefined) => (value ?? '').replace(/\D/g, '');
+const clean = (value: string | null | undefined) => value?.trim() || null;
+
+function tokens(value: string): string[] {
+  return value.normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleUpperCase('es-AR')
+    .replace(/[^A-Z0-9 ]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
 }
-export async function persistOfficialIdentityResult(input:{supabase:unknown;result:OfficialIdentityResult;dni:string;patientId?:string|null;dispatchRequestId?:string|null;userId?:string|null;declaredName?:string|null;syncProfileName?:boolean}):Promise<PersistedOfficialIdentity>{
- if(digits(input.result.person.numeroDocumento)!==digits(input.dni))throw Object.assign(new Error('RENAPER document mismatch'),{code:'RENAPER_DOCUMENT_MISMATCH'});
- const v=buildOfficialIdentityRecord(input.result,input.dni,input.declaredName),db=input.supabase as IdentityDb;
- const fields={identity_status:v.identityStatus,official_full_name:v.officialFullName,official_first_name:v.officialFirstName,official_last_name:v.officialLastName,official_cuil:v.cuil,official_birth_date:v.birthDate,official_gender:v.gender,puco_coverage_name:v.pucoCoverageName,puco_coverage_code:v.pucoCoverageCode,identity_verified_at:v.identityStatus==='verified_renaper'?new Date().toISOString():null,identity_source:'msal_bus_renaper'};
- if(input.patientId){const {error}=await db.from('patients').update({...fields,dni:v.dni,cuil:v.cuil,birth_date:v.birthDate,gender:v.gender==='F'?'female':v.gender==='M'?'male':v.gender==='X'?'other':null}).eq('id',input.patientId);if(error)throw error}
- if(input.dispatchRequestId){const {error}=await db.from('pharmacy_dispatch_requests').update({...fields,patient_dni:v.dni}).eq('id',input.dispatchRequestId);if(error)throw error}
- if(input.syncProfileName&&input.userId&&v.identityStatus==='verified_renaper'&&v.officialFirstName&&v.officialLastName){const {error}=await db.from('profiles').update({first_name:v.officialFirstName,last_name:v.officialLastName}).eq('user_id',input.userId);if(error)throw error}
- return v;
+
+export function declaredNameMatchesOfficial(
+  declared: string | null | undefined,
+  official: string,
+): boolean {
+  if (!declared?.trim()) return true;
+  const declaredTokens = tokens(declared);
+  const officialTokens = tokens(official);
+  if (!declaredTokens.length || !officialTokens.length) return false;
+  const matched = new Set(declaredTokens.filter((token) => officialTokens.includes(token)));
+  return matched.size / Math.max(declaredTokens.length, officialTokens.length) >= 0.5;
 }
-export async function fetchAndPersistOfficialIdentity(input:{supabase:unknown;dni:string;sexId:RenaperSexId;patientId?:string|null;dispatchRequestId?:string|null;userId?:string|null;declaredName?:string|null;runtimeEnv?:Record<string,unknown>;timeoutMs?:number}):Promise<PersistedOfficialIdentity|null>{
- const lookup=fetchOfficialIdentity({dni:digits(input.dni),sexId:input.sexId,runtimeEnv:input.runtimeEnv});let timer:ReturnType<typeof setTimeout>|undefined;
- try{const timeout=new Promise<null>(resolve=>{timer=setTimeout(()=>resolve(null),input.timeoutMs??10000)});const result=await Promise.race([lookup,timeout]);if(!result)return null;return await persistOfficialIdentityResult({...input,result})}
- finally{if(timer)clearTimeout(timer)}
+
+function normalizeBirthDate(value: string | null): string | null {
+  if (!value) return null;
+  const input = value.trim();
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(input);
+  const local = /^(\d{2})[/-](\d{2})[/-](\d{4})$/.exec(input);
+  const year = iso ? Number(iso[1]) : local ? Number(local[3]) : NaN;
+  const month = iso ? Number(iso[2]) : local ? Number(local[2]) : NaN;
+  const day = iso ? Number(iso[3]) : local ? Number(local[1]) : NaN;
+  if (![year, month, day].every(Number.isInteger)) return null;
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) {
+    return null;
+  }
+  return parsed.toISOString().slice(0, 10);
+}
+
+function normalizeGender(value: string | null): string | null {
+  const normalized = (value ?? '').trim().toUpperCase();
+  if (['F', 'FEMENINO', 'FEMALE'].includes(normalized)) return 'F';
+  if (['M', 'MASCULINO', 'MALE'].includes(normalized)) return 'M';
+  if (['X', 'NO BINARIO', 'NO_BINARIO', 'OTHER'].includes(normalized)) return 'X';
+  return null;
+}
+
+export function buildOfficialIdentityRecord(
+  result: OfficialIdentityResult,
+  requestedDni: string,
+  declaredName?: string | null,
+): PersistedOfficialIdentity {
+  const person = result.person;
+  const firstName = clean(person.nombres);
+  const lastName = clean(person.apellido);
+  const fullName = [firstName, lastName].filter(Boolean).join(' ') || null;
+  const officialCuil = digits(person.cuil);
+  const cuil = officialCuil.length === 11 ? officialCuil : null;
+  const coverage = result.coverages[0] ?? null;
+  const verified = Boolean(fullName && cuil && declaredNameMatchesOfficial(declaredName, fullName));
+
+  return {
+    identityStatus: !fullName || !cuil ? 'pending' : verified ? 'verified_renaper' : 'mismatch',
+    officialFullName: fullName,
+    officialFirstName: firstName,
+    officialLastName: lastName,
+    dni: digits(person.numeroDocumento) || digits(requestedDni),
+    cuil,
+    birthDate: normalizeBirthDate(clean(person.fechaNacimiento)),
+    gender: normalizeGender(clean(person.sexo)),
+    pucoCoverageName: clean(coverage?.cobertura),
+    pucoCoverageCode: clean(coverage?.rnos),
+  };
+}
+
+/** Reserve one of the three allowed lookups with a row lock in Postgres. */
+export async function claimRenaperIdentityLookup(input: {
+  supabase: unknown;
+  patientId?: string | null;
+  dispatchRequestId?: string | null;
+  limit?: number;
+}): Promise<number> {
+  const patientId = input.patientId ?? null;
+  const dispatchRequestId = patientId ? null : input.dispatchRequestId ?? null;
+  if (!patientId && !dispatchRequestId) return 0;
+
+  const client = input.supabase as IdentityRpcClient;
+  const { data, error } = await client.rpc('claim_renaper_identity_lookup', {
+    p_patient_id: patientId,
+    p_dispatch_request_id: dispatchRequestId,
+    p_limit: input.limit ?? 3,
+  });
+  if (error) {
+    throw Object.assign(new Error('RENAPER lookup budget could not be reserved'), {
+      code: error.code ?? 'RENAPER_LOOKUP_CLAIM_FAILED',
+    });
+  }
+  if (data === -1) {
+    throw Object.assign(new Error('RENAPER lookup limit reached'), {
+      code: 'RENAPER_LOOKUP_LIMIT_REACHED',
+    });
+  }
+  if (data === -2 || data === null) {
+    throw Object.assign(new Error('RENAPER identity scope not found'), {
+      code: 'RENAPER_LOOKUP_SCOPE_NOT_FOUND',
+    });
+  }
+  return data;
+}
+
+export async function persistOfficialIdentityResult(input: {
+  supabase: unknown;
+  result: OfficialIdentityResult;
+  dni: string;
+  patientId?: string | null;
+  dispatchRequestId?: string | null;
+  userId?: string | null;
+  declaredName?: string | null;
+  syncProfileName?: boolean;
+}): Promise<PersistedOfficialIdentity> {
+  if (digits(input.result.person.numeroDocumento) !== digits(input.dni)) {
+    throw Object.assign(new Error('RENAPER document mismatch'), { code: 'RENAPER_DOCUMENT_MISMATCH' });
+  }
+
+  const identity = buildOfficialIdentityRecord(input.result, input.dni, input.declaredName);
+  const client = input.supabase as PersistIdentityRpcClient;
+  const { error } = await client.rpc('persist_renaper_identity_result', {
+    p_patient_id: input.patientId ?? null,
+    p_dispatch_request_id: input.dispatchRequestId ?? null,
+    p_user_id: input.userId ?? null,
+    p_identity_status: identity.identityStatus,
+    p_dni: identity.dni,
+    p_official_full_name: identity.officialFullName,
+    p_official_first_name: identity.officialFirstName,
+    p_official_last_name: identity.officialLastName,
+    p_official_cuil: identity.cuil,
+    p_official_birth_date: identity.birthDate,
+    p_official_gender: identity.gender,
+    p_puco_coverage_name: identity.pucoCoverageName,
+    p_puco_coverage_code: identity.pucoCoverageCode,
+    p_verified_at: identity.identityStatus === 'verified_renaper' ? new Date().toISOString() : null,
+  });
+  if (error) throw error;
+
+  return identity;
+}
+
+export async function fetchAndPersistOfficialIdentity(input: {
+  supabase: unknown;
+  dni: string;
+  sexId: RenaperSexId;
+  patientId?: string | null;
+  dispatchRequestId?: string | null;
+  userId?: string | null;
+  declaredName?: string | null;
+  runtimeEnv?: Record<string, unknown>;
+  timeoutMs?: number;
+}): Promise<PersistedOfficialIdentity | null> {
+  await claimRenaperIdentityLookup({
+    supabase: input.supabase,
+    patientId: input.patientId,
+    dispatchRequestId: input.dispatchRequestId,
+  });
+  const lookup = fetchOfficialIdentity({
+    dni: digits(input.dni),
+    sexId: input.sexId,
+    runtimeEnv: input.runtimeEnv,
+  });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const timeout = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), input.timeoutMs ?? 10000);
+    });
+    const result = await Promise.race([lookup, timeout]);
+    if (!result) return null;
+    return await persistOfficialIdentityResult({ ...input, result });
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }

@@ -31,7 +31,7 @@ interface PrescriptionData {
   hasDigitalArtifact?: boolean
   artifactWarning?: string | null
   requiresStrictValidation?: boolean
-  source?: 'legacy' | 'prescriptions_core'
+  source?: 'legacy' | 'prescriptions_core' | 'memed_br'
   medications?: Medication[]
 }
 

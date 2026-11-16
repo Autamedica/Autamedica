@@ -60,7 +60,7 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
       .eq('id', dispatchId)
       .maybeSingle()
     if (dispatchError) return internalError()
-    if (!dispatch || !dispatch.patient_id || !dispatch.assigned_doctor_id
+    if (!dispatch?.patient_id || !dispatch.assigned_doctor_id
       || !['in_call', 'completed'].includes(String(dispatch.status))) return notFound('document_not_found')
 
     const url = new URL(request.url)
@@ -92,10 +92,7 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
       if (!row || row.status === 'deleted' || new Date(row.created_at).getTime() < new Date(createdAfter).getTime()) {
         return notFound('document_not_found')
       }
-      const linkData = row.digital_link_data && typeof row.digital_link_data === 'object'
-        ? row.digital_link_data as Record<string, unknown>
-        : {}
-      const link = findMemedDocumentUrl(linkData.pdf) ?? findMemedDocumentUrl(linkData.digital) ?? findMemedDocumentUrl(linkData)
+      const link = findMemedDocumentUrl(row.digital_link_data)
       if (!link) return notFound('memed_document_link_unavailable')
       return new Response(null, {
         status: 302,
@@ -109,7 +106,7 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
         .eq('id', recordId).eq('patient_id', dispatch.patient_id)
         .eq('doctor_id', dispatch.assigned_doctor_id).maybeSingle()
       if (error) return internalError()
-      if (!row || row.status !== 'active' || !row.cuir
+      if (row?.status !== 'active' || !row.cuir
         || row.signature_method !== 'ac_external'
         || new Date(row.created_at).getTime() < new Date(createdAfter).getTime()) {
         return notFound('document_not_found')
@@ -156,7 +153,7 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
       .select('*').eq('id', recordId).eq('patient_id', dispatch.patient_id)
       .eq('doctor_id', dispatch.assigned_doctor_id).maybeSingle()
     if (error) return internalError()
-    if (!certificate || certificate.status !== 'signed'
+    if (certificate?.status !== 'signed'
       || new Date(certificate.created_at).getTime() < new Date(createdAfter).getTime()) {
       return notFound('document_not_found')
     }

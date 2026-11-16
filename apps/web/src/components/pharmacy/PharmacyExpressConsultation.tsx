@@ -41,7 +41,7 @@ type Step = 'FORM' | 'WAITING' | 'CALL' | 'ENDED' | 'CANCELLED'
 
 type EncounterDocument = {
   id: string; kind: 'memed' | 'core' | 'certificate'; title: string; provider: string;
-  createdAt: string; status: string; verificationCode: string | null; accessCode?: string | null; downloadUrl: string;
+  createdAt: string; status: string; verificationCode: string | null; downloadUrl: string;
 }
 
 const COPY = {
@@ -70,9 +70,7 @@ export function PharmacyExpressConsultation({
   const nameInputId = useId()
   const phoneInputId = useId()
   const reasonInputId = useId()
-  const [sessionReferralCode, setSessionReferralCode] = useState<string | null>(referralCode)
-  const [sessionPartnerName, setSessionPartnerName] = useState<string | null>(referralPartnerName)
-  const isJordanReferral = sessionReferralCode?.toUpperCase() === 'JORDAN'
+  const isJordanReferral = referralCode?.toUpperCase() === 'JORDAN'
 
   const [step, setStep] = useState<Step>('FORM')
   const [formData, setFormData] = useState({
@@ -133,8 +131,6 @@ export function PharmacyExpressConsultation({
         })
         if (!active || !restored?.accessToken) return
         setRequestId(saved.requestId)
-        setSessionReferralCode(saved.referralCode ?? referralCode)
-        setSessionPartnerName(saved.partnerName ?? referralPartnerName)
         setAccessToken(restored.accessToken)
         setRecoveryToken(saved.recoveryToken)
         setCallRoomId(restored.request.cloudflare_room_id)
@@ -255,7 +251,7 @@ export function PharmacyExpressConsultation({
           careCountry?: 'AR' | 'BR'; referralCode?: string | null;
           partnerName?: string | null; savedAt?: number;
         } : null
-        if (!saved || saved.requestId !== id) return
+        if (saved?.requestId !== id) return
         const secret = saved.recoveryToken || recoveryToken
         if (!secret) return
         const restored = await fetchApi<{ request: DispatchRequest; accessToken: string }>('/api/pharmacy/dispatch/resume', {
@@ -268,8 +264,8 @@ export function PharmacyExpressConsultation({
           guestToken: restored.accessToken,
           recoveryToken: secret,
           country,
-          referralCode: saved?.referralCode ?? sessionReferralCode,
-          partnerName: saved?.partnerName ?? sessionPartnerName,
+          referralCode: saved?.referralCode ?? referralCode,
+          partnerName: saved?.partnerName ?? referralPartnerName,
           savedAt: Date.now(),
         }
         setAccessToken(restored.accessToken)
@@ -290,25 +286,12 @@ export function PharmacyExpressConsultation({
         recoveryInProgress.current = false
       }
     }
-  }, [callRoomId, recoveryToken, formData.careCountry, sessionReferralCode, sessionPartnerName])
+  }, [callRoomId, recoveryToken, formData.careCountry, referralCode, referralPartnerName])
 
   useEffect(() => {
-    if (step !== 'ENDED' || !requestId || documents.length > 0) return
-    let attempts = 0
-    let active = true
-    let interval: number | null = null
-    const refreshDocuments = async () => {
-      attempts += 1
-      await checkStatus(requestId, accessToken)
-      if ((!active || attempts >= 12) && interval !== null) window.clearInterval(interval)
-    }
-    void refreshDocuments()
-    interval = window.setInterval(() => {
-      if (attempts >= 12) { if (interval !== null) window.clearInterval(interval); return }
-      void refreshDocuments()
-    }, 2500)
-    return () => { active = false; if (interval !== null) window.clearInterval(interval) }
-  }, [step, requestId, accessToken, checkStatus, documents.length])
+    if (step !== 'ENDED' || !requestId) return
+    void checkStatus(requestId, accessToken)
+  }, [step, requestId, accessToken, checkStatus])
 
   useEffect(() => {
     if ((step !== 'WAITING' && step !== 'CALL') || !requestId) return
@@ -388,7 +371,7 @@ export function PharmacyExpressConsultation({
           patientPhone: formData.phone.trim(),
           symptomSummary: reasonSummary,
           pharmacyId: pharmacyId || undefined,
-          referralCode: sessionReferralCode || undefined,
+          referralCode: referralCode || undefined,
           tier: 'general',
         },
       })
@@ -401,7 +384,7 @@ export function PharmacyExpressConsultation({
       setAccessToken(token)
       setRecoveryToken(res.recoveryToken ?? null)
       setCallRoomId(roomId)
-      const activeSession = { requestId: reqId, guestToken: token, recoveryToken: res.recoveryToken ?? null, country: formData.careCountry, referralCode: sessionReferralCode, partnerName: sessionPartnerName, savedAt: Date.now() }
+      const activeSession = { requestId: reqId, guestToken: token, recoveryToken: res.recoveryToken ?? null, country: formData.careCountry, referralCode, partnerName: referralPartnerName, savedAt: Date.now() }
       window.sessionStorage.setItem('autamedica:pharmacy-express:active-session', JSON.stringify(activeSession))
       window.localStorage.setItem('autamedica:pharmacy-express:active-session', JSON.stringify(activeSession))
       setStep('WAITING')
@@ -445,7 +428,7 @@ export function PharmacyExpressConsultation({
         <div className="fixed top-3 left-4 z-50 flex items-center gap-2.5 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-slate-200 shadow-lg text-xs font-medium text-slate-900">
           <img src="/logo_bioceramic.png" alt="AutaMedica" className="w-5 h-5 rounded-md object-contain" />
           <span className="font-bold tracking-tight text-slate-900">{pharmacyName || copy.brand}</span>
-          {sessionPartnerName && <span className="hidden text-slate-500 sm:inline">· {sessionPartnerName}</span>}
+          {referralPartnerName && <span className="hidden text-slate-500 sm:inline">· {referralPartnerName}</span>}
           <span className="text-slate-400">•</span>
           <span className="text-emerald-700 flex items-center gap-1.5 font-semibold">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
@@ -665,8 +648,7 @@ export function PharmacyExpressConsultation({
             <div className="mb-6 w-full space-y-3 text-left">
               {documents.length > 0 ? documents.map((document) => {
                 const documentUrl = new URL(document.downloadUrl, window.location.origin).toString()
-                const shareText = [document.title, 'AutaMedica', document.accessCode ? `${isPortuguese ? 'Código de acesso' : 'Código de acceso'}: ${document.accessCode}` : null, documentUrl].filter(Boolean).join('\n')
-                const shareUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`
+                const shareUrl = `https://wa.me/?text=${encodeURIComponent(`${document.title} · AutaMedica: ${documentUrl}`)}`
                 return (
                   <article key={document.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                     <div className="flex items-start justify-between gap-3">
@@ -674,8 +656,6 @@ export function PharmacyExpressConsultation({
                         <p className="text-sm font-semibold text-slate-900">{document.kind === 'certificate' ? (isPortuguese ? 'Atestado / Certificado Médico' : 'Atestado / Certificado Médico') : document.kind === 'memed' ? 'Receita Digital Memed' : 'Receta Digital RCTA'}</p>
                         <p className="mt-0.5 truncate text-xs text-slate-600">{document.title} · {document.provider}</p>
                         {document.verificationCode && <p className="mt-1 text-[11px] text-slate-500">{isPortuguese ? 'Código de verificação' : 'Código de verificación'}: <span className="font-mono font-semibold text-slate-800">{document.verificationCode}</span></p>}
-                        {document.accessCode && <p className="mt-1 text-[11px] text-slate-500">{isPortuguese ? 'Código de acesso' : 'Código de acceso'}: <span className="font-mono font-semibold text-slate-800">{document.accessCode}</span></p>}
-                        {document.accessCode && <p className="mt-1 text-[11px] text-slate-500">{isPortuguese ? 'Código de acesso à farmácia' : 'Código de acceso en farmacia'}: <span className="font-mono font-semibold text-slate-800">{document.accessCode}</span></p>}
                       </div>
                       <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
                     </div>
@@ -696,7 +676,7 @@ export function PharmacyExpressConsultation({
                 setAccessToken(null)
                 setRecoveryToken(null)
                 setDocuments([])
-                setFormData({ careCountry: formData.careCountry, dni: '', name: '', phone: '', reason: '' })
+                setFormData({ careCountry: formData.careCountry, dni: '', genderCode: '', name: '', phone: '', reason: '' })
                 setCountryPaymentApproved(false)
                 setReasonCategory('')
                 setLgpdConsent(false)

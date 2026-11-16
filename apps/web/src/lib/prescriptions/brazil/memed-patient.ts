@@ -97,7 +97,7 @@ export async function resolveMemedPatient(
       .limit(1)
       .maybeSingle();
     if (guestDispatchError) throw new Error('memed_patient_lookup_failed');
-    if (!guestDispatch || guestDispatch.lgpd_consent !== true) {
+    if (guestDispatch?.lgpd_consent !== true) {
       throw new Error('memed_patient_consent_required');
     }
     const nameParts = String(guestDispatch.patient_name ?? '').trim().split(/\s+/);

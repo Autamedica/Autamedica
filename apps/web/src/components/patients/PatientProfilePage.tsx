@@ -250,7 +250,7 @@ function AuthenticatedPatientProfilePage({
             <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-am-card-lg sm:p-8">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <h2 className="font-heading text-3xl text-gray-950">{isPortuguese ? 'Perfil' : 'Perfil'}</h2>
+                  <h2 className="font-heading text-3xl text-gray-950">Perfil</h2>
                 </div>
               </div>
 
@@ -275,7 +275,7 @@ function AuthenticatedPatientProfilePage({
                         ) : (
                           <BadgeCheck className="h-4 w-4" />
                         )}
-                        {isLookingUpIdentity ? (isPortuguese ? 'Consultando...' : 'Consultando...') : (isPortuguese ? 'Completar' : 'Completar')}
+                        {isLookingUpIdentity ? 'Consultando...' : (isPortuguese ? 'Completar' : 'Completar')}
                       </button>
                     </div>
                     <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.75fr)]">
@@ -326,7 +326,7 @@ function AuthenticatedPatientProfilePage({
                         ) : (
                           <AlertCircle className="h-3.5 w-3.5" />
                         )}
-                        {hasOfficialIdentity ? (isPortuguese ? 'Identidade consultada em base oficial' : 'Identidad contrastada con RENAPER / PUCO') : (isPortuguese ? 'Dados informados — aguardando validação' : 'Datos declarados — pendientes de contraste')}
+                        {hasOfficialIdentity ? 'Identidad contrastada con RENAPER / PUCO' : 'Datos declarados — pendientes de contraste'}
                       </span>
                     </div>
                     <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -629,7 +629,7 @@ function AuthenticatedPatientProfilePage({
               <div className="mt-5 space-y-4">
                 <div className="rounded-2xl bg-slate-50 px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
-                    {isPortuguese ? 'Rastreamentos' : 'Controles preventivos'}
+                    {isPortuguese ? 'Rastreamentos' : 'Screenings'}
                   </p>
                   <div className="mt-2 space-y-2">
                     {screeningsHighlights.map((item) => (
@@ -672,6 +672,8 @@ function AuthenticatedPatientProfilePage({
 
 export default function PatientProfilePage() {
   const session = usePatientSession();
+  const isPortuguese = session.patient?.careCountry === 'BR'
+    || (typeof navigator !== 'undefined' && navigator.language.toLowerCase().startsWith('pt'));
 
   if (session.loading) {
     return (
