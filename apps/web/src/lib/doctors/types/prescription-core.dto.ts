@@ -104,6 +104,7 @@ export interface PatientPrescriptionDTO {
   expiresAt: string | null;
   doctorName: string;
   isDigitalReady: boolean;
+  provider?: 'Memed BR' | 'RCTA / Core AR';
 }
 
 /**
