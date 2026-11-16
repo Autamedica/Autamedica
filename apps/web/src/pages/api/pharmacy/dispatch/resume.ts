@@ -35,9 +35,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .eq('request_id', requestId)
       .maybeSingle()
 
-    // Same error whether request does not exist, the token is incorrect,
-    // revoked, or past the server's recovery retention window.
-    if (readError || !session || session.revoked_at ||
+    if (readError || !session ||
       new Date(session.expires_at as string).getTime() <= Date.now() ||
       !await verifyGuestQueueRecoveryToken(recoveryToken, session.token_sha256 as string)) {
       return unauthorized('guest_recovery_invalid')
@@ -53,7 +51,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
       logger.error('[api/pharmacy/dispatch/resume] request_read_failed', { code: requestError.code ?? 'INTERNAL' })
       return internalError('guest_recovery_unavailable')
     }
-    if (!activeRequest) return unauthorized('guest_recovery_invalid')
+    if (!activeRequest || !['searching', 'matched', 'in_call', 'completed'].includes(String(activeRequest.status))) {
+      return unauthorized('guest_recovery_invalid')
+    }
+    // Legacy completed requests had their credential revoked by the older
+    // trigger. Allow a valid unexpired device secret only for completed
+    // encounters so patients can still retrieve the signed documents.
+    if (session.revoked_at && activeRequest.status !== 'completed') {
+      return unauthorized('guest_recovery_invalid')
+    }
 
     // An authenticated mobile recovery token is not sufficient on its own.
     // The user must still hold a valid Supabase session owning this request.
@@ -73,15 +79,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
       guestName: ((activeRequest.patient_name as string | null)?.trim() || 'Paciente Farmacia'),
     }, secret)
 
-    // Rolling 30-day recovery, still revocable once the request closes.
+    // Active queues roll their 30-day recovery window. Completed encounters
+    // keep the original expiry so document recovery cannot be extended forever.
     const now = new Date()
-    const expiresAt = new Date(now.getTime() + GUEST_QUEUE_RECOVERY_DAYS * 86400_000)
+    const expiresAt = activeRequest.status === 'completed'
+      ? new Date(session.expires_at as string)
+      : new Date(now.getTime() + GUEST_QUEUE_RECOVERY_DAYS * 86400_000)
     const { error: writeError } = await admin
       .from('pharmacy_guest_dispatch_sessions')
-      .update({ last_used_at: now.toISOString(), expires_at: expiresAt.toISOString() })
+      .update({ last_used_at: now.toISOString(), expires_at: expiresAt.toISOString(), revoked_at: null })
       .eq('request_id', requestId)
       .eq('token_sha256', session.token_sha256)
-      .is('revoked_at', null)
 
     if (writeError) {
       logger.error('[api/pharmacy/dispatch/resume] recovery_refresh_failed', { code: writeError.code ?? 'INTERNAL' })
