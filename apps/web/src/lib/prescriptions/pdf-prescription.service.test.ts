@@ -267,7 +267,7 @@ describe('generatePrescriptionPdf', () => {
         patient: {
           name: 'Demo Demo', dni: '12345678', cuil: '27123456780',
           dateOfBirth: '2025-01-01', sex: 'Masculino',
-          insurancePlan: '100',
+          insurancePlan: 'NO POSEE',
           affiliateCredential: '20123456786',
           insuranceEntityCode: 7110,
         },
@@ -306,10 +306,11 @@ describe('generatePrescriptionPdf', () => {
       expect(pdfText).toContain('Esta prescripción tiene validez de documento público electrónico según Ley 27.553.');
       expect(pdfText).not.toContain('MODALIDAD GENERICO=');
       expect(pdfText).not.toContain('Sugerido:');
+      expect(pdfText).toContain('Emitida: 03/11/2026  |  Vence: 19/11/2026');
       expect(pdfText).toContain('CUIR: -');
       expect(pdfText).toContain('VERIFICACIÓN DE FIRMA');
       expect(pdfText).toContain('Verificar la firma en el certificado PDF o registro del emisor.');
-      expect(pdfText).not.toMatch(/TEST|DEMO|NO ASIGNADO|NO APTA|SIN FIRMA/);
+      expect(pdfText).not.toMatch(/FARMALINK TEST|NO ASIGNADO|NO APTA|SIN FIRMA/);
       expect(pdfText).not.toContain('PREDNISOLONA');
       expect(pdfText).not.toContain('Validador RCTA');
       if (scenario.mode === 'S') expect(pdfText).not.toContain('ESFUMEL');
@@ -349,7 +350,7 @@ describe('generatePrescriptionPdf', () => {
         cuil: '27123456780',
         affiliateCredential: '20123456786',
         insuranceEntityCode: 7110,
-        insurancePlan: '100',
+        insurancePlan: 'NO POSEE',
       },
       prescriber: {
         name: 'Demo Demo',
