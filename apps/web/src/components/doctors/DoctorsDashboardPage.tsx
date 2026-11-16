@@ -377,26 +377,22 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
       hideDefaultHeader={true}
     >
       {/* ── CLINICAL COMMAND COCKPIT (Sala de Telemedicina y Monitoreo) ── */}
-      <div className="mb-6 overflow-hidden rounded-2xl border border-[#1B3A50] bg-gradient-to-br from-[#0D1F2D] via-[#0F2537] to-[#0F293A] p-5 text-white md:p-6 shadow-xl relative">
-        {/* Background glow decoration */}
-        <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-[#38BDF8]/10 blur-3xl pointer-events-none" />
-        <div className="absolute left-1/3 bottom-0 h-48 w-48 rounded-full bg-[#2DD4BF]/5 blur-3xl pointer-events-none" />
-
+      <div className="mb-5 min-w-0 overflow-hidden rounded-2xl border border-[#DCE8EE] bg-[#0F2537] p-3 text-white shadow-md sm:p-4 md:p-5">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: EDITORIAL_EASE }}
-          className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] items-center"
+          className="relative grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] items-center"
         >
           {/* Col 1: Telemedicina & Cockpit Activo */}
-          <div className="border-b border-white/10 pb-5 lg:border-b-0 lg:pb-0 lg:pr-6 lg:border-r lg:border-neutral-800/40">
+          <div className="border-b border-white/10 pb-4 lg:border-b-0 lg:pb-0 lg:pr-4 lg:border-r lg:border-white/10">
             {(() => {
               const activeTelemedAppt = todayAppointments.find((a: any) => canStartTelemedicineCall(a));
               const activeTelemedPatientId = activeTelemedAppt?.patient_id || "";
               const activeTelemedPatientName = activeTelemedAppt ? resolvePatientName(activeTelemedPatientId) : "";
               
               return (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {/* Top Badge */}
                   <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-emerald-400">
                     <span className="relative flex h-2 w-2">
@@ -409,9 +405,9 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                   </div>
 
                   {activeTelemedAppt ? (
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
-                        <h2 className="text-2xl font-light tracking-tight text-white sm:text-3xl">
+                        <h2 className="text-xl font-semibold tracking-tight text-white sm:text-2xl">
                           {new Date(activeTelemedAppt.start_time).toLocaleTimeString(isBrazilianDoctor ? 'pt-BR' : 'es-AR', { hour: '2-digit', minute: '2-digit' })} hs · {activeTelemedPatientName}
                         </h2>
                         <p className="mt-1 text-[13px] text-slate-300">
@@ -422,7 +418,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                       <button
                         onClick={() => handleStartCall(activeTelemedPatientId, activeTelemedAppt.id)}
                         disabled={isStartingCall}
-                        className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#10B981] to-[#0D9488] px-5 py-2.5 text-[13px] font-bold text-white transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-emerald-500/10"
+                        className="flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#38BDF8] to-[#0284C7] px-5 py-3 text-sm font-bold text-white transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-sky-500/15 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300 sm:w-auto"
                       >
                         {isStartingCall ? (
                           <>
@@ -440,7 +436,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                   ) : (
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="max-w-md">
-                        <h2 className="text-xl font-light tracking-tight text-white sm:text-2xl">
+                        <h2 className="text-lg font-semibold tracking-tight text-white sm:text-xl">
                           {isBrazilianDoctor ? 'Sala de teleconsulta direta' : 'Sala de videoconsulta directa'}
                         </h2>
                         <p className="mt-1 text-[12px] text-neutral-400">
@@ -448,11 +444,11 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                         <select
                           value={selectedAdHocPatientId}
                           onChange={(e) => setSelectedAdHocPatientId(e.target.value)}
-                          className="rounded-lg border border-neutral-800 bg-neutral-950/80 px-2.5 py-2 text-[12px] text-white focus:border-[#2DD4BF] focus:outline-none min-w-[160px] max-w-[200px]"
+                          className="min-h-11 w-full min-w-0 rounded-lg border border-neutral-700 bg-neutral-950/80 px-3 py-2.5 text-sm text-white focus:border-[#38BDF8] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:w-auto sm:min-w-[160px] sm:max-w-[220px]"
                         >
                           <option value="" className="bg-neutral-950 text-neutral-400">{isBrazilianDoctor ? 'Selecionar...' : 'Seleccionar...'}</option>
                           {assignedPatients.map((p: any) => {
@@ -465,41 +461,46 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                           })}
                         </select>
 
-                        <button
-                          onClick={() => handleStartCall(selectedAdHocPatientId)}
-                          disabled={isStartingCall || !selectedAdHocPatientId}
-                          className={`flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-[12px] font-bold transition-all ${
-                            selectedAdHocPatientId 
-                              ? 'bg-white text-neutral-950 hover:bg-cyan-100 cursor-pointer shadow-md' 
-                              : 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
-                          }`}
-                        >
-                          {isStartingCall ? (
-                            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-neutral-950 border-t-transparent" />
-                          ) : (
-                            <Video className="h-3.5 w-3.5" />
-                          )}
-                          <span>Llamar</span>
-                        </button>
+                        {selectedAdHocPatientId ? (
+                          <button
+                            type="button"
+                            onClick={() => handleStartCall(selectedAdHocPatientId)}
+                            disabled={isStartingCall}
+                            className="flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-[#0284C7] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#0369A1] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300 disabled:opacity-60 sm:w-auto"
+                          >
+                            {isStartingCall ? (
+                              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                            ) : (
+                              <Video className="h-3.5 w-3.5" />
+                            )}
+                            <span>{isStartingCall ? (isBrazilianDoctor ? 'Conectando...' : 'Conectando...') : (isBrazilianDoctor ? 'Iniciar videochamada' : 'Iniciar videollamada')}</span>
+                          </button>
+                        ) : (
+                          <span className="px-2 text-[11px] font-medium text-slate-400">
+                            {isBrazilianDoctor ? 'Selecione um paciente para iniciar' : 'Seleccioná un paciente para iniciar'}
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}
 
                   {/* Device Control row below inside telemed area */}
-                  <div className="flex flex-wrap items-center gap-4 pt-3 border-t border-neutral-800/40">
+                  <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-white/10">
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={() => setCameraActive(!cameraActive)}
-                        className={`flex h-7 w-7 items-center justify-center rounded-md border transition-all ${
-                          cameraActive ? 'border-cyan-500/30 bg-cyan-950/20 text-cyan-400' : 'border-neutral-800 bg-neutral-900 text-neutral-500'
+                        aria-label={cameraActive ? (isBrazilianDoctor ? "Desligar câmera" : "Apagar cámara") : (isBrazilianDoctor ? "Ligar câmera" : "Encender cámara")}
+                        aria-pressed={cameraActive}
+                        className={`flex h-11 w-11 items-center justify-center rounded-xl border transition-all ${
+                          cameraActive ? 'border-sky-400/40 bg-sky-400/10 text-sky-300' : 'border-neutral-800 bg-neutral-900 text-neutral-500'
                         }`}
-                        title={cameraActive ? "Apagar Cámara" : "Encender Cámara"}
+                        title={cameraActive ? (isBrazilianDoctor ? 'Desligar câmera' : 'Apagar cámara') : (isBrazilianDoctor ? 'Ligar câmera' : 'Encender cámara')}
                       >
                         <Camera className="h-3.5 w-3.5" />
                       </button>
                       <span className="text-[10px] font-semibold text-neutral-400">
-                        Cámara <span className={cameraActive ? 'text-cyan-400' : 'text-neutral-500'}>{cameraActive ? 'ON' : 'OFF'}</span>
+                        {isBrazilianDoctor ? 'Câmera' : 'Cámara'} <span className={cameraActive ? 'text-sky-300' : 'text-neutral-500'}>{cameraActive ? 'ON' : 'OFF'}</span>
                       </span>
                     </div>
 
@@ -507,35 +508,21 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                       <button
                         type="button"
                         onClick={() => setMicActive(!micActive)}
-                        className={`flex h-7 w-7 items-center justify-center rounded-md border transition-all ${
-                          micActive ? 'border-cyan-500/30 bg-cyan-950/20 text-cyan-400' : 'border-neutral-800 bg-neutral-900 text-neutral-500'
+                        aria-label={micActive ? (isBrazilianDoctor ? "Silenciar microfone" : "Silenciar micrófono") : (isBrazilianDoctor ? "Ligar microfone" : "Encender micrófono")}
+                        aria-pressed={micActive}
+                        className={`flex h-11 w-11 items-center justify-center rounded-xl border transition-all ${
+                          micActive ? 'border-sky-400/40 bg-sky-400/10 text-sky-300' : 'border-neutral-800 bg-neutral-900 text-neutral-500'
                         }`}
-                        title={micActive ? "Silenciar Mic" : "Encender Mic"}
+                        title={micActive ? (isBrazilianDoctor ? 'Silenciar microfone' : 'Silenciar micrófono') : (isBrazilianDoctor ? 'Ligar microfone' : 'Encender micrófono')}
                       >
                         <Mic className="h-3.5 w-3.5" />
                       </button>
                       <span className="text-[10px] font-semibold text-neutral-400">
-                        Mic <span className={micActive ? 'text-cyan-400' : 'text-neutral-500'}>{micActive ? 'ON' : 'OFF'}</span>
+                        {isBrazilianDoctor ? 'Microfone' : 'Micrófono'} <span className={micActive ? 'text-sky-300' : 'text-neutral-500'}>{micActive ? 'ON' : 'OFF'}</span>
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2 pl-2 border-l border-neutral-800/60">
-                      <span className="text-[9px] text-neutral-500 uppercase tracking-wider">Señal:</span>
-                      <div className="flex items-end gap-0.5 h-4">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                          <div
-                            key={i}
-                            className={`w-0.75 rounded-full bg-cyan-400 ${micActive ? 'audio-bar' : 'h-1'}`}
-                            style={{
-                              height: micActive ? undefined : '3px',
-                              opacity: micActive ? 0.8 : 0.4,
-                              transition: 'height 0.2s ease'
-                            }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                                      </div>
                 </div>
               );
             })()}
@@ -581,45 +568,75 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
         <DoctorOnDutyWidget careCountry={doctorCountry === 'BR' ? 'BR' : doctorCountry === 'AR' ? 'AR' : undefined} />
       </div>
 
-      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0D9488]">MÉTRICAS CLÍNICAS</p>
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">{isBrazilianDoctor ? 'Consultas atendidas hoje' : 'Consultas atendidas hoy'}</p>
-          <p className="mt-2 text-3xl font-bold tracking-tight text-[#0F2537]">{todayCompletedCount}</p>
+      <section aria-labelledby="clinical-actions-title" className="mb-6">
+        <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#0284C7]">{isBrazilianDoctor ? 'ACESSO CLÍNICO RÁPIDO' : 'ACCESO CLÍNICO RÁPIDO'}</p>
+            <h2 id="clinical-actions-title" className="mt-1 text-lg font-bold tracking-tight text-[#0F2537] sm:text-xl">{isBrazilianDoctor ? 'Receitas e atestados' : 'Recetas y atestados'}</h2>
+          </div>
+          <p className="text-xs text-slate-500">{isBrazilianDoctor ? 'Ações essenciais sempre à mão' : 'Accesos directos a las tareas clínicas esenciales'}</p>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <a
+            href="/doctors/prescriptions?mode=prescriptions&new=1"
+            aria-label={isBrazilianDoctor ? 'Abrir receitas digitais' : 'Abrir recetas digitales'}
+            className="group flex min-h-[104px] min-w-0 items-center gap-3 rounded-2xl border-2 border-sky-200 bg-gradient-to-br from-sky-50 to-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-400 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200 active:translate-y-0 sm:p-5"
+          >
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#0284C7] text-white shadow-sm sm:h-14 sm:w-14">
+              <FileText className="h-6 w-6 sm:h-7 sm:w-7" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-base font-bold leading-tight text-[#0F2537] sm:text-lg">{isBrazilianDoctor ? 'Receitas digitais' : 'Recetas digitales'}</span>
+              <span className="mt-1 block text-xs leading-snug text-slate-600 sm:text-sm">{isBrazilianDoctor ? 'Criar e gerenciar receitas' : 'Crear y gestionar recetas digitales'}</span>
+              <span className="mt-2 inline-flex min-h-8 items-center gap-1 text-xs font-bold text-[#0284C7]">{isBrazilianDoctor ? 'Abrir receitas' : 'Abrir recetas'} <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" /></span>
+            </span>
+            <ArrowUpRight className="h-5 w-5 shrink-0 text-[#0284C7]" />
+          </a>
+          <a
+            href="/doctors/prescriptions?mode=certificates&new=1"
+            aria-label={isBrazilianDoctor ? 'Emitir atestado médico' : 'Emitir atestado médico'}
+            className="group flex min-h-[104px] min-w-0 items-center gap-3 rounded-2xl border-2 border-sky-200 bg-gradient-to-br from-[#E0F2FE] to-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-400 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200 active:translate-y-0 sm:p-5"
+          >
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#0369A1] text-white shadow-sm sm:h-14 sm:w-14">
+              <CheckCircle2 className="h-6 w-6 sm:h-7 sm:w-7" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-base font-bold leading-tight text-[#0F2537] sm:text-lg">{isBrazilianDoctor ? 'Atestados médicos' : 'Atestados médicos'}</span>
+              <span className="mt-1 block text-xs leading-snug text-slate-600 sm:text-sm">{isBrazilianDoctor ? 'Emitir e consultar atestados' : 'Emitir y consultar certificados médicos'}</span>
+              <span className="mt-2 inline-flex min-h-8 items-center gap-1 text-xs font-bold text-[#0284C7]">{isBrazilianDoctor ? 'Emitir atestado' : 'Emitir atestado'} <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" /></span>
+            </span>
+            <ArrowUpRight className="h-5 w-5 shrink-0 text-[#0284C7]" />
+          </a>
+        </div>
+      </section>
+
+
+      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0284C7]">{isBrazilianDoctor ? 'INDICADORES CLÍNICOS' : 'MÉTRICAS CLÍNICAS'}</p>
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="rounded-xl border border-[#E2E8F0] bg-white p-3.5 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0284C7]">{isBrazilianDoctor ? 'Consultas atendidas hoje' : 'Consultas atendidas hoy'}</p>
+          <p className="mt-2 text-2xl font-bold tracking-tight text-[#0F2537]">{todayCompletedCount}</p>
           <p className="mt-1 text-xs text-slate-500">{isBrazilianDoctor ? 'Agenda e farmácia concluídas' : 'Agenda y farmacia finalizadas'}</p>
         </div>
-        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">{isBrazilianDoctor ? 'Agendamentos não cancelados' : 'Citas no canceladas'}</p>
-          <p className="mt-2 text-3xl font-bold tracking-tight text-[#0F2537]">{activeCount}</p>
+        <div className="rounded-xl border border-[#E2E8F0] bg-white p-3.5 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0284C7]">{isBrazilianDoctor ? 'Agendamentos não cancelados' : 'Citas no canceladas'}</p>
+          <p className="mt-2 text-2xl font-bold tracking-tight text-[#0F2537]">{activeCount}</p>
           <p className="mt-1 text-xs text-slate-500">{isBrazilianDoctor ? 'Consultas agendadas ou em andamento' : 'Consultas agendadas o en curso'}</p>
         </div>
-        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">{isBrazilianDoctor ? 'Plantões de farmácia' : 'Guardias de farmacia'}</p>
-          <p className="mt-2 text-3xl font-bold tracking-tight text-[#0F2537]">{pharmacyDispatchCount}</p>
+        <div className="rounded-xl border border-[#E2E8F0] bg-white p-3.5 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0284C7]">{isBrazilianDoctor ? 'Plantões de farmácia' : 'Guardias de farmacia'}</p>
+          <p className="mt-2 text-2xl font-bold tracking-tight text-[#0F2537]">{pharmacyDispatchCount}</p>
           <p className="mt-1 text-xs text-slate-500">{isBrazilianDoctor ? 'Consultas despachadas e contabilizadas' : 'Consultas despachadas y contabilizadas'}</p>
           <p className="mt-1 text-xs font-medium text-emerald-700">{isBrazilianDoctor ? 'Hoje' : 'Hoy'}: {todayPharmacyCount} {isBrazilianDoctor ? 'concluídas' : 'completadas'}</p>
         </div>
-        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:col-span-1 lg:col-span-2">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0D9488]">{isBrazilianDoctor ? 'Ganhos de farmácia' : 'Ganancias de farmacia'}</p>
+        <div className="col-span-2 rounded-xl border border-[#E2E8F0] bg-white p-3.5 shadow-sm sm:col-span-2 lg:col-span-2">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0284C7]">{isBrazilianDoctor ? 'Ganhos de farmácia' : 'Ganancias de farmacia'}</p>
           <div className="mt-2 flex flex-wrap items-baseline gap-x-6 gap-y-2">
             <span className="text-2xl font-bold tracking-tight text-[#0F2537]">{(pharmacyEarnings.BRL / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
             <span className="text-2xl font-bold tracking-tight text-[#0F2537]">{(pharmacyEarnings.ARS / 100).toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 2 })}</span>
           </div>
           <p className="mt-1 text-xs text-slate-500">{isBrazilianDoctor ? 'Valores líquidos registrados em BRL e ARS' : 'Importes netos registrados en BRL y ARS'}</p>
         </div>
-      </div>
-      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-[#0D9488]">{isBrazilianDoctor ? 'FERRAMENTAS CLÍNICAS' : 'HERRAMIENTAS CLÍNICAS'}</p>
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <a href="/doctors/prescriptions" className="flex items-center gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm transition hover:border-sky-200 hover:shadow-md">
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-sky-50 text-sky-700"><FileText className="h-5 w-5" /></span>
-          <span><span className="block text-sm font-semibold text-[#0F2537]">{isBrazilianDoctor ? 'Receita digital' : 'Receta digital'}</span><span className="block text-xs text-slate-500">Memed · Brasil / Farmalink · Argentina</span></span>
-          <ArrowUpRight className="ml-auto h-4 w-4 text-slate-400" />
-        </a>
-        <a href="/doctors/certificates" className="flex items-center gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm transition hover:border-emerald-200 hover:shadow-md">
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50 text-emerald-700"><CheckCircle2 className="h-5 w-5" /></span>
-          <span><span className="block text-sm font-semibold text-[#0F2537]">{isBrazilianDoctor ? 'Atestado' : 'Certificado médico'}</span><span className="block text-xs text-slate-500">{isBrazilianDoctor ? 'Emissão clínica por jurisdição' : 'Emisión clínica por jurisdicción'}</span></span>
-          <ArrowUpRight className="ml-auto h-4 w-4 text-slate-400" />
-        </a>
       </div>
       {/* ── Stat cards / Rich Dashboard Widgets ── */}
       <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">

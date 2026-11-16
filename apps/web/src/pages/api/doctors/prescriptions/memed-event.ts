@@ -11,10 +11,11 @@ import { isMemedEnabled, isMemedPilotDoctor } from '@/lib/prescriptions/brazil/m
 import { MemedService } from '@/lib/prescriptions/brazil/memed.service';
 import { getMemedDoctorCpf } from '@/lib/prescriptions/brazil/memed-identity.repository';
 import { logger } from '@autamedica/shared';
+import type { Json } from '@autamedica/types';
 
 type JSONObject = Record<string, unknown>;
 type MemedDbError = { code?: string; message?: string } | null;
-type MemedSelectRow = { id: string; doctor_id: string; patient_id: string; status?: string };
+type MemedSelectRow = { id: string; doctor_id: string; patient_id: string; status?: string; digital_link_data?: unknown };
 type MemedSelectQuery<T> = {
   eq(column: string, value: string): MemedSelectQuery<T>;
   maybeSingle(): Promise<{ data: T | null; error: MemedDbError }>;
@@ -37,6 +38,55 @@ function providerPrescription(response: JSONObject): JSONObject {
   const data = asObject(response.data);
   const attributes = asObject(data.attributes);
   return asObject(attributes.prescricao ?? data.prescricao ?? attributes);
+}
+
+function findProviderValue(value: unknown, keyPattern: RegExp, depth = 0): string | null {
+  if (depth > 6 || value === null || typeof value !== 'object') return null;
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const found = findProviderValue(entry, keyPattern, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+  for (const [key, child] of Object.entries(value as JSONObject)) {
+    if (keyPattern.test(key) && typeof child === 'string' && child.trim()) return child.trim();
+    const nested = findProviderValue(child, keyPattern, depth + 1);
+    if (nested) return nested;
+  }
+  return null;
+}
+
+function safeMemedDocumentUrl(value: unknown): string | null {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:') return null;
+    const hostname = url.hostname.toLowerCase();
+    if (hostname !== 'memed.com.br' && !hostname.endsWith('.memed.com.br')) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function sanitizeMemedDocumentReferences(value: unknown): Array<Record<string, Json>> {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 20).map((entry) => {
+    const document = asObject(entry);
+    return {
+      ...(typeof document.id === 'string' || typeof document.id === 'number' ? { id: String(document.id) } : {}),
+      ...(typeof document.uuid === 'string' ? { uuid: document.uuid } : {}),
+      ...(typeof document.type === 'string' ? { type: document.type } : {}),
+      ...(typeof document.status === 'string' ? { status: document.status } : {}),
+      ...(typeof document.prescription_id === 'string' || typeof document.prescription_id === 'number'
+        ? { prescription_id: String(document.prescription_id) } : {}),
+      ...(typeof document.prescription_uuid === 'string' ? { prescription_uuid: document.prescription_uuid } : {}),
+      ...(typeof document.file_name === 'string' ? { file_name: document.file_name.slice(0, 180) } : {}),
+      ...(typeof document.signed === 'boolean' || typeof document.signed === 'number'
+        ? { signed: document.signed } : {}),
+    };
+  }).filter((document) => Object.keys(document).length > 0);
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -140,7 +190,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
 
     const { data: existing, error: existingError } = await admin.from('prescriptions')
-      .select('id, status')
+      .select('id, status, clinical_data, physical_pdf_url')
       .eq('doctor_id', doctor.id)
       .eq('patient_id', patientId)
       .eq('country_code', 'BR')
@@ -191,31 +241,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const { data: existingMemed, error: existingMemedError } = await memedAdmin
       .from('memed_prescriptions')
-      .select('id,doctor_id,patient_id,status')
+      .select('id,doctor_id,patient_id,status,digital_link_data')
       .eq('memed_id', prescriptionId)
       .maybeSingle();
     if (existingMemedError) throw existingMemedError;
     if (existingMemed && (existingMemed.doctor_id !== doctor.id || existingMemed.patient_id !== patientId)) {
       return forbidden('memed_prescription_ownership_conflict');
-    }
-
-    // Provider links are returned only by server-side endpoints. Keep them out
-    // of the browser event payload and never mark the provider's signed flag as
-    // independent signature evidence.
-    const digitalLinkData: JSONObject = {};
-    try {
-      digitalLinkData.digital = await memed.getDigitalPrescriptionLink(prescriptionId, authorizedDoctor.token);
-    } catch (linkError) {
-      logger.warn('[memed-event] patient digital link could not be retrieved', {
-        errorName: linkError instanceof Error ? linkError.name : typeof linkError,
-      });
-    }
-    try {
-      digitalLinkData.pdf = await memed.getFullPrescriptionPdfUrl(prescriptionId, authorizedDoctor.token);
-    } catch (pdfError) {
-      logger.warn('[memed-event] full prescription PDF URL could not be retrieved', {
-        errorName: pdfError instanceof Error ? pdfError.name : typeof pdfError,
-      });
     }
 
     const rawItems = Array.isArray(rx.medicamentos) ? rx.medicamentos : [];
@@ -230,21 +261,63 @@ export const POST: APIRoute = async ({ request, locals }) => {
       };
     });
 
-    // The external prescription is recorded without claiming its signature,
-    // SNCR registration or patient delivery until independently verified.
-    const payload = {
-      doctor_id: doctor.id,
-      patient_id: patientId,
-      status: 'draft',
-      country_code: 'BR',
-      vendor_name: 'memed',
-      vendor_id: String(rx.id ?? prescriptionId),
-      clinical_data: { source: 'memed', memed_prescription_id: prescriptionId, items,
-        emission_status: 'provider_verified', provider_verified_at: new Date().toISOString(),
-        signature_status: rx.signed === 1 || rx.signed === true ? 'provider_reported_signed' : 'pending',
-        signature_verified: false, delivery_status: 'pending', delivery_verified: false },
-      updated_at: new Date().toISOString(),
+    // Resolve the patient-facing Memed link and PDF resource server-side.
+    // They remain provider references; neither is misrepresented as signed evidence.
+    let digitalLinkUrl: string | null = null;
+    let digitalUnlockCode: string | null = null;
+    let fullDocumentUrl: string | null = null;
+    const digitalLinkData: Record<string, unknown> = {};
+    try {
+      const linkResource = await memed.getDigitalPrescriptionLink(prescriptionId, authorizedDoctor.token);
+      digitalLinkData.digital = linkResource;
+      digitalLinkUrl = safeMemedDocumentUrl(findProviderValue(
+        linkResource,
+        /^(url|link|digital_url|digital_link|url_receita|link_receita|prescription_url|digital_prescription_url)$/i,
+      ));
+      digitalUnlockCode = findProviderValue(
+        linkResource,
+        /^(unlock.?code|access.?code|password|senha|codigo.?desbloqueio|codigo.?de.?desbloqueio|pin|code)$/i,
+      );
+    } catch {
+      logger.warn('[memed-event] patient digital-link retrieval unavailable');
+    }
+    try {
+      const documentResource = await memed.getFullPrescriptionDocumentUrl(prescriptionId, authorizedDoctor.token);
+      digitalLinkData.pdf = documentResource;
+      fullDocumentUrl = safeMemedDocumentUrl(findProviderValue(
+        documentResource,
+        /^(url|link|document_url|pdf_url|url_documento|url_pdf|file_url)$/i,
+      ));
+    } catch {
+      logger.warn('[memed-event] full PDF resource retrieval unavailable');
+    }
+
+    const documentReferences = sanitizeMemedDocumentReferences(rx.documents);
+    const providerVerifiedAt = new Date().toISOString();
+    const clinicalData: Json = {
+      source: 'memed',
+      memed_prescription_id: prescriptionId,
+      items,
+      dispatch_request_id: typeof requestId === 'string' ? requestId : null,
+      ...(digitalLinkUrl ? {
+        memed_digital_prescription: {
+          url: digitalLinkUrl,
+          ...(digitalUnlockCode ? { unlock_code: digitalUnlockCode } : {}),
+        },
+      } : {}),
+      ...(documentReferences.length ? { memed_documents: documentReferences } : {}),
+      ...(fullDocumentUrl ? { memed_full_pdf_url: fullDocumentUrl } : {}),
+      emission_status: 'provider_verified',
+      provider_verified_at: providerVerifiedAt,
+      signature_status: rx.signed === 1 || rx.signed === true ? 'provider_reported_signed' : 'pending',
+      signature_verified: false,
+      delivery_status: digitalLinkUrl ? 'provider_link_available' : 'pending',
+      delivery_verified: false,
     };
+
+    // Maintain the provider-specific read model as well as the canonical prescriptions row.
+    // Links stay server-managed; signature and patient delivery remain unverified.
+    const previousDigitalLinkData = asObject(existingMemed?.digital_link_data);
     const memedDocumentPayload = {
       doctor_id: doctor.id,
       patient_id: patientId,
@@ -254,9 +327,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
         medication_name: String(items[0]?.commercial_name || items[0]?.generic_name || 'Receita digital Memed'),
         medications: items,
         provider_reported_signed: rx.signed === 1 || rx.signed === true,
-        provider_verified_at: new Date().toISOString(),
+        provider_verified_at: providerVerifiedAt,
       },
-      digital_link_data: digitalLinkData,
+      digital_link_data: {
+        ...previousDigitalLinkData,
+        ...digitalLinkData,
+        ...(digitalLinkUrl ? { url: digitalLinkUrl, link: digitalLinkUrl } : {}),
+        ...(fullDocumentUrl ? { pdf_url: fullDocumentUrl, document_url: fullDocumentUrl } : {}),
+        ...(digitalUnlockCode ? { unlock_code: digitalUnlockCode } : {}),
+      },
       pdf_signature_verified: false,
       patient_delivery_confirmed: false,
     };
@@ -271,7 +350,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       const { error: insertMemedError } = await memedAdmin.from('memed_prescriptions').insert(memedDocumentPayload);
       if (insertMemedError?.code === '23505') {
         const { data: winner, error: winnerError } = await memedAdmin.from('memed_prescriptions')
-          .select('id,doctor_id,patient_id').eq('memed_id', prescriptionId).maybeSingle();
+          .select('id,doctor_id,patient_id')
+          .eq('memed_id', prescriptionId)
+          .maybeSingle();
         if (winnerError || winner?.doctor_id !== doctor.id || winner?.patient_id !== patientId) {
           return forbidden('memed_prescription_ownership_conflict');
         }
@@ -280,10 +361,62 @@ export const POST: APIRoute = async ({ request, locals }) => {
       }
     }
 
+    // Existing records may have been created by a callback retry before the
+    // provider link was reachable. Enrich only that doctor's exact verified row.
     if (existing) {
-      return jsonOk({ status: existing.status, prescriptionId, duplicate: true, documentPersisted: true });
+      const previousClinicalData: Record<string, Json> =
+        existing.clinical_data !== null && typeof existing.clinical_data === 'object' && !Array.isArray(existing.clinical_data)
+          ? existing.clinical_data as Record<string, Json>
+          : {};
+      const hasPreviousDigitalLink = Boolean(previousClinicalData.memed_digital_prescription);
+      const enrichedClinicalData: Json = {
+        ...previousClinicalData,
+        ...clinicalData,
+        ...(!digitalLinkUrl && hasPreviousDigitalLink
+          ? { memed_digital_prescription: previousClinicalData.memed_digital_prescription }
+          : {}),
+        delivery_status: digitalLinkUrl
+          ? 'provider_link_available'
+          : (typeof previousClinicalData.delivery_status === 'string'
+            ? previousClinicalData.delivery_status
+            : 'pending'),
+      };
+      const { error: updateError } = await admin.from('prescriptions')
+        .update({
+          clinical_data: enrichedClinicalData,
+          ...((fullDocumentUrl || existing.physical_pdf_url)
+            ? { physical_pdf_url: fullDocumentUrl ?? existing.physical_pdf_url }
+            : {}),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id)
+        .eq('doctor_id', doctor.id)
+        .eq('patient_id', patientId);
+      if (updateError) throw updateError;
+      return jsonOk({
+        status: existing.status,
+        prescriptionId,
+        duplicate: true,
+        documentAvailable: Boolean(
+          digitalLinkUrl || fullDocumentUrl || documentReferences.length
+          || hasPreviousDigitalLink || existing.physical_pdf_url
+        ),
+      });
     }
 
+    // The external prescription is recorded without claiming its signature,
+    // SNCR registration or patient delivery until independently verified.
+    const payload = {
+      doctor_id: doctor.id,
+      patient_id: patientId,
+      status: 'draft',
+      country_code: 'BR',
+      vendor_name: 'memed',
+      vendor_id: String(rx.id ?? prescriptionId),
+      physical_pdf_url: fullDocumentUrl,
+      clinical_data: clinicalData,
+      updated_at: new Date().toISOString(),
+    };
     const { error: insertError } = await admin.from('prescriptions').insert(payload);
     if (insertError?.code === '23505') {
       // Concurrent callbacks can race; the unique provider index arbitrates.

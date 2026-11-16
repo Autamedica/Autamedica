@@ -121,9 +121,9 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
     const effectiveBirthDateIso = storedBirthDate ?? birthDateIso;
 
     // Never register a medical professional using fabricated CPF, CRM or UF.
-    if (!nome || !sobrenome || !crm || !VALID_UF.test(uf) || !validCpf(cpf)) {
-      return badRequest('memed_doctor_identity_incomplete');
-    }
+    if (!nome || !sobrenome) return badRequest('memed_doctor_name_required');
+    if (!crm || !VALID_UF.test(uf)) return badRequest('memed_doctor_license_incomplete');
+    if (!validCpf(cpf)) return badRequest('memed_doctor_cpf_invalid');
 
     if (requestId) {
       if (typeof patientId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(patientId)) {

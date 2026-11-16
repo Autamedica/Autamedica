@@ -78,7 +78,7 @@ function AuthenticatedPatientProfilePage({
   const dateLocale = isPortuguese ? 'pt-BR' : 'es-AR';
   const formatPatientDate = (value: string | Date | null | undefined) => {
     if (!value) return isPortuguese ? 'Sem data' : 'Sin fecha';
-    const parsed = value instanceof Date ? value : new Date(value);
+    const parsed = new Date(value);
     return Number.isFinite(parsed.getTime())
       ? new Intl.DateTimeFormat(dateLocale, { day: '2-digit', month: 'short', year: 'numeric' }).format(parsed)
       : (isPortuguese ? 'Sem data' : 'Sin fecha');
@@ -285,14 +285,14 @@ function AuthenticatedPatientProfilePage({
                         onChange={(event) => setField('dni', event.target.value)}
                         placeholder={isPortuguese ? "Número do documento" : "Número de documento"}
                         icon={<Hash className="h-4 w-4" />}
-                        disabled={!!session.patient?.dni || hasOfficialIdentity}
+                        disabled={!!session.patient?.dni}
                       />
                       <SelectField
                         label={isPortuguese ? "Sexo" : "Sexo"}
                         value={form.gender}
                         onChange={(event) => setField('gender', event.target.value as typeof form.gender)}
                         icon={<UserCircle2 className="h-4 w-4" />}
-                        disabled={!!session.patient?.gender || hasOfficialIdentity}
+                        disabled={!!session.patient?.gender}
                       >
                         {GENDER_OPTIONS.map((option) => (
                           <option key={option.value} value={option.value}>
@@ -326,7 +326,7 @@ function AuthenticatedPatientProfilePage({
                         ) : (
                           <AlertCircle className="h-3.5 w-3.5" />
                         )}
-                        {hasOfficialIdentity ? 'Identidad contrastada con RENAPER / PUCO' : 'Datos declarados — pendientes de contraste'}
+                        {hasOfficialIdentity ? (isPortuguese ? 'Dados oficiais consultados' : 'Datos oficiales consultados') : (isPortuguese ? 'Consulta pendente' : 'Pendiente de consulta')}
                       </span>
                     </div>
                     <div className="mt-4 grid gap-3 sm:grid-cols-2">

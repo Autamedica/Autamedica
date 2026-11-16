@@ -12,6 +12,8 @@ describe('Memed pilot configuration', () => {
     expect(isMemedPilotDoctor({ MEMED_PILOT_DOCTOR_ID: 'doctor-a' }, 'doctor-a')).toBe(true);
     expect(isMemedPilotDoctor({ MEMED_MOBILE_PILOT_DOCTOR_ID: 'doctor-b' }, 'doctor-b')).toBe(true);
     expect(isMemedPilotDoctor({ MEMED_MOBILE_PILOT_DOCTOR_ID: 'doctor-b' }, 'doctor-a')).toBe(false);
+    expect(isMemedPilotDoctor({}, 'verified-crm-doctor')).toBe(true);
+    expect(isMemedPilotDoctor({ MEMED_PILOT_DOCTOR_ID: '  ', MEMED_MOBILE_PILOT_DOCTOR_ID: '' }, 'verified-crm-doctor')).toBe(true);
     expect(isMemedPilotDoctor({}, null)).toBe(false);
   });
 });

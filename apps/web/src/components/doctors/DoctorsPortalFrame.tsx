@@ -125,7 +125,7 @@ function MobileNavBar({
   const allLinks = [...primaryLinks, ...platformLinks];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 pb-safe pt-2 backdrop-blur-xl md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 min-h-[4.25rem] border-t border-slate-200 bg-white/95 px-1 pb-[env(safe-area-inset-bottom)] pt-1.5 shadow-[0_-8px_24px_rgba(15,37,55,0.06)] backdrop-blur-xl md:hidden">
       <div className="flex items-center justify-around px-2">
         {allLinks.slice(0, 5).map((item) => {
           const isActive = item.key === activeSection;
@@ -133,8 +133,8 @@ function MobileNavBar({
             <a
               key={item.key}
               href={item.href}
-              className={`relative flex flex-col items-center gap-1.5 rounded-xl px-3 py-2 transition-colors ${
-                isActive ? "text-[#0D9488]" : "text-neutral-400"
+              className={`relative flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2.5 transition-colors ${
+                isActive ? "text-[#0284C7]" : "text-neutral-400"
               }`}
             >
               <div className="relative">
@@ -148,9 +148,9 @@ function MobileNavBar({
                   </span>
                 ) : null}
               </div>
-              <span className="text-[10px] font-medium">{item.label}</span>
+              <span className="max-w-full truncate text-[10px] font-semibold leading-tight">{item.label}</span>
               {isActive ? (
-                <span className="absolute top-0 h-0.5 w-8 rounded-full bg-[#0D9488]" />
+                <span className="absolute top-0 h-0.5 w-8 rounded-full bg-[#0284C7]" />
               ) : null}
             </a>
           );
@@ -548,7 +548,7 @@ export function DoctorsPortalFrame({
   }
 
   return (
-    <div className="portal-doctor min-h-screen bg-[#F8FAFC] text-[#0F2537]">
+    <div className="portal-doctor min-h-[100dvh] min-w-0 overflow-x-clip bg-[#F8FAFC] text-[#0F2537]">
       {mobileMenuOpen ? (
         <button
           type="button"
@@ -559,7 +559,7 @@ export function DoctorsPortalFrame({
       ) : null}
 
       {/* ── Header ── */}
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-xl md:px-8">
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-3 py-3 backdrop-blur-xl sm:px-4 md:px-8">
         <div className="flex items-center justify-between gap-3">
           <a href="/" className="flex items-center gap-3">
             <img
@@ -606,11 +606,11 @@ export function DoctorsPortalFrame({
       <div className="flex min-h-[calc(100vh-57px)]">
         {/* ── Sidebar ── */}
         <aside
-          className={`fixed left-0 top-[57px] z-50 h-[calc(100vh-57px)] border-r border-neutral-200/60 bg-white transition-transform duration-300 md:sticky md:translate-x-0 ${
+          className={`fixed left-0 top-[57px] z-50 h-[calc(100dvh-57px)] max-w-[calc(100vw-2rem)] border-r border-neutral-200/60 bg-white transition-transform duration-300 md:sticky md:translate-x-0 ${
             mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
           } ${isSidebarCollapsed ? "w-[72px]" : "w-[232px]"}`}
         >
-          <div className="flex h-full flex-col">
+          <div className="flex h-full flex-col overflow-y-auto overscroll-contain">
             {/* Doctor profile */}
             <div className="border-b border-neutral-100 p-4">
               <div
@@ -716,9 +716,9 @@ export function DoctorsPortalFrame({
                   <a
                     key={item.key}
                     href={item.href}
-                    className={`group flex items-center justify-between rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors ${
+                    className={`group flex items-center justify-between min-h-11 rounded-xl px-3 py-3 text-[13px] font-medium transition-colors ${
                       isActive
-                        ? "bg-teal-50 text-teal-800"
+                        ? "bg-sky-50 text-sky-800"
                         : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
                     }`}
                   >
@@ -747,9 +747,9 @@ export function DoctorsPortalFrame({
                     <a
                       key={item.key}
                       href={item.href}
-                      className={`group flex items-center justify-between rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors ${
+                      className={`group flex items-center justify-between min-h-11 rounded-xl px-3 py-3 text-[13px] font-medium transition-colors ${
                         isActive
-                          ? "bg-teal-50 text-teal-800"
+                          ? "bg-sky-50 text-sky-800"
                           : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
                       }`}
                     >
@@ -798,9 +798,9 @@ export function DoctorsPortalFrame({
         </aside>
 
         {/* ── Main Content ── */}
-        <main className="flex-1 overflow-x-hidden">
+        <main className="min-w-0 flex-1 overflow-x-clip">
           {!hideDefaultHeader && (
-            <div className="border-b border-neutral-200/60 bg-white/50 px-6 py-8 md:px-10 lg:py-10">
+            <div className="border-b border-neutral-200/60 bg-white/50 px-4 py-5 sm:px-6 sm:py-7 md:px-10 lg:py-10">
               <div className="mx-auto max-w-5xl">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
@@ -823,7 +823,7 @@ export function DoctorsPortalFrame({
             </div>
           )}
           <div
-            className={`p-6 md:p-10 ${!hideDefaultHeader ? "mx-auto max-w-5xl" : ""}`}
+            className={`min-w-0 p-3 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:p-5 sm:pb-28 md:p-8 md:pb-10 lg:p-10 ${!hideDefaultHeader ? "mx-auto max-w-5xl" : ""}`}
           >
             {children}
           </div>
@@ -834,7 +834,7 @@ export function DoctorsPortalFrame({
       <button
         type="button"
         onClick={() => setMobileMenuOpen(true)}
-        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-neutral-900 text-white shadow-xl transition-transform hover:scale-105 active:scale-95 md:hidden"
+        className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[#0284C7] text-white shadow-xl shadow-sky-900/20 transition-transform hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300 md:hidden"
         aria-label="Abrir menú"
       >
         <Menu className="h-6 w-6" />

@@ -49,6 +49,22 @@ interface DoctorEarning {
   appointment_id: string | null;
 }
 
+interface EarningsCurrencySummary {
+  pending: number;
+  paid: number;
+  cancelled: number;
+  refunded: number;
+  accrued: number;
+}
+
+interface EarningsSummary {
+  BRL: EarningsCurrencySummary;
+  ARS: EarningsCurrencySummary;
+  completedDispatchCount: number;
+  totalCount: number;
+  historyTruncated: boolean;
+}
+
 interface DashboardData {
   profile: DoctorFiscalProfile | null;
   income: IncomeRecord[];
@@ -114,6 +130,7 @@ function MonthSelector({ year, month, onChange }: { year: number; month: number;
 type ActiveView = "dashboard" | "income" | "expenses" | "compare" | "setup";
 
 export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) {
+  const isPortuguese = _locale?.toLowerCase().startsWith('pt') ?? false;
   const { user } = useAuthenticatedUser();
   useCurrentDoctor(user?.id);
 
@@ -125,6 +142,7 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [earnings, setEarnings] = useState<DoctorEarning[]>([]);
+  const [earningsSummary, setEarningsSummary] = useState<EarningsSummary | null>(null);
   const [earningsLoading, setEarningsLoading] = useState(true);
   const [earningsError, setEarningsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -246,8 +264,21 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
     setEarningsLoading(true);
     setEarningsError(null);
     try {
-      const result = await fetchApi<{ earnings: DoctorEarning[] }>('/api/doctors/accounting/earnings');
+      const result = await fetchApi<{
+        earnings: DoctorEarning[];
+        summary: Pick<EarningsSummary, 'BRL' | 'ARS'>;
+        completedDispatchCount: number;
+        totalCount: number;
+        historyTruncated: boolean;
+      }>('/api/doctors/accounting/earnings');
       setEarnings(result.earnings ?? []);
+      setEarningsSummary({
+        BRL: result.summary.BRL,
+        ARS: result.summary.ARS,
+        completedDispatchCount: result.completedDispatchCount,
+        totalCount: result.totalCount,
+        historyTruncated: result.historyTruncated,
+      });
     } catch (err) {
       setEarningsError(err instanceof Error ? err.message : 'No se pudieron cargar los honorarios');
     } finally {
@@ -287,7 +318,7 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
                     onClick={() => setSetupRegime(regime)}
                     className={`rounded-xl border-2 p-4 text-left transition-all ${
                       setupRegime === regime
-                        ? "border-neutral-900 bg-neutral-900 text-white"
+                        ? "border-sky-600 bg-sky-600 text-white"
                         : "border-neutral-200 hover:border-neutral-300"
                     }`}
                   >
@@ -323,7 +354,7 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
                       onClick={() => setSetupCategory(info.category)}
                       className={`rounded-lg border-2 px-3 py-2 text-center transition-all ${
                         setupCategory === info.category
-                          ? "border-neutral-900 bg-neutral-900 text-white"
+                          ? "border-sky-600 bg-sky-600 text-white"
                           : "border-neutral-200 hover:border-neutral-300"
                       }`}
                     >
@@ -362,7 +393,7 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
               type="button"
               onClick={() => void saveProfile()}
               disabled={saving || !setupCuit.replace(/\D/g, "")}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-neutral-900 py-3.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-sky-600 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-sky-700 disabled:opacity-50"
             >
               {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" strokeWidth={1.5} />}
               Guardar perfil fiscal
@@ -401,7 +432,7 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
                     onClick={() => setIncomeSource(key)}
                     className={`w-full rounded-xl border-2 px-4 py-3 text-left text-sm transition-all ${
                       incomeSource === key
-                        ? "border-neutral-900 bg-neutral-900 text-white"
+                        ? "border-sky-600 bg-sky-600 text-white"
                         : "border-neutral-200 hover:border-neutral-300"
                     }`}
                   >
@@ -441,7 +472,7 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
               type="button"
               onClick={() => void saveIncome()}
               disabled={saving || !incomeAmount || !incomeDescription}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-neutral-900 py-3.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-sky-600 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-sky-700 disabled:opacity-50"
             >
               {saving ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" strokeWidth={1.5} />}
               Registrar ingreso
@@ -528,7 +559,7 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
               type="button"
               onClick={() => void saveExpense()}
               disabled={saving || !expenseAmount || !expenseDescription}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-neutral-900 py-3.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-sky-600 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-sky-700 disabled:opacity-50"
             >
               {saving ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" strokeWidth={1.5} />}
               Registrar gasto
@@ -587,58 +618,113 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
           </div>
         )}
 
-        <section className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-sm md:p-5">
+        <section className="rounded-2xl border border-am-surface-200 border-t-4 border-t-sky-500 bg-white p-4 shadow-sm md:p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-semibold text-am-surface-900">Honorarios y liquidaciones</h2>
-              <p className="text-xs text-am-surface-500">Movimientos reales de doctor_earnings, separados por moneda.</p>
+              <h2 className="text-base font-semibold text-sky-800">{isPortuguese ? 'Honorários e repasses' : 'Honorarios y liquidaciones'}</h2>
+              <p className="text-xs text-am-surface-500">{isPortuguese ? 'Extrato de pagamentos médicos, separado por moeda.' : 'Historial de honorarios médicos, separado por moneda.'}</p>
             </div>
             <Button variant="ghost" size="sm" onClick={() => void fetchEarnings()} icon={<RefreshCw className="h-4 w-4" />}>
-              Actualizar
+              {isPortuguese ? 'Atualizar' : 'Actualizar'}
             </Button>
           </div>
           {earningsLoading ? (
-            <p className="py-5 text-center text-sm text-am-surface-400">Cargando liquidaciones...</p>
+            <p className="py-5 text-center text-sm text-am-surface-400">{isPortuguese ? 'Carregando repasses...' : 'Cargando liquidaciones...'}</p>
           ) : earningsError ? (
             <p role="alert" className="py-3 text-sm text-red-600">{earningsError}</p>
           ) : earnings.length === 0 ? (
-            <p className="py-5 text-center text-sm text-am-surface-400">Todavía no hay honorarios liquidados.</p>
+            <p className="py-5 text-center text-sm text-am-surface-400">{isPortuguese ? 'Ainda não há honorários registrados.' : 'Todavía no hay honorarios registrados.'}</p>
           ) : (
             <>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {Array.from(new Set(earnings.map((earning) => earning.currency))).map((currency) => {
+              <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {(['BRL', 'ARS'] as const).filter((currency) =>
+                  earnings.some((earning) => earning.currency === currency)
+                  || (earningsSummary?.[currency]?.accrued ?? 0) > 0
+                  || (earningsSummary?.[currency]?.cancelled ?? 0) > 0
+                  || (earningsSummary?.[currency]?.refunded ?? 0) > 0
+                ).map((currency) => {
                   const currencyRows = earnings.filter((earning) => earning.currency === currency);
-                  const pending = currencyRows.filter((earning) => earning.status === 'pending')
+                  const totals = earningsSummary?.[currency];
+                  const pending = totals?.pending ?? currencyRows.filter((earning) => earning.status === 'pending')
                     .reduce((sum, earning) => sum + earning.net_amount, 0);
-                  const paid = currencyRows.filter((earning) => earning.status === 'paid')
+                  const paid = totals?.paid ?? currencyRows.filter((earning) => earning.status === 'paid')
                     .reduce((sum, earning) => sum + earning.net_amount, 0);
+                  const historical = totals?.accrued ?? pending + paid;
+                  const label = currency === 'BRL' ? 'Brasil · BRL' : 'Argentina · ARS';
                   return (
-                    <div key={currency} className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-am-surface-500">{currency === 'BRL' ? 'Brasil · BRL' : 'Argentina · ARS'}</p>
-                      <p className="mt-1 text-xl font-bold text-am-surface-900">{formatEarningCurrency(pending, currency)}</p>
-                      <p className="text-xs text-am-surface-500">Saldo pendiente</p>
-                      <p className="mt-2 text-xs text-am-surface-600">Liquidado: {formatEarningCurrency(paid, currency)}</p>
+                    <div key={currency} className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-3.5">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-am-surface-500">{label}</p>
+                      <div className="mt-3 grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-am-surface-500">{isPortuguese ? 'Pendente' : 'Pendiente'}</p>
+                          <p className="mt-1 text-base font-bold text-am-surface-900">{formatEarningCurrency(pending, currency)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-am-surface-500">{isPortuguese ? 'Liquidado' : 'Pagado'}</p>
+                          <p className="mt-1 text-base font-bold text-am-surface-900">{formatEarningCurrency(paid, currency)}</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 border-t border-am-surface-200 pt-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-am-surface-500">{isPortuguese ? 'Total histórico creditado' : 'Total histórico acreditado'}</p>
+                        <p className="mt-1 text-lg font-bold text-am-surface-900">{formatEarningCurrency(historical, currency)}</p>
+                      </div>
                     </div>
                   );
                 })}
+                <div className="rounded-xl border border-am-surface-200 bg-white p-3.5">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-am-surface-500">{isPortuguese ? 'Plantões concluídos' : 'Guardias completadas'}</p>
+                  <p className="mt-2 text-2xl font-bold text-am-surface-900">
+                    {earningsSummary?.completedDispatchCount ?? new Set(earnings
+                      .filter((earning) => Boolean(earning.dispatch_request_id))
+                      .map((earning) => earning.dispatch_request_id)).size}
+                  </p>
+                  <p className="mt-1 text-xs text-am-surface-500">{isPortuguese ? 'Consultas de farmácia registradas' : 'Consultas de farmacia registradas'}</p>
+                </div>
               </div>
-              <div className="mt-4 divide-y divide-am-surface-100">
-                {earnings.slice(0, 8).map((earning) => (
-                  <div key={earning.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
-                    <div>
-                      <p className="text-sm font-medium text-am-surface-900">
-                        {earning.dispatch_request_id ? 'Consulta de farmacia' : 'Consulta médica'}
-                      </p>
-                      <p className="text-xs text-am-surface-500">
-                        {new Date(earning.created_at).toLocaleDateString(earning.currency === 'BRL' ? 'pt-BR' : 'es-AR')}
-                        {' · '}{earning.status === 'paid' ? 'Liquidado' : earning.status === 'pending' ? 'Pendiente' : earning.status}
-                      </p>
-                    </div>
-                    <span className="text-sm font-semibold text-am-surface-900">
-                      {formatEarningCurrency(earning.net_amount, earning.currency)}
-                    </span>
-                  </div>
-                ))}
+              <p className="mb-2 text-[11px] text-am-surface-500">
+                {isPortuguese
+                  ? `Mostrando os ${earnings.length} movimentos mais recentes de ${earningsSummary?.totalCount ?? earnings.length} registros.`
+                  : `Mostrando los ${earnings.length} movimientos más recientes de ${earningsSummary?.totalCount ?? earnings.length} registros.`}
+                {earningsSummary?.historyTruncated
+                  ? (isPortuguese ? ' Resumo limitado a 50.000 movimentos.' : ' Resumen limitado a 50.000 movimientos.')
+                  : ''}
+              </p>
+
+              <div className="overflow-x-auto rounded-xl border border-am-surface-200">
+                <table className="w-full min-w-[620px] text-left text-sm">
+                  <thead className="bg-am-surface-50 text-[10px] font-semibold uppercase tracking-wide text-am-surface-500">
+                    <tr>
+                      <th className="px-3 py-2.5">{isPortuguese ? 'Data' : 'Fecha'}</th>
+                      <th className="px-3 py-2.5">{isPortuguese ? 'Origem' : 'Origen'}</th>
+                      <th className="px-3 py-2.5">{isPortuguese ? 'Status' : 'Estado'}</th>
+                      <th className="px-3 py-2.5 text-right">{isPortuguese ? 'Valor' : 'Monto'}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-am-surface-100">
+                    {earnings.map((earning) => (
+                      <tr key={earning.id}>
+                        <td className="whitespace-nowrap px-3 py-2.5 text-xs text-am-surface-600">
+                          {new Date(earning.created_at).toLocaleDateString(earning.currency === 'BRL' ? 'pt-BR' : 'es-AR')}
+                        </td>
+                        <td className="px-3 py-2.5 text-xs font-medium text-am-surface-800">
+                          {earning.dispatch_request_id
+                            ? (isPortuguese ? 'Consulta de farmácia' : 'Consulta de farmacia')
+                            : (isPortuguese ? 'Consulta médica' : 'Consulta médica')}
+                        </td>
+                        <td className="px-3 py-2.5 text-xs text-am-surface-600">
+                          {earning.status === 'paid'
+                            ? (isPortuguese ? 'Liquidado' : 'Pagado')
+                            : earning.status === 'pending'
+                              ? (isPortuguese ? 'Pendente' : 'Pendiente')
+                              : earning.status}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-2.5 text-right text-xs font-semibold text-am-surface-900">
+                          {formatEarningCurrency(earning.net_amount, earning.currency)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </>
           )}

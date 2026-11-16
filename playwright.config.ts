@@ -37,5 +37,8 @@ export default defineConfig({
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
+    // Enable the isolated DEV-only pricing/payment fixture required by the
+    // pharmacy intake E2E. Production builds never read this override.
+    env: { AUTAMEDICA_E2E_PHARMACY_DISPATCH: 'true' },
   },
 });

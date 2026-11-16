@@ -4,6 +4,7 @@ DO $test$
 DECLARE
   m text;
   t text;
+  wrapper text;
   p text;
   claim text;
 BEGIN
@@ -46,9 +47,14 @@ BEGIN
     RAISE EXCEPTION 'Existing offers can be claimed without doctor eligibility and ownership checks';
   END IF;
 
-  SELECT pg_get_functiondef('public.match_dispatch_doctors(uuid)'::regprocedure) INTO m;
+  -- The public RPC is intentionally a thin service-role wrapper. The actual
+  -- matcher lives in app_private, so inspect its body rather than expecting
+  -- transport details to be duplicated in the wrapper definition.
+  SELECT pg_get_functiondef('public.match_dispatch_doctors(uuid)'::regprocedure) INTO wrapper;
+  SELECT pg_get_functiondef('app_private.match_dispatch_doctors_without_switch(uuid)'::regprocedure) INTO m;
   SELECT pg_get_functiondef('public.notify_on_duty_doctors_on_dispatch()'::regprocedure) INTO t;
-  IF position('app_private.send_authenticated_dispatch_push' IN m) = 0
+  IF position('app_private.match_dispatch_doctors_without_switch' IN wrapper) = 0
+     OR position('app_private.send_authenticated_dispatch_push' IN m) = 0
      OR position('app_private.send_authenticated_dispatch_push' IN t) = 0
   THEN
     RAISE EXCEPTION 'A dispatch producer still bypasses authenticated push';

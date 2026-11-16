@@ -26,6 +26,7 @@ import { ConsultationContextPanel } from './ConsultationContextPanel'
 import { PrescriptionCreateModal } from '@/components/doctors/medical/PrescriptionCreateModal'
 import { prescriptionService } from '@/lib/doctors/services/prescription.service'
 import { MedicalOrderCreateModal } from '@/components/doctors/medical/MedicalOrderCreateModal'
+import { CertificateCreateModal } from '@/components/doctors/medical/CertificateCreateModal'
 import { MemedPrescriptionWidget } from '@/components/doctors/medical/MemedPrescriptionWidget'
 import { medicalOrderService } from '@/lib/doctors/services/medical-order.service'
 import type { UUID, Prescription, MedicalOrder } from '@/types/medical'
@@ -79,6 +80,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const [captionText, setCaptionText] = useState('')
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false)
   const [showStudyOrderModal, setShowStudyOrderModal] = useState(false)
+  const [showCertificateModal, setShowCertificateModal] = useState(false)
   const [showMemedWidget, setShowMemedWidget] = useState(false)
   const [callCompletionError, setCallCompletionError] = useState<string | null>(null)
   const [isCompletingDispatch, setIsCompletingDispatch] = useState(false)
@@ -717,6 +719,12 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                     <CallAuxiliaryButton icon={<FileText className="h-5 w-5 md:h-5.5 md:w-5.5" />}
                       label={isBrazilianDoctor ? 'Exame' : 'Estudio'} onClick={() => setShowStudyOrderModal(true)} />
                   )}
+                  {context?.dispatchTriage?.dispatchRequestId
+                    && context?.patient?.id
+                    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(context.patient.id) && (
+                      <CallAuxiliaryButton icon={<FileText className="h-5 w-5 md:h-5.5 md:w-5.5" />}
+                        label={isBrazilianDoctor ? 'Atestado' : 'Certificado'} onClick={() => setShowCertificateModal(true)} />
+                  )}
                 </>
               ) : null
             }
@@ -876,6 +884,19 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
           submitLabel={isBrazilianDoctor ? "Solicitar exame" : "Solicitar estudio"}
         />
       )}
+      {showCertificateModal
+        && context?.patient?.id
+        && context.dispatchTriage?.dispatchRequestId
+        && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(context.patient.id) && (
+          <CertificateCreateModal
+            patientId={context.patient.id}
+            patientName={context.patient.name}
+            patientDni={context.dispatchTriage.patientCpf ?? context.dispatchTriage.patientDni ?? undefined}
+            countryCode={context.dispatchTriage.careCountry === 'BR' ? 'BR' : 'AR'}
+            dispatchRequestId={context.dispatchTriage.dispatchRequestId}
+            onClose={() => setShowCertificateModal(false)}
+          />
+        )}
     </div>
   )
 }

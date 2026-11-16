@@ -55,6 +55,7 @@ export interface ConsultationContextResult {
     patientDni: string | null
     patientCpf: string | null
     patientName: string | null
+    patientPhone: string | null
     careCountry: string | null
     symptomSummary: string | null
     dispatchRequestId: string
@@ -173,6 +174,7 @@ export const consultationContextService = {
           patientDni: triage.patientDni,
           patientCpf: triage.patientCpf,
           patientName: triage.patientName,
+          patientPhone: triage.patientPhone,
           careCountry: triage.careCountry,
           symptomSummary: triage.symptomSummary,
           dispatchRequestId: triage.dispatchRequestId,
