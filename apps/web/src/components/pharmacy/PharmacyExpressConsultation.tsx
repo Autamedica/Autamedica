@@ -293,9 +293,21 @@ export function PharmacyExpressConsultation({
   }, [callRoomId, recoveryToken, formData.careCountry, sessionReferralCode, sessionPartnerName])
 
   useEffect(() => {
-    if (step !== 'ENDED' || !requestId) return
-    void checkStatus(requestId, accessToken)
-  }, [step, requestId, accessToken, checkStatus])
+    if (step !== 'ENDED' || !requestId || documents.length > 0) return
+    let attempts = 0
+    let active = true
+    const refreshDocuments = async () => {
+      attempts += 1
+      await checkStatus(requestId, accessToken)
+      if (!active || attempts >= 12) window.clearInterval(interval)
+    }
+    void refreshDocuments()
+    const interval = window.setInterval(() => {
+      if (attempts >= 12) { window.clearInterval(interval); return }
+      void refreshDocuments()
+    }, 2500)
+    return () => { active = false; window.clearInterval(interval) }
+  }, [step, requestId, accessToken, checkStatus, documents.length])
 
   useEffect(() => {
     if ((step !== 'WAITING' && step !== 'CALL') || !requestId) return
