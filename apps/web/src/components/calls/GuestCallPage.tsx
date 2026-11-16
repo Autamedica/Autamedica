@@ -207,10 +207,10 @@ export default function GuestCallPage({ roomId, dispatchId, guestToken, language
   const [documents, setDocuments] = useState<EncounterDocument[]>([])
 
   const { token, inviteId } = useMemo(() => {
-    if (typeof window === 'undefined') return { token: null, inviteId: null }
+    if (typeof window === 'undefined') return { token: guestToken ?? null, inviteId: null }
     const params = new URLSearchParams(window.location.search)
-    return { token: params.get('token'), inviteId: params.get('invite') }
-  }, [])
+    return { token: guestToken || params.get('token'), inviteId: params.get('invite') }
+  }, [guestToken])
 
   const language = useMemo<'pt' | 'es'>(() => {
     if (requestedLanguage) return requestedLanguage
