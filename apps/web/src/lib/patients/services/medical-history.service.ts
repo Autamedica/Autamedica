@@ -292,19 +292,36 @@ async function listPatientCertificatesAndOrders(
   patientId: string,
 ): Promise<{ certificates: Array<Record<string, unknown>>; orders: Array<Record<string, unknown>> }> {
   const loose = supabase as unknown as SupabaseClient;
-  const [certificatesResult, ordersResult] = await Promise.all([
+  const [certificatesResult, ordersResult, studiesResult] = await Promise.all([
     loose.from("medical_certificates")
       .select("id,doctor_id,patient_id,cuir,status,certificate_type,days_of_rest,start_date,end_date,diagnosis,observations,qr_code_content,signed_pdf_url,country_code,created_at,updated_at,signature_hash,signature_method")
       .eq("patient_id", patientId).order("created_at", { ascending: false }),
     loose.from("medical_orders")
       .select("id,doctor_id,patient_id,appointment_id,study_type,practices,diagnosis,notes,status,cuir,qr_code_content,signed_pdf_url,created_at,updated_at")
       .eq("patient_id", patientId).order("created_at", { ascending: false }),
+    loose.from("diagnostic_studies")
+      .select("*").eq("patient_id", patientId).order("created_at", { ascending: false }),
   ]);
   if (certificatesResult.error) logger.warn("[medicalHistoryService] certificates query failed", { code: certificatesResult.error.code });
   if (ordersResult.error) logger.warn("[medicalHistoryService] orders query failed", { code: ordersResult.error.code });
+  if (studiesResult.error) logger.warn("[medicalHistoryService] diagnostic studies query failed", { code: studiesResult.error.code });
+  const orders = (ordersResult.data ?? []) as Array<Record<string, unknown>>;
+  const studies = (studiesResult.data ?? []).map((study: Record<string, unknown>) => ({
+    ...study,
+    id: `diagnostic-${String(study.id ?? '')}`,
+    study_type: study.study_type ?? study.name ?? study.title ?? study.study_name ?? "Estudio diagnóstico",
+    status: study.status ?? study.state ?? "requested",
+    source: "diagnostic_studies",
+  }));
+  const uniqueOrders = new Map<string, Record<string, unknown>>();
+  for (const order of [...orders, ...studies]) {
+    const id = String(order.id ?? "");
+    if (id && !uniqueOrders.has(id)) uniqueOrders.set(id, order);
+  }
   return {
     certificates: (certificatesResult.data ?? []) as Array<Record<string, unknown>>,
-    orders: (ordersResult.data ?? []) as Array<Record<string, unknown>>,
+    orders: [...uniqueOrders.values()].sort((a, b) =>
+      new Date(String(b.created_at ?? "")).getTime() - new Date(String(a.created_at ?? "")).getTime()),
   };
 }
 
