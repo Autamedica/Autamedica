@@ -30,11 +30,50 @@ function asObject(value: unknown): Record<string, unknown> {
 function asText(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
-function memedLink(value: unknown): string | null {
-  const object = asObject(value);
-  const candidates = [object.url, object.link, object.pdf_url, object.document_url, object.prescription_url];
-  const direct = candidates.find((candidate) => typeof candidate === 'string' && /^https:\/\//i.test(candidate));
-  return typeof direct === 'string' ? direct : null;
+function memedLink(value: unknown, depth = 0): string | null {
+  if (depth > 6 || !value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = memedLink(item, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+  const object = value as Record<string, unknown>;
+  for (const [key, nested] of Object.entries(object)) {
+    if (/(url|link|pdf|document)/i.test(key) && typeof nested === 'string') {
+      try {
+        const url = new URL(nested);
+        if (url.protocol === 'https:' && /(^|[.])memed[.]com(?:[.]br)?$/i.test(url.hostname)) return url.toString();
+      } catch { /* Ignore malformed provider URLs. */ }
+    }
+  }
+  for (const nested of Object.values(object)) {
+    const found = memedLink(nested, depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+function memedAccessCode(value: unknown, depth = 0): string | null {
+  const accepted = new Set(['unlockcode', 'accesscode', 'password', 'senha', 'codigodesbloqueio', 'codigoacesso', 'pin']);
+  if (depth > 6 || !value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = memedAccessCode(item, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+  const object = value as Record<string, unknown>;
+  for (const [key, nested] of Object.entries(object)) {
+    if (accepted.has(key.toLowerCase().replace(/[^a-z0-9]/g, ''))
+      && typeof nested === 'string' && nested.trim().length >= 4 && nested.trim().length <= 32) return nested.trim();
+  }
+  for (const nested of Object.values(object)) {
+    const found = memedAccessCode(nested, depth + 1);
+    if (found) return found;
+  }
+  return null;
 }
 function mapCore(row: PrescriptionRow, doctorName: string): PatientPrescriptionDTO & { provider: string } {
   const clinical = asObject(row.clinical_data) as ClinicalDataShape;
@@ -137,8 +176,9 @@ export const GET: APIRoute = async ({ request, locals }) => {
           frequency: asText(provider.frequency) ?? '',
           instructions: asText(provider.instructions) ?? '',
           status: row.status,
-          cuir: asText(provider.cuir) ?? row.memed_id,
+          cuir: asText(provider.cuir),
           signedPdfUrl: url,
+          accessCode: memedAccessCode(row.digital_link_data),
           prescribedDate: row.created_at,
           expiresAt: null,
           doctorName: doctorNameMap.get(row.doctor_id) ?? 'Medico',
