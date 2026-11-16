@@ -1,19 +1,13 @@
 import { writeFileSync } from 'node:fs';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { primeRuntimeEnv, resetRuntimeEnvCache } from '@/lib/runtime-env';
 import { generatePrescriptionPdf } from './pdf-prescription.service';
 import { rctaService } from './rcta.service';
 
 describe('generatePrescriptionPdf', () => {
-  beforeEach(() => {
-    // Keep this suite deterministic and prevent logo/signature fetches from leaving the test process.
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('external fetch disabled in PDF tests')));
-  });
-
   afterEach(() => {
     resetRuntimeEnvCache();
     vi.restoreAllMocks();
-    vi.unstubAllGlobals();
   });
 
   it('renders a visible barcode block tied to the CUIR', async () => {
