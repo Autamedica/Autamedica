@@ -318,7 +318,7 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
                     onClick={() => setSetupRegime(regime)}
                     className={`rounded-xl border-2 p-4 text-left transition-all ${
                       setupRegime === regime
-                        ? "border-neutral-900 bg-neutral-900 text-white"
+                        ? "border-sky-600 bg-sky-600 text-white"
                         : "border-neutral-200 hover:border-neutral-300"
                     }`}
                   >
@@ -354,7 +354,7 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
                       onClick={() => setSetupCategory(info.category)}
                       className={`rounded-lg border-2 px-3 py-2 text-center transition-all ${
                         setupCategory === info.category
-                          ? "border-neutral-900 bg-neutral-900 text-white"
+                          ? "border-sky-600 bg-sky-600 text-white"
                           : "border-neutral-200 hover:border-neutral-300"
                       }`}
                     >
@@ -393,7 +393,7 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
               type="button"
               onClick={() => void saveProfile()}
               disabled={saving || !setupCuit.replace(/\D/g, "")}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-neutral-900 py-3.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-sky-600 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-sky-700 disabled:opacity-50"
             >
               {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" strokeWidth={1.5} />}
               Guardar perfil fiscal
@@ -432,7 +432,7 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
                     onClick={() => setIncomeSource(key)}
                     className={`w-full rounded-xl border-2 px-4 py-3 text-left text-sm transition-all ${
                       incomeSource === key
-                        ? "border-neutral-900 bg-neutral-900 text-white"
+                        ? "border-sky-600 bg-sky-600 text-white"
                         : "border-neutral-200 hover:border-neutral-300"
                     }`}
                   >
@@ -472,7 +472,7 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
               type="button"
               onClick={() => void saveIncome()}
               disabled={saving || !incomeAmount || !incomeDescription}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-neutral-900 py-3.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-sky-600 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-sky-700 disabled:opacity-50"
             >
               {saving ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" strokeWidth={1.5} />}
               Registrar ingreso
@@ -559,7 +559,7 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
               type="button"
               onClick={() => void saveExpense()}
               disabled={saving || !expenseAmount || !expenseDescription}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-neutral-900 py-3.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-sky-600 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-sky-700 disabled:opacity-50"
             >
               {saving ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" strokeWidth={1.5} />}
               Registrar gasto
@@ -618,10 +618,10 @@ export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) 
           </div>
         )}
 
-        <section className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-sm md:p-5">
+        <section className="rounded-2xl border border-am-surface-200 border-t-4 border-t-sky-500 bg-white p-4 shadow-sm md:p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-semibold text-am-surface-900">{isPortuguese ? 'Honorários e repasses' : 'Honorarios y liquidaciones'}</h2>
+              <h2 className="text-base font-semibold text-sky-800">{isPortuguese ? 'Honorários e repasses' : 'Honorarios y liquidaciones'}</h2>
               <p className="text-xs text-am-surface-500">{isPortuguese ? 'Extrato de pagamentos médicos, separado por moeda.' : 'Historial de honorarios médicos, separado por moneda.'}</p>
             </div>
             <Button variant="ghost" size="sm" onClick={() => void fetchEarnings()} icon={<RefreshCw className="h-4 w-4" />}>
