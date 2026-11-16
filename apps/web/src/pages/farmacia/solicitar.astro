@@ -74,8 +74,9 @@ if (import.meta.env.DEV && process.env.AUTAMEDICA_E2E_PHARMACY_DISPATCH === 'tru
   };
 }
 
-const title = 'Consulta Exprés en Farmacia • Red AutaMedica';
-const description = 'Punto de atención de telemedicina de AutaMedica. Los documentos médicos dependen del profesional y de la habilitación correspondiente al país de atención.';
+const isBrazilian = referralCode === 'JORDAN' || Astro.locals.locale === 'pt' || Astro.url.searchParams.get('country')?.toUpperCase() === 'BR' || Astro.url.searchParams.get('locale')?.toLowerCase() === 'pt-br';
+const title = isBrazilian ? 'Consulta Expressa em Farmácia · AutaMedica' : 'Consulta Exprés en Farmacia • Red AutaMedica';
+const description = isBrazilian ? 'Ponto de atendimento de telemedicina da AutaMedica.' : 'Punto de atención de telemedicina de AutaMedica.';
 ---
 
 <CallLayout title={title} description={description}>
