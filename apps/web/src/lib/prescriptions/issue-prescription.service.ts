@@ -6,6 +6,7 @@
  *       → audit events → create dispensation order
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { fetchAndPersistOfficialIdentity } from '@/lib/patients/services/patient-identity.service';
 import { getServerEnvOrDefault, logger } from '@autamedica/shared';
 import { getRuntimeEnvValue } from '@/lib/runtime-env';
 import {
@@ -625,7 +626,7 @@ export async function issuePrescription(
   // 3. Get and validate patient
   const { data: patient } = await supabase
     .from('patients')
-    .select('user_id, care_country, dni, cuil, cpf, cns, address, birth_date, gender, insurance_info')
+    .select('user_id, care_country, dni, cuil, cpf, cns, address, birth_date, gender, insurance_info, identity_status, official_full_name, official_cuil, official_birth_date, official_gender, puco_coverage_name, puco_coverage_code')
     .eq('id', rx.patient_id)
     .single();
 
@@ -662,7 +663,7 @@ export async function issuePrescription(
   
   const { data: dispatch } = await supabase
     .from('pharmacy_dispatch_requests')
-    .select('id, kiosk_id, pharmacy_id, patient_dni, patient_cpf, patient_phone')
+    .select('id, kiosk_id, pharmacy_id, patient_dni, patient_cpf, patient_phone, patient_gender_code, identity_status, official_full_name, official_cuil, official_birth_date, official_gender, puco_coverage_name, puco_coverage_code')
     .eq('patient_id', rx.patient_id)
     .eq('status', 'completed')
     .not('patient_phone', 'is', null)
@@ -694,8 +695,51 @@ export async function issuePrescription(
   if (!patientAddress) return fail({ code: 'missing_patient_address' });
 
   // 5. Resolve names
-  const patientName = externalPatient?.name?.trim()
+  const dispatchIdentityRow = dispatch as typeof dispatch & {
+    identity_status?: string | null; official_full_name?: string | null; official_cuil?: string | null;
+    official_birth_date?: string | null; official_gender?: string | null; puco_coverage_name?: string | null;
+    patient_gender_code?: 'F' | 'M' | 'X' | null;
+  };
+  const storedIdentity = patient as typeof patient & {
+    identity_status?: string | null; official_full_name?: string | null; official_cuil?: string | null;
+    official_birth_date?: string | null; official_gender?: string | null; puco_coverage_name?: string | null;
+  };
+  let identitySource: 'declared' | 'msal_bus_renaper' = 'declared';
+  let officialIdentity: { fullName?: string | null; cuil?: string | null; birthDate?: string | null; gender?: string | null; pucoCoverage?: string | null } | null = null;
+  if (prescriptionCountry === 'AR') {
+    const verified = storedIdentity.identity_status === 'verified_renaper' ? storedIdentity
+      : dispatchIdentityRow?.identity_status === 'verified_renaper' ? dispatchIdentityRow : null;
+    if (verified) {
+      identitySource = 'msal_bus_renaper';
+      officialIdentity = { fullName: verified.official_full_name, cuil: verified.official_cuil,
+        birthDate: verified.official_birth_date, gender: verified.official_gender, pucoCoverage: verified.puco_coverage_name };
+    } else {
+      const dni = String(patient.dni ?? dispatchIdentityRow?.patient_dni ?? externalPatient?.dni ?? '').replace(/\D/g, '');
+      const gender = String(patient.gender ?? externalPatient?.gender ?? '').toUpperCase();
+      const sex = gender === 'F' || gender === 'FEMALE' ? 'F' : gender === 'M' || gender === 'MALE' ? 'M'
+        : gender === 'X' || gender === 'OTHER' ? 'X' : dispatchIdentityRow?.patient_gender_code ?? null;
+      if (dni.length >= 6 && dni.length <= 10 && sex) {
+        const resolved = await fetchAndPersistOfficialIdentity({
+          supabase, dni, sexId: sex === 'F' ? 1 : sex === 'M' ? 2 : 3, patientId: rx.patient_id,
+          dispatchRequestId: dispatch?.id, userId: patient.user_id,
+          declaredName: externalPatient?.name ?? undefined, runtimeEnv, timeoutMs: 3500,
+        }).catch(() => null);
+        if (resolved?.identityStatus === 'verified_renaper') {
+          identitySource = 'msal_bus_renaper';
+          officialIdentity = { fullName: resolved.officialFullName, cuil: resolved.cuil, birthDate: resolved.birthDate,
+            gender: resolved.gender, pucoCoverage: resolved.pucoCoverageName };
+        }
+      }
+    }
+  }
+  const patientName = officialIdentity?.fullName || externalPatient?.name?.trim()
     || (patient.user_id ? await resolveProfileName(supabase, patient.user_id, '') : 'Paciente');
+  const effectivePatient = {
+    ...patient, cuil: officialIdentity?.cuil ?? patient.cuil,
+    birth_date: officialIdentity?.birthDate ?? patient.birth_date,
+    gender: officialIdentity?.gender === 'F' ? 'female' : officialIdentity?.gender === 'M' ? 'male'
+      : officialIdentity?.gender === 'X' ? 'other' : patient.gender,
+  };
   const doctorName = await resolveProfileName(supabase, userId, 'Dr.');
 
   const item = clinicalData?.items?.[0];
@@ -751,7 +795,7 @@ export async function issuePrescription(
       doctor,
       doctorName,
       item,
-      patient,
+      patient: effectivePatient,
       patientName,
       now,
       expiresAt,
@@ -831,15 +875,18 @@ export async function issuePrescription(
           instructions: item.instructions ?? '',
         },
         diagnosis: clinicalData.diagnosis ?? '',
-        notes: clinicalData.notes,
+        notes: [
+          clinicalData.notes,
+          identitySource === 'msal_bus_renaper' ? 'Filiación contrastada con RENAPER / PUCO.' : null,
+        ].filter(Boolean).join('\n') || undefined,
         patient: {
           name: patientName,
           dni: patient.dni ?? externalPatient?.dni ?? (patient as { ci?: string }).ci ?? (externalPatient as { ci?: string })?.ci ?? undefined,
           // Never mix locally modified data with the CUIL accepted by Farmalink.
-          cuil: externalRegistration?.affiliateCuil ?? patient.cuil ?? externalPatient?.cuil ?? undefined,
-          dateOfBirth: patient.birth_date ?? externalPatient?.birth_date ?? undefined,
-          sex: patient.gender ?? externalPatient?.gender ?? undefined,
-          insurancePlan: externalRegistration?.affiliateCredential.plan ?? resolveInsurancePlan(patient.insurance_info),
+          cuil: officialIdentity?.cuil ?? externalRegistration?.affiliateCuil ?? effectivePatient.cuil ?? externalPatient?.cuil ?? undefined,
+          dateOfBirth: effectivePatient.birth_date ?? externalPatient?.birth_date ?? undefined,
+          sex: effectivePatient.gender ?? externalPatient?.gender ?? undefined,
+          insurancePlan: officialIdentity?.pucoCoverage ?? externalRegistration?.affiliateCredential.plan ?? resolveInsurancePlan(patient.insurance_info),
           affiliateCredential: externalRegistration?.affiliateCredential.pan,
           insuranceEntityCode: externalRegistration?.affiliateCredential.codEntidad,
           address: patientAddress,
@@ -980,6 +1027,8 @@ export async function issuePrescription(
         document_hash: signatureHash,
         cert_fingerprint: certFingerprint,
         version: '2.0',
+        identity_source: identitySource,
+        identity_status: identitySource === 'msal_bus_renaper' ? 'verified_renaper' : 'unverified',
       },
     },
     {
@@ -993,6 +1042,8 @@ export async function issuePrescription(
         drug_category: substanceCategory,
         is_controlled_substance: isControlledSubstance,
         expires_at: expiresAt,
+        identity_source: identitySource,
+        identity_status: identitySource === 'msal_bus_renaper' ? 'verified_renaper' : 'unverified',
       },
     },
   ]);

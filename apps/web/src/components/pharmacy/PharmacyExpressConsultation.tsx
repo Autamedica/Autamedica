@@ -70,13 +70,13 @@ export function PharmacyExpressConsultation({
   const nameInputId = useId()
   const phoneInputId = useId()
   const reasonInputId = useId()
-  const [restoredReferralCode, setRestoredReferralCode] = useState<string | null>(null)
-  const effectiveReferralCode = referralCode ?? restoredReferralCode
-  const isJordanReferral = effectiveReferralCode?.toUpperCase() === 'JORDAN'
+  const isJordanReferral = referralCode?.toUpperCase() === 'JORDAN'
+
   const [step, setStep] = useState<Step>('FORM')
   const [formData, setFormData] = useState({
     careCountry: (initialCareCountry ?? (isJordanReferral ? 'BR' : '')) as '' | 'AR' | 'BR',
     dni: initialDni,
+    genderCode: '' as '' | 'F' | 'M' | 'X',
     name: '',
     phone: '',
     reason: '',
@@ -131,7 +131,6 @@ export function PharmacyExpressConsultation({
         })
         if (!active || !restored?.accessToken) return
         setRequestId(saved.requestId)
-        setRestoredReferralCode(saved.referralCode ?? null)
         setAccessToken(restored.accessToken)
         setRecoveryToken(saved.recoveryToken)
         setCallRoomId(restored.request.cloudflare_room_id)
@@ -269,7 +268,6 @@ export function PharmacyExpressConsultation({
           partnerName: saved?.partnerName ?? referralPartnerName,
           savedAt: Date.now(),
         }
-        setRestoredReferralCode(saved?.referralCode ?? referralCode ?? null)
         setAccessToken(restored.accessToken)
         setRecoveryToken(secret)
         setCallRoomId(restored.request.cloudflare_room_id)
@@ -337,6 +335,10 @@ export function PharmacyExpressConsultation({
       setFormError(formData.careCountry === 'BR' ? 'Informe os 11 dígitos válidos do CPF.' : 'Ingresá un DNI válido.')
       return
     }
+    if (formData.careCountry === 'AR' && !['F', 'M', 'X'].includes(formData.genderCode)) {
+      setFormError('Seleccioná el sexo que figura en el DNI (F, M o X) para consultar RENAPER.');
+      return;
+    }
     if (!formData.name.trim() || formData.name.trim().length < 3) {
       setFormError(isPortuguese ? 'Digite seu nome completo.' : 'Ingresá tu nombre y apellido completos.')
       return
@@ -364,12 +366,12 @@ export function PharmacyExpressConsultation({
         method: 'POST',
         body: {
           careCountry: formData.careCountry,
-          ...(formData.careCountry === 'BR' ? { patientCpf: documentNumber, lgpdConsent: true } : { patientDni: documentNumber }),
+          ...(formData.careCountry === 'BR' ? { patientCpf: documentNumber, lgpdConsent: true } : { patientDni: documentNumber, patientGenderCode: formData.genderCode }),
           patientName: formData.name.trim(),
           patientPhone: formData.phone.trim(),
           symptomSummary: reasonSummary,
           pharmacyId: pharmacyId || undefined,
-          referralCode: effectiveReferralCode || undefined,
+          referralCode: referralCode || undefined,
           tier: 'general',
         },
       })
@@ -382,7 +384,7 @@ export function PharmacyExpressConsultation({
       setAccessToken(token)
       setRecoveryToken(res.recoveryToken ?? null)
       setCallRoomId(roomId)
-      const activeSession = { requestId: reqId, guestToken: token, recoveryToken: res.recoveryToken ?? null, country: formData.careCountry, referralCode: effectiveReferralCode, partnerName: referralPartnerName, savedAt: Date.now() }
+      const activeSession = { requestId: reqId, guestToken: token, recoveryToken: res.recoveryToken ?? null, country: formData.careCountry, referralCode, partnerName: referralPartnerName, savedAt: Date.now() }
       window.sessionStorage.setItem('autamedica:pharmacy-express:active-session', JSON.stringify(activeSession))
       window.localStorage.setItem('autamedica:pharmacy-express:active-session', JSON.stringify(activeSession))
       setStep('WAITING')
@@ -500,6 +502,16 @@ export function PharmacyExpressConsultation({
                     onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
                     className="min-h-12 w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] transition"
                   />
+                  {formData.careCountry === 'AR' && (
+                    <div className="mt-2">
+                      <label className="mb-1 block text-xs font-medium text-slate-600" htmlFor="pharmacy-express-renaper-sex">Sexo según DNI</label>
+                      <select id="pharmacy-express-renaper-sex" required value={formData.genderCode}
+                        onChange={(event) => setFormData({ ...formData, genderCode: event.target.value as '' | 'F' | 'M' | 'X' })}
+                        className="min-h-10 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900">
+                        <option value="">Seleccionar…</option><option value="F">F — Femenino</option><option value="M">M — Masculino</option><option value="X">X — No binario</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 <div>

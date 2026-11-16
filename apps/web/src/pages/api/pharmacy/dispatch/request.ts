@@ -11,6 +11,7 @@ import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { getOperationalPaymentSwitches } from '@/lib/payments/operational-switches'
 import { validCpf } from '@/lib/prescriptions/brazil/cpf'
+import { fetchAndPersistOfficialIdentity } from '@/lib/patients/services/patient-identity.service'
 
 const VALID_TIERS: DispatchTierCategory[] = [
   'general',
@@ -36,7 +37,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return badRequest('Cuerpo de solicitud inválido')
     }
 
-    const { patientDni, patientCpf, careCountry, patientPhone, patientName, tier, kioskId, pharmacyId, symptomSummary, referralCode, lgpdConsent } = body
+    const { patientDni, patientCpf, patientGenderCode, careCountry, patientPhone, patientName, tier, kioskId, pharmacyId, symptomSummary, referralCode, lgpdConsent } = body
 
     // Choose the country explicitly. A DNI/CPF or mobile dialing prefix cannot
     // determine clinical jurisdiction or grant access to an existing patient.
@@ -65,6 +66,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
     const sanitizedDni = careCountry === 'AR' ? normalizedDocument : null
     const sanitizedCpf = careCountry === 'BR' ? normalizedDocument : null
+    const sanitizedGenderCode = careCountry === 'AR' && ['F', 'M', 'X'].includes(patientGenderCode) ? patientGenderCode as 'F' | 'M' | 'X' : null
+    if (careCountry === 'AR' && !sanitizedGenderCode) return badRequest('Sexo según DNI requerido para validar RENAPER')
 
     if (!patientPhone || typeof patientPhone !== 'string') {
       return badRequest('Teléfono celular requerido')
@@ -234,6 +237,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       lgpd_consent: careCountry === 'BR' && lgpdConsent === true,
       patient_dni: sanitizedDni,
       patient_cpf: sanitizedCpf,
+      patient_gender_code: sanitizedGenderCode,
       patient_phone: sanitizedPhone,
       patient_name: sanitizedName,
       tier_requested: selectedTier,
@@ -261,6 +265,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
         code: typeof error.code === 'string' && /^[A-Z0-9]{5}$/.test(error.code) ? error.code : 'INTERNAL',
       })
       return internalError('dispatch_request_failed')
+    }
+
+    // RENAPER/PUCO is visit enrichment, never an admission dependency.
+    if (careCountry === 'AR' && sanitizedDni && sanitizedGenderCode) {
+      await fetchAndPersistOfficialIdentity({
+        supabase, dni: sanitizedDni, sexId: sanitizedGenderCode === 'F' ? 1 : sanitizedGenderCode === 'M' ? 2 : 3,
+        patientId: data.patient_id, dispatchRequestId: data.id, declaredName: sanitizedName,
+        runtimeEnv: locals.runtime?.env, timeoutMs: 3500,
+      }).catch((lookupError) => {
+        logger.warn('[api/pharmacy/dispatch/request] RENAPER enrichment unavailable', {
+          code: lookupError instanceof Error && 'code' in lookupError ? String(lookupError.code) : 'RENAPER_LOOKUP_UNAVAILABLE',
+        });
+        return null;
+      });
     }
 
     // Persist only an explicit kiosk acceptance, with immutable evidence metadata.

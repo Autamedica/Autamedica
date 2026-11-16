@@ -3801,6 +3801,18 @@ export type Database = {
           certifications: Json | null
           consultation_fee: number | null
           created_at: string | null
+          dni: string | null
+          gender: string | null
+          cuil: string | null
+          identity_status: string
+          official_full_name: string | null
+          official_first_name: string | null
+          official_last_name: string | null
+          official_cuil: string | null
+          official_birth_date: string | null
+          official_gender: string | null
+          identity_verified_at: string | null
+          identity_source: string | null
           education: Json | null
           enrollment_entity: string | null
           enrollment_jurisdiction: string | null
@@ -3835,6 +3847,18 @@ export type Database = {
           certifications?: Json | null
           consultation_fee?: number | null
           created_at?: string | null
+          dni?: string | null
+          gender?: string | null
+          cuil?: string | null
+          identity_status?: string
+          official_full_name?: string | null
+          official_first_name?: string | null
+          official_last_name?: string | null
+          official_cuil?: string | null
+          official_birth_date?: string | null
+          official_gender?: string | null
+          identity_verified_at?: string | null
+          identity_source?: string | null
           education?: Json | null
           enrollment_entity?: string | null
           enrollment_jurisdiction?: string | null
@@ -3869,6 +3893,18 @@ export type Database = {
           certifications?: Json | null
           consultation_fee?: number | null
           created_at?: string | null
+          dni?: string | null
+          gender?: string | null
+          cuil?: string | null
+          identity_status?: string
+          official_full_name?: string | null
+          official_first_name?: string | null
+          official_last_name?: string | null
+          official_cuil?: string | null
+          official_birth_date?: string | null
+          official_gender?: string | null
+          identity_verified_at?: string | null
+          identity_source?: string | null
           education?: Json | null
           enrollment_entity?: string | null
           enrollment_jurisdiction?: string | null
@@ -5618,6 +5654,17 @@ export type Database = {
           gender: string | null
           height_cm: number | null
           id: string
+          identity_status: string
+          official_full_name: string | null
+          official_first_name: string | null
+          official_last_name: string | null
+          official_cuil: string | null
+          official_birth_date: string | null
+          official_gender: string | null
+          puco_coverage_name: string | null
+          puco_coverage_code: string | null
+          identity_verified_at: string | null
+          identity_source: string | null
           insurance_info: Json | null
           medical_history: Json | null
           medications: Json | null
@@ -5643,6 +5690,17 @@ export type Database = {
           gender?: string | null
           height_cm?: number | null
           id?: string
+          identity_status?: string
+          official_full_name?: string | null
+          official_first_name?: string | null
+          official_last_name?: string | null
+          official_cuil?: string | null
+          official_birth_date?: string | null
+          official_gender?: string | null
+          puco_coverage_name?: string | null
+          puco_coverage_code?: string | null
+          identity_verified_at?: string | null
+          identity_source?: string | null
           insurance_info?: Json | null
           medical_history?: Json | null
           medications?: Json | null
@@ -5668,6 +5726,17 @@ export type Database = {
           gender?: string | null
           height_cm?: number | null
           id?: string
+          identity_status?: string
+          official_full_name?: string | null
+          official_first_name?: string | null
+          official_last_name?: string | null
+          official_cuil?: string | null
+          official_birth_date?: string | null
+          official_gender?: string | null
+          puco_coverage_name?: string | null
+          puco_coverage_code?: string | null
+          identity_verified_at?: string | null
+          identity_source?: string | null
           insurance_info?: Json | null
           medical_history?: Json | null
           medications?: Json | null

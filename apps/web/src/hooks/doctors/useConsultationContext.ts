@@ -7,6 +7,8 @@ export interface PatientProfile {
   name: string;
   dateOfBirth: string | null;
   gender: string | null;
+  identityStatus?: 'verified_renaper' | 'unverified' | 'mismatch';
+  officialFullName?: string | null; dni?: string | null; cuil?: string | null; pucoCoverage?: string | null;
 }
 
 export interface SuggestedQuestion {
@@ -68,6 +70,10 @@ export interface ConsultationContext {
     careCountry: 'AR' | 'BR' | string | null;
     symptomSummary: string | null;
     dispatchRequestId: string;
+    identityStatus?: 'verified_renaper' | 'unverified' | 'mismatch' | null;
+    officialFullName?: string | null; officialCuil?: string | null; officialBirthDate?: string | null;
+    officialGender?: string | null; pucoCoverageName?: string | null; pucoCoverageCode?: string | null;
+    patientGenderCode?: 'F' | 'M' | 'X' | null;
   };
 }
 

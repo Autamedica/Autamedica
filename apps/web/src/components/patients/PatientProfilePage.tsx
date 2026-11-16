@@ -83,19 +83,17 @@ function AuthenticatedPatientProfilePage({
       ? new Intl.DateTimeFormat(dateLocale, { day: '2-digit', month: 'short', year: 'numeric' }).format(parsed)
       : (isPortuguese ? 'Sem data' : 'Sin fecha');
   };
-  const insuranceInfo = form.insuranceInfo && typeof form.insuranceInfo === 'object'
-    ? form.insuranceInfo as Record<string, unknown>
-    : null;
-  const hasOfficialIdentity =
-    form.dni.trim().length > 0 &&
-    form.gender.trim().length > 0 &&
-    !!insuranceInfo?.official_data;
-  // A legacy profile form is not a biometric proof or immutable official source.
-  // Avoid presenting patient-entered names/dates as RENAPER-certified records.
+  const hasOfficialIdentity = form.identityStatus === 'verified_renaper'
+    && form.officialFullName.trim().length > 0
+    && form.officialCuil.replace(/\D/g, '').length === 11;
   const officialIdentityRows = [
-    { label: isPortuguese ? 'CPF / documento do perfil' : 'DNI del perfil', value: form.dni ? `***${form.dni.replace(/\D/g, '').slice(-3)}` : '' },
-    { label: isPortuguese ? 'Consulta' : 'Consulta', value: hasOfficialIdentity ? 'RENAPER — consulta registrada' : (isPortuguese ? 'Pendente' : 'Pendiente') },
-    { label: isPortuguese ? 'Endereço do perfil (oculto)' : 'Domicilio del perfil (oculto)', value: maskOfficialAddress(form.address) },
+    { label: 'Nombre legal RENAPER', value: hasOfficialIdentity ? form.officialFullName : '' },
+    { label: 'DNI declarado', value: form.dni ? `***${form.dni.replace(/\D/g, '').slice(-3)}` : '' },
+    { label: 'CUIL oficial', value: hasOfficialIdentity ? form.officialCuil : '' },
+    { label: 'Fecha de nacimiento', value: hasOfficialIdentity ? form.officialBirthDate : '' },
+    { label: 'Sexo registral', value: hasOfficialIdentity ? form.officialGender : '' },
+    { label: 'Cobertura PUCO', value: hasOfficialIdentity ? form.pucoCoverageName || 'Sin cobertura informada' : '' },
+    { label: 'Domicilio declarado (oculto)', value: maskOfficialAddress(form.address) },
   ];
 
   return (
@@ -287,14 +285,14 @@ function AuthenticatedPatientProfilePage({
                         onChange={(event) => setField('dni', event.target.value)}
                         placeholder={isPortuguese ? "Número do documento" : "Número de documento"}
                         icon={<Hash className="h-4 w-4" />}
-                        disabled={!!session.patient?.dni}
+                        disabled={!!session.patient?.dni || hasOfficialIdentity}
                       />
                       <SelectField
                         label={isPortuguese ? "Sexo" : "Sexo"}
                         value={form.gender}
                         onChange={(event) => setField('gender', event.target.value as typeof form.gender)}
                         icon={<UserCircle2 className="h-4 w-4" />}
-                        disabled={!!session.patient?.gender}
+                        disabled={!!session.patient?.gender || hasOfficialIdentity}
                       >
                         {GENDER_OPTIONS.map((option) => (
                           <option key={option.value} value={option.value}>
@@ -328,7 +326,7 @@ function AuthenticatedPatientProfilePage({
                         ) : (
                           <AlertCircle className="h-3.5 w-3.5" />
                         )}
-                        {hasOfficialIdentity ? (isPortuguese ? 'Dados oficiais consultados' : 'Datos oficiales consultados') : (isPortuguese ? 'Consulta pendente' : 'Pendiente de consulta')}
+                        {hasOfficialIdentity ? 'Identidad contrastada con RENAPER / PUCO' : 'Datos declarados — pendientes de contraste'}
                       </span>
                     </div>
                     <div className="mt-4 grid gap-3 sm:grid-cols-2">

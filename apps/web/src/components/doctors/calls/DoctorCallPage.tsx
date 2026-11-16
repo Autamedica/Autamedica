@@ -82,7 +82,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const [showMemedWidget, setShowMemedWidget] = useState(false)
   const [callCompletionError, setCallCompletionError] = useState<string | null>(null)
   const [isCompletingDispatch, setIsCompletingDispatch] = useState(false)
-  const { context, loading: contextLoading, error: contextError } = useConsultationContext(roomId)
+  const { context, loading: contextLoading, error: contextError, refresh: refreshConsultationContext } = useConsultationContext(roomId)
   const { doctor } = useCurrentDoctor(session?.user?.id)
   const doctorCountry = (doctor as (NonNullable<typeof doctor> & { care_country?: string }) | null)?.care_country
   const isBrazilianDoctor = doctorCountry === 'BR' || context?.dispatchTriage?.careCountry === 'BR'
@@ -747,6 +747,32 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
 
       {/* Clinical Context Panel */}
       <div className={`shrink-0 transition-all duration-300 ${panelCollapsed ? 'w-0' : 'w-96'} bg-[#0D1F2D] border-l border-white/10`}>
+        {!panelCollapsed && context?.patient && (
+          <div className="border-b border-white/10 px-4 py-3">
+            <p className="text-sm font-semibold text-white">{context.patient.name}</p>
+            {context.patient.identityStatus === 'verified_renaper' ? (
+              <div className="mt-2 rounded-lg border border-emerald-400/30 bg-emerald-500/10 p-3 text-xs text-emerald-200">
+                <p className="font-semibold">✓ Filiación RENAPER + PUCO</p>
+                <p className="mt-1">Nombre legal: {context.patient.officialFullName || context.patient.name}</p>
+                <p>DNI: {context.patient.dni || context.dispatchTriage?.patientDni || 'No informado'}</p>
+                <p>CUIL: {context.patient.cuil || context.dispatchTriage?.officialCuil || 'No informado'}</p>
+                <p>Nacimiento: {context.patient.dateOfBirth || 'No informado'}</p>
+                <p>Sexo registral: {context.patient.gender || 'No informado'}</p>
+                <p>Cobertura PUCO: {context.patient.pucoCoverage || context.dispatchTriage?.pucoCoverageName || 'Sin cobertura informada'}</p>
+              </div>
+            ) : (
+              <div className="mt-2 rounded-lg border border-amber-400/30 bg-amber-500/10 p-3 text-xs text-amber-100">
+                <p className="font-semibold">Documento declarado (Sin contraste RENAPER)</p>
+                {context.dispatchTriage?.patientDni && context.dispatchTriage?.patientGenderCode && (
+                  <button type="button" onClick={async () => {
+                    await fetchApi('/api/doctors/consultations/' + roomId + '/identity/renaper', { method: 'POST' });
+                    refreshConsultationContext();
+                  }} className="mt-2 rounded-md border border-amber-300/40 px-2 py-1.5 font-semibold">Reintentar consulta RENAPER</button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         <ConsultationContextPanel
           context={context}
           loading={contextLoading}
@@ -793,6 +819,16 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(context.patient.id) && (
         <PrescriptionCreateModal
           patientId={context.patient.id as UUID}
+          doctorCareCountry={isBrazilianDoctor ? 'BR' : 'AR'}
+          patientIdentity={{
+            identityStatus: context.patient.identityStatus ?? 'unverified',
+            fullName: context.patient.officialFullName ?? context.patient.name,
+            dni: context.patient.dni ?? context.dispatchTriage?.patientDni,
+            cuil: context.patient.cuil ?? context.dispatchTriage?.officialCuil,
+            birthDate: context.patient.dateOfBirth,
+            gender: context.patient.gender,
+            pucoCoverageName: context.patient.pucoCoverage ?? context.dispatchTriage?.pucoCoverageName,
+          }}
           onClose={() => setShowPrescriptionModal(false)}
           onSaved={() => {
             setShowPrescriptionModal(false)

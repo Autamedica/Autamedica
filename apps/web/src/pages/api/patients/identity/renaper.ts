@@ -16,6 +16,7 @@ import {
   returnedRenaperDocumentMatches,
   buildMinimalRenaperAudit,
 } from '@/lib/patients/services/renaper-identity-scope';
+import { persistOfficialIdentityResult } from '@/lib/patients/services/patient-identity.service';
 
 function maskText(text: string | null | undefined, visibleCount = 1): string {
   if (!text) return '';
@@ -86,7 +87,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const supabase = createAstroAdminClient(locals.runtime?.env);
   const { data: patient } = await supabase
     .from('patients')
-    .select('id, insurance_info, dni, gender, care_country')
+    .select('id, user_id, insurance_info, dni, gender, care_country')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -164,6 +165,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
     const firstName = person.nombres ?? '';
     const lastName = person.apellido ?? '';
+    const { data: profileName } = await supabase.from('profiles')
+      .select('first_name, last_name').eq('user_id', patient.user_id).maybeSingle();
+    const declaredName = [profileName?.first_name, profileName?.last_name].filter(Boolean).join(' ');
+    const persistedIdentity = await persistOfficialIdentityResult({
+      supabase, result, dni, patientId: patient.id, userId: patient.user_id,
+      declaredName, syncProfileName: true,
+    });
     // All response paths expose only a redacted address; do not send official photo bytes.
     const maskedAddress = maskOfficialAddress(buildAddress(person));
     const photoAvailable = isOfficialPhotoAvailable(person.foto);
@@ -188,6 +196,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         source: 'RENAPER',
         checkedAt: new Date().toISOString(),
         hasPaid: true,
+        identityStatus: persistedIdentity.identityStatus,
         form: {
           dni: person.numeroDocumento ?? dni,
           firstName,
@@ -213,6 +222,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       source: 'RENAPER',
       checkedAt: new Date().toISOString(),
       hasPaid: false,
+      identityStatus: persistedIdentity.identityStatus,
       form: {
         dni: person.numeroDocumento ?? dni,
         firstName: maskText(firstName, 1),

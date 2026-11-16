@@ -13,6 +13,7 @@ import type { Prescription, UUID } from "@/types/medical";
 interface PrescriptionCreateModalProps {
   patientId?: UUID;
   doctorCareCountry?: 'AR' | 'BR';
+  patientIdentity?: { identityStatus: 'verified_renaper' | 'unverified' | 'mismatch'; fullName?: string | null; dni?: string | null; cuil?: string | null; birthDate?: string | null; gender?: string | null; pucoCoverageName?: string | null };
   onClose: () => void;
   onSaved: () => void;
   addPrescription: (
@@ -162,6 +163,7 @@ function unwrapCareGuideResponse(payload: unknown): CareGuideResponse | null {
 export function PrescriptionCreateModal({
   patientId,
   doctorCareCountry,
+  patientIdentity,
   onClose,
   onSaved,
   addPrescription,
@@ -197,6 +199,16 @@ export function PrescriptionCreateModal({
     care_guide_warnings: editingPrescription?.care_guide_warnings ?? "",
     care_guide_lifestyle: editingPrescription?.care_guide_lifestyle ?? "",
   });
+
+  useEffect(() => {
+    if (patientIdentity?.identityStatus !== 'verified_renaper') return;
+    setForm(current => ({ ...current,
+      patient_name: patientIdentity.fullName || current.patient_name,
+      patient_document: patientIdentity.dni || current.patient_document,
+      patient_birth_date: patientIdentity.birthDate || current.patient_birth_date,
+      patient_gender: patientIdentity.gender || current.patient_gender,
+    }));
+  }, [patientIdentity]);
 
   const [patientCountryConfirmed, setPatientCountryConfirmed] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -540,6 +552,13 @@ export function PrescriptionCreateModal({
         </div>
 
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+          {patientId && patientIdentity && (
+            <div className={`rounded-xl border p-3 text-xs ${patientIdentity.identityStatus === 'verified_renaper' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+              <p className="font-semibold">{patientIdentity.identityStatus === 'verified_renaper' ? 'Filiación contrastada con RENAPER / PUCO' : 'Datos declarados'}</p>
+              <p className="mt-1">{patientIdentity.fullName || 'Nombre no informado'} · DNI {patientIdentity.dni || '—'} · CUIL {patientIdentity.cuil || '—'}</p>
+              <p>Nacimiento: {patientIdentity.birthDate || '—'} · Sexo: {patientIdentity.gender || '—'} · Cobertura: {patientIdentity.pucoCoverageName || 'No informada'}</p>
+            </div>
+          )}
           {!patientId && !isEditing && (
             <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-4">
               <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-am-surface-500">
