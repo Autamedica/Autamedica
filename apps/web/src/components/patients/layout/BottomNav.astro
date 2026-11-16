@@ -34,12 +34,12 @@ const TABS: {
         return (
           <a href={href} class="group -mt-5 flex flex-col items-center gap-0.5 pb-2">
             <div
-              class="flex h-14 w-14 items-center justify-center rounded-full bg-gray-900 shadow-lg transition-transform active:scale-95"
+              class="flex h-14 w-14 items-center justify-center rounded-full bg-[#10B981] shadow-lg hover:bg-[#0D9488] transition-transform active:scale-95"
               style={isActive ? 'box-shadow: 0 0 20px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.2)' : 'box-shadow: 0 4px 12px rgba(0,0,0,0.15)'}
             >
               <Icon className="h-6 w-6 text-white" />
             </div>
-            <span class={`text-[10px] font-medium ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
+            <span class={`text-[11px] font-medium ${isActive ? 'text-[#10B981]' : 'text-gray-500'}`}>
               {label}
             </span>
           </a>
@@ -48,7 +48,7 @@ const TABS: {
 
       return (
         <a href={href} class="flex flex-col items-center gap-0.5 px-3 py-2">
-          <Icon className={`h-5 w-5 transition-colors ${isActive ? 'text-gray-900' : 'text-gray-400'}`} />
+          <Icon className={`h-5 w-5 transition-colors ${isActive ? 'text-[#10B981]' : 'text-gray-500'}`} />
           <span class={`text-[10px] font-medium transition-colors ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
             {label}
           </span>
