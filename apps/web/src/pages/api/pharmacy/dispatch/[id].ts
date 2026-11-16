@@ -15,6 +15,59 @@ import { logger } from '@autamedica/shared'
  * a) Usuario autenticado en sesión: debe ser médico asignado, médico de guardia o paciente dueño (requested_by_user_id).
  * b) Kiosco / invitado: requiere token de acceso criptográfico válido (?token= o Authorization: Bearer).
  */
+function findMemedString(
+  value: unknown,
+  acceptedKeys: Set<string>,
+  depth = 0,
+): string | null {
+  if (depth > 6 || !value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findMemedString(item, acceptedKeys, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+  const object = value as Record<string, unknown>;
+  for (const [key, nested] of Object.entries(object)) {
+    const normalized = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (acceptedKeys.has(normalized) && typeof nested === 'string'
+      && nested.trim().length >= 4 && nested.trim().length <= 128) {
+      return nested.trim();
+    }
+  }
+  for (const nested of Object.values(object)) {
+    const found = findMemedString(nested, acceptedKeys, depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
+function findMemedDocumentUrl(value: unknown, depth = 0): string | null {
+  if (depth > 6 || !value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findMemedDocumentUrl(item, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+  const object = value as Record<string, unknown>;
+  for (const [key, nested] of Object.entries(object)) {
+    if (/(url|link|pdf|document)/i.test(key) && typeof nested === 'string') {
+      try {
+        const url = new URL(nested);
+        if (url.protocol === 'https:' && /(^|[.])memed[.]com(?:[.]br)?$/i.test(url.hostname)) return url.toString();
+      } catch { /* Ignore malformed provider URL. */ }
+    }
+  }
+  for (const nested of Object.values(object)) {
+    const found = findMemedDocumentUrl(nested, depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
 export const GET: APIRoute = async ({ params, locals, request }) => {
   const id = params.id?.trim()
   if (!id) return notFound('missing_request_id')
@@ -166,7 +219,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     const documents: Array<{
       id: string; kind: 'memed' | 'core' | 'certificate'; title: string;
       provider: string; createdAt: string; status: string; verificationCode: string | null;
-      downloadUrl: string;
+      accessCode?: string | null; downloadUrl: string;
     }> = []
     if (['in_call', 'completed'].includes(String(requestRecord.status))
       && requestRecord.patient_id && requestRecord.assigned_doctor_id) {
@@ -193,13 +246,15 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       ])
       const tokenSuffix = candidateGuestToken ? `?token=${encodeURIComponent(candidateGuestToken)}` : ''
       for (const row of memedRows ?? []) {
-        if (row.status === 'deleted') continue
+        if (row.status === 'deleted' || !findMemedDocumentUrl(row.digital_link_data)) continue
         const provider = row.provider_data && typeof row.provider_data === 'object' ? row.provider_data as Record<string, unknown> : {}
+        const linkData = row.digital_link_data
         const label = String(provider.medication_name ?? provider.nome ?? provider.title ?? 'Receita digital Memed')
         documents.push({
           id: `memed-${row.id}`, kind: 'memed', title: label,
           provider: 'Memed BR', createdAt: row.created_at, status: row.status,
-          verificationCode: row.memed_id,
+          verificationCode: findMemedString(linkData, new Set(['verificationcode', 'prescriptiontoken', 'recipetoken', 'tokenreceita', 'tokenfarmacia', 'farmaciatoken'])),
+          accessCode: findMemedString(linkData, new Set(['unlockcode', 'accesscode', 'password', 'senha', 'codigodesbloqueio', 'codigoacesso', 'pin'])),
           downloadUrl: `/api/pharmacy/dispatch/${encodeURIComponent(id)}/documents/memed-${encodeURIComponent(row.id)}${tokenSuffix}`,
         })
       }
