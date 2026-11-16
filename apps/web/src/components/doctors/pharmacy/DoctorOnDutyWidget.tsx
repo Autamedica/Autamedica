@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Activity,
   AlertCircle,
@@ -39,7 +39,13 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
   } = useDoctorOnDuty()
 
   const careCountry = providedCareCountry ?? queueCareCountry
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(false)
+  const previousQueueCountRef = useRef(0)
+
+  useEffect(() => {
+    if (queueCount > previousQueueCountRef.current) setExpanded(true)
+    previousQueueCountRef.current = queueCount
+  }, [queueCount])
 
   const handleClaim = async (requestId: string) => {
     const result = await claimPatient(requestId)
@@ -175,19 +181,20 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
               )}
             </div>
 
-            {queueCount > 0 && (
-              <button
-                type="button"
-                onClick={() => setExpanded(!expanded)}
-                className="text-xs text-teal-300 hover:text-teal-200 transition"
-              >
-                {expanded ? 'Ocultar' : 'Ver cola'}
-              </button>
-            )}
+            <button
+              type="button"
+              aria-expanded={expanded}
+              onClick={() => setExpanded((value) => !value)}
+              className="text-xs font-semibold text-teal-300 hover:text-teal-200 transition"
+            >
+              {expanded
+                ? (careCountry === 'BR' ? 'Recolher radar' : 'Ocultar radar')
+                : (careCountry === 'BR' ? 'Ver ofertas' : 'Ver ofertas')}
+            </button>
           </div>
 
           {queueCount === 0 ? (
-            <div className="py-5 px-4 rounded-xl bg-white/5 border border-white/10 text-center flex flex-col items-center justify-center">
+            expanded && <div className="py-5 px-4 rounded-xl bg-white/5 border border-white/10 text-center flex flex-col items-center justify-center">
               <Activity className="w-5 h-5 text-emerald-400/60 mb-1.5 animate-pulse" />
               <p className="text-xs text-slate-200 font-medium">
                 {careCountry === 'BR' ? 'Radar ativo · Sem solicitações pendentes' : 'Radar activo · Sin solicitudes pendientes'}
@@ -197,7 +204,6 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
               </p>
             </div>
           ) : (
-            expanded && (
               <div className="space-y-2.5">
                 {queue.map((item) => (
                   <div
@@ -240,7 +246,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
                         onClick={() => void declinePatient(item.id)}
                         className="rounded-xl border border-rose-300/40 bg-rose-400/10 px-3 py-2 text-xs font-semibold text-rose-100 transition hover:bg-rose-400/20 disabled:opacity-50"
                       >
-                        {decliningId === item.id ? (careCountry === 'BR' ? 'Recusando...' : 'Rechazando...') : 'Recusar / Rechazar'}
+                        {decliningId === item.id ? (careCountry === 'BR' ? 'Recusando...' : 'Rechazando...') : (careCountry === 'BR' ? 'Recusar' : 'Rechazar')}
                       </button>
                       <button
                         type="button"
