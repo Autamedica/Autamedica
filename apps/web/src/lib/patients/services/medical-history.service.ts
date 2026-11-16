@@ -28,6 +28,7 @@ type CorePrescriptionRow = Pick<
   | "vendor_id"
   | "qr_code_content"
   | "signed_pdf_url"
+  | "signature_method"
 >;
 
 interface DoctorLookupRow {
@@ -150,7 +151,9 @@ function normalizeCorePrescription(
       vendor_name: normalizeVendorName(prescription.vendor_name),
       vendor_id: prescription.vendor_id,
       qr_code_content: prescription.qr_code_content,
-      signed_pdf_url: prescription.signed_pdf_url,
+      signed_pdf_url: prescription.status === "active" && prescription.signature_method === "ac_external"
+        ? `/api/doctors/prescriptions/${encodeURIComponent(prescription.id)}/pdf`
+        : null,
       is_digital_artifact_ready: digitalArtifactReady,
       artifact_warning: artifactWarning,
       requires_strict_validation: strictValidation,
@@ -168,7 +171,7 @@ async function listReadModelPrescriptions(
   const { data: rows, error } = await supabase
     .from("prescriptions")
     .select(
-      "id, created_at, updated_at, doctor_id, patient_id, cuir, status, clinical_data, vendor_name, vendor_id, qr_code_content, signed_pdf_url",
+      "id, created_at, updated_at, doctor_id, patient_id, cuir, status, clinical_data, vendor_name, vendor_id, qr_code_content, signed_pdf_url, signature_method",
     )
     .eq("patient_id", patientId)
     .order("created_at", { ascending: false });
