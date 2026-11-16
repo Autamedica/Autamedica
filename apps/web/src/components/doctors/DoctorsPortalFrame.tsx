@@ -134,7 +134,7 @@ function MobileNavBar({
               key={item.key}
               href={item.href}
               className={`relative flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2.5 transition-colors ${
-                isActive ? "text-[#0284C7]" : "text-neutral-400
+                isActive ? "text-[#0284C7]" : "text-neutral-400"
               }`}
             >
               <div className="relative">
