@@ -1,5 +1,4 @@
 import type { APIRoute } from 'astro'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { resolveGuestSecret } from '@/lib/runtime-env'
 import { verifyGuestToken } from '@/lib/calls/lib/guest-token'
