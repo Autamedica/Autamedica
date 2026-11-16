@@ -84,7 +84,7 @@ function PrescriptionCard({ prescription, onClick, index, locale }: {
             {prescription.medication_name || (locale === 'pt-BR' ? 'Receita médica' : 'Prescripción médica')}
           </h3>
           <p className="text-sm text-neutral-500 mt-0.5">{doctorName} · {dateStr}</p>
-          <p className="mt-1 text-[11px] font-semibold text-emerald-700">{prescription.source === 'memed_br' ? 'Memed BR' : prescription.source === 'prescriptions_core' ? 'RCTA / Core AR' : 'Historial clínico'}</p>
+          <p className="mt-1 text-[11px] font-semibold text-emerald-700">{prescription.source === 'memed_br' ? 'Memed BR' : prescription.source === 'prescriptions_core' ? 'RCTA / Core AR' : (isPortuguese ? 'Histórico clínico' : 'Historial clínico')}</p>
           {prescription.access_code && <p className="mt-1 text-xs text-slate-600">{isPortuguese ? 'Código de acesso' : 'Código de acceso'}: <span className="font-mono font-semibold text-slate-900">{prescription.access_code}</span></p>}
         </div>
         <span className={`rounded-full px-3 py-1 text-xs font-bold shrink-0 ${statusStyle}`}>
@@ -266,7 +266,7 @@ export default function MedicalHistoryPage() {
                 <article key={id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                   <div className="flex items-start justify-between gap-3">
                     <div><h3 className="font-semibold capitalize text-slate-900">{type}</h3><p className="mt-1 text-xs text-slate-500">{formatDate(String(certificate.created_at ?? ''), locale)}</p></div>
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{status === 'signed' ? (isPortuguese ? 'Assinado' : 'Firmado') : status}</span>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{status === 'signed' ? (isPortuguese ? 'Assinado' : 'Firmado') : status === 'draft' ? (isPortuguese ? 'Rascunho' : 'Borrador') : status === 'revoked' ? (isPortuguese ? 'Revogado' : 'Revocado') : status === 'expired' ? (isPortuguese ? 'Expirado' : 'Vencido') : status}</span>
                   </div>
                   {certificate.days_of_rest ? <p className="mt-3 text-sm text-slate-700">{String(certificate.days_of_rest)} {isPortuguese ? 'dias de afastamento' : 'días de reposo'}</p> : null}
                   {code && <p className="mt-3 text-xs text-slate-500">{isPortuguese ? 'Código de verificação' : 'Código de verificación'}: <span className="font-mono font-semibold text-slate-800">{code}</span></p>}
