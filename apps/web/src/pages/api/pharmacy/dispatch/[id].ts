@@ -179,7 +179,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
           .gte('created_at', startedAt)
           .order('created_at', { ascending: false }),
         dispatchAdmin.from('prescriptions')
-          .select('id,status,cuir,clinical_data,signed_pdf_url,created_at,vendor_name')
+          .select('id,status,cuir,clinical_data,signed_pdf_url,signature_method,created_at,vendor_name')
           .eq('patient_id', requestRecord.patient_id)
           .eq('doctor_id', requestRecord.assigned_doctor_id)
           .gte('created_at', startedAt)
@@ -204,6 +204,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
         })
       }
       for (const row of coreRows ?? []) {
+        if (row.status !== 'active' || row.signature_method !== 'ac_external') continue
         const clinical = row.clinical_data && typeof row.clinical_data === 'object' ? row.clinical_data as Record<string, unknown> : {}
         const items = Array.isArray(clinical.items) ? clinical.items as Array<Record<string, unknown>> : []
         const title = String(clinical.medication_name ?? items[0]?.commercialName ?? items[0]?.genericName ?? 'Receta médica')
@@ -215,6 +216,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
         })
       }
       for (const row of certificates ?? []) {
+        if (row.status !== 'signed') continue
         documents.push({
           id: `certificate-${row.id}`, kind: 'certificate',
           title: row.certificate_type === 'reposo_laboral' ? 'Atestado médico' : 'Certificado médico',
