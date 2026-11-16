@@ -1,17 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-export function validCpf(value: string): boolean {
-  const cpf = value.replace(/\D/g, '');
-  if (!/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) return false;
-  for (let length = 9; length <= 10; length++) {
-    let sum = 0;
-    for (let i = 0; i < length; i++) sum += Number(cpf[i]) * (length + 1 - i);
-    const digit = (sum * 10) % 11;
-    if ((digit === 10 ? 0 : digit) !== Number(cpf[length])) return false;
-  }
-  return true;
-}
-
+import { validCpf } from '@/lib/prescriptions/brazil/cpf';
+export { validCpf } from '@/lib/prescriptions/brazil/cpf';
 export function validBirthDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`${value}T00:00:00.000Z`);
@@ -88,16 +78,45 @@ export async function resolveMemedPatient(
   if (error) throw new Error('memed_patient_lookup_failed');
   if (patient?.care_country !== 'BR') throw new Error('memed_patient_country_required');
   if (!patient?.active || patient.lgpd_consent !== true) throw new Error('memed_patient_consent_required');
-  const { data: profile, error: profileError } = await admin.from('profiles')
-    .select('first_name, last_name').eq('user_id', patient.user_id).maybeSingle();
-  if (profileError) throw new Error('memed_patient_lookup_failed');
-  const name = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim();
-  const cpf = String(patient.cpf ?? '').replace(/\D/g, '');
+  let firstName = '';
+  let lastName = '';
+  let cpf = String(patient.cpf ?? '').replace(/\\D/g, '');
   const birthDate = String(patient.birth_date ?? '');
   const gender = String(patient.gender ?? '').toLowerCase();
-  if (!profile?.first_name?.trim() || !profile.last_name?.trim() || !validCpf(cpf)) {
-    throw new Error('memed_patient_identity_incomplete');
+  if (!patient.user_id) {
+    const { data: guestDispatch, error: guestDispatchError } = await admin
+      .from('pharmacy_dispatch_requests')
+      .select('patient_name, patient_cpf, patient_phone, lgpd_consent')
+      .eq('patient_id', patientId)
+      .eq('assigned_doctor_id', doctorId)
+      .in('status', ['in_call', 'completed'])
+      .gte('call_started_at', recent)
+      .order('call_started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (guestDispatchError) throw new Error('memed_patient_lookup_failed');
+    if (!guestDispatch || guestDispatch.lgpd_consent !== true) {
+      throw new Error('memed_patient_consent_required');
+    }
+    const nameParts = String(guestDispatch.patient_name ?? '').trim().split(/\\s+/);
+    firstName = nameParts.shift() ?? '';
+    lastName = nameParts.join(' ');
+    cpf = String(guestDispatch.patient_cpf ?? '').replace(/\\D/g, '');
+    const phone = String(guestDispatch.patient_phone ?? '').replace(/[^\\d+]/g, '');
+    if (!firstName || !lastName || phone.replace(/\\D/g, '').length < 6 || !validCpf(cpf)) {
+      throw new Error('memed_patient_identity_incomplete');
+    }
+  } else {
+    const { data: profile, error: profileError } = await admin.from('profiles')
+      .select('first_name, last_name').eq('user_id', patient.user_id).maybeSingle();
+    if (profileError) throw new Error('memed_patient_lookup_failed');
+    firstName = String(profile?.first_name ?? '').trim();
+    lastName = String(profile?.last_name ?? '').trim();
+    if (!firstName || !lastName || !validCpf(cpf)) {
+      throw new Error('memed_patient_identity_incomplete');
+    }
   }
+  const name = [firstName, lastName].filter(Boolean).join(' ').trim();
   const patientData: MemedPatient = { idExterno: `autamedica-${patientId}`, nome: name, cpf };
   // Express pharmacy/Jordan intake intentionally collects no DOB or gender.
   // Memed accepts these demographic attributes as optional; never fabricate them.
