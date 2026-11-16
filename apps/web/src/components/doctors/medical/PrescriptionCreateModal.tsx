@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { X, Pill, Save, Loader2, ClipboardCheck, BookmarkPlus, Trash2 } from "lucide-react";
 import { ApiError } from "@/lib/api-client";
 import { requiresStrictPrescriptionValidation } from "@/lib/prescriptions/strict-validation";
+import { useRealPatients } from "@/hooks/doctors/useRealPatients";
 import type { Prescription, UUID } from "@/types/medical";
 
 interface PrescriptionCreateModalProps {
@@ -171,6 +172,32 @@ export function PrescriptionCreateModal({
   submitLabel,
 }: PrescriptionCreateModalProps) {
   const isEditing = !!editingPrescription;
+  const { patients: availablePatients, loading: availablePatientsLoading } = useRealPatients();
+  const [selectedPatientId, setSelectedPatientId] = useState<UUID | null>(patientId ?? null);
+  const [patientSearch, setPatientSearch] = useState("");
+  const [quickPatientMode, setQuickPatientMode] = useState<"registered" | "external">(
+    patientId || isEditing ? "registered" : "registered",
+  );
+  const activePatientId = patientId ?? (quickPatientMode === "registered" ? selectedPatientId ?? undefined : undefined);
+  const filteredQuickPatients = availablePatients.filter((patient) => {
+    const query = patientSearch.trim().toLocaleLowerCase();
+    if (!query) return true;
+    const name = `${patient.profile?.first_name ?? ""} ${patient.profile?.last_name ?? ""}`.trim().toLocaleLowerCase();
+    return [
+      name,
+      patient.dni ?? "",
+      patient.profile?.email ?? "",
+      patient.profile?.phone ?? "",
+    ].some((value) => String(value).toLocaleLowerCase().includes(query));
+  }).slice(0, 12);
+  const chosenPatient = availablePatients.find((patient) => patient.id === activePatientId);
+
+  useEffect(() => {
+    if (patientId) {
+      setSelectedPatientId(patientId);
+      setQuickPatientMode("registered");
+    }
+  }, [patientId]);
 
   const [form, setForm] = useState({
     patient_name: "",
@@ -416,7 +443,11 @@ export function PrescriptionCreateModal({
       setError("Medicación con validación reforzada: diagnóstico y dosis son obligatorios.");
       return;
     }
-    if (!patientId) {
+    if (!activePatientId && quickPatientMode !== "external") {
+      setError("Seleccioná un paciente de tu padrón o elegí Paciente sin cuenta.");
+      return;
+    }
+    if (!activePatientId && quickPatientMode === "external") {
       if (!doctorCareCountry || !patientCountryConfirmed) {
         setError("Confirmá con el paciente el país donde recibirá atención antes de guardar.");
         return;
@@ -465,8 +496,8 @@ export function PrescriptionCreateModal({
     const payload: Omit<Prescription, "id" | "created_at" | "updated_at" | "patient_id"> & {
       patient_id?: UUID;
       external_patient?: ExternalPatientForm;
-    } = patientId
-      ? { ...basePayload, patient_id: patientId }
+    } = activePatientId
+      ? { ...basePayload, patient_id: activePatientId }
       : {
           ...basePayload,
           external_patient: {
@@ -541,76 +572,109 @@ export function PrescriptionCreateModal({
 
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           {!patientId && !isEditing && (
-            <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-4">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-am-surface-500">
-                Paciente sin cuenta
-              </p>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-semibold text-am-surface-700 mb-1.5">
-                    Nombre completo <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.patient_name}
-                    onChange={set("patient_name")}
-                    placeholder="Ej: María González"
-                    className="w-full rounded-lg border border-am-surface-200 px-3 py-2 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-am-surface-700 mb-1.5">
-                      Documento <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={form.patient_document}
-                      onChange={set("patient_document")}
-                      placeholder={doctorCareCountry === 'BR' ? "CPF (11 dígitos)" : "DNI o CUIL"}
-                      className="w-full rounded-lg border border-am-surface-200 px-3 py-2 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-am-surface-700 mb-1.5">
-                      Contacto
-                    </label>
-                    <input
-                      type="text"
-                      value={form.patient_contact}
-                      onChange={set("patient_contact")}
-                      placeholder="Email o WhatsApp"
-                      className="w-full rounded-lg border border-am-surface-200 px-3 py-2 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-am-surface-700 mb-1.5">
-                    Domicilio <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.patient_address}
-                    onChange={set("patient_address")}
-                    placeholder="Av. Corrientes 1234, CABA"
-                    className="w-full rounded-lg border border-am-surface-200 px-3 py-2 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
-                  />
-                </div>
+            <section className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-4" aria-labelledby="prescription-patient-title">
+              <div className="mb-3">
+                <h3 id="prescription-patient-title" className="text-sm font-bold text-am-surface-900">¿Para quién es la receta?</h3>
+                <p className="mt-1 text-xs text-am-surface-500">Elegí un paciente de tu padrón o cargá uno que llega sin cuenta</p>
               </div>
-              <label className="mt-3 flex items-start gap-2 text-sm text-am-surface-700">
-                <input
-                  type="checkbox"
-                  checked={patientCountryConfirmed}
-                  onChange={(event) => setPatientCountryConfirmed(event.target.checked)}
-                  className="mt-1 h-4 w-4"
-                  required
-                />
-                <span>Confirmo que el paciente declaró que recibirá atención médica en
-                  {doctorCareCountry === 'BR' ? ' Brasil' : ' Argentina'}.
-                  Esta elección define el proveedor de recetas y no su nacionalidad.
-                </span>
-              </label>
-            </div>
+              <div className="mb-3 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setQuickPatientMode("registered"); setError(null); }}
+                  aria-pressed={quickPatientMode === "registered"}
+                  className={`min-h-11 rounded-xl border px-3 py-2 text-xs font-semibold transition ${quickPatientMode === "registered" ? "border-sky-600 bg-sky-600 text-white" : "border-am-surface-200 bg-white text-am-surface-700 hover:border-sky-300"}`}
+                >
+                  Paciente del padrón
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setQuickPatientMode("external"); setSelectedPatientId(null); setError(null); }}
+                  aria-pressed={quickPatientMode === "external"}
+                  className={`min-h-11 rounded-xl border px-3 py-2 text-xs font-semibold transition ${quickPatientMode === "external" ? "border-sky-600 bg-sky-600 text-white" : "border-am-surface-200 bg-white text-am-surface-700 hover:border-sky-300"}`}
+                >
+                  Paciente sin cuenta
+                </button>
+              </div>
+
+              {quickPatientMode === "registered" && (
+                <div className="space-y-3">
+                  {activePatientId && chosenPatient ? (
+                    <div className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50 p-3">
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-sky-700">Paciente seleccionado</p>
+                        <p className="truncate text-sm font-semibold text-am-surface-900">{[chosenPatient.profile?.first_name, chosenPatient.profile?.last_name].filter(Boolean).join(" ") || "Paciente"}</p>
+                        <p className="text-xs text-am-surface-600">{chosenPatient.dni ? `Documento: ${chosenPatient.dni}` : "Paciente de tu padrón asistencial"}</p>
+                      </div>
+                      <button type="button" onClick={() => setSelectedPatientId(null)} className="min-h-10 shrink-0 rounded-lg border border-sky-200 bg-white px-3 text-xs font-semibold text-sky-700 hover:bg-sky-100">Cambiar</button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="relative">
+                        <input
+                          type="search"
+                          value={patientSearch}
+                          onChange={(event) => setPatientSearch(event.target.value)}
+                          placeholder="Buscar paciente por nombre o documento"
+                          aria-label="Buscar paciente del padrón"
+                          className="min-h-11 w-full rounded-xl border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                        />
+                      </div>
+                      {availablePatientsLoading ? (
+                        <div className="flex items-center gap-2 py-3 text-xs text-am-surface-500"><Loader2 className="h-4 w-4 animate-spin" />Cargando tu padrón de pacientes…</div>
+                      ) : filteredQuickPatients.length > 0 ? (
+                        <div className="max-h-44 space-y-1 overflow-y-auto overscroll-contain pr-1">
+                          {filteredQuickPatients.map((patient) => {
+                            const name = [patient.profile?.first_name, patient.profile?.last_name].filter(Boolean).join(" ") || "Paciente";
+                            return (
+                              <button
+                                key={patient.id}
+                                type="button"
+                                onClick={() => { setSelectedPatientId(patient.id as UUID); setError(null); }}
+                                className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-transparent bg-white px-3 py-2 text-left transition hover:border-sky-200 hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                              >
+                                <span className="min-w-0 truncate text-sm font-medium text-am-surface-900">{name}</span>
+                                <span className="shrink-0 text-[11px] text-am-surface-500">{patient.dni ? `DNI/CPF ${patient.dni}` : "Seleccionar"}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="rounded-lg bg-white px-3 py-3 text-xs text-am-surface-500">No hay coincidencias en tu padrón asistencial. Podés registrar al paciente sin cuenta.</p>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {quickPatientMode === "external" && (
+                <>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">Nombre completo <span className="text-red-500">*</span></label>
+                      <input type="text" value={form.patient_name} onChange={set("patient_name")} placeholder="Nombre y apellido" autoComplete="name" className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500" />
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">{doctorCareCountry === "BR" ? "CPF" : "DNI o CUIL"} <span className="text-red-500">*</span></label>
+                        <input type="text" inputMode="numeric" value={form.patient_document} onChange={set("patient_document")} placeholder={doctorCareCountry === "BR" ? "CPF (11 dígitos)" : "Documento"} className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500" />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">Contacto</label>
+                        <input type="text" value={form.patient_contact} onChange={set("patient_contact")} placeholder="Email o WhatsApp" autoComplete="email" className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">Domicilio <span className="text-red-500">*</span></label>
+                      <input type="text" value={form.patient_address} onChange={set("patient_address")} placeholder="Calle, número, localidad" autoComplete="street-address" className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500" />
+                    </div>
+                  </div>
+                  <label className="mt-3 flex min-h-11 items-start gap-2 rounded-lg bg-white p-3 text-xs leading-relaxed text-am-surface-700">
+                    <input type="checkbox" checked={patientCountryConfirmed} onChange={(event) => setPatientCountryConfirmed(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0" required />
+                    <span>Confirmo que el paciente declaró que recibirá atención médica en{doctorCareCountry === "BR" ? " Brasil" : " Argentina"}. Esta elección define el proveedor de recetas y no su nacionalidad.</span>
+                  </label>
+                </>
+              )}
+            </section>
           )}
 
           {!isEditing && (
