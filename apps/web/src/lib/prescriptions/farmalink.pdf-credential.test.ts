@@ -36,10 +36,10 @@ describe('Farmalink PDF affiliate reconciliation', () => {
     expect(pdf).toContain('Nro. afiliado / Credencial: 20123456786');
     expect(pdf).toContain('Plan: NO POSEE');
     expect(pdf).toContain('Entidad: 7110');
-    expect(pdf).toContain('CUIL: 27123456780');
+    expect(pdf).not.toContain('CUIL: 27123456780');
     expect(pdf).toContain('PAN / CREDENCIAL');
     expect(pdf).toContain('PAN: 20123456786');
-    expect(pdf).toContain('CUIL: 27123456780');
+    expect(pdf).not.toContain('CUIL: 27123456780');
     expect(pdf).toContain('RECETA FARMALINK');
     expect(pdf).not.toContain('CUIL PACIENTE');
     expect(pdf).toContain('RECETA EXTERNA: 9600000421228');
@@ -66,7 +66,7 @@ describe('Farmalink PDF affiliate reconciliation', () => {
     const pdf = Buffer.from(output.pdfBuffer).toString('latin1');
     expect(pdf).toContain('RL-2026-47574120-APN-SSVEIYES#MS');
     expect(pdf).toContain('Nro. afiliado / Credencial: 20123456786');
-    expect(pdf).toContain('CUIL: 27123456780');
+    expect(pdf).not.toContain('CUIL: 27123456780');
     expect(pdf).not.toContain('CUIL PACIENTE');
     expect(pdf).not.toContain('MODALIDAD GENERICO=');
     expect(output.cuir).toBe('');
