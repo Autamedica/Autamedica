@@ -169,7 +169,7 @@ export default function MedicalReportsPage() {
                     {code && <p className="mt-1 text-xs text-slate-500">{isPortuguese ? 'Código de verificação' : 'Código de verificación'}: <span className="font-mono font-semibold text-slate-800">{code}</span></p>}
                   </div>
                   <div className="flex gap-2">
-                    {status === 'signed' && <a href={'/api/patients/certificates/' + encodeURIComponent(id) + '/pdf'} target="_blank" rel="noreferrer" className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl bg-[#10B981] px-4 text-xs font-semibold text-white hover:bg-[#0D9488]">{isPortuguese ? 'Abrir PDF' : 'Abrir PDF'}</a>}
+                    {status === 'signed' && <a href={'/api/doctors/certificates/' + encodeURIComponent(id) + '/pdf'} target="_blank" rel="noreferrer" className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl bg-[#10B981] px-4 text-xs font-semibold text-white hover:bg-[#0D9488]">{isPortuguese ? 'Abrir PDF' : 'Abrir PDF'}</a>}
                     {code && <a href={'/verify/' + encodeURIComponent(code)} className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 px-4 text-xs font-semibold text-slate-700">{isPortuguese ? 'Verificar' : 'Verificar'}</a>}
                   </div>
                 </article>
