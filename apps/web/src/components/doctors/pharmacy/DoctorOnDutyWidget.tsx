@@ -76,7 +76,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
     <div
       className={`rounded-2xl border transition-all duration-300 ${
         onDuty
-          ? 'bg-[#0F2537] border-emerald-400/40 shadow-xl shadow-slate-950/20'
+          ? 'bg-[#0F2537] border-sky-400/50 shadow-xl shadow-slate-950/20'
           : 'bg-[#0F2537] border-white/10 shadow-md'
       } p-4 sm:p-5 ${className}`}
     >
@@ -137,7 +137,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
             className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow-md ${
               onDuty
                 ? 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40'
-                : 'bg-[#10B981] hover:bg-[#0D9488] text-white shadow-emerald-950/40'
+                : 'bg-[#0284C7] hover:bg-[#0369A1] text-white shadow-sky-950/40'
             } disabled:opacity-50`}
           >
             {toggling ? (
@@ -168,7 +168,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
               <span
                 className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                   queueCount > 0
-                    ? 'bg-emerald-500 text-white animate-pulse'
+                    ? 'bg-sky-500 text-white animate-pulse'
                     : 'bg-am-surface-700 text-am-surface-400'
                 }`}
               >
@@ -185,7 +185,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
               type="button"
               aria-expanded={expanded}
               onClick={() => setExpanded((value) => !value)}
-              className="text-xs font-semibold text-teal-300 hover:text-teal-200 transition"
+              className="text-xs font-semibold text-sky-300 hover:text-sky-200 transition"
             >
               {expanded
                 ? (careCountry === 'BR' ? 'Recolher radar' : 'Ocultar radar')
@@ -209,7 +209,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
                 {queue.map((item) => (
                   <div
                     key={item.id}
-                    className="p-3.5 rounded-xl bg-white/5 border border-white/10 hover:border-emerald-500/50 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner"
+                    className="p-3.5 rounded-xl bg-white/5 border border-white/10 hover:border-sky-400/50 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner"
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -227,7 +227,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
                       </div>
 
                       <div className="flex items-center gap-3 text-[11px] text-am-surface-300">
-                        <span className="flex items-center gap-1 text-teal-200 font-medium min-w-0 flex-wrap">
+                        <span className="flex items-center gap-1 text-sky-200 font-medium min-w-0 flex-wrap">
                           <FileText className="w-3 h-3 text-am-primary-400" />
                           <span className="break-words">{item.reason}</span>
                         </span>
@@ -253,7 +253,7 @@ export function DoctorOnDutyWidget({ className = '', compact = false, careCountr
                         type="button"
                         disabled={claimingId === item.id}
                         onClick={() => void handleClaim(item.id)}
-                        className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#10B981] hover:bg-[#0D9488] transition shadow-md shadow-emerald-950/40 flex items-center gap-1.5 active:scale-[0.98] disabled:opacity-50"
+                        className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#0284C7] hover:bg-[#0369A1] transition shadow-md shadow-sky-950/40 flex items-center gap-1.5 active:scale-[0.98] disabled:opacity-50"
                       >
                         {claimingId === item.id ? (
                           <>
