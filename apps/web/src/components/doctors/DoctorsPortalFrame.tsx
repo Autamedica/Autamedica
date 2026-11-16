@@ -23,7 +23,6 @@ import {
   Home,
   LogOut,
   Menu,
-  Search,
   Settings,
   Sparkles,
   Trophy,
@@ -81,15 +80,9 @@ function getDoctorDisplayName(
 
   const fullName =
     doctorProfile?.full_name?.trim() ||
-    [doctorProfile?.first_name, doctorProfile?.last_name]
-      .filter(Boolean)
-      .join(" ")
-      .trim() ||
+    [doctorProfile?.first_name, doctorProfile?.last_name].filter(Boolean).join(" ").trim() ||
     userProfile?.fullName?.trim() ||
-    [userProfile?.firstName, userProfile?.lastName]
-      .filter(Boolean)
-      .join(" ")
-      .trim();
+    [userProfile?.firstName, userProfile?.lastName].filter(Boolean).join(" ").trim();
 
   return fullName || "Doctor/a";
 }
@@ -122,35 +115,40 @@ function MobileNavBar({
   primaryLinks: NavigationItem[];
   platformLinks: NavigationItem[];
 }) {
-  const allLinks = [...primaryLinks, ...platformLinks];
+  const allLinks = [
+    primaryLinks.find((item) => item.key === "dashboard"),
+    primaryLinks.find((item) => item.key === "appointments"),
+    primaryLinks.find((item) => item.key === "patients"),
+    primaryLinks.find((item) => item.key === "prescriptions"),
+    platformLinks.find((item) => item.key === "profile"),
+  ].filter((item): item is NavigationItem => Boolean(item));
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 min-h-[4.25rem] border-t border-slate-200 bg-white/95 px-1 pb-[env(safe-area-inset-bottom)] pt-1.5 shadow-[0_-8px_24px_rgba(15,37,55,0.06)] backdrop-blur-xl md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 min-h-[3.75rem] border-t border-slate-200 bg-white/95 px-1 pb-[env(safe-area-inset-bottom)] pt-1 shadow-[0_-8px_24px_rgba(15,37,55,0.06)] backdrop-blur-xl md:hidden">
       <div className="flex items-center justify-around px-2">
-        {allLinks.slice(0, 5).map((item) => {
+        {allLinks.map((item) => {
           const isActive = item.key === activeSection;
           return (
             <a
               key={item.key}
               href={item.href}
-              className={`relative flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2.5 transition-colors ${
-                isActive ? "text-[#0284C7]" : "text-neutral-400"
+              className={`relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-1.5 transition-colors ${
+                isActive ? "text-[#0D9488]" : "text-slate-500"
               }`}
             >
               <div className="relative">
-                <item.icon
-                  className="h-5 w-5"
-                  strokeWidth={isActive ? 2 : 1.5}
-                />
+                <item.icon className="h-5 w-5" strokeWidth={isActive ? 2 : 1.5} />
                 {item.badge ? (
                   <span className="absolute -right-2 -top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white ring-2 ring-white">
                     {item.badge}
                   </span>
                 ) : null}
               </div>
-              <span className="max-w-full truncate text-[10px] font-semibold leading-tight">{item.label}</span>
+              <span className="max-w-full whitespace-normal break-words text-center text-[9px] font-semibold leading-tight">
+                {item.label}
+              </span>
               {isActive ? (
-                <span className="absolute top-0 h-0.5 w-8 rounded-full bg-[#0284C7]" />
+                <span className="absolute top-0 h-0.5 w-8 rounded-full bg-[#0D9488]" />
               ) : null}
             </a>
           );
@@ -172,9 +170,7 @@ export function DoctorsPortalFrame({
   const [signingOut, setSigningOut] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
-  const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState<string | null>(
-    null,
-  );
+  const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState<string | null>(null);
 
   const [cachedProfile, setCachedProfile] = useState<{
     doctorName?: string;
@@ -209,15 +205,19 @@ export function DoctorsPortalFrame({
 
   const doctorName = getDoctorDisplayName(doctor, user);
   const doctorInitials = getInitials(doctorName);
-  const doctorCredential = doctor as (NonNullable<typeof doctor> & { care_country?: string; uf_brazil?: string }) | null;
+  const doctorCredential = doctor as
+    | (NonNullable<typeof doctor> & { care_country?: string; uf_brazil?: string })
+    | null;
   const isBrazilianPortal = doctorCredential?.care_country === "BR";
-  const doctorSpecialty = doctor?.specialty || (isBrazilianPortal ? "Especialidade pendente" : "Especialidad pendiente");
+  const doctorSpecialty =
+    doctor?.specialty || (isBrazilianPortal ? "Especialidade pendente" : "Especialidad pendiente");
   const [cfmCredentialVerified, setCfmCredentialVerified] = useState(false);
-  const credentialLabel = doctorCredential?.care_country === "BR"
-    ? `CRM${doctorCredential.uf_brazil ? `-${doctorCredential.uf_brazil}` : ""} ${doctorCredential.license_number}`
-    : doctorCredential?.care_country === "AR"
-      ? `MN/MP ${doctorCredential.profile?.matricula_nacional || doctorCredential.license_number}`
-      : null;
+  const credentialLabel =
+    doctorCredential?.care_country === "BR"
+      ? `CRM${doctorCredential.uf_brazil ? `-${doctorCredential.uf_brazil}` : ""} ${doctorCredential.license_number}`
+      : doctorCredential?.care_country === "AR"
+        ? `MN/MP ${doctorCredential.profile?.matricula_nacional || doctorCredential.license_number}`
+        : null;
 
   useEffect(() => {
     if (!doctor?.id || doctorCredential?.care_country !== "BR") {
@@ -227,36 +227,73 @@ export function DoctorsPortalFrame({
     let active = true;
     void getBrowserSupabaseClient()
       .from("doctor_licenses")
-      .select("license_number, uf_brazil, cfm_evidence_path, cfm_review_notes, cfm_reviewed_by, cfm_reviewed_at, cfm_last_checked_at")
+      .select(
+        "license_number, uf_brazil, cfm_evidence_path, cfm_review_notes, cfm_reviewed_by, cfm_reviewed_at, cfm_last_checked_at",
+      )
       .eq("doctor_id", doctor.id)
       .eq("license_type", "CRM")
       .eq("status", "active")
       .eq("cfm_validation_status", "valid")
       .limit(20)
-      .then(({ data, error }) => {
-        if (!active) return;
-        const verified = !error && Boolean(data?.some((license) =>
-          String(license.license_number ?? "").replace(/\D/g, "") === String(doctorCredential.license_number ?? "").replace(/\D/g, "")
-          && license.uf_brazil?.toUpperCase() === doctorCredential.uf_brazil?.toUpperCase()
-          && Boolean(license.cfm_evidence_path?.trim())
-          && (license.cfm_review_notes?.trim().length ?? 0) >= 10
-          && Boolean(license.cfm_reviewed_by && license.cfm_reviewed_at && license.cfm_last_checked_at)
-        ));
-        setCfmCredentialVerified(verified);
-      }, () => { if (active) setCfmCredentialVerified(false); });
-    return () => { active = false; };
-  }, [doctor?.id, doctorCredential?.care_country, doctorCredential?.license_number, doctorCredential?.uf_brazil]);
+      .then(
+        ({ data, error }) => {
+          if (!active) return;
+          const verified =
+            !error &&
+            Boolean(
+              data?.some(
+                (license) =>
+                  String(license.license_number ?? "").replace(/\D/g, "") ===
+                    String(doctorCredential.license_number ?? "").replace(/\D/g, "") &&
+                  license.uf_brazil?.toUpperCase() === doctorCredential.uf_brazil?.toUpperCase() &&
+                  Boolean(license.cfm_evidence_path?.trim()) &&
+                  (license.cfm_review_notes?.trim().length ?? 0) >= 10 &&
+                  Boolean(
+                    license.cfm_reviewed_by &&
+                    license.cfm_reviewed_at &&
+                    license.cfm_last_checked_at,
+                  ),
+              ),
+            );
+          setCfmCredentialVerified(verified);
+        },
+        () => {
+          if (active) setCfmCredentialVerified(false);
+        },
+      );
+    return () => {
+      active = false;
+    };
+  }, [
+    doctor?.id,
+    doctorCredential?.care_country,
+    doctorCredential?.license_number,
+    doctorCredential?.uf_brazil,
+  ]);
 
-  const sssStatus = (doctor?.profile as { sssValidationStatus?: string | null } | undefined)?.sssValidationStatus ?? "pending";
-  const isValidOrExempt = doctorCredential?.care_country === "BR"
-    ? cfmCredentialVerified
-    : sssStatus === "valid" || sssStatus === "exempt";
+  const sssStatus =
+    (doctor?.profile as { sssValidationStatus?: string | null } | undefined)?.sssValidationStatus ??
+    "pending";
+  const isValidOrExempt =
+    doctorCredential?.care_country === "BR"
+      ? cfmCredentialVerified
+      : sssStatus === "valid" || sssStatus === "exempt";
 
   const doctorProfile = doctor?.profile as
-    | { avatar_url?: string | null; avatarUrl?: string | null; updated_at?: string | null; updatedAt?: string | null }
+    | {
+        avatar_url?: string | null;
+        avatarUrl?: string | null;
+        updated_at?: string | null;
+        updatedAt?: string | null;
+      }
     | undefined;
   const userProfile = user?.profile as
-    | { avatar?: string | null; avatar_url?: string | null; updated_at?: string | null; updatedAt?: string | null }
+    | {
+        avatar?: string | null;
+        avatar_url?: string | null;
+        updated_at?: string | null;
+        updatedAt?: string | null;
+      }
     | undefined;
   const baseAvatarUrl =
     uploadedAvatarUrl ||
@@ -271,13 +308,23 @@ export function DoctorsPortalFrame({
     if (baseAvatarUrl.startsWith("data:") || baseAvatarUrl.includes("?t=")) {
       return baseAvatarUrl;
     }
-    const updatedAt = doctorProfile?.updated_at || doctorProfile?.updatedAt || userProfile?.updated_at || userProfile?.updatedAt;
+    const updatedAt =
+      doctorProfile?.updated_at ||
+      doctorProfile?.updatedAt ||
+      userProfile?.updated_at ||
+      userProfile?.updatedAt;
     if (updatedAt) {
       const ts = new Date(updatedAt).getTime();
       return `${baseAvatarUrl}?t=${ts}`;
     }
     return baseAvatarUrl;
-  }, [baseAvatarUrl, doctorProfile?.updated_at, doctorProfile?.updatedAt, userProfile?.updated_at, userProfile?.updatedAt]);
+  }, [
+    baseAvatarUrl,
+    doctorProfile?.updated_at,
+    doctorProfile?.updatedAt,
+    userProfile?.updated_at,
+    userProfile?.updatedAt,
+  ]);
 
   useEffect(() => {
     if (!authLoading && user && doctor) {
@@ -295,13 +342,22 @@ export function DoctorsPortalFrame({
         // Ignore quota/storage errors
       }
     }
-  }, [authLoading, user, doctor, doctorName, doctorInitials, doctorSpecialty, avatarUrl, isValidOrExempt]);
+  }, [
+    authLoading,
+    user,
+    doctor,
+    doctorName,
+    doctorInitials,
+    doctorSpecialty,
+    avatarUrl,
+    isValidOrExempt,
+  ]);
 
   const primaryLinks = useMemo<NavigationItem[]>(
     () => [
       {
         href: "/doctors/dashboard",
-        label: isBrazilianPortal ? "Painel" : "Dashboard",
+        label: isBrazilianPortal ? "Início" : "Inicio",
         icon: Home,
         key: "dashboard",
       },
@@ -313,7 +369,7 @@ export function DoctorsPortalFrame({
       },
       {
         href: "/doctors/agenda",
-        label: isBrazilianPortal ? "Agenda" : "Citas",
+        label: "Agenda",
         icon: Calendar,
         key: "appointments",
         badge: stats?.todayCount ? String(stats.todayCount) : undefined,
@@ -326,7 +382,7 @@ export function DoctorsPortalFrame({
       },
       {
         href: "/doctors/prescriptions",
-        label: isBrazilianPortal ? "Receitas" : "Recetas",
+        label: isBrazilianPortal ? "Receitas / Atestados" : "Recetas / Atestados",
         icon: Pill,
         key: "prescriptions",
       },
@@ -347,9 +403,7 @@ export function DoctorsPortalFrame({
         label: isBrazilianPortal ? "Comunidade" : "Comunidad",
         icon: Trophy,
         key: "community",
-        badge: stats?.unreadCommunityCount
-          ? String(stats.unreadCommunityCount)
-          : undefined,
+        badge: stats?.unreadCommunityCount ? String(stats.unreadCommunityCount) : undefined,
       },
       {
         href: "/doctors/accounting",
@@ -365,7 +419,7 @@ export function DoctorsPortalFrame({
       },
       {
         href: "/doctors/perfil",
-        label: isBrazilianPortal ? "Configurações" : "Configuración",
+        label: "Perfil",
         icon: Settings,
         key: "profile",
       },
@@ -411,9 +465,7 @@ export function DoctorsPortalFrame({
     });
   };
 
-  const handlePhotoUpload = async (
-    event: ChangeEvent<HTMLInputElement>,
-  ): Promise<void> => {
+  const handlePhotoUpload = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
@@ -433,12 +485,9 @@ export function DoctorsPortalFrame({
     setUploadingPhoto(true);
     try {
       const image = await readFileAsDataUrl(file);
-      const result = await fetchApi<{ avatarUrl: string }>(
-        "/api/doctors/profile/photo",
-        {
-          body: { image },
-        },
-      );
+      const result = await fetchApi<{ avatarUrl: string }>("/api/doctors/profile/photo", {
+        body: { image },
+      });
       setUploadedAvatarUrl(`${result.avatarUrl}?t=${Date.now()}`);
       await refetchDoctor().catch(() => null);
     } catch {
@@ -469,7 +518,11 @@ export function DoctorsPortalFrame({
               {cachedProfile.isValidOrExempt && (
                 <div
                   className="absolute -bottom-1 -right-1 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#0D9488] text-white ring-2 ring-white shadow-sm"
-                  title={doctorCredential?.care_country === "BR" ? "CRM validado por CFM" : "Matrícula validada en SSS / REFEPS"}
+                  title={
+                    doctorCredential?.care_country === "BR"
+                      ? "CRM validado por CFM"
+                      : "Matrícula validada en SSS / REFEPS"
+                  }
                 >
                   <Check className="h-3 w-3 text-white" strokeWidth={3.5} />
                 </div>
@@ -496,9 +549,13 @@ export function DoctorsPortalFrame({
             <div className="flex flex-col items-center gap-3">
               <div className="flex items-center gap-2">
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-200 border-t-neutral-900" />
-                <span className="text-sm font-medium text-neutral-900">Verificando credenciales</span>
+                <span className="text-sm font-medium text-neutral-900">
+                  Verificando credenciales
+                </span>
               </div>
-              <p className="text-[11px] text-neutral-400">Iniciando sesión segura en AutaMedica...</p>
+              <p className="text-[11px] text-neutral-400">
+                Iniciando sesión segura en AutaMedica...
+              </p>
             </div>
           </div>
         </div>
@@ -513,9 +570,7 @@ export function DoctorsPortalFrame({
             <span className="absolute -bottom-1 -right-1 h-4 w-4 animate-spin rounded-full border-2 border-neutral-200 border-t-neutral-900" />
           </div>
           <div className="text-center">
-            <p className="text-sm font-medium text-neutral-900">
-              Cargando portal médico
-            </p>
+            <p className="text-sm font-medium text-neutral-900">Cargando portal médico</p>
             <p className="mt-1 text-[13px] text-neutral-400">
               Verificando sesión y perfil profesional.
             </p>
@@ -533,8 +588,7 @@ export function DoctorsPortalFrame({
             Inicia sesión para continuar
           </h1>
           <p className="mt-3 text-[13px] leading-relaxed text-neutral-500">
-            Esta sección usa el portal real de doctores y requiere
-            autenticación.
+            Esta sección usa el portal real de doctores y requiere autenticación.
           </p>
           <a
             href="/auth/login?portal=doctors"
@@ -578,18 +632,36 @@ export function DoctorsPortalFrame({
           </a>
 
           <div className="flex items-center gap-2 md:gap-3">
-            <button
-              type="button"
-              className="group flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-3.5 py-2 transition-all hover:border-neutral-300 hover:bg-white"
-              aria-label="Buscar"
-            >
-              <Search className="h-4 w-4 text-neutral-400" strokeWidth={1.5} />
-              <span className="hidden text-[13px] text-neutral-400 sm:inline">
-                Buscar...
-              </span>
-            </button>
-
             <DoctorNotificationsBell />
+
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-[#0F2537] text-xs font-semibold text-white ring-2 ring-emerald-500/70">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={doctorName} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center">
+                    {doctorInitials}
+                  </span>
+                )}
+                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
+              </div>
+              <div className="min-w-0 max-w-[42vw] sm:max-w-[240px]">
+                <p className="break-words text-[11px] font-bold leading-tight text-[#0F2537] sm:text-sm">
+                  {doctorName}
+                </p>
+                <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                  <span className="rounded-full border border-teal-100 bg-teal-50 px-1.5 py-0.5 text-[9px] font-medium text-teal-800">
+                    {doctorSpecialty}
+                  </span>
+                  {isValidOrExempt && credentialLabel && (
+                    <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-emerald-700">
+                      <Check className="h-3 w-3" />
+                      {credentialLabel}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
 
             <div className="hidden text-right md:block">
               <time className="block font-mono text-sm font-medium text-neutral-900">
@@ -619,11 +691,7 @@ export function DoctorsPortalFrame({
                 <div className="relative flex-shrink-0">
                   <label
                     className="group/avatar relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#0F2537] text-[13px] font-semibold text-white ring-2 ring-[#0D9488]/70 transition hover:ring-neutral-400"
-                    title={
-                      avatarUrl
-                        ? "Editar foto profesional"
-                        : "Subir foto profesional"
-                    }
+                    title={avatarUrl ? "Editar foto profesional" : "Subir foto profesional"}
                   >
                     {avatarUrl ? (
                       <img
@@ -641,7 +709,10 @@ export function DoctorsPortalFrame({
                         </span>
                       </>
                     )}
-                    <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" aria-label="Presencia online" />
+                    <span
+                      className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500"
+                      aria-label="Presencia online"
+                    />
                     <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity duration-300 group-hover/avatar:opacity-100">
                       {uploadingPhoto ? (
                         <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -701,9 +772,7 @@ export function DoctorsPortalFrame({
               </div>
               {!isSidebarCollapsed && photoError ? (
                 <div className="mt-2">
-                  <p className="text-[11px] leading-relaxed text-red-600">
-                    {photoError}
-                  </p>
+                  <p className="text-[11px] leading-relaxed text-red-600">{photoError}</p>
                 </div>
               ) : null}
             </div>
@@ -787,9 +856,7 @@ export function DoctorsPortalFrame({
                 >
                   <LogOut className="h-4 w-4" />
                   {!isSidebarCollapsed && (
-                    <span>
-                      {signingOut ? "Cerrando sesión..." : "Cerrar sesión"}
-                    </span>
+                    <span>{signingOut ? "Cerrando sesión..." : "Cerrar sesión"}</span>
                   )}
                 </button>
               </div>
@@ -807,9 +874,7 @@ export function DoctorsPortalFrame({
                     <h1 className="text-2xl font-bold tracking-tight text-neutral-900 md:text-3xl">
                       {title}
                     </h1>
-                    <p className="mt-1 text-sm text-neutral-500">
-                      {description}
-                    </p>
+                    <p className="mt-1 text-sm text-neutral-500">{description}</p>
                   </div>
                   {onboardingStatus.state !== "completed" && (
                     <div className="flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-medium text-amber-800">
@@ -823,7 +888,7 @@ export function DoctorsPortalFrame({
             </div>
           )}
           <div
-            className={`min-w-0 p-3 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:p-5 sm:pb-28 md:p-8 md:pb-10 lg:p-10 ${!hideDefaultHeader ? "mx-auto max-w-5xl" : ""}`}
+            className={`min-w-0 p-3 pb-[calc(4.75rem+env(safe-area-inset-bottom))] sm:p-5 sm:pb-24 md:p-8 md:pb-10 lg:p-10 ${!hideDefaultHeader ? "mx-auto max-w-5xl" : ""}`}
           >
             {children}
           </div>
