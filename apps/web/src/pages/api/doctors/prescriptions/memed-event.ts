@@ -195,6 +195,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       vendor_name: 'memed',
       vendor_id: String(rx.id ?? prescriptionId),
       clinical_data: { source: 'memed', memed_prescription_id: prescriptionId, items,
+        dispatch_request_id: typeof requestId === 'string' ? requestId : null,
         emission_status: 'provider_verified', provider_verified_at: new Date().toISOString(),
         signature_status: rx.signed === 1 || rx.signed === true ? 'provider_reported_signed' : 'pending',
         signature_verified: false, delivery_status: 'pending', delivery_verified: false },
