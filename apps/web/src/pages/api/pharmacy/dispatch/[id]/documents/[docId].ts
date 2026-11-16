@@ -32,7 +32,7 @@ function findMemedDocumentUrl(value: unknown, depth = 0): string | null {
   const object = value as Record<string, unknown>
   for (const [key, nested] of Object.entries(object)) {
     if (/(url|link|pdf|document)/i.test(key) && typeof nested === 'string') {
-      const safe = safeExternalDocumentUrl(nested, /(^|\\.)memed\\.com(?:\\.br)?$/i)
+      const safe = safeExternalDocumentUrl(nested, /(^|[.])memed[.]com(?:[.]br)?$/i)
       if (safe) return safe
     }
   }
@@ -85,7 +85,7 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
 
     const url = new URL(request.url)
     const queryToken = url.searchParams.get('token')?.trim() || ''
-    const authHeader = request.headers.get('authorization')?.replace(/^Bearer\\s+/i, '').trim() || ''
+    const authHeader = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim() || ''
     const headerToken = request.headers.get('x-guest-token')?.trim() || authHeader
     const token = queryToken || headerToken
     let authorized = false
@@ -130,7 +130,7 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
         return notFound('document_not_found')
       }
       const stored = String(row.signed_pdf_url ?? '')
-      const external = safeExternalDocumentUrl(stored, /(^|\\.)(supabase\\.co|autamedica\\.com|autamedica\\.com\\.br)$/i)
+      const external = safeExternalDocumentUrl(stored, /(^|[.])(supabase[.]co|autamedica[.]com|autamedica[.]com[.]br)$/i)
       if (external) {
         return new Response(null, { status: 302, headers: { Location: external, 'Cache-Control': 'private, no-store' } })
       }
