@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { ApiError, fetchApi } from '@/lib/api-client'
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
 import type {
@@ -77,7 +76,9 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
           throw requestError
         }
 
-        const client = getBrowserSupabaseClient() as unknown as SupabaseClient
+        const client = getBrowserSupabaseClient() as unknown as {
+          rpc: (functionName: string) => Promise<{ data: unknown; error: { message: string } | null }>
+        }
         const { data, error: fallbackError } = await client.rpc('get_my_pending_dispatch_offers')
         if (fallbackError) throw fallbackError
 
