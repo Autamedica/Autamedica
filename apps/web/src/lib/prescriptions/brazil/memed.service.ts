@@ -250,6 +250,51 @@ export class MemedService {
     return await response.json() as Record<string, unknown>;
   }
 
+  /**
+   * Returns the patient-facing digital prescription link and fixed unlock code.
+   * The provider token is sent only to Memed and is never returned or logged.
+   */
+  async getDigitalPrescriptionLink(id: string, doctorToken: string): Promise<Record<string, unknown>> {
+    return this.getPrescriptionDocumentResource(id, doctorToken, 'get-digital-prescription-link');
+  }
+
+  /**
+   * Returns the provider PDF/document resource URL without treating it as
+   * evidence of a qualified digital signature.
+   */
+  async getFullPrescriptionDocumentUrl(id: string, doctorToken: string): Promise<Record<string, unknown>> {
+    return this.getPrescriptionDocumentResource(id, doctorToken, 'url-document/full');
+  }
+
+  private async getPrescriptionDocumentResource(
+    id: string,
+    doctorToken: string,
+    resource: 'get-digital-prescription-link' | 'url-document/full',
+  ): Promise<Record<string, unknown>> {
+    if (!/^[a-zA-Z0-9-]{1,80}$/.test(id)) throw new Error('memed_invalid_prescription_id');
+    if (!doctorToken) throw new Error('memed_missing_doctor_token');
+
+    const apiBase = this.config.apiUrl.replace(/\\/$/, '');
+    const url = new URL(`${apiBase}/prescricoes/${encodeURIComponent(id)}/${resource}`);
+    url.searchParams.set('token', doctorToken);
+    const response = await this.request(url.toString(), {
+      headers: {
+        Accept: 'application/vnd.api+json',
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) throw new Error(`memed_${resource === 'url-document/full' ? 'pdf_document' : 'digital_link'}_failed:${response.status}`);
+
+    try {
+      const body: unknown = await response.json();
+      return body !== null && typeof body === 'object' && !Array.isArray(body)
+        ? body as Record<string, unknown>
+        : { data: body };
+    } catch {
+      throw new Error('memed_document_resource_invalid');
+    }
+  }
+
   getScriptUrl(): string {
     return this.config.scriptUrl;
   }
