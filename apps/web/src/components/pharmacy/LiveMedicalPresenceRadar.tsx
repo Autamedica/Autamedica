@@ -8,22 +8,22 @@ const RADAR_POINTS = [
 ] as const
 
 interface LiveMedicalPresenceRadarProps {
-  onlineCount: number | null
+  onDutyCount: number | null
   isPortuguese?: boolean
 }
 
 export function LiveMedicalPresenceRadar({
-  onlineCount,
+  onDutyCount,
   isPortuguese = false,
 }: LiveMedicalPresenceRadarProps) {
   const availabilityLabel =
-    onlineCount === null || onlineCount === 0
+    onDutyCount === null || onDutyCount === 0
       ? (isPortuguese ? 'Acionando médicos de plantão...' : 'Notificando médicos de guardia...')
       : isPortuguese
-        ? `${onlineCount} ${onlineCount === 1 ? 'médico em plantão ativo' : 'médicos em plantão ativo'}`
-        : `${onlineCount} ${onlineCount === 1 ? 'médico de guardia activa' : 'médicos de guardia activa'}`
+        ? `${onDutyCount} ${onDutyCount === 1 ? 'médico em plantão ativo' : 'médicos em plantão ativo'}`
+        : `${onDutyCount} ${onDutyCount === 1 ? 'médico de guardia activa' : 'médicos de guardia activa'}`
 
-  const visibleSignals = onlineCount === null ? 0 : Math.min(onlineCount, RADAR_POINTS.length)
+  const visibleSignals = onDutyCount === null ? 0 : Math.min(onDutyCount, RADAR_POINTS.length)
 
   return (
     <section className="flex w-full flex-col items-center" aria-label={isPortuguese ? 'Radar de presença médica' : 'Radar de presencia médica'}>
