@@ -34,14 +34,12 @@ function chain(data: unknown, error: unknown = null) {
     is: vi.fn(),
     in: vi.fn(),
     gt: vi.fn(),
-    is: vi.fn(),
   }
   obj.select.mockReturnValue(obj)
   obj.eq.mockReturnValue(obj)
   obj.is.mockReturnValue(obj)
   obj.in.mockReturnValue(obj)
   obj.gt.mockReturnValue(obj)
-  obj.is.mockReturnValue(obj)
   obj.update.mockReturnValue(obj)
   return obj
 }
