@@ -188,32 +188,6 @@ export function useDoctorOnDuty(preferredCareCountry?: "AR" | "BR"): UseDoctorOn
     return () => clearInterval(interval);
   }, [onDuty, fetchQueue]);
 
-  // Authenticated online presence is independent of the pharmacy duty switch.
-  // Only a visible doctor portal renews the 90-second server-side presence TTL.
-  useEffect(() => {
-    const sendPresenceHeartbeat = async () => {
-      if (document.visibilityState !== "visible") return;
-      try {
-        await fetchApi("/api/doctors/presence/heartbeat", { method: "POST" });
-      } catch {
-        // A missed ping expires naturally; it never changes clinical duty.
-      }
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") void sendPresenceHeartbeat();
-    };
-
-    void sendPresenceHeartbeat();
-    const interval = window.setInterval(() => void sendPresenceHeartbeat(), 30000);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      window.clearInterval(interval);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, []);
-
   // Heartbeat every 30 seconds when onDuty is active
   useEffect(() => {
     if (!onDuty) {
