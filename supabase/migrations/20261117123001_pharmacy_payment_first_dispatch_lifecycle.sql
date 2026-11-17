@@ -225,6 +225,11 @@ FOR EACH ROW
 WHEN (NEW.status = 'approved')
 EXECUTE FUNCTION public.activate_paid_pharmacy_dispatch();
 
+REVOKE ALL ON FUNCTION public.activate_paid_pharmacy_dispatch()
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.activate_paid_pharmacy_dispatch()
+  TO service_role;
+
 -- Keep country/price validation and manual evidence; report success only when dispatch really starts.
 CREATE OR REPLACE FUNCTION public.admin_manual_approve_pharmacy_payment(
   p_payment_id uuid,
