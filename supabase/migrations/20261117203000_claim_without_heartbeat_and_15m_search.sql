@@ -51,7 +51,7 @@ BEGIN
 
   IF position(v_old IN v_definition) > 0 THEN
     v_definition := replace(v_definition, v_old, v_new);
-  ELSIF position('search_timeout_at IS NULL' IN lower(v_definition)) = 0
+  ELSIF position('search_timeout_at is null' IN lower(v_definition)) = 0
      OR position('search_timeout_at > now()' IN lower(v_definition)) = 0 THEN
     RAISE EXCEPTION 'Unexpected dispatch matcher timeout predicate; refusing migration';
   END IF;
