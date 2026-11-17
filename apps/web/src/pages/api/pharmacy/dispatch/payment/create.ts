@@ -16,11 +16,21 @@ interface CheckoutPreference {
 
 const API = 'https://api.mercadopago.com'
 
+async function readArgentinaBrokerErrorCode(response: Response): Promise<string | null> {
+  const payload = await response.clone().json().catch(() => null) as {
+    error?: { code?: unknown }
+  } | null
+  const code = payload?.error?.code
+  return typeof code === 'string' && /^[a-z0-9_]{2,80}$/i.test(code) ? code : null
+}
+
 export const POST: APIRoute = async ({ request, locals }) => {
   let initializedPaymentId: string | null = null
   let admin: SupabaseClient | null = null
   let failureStage = 'initialize'
   let failureCountry: 'AR' | 'BR' | 'unknown' = 'unknown'
+  let brokerHttpStatus: number | null = null
+  let brokerErrorCode: string | null = null
   try {
     admin = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient
     if (!hasSecureGuestPaymentSecret(locals.runtime?.env)) return serviceUnavailable('pharmacy_checkout_guest_security_not_configured')
