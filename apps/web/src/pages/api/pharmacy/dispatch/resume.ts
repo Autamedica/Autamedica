@@ -51,13 +51,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       logger.error('[api/pharmacy/dispatch/resume] request_read_failed', { code: requestError.code ?? 'INTERNAL' })
       return internalError('guest_recovery_unavailable')
     }
-    if (!activeRequest || !['pending_payment', 'searching', 'matched', 'in_call', 'completed'].includes(String(activeRequest.status))) {
+    if (!activeRequest || !['pending_payment', 'searching', 'matched', 'in_call', 'expired', 'completed'].includes(String(activeRequest.status))) {
       return unauthorized('guest_recovery_invalid')
     }
     // Legacy completed requests had their credential revoked by the older
     // trigger. Allow a valid unexpired device secret only for completed
     // encounters so patients can still retrieve the signed documents.
-    if (session.revoked_at && !['completed', 'pending_payment'].includes(String(activeRequest.status))) {
+    if (session.revoked_at && !['completed', 'pending_payment', 'expired'].includes(String(activeRequest.status))) {
       return unauthorized('guest_recovery_invalid')
     }
 
