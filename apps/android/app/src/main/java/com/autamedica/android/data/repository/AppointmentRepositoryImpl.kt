@@ -458,9 +458,21 @@ class AppointmentRepositoryImpl @Inject constructor(
         val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
             ?: throw IllegalStateException("No authenticated user found")
 
-        var patientId = supabaseClient.postgrest.from("patients")
-            .select(Columns.list("id")) { filter { eq("user_id", userId) } }
-            .decodeSingleOrNull<AppointmentRecordIdDto>()?.id
+        var patientId = runCatching {
+            supabaseClient.postgrest.from("patients")
+                .select(Columns.list("id")) { filter { eq("user_id", userId) } }
+                .decodeSingleOrNull<AppointmentRecordIdDto>()?.id
+        }.recoverCatching { initialLookupError ->
+            SecureLog.warn("[Appointments] Initial patient lookup failed; retrying canonical user mapping")
+            supabaseClient.postgrest.from("patients")
+                .select(Columns.list("id")) { filter { eq("user_id", userId) } }
+                .decodeSingleOrNull<AppointmentRecordIdDto>()
+                ?.id
+                ?: throw IllegalStateException(
+                    "No canonical patients.id exists for the authenticated user",
+                    initialLookupError,
+                )
+        }.getOrThrow()
 
         if (patientId == null) {
             // The initial lookup can race profile provisioning. Retry the canonical
