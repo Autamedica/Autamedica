@@ -1,4 +1,4 @@
-import * as Sentry from 'npm:@sentry/deno@10.42.0';
+import * as Sentry from '@sentry/deno';
 
 type Primitive = string | number | boolean | null | undefined;
 

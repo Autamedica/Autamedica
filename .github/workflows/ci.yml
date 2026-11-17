@@ -144,14 +144,16 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      - name: Install Edge dependencies
+        run: deno install --config supabase/functions/deno.json --no-lock
       - name: Check pharmacy Cloudflare Calls dispatch authorization
-        run: deno check --no-lock supabase/functions/cloudflare-calls/index.ts
+        run: deno check --config supabase/functions/deno.json --no-lock supabase/functions/cloudflare-calls/index.ts
       - name: Test pharmacy guest dispatch-to-call identity binding
-        run: deno test --no-lock supabase/functions/tests/guest-dispatch-access.test.ts
+        run: deno test --config supabase/functions/deno.json --no-lock supabase/functions/tests/guest-dispatch-access.test.ts
       - name: Check legacy mobile prescription endpoint
-        run: deno check --no-lock supabase/functions/issue-prescription/index.ts
+        run: deno check --config supabase/functions/deno.json --no-lock supabase/functions/issue-prescription/index.ts
       - name: Prove AR/BR endpoint rejects unverified official issuance without writes
-        run: deno test --no-lock --allow-env --allow-net supabase/functions/tests/issue-prescription.test.ts supabase/functions/tests/patient-identity-renaper.test.ts
+        run: deno test --config supabase/functions/deno.json --no-lock --allow-env --allow-net supabase/functions/tests/issue-prescription.test.ts supabase/functions/tests/patient-identity-renaper.test.ts
 
   database-tests:
     if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]'
