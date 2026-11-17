@@ -46,8 +46,8 @@ type EncounterDocument = {
 }
 
 const COPY = {
-  AR: { brand: 'Consulta médica', ready: 'Médico conectado', restart: 'Nueva consulta', country: 'País de atención', document: 'DNI', name: 'Nombre y apellido', phone: 'WhatsApp', reason: 'Motivo', nameExample: 'Ej. Juan Pérez', phoneExample: 'Ej. 11 2345-6789', reasonExample: 'Describí brevemente el motivo', submit: 'Continuar', submitting: 'Conectando...', searching: 'Buscando médico', elapsed: 'Tiempo', patient: 'Paciente', reasonLabel: 'Motivo', cancel: 'Cancelar', ended: 'Consulta finalizada', endedHint: 'La consulta terminó.', cancelled: 'Consulta cancelada', back: 'Volver' },
-  BR: { brand: 'Consulta médica de plantão', ready: 'Médico conectado', restart: 'Nova consulta', country: 'País de atendimento', document: 'CPF', name: 'Nome completo', phone: 'WhatsApp', reason: 'Motivo', nameExample: 'Ex.: João da Silva', phoneExample: 'Ex.: (51) 99999-9999', reasonExample: 'Descreva o motivo em poucas palavras', submit: 'Iniciar consulta', submitting: 'Conectando...', searching: 'Buscando médico',  elapsed: 'Tempo', patient: 'Paciente', reasonLabel: 'Motivo', cancel: 'Cancelar', ended: 'Consulta finalizada', endedHint: 'A consulta foi concluída.', cancelled: 'Consulta cancelada', back: 'Voltar' },
+  AR: { brand: 'Consulta médica', ready: 'Médico conectado', restart: 'Nueva consulta', country: 'País de atención', document: 'DNI', name: 'Nombre y apellido', phone: 'WhatsApp', reason: 'Motivo', nameExample: 'Ej. Juan Pérez', phoneExample: 'Ej. 11 2345-6789', reasonExample: 'Describí brevemente el motivo', submit: 'Continuar', submitting: 'Conectando...', searching: 'Buscando médico', elapsed: 'Tiempo', patient: 'Paciente', reasonLabel: 'Motivo', cancel: 'Cancelar', cancelReady: 'La búsqueda local alcanzó 15 minutos. Podés cancelar la solicitud.', ended: 'Consulta finalizada', endedHint: 'La consulta terminó.', cancelled: 'Consulta cancelada', back: 'Volver' },
+  BR: { brand: 'Consulta médica de plantão', ready: 'Médico conectado', restart: 'Nova consulta', country: 'País de atendimento', document: 'CPF', name: 'Nome completo', phone: 'WhatsApp', reason: 'Motivo', nameExample: 'Ex.: João da Silva', phoneExample: 'Ex.: (51) 99999-9999', reasonExample: 'Descreva o motivo em poucas palavras', submit: 'Iniciar consulta', submitting: 'Conectando...', searching: 'Buscando médico',  elapsed: 'Tempo', patient: 'Paciente', reasonLabel: 'Motivo', cancel: 'Cancelar', cancelReady: 'A busca local completou 15 minutos. Você pode cancelar a solicitação.', ended: 'Consulta finalizada', endedHint: 'A consulta foi concluída.', cancelled: 'Consulta cancelada', back: 'Voltar' },
 } as const
 
 const QUICK_REASONS = [
@@ -84,6 +84,7 @@ export function PharmacyExpressConsultation({
   })
   const [reasonCategory, setReasonCategory] = useState<'pain' | 'prescription' | 'other' | ''>('')
   const [waitingSeconds, setWaitingSeconds] = useState(0)
+  const [waitingStartedAt, setWaitingStartedAt] = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [lgpdConsent, setLgpdConsent] = useState(false)
@@ -124,6 +125,9 @@ export function PharmacyExpressConsultation({
         setAccessToken(restored.accessToken)
         setRecoveryToken(saved.recoveryToken)
         setCallRoomId(restored.request.cloudflare_room_id)
+        setWaitingStartedAt(restored.request.search_started_at ? Date.parse(restored.request.search_started_at) : null)
+        setCountryPaymentApproved(restored.request.status !== 'pending_payment')
+        if (restored.request.status === 'expired') setWaitingSeconds(15 * 60)
         setFormData((current) => ({ ...current, careCountry: country }))
         const next = { ...saved, guestToken: restored.accessToken, country, careCountry: country, savedAt: Date.now() }
         window.sessionStorage.setItem(key, JSON.stringify(next))
@@ -188,10 +192,15 @@ export function PharmacyExpressConsultation({
   }, [step, formData.careCountry, countryPaymentApproved, pricingByCountry])
 
   useEffect(() => {
-    if (step !== 'WAITING' || (requiresCountryPayment && !countryPaymentApproved)) { setWaitingSeconds(0); return }
-    const timer = window.setInterval(() => setWaitingSeconds((seconds) => seconds + 1), 1000)
+    if (step !== 'WAITING' || (requiresCountryPayment && !countryPaymentApproved) || waitingStartedAt === null) {
+      setWaitingSeconds(0)
+      return
+    }
+    const updateElapsed = () => setWaitingSeconds(Math.max(0, Math.floor((Date.now() - waitingStartedAt) / 1000)))
+    updateElapsed()
+    const timer = window.setInterval(updateElapsed, 1000)
     return () => window.clearInterval(timer)
-  }, [step, formData.careCountry, countryPaymentApproved, requiresCountryPayment])
+  }, [step, waitingStartedAt, countryPaymentApproved, requiresCountryPayment])
 
   // Polling / escucha para consultar GET /api/pharmacy/dispatch/${requestId}?token=${accessToken}
   const checkStatus = useCallback(async (id: string, token: string | null) => {
@@ -210,6 +219,11 @@ export function PharmacyExpressConsultation({
       const req = data?.request
       if (!req) return
       if (Array.isArray(data.documents)) setDocuments(data.documents)
+      if (req.search_started_at) setWaitingStartedAt(Date.parse(req.search_started_at))
+      if (req.status === 'searching' || req.status === 'matched' || req.status === 'in_call' || req.status === 'expired') {
+        setCountryPaymentApproved(true)
+      }
+      if (req.status === 'expired') setWaitingSeconds(15 * 60)
 
       // `assigned` no pertenece al enum `dispatch_request_status` de la tabla
       // `pharmacy_dispatch_requests` (ver #530). La comparacion era codigo muerto
@@ -230,7 +244,10 @@ export function PharmacyExpressConsultation({
         setStep('WAITING')
       } else if (req.status === 'completed') {
         setStep('ENDED')
-      } else if (req.status === 'cancelled' || req.status === 'expired') {
+      } else if (req.status === 'expired') {
+        // Local search is complete; preserve the request so the patient can cancel.
+        setStep('WAITING')
+      } else if (req.status === 'cancelled') {
         window.sessionStorage.removeItem('autamedica:pharmacy-express:active-session')
         window.localStorage.removeItem('autamedica:pharmacy-express:active-session')
         setStep('CANCELLED')
@@ -382,6 +399,7 @@ export function PharmacyExpressConsultation({
       setAccessToken(token)
       setRecoveryToken(res.recoveryToken ?? null)
       setCallRoomId(roomId)
+      setWaitingStartedAt(res.request.search_started_at ? Date.parse(res.request.search_started_at) : null)
       const activeSession = { requestId: reqId, guestToken: token, recoveryToken: res.recoveryToken ?? null, country: formData.careCountry, referralCode, partnerName: referralPartnerName, savedAt: Date.now() }
       window.sessionStorage.setItem('autamedica:pharmacy-express:active-session', JSON.stringify(activeSession))
       window.localStorage.setItem('autamedica:pharmacy-express:active-session', JSON.stringify(activeSession))
@@ -618,9 +636,14 @@ export function PharmacyExpressConsultation({
             )}
             <div className="mb-4 rounded-xl bg-slate-50 px-3 py-2.5 text-left text-xs"><p className="font-semibold text-slate-900">{copy.patient}: {formData.name}</p>{reasonSummary && <p className="mt-1 text-slate-600">{copy.reasonLabel}: {reasonSummary}</p>}</div>
             {requiresCountryPayment && requestId && accessToken && currentPricing && <div className="mb-4 w-full"><JordanPaymentWidget dispatchId={requestId} guestToken={accessToken} currency={currentPricing.currency} amountMinor={currentPricing.consultation_price_minor} countryCode={formData.careCountry as 'AR' | 'BR'} onStatusChange={(status) => setCountryPaymentApproved(status === 'approved')} /></div>}
-            <div className="flex items-center justify-center">
-              <button type="button" onClick={handleCancelRequest} className="min-h-11 w-full rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100">{copy.cancel}</button>
-            </div>
+            {waitingSeconds >= 15 * 60 && (
+              <div className="space-y-3">
+                <p className="text-xs font-medium text-slate-600" role="status">{copy.cancelReady}</p>
+                <div className="flex items-center justify-center">
+                  <button type="button" onClick={handleCancelRequest} className="min-h-11 w-full rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100">{copy.cancel}</button>
+                </div>
+              </div>
+            )}
           </div>
         )}
         {/* STEP: ENDED */}

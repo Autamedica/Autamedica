@@ -249,7 +249,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                     data["request"] ?: return@withContext null
                 )
                 dto.toDomain().also { request ->
-                    if (request.status in setOf("completed", "cancelled", "expired")) {
+                    if (request.status in setOf("completed", "cancelled")) {
                         clearGuestRecovery(requestId)
                     }
                 }
@@ -375,7 +375,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     /**
      * A patient may only leave the waiting queue after a confirmed cancellation.
      * Guests use the room-bound token returned by the signed intake API. Authenticated
-     * owners use their own Supabase session with RLS and a searching-only condition.
+     * owners use their own Supabase session with RLS and a 15-minute unassigned-request condition.
      */
     override suspend fun cancelPatientDispatchRequest(requestId: String): Result<Boolean> = runCatching {
         require(requestId.isNotBlank()) { "Missing request ID" }
@@ -492,7 +492,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         val recoveryOwner = securePreferences?.getString(guestRecoveryOwnerKey)
         if (recovery != null && recoveryOwner == currentUser?.id) {
             val restored = resumeGuestRequestFromEncryptedDevice(recovery.first)
-            if (restored != null && restored.status in setOf("searching", "matched", "in_call")) {
+            if (restored != null && restored.status in setOf("searching", "matched", "in_call", "expired")) {
                 return@runCatching restored
             }
         }
@@ -504,7 +504,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 .select(Columns.ALL) {
                     filter {
                         eq("requested_by_user_id", currentUser.id)
-                        isIn("status", listOf("searching", "matched", "in_call"))
+                        isIn("status", listOf("searching", "matched", "in_call", "expired"))
                     }
                     order("created_at", Order.DESCENDING)
                     limit(1)
@@ -886,6 +886,7 @@ private data class DispatchRequestDto(
     @SerialName("assigned_doctor_id") val assignedDoctorId: String? = null,
     @SerialName("cloudflare_room_id") val cloudflareRoomId: String,
     @SerialName("created_at") val createdAt: String,
+    @SerialName("search_started_at") val searchStartedAt: String? = null,
     @SerialName("care_country") val careCountry: String? = null,
     @SerialName("referral_partner_id") val referralPartnerId: String? = null,
     @SerialName("offer_id") val offerId: String? = null,
@@ -910,6 +911,7 @@ private data class DispatchRequestDto(
         assignedDoctorId = assignedDoctorId,
         cloudflareRoomId = cloudflareRoomId,
         createdAt = createdAt,
+        searchStartedAt = searchStartedAt,
     )
 }
 

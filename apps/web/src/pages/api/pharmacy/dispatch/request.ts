@@ -250,9 +250,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       symptom_summary: sanitizedSymptoms,
       cloudflare_room_id: cloudflareRoomId,
       status: countryPricing.require_payment_before_dispatch ? 'pending_payment' as const : 'searching' as const,
-      search_timeout_at: countryPricing.require_payment_before_dispatch
-        ? new Date(Date.now() + 15 * 60 * 1000).toISOString()
-        : new Date(Date.now() + 25 * 1000).toISOString(),
+      // The database insert trigger owns the canonical search clock.
       requested_by_user_id: context?.userId ?? null,
     }
 

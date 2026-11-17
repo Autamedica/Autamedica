@@ -126,7 +126,8 @@ fun PharmacyIntakeScreen(
 
     // Leaving a waiting room must never cancel a clinical request silently.
     BackHandler(enabled = uiState.activeRequestId != null &&
-        uiState.status == PharmacyConsultationStatus.PENDING) {
+        uiState.status in setOf(PharmacyConsultationStatus.PENDING, PharmacyConsultationStatus.EXPIRED) &&
+        uiState.canCancelRequest) {
         showCancelConfirmation = true
     }
 
@@ -214,8 +215,8 @@ fun PharmacyIntakeScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        if (uiState.activeRequestId != null &&
-                            uiState.status == PharmacyConsultationStatus.PENDING) {
+                        if (uiState.activeRequestId != null && uiState.canCancelRequest &&
+                            uiState.status in setOf(PharmacyConsultationStatus.PENDING, PharmacyConsultationStatus.EXPIRED)) {
                             showCancelConfirmation = true
                         } else {
                             // Assigned consultations stay in the server, even
@@ -946,7 +947,7 @@ private fun PharmacyWaitingRoomView(
 
             // Avoid showing a doctor roster that has not been verified for this country.
             // 5. Acción de Salir de la fila (Azul AutaMedica outline)
-            if (!doctorAssigned) OutlinedButton(
+            if (!doctorAssigned && uiState.canCancelRequest) OutlinedButton(
                 onClick = onCancelRequest,
                 enabled = !uiState.isSubmitting,
                 shape = RoundedCornerShape(12.dp),

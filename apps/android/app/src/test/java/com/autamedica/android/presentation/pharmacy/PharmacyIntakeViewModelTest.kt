@@ -16,6 +16,7 @@ import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.domain.repository.UserRegistrationResult
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
+import java.time.Instant
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -642,6 +643,44 @@ class PharmacyIntakeViewModelTest {
     }
 
     @Test
+    fun `cancelActiveRequest does not contact the backend before 15 minutes`() = runTest(testDispatcher) {
+        val created = PharmacyDispatchRequest(
+            id = "req-cancel-too-early",
+            patientDni = "28999888",
+            patientPhone = "+5491122334455",
+            patientName = "Paciente sintético",
+            tierRequested = "general",
+            status = "searching",
+            cloudflareRoomId = "cf-room-early",
+            createdAt = Instant.now().minusSeconds(14 * 60L + 59).toString(),
+            searchStartedAt = Instant.now().minusSeconds(14 * 60L + 59).toString(),
+        )
+        pharmacyRepo.createResult = Result.success(created)
+        val vm = PharmacyIntakeViewModel(
+            savedStateHandle = SavedStateHandle(),
+            authRepository = authRepo,
+            profileRepository = profileRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
+        )
+        activeViewModels += vm
+        advanceUntilIdle()
+        vm.onPatientNameChanged("Paciente sintético")
+        vm.onPatientDniChanged("28999888")
+        vm.onPatientPhoneChanged("+5491122334455")
+        vm.onCountrySelected("AR")
+        vm.onReasonTextChanged("Prueba de ventana")
+        vm.submitRequest()
+        testScheduler.runCurrent()
+
+        assertThat(vm.uiState.value.canCancelRequest).isFalse()
+        vm.cancelActiveRequest()
+        testScheduler.runCurrent()
+        assertThat(pharmacyRepo.cancellationAttempts).isEmpty()
+        assertThat(vm.uiState.value.activeRequestId).isEqualTo(created.id)
+        vm.viewModelScope.cancel()
+    }
+
+    @Test
     fun `cancelActiveRequest when no active request does not call repository and leaves form intact`() = runTest(testDispatcher) {
         val vm = PharmacyIntakeViewModel(
             savedStateHandle = SavedStateHandle(),
@@ -790,13 +829,18 @@ class PharmacyIntakeViewModelTest {
         assertThat(pharmacyRepo.paymentCheckCount).isGreaterThan(initialChecks)
         assertThat(vm.uiState.value.readyToJoinCall).isFalse()
 
-        // Ending/canceling the recovered request must stop the independent PSP poller.
-        vm.cancelActiveRequest()
+        // An in-call request is not patient-cancelable. The PSP poller must
+        // continue while payment is pending and stop only on a terminal result.
+        pharmacyRepo.paymentStatusResult = Result.success("rejected")
+        advanceTimeBy(5_000)
         testScheduler.runCurrent()
-        val checksAfterCancel = pharmacyRepo.paymentCheckCount
+        assertThat(vm.uiState.value.paymentStatus).isEqualTo("rejected")
+        assertThat(vm.uiState.value.readyToJoinCall).isFalse()
+        val checksAfterTerminalResult = pharmacyRepo.paymentCheckCount
         advanceTimeBy(10_000)
         testScheduler.runCurrent()
-        assertThat(pharmacyRepo.paymentCheckCount).isEqualTo(checksAfterCancel)
+        assertThat(pharmacyRepo.paymentCheckCount).isEqualTo(checksAfterTerminalResult)
+        vm.viewModelScope.cancel()
     }
 
     @Test
@@ -844,7 +888,7 @@ class PharmacyIntakeViewModelTest {
     }
 
     @Test
-    fun `no online doctors is a normal persistent waiting state and legacy expiration is informational`() = runTest(testDispatcher) {
+    fun `no online doctors keeps the queue active and expiration unlocks cancellation after 15 minutes`() = runTest(testDispatcher) {
         val created = PharmacyDispatchRequest(
             id = "req-persistent-ar-1",
             patientDni = "28999888",
@@ -884,12 +928,16 @@ class PharmacyIntakeViewModelTest {
         assertThat(vm.uiState.value.error).isNull()
         assertThat(vm.uiState.value.statusNotice).isNull()
 
-        // An actual legacy terminal status is shown as neutral information.
-        pharmacyRepo.requestFlow.value = created.copy(status = "expired")
+        // Local timeout keeps the request recoverable; cancellation is available only after 15m.
+        pharmacyRepo.requestFlow.value = created.copy(
+            status = "expired",
+            searchStartedAt = Instant.now().minusSeconds(15 * 60L + 1).toString(),
+        )
         testScheduler.runCurrent()
-        assertThat(vm.uiState.value.activeRequestId).isNull()
+        assertThat(vm.uiState.value.activeRequestId).isEqualTo(created.id)
+        assertThat(vm.uiState.value.status).isEqualTo(PharmacyConsultationStatus.EXPIRED)
+        assertThat(vm.uiState.value.canCancelRequest).isTrue()
         assertThat(vm.uiState.value.error).isNull()
-        assertThat(vm.uiState.value.statusNotice).contains("finalizó")
         vm.viewModelScope.cancel()
     }
 
