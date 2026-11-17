@@ -249,7 +249,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                     data["request"] ?: return@withContext null
                 )
                 dto.toDomain().also { request ->
-                    if (request.status in setOf("completed", "cancelled", "expired")) {
+                    if (request.status in setOf("completed", "cancelled")) {
                         clearGuestRecovery(requestId)
                     }
                 }
@@ -504,7 +504,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 .select(Columns.ALL) {
                     filter {
                         eq("requested_by_user_id", currentUser.id)
-                        isIn("status", listOf("searching", "matched", "in_call"))
+                        isIn("status", listOf("searching", "matched", "in_call", "expired"))
                     }
                     order("created_at", Order.DESCENDING)
                     limit(1)
