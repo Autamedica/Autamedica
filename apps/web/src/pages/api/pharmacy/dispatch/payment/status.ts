@@ -38,7 +38,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const { data: local, error } = await fetchPayment()
     if (error) throw error
-    if (!local) return jsonOk({ status: 'not_started', checkoutConfigured })
+    if (!local) return jsonOk({ status: 'not_started', checkoutAvailable: checkoutConfigured })
     const isManualOverride = String(local.provider_payment_id ?? '').startsWith('MANUAL_OVERRIDE_')
     if (local.provider_payment_id && !isManualOverride && accessToken) {
       const response = await fetch(
@@ -74,7 +74,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       status,
       amountCents: latest?.amount_minor ?? null,
       currency: latest?.currency ?? null,
-      checkoutConfigured,
+      checkoutAvailable: checkoutConfigured || (latest?.status === 'pending' && Boolean(latest.checkout_url)),
     })
   } catch (error) {
     logger.error('[pharmacy-payment/status] Error checking payment', {
