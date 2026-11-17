@@ -101,7 +101,7 @@ data class OnDutyDoctorInfo(
     @kotlinx.serialization.SerialName("short_name") val shortName: String = "",
     val specialty: String = "",
     val initials: String = "",
-    @kotlinx.serialization.SerialName("status_text") val statusText: String = "En línea",
+    @kotlinx.serialization.SerialName("status_text") val statusText: String = "De guardia",
     @kotlinx.serialization.SerialName("is_available") val isAvailable: Boolean = true,
     val registration: String = "",
     val radarAngleDeg: Float = 0f,
