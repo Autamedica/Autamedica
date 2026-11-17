@@ -5,6 +5,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'supabase/migrations/**'
+      - 'supabase/tests/**'
       - 'supabase/config.toml'
       - '.github/workflows/migration-replay-audit.yml'
   workflow_dispatch:
