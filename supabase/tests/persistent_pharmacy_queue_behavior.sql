@@ -35,9 +35,15 @@ BEGIN
   IF (SELECT status::text FROM public.pharmacy_dispatch_requests WHERE id=v_ar) <> 'searching'
      OR (SELECT status::text FROM public.pharmacy_dispatch_requests WHERE id=v_br) <> 'searching'
      OR EXISTS (SELECT 1 FROM public.pharmacy_dispatch_requests
-                WHERE id IN (v_ar,v_br) AND search_timeout_at IS NOT NULL)
+                WHERE id IN (v_ar,v_br)
+                  AND (
+                    search_started_at IS NULL
+                    OR search_timeout_at IS NULL
+                    OR search_timeout_at < search_started_at + interval '14 minutes 59 seconds'
+                    OR search_timeout_at > search_started_at + interval '15 minutes 1 second'
+                  ))
   THEN
-    RAISE EXCEPTION 'No-doctor search must persist in its country-specific queue';
+    RAISE EXCEPTION 'No-doctor search must persist with a server-owned 15-minute window in its country-specific queue';
   END IF;
 
   -- The production matcher enforces payment-first before looking for a
