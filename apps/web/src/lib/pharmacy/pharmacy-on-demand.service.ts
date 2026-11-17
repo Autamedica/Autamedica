@@ -157,6 +157,10 @@ export interface DispatchRequest {
   previous_doctor_id: string | null
   cloudflare_room_id: string
   created_at: string
+  search_started_at?: string | null
+  search_timeout_at?: string | null
+  international_search_enabled?: boolean
+  international_search_started_at?: string | null
   matched_at: string | null
   call_started_at: string | null
   call_ended_at: string | null
