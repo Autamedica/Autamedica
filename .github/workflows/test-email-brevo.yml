@@ -1,0 +1,77 @@
+name: Test email via Brevo
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/test-email-brevo.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  send-test-email:
+    name: Send one controlled test email
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate Brevo credential
+        env:
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+        run: |
+          if [ -z "$BREVO_API_KEY" ]; then
+            echo "::error::BREVO_API_KEY is not configured in GitHub Actions secrets."
+            exit 1
+          fi
+          echo "Brevo credential is available."
+
+      - name: Send test email to the requested mailbox
+        env:
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+        run: |
+          node <<'NODE'
+          const endpoint = "https://api.brevo.com/v3/smtp/email";
+          const payload = {
+            sender: { name: "AutaMedica", email: "contacto@autamedica.com" },
+            to: [{ email: "eduardomarques@campus.fmed.uba.ar" }],
+            subject: "Prueba de envío — AutaMedica vía GitHub Actions",
+            textContent: [
+              "Este es un correo de prueba de AutaMedica.",
+              "",
+              "Canal: GitHub Actions",
+              "Proveedor: Brevo",
+              "Remitente: contacto@autamedica.com",
+              "",
+              "Si recibiste este mensaje, la integración de envío está funcionando."
+            ].join("\n"),
+            htmlContent: "<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#17324d\"><h2>AutaMedica — Prueba de envío</h2><p>Este es un correo de prueba enviado mediante <strong>GitHub Actions</strong> utilizando <strong>Brevo</strong>.</p><p><strong>Remitente:</strong> contacto@autamedica.com</p><p>Si recibiste este mensaje, la integración de envío está funcionando.</p></div>"
+          };
+
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+              "accept": "application/json",
+              "api-key": process.env.BREVO_API_KEY,
+              "content-type": "application/json"
+            },
+            body: JSON.stringify(payload)
+          });
+
+          const body = await response.text();
+          if (!response.ok) {
+            console.error(`Brevo rejected the request (HTTP ${response.status}).`);
+            console.error(body.slice(0, 2000));
+            process.exit(1);
+          }
+
+          let result;
+          try { result = JSON.parse(body); } catch { result = {}; }
+          if (!result.messageId) {
+            console.error("Brevo accepted an unexpected response without messageId.");
+            console.error(body.slice(0, 2000));
+            process.exit(1);
+          }
+          console.log("Brevo accepted the test email.");
+          console.log(`messageId=${result.messageId}`);
+          NODE
