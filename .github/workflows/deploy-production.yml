@@ -49,6 +49,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
+          cache-actions: "true"
       - run: pnpm typecheck
       - name: Run explicit Astro check
         run: pnpm --filter @autamedica/web check
@@ -88,6 +89,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
+          cache-actions: "true"
           build-core: "false"
 
       - name: Setup Supabase CLI
@@ -168,6 +170,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
+          cache-actions: "true"
           cache-turbo: "true"
       - name: Validate deploy configuration
         env:
