@@ -265,10 +265,7 @@ fun PharmacyIntakeScreen(
                 onPatientDniChanged = viewModel::onPatientDniChanged,
                 onPatientPhoneChanged = viewModel::onPatientPhoneChanged,
                 onLgpdConsentChanged = viewModel::onLgpdConsentChanged,
-                onCountrySelected = { country ->
-                    viewModel.onCountrySelected(country)
-                    CareCountryLocale.applyCountry(context, country)
-                },
+                onCountrySelected = viewModel::onCountrySelected,
                 onSubmit = viewModel::submitRequest,
                 modifier = Modifier
                     .fillMaxSize()
