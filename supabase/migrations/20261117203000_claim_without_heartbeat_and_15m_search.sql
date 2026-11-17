@@ -135,4 +135,33 @@ BEGIN
 END;
 $function$;
 
+
+-- The database clock is authoritative for every unpaid/local search. This
+-- covers signed-in Android inserts as well as web/kiosk intake without trusting
+-- the client device clock. Payment-first requests start only when payment clears.
+CREATE OR REPLACE FUNCTION app_private.initialize_pharmacy_dispatch_search_window()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO 'pg_catalog', 'public'
+AS $function$
+BEGIN
+  IF NEW.status::text = 'searching' THEN
+    NEW.search_started_at := COALESCE(NEW.search_started_at, pg_catalog.now());
+    NEW.search_timeout_at := COALESCE(
+      NEW.search_timeout_at,
+      NEW.search_started_at + INTERVAL '15 minutes'
+    );
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS a_initialize_pharmacy_dispatch_search_window
+  ON public.pharmacy_dispatch_requests;
+
+CREATE TRIGGER a_initialize_pharmacy_dispatch_search_window
+BEFORE INSERT ON public.pharmacy_dispatch_requests
+FOR EACH ROW
+EXECUTE FUNCTION app_private.initialize_pharmacy_dispatch_search_window();
+
 COMMIT;
