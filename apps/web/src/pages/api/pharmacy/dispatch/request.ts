@@ -231,8 +231,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return serviceUnavailable('guest_token_not_configured')
     }
 
+    const dispatchStartedAt = new Date().toISOString()
     const insertPayload = {
       care_country: context?.careCountry ?? careCountry,
+      payment_started_at: countryPricing.require_payment_before_dispatch ? dispatchStartedAt : null,
+      search_started_at: countryPricing.require_payment_before_dispatch ? null : dispatchStartedAt,
       patient_id: context?.patientId ?? null,
       ...(careCountry === 'BR' ? { lgpd_consent: lgpdConsent === true } : {}),
       patient_dni: sanitizedDni,

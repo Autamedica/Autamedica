@@ -7,12 +7,39 @@ export const prerender = false;
     <section class="max-w-lg rounded-2xl border border-zinc-700 bg-zinc-900 p-7 text-center">
       <h1 class="text-2xl font-semibold">Retorno do pagamento</h1>
       <p class="mt-3 text-zinc-300">
-        Volte à aba da consulta AutaMedica. A confirmação do pagamento depende da
-        verificação direta com o Mercado Pago, não deste redirecionamento.
+        Estamos retomando sua consulta e verificando a confirmação diretamente com o Mercado Pago.
       </p>
       <p class="mt-3 text-sm text-zinc-400">
-        Se o pagamento ainda estiver pendente, acompanhe o estado na própria consulta.
+        A confirmação será atualizada na consulta assim que o pagamento for identificado.
       </p>
+      <a href="/farmacia/solicitar" class="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-zinc-950">
+        Voltar à consulta
+      </a>
     </section>
   </main>
 </CallLayout>
+<script is:inline>
+  (() => {
+    try {
+      const key = 'autamedica:pharmacy-express:active-session';
+      const raw = window.sessionStorage.getItem(key) || window.localStorage.getItem(key);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      if (typeof saved?.requestId !== 'string' || typeof saved?.recoveryToken !== 'string') return;
+
+      const params = new URLSearchParams();
+      const country = saved.country || saved.careCountry;
+      if (country === 'AR' || country === 'BR') params.set('careCountry', country);
+      if (typeof saved.referralCode === 'string' && /^[A-Z0-9_-]{3,32}$/.test(saved.referralCode)) {
+        params.set('ref', saved.referralCode);
+      }
+
+      const destination = params.size
+        ? '/farmacia/solicitar?' + params.toString()
+        : '/farmacia/solicitar';
+      window.location.replace(destination);
+    } catch {
+      // The CTA remains available when the browser cannot restore local session state.
+    }
+  })();
+</script>

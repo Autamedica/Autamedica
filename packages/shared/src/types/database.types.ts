@@ -10541,6 +10541,9 @@ export type Database = {
           pharmacy_id: string | null
           previous_doctor_id: string | null
           requested_by_user_id: string | null
+          payment_started_at: string | null
+          search_started_at: string | null
+          dispatch_activation_result: Json | null
           search_timeout_at: string
           status: Database["public"]["Enums"]["dispatch_request_status"]
           symptom_summary: string | null
@@ -10578,6 +10581,9 @@ export type Database = {
           pharmacy_id?: string | null
           previous_doctor_id?: string | null
           requested_by_user_id?: string | null
+          payment_started_at?: string | null
+          search_started_at?: string | null
+          dispatch_activation_result?: Json | null
           search_timeout_at?: string
           status?: Database["public"]["Enums"]["dispatch_request_status"]
           symptom_summary?: string | null
@@ -10615,6 +10621,9 @@ export type Database = {
           pharmacy_id?: string | null
           previous_doctor_id?: string | null
           requested_by_user_id?: string | null
+          payment_started_at?: string | null
+          search_started_at?: string | null
+          dispatch_activation_result?: Json | null
           search_timeout_at?: string
           status?: Database["public"]["Enums"]["dispatch_request_status"]
           symptom_summary?: string | null

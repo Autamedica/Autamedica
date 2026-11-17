@@ -174,6 +174,11 @@ BEGIN
   END IF;
 
   IF v_status = 'searching' THEN
+    UPDATE public.pharmacy_dispatch_requests
+       SET search_started_at = COALESCE(search_started_at, now()),
+           search_timeout_at = now() + interval '25 seconds',
+           updated_at = now()
+     WHERE id = NEW.dispatch_request_id;
     v_result := public.match_dispatch_doctors(NEW.dispatch_request_id);
     UPDATE public.pharmacy_dispatch_requests
        SET dispatch_activation_result = v_result,
