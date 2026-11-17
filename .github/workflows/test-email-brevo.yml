@@ -1,6 +1,10 @@
 name: Test email via Brevo
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/test-email-brevo.yml'
   workflow_dispatch:
 
 permissions:
@@ -11,6 +15,7 @@ jobs:
     name: Send one controlled test email
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    environment: production
     steps:
       - name: Validate Brevo credential
         env:
@@ -40,8 +45,8 @@ jobs:
               "Remitente: contacto@autamedica.com",
               "",
               "Si recibiste este mensaje, la integración de envío está funcionando."
-            ].join("\n"),
-            htmlContent: "<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#17324d\"><h2>AutaMedica — Prueba de envío</h2><p>Este es un correo de prueba enviado mediante <strong>GitHub Actions</strong> utilizando <strong>Brevo</strong>.</p><p><strong>Remitente:</strong> contacto@autamedica.com</p><p>Si recibiste este mensaje, la integración de envío está funcionando.</p></div>"
+            ].join("\\n"),
+            htmlContent: "<div style=\\"font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#17324d\\"><h2>AutaMedica — Prueba de envío</h2><p>Este es un correo de prueba enviado mediante <strong>GitHub Actions</strong> utilizando <strong>Brevo</strong>.</p><p><strong>Remitente:</strong> contacto@autamedica.com</p><p>Si recibiste este mensaje, la integración de envío está funcionando.</p></div>"
           };
 
           const response = await fetch(endpoint, {
