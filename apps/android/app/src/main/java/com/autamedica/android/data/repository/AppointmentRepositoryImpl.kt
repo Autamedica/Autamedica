@@ -287,7 +287,7 @@ class AppointmentRepositoryImpl @Inject constructor(
         val userId = requireNotNull(securePreferences.getString(SecurePreferences.KEY_USER_ID))
         supabaseClient.postgrest.from("patients")
             .select(Columns.list("care_country")) { filter { eq("user_id", userId) } }
-            .decodeList<PatientCareCountryDto>().firstOrNull()?.careCountry
+            .decodeList<AppointmentPatientCareCountryDto>().firstOrNull()?.careCountry
     }
 
     override suspend fun selectCareCountry(country: String): Result<Unit> = runCatching {
@@ -1055,5 +1055,5 @@ private data class DoctorBusySlotDto(
 )
 
 @Serializable
-private data class PatientCareCountryDto(@SerialName("care_country") val careCountry: String? = null)
+private data class AppointmentPatientCareCountryDto(@SerialName("care_country") val careCountry: String? = null)
 
