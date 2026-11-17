@@ -1,6 +1,6 @@
--- Contract: explicit on-duty status owns queue visibility and offer acceptance.
--- Heartbeat is telemetry/recovery, not a prerequisite for a current physician offer.
--- Each offer stays sequential for 30 seconds; the patient search remains open 15 minutes.
+-- Contract: explicit on-duty status owns queue visibility; a new clinical offer
+-- requires a heartbeat from the last 90 seconds. FCM is delivery, never availability.
+-- A current doctor-specific offer may still be claimed; search stays open 15 minutes.
 BEGIN;
 DO $guard_contract$
 DECLARE
@@ -9,6 +9,7 @@ DECLARE
   v_matcher text := lower(pg_get_functiondef('app_private.match_dispatch_doctors_without_switch(uuid)'::regprocedure));
   v_trigger text := lower(pg_get_functiondef('app_private.dispatch_waiting_patient_on_doctor_presence()'::regprocedure));
   v_claim text := lower(pg_get_functiondef('public.claim_pharmacy_request_tier(uuid,uuid)'::regprocedure));
+  v_duty_activation text := lower(pg_get_functiondef('public.set_doctor_duty_status(uuid,boolean,public.dispatch_tier_category[])'::regprocedure));
   v_activation text := lower(pg_get_functiondef('public.activate_paid_pharmacy_dispatch()'::regprocedure));
   v_expiry text := lower(pg_get_functiondef('public.expire_stale_dispatch_requests()'::regprocedure));
   v_cancel text := lower(pg_get_functiondef('public.cancel_my_pharmacy_dispatch_request(uuid)'::regprocedure));
@@ -20,12 +21,18 @@ BEGIN
   IF position('last_heartbeat_at' IN v_active) > 0 THEN
     RAISE EXCEPTION 'Active doctor radar must show explicit guard duty independently of heartbeat';
   END IF;
-  IF position('last_heartbeat_at' IN v_matcher) > 0
+  IF position('dds.last_heartbeat_at >= now() - interval ''90 seconds''' IN v_matcher) = 0
      OR position('fcm_token' IN v_matcher) > 0 THEN
-    RAISE EXCEPTION 'Offer eligibility must not depend on heartbeat freshness or FCM token';
+    RAISE EXCEPTION 'Offer eligibility must require heartbeat <=90 seconds; FCM cannot qualify a doctor';
   END IF;
-  IF position('new.last_heartbeat_at' IN v_trigger) > 0 THEN
-    RAISE EXCEPTION 'Queue activation must not depend on a heartbeat update';
+  IF position('new.last_heartbeat_at' IN v_trigger) > 0
+     OR position('fcm_token' IN v_trigger) > 0
+     OR position('new.is_on_duty' IN v_trigger) = 0 THEN
+    RAISE EXCEPTION 'Queue activation must depend on explicit guard activation, not heartbeat or FCM';
+  END IF;
+  IF position('last_heartbeat_at' IN v_duty_activation) = 0
+     OR position('now()' IN v_duty_activation) = 0 THEN
+    RAISE EXCEPTION 'Activating guard must stamp an initial heartbeat';
   END IF;
   IF position('is_on_duty' IN v_matcher) = 0
      OR position('is_doctor_dispatch_approved' IN v_matcher) = 0
