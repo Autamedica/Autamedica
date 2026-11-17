@@ -871,7 +871,7 @@ private fun PharmacyWaitingRoomView(
             }
 
             // 2. Ticker de Telemetría Dinámica (Dispatch Status Ticker)
-            DispatchTelemetryTicker(availableDoctorCount = availableDoctorCount)
+            DispatchTelemetryTicker(dispatchAvailableDoctorCount = availableDoctorCount)
 
             Spacer(modifier = Modifier.height(16.dp))
 
