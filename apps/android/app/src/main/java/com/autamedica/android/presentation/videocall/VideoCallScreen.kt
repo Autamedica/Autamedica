@@ -664,11 +664,13 @@ fun VideoCallScreen(
             patientLinked = uiState.patientId.isNotBlank(),
             memedEncounterAvailable = viewModel.hasMemedEncounter,
             isSubmitting = uiState.isIssuingPrescription || uiState.isIssuingCertificate ||
-                uiState.isOpeningMemed,
+                uiState.isOpeningMemed || uiState.isVerifyingMemedPrescription,
             onOpenMemed = if (uiState.doctorCountryCode == "BR" && !isPreviewRoute) {
                 viewModel::openMemedForBrazil
             } else null,
             memedLaunchError = uiState.memedLaunchError,
+            memedLaunchNotice = uiState.memedLaunchNotice,
+            isVerifyingMemedPrescription = uiState.isVerifyingMemedPrescription,
             onIssuePrescription = { med, dosage, instructions, diagnosis, onResult ->
                 viewModel.issueInCallPrescription(
                     medicationName = med,
@@ -715,6 +717,7 @@ fun VideoCallScreen(
             onClose = {
                 memedInCallUrl = null
                 memedSessionTokens = null
+                viewModel.verifyMemedDispatchPrescriptionOnReturn()
             },
         )
     }

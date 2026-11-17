@@ -66,14 +66,14 @@ class InCallDocumentPolicyTest {
         assertThat(InCallDocumentPolicy.countriesMatchForDocumentIssuance("UY", "UY")).isFalse()
     }
 
-    @Test fun matchingBrazilCareCountryUsesTheBrazilSpecificInCallIssuer() {
+    @Test fun matchingBrazilCareCountryUsesTheOfficialMemedIssuer() {
         assertThat(InCallDocumentPolicy.countriesMatchForDocumentIssuance("BR", "BR")).isTrue()
-        assertThat(InCallDocumentPolicy.canUseNativePrescriptionIssuer("BR")).isTrue()
+        assertThat(InCallDocumentPolicy.canUseNativePrescriptionIssuer("BR")).isFalse()
     }
 
-    @Test fun brazilUsesTheBrazilSpecificInCallIssuer() {
+    @Test fun prescriptionIssuerIsJurisdictionSpecific() {
         assertThat(InCallDocumentPolicy.canUseNativePrescriptionIssuer("AR")).isTrue()
-        assertThat(InCallDocumentPolicy.canUseNativePrescriptionIssuer("BR")).isTrue()
+        assertThat(InCallDocumentPolicy.canUseNativePrescriptionIssuer("BR")).isFalse()
         assertThat(InCallDocumentPolicy.canUseNativePrescriptionIssuer("UY")).isFalse()
     }
 

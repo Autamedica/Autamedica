@@ -94,6 +94,8 @@ fun InCallClinicalBottomSheet(
     isSubmitting: Boolean,
     onOpenMemed: (() -> Unit)? = null,
     memedLaunchError: String? = null,
+    memedLaunchNotice: String? = null,
+    isVerifyingMemedPrescription: Boolean = false,
     onIssuePrescription: (medicationName: String, dosage: String, instructions: String, diagnosis: String, onResult: (Boolean, String?) -> Unit) -> Unit,
     onIssueCertificate: (type: CertificateType, daysOfRest: Int, diagnosis: String, hideDiagnosis: Boolean, onResult: (Boolean, String?) -> Unit) -> Unit,
     onDismiss: () -> Unit,
@@ -453,6 +455,13 @@ fun InCallClinicalBottomSheet(
                                     style = MaterialTheme.typography.bodySmall,
                                 )
                             }
+                            if (memedLaunchNotice != null) {
+                                Text(
+                                    text = memedLaunchNotice,
+                                    color = AuTextSecondary,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
                             Text(
                                 text = "Ao abrir o navegador, entre com a conta médica e retorne à chamada após a prescrição.",
                                 style = MaterialTheme.typography.bodySmall,
@@ -472,7 +481,13 @@ fun InCallClinicalBottomSheet(
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                 }
-                                Text(if (isSubmitting) "Autorizando Memed..." else "Abrir receita BR no Memed")
+                                Text(
+                                    when {
+                                        isVerifyingMemedPrescription -> "Confirmando receita..."
+                                        isSubmitting -> "Autorizando Memed..."
+                                        else -> "Abrir receita BR no Memed"
+                                    },
+                                )
                             }
                         } else {
                         // Medicamento
