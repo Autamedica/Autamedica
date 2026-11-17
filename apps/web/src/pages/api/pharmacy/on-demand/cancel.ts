@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { logger } from '@autamedica/shared'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { badRequest, internalError, jsonOk, unauthorized } from '@/lib/api-helpers'
@@ -23,7 +24,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if (!UUID_REGEX.test(requestId)) return badRequest('invalid_request_id')
 
-    const admin = createAstroAdminClient(locals.runtime?.env)
+    // dispatch_offers is not yet represented in the generated database types.
+    const admin = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient
     const { data: existing, error: readError } = await admin
       .from('pharmacy_dispatch_requests')
       .select('id, cloudflare_room_id, requested_by_user_id, status, search_started_at, created_at')
