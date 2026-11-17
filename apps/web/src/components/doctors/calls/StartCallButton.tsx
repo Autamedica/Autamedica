@@ -22,7 +22,7 @@ export function StartCallButton({
   appointmentId,
   disabled = false,
   callWindowMessage,
-  className = "bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg",
+  className = "bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg",
   showDescription = true
 }: StartCallButtonProps) {
   const { startCall, isStarting, error } = useStartCall({ doctorId, patientId, appointmentId })
