@@ -829,13 +829,18 @@ class PharmacyIntakeViewModelTest {
         assertThat(pharmacyRepo.paymentCheckCount).isGreaterThan(initialChecks)
         assertThat(vm.uiState.value.readyToJoinCall).isFalse()
 
-        // Ending/canceling the recovered request must stop the independent PSP poller.
-        vm.cancelActiveRequest()
+        // An in-call request is not patient-cancelable. The PSP poller must
+        // continue while payment is pending and stop only on a terminal result.
+        pharmacyRepo.paymentStatusResult = Result.success("rejected")
+        advanceTimeBy(5_000)
         testScheduler.runCurrent()
-        val checksAfterCancel = pharmacyRepo.paymentCheckCount
+        assertThat(vm.uiState.value.paymentStatus).isEqualTo("rejected")
+        assertThat(vm.uiState.value.readyToJoinCall).isFalse()
+        val checksAfterTerminalResult = pharmacyRepo.paymentCheckCount
         advanceTimeBy(10_000)
         testScheduler.runCurrent()
-        assertThat(pharmacyRepo.paymentCheckCount).isEqualTo(checksAfterCancel)
+        assertThat(pharmacyRepo.paymentCheckCount).isEqualTo(checksAfterTerminalResult)
+        vm.viewModelScope.cancel()
     }
 
     @Test
