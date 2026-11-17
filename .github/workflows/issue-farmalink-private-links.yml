@@ -101,7 +101,7 @@ jobs:
           mkdir -p dist
           printf '%s\\n' '<!doctype html><meta charset="utf-8"><title>Autamedica secure delivery</title>' > dist/index.html
           "$WRANGLER" pages deploy dist --project-name "$PROJECT" --branch main \
-            --commit-hash "$GITHUB_SHA" --commit-dirty=false --config "$CONFIG"
+            --commit-hash "$GITHUB_SHA" --commit-dirty=false
           echo "WORKER_URL=https://$PROJECT.pages.dev" >> "$GITHUB_ENV"
 
       - name: Generate 30-day HMAC links and verify private downloads
