@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchApi } from '@/lib/api-client'
+import { captureSentryException } from '@/lib/observability/sentry'
 
 type PaymentStatus = 'not_started' | 'initializing' | 'pending' | 'approved' | 'refunded' | 'cancelled' | 'rejected' | 'failed'
 
@@ -72,7 +73,15 @@ export function JordanPaymentWidget({
       setManualApprovalRequired(res.manualApprovalRequired === true)
       onStatusChange?.(res.status)
       setCheckoutUrl(res.checkoutUrl)
-    } catch {
+    } catch (cause) {
+      captureSentryException(cause, {
+        surface: 'pharmacy_payment_checkout',
+        layer: 'client',
+        owner: 'JordanPaymentWidget',
+        tags: { country: countryCode, currency, operation: 'create_preference' },
+        context: { amountMinor, dispatchIdPresent: Boolean(dispatchId) },
+        fingerprint: ['pharmacy-payment-checkout', countryCode, 'create-preference'],
+      })
       setError('Não foi possível abrir o pagamento. Tente novamente.')
     } finally {
       setBusy(false)
