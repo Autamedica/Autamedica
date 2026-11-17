@@ -20,6 +20,7 @@ on:
     paths:
       - 'apps/**'
       - 'packages/**'
+      - 'worker/**'
       - 'supabase/**'
       - 'scripts/**'
       - '.github/workflows/**'
