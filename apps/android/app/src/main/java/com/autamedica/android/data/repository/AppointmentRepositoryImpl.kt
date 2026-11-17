@@ -463,16 +463,27 @@ class AppointmentRepositoryImpl @Inject constructor(
             .decodeSingleOrNull<AppointmentRecordIdDto>()?.id
 
         if (patientId == null) {
-            patientId = try {
+            // The initial lookup can race profile provisioning. Retry the canonical
+            // auth.users.id -> patients.user_id relationship before attempting creation.
+            patientId = runCatching {
                 supabaseClient.postgrest.from("patients")
                     .insert(mapOf("user_id" to userId)) {
                         select(Columns.list("id"))
                     }
                     .decodeSingle<AppointmentRecordIdDto>().id
-            } catch (e: Exception) {
-                SecureLog.warn("[Appointments] Could not create patient record: ${e.message}")
-                userId
-            }
+            }.recoverCatching { insertError ->
+                SecureLog.warn("[Appointments] Patient profile insert failed; reloading canonical profile")
+                supabaseClient.postgrest.from("patients")
+                    .select(Columns.list("id")) {
+                        filter { eq("user_id", userId) }
+                    }
+                    .decodeSingleOrNull<AppointmentRecordIdDto>()
+                    ?.id
+                    ?: throw IllegalStateException(
+                        "No canonical patients.id exists for the authenticated user",
+                        insertError,
+                    )
+            }.getOrThrow()
         }
 
         val roomId = "room-${UUID.randomUUID()}"

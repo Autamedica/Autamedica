@@ -27,11 +27,12 @@ import kotlinx.serialization.json.longOrNull
 import java.io.InputStream
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.time.Duration
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private const val BUCKET_PRIMARY = "patient-documents"
-private const val BUCKET_FALLBACK = "medical-records"
+private const val DOCUMENT_BUCKET = "medical-documents"
+private val SIGNED_URL_TTL = Duration.parse("3600s")
 
 @Singleton
 class ClinicalDocumentRepositoryImpl @Inject constructor(
@@ -54,7 +55,11 @@ class ClinicalDocumentRepositoryImpl @Inject constructor(
             .decodeList<MedicalRecordRowDto>()
 
         rows.mapNotNull { row ->
-            row.toDomain()
+            val document = row.toDomain() ?: return@mapNotNull null
+            val storagePath = row.storagePath() ?: return@mapNotNull document
+            val signedUrl = supabaseClient.storage.from(DOCUMENT_BUCKET)
+                .createSignedUrl(storagePath, expiresIn = SIGNED_URL_TTL)
+            document.copy(fileUrl = signedUrl)
         }
     }.onFailure {
         SecureLog.error("[ClinicalDocuments] Failed fetching documents", it)
@@ -67,24 +72,24 @@ class ClinicalDocumentRepositoryImpl @Inject constructor(
         mimeType: String,
         inputStream: InputStream,
     ): Result<ClinicalDocument> = runCatching {
-        val patientId = resolvePatientId()
+        val userId = resolveAuthenticatedUserId()
+        val patientId = resolvePatientId(userId)
         val sanitizedFileName = fileName.trim().replace("\\s+".toRegex(), "_")
         val timestamp = System.currentTimeMillis()
-        val storagePath = "$patientId/${timestamp}_$sanitizedFileName"
+        val storagePath = "$userId/${timestamp}_$sanitizedFileName"
 
         val bytes = withContext(Dispatchers.IO) {
             inputStream.readBytes()
         }
         val fileSize = bytes.size.toLong()
 
-        // 1. Upload to Supabase Storage with bucket fallback
-        val bucketUsed = uploadWithFallback(
-            path = storagePath,
-            data = bytes,
-        )
-
-        // Resolve public URL for display and downloading
-        val fileUrl = supabaseClient.storage.from(bucketUsed).publicUrl(storagePath)
+        // The production bucket is private and its RLS path is scoped to auth.uid().
+        supabaseClient.storage.from(DOCUMENT_BUCKET).upload(storagePath, bytes) {
+            upsert = true
+        }
+        val bucketUsed = DOCUMENT_BUCKET
+        val fileUrl = supabaseClient.storage.from(DOCUMENT_BUCKET)
+            .createSignedUrl(storagePath, expiresIn = SIGNED_URL_TTL)
 
         val attachmentsPayload = buildJsonArray {
             add(
@@ -150,28 +155,12 @@ class ClinicalDocumentRepositoryImpl @Inject constructor(
         SecureLog.error("[ClinicalDocuments] Failed uploading document", it)
     }
 
-    private suspend fun uploadWithFallback(
-        path: String,
-        data: ByteArray,
-    ): String {
-        return try {
-            supabaseClient.storage.from(BUCKET_PRIMARY).upload(path, data) {
-                upsert = true
-            }
-            BUCKET_PRIMARY
-        } catch (e: Exception) {
-            SecureLog.warn("[ClinicalDocuments] Upload to $BUCKET_PRIMARY failed, trying $BUCKET_FALLBACK", e)
-            supabaseClient.storage.from(BUCKET_FALLBACK).upload(path, data) {
-                upsert = true
-            }
-            BUCKET_FALLBACK
-        }
-    }
-
-    private suspend fun resolvePatientId(): String {
-        val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
+    private suspend fun resolveAuthenticatedUserId(): String =
+        securePreferences.getString(SecurePreferences.KEY_USER_ID)
+            ?.takeIf { it.isNotBlank() }
             ?: throw IllegalStateException("No authenticated user ID found")
 
+    private suspend fun resolvePatientId(userId: String = resolveAuthenticatedUserId()): String {
         return supabaseClient.postgrest
             .from("patients")
             .select(Columns.list("id")) {
@@ -179,7 +168,7 @@ class ClinicalDocumentRepositoryImpl @Inject constructor(
             }
             .decodeSingleOrNull<RecordIdDto>()
             ?.id
-            ?: throw IllegalStateException("No patient profile found for user $userId")
+            ?: throw IllegalStateException("No patient profile found for authenticated user")
     }
 
     private fun mapToValidRecordType(requestedType: String): String {
@@ -216,6 +205,15 @@ class ClinicalDocumentRepositoryImpl @Inject constructor(
         @SerialName("created_at") val createdAt: String? = null,
         @SerialName("updated_at") val updatedAt: String? = null,
     ) {
+        fun storagePath(): String? {
+            val contentObj = content as? JsonObject
+            val attachmentsArr = attachments as? JsonArray
+                ?: contentObj?.get("attachments") as? JsonArray
+            val firstAttachment = attachmentsArr?.firstOrNull() as? JsonObject
+            return firstAttachment?.get("path")?.jsonPrimitive?.contentOrNull
+                ?: contentObj?.get("storage_path")?.jsonPrimitive?.contentOrNull
+        }
+
         fun toDomain(): ClinicalDocument? {
             val contentObj = content as? JsonObject
             val attachmentsArr = attachments as? JsonArray
