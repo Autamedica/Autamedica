@@ -134,14 +134,14 @@ function ClinicalList({
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
       <div className="mb-3 flex items-center gap-2">
-        <Icon className="h-4 w-4 text-[#0D9488]" />
+        <Icon className="h-4 w-4 text-[#0284C7]" />
         <h3 className="text-sm font-bold text-[#0F2537]">{title}</h3>
       </div>
       {items.length ? (
         <ul className="space-y-2">
           {items.map((item, index) => (
             <li key={title + "-" + index} className="flex items-start gap-2 text-sm text-slate-700">
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#0D9488]" />
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#0284C7]" />
               <span className="break-words">{item}</span>
             </li>
           ))}
@@ -218,7 +218,7 @@ export function DoctorsConsultationsPage({
         >
           <a
             href="/doctors/patients"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-[#0D9488]"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-[#0284C7]"
           >
             <ArrowLeft className="h-4 w-4" /> Volver a pacientes
           </a>
@@ -269,7 +269,7 @@ export function DoctorsConsultationsPage({
         <div className="space-y-4 sm:space-y-5">
           <a
             href="/doctors/patients"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 transition hover:text-[#0D9488]"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 transition hover:text-[#0284C7]"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             {isBrazilianDoctor ? "Voltar aos pacientes" : "Volver a pacientes"}
@@ -277,7 +277,7 @@ export function DoctorsConsultationsPage({
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-teal-50 text-[#0D9488] ring-2 ring-emerald-500/40">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-am-primary-50 text-[#0284C7] ring-2 ring-emerald-500/40">
                 <UserRound className="h-6 w-6" />
               </div>
               <div className="min-w-0 flex-1">
@@ -319,7 +319,7 @@ export function DoctorsConsultationsPage({
               className={
                 "flex min-h-10 items-center justify-center gap-2 rounded-lg px-2 py-2 text-center text-xs font-bold transition " +
                 (activePatientTab === "patient-info"
-                  ? "bg-teal-50 text-[#0D9488] ring-1 ring-teal-200"
+                  ? "bg-am-primary-50 text-[#0284C7] ring-1 ring-am-primary-200"
                   : "text-slate-500 hover:bg-slate-50")
               }
             >
@@ -336,7 +336,7 @@ export function DoctorsConsultationsPage({
               className={
                 "flex min-h-10 items-center justify-center gap-2 rounded-lg px-2 py-2 text-center text-xs font-bold transition " +
                 (activePatientTab === "medical-history"
-                  ? "bg-teal-50 text-[#0D9488] ring-1 ring-teal-200"
+                  ? "bg-am-primary-50 text-[#0284C7] ring-1 ring-am-primary-200"
                   : "text-slate-500 hover:bg-slate-50")
               }
             >
@@ -349,7 +349,7 @@ export function DoctorsConsultationsPage({
             <div className="space-y-4">
               <section>
                 <div className="mb-2 flex items-center gap-2">
-                  <UserRound className="h-4 w-4 text-[#0D9488]" />
+                  <UserRound className="h-4 w-4 text-[#0284C7]" />
                   <h2 className="text-sm font-bold text-[#0F2537]">
                     {isBrazilianDoctor ? "Dados filiativos" : "Datos filiatorios"}
                   </h2>
@@ -399,7 +399,7 @@ export function DoctorsConsultationsPage({
 
               <section>
                 <div className="mb-2 flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-[#0D9488]" />
+                  <Phone className="h-4 w-4 text-[#0284C7]" />
                   <h2 className="text-sm font-bold text-[#0F2537]">
                     {isBrazilianDoctor ? "Contato" : "Contacto"}
                   </h2>
@@ -416,7 +416,7 @@ export function DoctorsConsultationsPage({
 
               <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                 <div className="mb-3 flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-[#0D9488]" />
+                  <ShieldCheck className="h-4 w-4 text-[#0284C7]" />
                   <h2 className="text-sm font-bold text-[#0F2537]">
                     {isBrazilianDoctor ? "Contato de emergência" : "Contacto de emergencia"}
                   </h2>
@@ -459,7 +459,7 @@ export function DoctorsConsultationsPage({
 
               <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                 <div className="mb-2 flex items-center gap-2">
-                  <ClipboardList className="h-4 w-4 text-[#0D9488]" />
+                  <ClipboardList className="h-4 w-4 text-[#0284C7]" />
                   <h2 className="text-sm font-bold text-[#0F2537]">Cobertura médica</h2>
                 </div>
                 {insurance &&
@@ -525,7 +525,7 @@ export function DoctorsConsultationsPage({
               <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-[#0D9488]" />
+                    <FileText className="h-4 w-4 text-[#0284C7]" />
                     <h2 className="text-sm font-bold text-[#0F2537]">
                       {isBrazilianDoctor ? "Registros clínicos" : "Registros clínicos"}
                     </h2>
@@ -580,7 +580,7 @@ export function DoctorsConsultationsPage({
                         type="button"
                         onClick={() => void loadMore()}
                         disabled={historyLoading}
-                        className="mt-2 min-h-10 w-full rounded-xl border border-teal-200 bg-teal-50 px-4 py-2 text-xs font-bold text-teal-800 transition hover:bg-teal-100 disabled:opacity-50"
+                        className="mt-2 min-h-10 w-full rounded-xl border border-am-primary-200 bg-am-primary-50 px-4 py-2 text-xs font-bold text-am-primary-800 transition hover:bg-am-primary-100 disabled:opacity-50"
                       >
                         {historyLoading ? "Cargando…" : "Cargar más registros"}
                       </button>
@@ -605,7 +605,7 @@ export function DoctorsConsultationsPage({
 
               <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                 <div className="mb-3 flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-[#0D9488]" />
+                  <Calendar className="h-4 w-4 text-[#0284C7]" />
                   <h2 className="text-sm font-bold text-[#0F2537]">Consultas</h2>
                 </div>
                 {patientAppointments.length ? (
@@ -619,7 +619,7 @@ export function DoctorsConsultationsPage({
                           {appointment.type === "telemedicine" ? (
                             <Video className="h-4 w-4 text-emerald-600" />
                           ) : (
-                            <Calendar className="h-4 w-4 text-sky-600" />
+                            <Calendar className="h-4 w-4 text-am-primary-600" />
                           )}
                           <div>
                             <p className="text-xs font-bold text-slate-800">
@@ -651,7 +651,7 @@ export function DoctorsConsultationsPage({
 
               <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                 <div className="mb-3 flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4 text-[#0D9488]" />
+                  <MessageSquare className="h-4 w-4 text-[#0284C7]" />
                   <h2 className="text-sm font-bold text-[#0F2537]">
                     {isBrazilianDoctor ? "Canal de comunicação" : "Canal de comunicación"}
                   </h2>
@@ -678,7 +678,7 @@ export function DoctorsConsultationsPage({
     >
       <div className="grid gap-5 lg:grid-cols-2">
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-[#0D9488]">
+          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-am-primary-50 text-[#0284C7]">
             <Users className="h-5 w-5" />
           </div>
           <h2 className="text-base font-bold text-[#0F2537]">Historiales clínicos</h2>
@@ -687,7 +687,7 @@ export function DoctorsConsultationsPage({
           </p>
           <a
             href="/doctors/patients"
-            className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#0D9488] px-4 py-2.5 text-[13px] font-bold text-white transition hover:bg-[#0F766E]"
+            className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#0284C7] px-4 py-2.5 text-[13px] font-bold text-white transition hover:bg-[#0369A1]"
           >
             Abrir pacientes <ArrowRight className="h-3.5 w-3.5" />
           </a>

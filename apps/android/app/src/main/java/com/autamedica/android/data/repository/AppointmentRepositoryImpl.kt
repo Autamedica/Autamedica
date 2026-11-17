@@ -287,7 +287,7 @@ class AppointmentRepositoryImpl @Inject constructor(
         val userId = requireNotNull(securePreferences.getString(SecurePreferences.KEY_USER_ID))
         supabaseClient.postgrest.from("patients")
             .select(Columns.list("care_country")) { filter { eq("user_id", userId) } }
-            .decodeList<PatientCareCountryDto>().firstOrNull()?.careCountry
+            .decodeList<AppointmentPatientCareCountryDto>().firstOrNull()?.careCountry
     }
 
     override suspend fun selectCareCountry(country: String): Result<Unit> = runCatching {
@@ -458,21 +458,44 @@ class AppointmentRepositoryImpl @Inject constructor(
         val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
             ?: throw IllegalStateException("No authenticated user found")
 
-        var patientId = supabaseClient.postgrest.from("patients")
-            .select(Columns.list("id")) { filter { eq("user_id", userId) } }
-            .decodeSingleOrNull<AppointmentRecordIdDto>()?.id
+        var patientId = runCatching {
+            supabaseClient.postgrest.from("patients")
+                .select(Columns.list("id")) { filter { eq("user_id", userId) } }
+                .decodeSingleOrNull<AppointmentRecordIdDto>()?.id
+        }.recoverCatching { initialLookupError ->
+            SecureLog.warn("[Appointments] Initial patient lookup failed; retrying canonical user mapping")
+            supabaseClient.postgrest.from("patients")
+                .select(Columns.list("id")) { filter { eq("user_id", userId) } }
+                .decodeSingleOrNull<AppointmentRecordIdDto>()
+                ?.id
+                ?: throw IllegalStateException(
+                    "No canonical patients.id exists for the authenticated user",
+                    initialLookupError,
+                )
+        }.getOrThrow()
 
         if (patientId == null) {
-            patientId = try {
+            // The initial lookup can race profile provisioning. Retry the canonical
+            // auth.users.id -> patients.user_id relationship before attempting creation.
+            patientId = runCatching {
                 supabaseClient.postgrest.from("patients")
                     .insert(mapOf("user_id" to userId)) {
                         select(Columns.list("id"))
                     }
                     .decodeSingle<AppointmentRecordIdDto>().id
-            } catch (e: Exception) {
-                SecureLog.warn("[Appointments] Could not create patient record: ${e.message}")
-                userId
-            }
+            }.recoverCatching { insertError ->
+                SecureLog.warn("[Appointments] Patient profile insert failed; reloading canonical profile")
+                supabaseClient.postgrest.from("patients")
+                    .select(Columns.list("id")) {
+                        filter { eq("user_id", userId) }
+                    }
+                    .decodeSingleOrNull<AppointmentRecordIdDto>()
+                    ?.id
+                    ?: throw IllegalStateException(
+                        "No canonical patients.id exists for the authenticated user",
+                        insertError,
+                    )
+            }.getOrThrow()
         }
 
         val roomId = "room-${UUID.randomUUID()}"
@@ -1032,5 +1055,5 @@ private data class DoctorBusySlotDto(
 )
 
 @Serializable
-private data class PatientCareCountryDto(@SerialName("care_country") val careCountry: String? = null)
+private data class AppointmentPatientCareCountryDto(@SerialName("care_country") val careCountry: String? = null)
 

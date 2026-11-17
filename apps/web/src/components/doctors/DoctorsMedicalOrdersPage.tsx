@@ -180,7 +180,7 @@ export function DoctorsMedicalOrdersPage() {
             type="button"
             onClick={() => setShowCreateModal(true)}
             disabled={!selectedPatientId}
-            className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center gap-2 rounded-xl bg-am-primary-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-am-primary-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Plus className="h-4 w-4" />
             Nueva solicitud
@@ -218,7 +218,7 @@ export function DoctorsMedicalOrdersPage() {
                       onClick={() => setSelectedPatientId(isSelected ? null : patient.id)}
                       className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-all ${
                         isSelected
-                          ? "border-neutral-900 bg-neutral-900 text-white"
+                          ? "border-neutral-900 bg-am-primary-600 text-white"
                           : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50"
                       }`}
                     >
@@ -266,7 +266,7 @@ export function DoctorsMedicalOrdersPage() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(true)}
-                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
+                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-am-primary-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-am-primary-700"
                 >
                   <Plus className="h-4 w-4" />
                   Nueva solicitud
@@ -298,7 +298,7 @@ export function DoctorsMedicalOrdersPage() {
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-neutral-400">
                       <Clock className="h-3 w-3" />
                       <span>{formatDateTime(order.created_at)}</span>
-                      {order.cuir && <span className="font-mono text-[10px] text-blue-500">{order.cuir}</span>}
+                      {order.cuir && <span className="font-mono text-[10px] text-am-primary-500">{order.cuir}</span>}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -309,7 +309,7 @@ export function DoctorsMedicalOrdersPage() {
                           await medicalOrderService.issue(order.id);
                           await refreshOrders();
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-700 transition hover:border-teal-300 hover:bg-teal-100"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-am-primary-200 bg-am-primary-50 px-3 py-2 text-xs font-semibold text-am-primary-700 transition hover:border-am-primary-300 hover:bg-am-primary-100"
                       >
                         Emitir
                       </button>

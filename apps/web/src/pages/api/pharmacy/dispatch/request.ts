@@ -234,10 +234,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const insertPayload = {
       care_country: context?.careCountry ?? careCountry,
       patient_id: context?.patientId ?? null,
-      lgpd_consent: careCountry === 'BR' && lgpdConsent === true,
+      ...(careCountry === 'BR' ? { lgpd_consent: lgpdConsent === true } : {}),
       patient_dni: sanitizedDni,
       patient_cpf: sanitizedCpf,
-      patient_gender_code: sanitizedGenderCode,
+      ...(careCountry === 'AR' ? { patient_gender_code: sanitizedGenderCode } : {}),
       patient_phone: sanitizedPhone,
       patient_name: sanitizedName,
       tier_requested: selectedTier,

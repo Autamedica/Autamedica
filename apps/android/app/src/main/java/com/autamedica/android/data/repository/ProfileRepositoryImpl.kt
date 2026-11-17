@@ -39,6 +39,21 @@ class ProfileRepositoryImpl @Inject constructor(
         SecureLog.error("[Profile] Failed fetching profile", it)
     }
 
+    override suspend fun getCareCountry(): Result<String?> = runCatching {
+        val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
+            ?: throw IllegalStateException("No user ID found")
+        val row = supabaseClient.postgrest
+            .from("patients")
+            .select(Columns.list("care_country")) {
+                filter { eq("user_id", userId) }
+            }
+            .decodeList<PatientCareCountryDto>()
+            .firstOrNull()
+        row?.careCountry?.takeIf { it == "AR" || it == "BR" }
+    }.onFailure {
+        SecureLog.error("[Profile] Failed fetching patient care country", it)
+    }
+
     override suspend fun getPatientProfileSnapshot(): Result<PatientProfileSnapshot?> = runCatching {
         val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
             ?: throw IllegalStateException("No user ID found")
@@ -138,6 +153,11 @@ private data class ProfileDto(
         else -> UserRole.PATIENT
     }
 }
+
+@Serializable
+private data class PatientCareCountryDto(
+    @SerialName("care_country") val careCountry: String? = null,
+)
 
 @Serializable
 private data class PatientProfileDto(

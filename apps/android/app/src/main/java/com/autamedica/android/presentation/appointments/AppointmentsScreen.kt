@@ -91,7 +91,6 @@ import com.autamedica.android.domain.model.DoctorBookingInfo
 import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
 import com.autamedica.android.presentation.dashboard.components.AppointmentCard
 import com.autamedica.android.presentation.common.CareCountryPicker
-import com.autamedica.android.util.CareCountryLocale
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
@@ -132,16 +131,6 @@ fun AppointmentsScreen(
     val isDoctor = uiState.userRole == "doctor"
     val accentColor = if (isDoctor) PortalDoctors else PortalPatients
     val title = if (isDoctor) stringResource(R.string.appointments_title_doctor) else stringResource(R.string.appointments_title_patient)
-
-    val context = LocalContext.current
-
-    // The clinical market is persisted by the server. UI locale follows only
-    // after a confirmed country is loaded or a country change succeeds.
-    LaunchedEffect(uiState.careCountry, isDoctor) {
-        if (!isDoctor && uiState.careCountry in setOf("AR", "BR")) {
-            CareCountryLocale.applyCountry(context, requireNotNull(uiState.careCountry))
-        }
-    }
 
     if (!isDoctor && uiState.needsCareCountry) {
         AlertDialog(

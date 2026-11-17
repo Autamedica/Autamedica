@@ -79,6 +79,17 @@ test.describe('Pharmacy intake AR/BR clinical country', () => {
     })
   }
 
+  test('Jordan referral preserves explicit Argentine clinical jurisdiction', async ({ page }) => {
+    await page.goto('/farmacia/solicitar?ref=JORDAN')
+    await waitForPharmacyHydration(page)
+    await expect(page.getByRole('radio', { name: 'Argentina' })).toBeVisible()
+    await page.getByText('Argentina', { exact: true }).click()
+    await expect(page.getByRole('radio', { name: 'Argentina' })).toBeChecked()
+    await expect(page.getByRole('textbox', { name: 'DNI' })).toBeVisible()
+    await expect(page.getByLabel('Sexo según DNI')).toBeVisible()
+    await expect(page.getByRole('textbox', { name: 'CPF' })).toHaveCount(0)
+  })
+
   test('blocks request until country is selected without calling any backend', async ({ page }) => {
     let postCount = 0
     await page.route('**/api/pharmacy/dispatch/request', async (route) => {

@@ -1,0 +1,135 @@
+name: Test email via Brevo
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  send-test-email:
+    name: Send Farmalink homologation test with PDF attachments
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    steps:
+      - name: Download the latest Farmalink PDF regression artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: farmalink-autamedica-app-pdfs-test
+          run-id: 43995542620
+          github-token: ${{ github.token }}
+          path: attachments
+
+      - name: Validate Brevo credential and PDF attachments
+        env:
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$BREVO_API_KEY" ]; then
+            echo "::error::BREVO_API_KEY is not configured in the production environment."
+            exit 1
+          fi
+          test -s attachments/farmalink-autamedica-generica-test.pdf
+          test -s attachments/farmalink-autamedica-marca-test.pdf
+          file attachments/*.pdf
+          echo "Brevo credential is available; both PDF attachments are present."
+
+      - name: Send the test email to autamedica@gmail.com
+        env:
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+
+          const attachments = [
+            {
+              name: "autamedica-generica-4.pdf",
+              path: "attachments/farmalink-autamedica-generica-test.pdf"
+            },
+            {
+              name: "autamedica-marca.pdf",
+              path: "attachments/farmalink-autamedica-marca-test.pdf"
+            }
+          ].map(({ name, path }) => {
+            const bytes = fs.readFileSync(path);
+            if (bytes.subarray(0, 5).toString("ascii") !== "%PDF-") {
+              throw new Error(`Invalid PDF attachment: ${name}`);
+            }
+            return { name, content: bytes.toString("base64") };
+          });
+
+          const textContent = [
+            "Estimados:",
+            "",
+            "En seguimiento del ticket SOL-3144, compartimos las muestras de receta electrónica de AutaMedica en sus versiones genérica y marca.",
+            "",
+            "Solicitamos validar:",
+            "1. La lectura y el formato de los códigos de barras de Receta Farmalink y PAN/Credencial.",
+            "2. La estructura y los campos requeridos para la integración mediante JSON v3.",
+            "",
+            "Se adjuntan ambas recetas de prueba para su revisión.",
+            "",
+            "Saludos,",
+            "Equipo AutaMedica"
+          ].join("\n");
+
+          const htmlContent = `<div style="font-family:Arial,sans-serif;max-width:640px;margin:auto;color:#17324d;line-height:1.55">
+            <h2>Homologación de Receta Electrónica</h2>
+            <p>Estimados:</p>
+            <p>En seguimiento del ticket <strong>SOL-3144</strong>, compartimos las muestras de receta electrónica de AutaMedica en sus versiones genérica y marca.</p>
+            <p>Solicitamos validar:</p>
+            <ol>
+              <li>La lectura y el formato de los códigos de barras de Receta Farmalink y PAN/Credencial.</li>
+              <li>La estructura y los campos requeridos para la integración mediante JSON v3.</li>
+            </ol>
+            <p>Se adjuntan ambas recetas de prueba para su revisión.</p>
+            <p>Saludos,<br><strong>Equipo AutaMedica</strong></p>
+          </div>`;
+
+          const payload = {
+            sender: { name: "AutaMedica", email: "contacto@autamedica.com" },
+            to: [{ email: "autamedica@gmail.com" }],
+            replyTo: { email: "contacto@autamedica.com" },
+            subject: "Homologación Receta Electrónica - Ticket SOL-3144 (AutaMedica)",
+            textContent,
+            htmlContent,
+            attachment: attachments
+          };
+
+          (async () => {
+            const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+              method: "POST",
+              headers: {
+                accept: "application/json",
+                "api-key": process.env.BREVO_API_KEY,
+                "content-type": "application/json"
+              },
+              body: JSON.stringify(payload)
+            });
+
+            const responseText = await response.text();
+            let result = {};
+            try { result = JSON.parse(responseText); } catch {}
+
+            if (!response.ok) {
+              console.error(`Brevo rejected the request (HTTP ${response.status}).`);
+              console.error(responseText.slice(0, 1500));
+              process.exit(1);
+            }
+            if (!result.messageId) {
+              console.error("Brevo response did not contain messageId.");
+              console.error(responseText.slice(0, 1500));
+              process.exit(1);
+            }
+
+            console.log("Brevo accepted the test email.");
+            console.log("recipient=autamedica@gmail.com");
+            console.log("attachments=2");
+            console.log(`messageId=${result.messageId}`);
+          })().catch(error => {
+            console.error(error.message);
+            process.exit(1);
+          });
+          NODE

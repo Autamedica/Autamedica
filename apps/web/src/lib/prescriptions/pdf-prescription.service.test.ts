@@ -56,11 +56,15 @@ describe('generatePrescriptionPdf', () => {
     expect(artifacts.cuir).toBe('02680042020102000000000000000000000010101');
     expect(artifacts.qrContent).toBe('https://www.autamedica.com/verify/02680042020102000000000000000000000010101');
     expect(pdfText).toContain('CÓDIGO DE BARRAS');
-    expect(pdfText).toContain('VERIFICACIÓN DE FIRMA');
+    expect(pdfText).toContain('EMISOR DE LA RECETA');
+    expect(pdfText).toContain('Dr. Eduardo Marques da Rosa');
+    expect(pdfText).toContain('Matrícula: MN-123456 \\(MN\\)');
+    expect(pdfText).toContain('SELLO PROFESIONAL');
     expect(pdfText).not.toContain('Este documento ha sido firmado');
     expect(pdfText).toContain('500mg');
     expect(pdfText).toContain('Comprimidos');
-    expect(pdfText).toContain('Fecha de registro: 11/05/2026');
+    expect(pdfText).toContain('Emitida: 11/05/2026  |  Vence: 10/06/2026');
+    // Deterministic issuedAt fixture; Paracetamol uses the standard 30-day validity period.
     expect(pdfText).toContain('Identificador verificable de receta electrónica');
     expect(pdfText).toContain(
       'Esta receta fue creada por un emisor inscripto y validado en el Registro de Recetarios Electrónicos',
@@ -313,9 +317,11 @@ describe('generatePrescriptionPdf', () => {
       expect(pdfText).not.toContain('Sugerido:');
       expect(pdfText).toContain('Emitida: 03/11/2026  |  Vence: 19/11/2026');
       expect(pdfText).toContain('CUIR: -');
-      expect(pdfText).toContain('VERIFICACIÓN DE FIRMA');
-      expect(pdfText).toContain('Verificar la firma en el certificado PDF o registro del emisor.');
-      expect(pdfText).not.toMatch(/FARMALINK TEST|NO ASIGNADO|NO APTA|SIN FIRMA/);
+      expect(pdfText).toContain('EMISOR DE LA RECETA');
+      expect(pdfText).toContain('Demo Demo');
+      expect(pdfText).toContain('Matrícula: MN 11111 \\(MN\\)');
+      expect(pdfText).toContain('SELLO PROFESIONAL');
+      expect(pdfText).not.toMatch(/TEST|DEMO|NO ASIGNADO|NO APTA|SIN FIRMA/);
       expect(pdfText).not.toContain('PREDNISOLONA');
       expect(pdfText).not.toContain('Validador RCTA');
       if (scenario.mode === 'S') expect(pdfText).not.toContain('ESFUMEL');
@@ -368,7 +374,9 @@ describe('generatePrescriptionPdf', () => {
     expect(artifacts.cuir).toBe(existingCuir);
     expect(artifacts.qrContent).toBe(`https://www.autamedica.com/verify/${existingCuir}`);
     expect(pdfText).toContain(`CUIR: ${existingCuir}`);
-    expect(pdfText).toContain(`Validador RCTA: ${existingCuir}`);
+    expect(pdfText).toContain('EMISOR DE LA RECETA');
+    expect(pdfText).toContain('Demo Demo');
+    expect(pdfText).toContain('SELLO PROFESIONAL');
     expect(pdfText).not.toContain('Sin registro RCTA ni QR verificado');
   });
 

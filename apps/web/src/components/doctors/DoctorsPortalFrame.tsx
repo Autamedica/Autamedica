@@ -133,7 +133,7 @@ function MobileNavBar({
               key={item.key}
               href={item.href}
               className={`relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-1.5 transition-colors ${
-                isActive ? "text-[#0D9488]" : "text-slate-500"
+                isActive ? "text-[#0284C7]" : "text-slate-500"
               }`}
             >
               <div className="relative">
@@ -148,7 +148,7 @@ function MobileNavBar({
                 {item.label}
               </span>
               {isActive ? (
-                <span className="absolute top-0 h-0.5 w-8 rounded-full bg-[#0D9488]" />
+                <span className="absolute top-0 h-0.5 w-8 rounded-full bg-[#0284C7]" />
               ) : null}
             </a>
           );
@@ -504,7 +504,7 @@ export function DoctorsPortalFrame({
           <div className="flex w-full max-w-sm flex-col items-center rounded-2xl border border-neutral-200 bg-white px-8 py-10 text-center shadow-sm">
             {/* Avatar with Golden Badge */}
             <div className="relative mb-5 flex-shrink-0">
-              <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-[#0F2537] text-base font-semibold text-white ring-2 ring-[#0D9488]/70 shadow-inner">
+              <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-[#0F2537] text-base font-semibold text-white ring-2 ring-[#0284C7]/70 shadow-inner">
                 {cachedProfile.avatarUrl ? (
                   <img
                     src={cachedProfile.avatarUrl}
@@ -517,7 +517,7 @@ export function DoctorsPortalFrame({
               </div>
               {cachedProfile.isValidOrExempt && (
                 <div
-                  className="absolute -bottom-1 -right-1 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#0D9488] text-white ring-2 ring-white shadow-sm"
+                  className="absolute -bottom-1 -right-1 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#0284C7] text-white ring-2 ring-white shadow-sm"
                   title={
                     doctorCredential?.care_country === "BR"
                       ? "CRM validado por CFM"
@@ -534,10 +534,10 @@ export function DoctorsPortalFrame({
               {cachedProfile.doctorName}
               {cachedProfile.isValidOrExempt && (
                 <span
-                  className="inline-flex items-center justify-center text-[#0D9488]"
+                  className="inline-flex items-center justify-center text-[#0284C7]"
                   title="Matrícula validada en SSS / REFEPS"
                 >
-                  <CheckCircle2 className="h-4 w-4 fill-teal-50 text-[#0D9488]" />
+                  <CheckCircle2 className="h-4 w-4 fill-am-primary-50 text-[#0284C7]" />
                 </span>
               )}
             </h2>
@@ -625,7 +625,7 @@ export function DoctorsPortalFrame({
               <div className="text-base font-bold tracking-tight text-[#0F2537] md:text-lg">
                 AutaMedica
               </div>
-              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#0D9488]">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#0284C7]">
                 {doctorCredential?.care_country === "BR" ? "Portal Médico" : "Portal Médico"}
               </div>
             </div>
@@ -633,6 +633,22 @@ export function DoctorsPortalFrame({
 
           <div className="flex items-center gap-2 md:gap-3">
             <DoctorNotificationsBell />
+
+            <button
+              type="button"
+              onClick={handleSignOut}
+              disabled={signingOut}
+              aria-label={isBrazilianPortal ? "Sair da conta" : "Cerrar sesión"}
+              title={isBrazilianPortal ? "Sair da conta" : "Cerrar sesión"}
+              className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-red-200 bg-white px-3 text-[12px] font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-wait disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">
+                {signingOut
+                  ? isBrazilianPortal ? "Saindo..." : "Cerrando sesión..."
+                  : isBrazilianPortal ? "Sair" : "Cerrar sesión"}
+              </span>
+            </button>
 
             <div className="flex min-w-0 items-center gap-2">
               <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-[#0F2537] text-xs font-semibold text-white ring-2 ring-emerald-500/70">
@@ -650,7 +666,7 @@ export function DoctorsPortalFrame({
                   {doctorName}
                 </p>
                 <div className="mt-0.5 flex flex-wrap items-center gap-1">
-                  <span className="rounded-full border border-teal-100 bg-teal-50 px-1.5 py-0.5 text-[9px] font-medium text-teal-800">
+                  <span className="rounded-full border border-am-primary-100 bg-am-primary-50 px-1.5 py-0.5 text-[9px] font-medium text-am-primary-800">
                     {doctorSpecialty}
                   </span>
                   {isValidOrExempt && credentialLabel && (
@@ -690,7 +706,7 @@ export function DoctorsPortalFrame({
               >
                 <div className="relative flex-shrink-0">
                   <label
-                    className="group/avatar relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#0F2537] text-[13px] font-semibold text-white ring-2 ring-[#0D9488]/70 transition hover:ring-neutral-400"
+                    className="group/avatar relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#0F2537] text-[13px] font-semibold text-white ring-2 ring-[#0284C7]/70 transition hover:ring-neutral-400"
                     title={avatarUrl ? "Editar foto profesional" : "Subir foto profesional"}
                   >
                     {avatarUrl ? (
@@ -743,19 +759,19 @@ export function DoctorsPortalFrame({
                       {doctorName}
                       {isValidOrExempt && (
                         <span
-                          className="inline-flex items-center justify-center text-[#0D9488]"
+                          className="inline-flex items-center justify-center text-[#0284C7]"
                           title="Matrícula validada en SSS / REFEPS"
                         >
-                          <CheckCircle2 className="h-3.5 w-3.5 fill-teal-50 text-[#0D9488]" />
+                          <CheckCircle2 className="h-3.5 w-3.5 fill-am-primary-50 text-[#0284C7]" />
                         </span>
                       )}
                     </p>
-                    <span className="mt-1 inline-flex max-w-full rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700">
+                    <span className="mt-1 inline-flex max-w-full rounded-full border border-am-primary-200 bg-am-primary-50 px-2 py-0.5 text-[10px] font-medium text-am-primary-700">
                       {doctorSpecialty}
                     </span>
                     {isValidOrExempt && credentialLabel && (
-                      <span className="mt-1 inline-flex max-w-full items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700">
-                        <Check className="h-3 w-3 text-[#0D9488]" />
+                      <span className="mt-1 inline-flex max-w-full items-center gap-1 rounded-full border border-am-primary-200 bg-am-primary-50 px-2 py-0.5 text-[10px] font-semibold text-am-primary-700">
+                        <Check className="h-3 w-3 text-[#0284C7]" />
                         {credentialLabel}
                       </span>
                     )}
@@ -787,18 +803,18 @@ export function DoctorsPortalFrame({
                     href={item.href}
                     className={`group flex items-center justify-between min-h-11 rounded-xl px-3 py-3 text-[13px] font-medium transition-colors ${
                       isActive
-                        ? "bg-sky-50 text-sky-800"
+                        ? "bg-am-primary-50 text-am-primary-800"
                         : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <item.icon
-                        className={`h-4 w-4 ${isActive ? "text-[#0D9488]" : "text-neutral-400 group-hover:text-neutral-600"}`}
+                        className={`h-4 w-4 ${isActive ? "text-[#0284C7]" : "text-neutral-400 group-hover:text-neutral-600"}`}
                       />
                       {!isSidebarCollapsed && <span>{item.label}</span>}
                     </div>
                     {!isSidebarCollapsed && item.badge && (
-                      <span className="flex h-5 items-center justify-center rounded-md bg-[#0D9488] px-1.5 text-[10px] font-bold text-white">
+                      <span className="flex h-5 items-center justify-center rounded-md bg-[#0284C7] px-1.5 text-[10px] font-bold text-white">
                         {item.badge}
                       </span>
                     )}
@@ -818,18 +834,18 @@ export function DoctorsPortalFrame({
                       href={item.href}
                       className={`group flex items-center justify-between min-h-11 rounded-xl px-3 py-3 text-[13px] font-medium transition-colors ${
                         isActive
-                          ? "bg-sky-50 text-sky-800"
+                          ? "bg-am-primary-50 text-am-primary-800"
                           : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         <item.icon
-                          className={`h-4 w-4 ${isActive ? "text-[#0D9488]" : "text-neutral-400 group-hover:text-neutral-600"}`}
+                          className={`h-4 w-4 ${isActive ? "text-[#0284C7]" : "text-neutral-400 group-hover:text-neutral-600"}`}
                         />
                         {!isSidebarCollapsed && <span>{item.label}</span>}
                       </div>
                       {!isSidebarCollapsed && item.badge && (
-                        <span className="flex h-5 items-center justify-center rounded-md bg-[#0D9488] px-1.5 text-[10px] font-bold text-white">
+                        <span className="flex h-5 items-center justify-center rounded-md bg-[#0284C7] px-1.5 text-[10px] font-bold text-white">
                           {item.badge}
                         </span>
                       )}
@@ -856,7 +872,7 @@ export function DoctorsPortalFrame({
                 >
                   <LogOut className="h-4 w-4" />
                   {!isSidebarCollapsed && (
-                    <span>{signingOut ? "Cerrando sesión..." : "Cerrar sesión"}</span>
+                    <span>{signingOut ? (isBrazilianPortal ? "Saindo..." : "Cerrando sesión...") : (isBrazilianPortal ? "Sair" : "Cerrar sesión")}</span>
                   )}
                 </button>
               </div>
@@ -899,7 +915,7 @@ export function DoctorsPortalFrame({
       <button
         type="button"
         onClick={() => setMobileMenuOpen(true)}
-        className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[#0284C7] text-white shadow-xl shadow-sky-900/20 transition-transform hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300 md:hidden"
+        className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[#0284C7] text-white shadow-xl shadow-am-primary-900/20 transition-transform hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-am-primary-300 md:hidden"
         aria-label="Abrir menú"
       >
         <Menu className="h-6 w-6" />
