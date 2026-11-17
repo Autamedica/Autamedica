@@ -72,6 +72,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .from('pharmacy_dispatch_requests')
       .update({ status: 'cancelled' })
       .eq('id', requestId)
+      .is('requested_by_user_id', null)
       .in('status', ['searching', 'expired'])
       .select('id')
       .maybeSingle()
