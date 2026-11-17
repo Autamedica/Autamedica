@@ -168,7 +168,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       const matches = (result.results ?? [])
         .map((payment) => safePayment(payment, dispatchId))
         .filter((payment) => payment !== null)
-      const selected = matches.find((payment) => payment?.status === 'approved') ?? matches[0]
+      const selected = matches.find((payment) => payment !== null && !['rejected', 'cancelled'].includes(payment.status)) ?? matches[0]
       return selected ? jsonOk({ found: true, payment: selected }) : jsonOk({ found: false })
     }
 
