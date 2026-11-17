@@ -6,6 +6,7 @@ import { getRuntimeEnvValue } from '@/lib/runtime-env'
 import { createMercadoPagoBrokerHeaders } from '@/lib/payments/mercadopago-broker-signature'
 import { authorizePharmacyPaymentRequest, hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payment-access'
 import { logger } from '@autamedica/shared'
+import { captureSentryException } from '@/lib/observability/sentry'
 import { getOperationalPaymentSwitches } from '@/lib/payments/operational-switches'
 
 interface CheckoutPreference {
@@ -18,6 +19,8 @@ const API = 'https://api.mercadopago.com'
 export const POST: APIRoute = async ({ request, locals }) => {
   let initializedPaymentId: string | null = null
   let admin: SupabaseClient | null = null
+  let failureStage = 'initialize'
+  let failureCountry: 'AR' | 'BR' | 'unknown' = 'unknown'
   try {
     admin = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient
     if (!hasSecureGuestPaymentSecret(locals.runtime?.env)) return serviceUnavailable('pharmacy_checkout_guest_security_not_configured')
@@ -26,8 +29,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const requestId = body?.requestId
     const token = body?.accessToken
 
+    failureStage = 'authorize_dispatch'
     const dispatch = await authorizePharmacyPaymentRequest(admin, requestId, token, locals.runtime?.env)
     if (!dispatch) return unauthorized('pharmacy_request_token_required')
+    failureCountry = dispatch.care_country === 'AR' || dispatch.care_country === 'BR' ? dispatch.care_country : 'unknown'
     if (!['BR', 'AR'].includes(dispatch?.care_country ?? '') || dispatch?.tier_requested !== 'general') {
       return badRequest('pharmacy_payment_available_for_ar_br_general_only')
     }
@@ -155,6 +160,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
     let checkout: CheckoutPreference
     if (dispatch.care_country === 'AR') {
+      failureStage = 'argentina_broker_request'
       // ARS is always created by the MLA account hosted in empresa.autamedica.com.
       // The patient portal never reads or forwards its local MLB token for AR.
       const brokerPath = '/api/ops/mercadopago/argentina-broker'
@@ -185,7 +191,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         init_point: brokerResult.data?.init_point ?? '',
       }
     } else {
-      const appUrl = 'https://paciente.autamedica.com'
+      failureStage = 'brazil_mercadopago_preference' = 'https://paciente.autamedica.com'
       const response = await fetch(API + '/checkout/preferences', {
         method: 'POST',
         headers: {
@@ -220,9 +226,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       }
       checkout = await response.json() as CheckoutPreference
     }
+    failureStage = 'validate_provider_preference'
     if (!checkout.id || !checkout.init_point?.startsWith('https://')) {
       throw new Error('provider_checkout_response_invalid')
     }
+    failureStage = 'persist_provider_preference'
     const { data: saved, error: saveError } = await admin.from('pharmacy_dispatch_payments')
       .update({
         status: 'pending',
@@ -234,8 +242,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (saveError || !saved) throw saveError ?? new Error('checkout_save_conflict')
     return jsonOk({ status: 'pending', checkoutUrl: checkout.init_point, amountCents, currency })
   } catch (error) {
+    const reason = error instanceof Error ? error.message : 'unknown'
     logger.error('[pharmacy-payment/create] Could not create checkout', {
-      reason: error instanceof Error ? error.message : 'unknown',
+      reason, failureStage, country: failureCountry, paymentIdPresent: Boolean(initializedPaymentId),
+    })
+    captureSentryException(error, {
+      surface: 'pharmacy_payment_checkout',
+      layer: 'server',
+      owner: 'pharmacy_dispatch_payment_create',
+      runtimeEnv: locals.runtime?.env,
+      tags: { country: failureCountry, failure_stage: failureStage, operation: 'create_preference' },
+      context: { reason, paymentIdPresent: Boolean(initializedPaymentId) },
+      fingerprint: ['pharmacy-payment-checkout', failureCountry, failureStage],
     })
     if (admin && initializedPaymentId) {
       await admin.from('pharmacy_dispatch_payments')
