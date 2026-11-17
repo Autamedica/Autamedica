@@ -43,7 +43,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       const secret = resolveGuestSecret(locals.runtime?.env)
       if (secret) {
         const payload = await verifyGuestToken(guestToken, secret)
-        guestAuthorized = payload?.callId === existing.id &&
+        guestAuthorized = existing.requested_by_user_id === null &&
+          payload?.callId === existing.id &&
           payload?.roomId === existing.cloudflare_room_id
       }
     }
