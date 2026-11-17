@@ -42,6 +42,17 @@ internal fun buildGuestTokenHeaders(hasJwtSession: Boolean, guestToken: String?)
     return headersOf("x-guest-token", token)
 }
 
+private val CLOUDFLARE_CALLS_PATH = Regex(
+    "^(sessions/new|sessions/[A-Za-z0-9._-]+/tracks/new|sessions/[A-Za-z0-9._-]+/renegotiate|sessions/[A-Za-z0-9._-]+/tracks/close)$"
+)
+
+/** Mirrors the deployed Supabase Edge Function allowlist to reject HTTP 400s locally. */
+internal fun cloudflareCallsContractError(method: String, path: String): String? {
+    if (method.trim().uppercase() !in setOf("POST", "PUT")) return "invalid_cloudflare_calls_method"
+    if (!CLOUDFLARE_CALLS_PATH.matches(path)) return "invalid_cloudflare_calls_path"
+    return null
+}
+
 internal fun cloudflareAuthorizationMessage(httpStatus: Int): String? = when (httpStatus) {
     401 -> "La autorización de invitado venció o no es válida. Volvé a iniciar el acceso a la consulta."
     402 -> "El pago de R$79 todavía no está aprobado. Verificá el pago antes de ingresar a la consulta."
@@ -57,6 +68,12 @@ class SupabaseCloudflareCallsApi(
 ) : CloudflareCallsApi {
 
     override suspend fun call(method: String, path: String, body: JsonElement?): JsonElement {
+        cloudflareCallsContractError(method, path)?.let { errorCode ->
+            throw CloudflareCallsApiException(400, errorCode, errorCode)
+        }
+        if (roomId.isBlank()) {
+            throw CloudflareCallsApiException(400, "missing_room_id", "missing_room_id")
+        }
         val payload = buildJsonObject {
             put("roomId", roomId)
             put("method", method)
