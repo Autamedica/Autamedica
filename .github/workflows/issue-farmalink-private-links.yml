@@ -85,7 +85,7 @@ jobs:
           WRANGLER="$RUNNER_TEMP/wrangler/node_modules/.bin/wrangler"
           "$WRANGLER" deploy workers/private-doc-download.js \
             --config workers/wrangler-private-doc-download.toml \
-            --account-id "$CLOUDFLARE_ACCOUNT_ID" > "$RUNNER_TEMP/wrangler-deploy.log" 2>&1 || {
+            > "$RUNNER_TEMP/wrangler-deploy.log" 2>&1 || {
               cat "$RUNNER_TEMP/wrangler-deploy.log"
               exit 1
             }
@@ -123,11 +123,30 @@ jobs:
           echo "Private links return valid PDFs; forged signature correctly returns HTTP 403."
           echo "Links expire: $EXPIRES"
 
-          PAYLOAD="$(printf 'GENERIC=%s\\nBRAND=%s\\nEXPIRES=%s' "$GENERIC_URL" "$BRAND_URL" "$EXPIRES")"
-          openssl pkeyutl -encrypt -pubin -inkey workers/private-doc-download-public.pem \
-            -in <(printf '%s' "$PAYLOAD") -out "$RUNNER_TEMP/urls.enc" \
-            -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256
-          CIPHERTEXT="$(base64 -w0 "$RUNNER_TEMP/urls.enc")"
-          echo "Encrypted signed-link payload (RSA-OAEP-4096; decrypt in controlled session):"
-          echo "$CIPHERTEXT"
-          rm -f "$RUNNER_TEMP/verified-generic.pdf" "$RUNNER_TEMP/verified-brand.pdf" "$RUNNER_TEMP/urls.enc"
+          GENERIC_URL="$GENERIC_URL" BRAND_URL="$BRAND_URL" EXPIRES="$EXPIRES" node <<'NODE'
+          const crypto = require("node:crypto");
+          const fs = require("node:fs");
+          const data = Buffer.from(JSON.stringify({
+            generic: process.env.GENERIC_URL,
+            brand: process.env.BRAND_URL,
+            expires: process.env.EXPIRES
+          }));
+          const aesKey = crypto.randomBytes(32);
+          const iv = crypto.randomBytes(12);
+          const cipher = crypto.createCipheriv("aes-256-gcm", aesKey, iv);
+          const encrypted = Buffer.concat([cipher.update(data), cipher.final()]);
+          const wrappedKey = crypto.publicEncrypt({
+            key: fs.readFileSync("workers/private-doc-download-public.pem"),
+            padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+            oaepHash: "sha256"
+          }, aesKey);
+          const envelope = {
+            key: wrappedKey.toString("base64"),
+            iv: iv.toString("base64"),
+            tag: cipher.getAuthTag().toString("base64"),
+            data: encrypted.toString("base64")
+          };
+          console.log("Encrypted signed-link envelope (RSA-OAEP + AES-256-GCM):");
+          console.log(Buffer.from(JSON.stringify(envelope)).toString("base64"));
+          NODE
+          rm -f "$RUNNER_TEMP/verified-generic.pdf" "$RUNNER_TEMP/verified-brand.pdf"
