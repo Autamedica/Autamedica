@@ -18,9 +18,9 @@ const API = 'https://api.mercadopago.com'
 
 async function readArgentinaBrokerErrorCode(response: Response): Promise<string | null> {
   const payload = await response.clone().json().catch(() => null) as {
-    error?: { code?: unknown }
+    error?: { code?: unknown; message?: unknown }
   } | null
-  const code = payload?.error?.code
+  const code = payload?.error?.message ?? payload?.error?.code
   return typeof code === 'string' && /^[a-z0-9_]{2,80}$/i.test(code) ? code : null
 }
 
