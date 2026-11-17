@@ -64,6 +64,20 @@ BEGIN
      OR position('interval ''25 seconds''' IN v_expiry) > 0 THEN
     RAISE EXCEPTION 'Search expiry must use the same 15-minute window as payment activation';
   END IF;
+  IF position('initialize_pharmacy_dispatch_search_window' IN lower(pg_get_functiondef('app_private.initialize_pharmacy_dispatch_search_window()'::regprocedure))) = 0
+     OR position('interval ''15 minutes''' IN lower(pg_get_functiondef('app_private.initialize_pharmacy_dispatch_search_window()'::regprocedure))) = 0 THEN
+    RAISE EXCEPTION 'Database must stamp server-side 15-minute search windows for newly inserted local requests';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgrelid='public.pharmacy_dispatch_requests'::regclass
+      AND tgname='a_initialize_pharmacy_dispatch_search_window'
+      AND NOT tgisinternal
+      AND (tgtype & 2) = 2
+      AND (tgtype & 4) = 4
+  ) THEN
+    RAISE EXCEPTION 'Server-clock search window insert trigger is missing';
+  END IF;
   IF position('wait_window_not_reached' IN v_cancel) = 0
      OR position('interval ''15 minutes''' IN v_cancel) = 0
      OR position('status in (''searching'',''expired'')' IN v_cancel) = 0
