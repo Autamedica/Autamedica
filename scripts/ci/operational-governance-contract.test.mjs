@@ -21,6 +21,8 @@ test('doctor heartbeat dashboard reads canonical duty status before legacy sessi
 
 test('doctor online presence is authenticated, independent of duty, and expires by TTL',()=>{
   assert.match(presenceMigration,/CREATE TABLE IF NOT EXISTS public\.doctor_presence/);
+  assert.match(presenceMigration,/admin_get_online_doctors_by_country/);
+  assert.match(overview,/admin_get_online_doctors_by_country/);
   assert.match(presenceMigration,/auth\.uid\(\)/);
   assert.match(presenceMigration,/NOW\(\)|clock_timestamp\(\)/);
   assert.doesNotMatch(presenceMigration,/is_doctor_dispatch_approved/);
@@ -31,5 +33,7 @@ test('doctor online presence is authenticated, independent of duty, and expires 
   assert.match(androidMain,/repeatOnLifecycle\(Lifecycle\.State\.STARTED\)/);
   assert.match(androidMain,/sendDoctorPresenceHeartbeat\(\)/);
   assert.match(governanceUi,/Médicos online/);
+  assert.match(governanceUi,/Online BR/);
+  assert.match(governanceUi,/Online AR/);
   assert.match(governanceUi,/Heartbeat guardia/);
 });
