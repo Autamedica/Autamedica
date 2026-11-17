@@ -23,21 +23,22 @@ export const POST: APIRoute = async ({ request, locals }) => {
     )
     if (!dispatch) return unauthorized('pharmacy_request_token_required')
 
+    const argentinaAccessToken = (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN_AR as string | undefined)
+      ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN_AR')
+    const brazilAccessToken = (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN as string | undefined)
+      ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN')
+    // Keep provider credentials country-scoped; never query ARS payments with the BR merchant.
+    const accessToken = dispatch.care_country === 'AR' ? argentinaAccessToken : brazilAccessToken
+    const checkoutConfigured = Boolean(accessToken)
+
     const fetchPayment = async () => admin!.from('pharmacy_dispatch_payments')
-      .select('id,provider,provider_payment_id,status,amount_minor,currency,metadata')
+      .select('id,provider,provider_payment_id,provider_preference_id,checkout_url,status,amount_minor,currency,metadata')
       .eq('dispatch_request_id',dispatch.id)
       .maybeSingle()
 
     const { data: local, error } = await fetchPayment()
     if (error) throw error
-    if (!local) return jsonOk({ status: 'not_started' })
-
-    const accessToken = (dispatch.care_country === 'AR'
-      ? (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN_AR as string | undefined)
-        ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN_AR')
-      : undefined)
-      ?? (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN as string | undefined)
-      ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN')
+    if (!local) return jsonOk({ status: 'not_started', checkoutConfigured })
     const isManualOverride = String(local.provider_payment_id ?? '').startsWith('MANUAL_OVERRIDE_')
     if (local.provider_payment_id && !isManualOverride && accessToken) {
       const response = await fetch(
@@ -59,13 +60,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
     const { data: latest, error: latestError } = await fetchPayment()
     if (latestError) throw latestError
+    const legacyManualPilot = latest?.provider === 'manual'
+      && ['pending', 'failed'].includes(latest.status)
+      && latest.metadata?.payment_mode === 'manual_pilot'
+      && latest.metadata?.manual_approval_pending === true
+      && !latest.provider_preference_id && !latest.provider_payment_id
+    // A legacy internal-only row is not a payment order. Show a clear unavailable
+    // state until the AR credential exists; with the credential, let create() migrate it.
+    const status = legacyManualPilot
+      ? (checkoutConfigured ? 'not_started' : 'failed')
+      : latest?.status ?? 'not_started'
     return jsonOk({
-      status: latest?.status ?? 'not_started',
+      status,
       amountCents: latest?.amount_minor ?? null,
       currency: latest?.currency ?? null,
-      manualApprovalRequired: latest?.status === 'pending'
-        && latest?.metadata?.payment_mode === 'manual_pilot'
-        && latest?.metadata?.manual_approval_pending === true,
+      checkoutConfigured,
     })
   } catch (error) {
     logger.error('[pharmacy-payment/status] Error checking payment', {
