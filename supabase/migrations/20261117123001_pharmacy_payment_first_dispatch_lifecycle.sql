@@ -1,6 +1,3 @@
--- Payment-first lifecycle for Pharmacy Express. Checkout time is not clinical search time.
-ALTER TYPE public.dispatch_request_status ADD VALUE IF NOT EXISTS 'pending_payment';
-
 ALTER TABLE public.pharmacy_dispatch_requests
   ADD COLUMN IF NOT EXISTS payment_started_at timestamptz,
   ADD COLUMN IF NOT EXISTS search_started_at timestamptz,
