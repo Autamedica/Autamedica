@@ -58,6 +58,14 @@ async function providerFetch(path: string, token: string, init?: RequestInit): P
 export const POST: APIRoute = async ({ request, locals }) => {
   const rawBody = await request.text()
   if (!await verifyMercadoPagoBrokerRequest(request, rawBody, locals.runtime?.env)) {
+    captureSentryException(new Error('mercadopago_broker_signature_invalid'), {
+      surface: 'mercadopago_argentina_broker',
+      layer: 'server',
+      owner: 'argentina_broker',
+      runtimeEnv: locals.runtime?.env,
+      tags: { country: 'AR', failure_stage: 'verify_broker_signature' },
+      fingerprint: ['mercadopago-argentina-broker', 'verify-signature'],
+    })
     return unauthorized('mercadopago_broker_signature_invalid')
   }
 
