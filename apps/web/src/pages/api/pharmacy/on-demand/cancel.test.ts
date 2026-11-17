@@ -31,11 +31,13 @@ function chain(data: unknown, error: unknown = null) {
     eq: vi.fn(),
     maybeSingle: vi.fn().mockResolvedValue({ data, error }),
     update: vi.fn(),
+    is: vi.fn(),
     in: vi.fn(),
     gt: vi.fn(),
   }
   obj.select.mockReturnValue(obj)
   obj.eq.mockReturnValue(obj)
+  obj.is.mockReturnValue(obj)
   obj.in.mockReturnValue(obj)
   obj.gt.mockReturnValue(obj)
   obj.update.mockReturnValue(obj)
@@ -95,7 +97,7 @@ describe('Gen-2 clinical pharmacy cancellation', () => {
     const token = await signGuestToken(
       { callId: ID, roomId: row.cloudflare_room_id, guestName: 'Synthetic guest' }, SECRET,
     )
-    const original = chain(row)
+    const original = chain({ ...row, requested_by_user_id: null })
     const offerLookup = chain(null)
     const changed = chain({ id: ID })
     supabaseMock.from.mockReturnValueOnce(original).mockReturnValueOnce(offerLookup).mockReturnValueOnce(changed)
@@ -103,10 +105,22 @@ describe('Gen-2 clinical pharmacy cancellation', () => {
     expect(response.status).toBe(200)
     expect((await response.json()).data.cancelled).toBe(true)
     expect(changed.update).toHaveBeenCalledWith({ status: 'cancelled' })
+    expect(changed.is).toHaveBeenCalledWith('requested_by_user_id', null)
     expect(changed.in).toHaveBeenCalledWith('status', ['searching', 'expired'])
     expect(supabaseMock.from).toHaveBeenNthCalledWith(1, 'pharmacy_dispatch_requests')
     expect(supabaseMock.from).toHaveBeenNthCalledWith(2, 'dispatch_offers')
     expect(supabaseMock.from).toHaveBeenNthCalledWith(3, 'pharmacy_dispatch_requests')
+  })
+
+  it('niega token de invitado para una solicitud ligada a paciente autenticado', async () => {
+    const token = await signGuestToken(
+      { callId: ID, roomId: row.cloudflare_room_id, guestName: 'Synthetic guest' }, SECRET,
+    )
+    const original = chain(row)
+    supabaseMock.from.mockReturnValue(original)
+    const response = await POST(context({ requestId: ID, accessToken: token }))
+    expect(response.status).toBe(401)
+    expect(original.update).not.toHaveBeenCalled()
   })
 
   it('autoriza solo a paciente autenticado dueño de la consulta', async () => {
