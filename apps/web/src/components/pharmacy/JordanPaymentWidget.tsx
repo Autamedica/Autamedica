@@ -27,20 +27,20 @@ export function JordanPaymentWidget({
   }).format(amountMinor / 100)
   const [status, setStatus] = useState<PaymentStatus>('not_started')
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null)
-  const [manualApprovalRequired, setManualApprovalRequired] = useState(false)
+  const [checkoutConfigured, setCheckoutConfigured] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const refreshStatus = useCallback(async () => {
     try {
-      const result = await fetchApi<{ status: PaymentStatus; manualApprovalRequired?: boolean }>(
+      const result = await fetchApi<{ status: PaymentStatus; checkoutConfigured?: boolean }>(
         '/api/pharmacy/dispatch/payment/status', {
           method: 'POST',
           body: { requestId: dispatchId, accessToken: guestToken },
         },
       )
       setStatus(result.status)
-      setManualApprovalRequired(result.manualApprovalRequired === true)
+      setCheckoutConfigured(result.checkoutConfigured ?? true)
       onStatusChange?.(result.status)
       if (result.status === 'approved') {
         setCheckoutUrl(null)
@@ -62,18 +62,20 @@ export function JordanPaymentWidget({
     setBusy(true)
     setError(null)
     try {
-      const res = await fetchApi<{ status: PaymentStatus; checkoutUrl: string | null; manualApprovalRequired?: boolean }>(
+      const res = await fetchApi<{ status: PaymentStatus; checkoutUrl: string | null; checkoutConfigured?: boolean }>(
         '/api/pharmacy/dispatch/payment/create', {
           method: 'POST',
           body: { requestId: dispatchId, accessToken: guestToken },
         },
       )
       setStatus(res.status)
-      setManualApprovalRequired(res.manualApprovalRequired === true)
+      setCheckoutConfigured(res.checkoutConfigured ?? true)
       onStatusChange?.(res.status)
       setCheckoutUrl(res.checkoutUrl)
     } catch {
-      setError('Não foi possível abrir o pagamento. Tente novamente.')
+      setError(countryCode === 'AR'
+        ? 'No se pudo abrir el pago. Verificá el estado antes de volver a intentar.'
+        : 'Não foi possível abrir o pagamento. Tente novamente.')
     } finally {
       setBusy(false)
     }
@@ -84,8 +86,8 @@ export function JordanPaymentWidget({
       <div className="flex items-center justify-between gap-3"><span className="font-semibold text-slate-900">Consulta médica</span><strong className="text-base tabular-nums text-slate-900">{amountLabel}</strong></div>
       {status === 'approved' ? <p role="status" className="mt-2 text-sm font-semibold text-emerald-700">Pagamento confirmado.</p> : (
         <>
-          {manualApprovalRequired ? <p role="status" className="mt-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-900">{countryCode === 'AR' ? 'Pago en revisión administrativa. La consulta se habilita al confirmar el comprobante.' : 'Pagamento em revisão administrativa. A consulta será liberada após a confirmação do comprovante.'}</p> : checkoutUrl ? <a href={checkoutUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#0EA5E9] px-4 py-3 font-semibold text-white transition hover:bg-sky-600">Continuar pagamento</a> : <button onClick={() => void beginCheckout()} disabled={busy} type="button" className="mt-3 min-h-12 w-full rounded-xl bg-[#0EA5E9] px-4 py-3 font-semibold text-white transition hover:bg-sky-600 disabled:opacity-50">{busy ? 'Abrindo pagamento...' : 'Pagar consulta'}</button>}
-          {status === 'pending' && !manualApprovalRequired && <p role="status" className="mt-2 text-xs text-amber-700">Aguardando confirmação.</p>}
+          {!checkoutConfigured ? <p role="alert" className="mt-3 rounded-lg bg-rose-50 p-3 text-xs text-rose-800">{countryCode === 'AR' ? 'No se pudo generar una orden de pago. No se inició ningún cobro. El pago en pesos argentinos no está disponible en este momento.' : 'O pagamento não está configurado neste momento. Nenhuma cobrança foi iniciada.'}</p> : checkoutUrl ? <a href={checkoutUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#0EA5E9] px-4 py-3 font-semibold text-white transition hover:bg-sky-600">{countryCode === 'AR' ? 'Continuar al pago' : 'Continuar pagamento'}</a> : <button onClick={() => void beginCheckout()} disabled={busy} type="button" className="mt-3 min-h-12 w-full rounded-xl bg-[#0EA5E9] px-4 py-3 font-semibold text-white transition hover:bg-sky-600 disabled:opacity-50">{busy ? (countryCode === 'AR' ? 'Generando orden...' : 'Abrindo pagamento...') : (countryCode === 'AR' ? 'Generar orden de pago' : 'Gerar ordem de pagamento')}</button>}
+          {status === 'pending' && checkoutConfigured && checkoutUrl && <p role="status" className="mt-2 text-xs text-amber-700">{countryCode === 'AR' ? 'Orden de pago generada. Completá el pago para habilitar la consulta.' : 'A ordem de pagamento foi gerada. Conclua o pagamento para liberar a consulta.'}</p>}
           {status === 'refunded' && <p role="status" className="mt-2 text-xs text-amber-700">Pagamento estornado.</p>}
           {status === 'rejected' && <p role="status" className="mt-2 text-xs text-rose-700">Pagamento não aprovado. Tente novamente.</p>}
           {status === 'cancelled' && <p role="status" className="mt-2 text-xs text-slate-600">Pagamento cancelado.</p>}
