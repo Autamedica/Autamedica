@@ -7,17 +7,31 @@ BEGIN;
 DO $capacity$
 DECLARE
   v_definition text;
-  v_old text := $old$    AND s.last_heartbeat_at > NOW() - INTERVAL '90 seconds'
-$old$;
+  v_old_heartbeat text := $heartbeat$    AND s.last_heartbeat_at > NOW() - INTERVAL '90 seconds'
+$heartbeat$;
+  v_old_fcm text := $fcm$    AND (
+      s.last_heartbeat_at > NOW() - INTERVAL '90 seconds'
+      OR EXISTS (
+        SELECT 1 FROM public.profiles fcm
+        WHERE fcm.user_id = d.user_id
+          AND NULLIF(BTRIM(fcm.fcm_token), '') IS NOT NULL
+      )
+    )
+$fcm$;
 BEGIN
   SELECT pg_get_functiondef('public.get_country_on_duty_capacity(text)'::regprocedure)
     INTO v_definition;
-  IF position(v_old IN v_definition) > 0 THEN
-    v_definition := replace(v_definition, v_old, '');
-    EXECUTE v_definition;
-  ELSIF position('last_heartbeat_at' IN lower(v_definition)) > 0 THEN
-    RAISE EXCEPTION 'Unexpected country capacity heartbeat predicate; refusing unsafe migration';
+
+  IF position(v_old_heartbeat IN v_definition) > 0 THEN
+    v_definition := replace(v_definition, v_old_heartbeat, '');
+  ELSIF position(v_old_fcm IN v_definition) > 0 THEN
+    v_definition := replace(v_definition, v_old_fcm, '');
+  ELSIF position('last_heartbeat_at' IN lower(v_definition)) > 0
+     OR position('fcm_token' IN lower(v_definition)) > 0 THEN
+    RAISE EXCEPTION 'Unexpected country capacity reachability predicate; refusing unsafe migration';
   END IF;
+
+  EXECUTE v_definition;
 END;
 $capacity$;
 
@@ -114,16 +128,30 @@ $matcher$;
 DO $queue_trigger$
 DECLARE
   v_definition text;
-  v_old text := $old$     OR NEW.last_heartbeat_at IS NULL
+  v_old_heartbeat text := $heartbeat$     OR NEW.last_heartbeat_at IS NULL
      OR NEW.last_heartbeat_at <= NOW() - INTERVAL '90 seconds'
-$old$;
+$heartbeat$;
+  v_old_fcm text := $fcm$     OR (
+       (NEW.last_heartbeat_at IS NULL
+        OR NEW.last_heartbeat_at <= NOW() - INTERVAL '90 seconds')
+       AND NOT EXISTS (
+         SELECT 1
+         FROM public.doctors d
+         JOIN public.profiles fcm ON fcm.user_id = d.user_id
+         WHERE d.id = NEW.doctor_id
+           AND NULLIF(BTRIM(fcm.fcm_token), '') IS NOT NULL
+       )
+     )
+$fcm$;
 BEGIN
   SELECT pg_get_functiondef(
     'app_private.dispatch_waiting_patient_on_doctor_presence()'::regprocedure
   ) INTO v_definition;
 
-  IF position(v_old IN v_definition) > 0 THEN
-    v_definition := replace(v_definition, v_old, '');
+  IF position(v_old_heartbeat IN v_definition) > 0 THEN
+    v_definition := replace(v_definition, v_old_heartbeat, '');
+  ELSIF position(v_old_fcm IN v_definition) > 0 THEN
+    v_definition := replace(v_definition, v_old_fcm, '');
   ELSIF position('new.last_heartbeat_at' IN lower(v_definition)) > 0 THEN
     RAISE EXCEPTION 'Unexpected queue trigger heartbeat predicate; refusing unsafe migration';
   END IF;
