@@ -27,7 +27,7 @@ export function JordanPaymentWidget({
   }).format(amountMinor / 100)
   const [status, setStatus] = useState<PaymentStatus>('not_started')
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null)
-  const [checkoutAvailable, setCheckoutConfigured] = useState(true)
+  const [checkoutAvailable, setCheckoutAvailable] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -40,7 +40,7 @@ export function JordanPaymentWidget({
         },
       )
       setStatus(result.status)
-      setCheckoutConfigured(result.checkoutAvailable ?? true)
+      setCheckoutAvailable(result.checkoutAvailable ?? true)
       onStatusChange?.(result.status)
       if (result.status === 'approved') {
         setCheckoutUrl(null)
@@ -69,7 +69,7 @@ export function JordanPaymentWidget({
         },
       )
       setStatus(res.status)
-      setCheckoutConfigured(res.checkoutAvailable ?? true)
+      setCheckoutAvailable(Boolean(res.checkoutUrl) || res.status === 'approved')
       onStatusChange?.(res.status)
       setCheckoutUrl(res.checkoutUrl)
     } catch {
