@@ -7,6 +7,7 @@ on:
     paths:
       - 'apps/**'
       - 'packages/**'
+      - 'worker/**'
       - 'supabase/**'
       - 'scripts/**'
       - '.github/workflows/**'
@@ -56,6 +57,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
+          build-core: "false"
           cache-turbo: "true"
       - run: pnpm arch:v2:check
       - run: pnpm arch:v2:imports:changed
@@ -208,7 +210,7 @@ jobs:
     name: CI
     runs-on: ubuntu-latest
     timeout-minutes: 2
-    needs: [build-gate, lint-gate, unit-tests, database-tests]
+    needs: [build-gate, lint-gate, unit-tests, database-tests, clinical-edge-prescription]
     if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]' && always()
     steps:
       - name: Evaluate gates
@@ -220,7 +222,8 @@ jobs:
           echo "| Lint | ${{ needs.lint-gate.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Database & RLS | ${{ needs.database-tests.result }} |" >> $GITHUB_STEP_SUMMARY
-          if [[ "${{ needs.build-gate.result }}" != "success" || "${{ needs.lint-gate.result }}" != "success" || "${{ needs.unit-tests.result }}" != "success" || "${{ needs.database-tests.result }}" != "success" ]]; then
+          echo "| Clinical Edge RX | ${{ needs.clinical-edge-prescription.result }} |" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ needs.build-gate.result }}" != "success" || "${{ needs.lint-gate.result }}" != "success" || "${{ needs.unit-tests.result }}" != "success" || "${{ needs.database-tests.result }}" != "success" || "${{ needs.clinical-edge-prescription.result }}" != "success" ]]; then
             exit 1
             fi
 
