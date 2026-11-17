@@ -30,6 +30,7 @@ import com.autamedica.android.domain.repository.DoctorRepository
 import com.autamedica.android.domain.repository.MedicalCertificateRepository
 import com.autamedica.android.domain.repository.PrescriptionRepository
 import com.autamedica.android.data.repository.MemedMobileBridgeRepository
+import com.autamedica.android.data.repository.MemedEncounterTargetResolver
 import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.logging.SecureLog
@@ -117,6 +118,7 @@ data class VideoCallUiState(
     val isAutoDegradedToAudio: Boolean = false,
     val isIssuingPrescription: Boolean = false,
     val isOpeningMemed: Boolean = false,
+    val isVerifyingMemedPrescription: Boolean = false,
     val memedLaunchUrl: String? = null,
     val memedLaunchError: String? = null,
     val isIssuingCertificate: Boolean = false,
@@ -232,6 +234,7 @@ class VideoCallViewModel @Inject constructor(
     private var callUserName: String = ""
     private var explicitRoomId: String = ""
     private var activePharmacyDispatchId: String? = null
+    private var lastMemedConfirmedDispatchId: String? = null
     private var consultationMonitorJob: kotlinx.coroutines.Job? = null
 
     init {
@@ -1516,12 +1519,18 @@ class VideoCallViewModel @Inject constructor(
      * The server performs the authoritative doctor, patient, consent and encounter checks.
      */
     val hasMemedEncounter: Boolean
-        get() = appointmentId.isNotBlank() || !activePharmacyDispatchId.isNullOrBlank()
+        get() = MemedEncounterTargetResolver.resolve(
+            appointmentId,
+            activePharmacyDispatchId,
+        ) != null
 
     fun openMemedForBrazil() {
         val state = _uiState.value
-        val dispatchRequestId = activePharmacyDispatchId?.takeIf { it.isNotBlank() }
-        if (!state.isDoctor || previewOnlyMode || (appointmentId.isBlank() && dispatchRequestId == null) ||
+        val target = MemedEncounterTargetResolver.resolve(
+            appointmentId,
+            activePharmacyDispatchId,
+        )
+        if (!state.isDoctor || previewOnlyMode || target == null ||
             state.doctorCountryCode != "BR" || state.patientCareCountryCode != "BR" ||
             state.patientId.isBlank()
         ) {
@@ -1530,15 +1539,15 @@ class VideoCallViewModel @Inject constructor(
             }
             return
         }
-        if (state.isOpeningMemed) return
+        if (state.isOpeningMemed || state.isVerifyingMemedPrescription) return
         viewModelScope.launch {
             _uiState.update {
                 it.copy(isOpeningMemed = true, memedLaunchError = null, memedLaunchUrl = null)
             }
-            val launch = if (appointmentId.isNotBlank()) {
-                memedMobileBridgeRepository.createLaunch(appointmentId)
+            val launch = if (target.queryKey == "requestId") {
+                memedMobileBridgeRepository.createLaunchForDispatch(target.encounterId)
             } else {
-                memedMobileBridgeRepository.createLaunchForDispatch(dispatchRequestId!!)
+                memedMobileBridgeRepository.createLaunch(target.encounterId)
             }
             launch.onSuccess { url ->
                     _uiState.update { it.copy(isOpeningMemed = false, memedLaunchUrl = url) }
@@ -1547,14 +1556,14 @@ class VideoCallViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isOpeningMemed = false,
-                            memedLaunchError = "Memed indisponível. Verifique a habilitação e os dados da consulta.",
+                            memedLaunchError = "Memed indisponível. Verifique a habilitación e os dados da consulta.",
                         )
                     }
                 }
         }
     }
 
-    /** Consume the URL before launching Custom Tabs to avoid duplicate tabs on recreation. */
+    /** Consume the URL before launching the in-call WebView to avoid duplicate overlays on recreation. */
     fun consumeMemedLaunchUrl() {
         _uiState.update { it.copy(memedLaunchUrl = null) }
     }
@@ -1562,6 +1571,88 @@ class VideoCallViewModel @Inject constructor(
     fun reportMemedBrowserError() {
         _uiState.update {
             it.copy(memedLaunchError = "Navegador compatível não encontrado para abrir Memed.")
+        }
+    }
+
+    /**
+     * Reconcile the browser return with the server-owned prescription record.
+     * A browser close or callback alone never counts as a successful issuance.
+     */
+    fun verifyMemedDispatchPrescriptionOnReturn() {
+        val requestId = activePharmacyDispatchId?.takeIf { it.isNotBlank() } ?: return
+        val state = _uiState.value
+        val patientId = state.patientId.takeIf { it.isNotBlank() } ?: return
+        if (!state.isDoctor || state.doctorCountryCode != "BR" ||
+            state.patientCareCountryCode != "BR" || state.isVerifyingMemedPrescription
+        ) return
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(isVerifyingMemedPrescription = true, memedLaunchError = null)
+            }
+            try {
+                val userId = callUserId.ifBlank {
+                    authRepository.getCurrentUser()?.id.orEmpty()
+                }
+                require(userId.isNotBlank()) { "Sesión médica no disponible" }
+                val doctorId = supabaseClient.postgrest
+                    .from("doctors")
+                    .select(Columns.list("id")) {
+                        filter { eq("user_id", userId) }
+                    }
+                    .decodeSingleOrNull<DoctorRecordIdDto>()?.id
+                    ?: throw IllegalStateException("Perfil médico no encontrado")
+
+                var confirmation: com.autamedica.android.data.repository.MemedDispatchPrescriptionConfirmation? = null
+                for (attempt in 0 until 10) {
+                    confirmation = memedMobileBridgeRepository.findVerifiedDispatchPrescription(
+                        requestId = requestId,
+                        patientId = patientId,
+                        doctorId = doctorId,
+                    ).getOrThrow()
+                    if (confirmation != null) break
+                    kotlinx.coroutines.delay(1_200L)
+                }
+
+                val confirmed = confirmation
+                if (confirmed == null) {
+                    _uiState.update {
+                        it.copy(
+                            isVerifyingMemedPrescription = false,
+                            memedLaunchError = "Memed no confirmó una receta nueva para esta consulta. Reabra el módulo y finalice la emisión.",
+                        )
+                    }
+                    return@launch
+                }
+
+                if (lastMemedConfirmedDispatchId != requestId) {
+                    val message = "A Memed confirmou o registro da receita nesta consulta. Identificador: ${confirmed.providerPrescriptionId}."
+                    engine.sendChatMessage(message)
+                    val localMessage = ChatMessage(
+                        id = "local-memed-rx-${System.currentTimeMillis()}",
+                        text = message,
+                        senderId = callUserId,
+                        senderType = callUserType,
+                        senderName = callUserName,
+                        timestamp = System.currentTimeMillis(),
+                    )
+                    _uiState.update { current ->
+                        current.copy(chatMessages = current.chatMessages + localMessage)
+                    }
+                    lastMemedConfirmedDispatchId = requestId
+                }
+                _uiState.update {
+                    it.copy(isVerifyingMemedPrescription = false, memedLaunchError = null)
+                }
+            } catch (error: Exception) {
+                SecureLog.error("[Telemedicine] Failed reconciling Memed dispatch issuance", error)
+                _uiState.update {
+                    it.copy(
+                        isVerifyingMemedPrescription = false,
+                        memedLaunchError = "No fue posible confirmar el registro de la receta Memed.",
+                    )
+                }
+            }
         }
     }
 
