@@ -47,6 +47,7 @@ data class PharmacyIntakeUiState(
     // Normal queue outcomes are informational, not validation/network errors.
     val statusNotice: String? = null,
     val activeRequestId: String? = null,
+    val searchStartedAt: Instant? = null,
     val status: PharmacyConsultationStatus? = null,
     val queuePosition: Int = 0,
     val estimatedMinutes: Int = 0,
@@ -59,6 +60,11 @@ data class PharmacyIntakeUiState(
     // Null means unavailable/unknown, not zero; this is not a count of every signed-in doctor.
     val availableDoctorsInMarket: Int? = null,
 ) {
+    val canCancelRequest: Boolean
+        get() = activeRequestId != null &&
+            status in setOf(PharmacyConsultationStatus.PENDING, PharmacyConsultationStatus.EXPIRED) &&
+            searchStartedAt?.plusSeconds(15 * 60L)?.let { !Instant.now().isBefore(it) } == true
+
     /** The signed backend resolves partner provenance; recovery must not bypass payment. */
     val requiresDispatchPayment: Boolean
         get() = careCountry in setOf("AR", "BR") &&
@@ -218,6 +224,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                             _uiState.update {
                                 it.copy(
                                     activeRequestId = request.id,
+                                    searchStartedAt = parseSearchStartedAt(request),
                                     careCountry = request.careCountry,
                                     currency = request.currency,
                                     priceMinor = request.priceMinor,
@@ -369,6 +376,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                     it.copy(
                         isSubmitting = false,
                         activeRequestId = request.id,
+                        searchStartedAt = parseSearchStartedAt(request),
                         careCountry = request.careCountry ?: state.careCountry,
                         currency = request.currency,
                         priceMinor = request.priceMinor,
@@ -440,7 +448,7 @@ class PharmacyIntakeViewModel @Inject constructor(
             launch {
                 pharmacyDispatchRepository.observePatientRequest(requestId).collect { request ->
                     val joinable = request.doctorAttendedCall
-                    val terminal = request.status == "cancelled" || request.status == "expired"
+                    val terminal = request.status == "cancelled"
                     val hasRoom = request.cloudflareRoomId.isNotBlank()
                     val paymentRequired =
                         (request.priceMinor != null && request.priceMinor > 0 &&
@@ -454,6 +462,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                     _uiState.update { state ->
                         state.copy(
                             status = mapDispatchStatus(request.status),
+                            searchStartedAt = parseSearchStartedAt(request) ?: state.searchStartedAt,
                             activeReferralPartnerId = request.referralPartnerId ?: state.activeReferralPartnerId,
                             currency = request.currency ?: state.currency,
                             priceMinor = request.priceMinor ?: state.priceMinor,
@@ -473,9 +482,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                         _uiState.update {
                             it.copy(
                                 error = null,
-                                statusNotice = if (request.status == "expired")
-                                    "Esta solicitud anterior finalizó. Podés iniciar una nueva consulta."
-                                else "La solicitud fue cancelada.",
+                                statusNotice = "La solicitud fue cancelada.",
                                 activeRequestId = null,
                                 roomId = null,
                                 readyToJoinCall = false,
@@ -534,6 +541,13 @@ class PharmacyIntakeViewModel @Inject constructor(
         }
     }
 
+    private fun parseSearchStartedAt(request: PharmacyDispatchRequest): Instant? {
+        val raw = request.searchStartedAt
+            ?: request.createdAt.takeIf { request.status == "searching" || request.status == "expired" }
+            ?: return null
+        return runCatching { Instant.parse(raw) }.getOrNull()
+    }
+
     private fun mapDispatchStatus(dispatchStatus: String): PharmacyConsultationStatus? = when (dispatchStatus) {
         "searching" -> PharmacyConsultationStatus.PENDING
         "matched" -> PharmacyConsultationStatus.ASSIGNED
@@ -545,8 +559,9 @@ class PharmacyIntakeViewModel @Inject constructor(
     }
 
     fun cancelActiveRequest() {
-        val reqId = _uiState.value.activeRequestId ?: return
-        if (_uiState.value.isSubmitting) return
+        val state = _uiState.value
+        val reqId = state.activeRequestId ?: return
+        if (state.isSubmitting || !state.canCancelRequest) return
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null) }
             pharmacyDispatchRepository.cancelPatientDispatchRequest(reqId)
@@ -558,6 +573,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                             it.copy(
                                 isSubmitting = false,
                                 activeRequestId = null,
+                                searchStartedAt = null,
                                 status = null,
                                 queuePosition = 0,
                                 estimatedMinutes = 0,
