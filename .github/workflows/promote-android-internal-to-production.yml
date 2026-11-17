@@ -1,0 +1,131 @@
+name: Promote Android Internal Release to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: "Android versionName to promote"
+        required: true
+        type: string
+        default: "1.2.24"
+      version_code:
+        description: "Exact Play versionCode already present on Internal testing"
+        required: true
+        type: string
+        default: "34"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-play-production-promotion
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    name: Promote exact Internal artifact to Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - name: Validate inputs and promote existing Play artifact
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
+          VERSION_NAME: ${{ inputs.version_name }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          set -euo pipefail
+          test -n "$SERVICE_ACCOUNT" || { echo "::error::Missing GOOGLE_PLAY_SERVICE_ACCOUNT"; exit 1; }
+          [[ "$VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Invalid versionName"; exit 1; }
+          [[ "$VERSION_CODE" =~ ^[0-9]+$ ]] || { echo "::error::Invalid versionCode"; exit 1; }
+
+          python -m pip install --quiet google-auth requests
+          python <<'PY'
+          import json, os, sys
+          from google.auth.transport.requests import AuthorizedSession
+          from google.oauth2 import service_account
+
+          package = "com.autamedica.android"
+          version_name = os.environ["VERSION_NAME"]
+          version_code = int(os.environ["VERSION_CODE"])
+          credentials = service_account.Credentials.from_service_account_info(
+              json.loads(os.environ["SERVICE_ACCOUNT"]),
+              scopes=["https://www.googleapis.com/auth/androidpublisher"],
+          )
+          session = AuthorizedSession(credentials)
+          base = f"https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{package}"
+
+          response = session.post(f"{base}/edits")
+          response.raise_for_status()
+          edit_id = response.json()["id"]
+          committed = False
+          try:
+              internal_response = session.get(f"{base}/edits/{edit_id}/tracks/internal")
+              internal_response.raise_for_status()
+              internal = internal_response.json()
+              source = None
+              for release in internal.get("releases", []):
+                  codes = [int(code) for code in release.get("versionCodes", [])]
+                  if version_code in codes:
+                      source = release
+                      break
+              if source is None:
+                  raise RuntimeError(
+                      f"versionCode {version_code} is not present on Internal testing; "
+                      "refusing to build or upload a different artifact."
+                  )
+
+              production_response = session.get(f"{base}/edits/{edit_id}/tracks/production")
+              if production_response.status_code == 404:
+                  production = {"releases": []}
+              else:
+                  production_response.raise_for_status()
+                  production = production_response.json()
+
+              current_codes = [
+                  int(code)
+                  for release in production.get("releases", [])
+                  for code in release.get("versionCodes", [])
+              ]
+              if current_codes and version_code <= max(current_codes):
+                  raise RuntimeError(
+                      f"versionCode {version_code} is not newer than current production "
+                      f"versionCode {max(current_codes)}."
+                  )
+
+              release = {
+                  "name": version_name,
+                  "versionCodes": [str(version_code)],
+                  "status": "completed",
+              }
+              if source.get("releaseNotes"):
+                  release["releaseNotes"] = source["releaseNotes"]
+
+              payload = {"track": "production", "releases": [release]}
+              update = session.put(
+                  f"{base}/edits/{edit_id}/tracks/production", json=payload
+              )
+              update.raise_for_status()
+
+              verify = session.get(f"{base}/edits/{edit_id}/tracks/production")
+              verify.raise_for_status()
+              actual = verify.json()
+              found = any(
+                  int(code) == version_code and item.get("status") == "completed"
+                  for item in actual.get("releases", [])
+                  for code in item.get("versionCodes", [])
+              )
+              if not found:
+                  raise RuntimeError("Production track verification failed before commit.")
+
+              commit = session.post(f"{base}/edits/{edit_id}:commit")
+              commit.raise_for_status()
+              committed = True
+              print(f"SUCCESS: committed {version_name} (versionCode {version_code}) to Production.")
+              print("Artifact source: existing Internal testing release; no rebuild or re-upload.")
+              print("Release status: completed (100% rollout).")
+              print("Google Play response:", json.dumps(commit.json()))
+          finally:
+              if not committed:
+                  session.delete(f"{base}/edits/{edit_id}")
+          PY
