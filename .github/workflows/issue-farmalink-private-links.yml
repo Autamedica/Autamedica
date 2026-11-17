@@ -8,6 +8,7 @@ on:
       - "workers/private-doc-download.js"
       - "workers/wrangler-private-doc-download.toml"
       - "workers/private-doc-download-public.pem"
+      - "wrangler.toml"
   workflow_dispatch:
 
 permissions:
@@ -82,7 +83,6 @@ jobs:
         run: |
           set -euo pipefail
           PROJECT="autamedica-private-doc-downloads"
-          CONFIG="workers/wrangler-private-doc-download-pages.toml"
           npm install --prefix "$RUNNER_TEMP/wrangler" --no-save --no-package-lock wrangler@4.163.0
           WRANGLER="$RUNNER_TEMP/wrangler/node_modules/.bin/wrangler"
 
@@ -90,12 +90,12 @@ jobs:
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
             "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT" \
             >/dev/null; then
-            "$WRANGLER" pages project create "$PROJECT" --production-branch main --config "$CONFIG"
+            "$WRANGLER" pages project create "$PROJECT" --production-branch main
           fi
 
           DOWNLOAD_HMAC_SECRET="$(openssl rand -hex 32)"
           printf '%s' "$DOWNLOAD_HMAC_SECRET" | "$WRANGLER" pages secret put DOWNLOAD_HMAC_SECRET \
-            --project-name "$PROJECT" --config "$CONFIG"
+            --project-name "$PROJECT"
           echo "DOWNLOAD_HMAC_SECRET=$DOWNLOAD_HMAC_SECRET" >> "$GITHUB_ENV"
 
           mkdir -p dist
