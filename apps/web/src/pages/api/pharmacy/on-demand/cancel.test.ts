@@ -34,12 +34,14 @@ function chain(data: unknown, error: unknown = null) {
     is: vi.fn(),
     in: vi.fn(),
     gt: vi.fn(),
+    is: vi.fn(),
   }
   obj.select.mockReturnValue(obj)
   obj.eq.mockReturnValue(obj)
   obj.is.mockReturnValue(obj)
   obj.in.mockReturnValue(obj)
   obj.gt.mockReturnValue(obj)
+  obj.is.mockReturnValue(obj)
   obj.update.mockReturnValue(obj)
   return obj
 }
@@ -130,6 +132,7 @@ describe('Gen-2 clinical pharmacy cancellation', () => {
     supabaseMock.from.mockReturnValueOnce(original).mockReturnValueOnce(offerLookup).mockReturnValueOnce(changed)
     const response = await POST(context({ requestId: ID }, 'patient-user-1'))
     expect((await response.json()).data.cancelled).toBe(true)
+    expect(changed.eq).toHaveBeenCalledWith('requested_by_user_id', 'patient-user-1')
   })
 
   it('bloquea la cancelación antes de completar los 15 minutos de búsqueda', async () => {
@@ -138,6 +141,29 @@ describe('Gen-2 clinical pharmacy cancellation', () => {
     const response = await POST(context({ requestId: ID }, 'patient-user-1'))
     expect((await response.json()).data.code).toBe('WAIT_WINDOW_NOT_REACHED')
     expect(supabaseMock.from).toHaveBeenCalledTimes(1)
+  })
+
+  it('niega token de invitado para una solicitud de paciente autenticado', async () => {
+    const token = await signGuestToken(
+      { callId: ID, roomId: row.cloudflare_room_id, guestName: 'Synthetic guest' }, SECRET,
+    )
+    const original = chain(row)
+    supabaseMock.from.mockReturnValue(original)
+    const response = await POST(context({ requestId: ID, accessToken: token }))
+    expect(response.status).toBe(401)
+    expect(original.update).not.toHaveBeenCalled()
+  })
+
+  it('niega oferta de cancelación mientras haya una oferta médica vigente', async () => {
+    const original = chain({ ...row, requested_by_user_id: null })
+    const activeOffer = chain({ id: 'offer-pending' })
+    supabaseMock.from.mockReturnValueOnce(original).mockReturnValueOnce(activeOffer)
+    const token = await signGuestToken(
+      { callId: ID, roomId: row.cloudflare_room_id, guestName: 'Synthetic guest' }, SECRET,
+    )
+    const response = await POST(context({ requestId: ID, accessToken: token }))
+    expect((await response.json()).data.code).toBe('DOCTOR_OFFER_STILL_ACTIVE')
+    expect(supabaseMock.from).toHaveBeenCalledTimes(2)
   })
 
   it('no permite a otro paciente autenticado cancelar la solicitud', async () => {
