@@ -34,7 +34,8 @@ export const GET:APIRoute=async({request,locals})=>{
  const dutyMap=new Map((dutyres.data??[]).map((s:any)=>[s.doctor_id,s]));
  const presenceMap=new Map((presenceres.data??[]).map((s:any)=>[s.doctor_id,s]));
  const presenceCutoff=Date.now()-90000;
- const onlineDoctorsCount=(presenceres.data??[]).filter((s:any)=>s.last_seen_at&&new Date(s.last_seen_at).getTime()>presenceCutoff).length;
+ const onlineDoctorsByCountry=presenceCountryres.data??[];
+ const onlineDoctorsCount=onlineDoctorsByCountry.reduce((total:number,row:any)=>total+Number(row.online_count??0),0);
  const doctors=(dres.data??[]).map((d:any)=>{
   const p:any=profileMap.get(d.user_id);
   const duty:any=dutyMap.get(d.id)??null;
@@ -53,5 +54,5 @@ export const GET:APIRoute=async({request,locals})=>{
  const certificates=(mres.data??[]).map((c:any)=>({id:c.id,country_code:c.country_code,status:c.status,pdf_available:Boolean(c.signed_pdf_url),signature_verified:Boolean(c.signature_verified_at&&c.signature_hash),signature_method:c.signature_method,created_at:c.created_at}));
  const clinicalEvents=(logs.data??[]).map((e:any)=>({id:e.id,action:e.action,resource_type:e.resource_type,created_at:e.created_at,provider:e.metadata?.provider??null,error_code:e.metadata?.error_code??e.metadata?.error??null,country_code:e.metadata?.country_code??null}));
  const versions=patients.filter((p:any)=>p.lgpd_consent===true).reduce((a:Record<string,number>,p:any)=>{const v=String(p.lgpd_consent_version??'sin versión');a[v]=(a[v]??0)+1;return a},{});
- return jsonOk({scopes:scopes.data??[],doctors,online_doctors_count:onlineDoctorsCount,online_doctors_by_country:presenceCountryres.data??[],consents,certificates,clinical_events:clinicalEvents,dispatches:qres.data??[],earnings:eres.data??[],consent_summary:{br_active:brActive.count??0,ar_active:arActive.count??0,br_total:brTotal.count??0,ar_total:arTotal.count??0,versions},generated_at:new Date().toISOString()});
+ return jsonOk({scopes:scopes.data??[],doctors,online_doctors_count:onlineDoctorsCount,online_doctors_by_country:onlineDoctorsByCountry,consents,certificates,clinical_events:clinicalEvents,dispatches:qres.data??[],earnings:eres.data??[],consent_summary:{br_active:brActive.count??0,ar_active:arActive.count??0,br_total:brTotal.count??0,ar_total:arTotal.count??0,versions},generated_at:new Date().toISOString()});
 };
