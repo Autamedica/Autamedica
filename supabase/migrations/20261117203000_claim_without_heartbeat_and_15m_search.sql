@@ -85,21 +85,28 @@ $activate_paid_search$;
 DO $expire_search_window$
 DECLARE
   v_definition text;
-  v_old text := $old$COALESCE(req.search_started_at, req.created_at) + interval '25 seconds'$old$;
-  v_new text := $new$COALESCE(req.search_started_at, req.created_at) + interval '15 minutes'$new$;
 BEGIN
   SELECT pg_get_functiondef('public.expire_stale_dispatch_requests()'::regprocedure)
     INTO v_definition;
 
-  IF position(v_old IN v_definition) > 0 THEN
-    v_definition := replace(v_definition, v_old, v_new);
-  ELSIF position('COALESCE(req.search_started_at, req.created_at) + interval ''15 minutes''' IN lower(v_definition)) = 0 THEN
-    RAISE EXCEPTION 'Unexpected dispatch expiry timeout; refusing migration';
+  -- The current expiry function prefers search_timeout_at and only falls back
+  -- to search_started_at + 25 seconds for legacy rows. Upgrade that fallback
+  -- without touching the independent 30-second doctor-offer expiry.
+  IF position('coalesce(req.search_timeout_at' IN lower(v_definition)) = 0 THEN
+    RAISE EXCEPTION 'Unexpected dispatch expiry implementation; refusing migration';
   END IF;
 
-  IF position('COALESCE(req.search_started_at, req.created_at) + interval ''15 minutes''' IN lower(v_definition)) = 0 THEN
+  IF position('interval ''25 seconds''' IN lower(v_definition)) > 0 THEN
+    v_definition := replace(v_definition,
+      'interval ''25 seconds''',
+      'interval ''15 minutes''');
+  END IF;
+
+  IF position('interval ''25 seconds''' IN lower(v_definition)) > 0
+     OR position('interval ''15 minutes''' IN lower(v_definition)) = 0 THEN
     RAISE EXCEPTION 'Dispatch expiry does not preserve the 15-minute window';
   END IF;
+
   EXECUTE v_definition;
 END;
 $expire_search_window$;
