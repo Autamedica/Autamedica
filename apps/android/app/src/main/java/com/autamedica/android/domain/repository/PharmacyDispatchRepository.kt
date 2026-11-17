@@ -37,6 +37,10 @@ interface PharmacyDispatchRepository {
     /** Send periodic heartbeat to refresh doctor presence while on duty via `public.doctor_heartbeat`. */
     suspend fun sendDoctorHeartbeat(doctorId: String): Result<Unit>
 
+    /** Renew authenticated online presence without activating or extending clinical duty. */
+    suspend fun sendDoctorPresenceHeartbeat(): Result<Unit> =
+        Result.failure(UnsupportedOperationException("Doctor online presence heartbeat unavailable"))
+
     /** Authenticated physician's pending valid offers (never the public clinical queue). */
     fun observeSearchingRequests(): StateFlow<List<PharmacyDispatchRequest>>
 
