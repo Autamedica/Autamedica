@@ -191,7 +191,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
         init_point: brokerResult.data?.init_point ?? '',
       }
     } else {
-      failureStage = 'brazil_mercadopago_preference' = 'https://paciente.autamedica.com'
+      failureStage = 'brazil_mercadopago_preference'
+      const appUrl = 'https://paciente.autamedica.com'
       const response = await fetch(API + '/checkout/preferences', {
         method: 'POST',
         headers: {
