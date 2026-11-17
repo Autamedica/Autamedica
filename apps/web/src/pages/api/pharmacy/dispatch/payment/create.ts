@@ -30,7 +30,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!['BR', 'AR'].includes(dispatch?.care_country ?? '') || dispatch?.tier_requested !== 'general') {
       return badRequest('pharmacy_payment_available_for_ar_br_general_only')
     }
-    if (!['searching','matched','in_call'].includes(dispatch.status)) {
+    if (!['pending_payment','searching','matched','in_call'].includes(dispatch.status)) {
       return badRequest('pharmacy_payment_request_not_payable')
     }
 

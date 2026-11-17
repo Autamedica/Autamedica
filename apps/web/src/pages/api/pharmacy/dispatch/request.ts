@@ -246,7 +246,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
       referral_partner_id: referralPartnerId,
       symptom_summary: sanitizedSymptoms,
       cloudflare_room_id: cloudflareRoomId,
-      status: 'searching' as const,
+      status: countryPricing.require_payment_before_dispatch ? 'pending_payment' as const : 'searching' as const,
+      search_timeout_at: countryPricing.require_payment_before_dispatch
+        ? new Date(Date.now() + 15 * 60 * 1000).toISOString()
+        : new Date(Date.now() + 25 * 1000).toISOString(),
       requested_by_user_id: context?.userId ?? null,
     }
 
@@ -286,7 +289,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (careCountry === 'BR') {
       if (!data.patient_id) {
         await supabase.from('pharmacy_dispatch_requests')
-          .update({ status: 'cancelled' }).eq('id', data.id).eq('status', 'searching')
+          .update({ status: 'cancelled' }).eq('id', data.id).eq('status', insertPayload.status)
         return serviceUnavailable('patient_consent_persistence_failed')
       }
       const { data: consentedPatient, error: consentError } = await (supabase as unknown as SupabaseClient)
@@ -303,7 +306,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         .maybeSingle()
       if (consentError || !consentedPatient) {
         await supabase.from('pharmacy_dispatch_requests')
-          .update({ status: 'cancelled' }).eq('id', data.id).eq('status', 'searching')
+          .update({ status: 'cancelled' }).eq('id', data.id).eq('status', insertPayload.status)
         logger.error('[api/pharmacy/dispatch/request] patient_consent_persistence_failed', {
           code: consentError?.code ?? 'NO_PATIENT_ROW',
         })

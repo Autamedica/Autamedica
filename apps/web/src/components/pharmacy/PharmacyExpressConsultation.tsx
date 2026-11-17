@@ -224,6 +224,9 @@ export function PharmacyExpressConsultation({
           }
           setStep('CALL')
         }
+      } else if (req.status === 'pending_payment') {
+        setCountryPaymentApproved(false)
+        setStep('WAITING')
       } else if (req.status === 'completed') {
         setStep('ENDED')
       } else if (req.status === 'cancelled' || req.status === 'expired') {

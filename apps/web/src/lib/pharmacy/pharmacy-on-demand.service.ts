@@ -23,6 +23,7 @@ export type DispatchTierCategory =
   | 'endocrinologia'
 
 export type DispatchRequestStatus =
+  | 'pending_payment'
   | 'searching'
   | 'matched'
   | 'in_call'

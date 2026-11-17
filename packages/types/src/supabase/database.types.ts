@@ -14072,6 +14072,7 @@ export type Database = {
         | "ended"
       clinical_setting: "uti" | "guardia" | "ward" | "outpatient"
       dispatch_request_status:
+        | "pending_payment"
         | "searching"
         | "matched"
         | "in_call"

@@ -52,7 +52,7 @@ export function PaymentGovernancePanel(){
   if(!window.confirm('¿Registrar MANUAL_OVERRIDE con esta referencia externa y liberar el despacho elegible?'))return
   const r=await fetch('/api/admin/finance/pharmacy-payments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'manual_approve',payment_id:paymentId,reason,evidence_reference})})
   const j=await r.json().catch(()=>null)
-  if(!r.ok||!j?.success){setError(j?.error??'No se pudo aprobar manualmente el pago');return}
+  if(!r.ok||!j?.success){setError(j?.error??j?.code??'El pago quedó registrado; el despacho requiere resolución');await load();return}
   await load()
  }
  const decide=async(decisionId:string,status:'APPROVED'|'REJECTED',resolutionAction?:'reopen'|'refund')=>{
