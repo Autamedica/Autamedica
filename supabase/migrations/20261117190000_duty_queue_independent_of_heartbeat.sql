@@ -76,7 +76,7 @@ DECLARE
 $old$;
   v_new_order text := $new$ORDER BY (
     SELECT CASE
-      WHEN COUNT(*) = 0 THEN 1::numeric
+      WHEN COUNT(*) = 0 THEN 0::numeric
       ELSE COUNT(*) FILTER (WHERE recent.status='accepted')::numeric / COUNT(*)::numeric
     END
     FROM (
