@@ -302,11 +302,32 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
     const admin = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient
     const { data: requestRecord, error: lookupError } = await admin
       .from('pharmacy_dispatch_requests')
-      .select('id, patient_id, requested_by_user_id, care_country, cloudflare_room_id')
+      .select('id, patient_id, requested_by_user_id, care_country, cloudflare_room_id, status')
       .eq('id', id)
       .maybeSingle()
     if (lookupError) return internalError()
     if (!requestRecord) return notFound('request_not_found')
+
+    const logCancellationConflict = async (actor: 'patient' | 'guest') => {
+      const { data: payment } = await admin
+        .from('pharmacy_dispatch_payments')
+        .select('status, provider, currency')
+        .eq('dispatch_request_id', id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      logger.warn('[api/pharmacy/dispatch/[id]] cancellation_conflict', {
+        operation: 'DELETE',
+        actor,
+        request_id: id,
+        request_status: requestRecord.status,
+        care_country: requestRecord.care_country,
+        payment_status: payment?.status ?? null,
+        payment_provider: payment?.provider ?? null,
+        payment_currency: payment?.currency ?? null,
+        reason: 'request_not_searching_or_state_changed',
+      })
+    }
 
     const context = await resolvePatientContext(request, locals).catch(() => null)
     if (context?.careCountry &&
@@ -324,7 +345,10 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
         .select('id')
         .maybeSingle()
       if (error) return internalError()
-      if (!data) return conflict('request_cannot_be_cancelled')
+      if (!data) {
+        await logCancellationConflict('patient')
+        return conflict('request_cannot_be_cancelled')
+      }
       return jsonOk({ cancelled: true })
     }
 
@@ -358,7 +382,10 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
       .select('id')
       .maybeSingle()
     if (error) return internalError()
-    if (!data) return conflict('request_cannot_be_cancelled')
+    if (!data) {
+      await logCancellationConflict('guest')
+      return conflict('request_cannot_be_cancelled')
+    }
     return jsonOk({ cancelled: true })
   } catch (err) {
     logger.error('[api/pharmacy/dispatch/[id]] DELETE exception', { err })
