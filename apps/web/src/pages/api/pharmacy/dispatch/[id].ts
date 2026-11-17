@@ -302,11 +302,29 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
     const admin = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient
     const { data: requestRecord, error: lookupError } = await admin
       .from('pharmacy_dispatch_requests')
-      .select('id, patient_id, requested_by_user_id, care_country, cloudflare_room_id')
+      .select('id, patient_id, requested_by_user_id, care_country, cloudflare_room_id, status, search_started_at, created_at')
       .eq('id', id)
       .maybeSingle()
     if (lookupError) return internalError()
     if (!requestRecord) return notFound('request_not_found')
+
+    const searchStartedAt = new Date(
+      requestRecord.search_started_at ?? requestRecord.created_at,
+    ).getTime()
+    const cancellationWindowOpen = Number.isFinite(searchStartedAt)
+      && Date.now() >= searchStartedAt + 15 * 60 * 1000
+    if (!['searching', 'expired'].includes(String(requestRecord.status)) || !cancellationWindowOpen) {
+      return conflict('cancellation_available_after_15_minutes')
+    }
+    const { data: activeOffer, error: offerError } = await admin
+      .from('dispatch_offers')
+      .select('id')
+      .eq('dispatch_request_id', id)
+      .eq('status', 'pending')
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle()
+    if (offerError) return internalError()
+    if (activeOffer) return conflict('doctor_offer_still_active')
 
     const context = await resolvePatientContext(request, locals).catch(() => null)
     if (context?.careCountry &&
@@ -320,7 +338,7 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
         .eq('patient_id', context.patientId)
         .eq('requested_by_user_id', context.userId)
         .eq('care_country', context.careCountry)
-        .eq('status', 'searching')
+        .in('status', ['searching', 'expired'])
         .select('id')
         .maybeSingle()
       if (error) return internalError()
@@ -354,7 +372,7 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
       .eq('id', id)
       .is('requested_by_user_id', null)
       .eq('care_country', requestRecord.care_country)
-      .eq('status', 'searching')
+      .in('status', ['searching', 'expired'])
       .select('id')
       .maybeSingle()
     if (error) return internalError()
