@@ -85,6 +85,20 @@ function formatDate(iso: string): string {
 
 function calculateExpiry(issuedAt: string, genericName: string): string {
   const days = getValidityPeriodDays(genericName);
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(issuedAt);
+
+  // Date-only clinical values are calendar dates, not UTC instants. Keep their
+  // arithmetic in UTC so a São Paulo/Argentina runtime cannot shift expiry back
+  // by one day when the ISO value is later formatted for the prescription PDF.
+  if (dateOnly) {
+    const date = new Date(Date.UTC(
+      Number(dateOnly[1]),
+      Number(dateOnly[2]) - 1,
+      Number(dateOnly[3]) + days,
+    ));
+    return date.toISOString().slice(0, 10);
+  }
+
   const date = new Date(issuedAt);
   date.setDate(date.getDate() + days);
   return date.toISOString();

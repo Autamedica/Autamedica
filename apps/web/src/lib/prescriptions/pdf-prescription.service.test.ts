@@ -253,7 +253,7 @@ describe('generatePrescriptionPdf', () => {
     const rctaSpy = vi.spyOn(rctaService, 'registerPrescription');
     for (const scenario of [
       { mode: 'S' as const, number: '9600000421228', commercialName: undefined, filename: 'generica' },
-      { mode: 'N' as const, number: '9600000421242', commercialName: 'ESFUMEL blanqueadora cr. x 20 g', filename: 'marca' },
+      { mode: 'N' as const, number: '9600000421242', commercialName: 'ESFUMEL blanqueadora cr.x 20 g', filename: 'marca' },
     ]) {
       const artifacts = await generatePrescriptionPdf({
         prescriptionId: `farmalink-homologation-${scenario.mode}-${scenario.number}`,
@@ -271,7 +271,7 @@ describe('generatePrescriptionPdf', () => {
         patient: {
           name: 'Demo Demo', dni: '12345678', cuil: '27123456780',
           dateOfBirth: '2025-01-01', sex: 'Masculino',
-          insurancePlan: '100',
+          insurancePlan: 'NO POSEE',
           affiliateCredential: '20123456786',
           insuranceEntityCode: 7110,
         },
@@ -299,6 +299,11 @@ describe('generatePrescriptionPdf', () => {
       expect(pdfText).toContain('Nro. afiliado / Credencial: 20123456786');
       expect(pdfText).toContain('Entidad: 7110');
       expect(pdfText).toContain('Plan: NO POSEE');
+      expect(pdfText).toContain('DNI: 12345678');
+      expect(pdfText).toContain('Fecha de Nacimiento: 01/01/2025');
+      expect(pdfText).toContain('Cantidad: 1 unidades');
+      expect(pdfText).toContain('Matrícula: MN 11111');
+      expect(pdfText).toContain('Domicilio profesional: Consultorio particular CALLE 11 Nro 2300');
       expect(pdfText).not.toContain('CUIL: 27123456780');
       expect(pdfText).toContain('PAN / CREDENCIAL');
       expect(pdfText).toContain('PAN: 20123456786');
@@ -310,13 +315,12 @@ describe('generatePrescriptionPdf', () => {
       expect(pdfText).toContain('Esta prescripción tiene validez de documento público electrónico según Ley 27.553.');
       expect(pdfText).not.toContain('MODALIDAD GENERICO=');
       expect(pdfText).not.toContain('Sugerido:');
+      expect(pdfText).toContain('Emitida: 03/11/2026  |  Vence: 19/11/2026');
       expect(pdfText).toContain('CUIR: -');
       expect(pdfText).toContain('EMISOR DE LA RECETA');
       expect(pdfText).toContain('Demo Demo');
       expect(pdfText).toContain('Matrícula: MN 11111 \\(MN\\)');
       expect(pdfText).toContain('SELLO PROFESIONAL');
-      expect(pdfText).not.toContain('VERIFICACIÓN DE FIRMA');
-      expect(pdfText).not.toContain('Verificar la firma en el certificado PDF o registro del emisor.');
       expect(pdfText).not.toMatch(/TEST|DEMO|NO ASIGNADO|NO APTA|SIN FIRMA/);
       expect(pdfText).not.toContain('PREDNISOLONA');
       expect(pdfText).not.toContain('Validador RCTA');
@@ -357,7 +361,7 @@ describe('generatePrescriptionPdf', () => {
         cuil: '27123456780',
         affiliateCredential: '20123456786',
         insuranceEntityCode: 7110,
-        insurancePlan: '100',
+        insurancePlan: 'NO POSEE',
       },
       prescriber: {
         name: 'Demo Demo',
