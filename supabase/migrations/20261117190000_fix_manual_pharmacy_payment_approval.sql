@@ -165,3 +165,11 @@ REVOKE ALL ON FUNCTION public.admin_manual_approve_pharmacy_payment(uuid, uuid, 
   FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_manual_approve_pharmacy_payment(uuid, uuid, text, text)
   TO service_role;
+
+-- Supabase Security Advisor flagged PostGIS' public.spatial_ref_sys because
+-- RLS is intentionally disabled on this extension-owned reference table.
+-- Keep public reads required by geospatial lookups, but remove all write DML
+-- and object-management privileges from API roles.
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
+  ON TABLE public.spatial_ref_sys FROM anon, authenticated;
+GRANT SELECT ON TABLE public.spatial_ref_sys TO anon, authenticated;
