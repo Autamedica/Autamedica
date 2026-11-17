@@ -277,7 +277,7 @@ export function DoctorsConsultationsPage({
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[#0284C7] ring-2 ring-emerald-500/40">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-am-primary-50 text-[#0284C7] ring-2 ring-emerald-500/40">
                 <UserRound className="h-6 w-6" />
               </div>
               <div className="min-w-0 flex-1">
@@ -319,7 +319,7 @@ export function DoctorsConsultationsPage({
               className={
                 "flex min-h-10 items-center justify-center gap-2 rounded-lg px-2 py-2 text-center text-xs font-bold transition " +
                 (activePatientTab === "patient-info"
-                  ? "bg-blue-50 text-[#0284C7] ring-1 ring-blue-200"
+                  ? "bg-am-primary-50 text-[#0284C7] ring-1 ring-am-primary-200"
                   : "text-slate-500 hover:bg-slate-50")
               }
             >
@@ -336,7 +336,7 @@ export function DoctorsConsultationsPage({
               className={
                 "flex min-h-10 items-center justify-center gap-2 rounded-lg px-2 py-2 text-center text-xs font-bold transition " +
                 (activePatientTab === "medical-history"
-                  ? "bg-blue-50 text-[#0284C7] ring-1 ring-blue-200"
+                  ? "bg-am-primary-50 text-[#0284C7] ring-1 ring-am-primary-200"
                   : "text-slate-500 hover:bg-slate-50")
               }
             >
@@ -580,7 +580,7 @@ export function DoctorsConsultationsPage({
                         type="button"
                         onClick={() => void loadMore()}
                         disabled={historyLoading}
-                        className="mt-2 min-h-10 w-full rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-bold text-blue-800 transition hover:bg-blue-100 disabled:opacity-50"
+                        className="mt-2 min-h-10 w-full rounded-xl border border-am-primary-200 bg-am-primary-50 px-4 py-2 text-xs font-bold text-am-primary-800 transition hover:bg-am-primary-100 disabled:opacity-50"
                       >
                         {historyLoading ? "Cargando…" : "Cargar más registros"}
                       </button>
@@ -619,7 +619,7 @@ export function DoctorsConsultationsPage({
                           {appointment.type === "telemedicine" ? (
                             <Video className="h-4 w-4 text-emerald-600" />
                           ) : (
-                            <Calendar className="h-4 w-4 text-sky-600" />
+                            <Calendar className="h-4 w-4 text-am-primary-600" />
                           )}
                           <div>
                             <p className="text-xs font-bold text-slate-800">
@@ -678,7 +678,7 @@ export function DoctorsConsultationsPage({
     >
       <div className="grid gap-5 lg:grid-cols-2">
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-[#0284C7]">
+          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-am-primary-50 text-[#0284C7]">
             <Users className="h-5 w-5" />
           </div>
           <h2 className="text-base font-bold text-[#0F2537]">Historiales clínicos</h2>

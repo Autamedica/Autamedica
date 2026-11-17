@@ -537,7 +537,7 @@ export function DoctorsPortalFrame({
                   className="inline-flex items-center justify-center text-[#0284C7]"
                   title="Matrícula validada en SSS / REFEPS"
                 >
-                  <CheckCircle2 className="h-4 w-4 fill-blue-50 text-[#0284C7]" />
+                  <CheckCircle2 className="h-4 w-4 fill-am-primary-50 text-[#0284C7]" />
                 </span>
               )}
             </h2>
@@ -650,7 +650,7 @@ export function DoctorsPortalFrame({
                   {doctorName}
                 </p>
                 <div className="mt-0.5 flex flex-wrap items-center gap-1">
-                  <span className="rounded-full border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-[9px] font-medium text-blue-800">
+                  <span className="rounded-full border border-am-primary-100 bg-am-primary-50 px-1.5 py-0.5 text-[9px] font-medium text-am-primary-800">
                     {doctorSpecialty}
                   </span>
                   {isValidOrExempt && credentialLabel && (
@@ -746,15 +746,15 @@ export function DoctorsPortalFrame({
                           className="inline-flex items-center justify-center text-[#0284C7]"
                           title="Matrícula validada en SSS / REFEPS"
                         >
-                          <CheckCircle2 className="h-3.5 w-3.5 fill-blue-50 text-[#0284C7]" />
+                          <CheckCircle2 className="h-3.5 w-3.5 fill-am-primary-50 text-[#0284C7]" />
                         </span>
                       )}
                     </p>
-                    <span className="mt-1 inline-flex max-w-full rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700">
+                    <span className="mt-1 inline-flex max-w-full rounded-full border border-am-primary-200 bg-am-primary-50 px-2 py-0.5 text-[10px] font-medium text-am-primary-700">
                       {doctorSpecialty}
                     </span>
                     {isValidOrExempt && credentialLabel && (
-                      <span className="mt-1 inline-flex max-w-full items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700">
+                      <span className="mt-1 inline-flex max-w-full items-center gap-1 rounded-full border border-am-primary-200 bg-am-primary-50 px-2 py-0.5 text-[10px] font-semibold text-am-primary-700">
                         <Check className="h-3 w-3 text-[#0284C7]" />
                         {credentialLabel}
                       </span>
@@ -787,7 +787,7 @@ export function DoctorsPortalFrame({
                     href={item.href}
                     className={`group flex items-center justify-between min-h-11 rounded-xl px-3 py-3 text-[13px] font-medium transition-colors ${
                       isActive
-                        ? "bg-sky-50 text-sky-800"
+                        ? "bg-am-primary-50 text-am-primary-800"
                         : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
                     }`}
                   >
@@ -818,7 +818,7 @@ export function DoctorsPortalFrame({
                       href={item.href}
                       className={`group flex items-center justify-between min-h-11 rounded-xl px-3 py-3 text-[13px] font-medium transition-colors ${
                         isActive
-                          ? "bg-sky-50 text-sky-800"
+                          ? "bg-am-primary-50 text-am-primary-800"
                           : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
                       }`}
                     >
@@ -899,7 +899,7 @@ export function DoctorsPortalFrame({
       <button
         type="button"
         onClick={() => setMobileMenuOpen(true)}
-        className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[#0284C7] text-white shadow-xl shadow-sky-900/20 transition-transform hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300 md:hidden"
+        className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[#0284C7] text-white shadow-xl shadow-am-primary-900/20 transition-transform hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-am-primary-300 md:hidden"
         aria-label="Abrir menú"
       >
         <Menu className="h-6 w-6" />
