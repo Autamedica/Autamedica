@@ -1,0 +1,133 @@
+name: Create private Farmalink PDF links and deliver payload
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/issue-farmalink-private-links.yml"
+      - "workers/private-doc-download.js"
+      - "workers/wrangler-private-doc-download.toml"
+      - "workers/private-doc-download-public.pem"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: farmalink-private-pdf-delivery
+  cancel-in-progress: false
+
+jobs:
+  create-links:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AUTAMEDICA_R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AUTAMEDICA_R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_EC2_METADATA_DISABLED: "true"
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+      R2_ENDPOINT: https://5b448192fe4b369642b68ad8f53a7603.r2.cloudflarestorage.com
+      BUCKET: autamedica-recovery-offsite-2026
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download the verified Farmalink PDF test artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: farmalink-autamedica-app-pdfs-test
+          run-id: 43995542620
+          github-token: ${{ github.token }}
+          path: "${{ runner.temp }}/farmalink-pdfs"
+
+      - name: Validate credentials and test PDFs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$AWS_ACCESS_KEY_ID"
+          test -n "$AWS_SECRET_ACCESS_KEY"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          for file in farmalink-autamedica-generica-test.pdf farmalink-autamedica-marca-test.pdf; do
+            test -s "$RUNNER_TEMP/farmalink-pdfs/$file"
+            test "$(head -c 5 "$RUNNER_TEMP/farmalink-pdfs/$file")" = "%PDF-"
+          done
+          aws --version
+
+      - name: Upload PDFs to private R2 bucket
+        shell: bash
+        run: |
+          set -euo pipefail
+          PREFIX="farmalink-homologation/$GITHUB_RUN_ID"
+          echo "R2_PREFIX=$PREFIX" >> "$GITHUB_ENV"
+          aws --endpoint-url "$R2_ENDPOINT" s3 cp \
+            "$RUNNER_TEMP/farmalink-pdfs/farmalink-autamedica-generica-test.pdf" \
+            "s3://$BUCKET/$PREFIX/autamedica-generica-4.pdf" \
+            --content-type application/pdf --cache-control "private, no-store" --only-show-errors
+          aws --endpoint-url "$R2_ENDPOINT" s3 cp \
+            "$RUNNER_TEMP/farmalink-pdfs/farmalink-autamedica-marca-test.pdf" \
+            "s3://$BUCKET/$PREFIX/autamedica-marca.pdf" \
+            --content-type application/pdf --cache-control "private, no-store" --only-show-errors
+          aws --endpoint-url "$R2_ENDPOINT" s3api head-object --bucket "$BUCKET" --key "$PREFIX/autamedica-generica-4.pdf" >/dev/null
+          aws --endpoint-url "$R2_ENDPOINT" s3api head-object --bucket "$BUCKET" --key "$PREFIX/autamedica-marca.pdf" >/dev/null
+          echo "Both private R2 objects uploaded and verified."
+
+      - name: Deploy private download Worker with R2 binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/wrangler" --no-save --no-package-lock wrangler@4.48.0
+          WRANGLER="$RUNNER_TEMP/wrangler/node_modules/.bin/wrangler"
+          "$WRANGLER" deploy workers/private-doc-download.js \
+            --config workers/wrangler-private-doc-download.toml \
+            --account-id "$CLOUDFLARE_ACCOUNT_ID" > "$RUNNER_TEMP/wrangler-deploy.log" 2>&1 || {
+              cat "$RUNNER_TEMP/wrangler-deploy.log"
+              exit 1
+            }
+          cat "$RUNNER_TEMP/wrangler-deploy.log"
+          DOWNLOAD_HMAC_SECRET="$(openssl rand -hex 32)"
+          printf '%s' "$DOWNLOAD_HMAC_SECRET" | "$WRANGLER" secret put DOWNLOAD_HMAC_SECRET \
+            --name autamedica-private-doc-downloads \
+            --config workers/wrangler-private-doc-download.toml
+          echo "DOWNLOAD_HMAC_SECRET=$DOWNLOAD_HMAC_SECRET" >> "$GITHUB_ENV"
+          SUBDOMAIN="$(curl -fsS --retry 3 \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" \
+            | jq -er '.result.subdomain')"
+          echo "WORKER_URL=https://autamedica-private-doc-downloads.$SUBDOMAIN.workers.dev" >> "$GITHUB_ENV"
+
+      - name: Generate 30-day HMAC links and verify private downloads
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXP="$(($(date -u +%s) + 30 * 24 * 60 * 60))"
+          GENERIC_PATH="$R2_PREFIX/autamedica-generica-4.pdf"
+          BRAND_PATH="$R2_PREFIX/autamedica-marca.pdf"
+          GENERIC_SIG="$(node -e 'const c=require("node:crypto");process.stdout.write(c.createHmac("sha256",process.env.DOWNLOAD_HMAC_SECRET).update(process.argv[1]+"\\n"+process.argv[2]).digest("base64url"))' "$GENERIC_PATH" "$EXP")"
+          BRAND_SIG="$(node -e 'const c=require("node:crypto");process.stdout.write(c.createHmac("sha256",process.env.DOWNLOAD_HMAC_SECRET).update(process.argv[1]+"\\n"+process.argv[2]).digest("base64url"))' "$BRAND_PATH" "$EXP")"
+          GENERIC_URL="$WORKER_URL/?f=$GENERIC_PATH&e=$EXP&s=$GENERIC_SIG"
+          BRAND_URL="$WORKER_URL/?f=$BRAND_PATH&e=$EXP&s=$BRAND_SIG"
+
+          curl -fsS "$GENERIC_URL" -o "$RUNNER_TEMP/verified-generic.pdf"
+          curl -fsS "$BRAND_URL" -o "$RUNNER_TEMP/verified-brand.pdf"
+          test "$(head -c 5 "$RUNNER_TEMP/verified-generic.pdf")" = "%PDF-"
+          test "$(head -c 5 "$RUNNER_TEMP/verified-brand.pdf")" = "%PDF-"
+          BAD_STATUS="$(curl -sS -o /dev/null -w '%{http_code}' "$WORKER_URL/?f=$GENERIC_PATH&e=$EXP&s=invalid")"
+          test "$BAD_STATUS" = "403"
+          EXPIRES="$(date -u -d "@$EXP" '+%Y-%m-%d %H:%M UTC')"
+          echo "Private links return valid PDFs; forged signature correctly returns HTTP 403."
+          echo "Links expire: $EXPIRES"
+
+          PAYLOAD="$(printf 'GENERIC=%s\\nBRAND=%s\\nEXPIRES=%s' "$GENERIC_URL" "$BRAND_URL" "$EXPIRES")"
+          openssl pkeyutl -encrypt -pubin -inkey workers/private-doc-download-public.pem \
+            -in <(printf '%s' "$PAYLOAD") -out "$RUNNER_TEMP/urls.enc" \
+            -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256
+          CIPHERTEXT="$(base64 -w0 "$RUNNER_TEMP/urls.enc")"
+          echo "Encrypted signed-link payload (RSA-OAEP-4096; decrypt in controlled session):"
+          echo "$CIPHERTEXT"
+          rm -f "$RUNNER_TEMP/verified-generic.pdf" "$RUNNER_TEMP/verified-brand.pdf" "$RUNNER_TEMP/urls.enc"
