@@ -375,7 +375,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     /**
      * A patient may only leave the waiting queue after a confirmed cancellation.
      * Guests use the room-bound token returned by the signed intake API. Authenticated
-     * owners use their own Supabase session with RLS and a searching-only condition.
+     * owners use their own Supabase session with RLS and a 15-minute unassigned-request condition.
      */
     override suspend fun cancelPatientDispatchRequest(requestId: String): Result<Boolean> = runCatching {
         require(requestId.isNotBlank()) { "Missing request ID" }
@@ -492,7 +492,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         val recoveryOwner = securePreferences?.getString(guestRecoveryOwnerKey)
         if (recovery != null && recoveryOwner == currentUser?.id) {
             val restored = resumeGuestRequestFromEncryptedDevice(recovery.first)
-            if (restored != null && restored.status in setOf("searching", "matched", "in_call")) {
+            if (restored != null && restored.status in setOf("searching", "matched", "in_call", "expired")) {
                 return@runCatching restored
             }
         }
