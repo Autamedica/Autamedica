@@ -99,12 +99,15 @@ class PharmacyIntakeViewModel @Inject constructor(
     private val referralCodeParam: String = (savedStateHandle.get<String>("referralCode") ?: "")
         .trim().uppercase(java.util.Locale.ROOT)
         .takeIf { it.matches(Regex("^[A-Z0-9_-]{3,32}$")) } ?: ""
+    private val careCountryParam: String = (savedStateHandle.get<String>("careCountry") ?: "")
+        .trim().uppercase(java.util.Locale.ROOT)
+        .takeIf { it == "AR" || it == "BR" } ?: ""
 
     private val _uiState = MutableStateFlow(
         PharmacyIntakeUiState(
             pharmacyId = pharmacyIdParam,
             referralCode = referralCodeParam,
-            careCountry = if (referralCodeParam == "JORDAN") "BR" else null,
+            careCountry = careCountryParam.takeIf(String::isNotBlank),
         )
     )
     val uiState: StateFlow<PharmacyIntakeUiState> = _uiState.asStateFlow()
@@ -180,8 +183,8 @@ class PharmacyIntakeViewModel @Inject constructor(
                     val phone = profile?.phone?.takeIf { it.isNotBlank() }
                         ?: currentUser.phone.orEmpty()
                     val dni = snapshot?.dni.orEmpty()
-                    val persistedCareCountry = if (referralCodeParam == "JORDAN") "BR"
-                        else profileRepository.getCareCountry().getOrNull()?.takeIf { it == "AR" || it == "BR" }
+                    val persistedCareCountry = profileRepository.getCareCountry().getOrNull()
+                        ?.takeIf { it == "AR" || it == "BR" }
 
                     _uiState.update { state ->
                         val currentName = state.patientName
@@ -195,12 +198,24 @@ class PharmacyIntakeViewModel @Inject constructor(
                             patientName = resolvedPatientName,
                             patientPhone = if (state.patientPhone.isBlank()) phone else state.patientPhone,
                             patientDni = if (state.patientDni.isBlank()) dni else state.patientDni,
-                            careCountry = state.careCountry ?: persistedCareCountry,
+                            // A patient's saved clinical jurisdiction wins over the QR market.
+                            // The QR market is the guest fallback; Jordan's legacy QR defaults to BR.
+                            careCountry = persistedCareCountry
+                                ?: careCountryParam.takeIf(String::isNotBlank)
+                                ?: if (referralCodeParam == "JORDAN") "BR" else state.careCountry,
                             isLoadingProfile = false,
                         )
                     }
                 } else {
-                    _uiState.update { it.copy(isAuthenticated = false, isLoadingProfile = false) }
+                    _uiState.update { state ->
+                        state.copy(
+                            isAuthenticated = false,
+                            isLoadingProfile = false,
+                            careCountry = state.careCountry
+                                ?: careCountryParam.takeIf(String::isNotBlank)
+                                ?: if (referralCodeParam == "JORDAN") "BR" else null,
+                        )
+                    }
                 }
             }.onFailure { e ->
                 SecureLog.error("[PharmacyIntakeVM] Failed loading user profile", e)
