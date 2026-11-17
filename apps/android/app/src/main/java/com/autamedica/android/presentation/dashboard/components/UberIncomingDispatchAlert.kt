@@ -70,6 +70,7 @@ import com.autamedica.android.domain.model.PharmacyDispatchRequest
 import com.autamedica.android.domain.model.dispatchTierLabel
 import com.autamedica.android.presentation.dashboard.cleanPatientName
 import com.autamedica.android.service.DispatchAudioNotifier
+import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
 
 // Colores de diseño clínico y benchmark Uber Driver nocturno
@@ -438,6 +439,17 @@ fun UberIncomingDispatchAlert(
                                             fontWeight = FontWeight.Black,
                                             color = CyanSurgical,
                                         )
+                                        request.patientAvatarUrl
+                                            ?.takeIf { it.isNotBlank() }
+                                            ?.let { avatarUrl ->
+                                                AsyncImage(
+                                                    model = avatarUrl,
+                                                    contentDescription = "Foto del paciente",
+                                                    modifier = Modifier
+                                                        .size(46.dp)
+                                                        .clip(CircleShape),
+                                                )
+                                            }
                                     }
                                 }
 
