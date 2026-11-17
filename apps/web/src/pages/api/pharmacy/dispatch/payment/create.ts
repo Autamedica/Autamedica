@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { badRequest, internalError, jsonOk, serviceUnavailable, unauthorized } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { getRuntimeEnvValue } from '@/lib/runtime-env'
+import { createMercadoPagoBrokerHeaders } from '@/lib/payments/mercadopago-broker-signature'
 import { authorizePharmacyPaymentRequest, hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payment-access'
 import { logger } from '@autamedica/shared'
 import { getOperationalPaymentSwitches } from '@/lib/payments/operational-switches'
@@ -65,13 +66,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
     const amountCents = pricing.consultation_price_minor
     const currency = pricing.currency as 'BRL' | 'ARS'
-    const argentinaProviderToken = dispatch.care_country === 'AR'
-      ? (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN_AR as string | undefined)
-        ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN_AR')
+    // Brazil uses the MLB token in this patient portal. Argentina's MLA
+    // token lives in the company Pages environment and is never read here.
+    const providerToken = dispatch.care_country === 'BR'
+      ? (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN as string | undefined)
+        ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN')
       : undefined
-    // Never send ARS through a Brazilian merchant token. Without a dedicated
-    // Argentina PSP credential, leave an auditable manual-pilot payment row.
-    const manualPilot = dispatch.care_country === 'AR' && !argentinaProviderToken
     const { data: old, error: oldError } = await admin.from('pharmacy_dispatch_payments')
       .select('id,status,checkout_url,amount_minor,currency,provider,provider_preference_id,provider_payment_id,metadata')
       .eq('dispatch_request_id',dispatch.id).maybeSingle()
@@ -82,25 +82,43 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (old.status === 'pending' && old.checkout_url) {
         return jsonOk({ status: 'pending', checkoutUrl: old.checkout_url, amountCents, currency })
       }
-      if (manualPilot && old.status === 'pending' && old.metadata?.payment_mode === 'manual_pilot'
-          && old.metadata?.manual_approval_pending === true) {
-        return jsonOk({ status: 'pending', checkoutUrl: null, amountCents, currency, manualApprovalRequired: true })
-      }
-      if (manualPilot && old.status === 'failed' && !old.provider_preference_id && !old.provider_payment_id) {
+      const recoverableManualPlaceholder = (old.status === 'pending' || old.status === 'failed')
+        && old.metadata?.payment_mode === 'manual_pilot'
+        && old.metadata?.manual_approval_pending === true
+        && !old.provider_preference_id && !old.provider_payment_id && !old.checkout_url
+      if (recoverableManualPlaceholder) {
+        if (currency === 'BRL' && !providerToken) return serviceUnavailable('mercadopago_access_not_configured')
+        // These rows were created by the old AR fallback without contacting Mercado Pago.
+        // Upgrade the same row atomically and create the first real provider preference.
         const { data: recovered, error: recoverError } = await admin.from('pharmacy_dispatch_payments')
-          .update({ status: 'pending', checkout_url: null, metadata: { ...(old.metadata ?? {}), payment_mode: 'manual_pilot', manual_approval_pending: true, country_code: 'AR' } })
-          .eq('id', old.id).eq('status', 'failed').select('id').maybeSingle()
-        if (recoverError || !recovered) throw recoverError ?? new Error('manual_pilot_payment_recovery_failed')
-        return jsonOk({ status: 'pending', checkoutUrl: null, amountCents, currency, manualApprovalRequired: true })
+          .update({
+            status: 'initializing',
+            provider: 'mercadopago',
+            checkout_url: null,
+            metadata: {
+              ...(old.metadata ?? {}),
+              payment_mode: 'mercadopago',
+              manual_approval_pending: false,
+              recovered_from_manual_placeholder_at: new Date().toISOString(),
+            },
+          })
+          .eq('id', old.id).eq('status', old.status).select('id').maybeSingle()
+        if (recoverError) throw recoverError
+        if (!recovered) return serviceUnavailable('checkout_already_initializing')
+        initializedPaymentId = old.id
+      } else {
+        // A provider request may have succeeded even if the response was lost.
+        // Do not create a second preference for the same dispatch automatically.
+        return serviceUnavailable(old.status === 'initializing'
+          ? 'checkout_already_initializing'
+          : 'checkout_requires_manual_reconciliation')
       }
-      // A provider request may have succeeded even if the response was lost.
-      // Do not create a second preference for the same dispatch automatically.
-      return serviceUnavailable('checkout_requires_manual_reconciliation')
     } else {
+      if (currency === 'BRL' && !providerToken) return serviceUnavailable('mercadopago_access_not_configured')
       // Operational switches stop new checkouts only. Existing pending/approved payments
       // above remain readable and usable after an Admin pause.
       const operationalSwitches = await getOperationalPaymentSwitches(admin).catch(() => null)
-      if (!operationalSwitches?.pharmacy_express_payments_enabled || (!manualPilot && !operationalSwitches.global_pix_mp_payments_enabled) || (isJordan && !operationalSwitches.jordan_qr_payments_enabled)) {
+      if (!operationalSwitches?.pharmacy_express_payments_enabled || !operationalSwitches.global_pix_mp_payments_enabled || (isJordan && !operationalSwitches.jordan_qr_payments_enabled)) {
         return serviceUnavailable('pharmacy_checkout_not_enabled')
       }
       // Clinical provider health is intentionally not a checkout dependency.
@@ -127,60 +145,81 @@ export const POST: APIRoute = async ({ request, locals }) => {
           dispatch_request_id: dispatch.id,
           amount_minor: amountCents,
           currency,
-          status: manualPilot ? 'pending' : 'initializing',
-          provider: manualPilot ? 'manual' : 'mercadopago',
-          ...(manualPilot ? { metadata: { payment_mode: 'manual_pilot', manual_approval_pending: true, country_code: 'AR' } } : {}),
+          status: 'initializing',
+          provider: 'mercadopago',
         })
         .select('id').single()
       if (createError?.code === '23505') return serviceUnavailable('checkout_already_initializing')
       if (createError || !created) throw createError ?? new Error('payment_row_creation_failed')
       initializedPaymentId = created.id
-      if (manualPilot) {
-        return jsonOk({ status: 'pending', checkoutUrl: null, amountCents, currency, manualApprovalRequired: true })
+    }
+    let checkout: CheckoutPreference
+    if (dispatch.care_country === 'AR') {
+      // ARS is always created by the MLA account hosted in empresa.autamedica.com.
+      // The patient portal never reads or forwards its local MLB token for AR.
+      const brokerPath = '/api/ops/mercadopago/argentina-broker'
+      const brokerBody = JSON.stringify({
+        action: 'create_preference',
+        dispatchId: dispatch.id,
+        amountMinor: amountCents,
+      })
+      const brokerHeaders = await createMercadoPagoBrokerHeaders(
+        'POST', brokerPath, brokerBody, locals.runtime?.env,
+      )
+      const brokerResponse = await fetch('https://empresa.autamedica.com' + brokerPath, {
+        method: 'POST',
+        headers: brokerHeaders,
+        body: brokerBody,
+        signal: AbortSignal.timeout(18000),
+      })
+      if (!brokerResponse.ok) {
+        logger.warn('[pharmacy-payment/create] Argentina broker unavailable', { httpStatus: brokerResponse.status })
+        throw new Error('argentina_checkout_broker_unavailable')
       }
-    }
-
-    const secret = dispatch.care_country === 'AR'
-      ? argentinaProviderToken
-      : (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN as string | undefined)
-        ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN')
-    if (!secret) throw new Error('mercadopago_access_not_configured')
-    const appUrl = ((locals.runtime?.env?.PUBLIC_APP_URL as string | undefined)
-      ?? getRuntimeEnvValue('PUBLIC_APP_URL')
-      ?? 'https://www.autamedica.com').replace(/\/+$/, '')
-
-    const response = await fetch(`${API}/checkout/preferences`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${secret}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        items: [{
-          title: 'AutaMedica - Consulta médica',
-          quantity: 1,
-          unit_price: amountCents / 100,
-          currency_id: currency,
-        }],
-        external_reference: `pharm:${dispatch.id}`,
-        notification_url: `${appUrl}/api/payments/mercadopago/webhook`,
-        back_urls: {
-          success: `${appUrl}/farmacia/pago/retorno`,
-          pending: `${appUrl}/farmacia/pago/retorno`,
-          failure: `${appUrl}/farmacia/pago/retorno`,
+      const brokerResult = await brokerResponse.json() as {
+        success?: boolean
+        data?: { id?: string; init_point?: string }
+      }
+      checkout = {
+        id: brokerResult.data?.id ?? '',
+        init_point: brokerResult.data?.init_point ?? '',
+      }
+    } else {
+      const appUrl = 'https://paciente.autamedica.com'
+      const response = await fetch(API + '/checkout/preferences', {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + providerToken,
+          'Content-Type': 'application/json',
         },
-        metadata: {
-          payment_type: 'pharmacy_consultation',
-          dispatch_id: dispatch.id,
-        },
-      }),
-      signal: AbortSignal.timeout(15000),
-    })
-    if (!response.ok) {
-      logger.warn('[pharmacy-payment/create] Provider checkout unavailable', { httpStatus: response.status })
-      throw new Error('checkout_provider_unavailable')
+        body: JSON.stringify({
+          items: [{
+            title: 'AutaMedica - Consulta médica',
+            quantity: 1,
+            unit_price: amountCents / 100,
+            currency_id: 'BRL',
+          }],
+          external_reference: 'pharm:' + dispatch.id,
+          notification_url: appUrl + '/api/payments/mercadopago/webhook',
+          back_urls: {
+            success: appUrl + '/farmacia/pago/retorno',
+            pending: appUrl + '/farmacia/pago/retorno',
+            failure: appUrl + '/farmacia/pago/retorno',
+          },
+          auto_return: 'approved',
+          metadata: {
+            payment_type: 'pharmacy_consultation',
+            dispatch_id: dispatch.id,
+          },
+        }),
+        signal: AbortSignal.timeout(15000),
+      })
+      if (!response.ok) {
+        logger.warn('[pharmacy-payment/create] Brazil provider checkout unavailable', { httpStatus: response.status })
+        throw new Error('checkout_provider_unavailable')
+      }
+      checkout = await response.json() as CheckoutPreference
     }
-    const checkout = (await response.json()) as CheckoutPreference
     if (!checkout.id || !checkout.init_point?.startsWith('https://')) {
       throw new Error('provider_checkout_response_invalid')
     }

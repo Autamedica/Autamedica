@@ -21,6 +21,14 @@ vi.mock('@/lib/runtime-env', () => ({
   getRuntimeEnvValue: vi.fn(() => undefined),
 }))
 
+vi.mock('@/lib/payments/mercadopago-broker-signature', () => ({
+  createMercadoPagoBrokerHeaders: vi.fn(async () => ({
+    'Content-Type': 'application/json',
+    'x-autamedica-broker-timestamp': '1794920000',
+    'x-autamedica-broker-signature': 'a'.repeat(64),
+  })),
+}))
+
 vi.mock('@/lib/pharmacy/payments/guest-payment-access', () => ({
   authorizePharmacyPaymentRequest: paymentAccessMock.authorize,
   hasSecureGuestPaymentSecret: paymentAccessMock.hasSecureSecret,
@@ -172,12 +180,12 @@ describe('API: /api/pharmacy/dispatch/payment/create pay-first', () => {
     expect(supabaseMock.from).toHaveBeenCalledTimes(3)
     expect(fetch).not.toHaveBeenCalled()
   })
-  it('creates a pending audited ARS manual-pilot payment without requiring the MP rail', async () => {
+  it('routes ARS checkout through the Argentina MLA portal broker', async () => {
     paymentAccessMock.authorize.mockResolvedValue({
       id: 'dispatch-1',
       care_country: 'AR',
       tier_requested: 'general',
-      status: 'searching',
+      status: 'pending_payment',
     })
     const partner = buildChain({
       referral_partner_id: 'partner-jordan',
@@ -193,20 +201,32 @@ describe('API: /api/pharmacy/dispatch/payment/create pay-first', () => {
     const switches = buildChain({
       jordan_qr_payments_enabled: true,
       pharmacy_express_payments_enabled: true,
-      global_pix_mp_payments_enabled: false,
+      global_pix_mp_payments_enabled: true,
     })
     const scopes = buildChain([
       { scope_key: 'AR', commercial_status: 'enabled', financial_status: 'ready' },
       { scope_key: 'EXPRESS', commercial_status: 'enabled', financial_status: 'ready' },
       { scope_key: 'JORDAN', commercial_status: 'enabled', financial_status: 'ready' },
     ])
-    const insert = buildChain({ id: 'payment-ar-manual' })
-    const chains = [partner, tariff, quote, oldPayment, switches, scopes, insert]
+    const insert = buildChain({ id: 'payment-ar-mercadopago' })
+    const saved = buildChain({ id: 'payment-ar-mercadopago' })
+    const chains = [partner, tariff, quote, oldPayment, switches, scopes, insert, saved]
     supabaseMock.from.mockImplementation(() => {
       const next = chains.shift()
       if (!next) throw new Error('Unexpected Supabase query')
       return next
     })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        success: true,
+        data: {
+          id: 'preference-ar-1',
+          init_point: 'https://www.mercadopago.com.ar/checkout/test',
+        },
+      }),
+    }))
 
     const response = await POST(makeContext())
     const body = await response.json()
@@ -214,25 +234,94 @@ describe('API: /api/pharmacy/dispatch/payment/create pay-first', () => {
     expect(response.status).toBe(200)
     expect(body.data).toMatchObject({
       status: 'pending',
-      checkoutUrl: null,
+      checkoutUrl: 'https://www.mercadopago.com.ar/checkout/test',
       amountCents: 1500000,
       currency: 'ARS',
-      manualApprovalRequired: true,
     })
     expect(insert.insert).toHaveBeenCalledWith(expect.objectContaining({
       dispatch_request_id: 'dispatch-1',
       amount_minor: 1500000,
       currency: 'ARS',
+      status: 'initializing',
+      provider: 'mercadopago',
+    }))
+    expect(fetch).toHaveBeenCalledWith(
+      'https://empresa.autamedica.com/api/ops/mercadopago/argentina-broker',
+      expect.objectContaining({ method: 'POST' }),
+    )
+    expect(supabaseMock.from).toHaveBeenCalledTimes(8)
+  })
+
+  it('recovers an old Argentine manual placeholder into a real MLA checkout', async () => {
+    paymentAccessMock.authorize.mockResolvedValue({
+      id: 'dispatch-1',
+      care_country: 'AR',
+      tier_requested: 'general',
+      status: 'pending_payment',
+    })
+    const partner = buildChain({
+      referral_partner_id: null,
+      commercial_referral_partners: null,
+    })
+    const tariff = buildChain({
+      country_code: 'AR', currency: 'ARS', consultation_price_minor: 1500000,
+      doctor_fee_minor: 800000, partner_commission_minor: 200000,
+      require_payment_before_dispatch: true,
+    })
+    const quote = buildChain({ doctor_fee_minor: 800000, price_minor: 1500000, currency: 'ARS' })
+    const placeholder = buildChain({
+      id: 'payment-ar-placeholder',
       status: 'pending',
+      checkout_url: null,
+      amount_minor: 1500000,
+      currency: 'ARS',
       provider: 'manual',
-      metadata: expect.objectContaining({
-        payment_mode: 'manual_pilot',
-        manual_approval_pending: true,
-        country_code: 'AR',
+      provider_preference_id: null,
+      provider_payment_id: null,
+      metadata: { payment_mode: 'manual_pilot', manual_approval_pending: true, country_code: 'AR' },
+    })
+    const recovered = buildChain({ id: 'payment-ar-placeholder' })
+    const saved = buildChain({ id: 'payment-ar-placeholder' })
+    const chains = [partner, tariff, quote, placeholder, recovered, saved]
+    supabaseMock.from.mockImplementation(() => {
+      const next = chains.shift()
+      if (!next) throw new Error('Unexpected Supabase query')
+      return next
+    })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        success: true,
+        data: {
+          id: 'preference-ar-recovered',
+          init_point: 'https://www.mercadopago.com.ar/checkout/recovered',
+        },
       }),
     }))
-    expect(supabaseMock.from).toHaveBeenCalledTimes(7)
-    expect(fetch).not.toHaveBeenCalled()
+
+    const response = await POST(makeContext())
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.data).toMatchObject({
+      status: 'pending',
+      checkoutUrl: 'https://www.mercadopago.com.ar/checkout/recovered',
+      currency: 'ARS',
+    })
+    expect(recovered.update).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'initializing',
+      provider: 'mercadopago',
+      metadata: expect.objectContaining({
+        payment_mode: 'mercadopago',
+        manual_approval_pending: false,
+      }),
+    }))
+    expect(fetch).toHaveBeenCalledWith(
+      'https://empresa.autamedica.com/api/ops/mercadopago/argentina-broker',
+      expect.objectContaining({ method: 'POST' }),
+    )
+    expect(supabaseMock.from).toHaveBeenCalledTimes(6)
   })
 
 })

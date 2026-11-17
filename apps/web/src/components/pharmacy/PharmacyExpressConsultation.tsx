@@ -62,7 +62,6 @@ export function PharmacyExpressConsultation({
   referralPartnerName = null,
   initialDni = '',
   initialCareCountry = null,
-  uiLocale = 'es',
   referralCode = null,
   jordanPaymentsEnabled = false,
   pharmacyPaymentsEnabled = false,
@@ -138,7 +137,9 @@ export function PharmacyExpressConsultation({
     return () => { active = false }
   }, [isJordanReferral])
 
-  const isPortuguese = formData.careCountry === 'BR' || uiLocale === 'pt'
+  // Care jurisdiction owns the language; a browser locale must never render
+  // the Argentina clinical/payment flow in Portuguese.
+  const isPortuguese = formData.careCountry === 'BR'
   const currentPricing = formData.careCountry ? pricingByCountry[formData.careCountry] : undefined
   const requiresCountryPayment = currentPricing?.require_payment_before_dispatch === true
   const amountLabel = currentPricing ? new Intl.NumberFormat(currentPricing.currency === 'BRL' ? 'pt-BR' : 'es-AR', { style: 'currency', currency: currentPricing.currency }).format(currentPricing.consultation_price_minor / 100) : null
