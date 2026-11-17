@@ -121,6 +121,7 @@ data class VideoCallUiState(
     val isVerifyingMemedPrescription: Boolean = false,
     val memedLaunchUrl: String? = null,
     val memedLaunchError: String? = null,
+    val memedLaunchNotice: String? = null,
     val isIssuingCertificate: Boolean = false,
     val lastIssuedDocumentCuir: String? = null,
     val inCallClinicalError: String? = null,
@@ -1542,7 +1543,7 @@ class VideoCallViewModel @Inject constructor(
         if (state.isOpeningMemed || state.isVerifyingMemedPrescription) return
         viewModelScope.launch {
             _uiState.update {
-                it.copy(isOpeningMemed = true, memedLaunchError = null, memedLaunchUrl = null)
+                it.copy(isOpeningMemed = true, memedLaunchError = null, memedLaunchNotice = null, memedLaunchUrl = null)
             }
             val launch = if (target.queryKey == "requestId") {
                 memedMobileBridgeRepository.createLaunchForDispatch(target.encounterId)
@@ -1570,7 +1571,7 @@ class VideoCallViewModel @Inject constructor(
 
     fun reportMemedBrowserError() {
         _uiState.update {
-            it.copy(memedLaunchError = "Navegador compatível não encontrado para abrir Memed.")
+            it.copy(memedLaunchError = "Navegador compatível não encontrado para abrir Memed.", memedLaunchNotice = null)
         }
     }
 
@@ -1588,7 +1589,7 @@ class VideoCallViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update {
-                it.copy(isVerifyingMemedPrescription = true, memedLaunchError = null)
+                it.copy(isVerifyingMemedPrescription = true, memedLaunchError = null, memedLaunchNotice = null)
             }
             try {
                 val userId = callUserId.ifBlank {
@@ -1620,29 +1621,43 @@ class VideoCallViewModel @Inject constructor(
                         it.copy(
                             isVerifyingMemedPrescription = false,
                             memedLaunchError = "Memed no confirmó una receta nueva para esta consulta. Reabra el módulo y finalice la emisión.",
+                            memedLaunchNotice = null,
                         )
                     }
                     return@launch
                 }
 
+                var notice = "Receita confirmada pela Memed."
                 if (lastMemedConfirmedDispatchId != requestId) {
                     val message = "A Memed confirmou o registro da receita nesta consulta. Identificador: ${confirmed.providerPrescriptionId}."
-                    engine.sendChatMessage(message)
-                    val localMessage = ChatMessage(
-                        id = "local-memed-rx-${System.currentTimeMillis()}",
-                        text = message,
-                        senderId = callUserId,
-                        senderType = callUserType,
-                        senderName = callUserName,
-                        timestamp = System.currentTimeMillis(),
-                    )
-                    _uiState.update { current ->
-                        current.copy(chatMessages = current.chatMessages + localMessage)
+                    val notificationQueued = engine.sendChatMessage(message)
+                    if (notificationQueued) {
+                        val localMessage = ChatMessage(
+                            id = "local-memed-rx-${System.currentTimeMillis()}",
+                            text = message,
+                            senderId = callUserId,
+                            senderType = callUserType,
+                            senderName = callUserName,
+                            timestamp = System.currentTimeMillis(),
+                        )
+                        _uiState.update { current ->
+                            current.copy(chatMessages = current.chatMessages + localMessage)
+                        }
+                        lastMemedConfirmedDispatchId = requestId
+                        notice = "Receita confirmada pela Memed. Notificação enviada ao chat da consulta."
+                    } else {
+                        SecureLog.warn(
+                            "[Telemedicine] Memed prescription verified; consultation chat is not ready for notification",
+                        )
+                        notice = "Receita confirmada pela Memed. O chat não confirmou o envio da notificação ao paciente."
                     }
-                    lastMemedConfirmedDispatchId = requestId
                 }
                 _uiState.update {
-                    it.copy(isVerifyingMemedPrescription = false, memedLaunchError = null)
+                    it.copy(
+                        isVerifyingMemedPrescription = false,
+                        memedLaunchError = null,
+                        memedLaunchNotice = notice,
+                    )
                 }
             } catch (error: Exception) {
                 SecureLog.error("[Telemedicine] Failed reconciling Memed dispatch issuance", error)
@@ -1650,6 +1665,7 @@ class VideoCallViewModel @Inject constructor(
                     it.copy(
                         isVerifyingMemedPrescription = false,
                         memedLaunchError = "No fue posible confirmar el registro de la receta Memed.",
+                        memedLaunchNotice = null,
                     )
                 }
             }
