@@ -678,17 +678,17 @@ private fun DoctorDutyCard(
  */
 @Composable
 fun DispatchTelemetryTicker(
-    onlineDoctorCount: Int? = null,
+    dispatchAvailableDoctorCount: Int? = null,
     modifier: Modifier = Modifier,
 ) {
     // Resolve resources during composition so locale changes immediately update
     // the ticker; never cache strings from the previous market in remember().
     val doctorMessage = when {
-        onlineDoctorCount == null -> stringResource(R.string.pharmacy_flow_ticker_checking)
-        onlineDoctorCount > 0 -> stringResource(R.string.pharmacy_flow_ticker_available, onlineDoctorCount)
+        dispatchAvailableDoctorCount == null -> stringResource(R.string.pharmacy_flow_ticker_checking)
+        dispatchAvailableDoctorCount > 0 -> stringResource(R.string.pharmacy_flow_ticker_available, dispatchAvailableDoctorCount)
         else -> stringResource(R.string.pharmacy_flow_ticker_waiting)
     }
-    val waitMessage = if (onlineDoctorCount != null && onlineDoctorCount > 0) {
+    val waitMessage = if (dispatchAvailableDoctorCount != null && dispatchAvailableDoctorCount > 0) {
         stringResource(R.string.pharmacy_flow_ticker_await_accept)
     } else {
         stringResource(R.string.pharmacy_flow_ticker_queue)

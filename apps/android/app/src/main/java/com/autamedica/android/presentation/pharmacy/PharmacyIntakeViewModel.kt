@@ -55,9 +55,9 @@ data class PharmacyIntakeUiState(
     val roomId: String? = null,
     val readyToJoinCall: Boolean = false,
     val activeDoctors: List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo> = emptyList(),
-    // Privacy-safe backend capacity aggregate for the chosen care country.
-    // Null means unavailable/unknown, not zero.
-    val onlineDoctorsInMarket: Int? = null,
+    // Count of clinically approved, on-duty doctors eligible for dispatch in this care country.
+    // Null means unavailable/unknown, not zero; this is not a count of every signed-in doctor.
+    val availableDoctorsInMarket: Int? = null,
 ) {
     /** The signed backend resolves partner provenance; recovery must not bypass payment. */
     val requiresDispatchPayment: Boolean
@@ -121,13 +121,13 @@ class PharmacyIntakeViewModel @Inject constructor(
                 .onSuccess { count ->
                     _uiState.update { state ->
                         if (state.careCountry == country) {
-                            state.copy(onlineDoctorsInMarket = count.coerceAtLeast(0))
+                            state.copy(availableDoctorsInMarket = count.coerceAtLeast(0))
                         } else state
                     }
                 }
                 .onFailure {
                     _uiState.update { state ->
-                        if (state.careCountry == country) state.copy(onlineDoctorsInMarket = null)
+                        if (state.careCountry == country) state.copy(availableDoctorsInMarket = null)
                         else state
                     }
                 }
@@ -287,7 +287,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                 selectedReasonChip = if (countryChanged) null else state.selectedReasonChip,
                 reasonText = if (countryChanged && reasonWasAutoFilled) "" else state.reasonText,
                 error = null,
-                onlineDoctorsInMarket = null,
+                availableDoctorsInMarket = null,
             )
         }
         refreshCountryDoctorCount(country)
