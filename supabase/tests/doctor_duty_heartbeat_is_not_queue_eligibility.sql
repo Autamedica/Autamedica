@@ -34,6 +34,9 @@ BEGIN
      OR position('limit 20' IN lower(v_matcher)) = 0 THEN
     RAISE EXCEPTION 'Doctor selection must prioritize acceptance rate over the last 20 offers';
   END IF;
+  IF position('when count(*) = 0 then 0::numeric' IN lower(v_matcher)) = 0 THEN
+    RAISE EXCEPTION 'Doctors without history must not receive an artificial 100 percent acceptance rate';
+  END IF;
   IF position('max(recent.offered_at)' IN lower(v_matcher)) = 0 THEN
     RAISE EXCEPTION 'Ties must prioritize the doctor waiting longest since their last offer';
   END IF;
