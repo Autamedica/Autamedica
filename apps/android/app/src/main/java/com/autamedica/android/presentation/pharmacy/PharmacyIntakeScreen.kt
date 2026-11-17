@@ -80,7 +80,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import com.autamedica.android.R
-import com.autamedica.android.util.CareCountryLocale
 import com.autamedica.android.presentation.common.CareCountryPicker
 import com.autamedica.android.domain.model.PharmacyConsultationStatus
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -152,19 +151,6 @@ fun PharmacyIntakeScreen(
                 }
             },
         )
-    }
-
-    // Recovered requests must reopen in their own market language, too.
-    LaunchedEffect(uiState.referralCode, uiState.careCountry) {
-        if (uiState.referralCode == "JORDAN" && uiState.careCountry == "BR") {
-            CareCountryLocale.applyCountry(context, "BR")
-        }
-    }
-
-    LaunchedEffect(uiState.activeRequestId, uiState.careCountry) {
-        if (uiState.activeRequestId != null && uiState.careCountry in setOf("AR", "BR")) {
-            CareCountryLocale.applyCountry(context, requireNotNull(uiState.careCountry))
-        }
     }
 
     // Browser return is not payment evidence. The backend status API alone can
@@ -314,13 +300,15 @@ private fun PharmacyIntakeFormView(
             .verticalScroll(scrollState)
             .padding(horizontal = 20.dp, vertical = 12.dp),
     ) {
-        CareCountryPicker(
-            selectedCountry = uiState.careCountry,
-            onCountrySelected = onCountrySelected,
-            enabled = uiState.referralCode != "JORDAN",
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(modifier = Modifier.height(22.dp))
+        if (uiState.careCountry == null && !uiState.isLoadingProfile && !uiState.isRestoringRequest) {
+            CareCountryPicker(
+                selectedCountry = null,
+                onCountrySelected = onCountrySelected,
+                enabled = uiState.referralCode != "JORDAN",
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(22.dp))
+        }
 
         // 1. Motivo de Consulta (Focus principal del usuario)
         Text(
