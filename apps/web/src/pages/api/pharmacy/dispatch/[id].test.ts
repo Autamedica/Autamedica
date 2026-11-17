@@ -178,6 +178,8 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
     const update = buildTableChain(null)
     let call = 0
     supabaseMock.from.mockImplementation(() => call++ === 0 ? lookup : update)
+    const matched = { ...REQUEST_RECORD, status: 'matched' }
+    supabaseMock.from.mockReturnValue(buildTableChain(matched))
     const response = await DELETE(makeContext({ method: 'DELETE' }))
     expect(response.status).toBe(409)
   })
@@ -186,9 +188,10 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
     patientContextMock.resolve.mockResolvedValue(null)
     const guestRequest = { ...REQUEST_RECORD, patient_id: 'guest-patient-row', requested_by_user_id: null }
     const lookup = buildTableChain(guestRequest)
+    const activeOfferLookup = buildTableChain(null)
     const update = buildTableChain({ id: 'req-1' })
     let call = 0
-    supabaseMock.from.mockImplementation(() => call++ === 0 ? lookup : update)
+    supabaseMock.from.mockImplementation(() => [lookup, activeOfferLookup, update][call++])
     const guestToken = await signGuestToken({ callId: 'req-1', roomId: 'cf-room-1', guestName: 'Guest' }, TEST_SECRET)
 
     const response = await DELETE(makeContext({
@@ -199,11 +202,12 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
 
     expect(response.status).toBe(200)
     expect(body.data.cancelled).toBe(true)
+    expect(supabaseMock.from).toHaveBeenCalledTimes(3)
     expect(update.update).toHaveBeenCalledWith({ status: 'cancelled' })
     expect(update.eq).toHaveBeenCalledWith('id', 'req-1')
     expect(update.is).toHaveBeenCalledWith('requested_by_user_id', null)
     expect(update.eq).toHaveBeenCalledWith('care_country', 'AR')
-    expect(update.eq).toHaveBeenCalledWith('status', 'searching')
+    expect(update.in).toHaveBeenCalledWith('status', ['searching', 'expired'])
     expect(update.eq).not.toHaveBeenCalledWith('patient_id', null)
   })
 
