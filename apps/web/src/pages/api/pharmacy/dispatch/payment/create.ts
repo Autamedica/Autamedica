@@ -100,6 +100,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
             checkout_url: null,
             metadata: {
               ...(old.metadata ?? {}),
+              legacy_payment_mode: 'manual_pilot',
               payment_mode: 'mercadopago_ar',
               manual_approval_pending: false,
               manual_pilot_migrated_at: new Date().toISOString(),
