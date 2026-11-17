@@ -4,6 +4,7 @@
  * patient details or Supabase JWT are ever encoded in the returned URL.
  */
 import { getCorsHeaders, jsonResponse, requireAuth } from '../_shared/auth-helpers.ts';
+import { withEdgeSentry } from '../_shared/sentry.ts';
 import {
   appointmentPermitsPrescription,
   buildMemedMobileLaunchUrl,
@@ -82,7 +83,7 @@ export async function handler(req: Request): Promise<Response> {
         .select('assigned_doctor_id, patient_id, status, call_started_at')
         .eq('id', requestId).maybeSingle();
       const callStarted = dispatch?.call_started_at ? Date.parse(dispatch.call_started_at) : NaN;
-      if (dispatchError || dispatch?.assigned_doctor_id !== doctor.id ||
+      if (dispatchError || !dispatch || dispatch.assigned_doctor_id !== doctor.id ||
         !dispatch.patient_id || !['in_call', 'completed'].includes(dispatch.status) ||
         !Number.isFinite(callStarted) || callStarted < Date.now() - 24 * 60 * 60_000 ||
         callStarted > Date.now() + 5 * 60_000) {
@@ -113,4 +114,4 @@ export async function handler(req: Request): Promise<Response> {
   }
 }
 
-Deno.serve(handler);
+Deno.serve(withEdgeSentry('memed-mobile-preflight', handler))

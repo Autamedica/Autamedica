@@ -5,5 +5,5 @@
     "jspdf": "npm:jspdf@2.5.2",
     "qrcode": "npm:qrcode@1.5.4"
   },
-  "nodeModulesDir": "none"
+  "nodeModulesDir": "auto"
 }

@@ -1,4 +1,5 @@
 import { getCorsHeaders, jsonResponse, requireAuth } from '../_shared/auth-helpers.ts';
+import { withEdgeSentry } from '../_shared/sentry.ts';
 
 type JsonObject = Record<string, unknown>;
 
@@ -34,7 +35,7 @@ async function exists(query: PromiseLike<{ data: unknown; error: unknown }>): Pr
  * then delegates the only issuance/signing operation to the country-aware Web
  * PAdES/Farmalink issuer. This function never signs PDFs or fabricates CUIR.
  */
-export async function handler(req: Request): Promise<Response> {
+async function issuePrescriptionHandler(req: Request): Promise<Response> {
   const cors = getCorsHeaders(req.headers.get('Origin'));
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return errorResponse('METHOD_NOT_ALLOWED', 405, cors);
@@ -205,3 +206,5 @@ export async function handler(req: Request): Promise<Response> {
     return errorResponse('INTERNAL_ERROR', 500, cors);
   }
 }
+
+export const handler = withEdgeSentry('issue-prescription', issuePrescriptionHandler);

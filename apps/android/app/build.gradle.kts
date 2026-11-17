@@ -78,6 +78,14 @@ android {
         )
         buildConfigField(
             "String",
+            "SENTRY_DSN",
+            quoteForBuildConfig(optionalBuildProperty(
+                "PUBLIC_SENTRY_DSN",
+                "https://485f1dbb686db51681cf8159012dcdf1@o4511195725168640.ingest.us.sentry.io/4511195726741504"
+            ))
+        )
+        buildConfigField(
+            "String",
             "SIGNALING_URL",
             quoteForBuildConfig(
                 optionalBuildProperty(
@@ -246,6 +254,9 @@ dependencies {
 
     // Logging
     implementation(libs.timber)
+
+    // Error reporting (Firebase Crashlytics remains enabled as a second sink)
+    implementation(libs.sentry.android)
 
     // Firebase
     implementation(platform(libs.firebase.bom))

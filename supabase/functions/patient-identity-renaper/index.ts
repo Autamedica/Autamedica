@@ -1,3 +1,4 @@
+import { withEdgeSentry } from '../_shared/sentry.ts';
 const BUS_BASE_URL = 'https://bus.msal.gob.ar/masterfile-federacion-service/api';
 
 type RenaperSexId = 1 | 2 | 3;
@@ -261,5 +262,5 @@ export async function handleRequest(
 }
 
 if (import.meta.main) {
-  Deno.serve((req) => handleRequest(req));
+  Deno.serve(withEdgeSentry('patient-identity-renaper', (req) => handleRequest(req)));
 }

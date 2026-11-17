@@ -135,6 +135,9 @@ jobs:
         with:
           deno-version: v2.x
 
+      - name: Install Edge dependencies
+        run: deno install --config supabase/functions/deno.json --no-lock
+
       - name: Deno check
         run: |
           status=0

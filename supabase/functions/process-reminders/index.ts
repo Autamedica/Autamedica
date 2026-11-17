@@ -10,6 +10,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
+import { withEdgeSentry } from '../_shared/sentry.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -43,7 +44,7 @@ interface Reminder {
   retry_count?: number | null
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withEdgeSentry('process-reminders', async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204 })
   }
@@ -126,7 +127,7 @@ Deno.serve(async (req) => {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
   })
-})
+}))
 
 async function processOneReminder(
   supabase: ReminderSupabaseClient,
