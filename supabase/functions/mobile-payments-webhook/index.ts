@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import type { BillingCurrency } from '../_shared/billing-currency.ts'
 import { getMercadoPagoMarketToken } from '../_shared/mercadopago-market-token.ts'
-import {
 import { withEdgeSentry } from '../_shared/sentry.ts';
+import {
   mercadoPagoMarketSecrets,
   paymentAmountCents,
   verifyMercadoPagoMarketSignature,

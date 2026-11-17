@@ -4,8 +4,8 @@
  * patient details or Supabase JWT are ever encoded in the returned URL.
  */
 import { getCorsHeaders, jsonResponse, requireAuth } from '../_shared/auth-helpers.ts';
-import {
 import { withEdgeSentry } from '../_shared/sentry.ts';
+import {
   appointmentPermitsPrescription,
   buildMemedMobileLaunchUrl,
   validMemedMobileAppointment,

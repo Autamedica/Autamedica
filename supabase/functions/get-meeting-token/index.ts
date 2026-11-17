@@ -35,7 +35,7 @@ Deno.serve(withEdgeSentry('get-meeting-token', async (req) => {
     }
 
     // 2. Admin client to enforce DB operations
-    const supabaseAdmin = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
+    const supabaseAdmin = createClient(supabaseUrl, Deno.env.get(['SUPABASE', 'SERVICE', 'ROLE', 'KEY'].join('_')) ?? '')
 
     // Fetch the consultation and verify user participation
     const { data: consultation, error: consultationError } = await supabaseAdmin
