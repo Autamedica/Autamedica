@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autamedica.android.domain.model.PharmacyConsultationStatus
 import com.autamedica.android.domain.repository.AuthRepository
-import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.logging.SecureLog
@@ -93,7 +92,6 @@ class PharmacyIntakeViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
-    private val appointmentRepository: AppointmentRepository,
     private val pharmacyDispatchRepository: PharmacyDispatchRepository,
 ) : ViewModel() {
 
@@ -183,7 +181,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                         ?: currentUser.phone.orEmpty()
                     val dni = snapshot?.dni.orEmpty()
                     val persistedCareCountry = if (referralCodeParam == "JORDAN") "BR"
-                        else appointmentRepository.getCareCountry().getOrNull()?.takeIf { it == "AR" || it == "BR" }
+                        else profileRepository.getCareCountry().getOrNull()?.takeIf { it == "AR" || it == "BR" }
 
                     _uiState.update { state ->
                         val currentName = state.patientName
