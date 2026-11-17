@@ -5,11 +5,19 @@ import { createAstroAdminClient } from '@/lib/supabase';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payment-access';
 import { getOperationalPaymentSwitches } from '@/lib/payments/operational-switches';
+import { resolvePatientContext } from '@/lib/patients/api/patient-context';
 
 export const prerender = false;
 
 const pharmacyId = Astro.url.searchParams.get('pharmacyId');
 const requestedReferral = Astro.url.searchParams.get('ref')?.trim().toUpperCase() ?? null;
+const requestedCareCountry = Astro.url.searchParams.get('careCountry')?.toUpperCase();
+const patientContext = await resolvePatientContext(Astro.request, Astro.locals).catch(() => null);
+// Commercial attribution and clinical jurisdiction are independent.
+// The patient's persisted jurisdiction wins; an explicit QR parameter is the
+// fallback for guests. A referral partner never selects the country of care.
+const initialCareCountry = patientContext?.careCountry
+  ?? (requestedCareCountry === 'AR' || requestedCareCountry === 'BR' ? requestedCareCountry : null);
 let referralCode: string | null = null;
 let referralPartnerName: string | null = null;
 if (requestedReferral && /^[A-Z0-9_-]{3,32}$/.test(requestedReferral)) {
@@ -74,9 +82,9 @@ if (import.meta.env.DEV && process.env.AUTAMEDICA_E2E_PHARMACY_DISPATCH === 'tru
   };
 }
 
-const isBrazilian = requestedReferral === 'JORDAN' || Astro.locals.locale === 'pt' || Astro.url.searchParams.get('country')?.toUpperCase() === 'BR' || Astro.url.searchParams.get('locale')?.toLowerCase() === 'pt-br';
-const title = isBrazilian ? 'Consulta Expressa em Farmácia · AutaMedica' : 'Consulta Exprés en Farmacia • Red AutaMedica';
-const description = isBrazilian ? 'Ponto de atendimento de telemedicina da AutaMedica.' : 'Punto de atención de telemedicina de AutaMedica.';
+const isPortugueseUI = Astro.locals.locale === 'pt';
+const title = isPortugueseUI ? 'Consulta Expressa em Farmácia · AutaMedica' : 'Consulta Exprés en Farmacia • Red AutaMedica';
+const description = isPortugueseUI ? 'Ponto de atendimento de telemedicina da AutaMedica.' : 'Punto de atención de telemedicina de AutaMedica.';
 ---
 
 <CallLayout title={title} description={description}>
@@ -84,6 +92,8 @@ const description = isBrazilian ? 'Ponto de atendimento de telemedicina da AutaM
     client:load
     pharmacyId={pharmacyId}
     pharmacyName={pharmacyName}
+    initialCareCountry={initialCareCountry}
+    uiLocale={Astro.locals.locale}
     referralCode={referralCode}
     referralPartnerName={referralPartnerName}
     jordanPaymentsEnabled={jordanPaymentsEnabled}

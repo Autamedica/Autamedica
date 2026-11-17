@@ -8,6 +8,7 @@ on:
       - "workers/private-doc-download.js"
       - "workers/wrangler-private-doc-download.toml"
       - "workers/private-doc-download-public.pem"
+      - "wrangler.toml"
   workflow_dispatch:
 
 permissions:
@@ -77,29 +78,31 @@ jobs:
           aws --endpoint-url "$R2_ENDPOINT" s3api head-object --bucket "$BUCKET" --key "$PREFIX/autamedica-marca.pdf" >/dev/null
           echo "Both private R2 objects uploaded and verified."
 
-      - name: Deploy private download Worker with R2 binding
+      - name: Deploy private Pages endpoint with R2 binding
         shell: bash
         run: |
           set -euo pipefail
-          npm install --prefix "$RUNNER_TEMP/wrangler" --no-save --no-package-lock wrangler@3.114.17
+          PROJECT="autamedica-private-doc-downloads"
+          npm install --prefix "$RUNNER_TEMP/wrangler" --no-save --no-package-lock wrangler@4.163.0
           WRANGLER="$RUNNER_TEMP/wrangler/node_modules/.bin/wrangler"
-          "$WRANGLER" deploy workers/private-doc-download.js \
-            --config workers/wrangler-private-doc-download.toml \
-            > "$RUNNER_TEMP/wrangler-deploy.log" 2>&1 || {
-              cat "$RUNNER_TEMP/wrangler-deploy.log"
-              exit 1
-            }
-          cat "$RUNNER_TEMP/wrangler-deploy.log"
-          DOWNLOAD_HMAC_SECRET="$(openssl rand -hex 32)"
-          printf '%s' "$DOWNLOAD_HMAC_SECRET" | "$WRANGLER" secret put DOWNLOAD_HMAC_SECRET \
-            --name autamedica-private-doc-downloads \
-            --config workers/wrangler-private-doc-download.toml
-          echo "DOWNLOAD_HMAC_SECRET=$DOWNLOAD_HMAC_SECRET" >> "$GITHUB_ENV"
-          SUBDOMAIN="$(curl -fsS --retry 3 \
+
+          if ! curl -fsS \
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" \
-            | jq -er '.result.subdomain')"
-          echo "WORKER_URL=https://autamedica-private-doc-downloads.$SUBDOMAIN.workers.dev" >> "$GITHUB_ENV"
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT" \
+            >/dev/null; then
+            "$WRANGLER" pages project create "$PROJECT" --production-branch main
+          fi
+
+          DOWNLOAD_HMAC_SECRET="$(openssl rand -hex 32)"
+          printf '%s' "$DOWNLOAD_HMAC_SECRET" | "$WRANGLER" pages secret put DOWNLOAD_HMAC_SECRET \
+            --project-name "$PROJECT"
+          echo "DOWNLOAD_HMAC_SECRET=$DOWNLOAD_HMAC_SECRET" >> "$GITHUB_ENV"
+
+          mkdir -p dist
+          printf '%s\\n' '<!doctype html><meta charset="utf-8"><title>Autamedica secure delivery</title>' > dist/index.html
+          "$WRANGLER" pages deploy dist --project-name "$PROJECT" --branch main \
+            --commit-hash "$GITHUB_SHA" --commit-dirty=false
+          echo "WORKER_URL=https://$PROJECT.pages.dev" >> "$GITHUB_ENV"
 
       - name: Generate 30-day HMAC links and verify private downloads
         shell: bash

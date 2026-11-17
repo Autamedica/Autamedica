@@ -2,6 +2,7 @@ package com.autamedica.android.data.repository
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertThrows
 import org.junit.Test
@@ -22,6 +23,32 @@ class MemedMobileLaunchUrlTest {
         assertThrows(IllegalArgumentException::class.java) {
             MemedMobileLaunchUrl.validate(dispatchUrl, appointment, "appointmentId")
         }
+    }
+
+    @Test fun pharmacyDispatchIsCanonicalWhenBothEncounterIdsExist() {
+        assertEquals(
+            MemedEncounterTarget("requestId", appointment),
+            MemedMobileLaunchUrl.resolveEncounterTarget(
+                appointmentId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                dispatchRequestId = appointment,
+            ),
+        )
+    }
+
+    @Test fun invalidDispatchDoesNotFallBackToAnUnrelatedAppointment() {
+        assertNull(
+            MemedMobileLaunchUrl.resolveEncounterTarget(
+                appointmentId = appointment,
+                dispatchRequestId = "../invalid",
+            ),
+        )
+    }
+
+    @Test fun appointmentIsUsedOnlyWhenNoDispatchExists() {
+        assertEquals(
+            MemedEncounterTarget("appointmentId", appointment),
+            MemedMobileLaunchUrl.resolveEncounterTarget(appointment, null),
+        )
     }
 
     @Test fun blocksUrlTamperingAndCredentialLeakage() {

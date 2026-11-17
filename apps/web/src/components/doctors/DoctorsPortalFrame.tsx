@@ -634,6 +634,22 @@ export function DoctorsPortalFrame({
           <div className="flex items-center gap-2 md:gap-3">
             <DoctorNotificationsBell />
 
+            <button
+              type="button"
+              onClick={handleSignOut}
+              disabled={signingOut}
+              aria-label={isBrazilianPortal ? "Sair da conta" : "Cerrar sesión"}
+              title={isBrazilianPortal ? "Sair da conta" : "Cerrar sesión"}
+              className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-red-200 bg-white px-3 text-[12px] font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-wait disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">
+                {signingOut
+                  ? isBrazilianPortal ? "Saindo..." : "Cerrando sesión..."
+                  : isBrazilianPortal ? "Sair" : "Cerrar sesión"}
+              </span>
+            </button>
+
             <div className="flex min-w-0 items-center gap-2">
               <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-[#0F2537] text-xs font-semibold text-white ring-2 ring-emerald-500/70">
                 {avatarUrl ? (
@@ -856,7 +872,7 @@ export function DoctorsPortalFrame({
                 >
                   <LogOut className="h-4 w-4" />
                   {!isSidebarCollapsed && (
-                    <span>{signingOut ? "Cerrando sesión..." : "Cerrar sesión"}</span>
+                    <span>{signingOut ? (isBrazilianPortal ? "Saindo..." : "Cerrando sesión...") : (isBrazilianPortal ? "Sair" : "Cerrar sesión")}</span>
                   )}
                 </button>
               </div>

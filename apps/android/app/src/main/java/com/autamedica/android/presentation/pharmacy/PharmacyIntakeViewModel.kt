@@ -180,6 +180,8 @@ class PharmacyIntakeViewModel @Inject constructor(
                     val phone = profile?.phone?.takeIf { it.isNotBlank() }
                         ?: currentUser.phone.orEmpty()
                     val dni = snapshot?.dni.orEmpty()
+                    val persistedCareCountry = if (referralCodeParam == "JORDAN") "BR"
+                        else profileRepository.getCareCountry().getOrNull()?.takeIf { it == "AR" || it == "BR" }
 
                     _uiState.update { state ->
                         val currentName = state.patientName
@@ -193,6 +195,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                             patientName = resolvedPatientName,
                             patientPhone = if (state.patientPhone.isBlank()) phone else state.patientPhone,
                             patientDni = if (state.patientDni.isBlank()) dni else state.patientDni,
+                            careCountry = state.careCountry ?: persistedCareCountry,
                             isLoadingProfile = false,
                         )
                     }

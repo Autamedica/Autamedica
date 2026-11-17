@@ -24,6 +24,7 @@ interface PharmacyExpressConsultationProps {
   pharmacyName?: string
   initialDni?: string
   initialCareCountry?: 'AR' | 'BR' | null
+  uiLocale?: 'es' | 'pt'
   referralCode?: string | null
   referralPartnerName?: string | null
   jordanPaymentsEnabled?: boolean
@@ -61,6 +62,7 @@ export function PharmacyExpressConsultation({
   referralPartnerName = null,
   initialDni = '',
   initialCareCountry = null,
+  uiLocale = 'es',
   referralCode = null,
   jordanPaymentsEnabled = false,
   pharmacyPaymentsEnabled = false,
@@ -74,7 +76,7 @@ export function PharmacyExpressConsultation({
 
   const [step, setStep] = useState<Step>('FORM')
   const [formData, setFormData] = useState({
-    careCountry: (initialCareCountry ?? (isJordanReferral ? 'BR' : '')) as '' | 'AR' | 'BR',
+    careCountry: (initialCareCountry ?? '') as '' | 'AR' | 'BR',
     dni: initialDni,
     genderCode: '' as '' | 'F' | 'M' | 'X',
     name: '',
@@ -97,17 +99,6 @@ export function PharmacyExpressConsultation({
   const [documents, setDocuments] = useState<EncounterDocument[]>([])
   const recoveryInProgress = useRef(false)
   const lastRecoveryAttemptAt = useRef(0)
-
-  useEffect(() => {
-    if (isJordanReferral) {
-      setFormData((current) => ({ ...current, careCountry: 'BR' }))
-      return
-    }
-    const browserIsPortuguese =
-      (typeof navigator !== 'undefined' && navigator.language.toLowerCase().startsWith('pt')) ||
-      (typeof document !== 'undefined' && document.documentElement.lang.toLowerCase().startsWith('pt'))
-    if (browserIsPortuguese) setFormData((current) => ({ ...current, careCountry: 'BR' }))
-  }, [isJordanReferral])
 
   useEffect(() => {
     let active = true
@@ -147,11 +138,14 @@ export function PharmacyExpressConsultation({
     return () => { active = false }
   }, [isJordanReferral])
 
-  const isPortuguese = formData.careCountry === 'BR'
+  const isPortuguese = formData.careCountry === 'BR' || uiLocale === 'pt'
   const currentPricing = formData.careCountry ? pricingByCountry[formData.careCountry] : undefined
   const requiresCountryPayment = currentPricing?.require_payment_before_dispatch === true
   const amountLabel = currentPricing ? new Intl.NumberFormat(currentPricing.currency === 'BRL' ? 'pt-BR' : 'es-AR', { style: 'currency', currency: currentPricing.currency }).format(currentPricing.consultation_price_minor / 100) : null
   const copy = isPortuguese ? COPY.BR : COPY.AR
+  // Civil document type is determined only by the selected clinical country.
+  const documentLabel = formData.careCountry === 'BR' ? 'CPF' : 'DNI'
+  const documentPlaceholder = formData.careCountry === 'BR' ? '123.456.789-09' : '35.123.456'
   const selectedReason = reasonCategory === 'pain' ? (isPortuguese ? 'Dor / mal-estar' : 'Dolor / malestar') : reasonCategory === 'prescription' ? (isPortuguese ? 'Receita' : 'Receta') : reasonCategory === 'other' ? (isPortuguese ? 'Outro motivo' : 'Otro motivo') : ''
   const reasonSummary = [selectedReason, formData.reason.trim()].filter(Boolean).join(': ')
   const reasonOptions = isPortuguese
@@ -473,6 +467,7 @@ export function PharmacyExpressConsultation({
             )}
 
             <form onSubmit={handleSubmit} className="space-y-3.5">
+              {!initialCareCountry && (
               <fieldset className="grid grid-cols-2 gap-2">
                 <legend className="mb-2 text-xs font-medium text-slate-600">{copy.country}</legend>
                 {(['BR', 'AR'] as const).map((country) => {
@@ -486,11 +481,12 @@ export function PharmacyExpressConsultation({
                   )
                 })}
               </fieldset>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor={dniInputId} className="block text-xs font-medium text-slate-600 mb-1.5 flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5 text-slate-500" />
-                    {copy.document}
+                    {documentLabel}
                   </label>
                   <input
                     id={dniInputId}
@@ -498,7 +494,7 @@ export function PharmacyExpressConsultation({
                     inputMode="numeric"
                     pattern="[0-9]*"
                     required
-                    placeholder={isPortuguese ? '123.456.789-09' : '35.123.456'}
+                    placeholder={documentPlaceholder}
                     value={formData.dni}
                     onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
                     className="min-h-12 w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] transition"

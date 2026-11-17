@@ -28,11 +28,12 @@ describe('Farmalink PDF affiliate reconciliation', () => {
         cuil: '27-12345678-0',
         affiliateCredential: '20123456786',
         insuranceEntityCode: 7110,
-        insurancePlan: '100',
+        insurancePlan: 'NO POSEE',
       },
       prescriber: { name: 'Demo Demo', license: 'MN 11111' },
     });
     const pdf = Buffer.from(output.pdfBuffer).toString('latin1');
+    expect(pdf).toContain('Emitida: 03/11/2026');
     expect(pdf).toContain('Nro. afiliado / Credencial: 20123456786');
     expect(pdf).toContain('Plan: NO POSEE');
     expect(pdf).toContain('Entidad: 7110');

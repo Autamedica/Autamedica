@@ -1,0 +1,8 @@
+name = "autamedica-private-doc-downloads"
+pages_build_output_dir = "./dist"
+compatibility_date = "2026-11-16"
+account_id = "5b448192fe4b369642b68ad8f53a7603"
+
+[[r2_buckets]]
+binding = "DOCS"
+bucket_name = "autamedica-recovery-offsite-2026"

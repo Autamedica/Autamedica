@@ -47,5 +47,6 @@ object InCallDocumentPolicy {
         return country
     }
 
-    fun canUseNativePrescriptionIssuer(country: String): Boolean = country == "AR" || country == "BR"
+    /** The generic native issuer is Argentina-only; Brazilian prescriptions use the official Memed flow. */
+    fun canUseNativePrescriptionIssuer(country: String): Boolean = country == "AR"
 }

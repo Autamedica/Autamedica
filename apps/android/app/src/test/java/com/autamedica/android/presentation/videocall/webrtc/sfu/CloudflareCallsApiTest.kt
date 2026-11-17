@@ -6,6 +6,23 @@ import org.junit.Test
 class CloudflareCallsApiTest {
 
     @Test
+    fun `Cloudflare Calls requests mirror the deployed Edge Function route contract`() {
+        assertThat(cloudflareCallsContractError("POST", "sessions/new")).isNull()
+        assertThat(cloudflareCallsContractError("POST", "sessions/session-1/tracks/new")).isNull()
+        assertThat(cloudflareCallsContractError("PUT", "sessions/session-1/renegotiate")).isNull()
+        assertThat(cloudflareCallsContractError("POST", "sessions/session-1/tracks/close")).isNull()
+
+        assertThat(cloudflareCallsContractError("POST", "send"))
+            .isEqualTo("invalid_cloudflare_calls_path")
+        assertThat(cloudflareCallsContractError("GET", "sessions/new"))
+            .isEqualTo("invalid_cloudflare_calls_method")
+        assertThat(cloudflareCallsContractError("POST", "poll"))
+            .isEqualTo("invalid_cloudflare_calls_path")
+        assertThat(cloudflareCallsContractError("POST", "leave"))
+            .isEqualTo("invalid_cloudflare_calls_path")
+    }
+
+    @Test
     fun `guest token is sent only when there is no Supabase JWT session`() {
         val guestHeaders = buildGuestTokenHeaders(
             hasJwtSession = false,
