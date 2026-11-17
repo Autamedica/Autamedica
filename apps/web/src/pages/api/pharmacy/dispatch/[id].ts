@@ -325,7 +325,7 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
       const guestToken = request.headers.get('x-guest-token')?.trim()
         || request.headers.get('x-guest-recovery-credential')?.trim()
         || request.headers.get('x-access-token')?.trim()
-        || request.headers.get('authorization')?.replace(/^Bearer\\s+/i, '').trim()
+        || request.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim()
         || (typeof guestBody?.accessToken === 'string' ? guestBody.accessToken.trim() : '')
         || (typeof guestBody?.guestRecoveryCredential === 'string' ? guestBody.guestRecoveryCredential.trim() : '')
       if (guestToken) {
