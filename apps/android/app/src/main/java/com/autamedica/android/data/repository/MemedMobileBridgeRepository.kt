@@ -114,6 +114,8 @@ data class MemedMobilePreflightResponse(
 @Serializable
 private data class MemedDispatchPrescriptionRowDto(
     val id: String,
+    @SerialName("doctor_id") val doctorId: String,
+    @SerialName("patient_id") val patientId: String,
     @SerialName("status") val status: String,
     @SerialName("clinical_data") val clinicalData: JsonObject? = null,
 )
@@ -144,10 +146,40 @@ object MemedDispatchIssuancePolicy {
             !evidence.prescriptionStatus.equals("cancelled", ignoreCase = true)
 }
 
+data class MemedEncounterTarget(
+    val queryKey: String,
+    val encounterId: String,
+)
+
+/** A pharmacy dispatch remains the authoritative encounter when both IDs are present. */
+object MemedEncounterTargetResolver {
+    fun resolve(appointmentId: String, dispatchRequestId: String?): MemedEncounterTarget? {
+        val dispatch = dispatchRequestId?.takeIf { it.isNotBlank() }
+        if (dispatch != null) {
+            return if (MemedMobileLaunchUrl.isUuid(dispatch)) {
+                MemedEncounterTarget("requestId", dispatch)
+            } else {
+                null
+            }
+        }
+        val appointment = appointmentId.takeIf { it.isNotBlank() } ?: return null
+        return if (MemedMobileLaunchUrl.isUuid(appointment)) {
+            MemedEncounterTarget("appointmentId", appointment)
+        } else {
+            null
+        }
+    }
+}
+
 /** Appointment ID is a lookup handle only, never an authorization credential. */
 object MemedMobileLaunchUrl {
     private val uuid = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
     fun isUuid(value: String): Boolean = uuid.matches(value)
+
+    fun resolveEncounterTarget(
+        appointmentId: String,
+        dispatchRequestId: String?,
+    ): MemedEncounterTarget? = MemedEncounterTargetResolver.resolve(appointmentId, dispatchRequestId)
 
     fun validate(raw: String, expectedAppointmentId: String): String =
         validate(raw, expectedAppointmentId, "appointmentId")
