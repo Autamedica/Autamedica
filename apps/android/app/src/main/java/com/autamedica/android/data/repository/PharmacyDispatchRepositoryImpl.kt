@@ -886,6 +886,7 @@ private data class DispatchRequestDto(
     @SerialName("assigned_doctor_id") val assignedDoctorId: String? = null,
     @SerialName("cloudflare_room_id") val cloudflareRoomId: String,
     @SerialName("created_at") val createdAt: String,
+    @SerialName("search_started_at") val searchStartedAt: String? = null,
     @SerialName("care_country") val careCountry: String? = null,
     @SerialName("referral_partner_id") val referralPartnerId: String? = null,
     @SerialName("offer_id") val offerId: String? = null,
@@ -910,6 +911,7 @@ private data class DispatchRequestDto(
         assignedDoctorId = assignedDoctorId,
         cloudflareRoomId = cloudflareRoomId,
         createdAt = createdAt,
+        searchStartedAt = searchStartedAt,
     )
 }
 
