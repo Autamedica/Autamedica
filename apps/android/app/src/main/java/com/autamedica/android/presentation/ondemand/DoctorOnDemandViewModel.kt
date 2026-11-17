@@ -142,7 +142,7 @@ class DoctorOnDemandViewModel @Inject constructor(
         networkObservationJob?.cancel()
         networkObservationJob = null
         if (stopPersistentService && persistentHeartbeatServiceStarted) {
-            applicationContext?.let(DoctorDutyHeartbeatService::stop)
+            applicationContext?.let { DoctorDutyHeartbeatService.stop(it) }
             persistentHeartbeatServiceStarted = false
         }
     }
