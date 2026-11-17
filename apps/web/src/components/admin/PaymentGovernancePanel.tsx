@@ -38,6 +38,7 @@ export function PaymentGovernancePanel(){
  const [approvals,setApprovals]=useState<Approval[]>([])
  const [pharmacyPayments,setPharmacyPayments]=useState<PharmacyPayment[]>([])
  const [error,setError]=useState('')
+ const [notice,setNotice]=useState('')
  const load=async()=>{
   try{
    const [s,a,p]=await Promise.all([fetch('/api/admin/payments/toggle').then(r=>r.json()),fetch('/api/admin/approvals?status=pending').then(r=>r.json()),fetch('/api/admin/finance/pharmacy-payments').then(r=>r.json())])
@@ -61,7 +62,10 @@ export function PaymentGovernancePanel(){
   if(!window.confirm('¿Registrar MANUAL_OVERRIDE con esta referencia externa y liberar el despacho elegible?'))return
   const r=await fetch('/api/admin/finance/pharmacy-payments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'manual_approve',payment_id:paymentId,reason,evidence_reference})})
   const j=await r.json().catch(()=>null)
-  if(!r.ok||!j?.success){setError(errorMessage(j?.error??j?.code,'El pago fue procesado; el despacho puede requerir recuperación'));await load();return}
+  if(!r.ok||!j?.success){setError(errorMessage(j?.error??j?.code,'No se pudo completar la aprobación'));await load();return}
+  const result=j.data??j
+  setError('')
+  setNotice(result.dispatch_activated===false?'Pago aprobado. El despacho quedó pendiente de recuperación.':'Pago aprobado y despacho activado.')
   await load()
  }
  const decide=async(decisionId:string,status:'APPROVED'|'REJECTED',resolutionAction?:'reopen'|'refund')=>{
@@ -74,6 +78,7 @@ export function PaymentGovernancePanel(){
  return <section className="space-y-6 rounded-xl border border-slate-200 bg-white p-5">
   <div><h2 className="text-lg font-semibold text-slate-900">Control de Cobros y Operaciones en Vivo</h2><p className="text-sm text-slate-500">Estado central en Supabase. Cada cambio registra actor, fecha y motivo.</p></div>
   {error&&<p role="alert" className="text-sm text-red-700">{error}</p>}
+  {notice&&<p role="status" className="text-sm text-emerald-700">{notice}</p>}
   <div className="grid gap-3 md:grid-cols-2">
    {SWITCHES.map(item=><article key={item.key} className="rounded-lg border p-4">
     <label className="flex items-center justify-between gap-3"><span className="text-sm font-semibold">{item.label}</span><input type="checkbox" checked={switches?.[item.key]??false} disabled={!switches} onChange={e=>void toggle(item.key,e.target.checked)} className="h-5 w-5"/></label>
