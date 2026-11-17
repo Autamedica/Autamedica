@@ -1,10 +1,6 @@
 name: Test email via Brevo
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/test-email-brevo.yml'
   workflow_dispatch:
 
 permissions:
