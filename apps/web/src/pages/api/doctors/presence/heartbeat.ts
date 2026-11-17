@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro'
 import { logger } from '@autamedica/shared'
 import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth'
-import { forbidden, internalError } from '@/lib/api-helpers'
+import { forbidden, internalError, jsonOk } from '@/lib/api-helpers'
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const auth = await withAuthRole(request, DOCTOR_ROLES, locals)
@@ -17,10 +17,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return internalError('No se pudo registrar la presencia médica')
     }
 
-    return new Response(
-      JSON.stringify({ success: true, data }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } },
-    )
+    return jsonOk(data)
   } catch (err) {
     logger.error('[api/doctors/presence/heartbeat] POST error', err)
     return internalError('No se pudo procesar la presencia médica')
