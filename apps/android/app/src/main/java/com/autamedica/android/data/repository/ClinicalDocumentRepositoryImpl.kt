@@ -160,11 +160,12 @@ class ClinicalDocumentRepositoryImpl @Inject constructor(
             ?.takeIf { it.isNotBlank() }
             ?: throw IllegalStateException("No authenticated user ID found")
 
-    private suspend fun resolvePatientId(userId: String = resolveAuthenticatedUserId()): String {
+    private suspend fun resolvePatientId(userId: String? = null): String {
+        val authenticatedUserId = userId ?: resolveAuthenticatedUserId()
         return supabaseClient.postgrest
             .from("patients")
             .select(Columns.list("id")) {
-                filter { eq("user_id", userId) }
+                filter { eq("user_id", authenticatedUserId) }
             }
             .decodeSingleOrNull<RecordIdDto>()
             ?.id
