@@ -84,6 +84,14 @@ export function PharmacyExpressConsultation({
   })
   const [reasonCategory, setReasonCategory] = useState<'pain' | 'prescription' | 'other' | ''>('')
   const [waitingSeconds, setWaitingSeconds] = useState(0)
+  const [searchStartedAt, setSearchStartedAt] = useState<string | null>(null)
+  const [internationalSearchEnabled, setInternationalSearchEnabled] = useState(false)
+  const [internationalAvailability, setInternationalAvailability] = useState<{
+    available: boolean
+    eligible_doctors: number
+    routes: Array<{ doctor_country: 'AR' | 'BR'; doctor_currency: 'ARS' | 'BRL'; eligible_doctors: number }>
+  } | null>(null)
+  const [searchTransitioning, setSearchTransitioning] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [lgpdConsent, setLgpdConsent] = useState(false)
@@ -124,6 +132,8 @@ export function PharmacyExpressConsultation({
         setAccessToken(restored.accessToken)
         setRecoveryToken(saved.recoveryToken)
         setCallRoomId(restored.request.cloudflare_room_id)
+        setSearchStartedAt(restored.request.search_started_at ?? null)
+        setInternationalSearchEnabled(restored.request.international_search_enabled === true)
         setFormData((current) => ({ ...current, careCountry: country }))
         const next = { ...saved, guestToken: restored.accessToken, country, careCountry: country, savedAt: Date.now() }
         window.sessionStorage.setItem(key, JSON.stringify(next))
@@ -187,11 +197,19 @@ export function PharmacyExpressConsultation({
     return () => { current = false; window.clearInterval(timer) }
   }, [step, formData.careCountry, countryPaymentApproved, pricingByCountry])
 
+  // The search clock is server-started and survives reloads, tab changes and device recovery.
   useEffect(() => {
-    if (step !== 'WAITING' || (requiresCountryPayment && !countryPaymentApproved)) { setWaitingSeconds(0); return }
-    const timer = window.setInterval(() => setWaitingSeconds((seconds) => seconds + 1), 1000)
+    if (step !== 'WAITING' || !searchStartedAt || (requiresCountryPayment && !countryPaymentApproved)) {
+      setWaitingSeconds(0)
+      return
+    }
+    const startedAt = new Date(searchStartedAt).getTime()
+    if (!Number.isFinite(startedAt)) return
+    const refresh = () => setWaitingSeconds(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)))
+    refresh()
+    const timer = window.setInterval(refresh, 1000)
     return () => window.clearInterval(timer)
-  }, [step, formData.careCountry, countryPaymentApproved, requiresCountryPayment])
+  }, [step, searchStartedAt, formData.careCountry, countryPaymentApproved, requiresCountryPayment])
 
   // Polling / escucha para consultar GET /api/pharmacy/dispatch/${requestId}?token=${accessToken}
   const checkStatus = useCallback(async (id: string, token: string | null) => {
@@ -209,6 +227,8 @@ export function PharmacyExpressConsultation({
 
       const req = data?.request
       if (!req) return
+      if (req.search_started_at) setSearchStartedAt(req.search_started_at)
+      setInternationalSearchEnabled(req.international_search_enabled === true)
       if (Array.isArray(data.documents)) setDocuments(data.documents)
 
       // `assigned` no pertenece al enum `dispatch_request_status` de la tabla
@@ -269,6 +289,8 @@ export function PharmacyExpressConsultation({
         setAccessToken(restored.accessToken)
         setRecoveryToken(secret)
         setCallRoomId(restored.request.cloudflare_room_id)
+        setSearchStartedAt(restored.request.search_started_at ?? null)
+        setInternationalSearchEnabled(restored.request.international_search_enabled === true)
         setFormData((current) => ({ ...current, careCountry: country === 'BR' || country === 'AR' ? country : current.careCountry }))
         window.sessionStorage.setItem(key, JSON.stringify(next))
         window.localStorage.setItem(key, JSON.stringify(next))
@@ -382,6 +404,9 @@ export function PharmacyExpressConsultation({
       setAccessToken(token)
       setRecoveryToken(res.recoveryToken ?? null)
       setCallRoomId(roomId)
+      setSearchStartedAt(res.request.search_started_at ?? null)
+      setInternationalSearchEnabled(res.request.international_search_enabled === true)
+      setInternationalAvailability(null)
       const activeSession = { requestId: reqId, guestToken: token, recoveryToken: res.recoveryToken ?? null, country: formData.careCountry, referralCode, partnerName: referralPartnerName, savedAt: Date.now() }
       window.sessionStorage.setItem('autamedica:pharmacy-express:active-session', JSON.stringify(activeSession))
       window.localStorage.setItem('autamedica:pharmacy-express:active-session', JSON.stringify(activeSession))
@@ -390,6 +415,67 @@ export function PharmacyExpressConsultation({
       setFormError(isPortuguese ? 'Não foi possível iniciar a consulta. Tente novamente.' : 'No pudimos iniciar la consulta. Volvé a intentar.')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const refreshInternationalAvailability = useCallback(async () => {
+    if (!requestId || !accessToken || waitingSeconds < 15 * 60) return
+    try {
+      const result = await fetchApi<{
+        search_started_at: string | null
+        international_search_enabled: boolean
+        availability: {
+          available: boolean
+          eligible_doctors: number
+          routes: Array<{ doctor_country: 'AR' | 'BR'; doctor_currency: 'ARS' | 'BRL'; eligible_doctors: number }>
+        }
+      }>(`/api/pharmacy/dispatch/${encodeURIComponent(requestId)}/search-options`, {
+        headers: { 'x-guest-token': accessToken },
+      })
+      setInternationalAvailability(result.availability)
+      setInternationalSearchEnabled(result.international_search_enabled === true)
+      if (result.search_started_at) setSearchStartedAt(result.search_started_at)
+    } catch {
+      setInternationalAvailability(null)
+    }
+  }, [requestId, accessToken, waitingSeconds])
+
+  useEffect(() => {
+    if (step !== 'WAITING' || waitingSeconds < 15 * 60 || !requestId || !accessToken) {
+      setInternationalAvailability(null)
+      return
+    }
+    void refreshInternationalAvailability()
+    const timer = window.setInterval(() => void refreshInternationalAvailability(), 15000)
+    return () => window.clearInterval(timer)
+  }, [step, waitingSeconds >= 15 * 60, requestId, accessToken, refreshInternationalAvailability])
+
+  const advanceSearch = async (mode: 'continue_local' | 'international') => {
+    if (!requestId || !accessToken || searchTransitioning) return
+    setSearchTransitioning(true)
+    setFormError(null)
+    try {
+      const result = await fetchApi<{
+        success: boolean
+        code: string
+        search_started_at: string
+        international_search_enabled: boolean
+      }>(`/api/pharmacy/dispatch/${encodeURIComponent(requestId)}/search-options`, {
+        method: 'POST',
+        headers: { 'x-guest-token': accessToken, 'Content-Type': 'application/json' },
+        body: { mode },
+      })
+      setSearchStartedAt(result.search_started_at)
+      setInternationalSearchEnabled(result.international_search_enabled === true)
+      setInternationalAvailability(null)
+      setWaitingSeconds(0)
+    } catch {
+      setFormError(isPortuguese
+        ? 'Não foi possível atualizar a busca. Tente novamente.'
+        : 'No se pudo actualizar la búsqueda. Volvé a intentar.')
+      void refreshInternationalAvailability()
+    } finally {
+      setSearchTransitioning(false)
     }
   }
 
@@ -611,9 +697,50 @@ export function PharmacyExpressConsultation({
                 <div className="mb-2 w-full"><LiveMedicalPresenceRadar onDutyCount={onDutyDoctorCount} isPortuguese={isPortuguese} /></div>
                 <p className="mb-3 text-xs font-medium text-slate-600" aria-live="polite">{copy.searching}</p>
                 <div className="mb-4 grid grid-cols-2 gap-2">
-                  
                   <div className="rounded-xl bg-slate-50 px-3 py-2.5"><span className="flex items-center justify-center gap-1 text-[11px] text-slate-500"><Clock className="h-3 w-3" />{copy.elapsed}</span><strong className="text-sm tabular-nums text-slate-800">{String(Math.floor(waitingSeconds / 60)).padStart(2, '0')}:{String(waitingSeconds % 60).padStart(2, '0')}</strong></div>
                 </div>
+                {waitingSeconds >= 15 * 60 && !searchTransitioning && (
+                  <section className="mb-4 space-y-2 rounded-xl border border-sky-200 bg-sky-50 p-3 text-left">
+                    <p className="text-xs font-semibold text-slate-900">
+                      {isPortuguese ? '15 minutos de busca local concluídos' : 'Se completaron 15 minutos de búsqueda local'}
+                    </p>
+                    {internationalSearchEnabled ? (
+                      <p className="text-xs text-slate-600">
+                        {isPortuguese ? 'A busca internacional habilitada continua ativa.' : 'La búsqueda internacional habilitada sigue activa.'}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-slate-600">
+                        {isPortuguese
+                          ? 'Você pode continuar procurando no Brasil ou ampliar para médicos com registro profissional válido no seu país.'
+                          : 'Podés continuar buscando en tu país o ampliar a médicos con matrícula profesional válida para atender allí.'}
+                      </p>
+                    )}
+                    {internationalAvailability?.available && !internationalSearchEnabled && (
+                      <button
+                        type="button"
+                        disabled={searchTransitioning}
+                        onClick={() => void advanceSearch('international')}
+                        className="min-h-11 w-full rounded-lg bg-[#0F766E] px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-[#115E59] disabled:opacity-60"
+                      >
+                        {isPortuguese ? 'Ampliar para médicos internacionais' : 'Ampliar a médicos internacionales'}
+                        <span className="ml-1 font-normal opacity-90">· {internationalAvailability.eligible_doctors}</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      disabled={searchTransitioning}
+                      onClick={() => void advanceSearch('continue_local')}
+                      className="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
+                    >
+                      {isPortuguese ? 'Continuar buscando no Brasil' : formData.careCountry === 'AR' ? 'Seguir buscando en Argentina' : 'Seguir buscando en Brasil'}
+                    </button>
+                    {internationalAvailability && !internationalAvailability.available && (
+                      <p className="text-[11px] text-slate-500">
+                        {isPortuguese ? 'Ainda não há médicos internacionais habilitados disponíveis.' : 'Todavía no hay médicos internacionales habilitados disponibles.'}
+                      </p>
+                    )}
+                  </section>
+                )}
               </>
             )}
             <div className="mb-4 rounded-xl bg-slate-50 px-3 py-2.5 text-left text-xs"><p className="font-semibold text-slate-900">{copy.patient}: {formData.name}</p>{reasonSummary && <p className="mt-1 text-slate-600">{copy.reasonLabel}: {reasonSummary}</p>}</div>
