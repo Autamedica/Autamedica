@@ -250,9 +250,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       symptom_summary: sanitizedSymptoms,
       cloudflare_room_id: cloudflareRoomId,
       status: countryPricing.require_payment_before_dispatch ? 'pending_payment' as const : 'searching' as const,
-      search_timeout_at: countryPricing.require_payment_before_dispatch
-        ? new Date(Date.now() + 15 * 60 * 1000).toISOString()
-        : new Date(Date.now() + 25 * 1000).toISOString(),
+      // Every local market gets the same 15-minute search window.
+      // Payment activation restarts this clock from search_started_at.
+      search_timeout_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
       requested_by_user_id: context?.userId ?? null,
     }
 
