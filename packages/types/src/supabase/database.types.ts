@@ -8716,6 +8716,104 @@ export type Database = {
           },
         ]
       }
+      medical_document_archive_patient_links: {
+        Row: {
+          archive_id: string
+          id: string
+          link_method: string
+          linked_at: string
+          patient_id: string
+        }
+        Insert: {
+          archive_id: string
+          id?: string
+          link_method: string
+          linked_at?: string
+          patient_id: string
+        }
+        Update: {
+          archive_id?: string
+          id?: string
+          link_method?: string
+          linked_at?: string
+          patient_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_document_archive_patient_links_archive_id_fkey"
+            columns: ["archive_id"]
+            isOneToOne: true
+            referencedRelation: "medical_document_archives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_document_archive_patient_links_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_document_archives: {
+        Row: {
+          authorization_snapshot: Json
+          clinical_snapshot: Json
+          doctor_id: string
+          document_date: string
+          id: string
+          issuer_snapshot: Json
+          patient_snapshot: Json
+          pdf_sha256: string
+          reference: string
+          registered_at: string
+          signature_image_sha256: string
+          signature_type: string
+          stamp_image_sha256: string
+          status: string
+        }
+        Insert: {
+          authorization_snapshot: Json
+          clinical_snapshot: Json
+          doctor_id: string
+          document_date: string
+          id?: string
+          issuer_snapshot: Json
+          patient_snapshot: Json
+          pdf_sha256: string
+          reference: string
+          registered_at?: string
+          signature_image_sha256: string
+          signature_type: string
+          stamp_image_sha256: string
+          status?: string
+        }
+        Update: {
+          authorization_snapshot?: Json
+          clinical_snapshot?: Json
+          doctor_id?: string
+          document_date?: string
+          id?: string
+          issuer_snapshot?: Json
+          patient_snapshot?: Json
+          pdf_sha256?: string
+          reference?: string
+          registered_at?: string
+          signature_image_sha256?: string
+          signature_type?: string
+          stamp_image_sha256?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_document_archives_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       medical_records: {
         Row: {
           appointment_id: string | null
