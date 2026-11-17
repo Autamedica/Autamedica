@@ -37,11 +37,6 @@ BEGIN
         FROM public.pharmacy_dispatch_payments active_payment
         WHERE active_payment.dispatch_request_id = req.id
           AND active_payment.status IN ('initializing', 'pending', 'pending_payment')
-          AND (
-            active_payment.status = 'pending'
-            OR active_payment.checkout_url IS NOT NULL
-            OR active_payment.provider_preference_id IS NOT NULL
-          )
       )
     FOR UPDATE OF req SKIP LOCKED
   LOOP
