@@ -75,7 +75,7 @@ fun DoctorSignatureScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
             Button(
-                onClick = { viewModel.validateWithSisaRefeps(dni, licenseNumber) },
+                onClick = { viewModel.validateDoctorLicense(dni, licenseNumber) },
                 enabled = !state.isLoading,
                 modifier = Modifier.fillMaxWidth(),
             ) {

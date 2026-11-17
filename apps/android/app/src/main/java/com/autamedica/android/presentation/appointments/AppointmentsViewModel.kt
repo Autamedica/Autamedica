@@ -19,6 +19,7 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.util.Locale
 import com.autamedica.android.presentation.common.UiErrorMapper
 import javax.inject.Inject
@@ -100,7 +101,7 @@ class AppointmentsViewModel @Inject constructor(
                 }
                 .onFailure { error ->
                     _uiState.update { it.copy(isSavingCareCountry = false,
-                        bookingErrorMessage = UiErrorMapper.map(error, "No se pudo guardar el país / Não foi possível salvar o país")) }
+                        bookingErrorMessage = UiErrorMapper.map(error, "appointments_error_country_save")) }
                 }
         }
     }
@@ -129,7 +130,7 @@ class AppointmentsViewModel @Inject constructor(
                 .onFailure { err ->
                     SecureLog.error("[AppointmentsVM] Failed canceling appointment", err)
                     _uiState.update {
-                        it.copy(bookingErrorMessage = UiErrorMapper.map(err, "No se pudo cancelar el turno. Reintentá."))
+                        it.copy(bookingErrorMessage = UiErrorMapper.map(err, "appointments_error_cancel"))
                     }
                 }
         }
@@ -141,7 +142,7 @@ class AppointmentsViewModel @Inject constructor(
         newSlot: String,
     ) {
         if (newSlot.isBlank()) {
-            _uiState.update { it.copy(bookingErrorMessage = "Seleccioná un horario disponible.") }
+            _uiState.update { it.copy(bookingErrorMessage = "appointments_error_slot_required") }
             return
         }
         viewModelScope.launch {
@@ -149,7 +150,7 @@ class AppointmentsViewModel @Inject constructor(
             val hour = timeParts.getOrNull(0)?.toIntOrNull() ?: 9
             val minute = timeParts.getOrNull(1)?.toIntOrNull() ?: 0
 
-            val argZone = ZoneId.of("America/Argentina/Buenos_Aires")
+            val argZone = careZone(_uiState.value.careCountry)
             val startDateTime = newDate.atTime(hour, minute).atZone(argZone).toOffsetDateTime()
             val durationMinutes = appointment.durationMinutes ?: 45
             val endDateTime = startDateTime.plusMinutes(durationMinutes.toLong())
@@ -167,7 +168,7 @@ class AppointmentsViewModel @Inject constructor(
                 .onFailure { err ->
                     SecureLog.error("[AppointmentsVM] Failed rescheduling appointment", err)
                     _uiState.update {
-                        it.copy(bookingErrorMessage = UiErrorMapper.map(err, "No se pudo reprogramar el turno. Reintentá."))
+                        it.copy(bookingErrorMessage = UiErrorMapper.map(err, "appointments_error_reschedule"))
                     }
                 }
         }
@@ -292,11 +293,11 @@ class AppointmentsViewModel @Inject constructor(
     fun confirmQuickBooking() {
         val state = _uiState.value
         val doctor = state.selectedDoctor ?: run {
-            _uiState.update { it.copy(bookingErrorMessage = "Seleccioná un profesional médico para tu consulta.") }
+            _uiState.update { it.copy(bookingErrorMessage = "appointments_error_doctor_required") }
             return
         }
         val slot = state.selectedSlot ?: run {
-            _uiState.update { it.copy(bookingErrorMessage = "Seleccioná un horario disponible.") }
+            _uiState.update { it.copy(bookingErrorMessage = "appointments_error_slot_required") }
             return
         }
 
@@ -308,7 +309,7 @@ class AppointmentsViewModel @Inject constructor(
                 val hour = timeParts.getOrNull(0)?.toIntOrNull() ?: 9
                 val minute = timeParts.getOrNull(1)?.toIntOrNull() ?: 0
 
-                val argZone = ZoneId.of("America/Argentina/Buenos_Aires")
+                val argZone = careZone(state.careCountry)
                 val startDateTime = state.selectedDate.atTime(hour, minute).atZone(argZone).toOffsetDateTime()
                 val endDateTime = startDateTime.plusMinutes(45)
 
@@ -343,7 +344,7 @@ class AppointmentsViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isBooking = false,
-                            bookingErrorMessage = UiErrorMapper.map(err, "No se pudo confirmar el turno. Reintentá."),
+                            bookingErrorMessage = UiErrorMapper.map(err, "appointments_error_booking"),
                         )
                     }
                 }
@@ -352,21 +353,26 @@ class AppointmentsViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isBooking = false,
-                        bookingErrorMessage = "Ocurrió un error inesperado al agendar.",
+                        bookingErrorMessage = "appointments_error_unexpected",
                     )
                 }
             }
         }
     }
 
-    private fun formatConfirmationDate(date: LocalDate): String {
-        val today = LocalDate.now()
-        return when (date) {
-            today -> "hoy"
-            today.plusDays(1) -> "mañana"
-            else -> date.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Locale("es", "AR")))
-        }
-    }
+    private fun careZone(country: String?): ZoneId =
+        if (country == "BR") ZoneId.of("America/Sao_Paulo")
+        else ZoneId.of("America/Argentina/Buenos_Aires")
+
+    private fun careLocale(country: String?): Locale =
+        if (country == "BR") Locale.forLanguageTag("pt-BR")
+        else Locale.forLanguageTag("es-AR")
+
+    private fun formatConfirmationDate(date: LocalDate): String =
+        date.format(
+            DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+                .withLocale(careLocale(_uiState.value.careCountry))
+        )
 
     private fun loadUserInfo() {
         viewModelScope.launch {
@@ -381,7 +387,7 @@ class AppointmentsViewModel @Inject constructor(
                             _uiState.update { it.copy(careCountry = country, needsCareCountry = country != "AR" && country != "BR") }
                         }
                         .onFailure { error ->
-                            _uiState.update { it.copy(bookingErrorMessage = UiErrorMapper.map(error, "No se pudo consultar el país de atención")) }
+                            _uiState.update { it.copy(bookingErrorMessage = UiErrorMapper.map(error, "appointments_error_country_lookup")) }
                         }
                 }
             }

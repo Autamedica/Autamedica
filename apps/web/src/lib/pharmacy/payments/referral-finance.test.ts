@@ -45,6 +45,13 @@ describe('Jordan commercial payment proof', () => {
     expect(classifyVerifiedPharmacyPayment({ ...local, provider_payment_id: 'different' }, approved)).toBeNull()
     expect(classifyVerifiedPharmacyPayment(local, { ...approved, id: 'fake-non-numeric-id' })).toBeNull()
   })
+  it('accepts a verified Argentina checkout in ARS without applying the Brazil tariff', () => {
+    const argentinaLocal = { ...local, amount_minor: 1500000, currency: 'ARS' }
+    const argentinaPayment = { ...approved, transaction_amount: 15000, currency_id: 'ARS' }
+    expect(classifyVerifiedPharmacyPayment(argentinaLocal, argentinaPayment)).toBe('approved')
+    expect(classifyVerifiedPharmacyPayment(argentinaLocal, { ...argentinaPayment, currency_id: 'BRL' })).toBeNull()
+    expect(classifyVerifiedPharmacyPayment(argentinaLocal, { ...argentinaPayment, transaction_amount: 79 })).toBeNull()
+  })
   it('voids any refunded or partially refunded sale', () => {
     expect(classifyVerifiedPharmacyPayment(local, { ...approved, status: 'refunded' })).toBe('refunded')
     expect(classifyVerifiedPharmacyPayment(local, { ...approved, transaction_amount_refunded: 1 })).toBe('refunded')

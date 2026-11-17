@@ -7,7 +7,6 @@ export type IssuanceGateCode =
   | 'prescription_country_required'
   | 'doctor_country_mismatch'
   | 'patient_country_required_or_mismatched'
-  | 'br_requires_memed_provider'
   | 'ar_production_homologation_required';
 
 export type IssuanceCountry = 'AR' | 'BR';
@@ -17,7 +16,7 @@ export function checkDirectPrescriptionIssuance(input: {
   doctorCountry: string | null | undefined;
   patientCountry: string | null | undefined;
   argentinaProductionApproved: boolean;
-}): { ok: true; country: 'AR' } | { ok: false; code: IssuanceGateCode } {
+}): { ok: true; country: IssuanceCountry } | { ok: false; code: IssuanceGateCode } {
   const country = input.prescriptionCountry;
   if (country !== 'AR' && country !== 'BR') {
     return { ok: false, code: 'prescription_country_required' };
@@ -29,18 +28,12 @@ export function checkDirectPrescriptionIssuance(input: {
     return { ok: false, code: 'patient_country_required_or_mismatched' };
   }
 
-  // The native/internal Brazilian PDF is not the Memed issuer.
-  // BR issuance must use its own verified Memed route and callback.
-  if (country === 'BR') {
-    return { ok: false, code: 'br_requires_memed_provider' };
-  }
-
-  // Must be explicitly enabled only after signed PDF, Farmalink production
-  // registration, identity and country-specific clinical E2E are evidenced.
-  if (!input.argentinaProductionApproved) {
+  // Brazil uses its independent CFM/CRM path. It never invokes RCTA or Farmalink.
+  // Argentina remains gated on its production Farmalink homologation.
+  if (country === 'AR' && !input.argentinaProductionApproved) {
     return { ok: false, code: 'ar_production_homologation_required' };
   }
-  return { ok: true, country: 'AR' };
+  return { ok: true, country };
 }
 
 export function hasEligibleProfessionalPadesCertificate(

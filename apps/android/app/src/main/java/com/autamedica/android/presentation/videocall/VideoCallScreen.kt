@@ -1,6 +1,18 @@
 package com.autamedica.android.presentation.videocall
 
 import android.Manifest
+import com.autamedica.android.BuildConfig
+import androidx.activity.compose.BackHandler
+import android.webkit.CookieManager
+import android.util.Base64
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import android.webkit.SslErrorHandler
+import android.net.http.SslError
+import androidx.compose.ui.viewinterop.AndroidView
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -164,7 +176,35 @@ fun VideoCallScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val localTrack by viewModel.localVideoTrack.collectAsStateWithLifecycle()
     val remoteTrack by viewModel.remoteVideoTrack.collectAsStateWithLifecycle()
+    val inCallPrescriptionValidation = stringResource(R.string.in_call_prescription_validation)
+    val inCallPrescriptionFallback = stringResource(R.string.in_call_prescription_error)
+    val inCallPatientMissing = stringResource(R.string.in_call_patient_missing)
+    val inCallPrescriptionIssuerUnavailable = stringResource(R.string.in_call_prescription_issuer_unavailable)
+    val inCallDefaultDosage = stringResource(R.string.in_call_default_dosage)
+    val inCallDefaultFrequency = stringResource(R.string.in_call_default_frequency)
+    val inCallDefaultDuration = stringResource(R.string.in_call_default_duration)
+    val inCallDefaultInstructions = stringResource(R.string.in_call_default_instructions)
+    val inCallPrescriptionNotes = stringResource(R.string.in_call_default_prescription_notes)
+    val inCallCertificateInvalidDays = stringResource(R.string.in_call_certificate_invalid_days)
+    val inCallCertificateDiagnosisRequired = stringResource(R.string.in_call_certificate_diagnosis_required)
+    val inCallCertificateDraftObservations = stringResource(R.string.in_call_certificate_draft_observations)
+    val inCallCertificateFallback = stringResource(R.string.in_call_certificate_error)
+    val inCallCertificatePatientMissing = inCallPatientMissing
     var clinicalSheetMode by remember { mutableStateOf<InCallClinicalMode?>(null) }
+
+    // Keep the WebRTC call mounted while Memed runs in an in-call WebView overlay.
+    // The doctor authenticates in the portal WebView; no JWT or provider token enters the URL.
+    val memedLaunchUrl = uiState.memedLaunchUrl
+    var memedInCallUrl by remember { mutableStateOf<String?>(null) }
+    var memedSessionTokens by remember { mutableStateOf<Pair<String, String>?>(null) }
+    LaunchedEffect(memedLaunchUrl) {
+        if (memedLaunchUrl != null) {
+            memedSessionTokens = viewModel.memedSessionTokens()
+            memedInCallUrl = memedLaunchUrl
+            viewModel.consumeMemedLaunchUrl()
+            clinicalSheetMode = null
+        }
+    }
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
         com.autamedica.android.telemetry.CallTelemetry.recordMilestone(null, "T2_COMPOSE_MOUNTED")
@@ -337,21 +377,21 @@ fun VideoCallScreen(
                 )
             } else {
                 val isOnDemandRoom = roomId.startsWith("cf-room") || uiState.activeCallId?.startsWith("cf-room") == true
-                val isPatientWaitingForDoctor = !uiState.isDoctor && isOnDemandRoom && (uiState.doctorName.isBlank() || uiState.doctorName == "Médico" || uiState.doctorName == "Profesional")
+                val isPatientWaitingForDoctor = !uiState.isDoctor && isOnDemandRoom && (uiState.doctorName.isBlank() || uiState.doctorName == stringResource(R.string.video_doctor_name_fallback) || uiState.doctorName == stringResource(R.string.video_professional_name_fallback))
                 val remoteDisplayName = when {
                     uiState.isDoctor -> uiState.patientName.ifBlank { "Paciente" }
                     isPatientWaitingForDoctor -> "Médico de Guardia"
-                    else -> uiState.doctorName.ifBlank { "Médico de Guardia" }
+                    else -> uiState.doctorName.ifBlank { stringResource(R.string.video_guard_doctor_name) }
                 }
                 val subtitleText = when {
                     uiState.isAuthorizationBlocked && !uiState.sessionStatusMessage.isNullOrBlank() ->
                         uiState.sessionStatusMessage.orEmpty()
-                    uiState.connectionState == ConnectionState.FAILED -> "Error de conexión con la sala"
-                    uiState.connectionState == ConnectionState.RECONNECTING -> "Reconectando..."
-                    isPatientWaitingForDoctor -> "Buscando médico de guardia... Aguarde en línea mientras un profesional toma su consulta."
-                    uiState.connectionState == ConnectionState.CONNECTING -> if (uiState.isDoctor) "Llamando al paciente..." else "Llamando al médico..."
-                    uiState.isDoctor -> "Esperando que el paciente active su cámara..."
-                    else -> "Esperando que el profesional active su cámara..."
+                    uiState.connectionState == ConnectionState.FAILED -> stringResource(R.string.video_connection_failed)
+                    uiState.connectionState == ConnectionState.RECONNECTING -> stringResource(R.string.video_reconnecting)
+                    isPatientWaitingForDoctor -> stringResource(R.string.video_waiting_doctor)
+                    uiState.connectionState == ConnectionState.CONNECTING -> if (uiState.isDoctor) stringResource(R.string.video_calling_patient) else stringResource(R.string.video_calling_doctor)
+                    uiState.isDoctor -> stringResource(R.string.video_waiting_patient_camera)
+                    else -> stringResource(R.string.video_waiting_professional_camera)
                 }
                 RemoteAvatarFallback(
                     name = remoteDisplayName,
@@ -470,7 +510,7 @@ fun VideoCallScreen(
                             .padding(6.dp),
                     ) {
                         Text(
-                            text = "TÚ",
+                            text = stringResource(R.string.video_self_label),
                             color = Color.White,
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
@@ -593,7 +633,8 @@ fun VideoCallScreen(
         )
     }
 
-    if (uiState.showSoapEvolution) {
+    if (uiState.isDoctor) {
+        if (uiState.showSoapEvolution) {
         SoapEvolutionSheet(
             soapData = uiState.soapData,
             isSaving = uiState.isSavingSoap,
@@ -618,15 +659,66 @@ fun VideoCallScreen(
             patientName = uiState.patientName,
             chiefComplaint = uiState.chiefComplaintPeek,
             countryCode = uiState.doctorCountryCode,
+            // Keep the linked patient's clinical jurisdiction aligned with the doctor's license.
+            patientCareCountryCode = uiState.patientCareCountryCode,
             patientLinked = uiState.patientId.isNotBlank(),
-            isSubmitting = uiState.isIssuingPrescription || uiState.isIssuingCertificate,
+            memedEncounterAvailable = viewModel.hasMemedEncounter,
+            isSubmitting = uiState.isIssuingPrescription || uiState.isIssuingCertificate ||
+                uiState.isOpeningMemed || uiState.isVerifyingMemedPrescription,
+            onOpenMemed = if (uiState.doctorCountryCode == "BR" && !isPreviewRoute) {
+                viewModel::openMemedForBrazil
+            } else null,
+            memedLaunchError = uiState.memedLaunchError,
+            memedLaunchNotice = uiState.memedLaunchNotice,
+            isVerifyingMemedPrescription = uiState.isVerifyingMemedPrescription,
             onIssuePrescription = { med, dosage, instructions, diagnosis, onResult ->
-                viewModel.issueInCallPrescription(med, dosage, instructions, diagnosis, onResult)
+                viewModel.issueInCallPrescription(
+                    medicationName = med,
+                    dosage = dosage,
+                    instructions = instructions,
+                    diagnosis = diagnosis,
+                    validationMessage = inCallPrescriptionValidation,
+                    fallbackErrorMessage = inCallPrescriptionFallback,
+                    patientMissingMessage = inCallPatientMissing,
+                    nativeIssuerUnavailableMessage = inCallPrescriptionIssuerUnavailable,
+                    defaultDosage = inCallDefaultDosage,
+                    defaultFrequency = inCallDefaultFrequency,
+                    defaultDuration = inCallDefaultDuration,
+                    defaultInstructions = inCallDefaultInstructions,
+                    prescriptionNotes = inCallPrescriptionNotes,
+                    onResult = onResult,
+                )
             },
-            onIssueCertificate = { type, days, diag, onResult ->
-                viewModel.issueInCallCertificate(type, days, diag, onResult)
+            onIssueCertificate = { type, days, diag, hideDiagnosis, onResult ->
+                viewModel.issueInCallCertificate(
+                    type = type,
+                    daysOfRest = days,
+                    diagnosis = diag,
+                    hideDiagnosis = hideDiagnosis,
+                    invalidDaysMessage = inCallCertificateInvalidDays,
+                    diagnosisRequiredMessage = inCallCertificateDiagnosisRequired,
+                    draftObservations = inCallCertificateDraftObservations,
+                    fallbackErrorMessage = inCallCertificateFallback,
+                    patientMissingMessage = inCallCertificatePatientMissing,
+                    onResult = onResult,
+                )
             },
             onDismiss = { clinicalSheetMode = null },
+        )
+    }
+
+
+    }
+
+    memedInCallUrl?.let { launchUrl ->
+        MemedInCallWebView(
+            url = launchUrl,
+            sessionTokens = memedSessionTokens,
+            onClose = {
+                memedInCallUrl = null
+                memedSessionTokens = null
+                viewModel.verifyMemedDispatchPrescriptionOnReturn()
+            },
         )
     }
 }
@@ -642,4 +734,129 @@ private fun Context.hasTelemedicineMediaPermissions(): Boolean {
     ) == PackageManager.PERMISSION_GRANTED
 
     return cameraGranted && audioGranted
+}
+
+/**
+ * Full-screen prescription surface layered above the active call. The call's
+ * WebRTC engine and lifecycle remain mounted underneath this view.
+ */
+@Composable
+private fun MemedInCallWebView(
+    url: String,
+    sessionTokens: Pair<String, String>?,
+    onClose: () -> Unit,
+) {
+    val webViewRef = remember { mutableStateOf<WebView?>(null) }
+
+    BackHandler(enabled = true) {
+        val webView = webViewRef.value
+        if (webView?.canGoBack() == true) webView.goBack() else onClose()
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            webViewRef.value?.let { webView ->
+                webView.stopLoading()
+                webView.loadUrl("about:blank")
+                webView.clearHistory()
+                webView.removeAllViews()
+                webView.destroy()
+            }
+            webViewRef.value = null
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White)
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.video_memed_title),
+                color = Color(0xFF172033),
+                fontWeight = FontWeight.SemiBold,
+            )
+            TextButton(onClick = onClose) {
+                Text(stringResource(R.string.video_memed_back_to_call))
+            }
+        }
+        AndroidView(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            factory = { viewContext ->
+                WebView(viewContext).apply {
+                    webViewRef.value = this
+                    settings.javaScriptEnabled = true
+                    settings.domStorageEnabled = true
+                    settings.javaScriptCanOpenWindowsAutomatically = false
+                    settings.setSupportMultipleWindows(false)
+                    settings.allowFileAccess = false
+                    settings.allowContentAccess = false
+                    settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+                    CookieManager.getInstance().setAcceptCookie(true)
+                    CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
+                    webChromeClient = WebChromeClient()
+                    webViewClient = object : WebViewClient() {
+                        override fun shouldOverrideUrlLoading(
+                            view: WebView,
+                            request: WebResourceRequest,
+                        ): Boolean {
+                            val target = request.url
+                            if (target.scheme == "autamedica" && target.host == "return") {
+                                onClose()
+                                return true
+                            }
+                            if (target.scheme != "https") return true
+                            val host = target.host?.lowercase() ?: return true
+                            val trustedHost = host == "doctor.autamedica.com" ||
+                                host == "autamedica.com" ||
+                                host == "www.autamedica.com" ||
+                                host == "partners.memed.com.br" ||
+                                host == "integrations.memed.com.br" ||
+                                host == "accounts.google.com" ||
+                                host.endsWith(".google.com") ||
+                                host.endsWith(".gstatic.com") ||
+                                host.endsWith(".googleapis.com") ||
+                                host == "memed.com.br" || host.endsWith(".memed.com.br")
+                            return !trustedHost
+                        }
+
+                        override fun onReceivedSslError(
+                            view: WebView,
+                            handler: SslErrorHandler,
+                            error: SslError,
+                        ) {
+                            handler.cancel()
+                        }
+                    }
+                    val tokens = sessionTokens
+                    if (tokens == null) {
+                        onClose()
+                    } else {
+                        val projectRef = BuildConfig.SUPABASE_URL.substringAfter("https://").substringBefore('.')
+                        val sessionJson = """{"access_token":"${tokens.first}","refresh_token":"${tokens.second}","token_type":"bearer"}"""
+                        val encodedSession = "base64-" + Base64.encodeToString(
+                            sessionJson.toByteArray(Charsets.UTF_8),
+                            Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING,
+                        )
+                        val sessionCookie = "sb-$projectRef-auth-token=$encodedSession; Domain=.autamedica.com; Path=/; Secure; SameSite=Lax"
+                        CookieManager.getInstance().setCookie("https://doctor.autamedica.com", sessionCookie) {
+                            CookieManager.getInstance().flush()
+                            post { loadUrl(url) }
+                        }
+                    }
+                }
+            },
+            update = {},
+        )
+    }
 }

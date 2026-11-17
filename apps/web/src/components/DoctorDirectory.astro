@@ -2,48 +2,24 @@
 import { getI18n } from '../i18n';
 const locale = Astro.locals.locale ?? 'es';
 const { t, dict } = getI18n(locale);
-const PHOTOS = [
-  "/images/doctors/martin-alvarez.webp",
-  "/images/doctors/carolina-vega.webp",
-  "/images/doctors/lucas-fernandez.webp",
-  "/images/doctors/sofia-ramirez.webp",
-  "/images/doctors/nicolas-herrera.webp",
-  "/images/doctors/valentina-lopez.webp",
-];
-const EXPERIENCE = [12, 8, 15, 10, 20, 7];
-const AVAILABLE = [true, true, false, true, false, true];
-const doctors = dict.landing.doctorDirectory.doctors.map((d, i) => ({
-  ...d,
-  experience: EXPERIENCE[i],
-  available: AVAILABLE[i],
-  photo: PHOTOS[i],
-}));
+const specialties = [...new Set(dict.landing.doctorDirectory.doctors.map((doctor) => doctor.specialty))];
 ---
 
 <section id="profesionales" class="directory" aria-label="Nuestros profesionales">
   <div class="directory-inner">
     <div class="directory-header animate-on-scroll">
-      <h2 class="directory-title">{t('landing.doctorDirectory.title')}</h2>
-      <p class="directory-subtitle">{t('landing.doctorDirectory.subtitle')}</p>
+      <h2 class="directory-title">Especialidades médicas</h2>
+      <p class="directory-subtitle">{locale === 'pt' ? 'Conheça as áreas de atendimento da rede. A disponibilidade é confirmada ao iniciar a consulta.' : 'Conocé las áreas de atención de la red. La disponibilidad se confirma al iniciar la consulta.'}</p>
     </div>
 
     <div class="directory-marquee-wrapper">
-      <div class="doctor-marquee">
-        {doctors.map((d) => (
-          <article class="doctor-card">
-            <img class="doctor-avatar" src={d.photo} alt={d.name} loading="lazy" width="56" height="56" />
+      <div class="doctor-marquee specialties-grid">
+        {specialties.map((specialty) => (
+          <article class="doctor-card specialty-card">
             <div class="doctor-info">
-              <h3 class="doctor-name">{d.name}</h3>
-              <p class="doctor-specialty">{d.specialty}</p>
-              <div class="doctor-meta">
-                <span>{d.experience} {t('landing.doctorDirectory.yearsExp')}</span>
-                <span class="doctor-meta-dot" aria-hidden="true" />
-                <span>{d.languages.join(', ')}</span>
-              </div>
-              <div class="doctor-availability">
-                <span class={`status-dot ${d.available ? 'available' : ''}`} aria-hidden="true" />
-                <span>{d.available ? `${t('landing.doctorDirectory.available')} ${t('landing.doctorDirectory.today')}` : `${t('landing.doctorDirectory.available')} ${t('landing.doctorDirectory.tomorrow')}`}</span>
-              </div>
+              <h3 class="doctor-name">{specialty}</h3>
+              <p class="doctor-specialty">{locale === 'pt' ? 'Atendimento por profissionais da rede' : 'Atención por profesionales de la red'}</p>
+              <a class="directory-cta-link" href="/farmacia/solicitar">{locale === 'pt' ? 'Buscar atendimento' : 'Consultar médico ahora'}</a>
             </div>
           </article>
         ))}
@@ -52,7 +28,7 @@ const doctors = dict.landing.doctorDirectory.doctors.map((d, i) => ({
 
     <div class="directory-cta animate-on-scroll">
       <p class="directory-cta-text">{t('landing.doctorDirectory.ctaText')}</p>
-      <a href="#sintomas" class="directory-cta-link">
+      <a href="/farmacia/solicitar" class="directory-cta-link">
         {t('landing.doctorDirectory.ctaLink')}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </a>

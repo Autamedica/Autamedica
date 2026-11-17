@@ -315,8 +315,14 @@ fun DoctorCertificatesScreen(
                             color = AuTextSecondary
                         )
                     }
-                    if (cert.daysOfRest > 0) {
-                        Text(
+                    when {
+                        cert.restHours > 0 -> Text(
+                            text = stringResource(R.string.cert_rest_hours_detail, cert.restHours, cert.startDate),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF16A34A)
+                        )
+                        cert.daysOfRest > 0 -> Text(
                             text = stringResource(R.string.cert_days_of_rest_detail, cert.daysOfRest, cert.endDate ?: cert.startDate),
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold,
@@ -340,7 +346,7 @@ fun DoctorCertificatesScreen(
                 }
             },
             confirmButton = {
-                val pdfUrl = cert.signedPdfUrl?.takeIf { it.isNotBlank() }
+                val pdfUrl = cert.effectivePdfUrl
                     ?: "https://autamedica.com/verify/${cert.cuir}"
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -351,7 +357,7 @@ fun DoctorCertificatesScreen(
                             selectedCertForDetail = null
                             onOpenPdf(pdfUrl)
                         },
-                        enabled = cert.status == "signed" && cert.signedPdfUrl?.isNotBlank() == true,
+                        enabled = cert.isActive,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF0F766E),
                             contentColor = Color.White
@@ -378,7 +384,9 @@ private fun DoctorCertificateCard(
     onCopyCuir: () -> Unit,
     onOpenDetail: () -> Unit,
 ) {
-    val isValid = certificate.status == "signed"
+    val isValid = certificate.isActive
+    val isPendingVerification = certificate.status.equals("signed", ignoreCase = true) && !isValid
+    val isPending = certificate.status == "draft" || isPendingVerification
 
     Surface(
         shape = RoundedCornerShape(16.dp),
@@ -436,17 +444,18 @@ private fun DoctorCertificateCard(
 
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = if (isValid) Color(0xFFDCFCE7) else if (certificate.status == "draft") Color(0xFFFEF3C7) else Color(0xFFFEE2E2),
+                    color = if (isValid) Color(0xFFDCFCE7) else if (isPending) Color(0xFFFEF3C7) else Color(0xFFFEE2E2),
                 ) {
                     Text(
-                        text = when (certificate.status) {
-                            "draft" -> stringResource(R.string.cert_status_draft)
-                            "signed" -> stringResource(R.string.cert_status_valid)
+                        text = when {
+                            isValid -> stringResource(R.string.cert_status_valid)
+                            isPendingVerification -> stringResource(R.string.cert_status_pending_verification)
+                            certificate.status == "draft" -> stringResource(R.string.cert_status_draft)
                             else -> stringResource(R.string.cert_status_cancelled)
                         },
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = if (isValid) Color(0xFF16A34A) else if (certificate.status == "draft") Color(0xFF92400E) else Color(0xFFDC2626),
+                        color = if (isValid) Color(0xFF16A34A) else if (isPending) Color(0xFF92400E) else Color(0xFFDC2626),
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                 }
@@ -470,6 +479,7 @@ private fun DoctorCertificateCard(
                         color = PortalDoctors
                     )
                     val restText = when {
+                        certificate.restHours > 0 -> stringResource(R.string.cert_rest_hours_format, certificate.restHours)
                         certificate.daysOfRest <= 0 -> stringResource(R.string.cert_no_rest)
                         certificate.daysOfRest == 1 -> stringResource(R.string.cert_days_of_rest_one)
                         else -> stringResource(R.string.cert_days_of_rest_count, certificate.daysOfRest)

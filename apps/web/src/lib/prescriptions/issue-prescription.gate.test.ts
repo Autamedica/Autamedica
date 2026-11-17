@@ -51,11 +51,11 @@ describe('official prescription issue denies unverified issuance before any writ
     expect(writes.rpc).not.toHaveBeenCalled();
   });
 
-  it('BR internal PDF path rejects and does not create a fake RCTA/CUIR', async () => {
+  it('BR requires a valid CFM/CRM professional CPF before PDF issuance', async () => {
     const { client, writes } = fakeDb('BR');
     const result = await issuePrescription(client, 'rx-demo', 'user-doctor',
       { AR_RX_PRODUCTION_APPROVED: 'true' });
-    expect(result).toEqual({ ok: false, error: { code: 'br_requires_memed_provider' } });
+    expect(result).toEqual({ ok: false, error: { code: 'br_doctor_cpf_required' } });
     expect(writes.insert).not.toHaveBeenCalled();
     expect(writes.update).not.toHaveBeenCalled();
     expect(writes.rpc).not.toHaveBeenCalled();

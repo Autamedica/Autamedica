@@ -27,6 +27,14 @@ const modules = [
     accent: 'border-blue-300',
   }] : []),
   {
+    href: '/admin/governance',
+    label: 'Gobernanza Operativa',
+    eyebrow: 'Gobernanza',
+    description: 'Estados independientes por país y canal, matrículas, documentos, consentimientos, ledger y guardias.',
+    metric: '6 módulos',
+    accent: 'border-violet-300',
+  },
+  {
     href: '/admin/doctors',
     label: 'Médicos & Staff',
     eyebrow: 'Operaciones',
@@ -100,6 +108,7 @@ const modules = [
             {canViewExecutive && (
               <a href="/admin/executive" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-blue-400 hover:text-blue-700">Dirección</a>
             )}
+            <a href="/admin/governance" class="rounded-md border border-violet-300 bg-white px-3 py-2 font-medium text-violet-700 hover:border-violet-500 hover:text-violet-900">Gobernanza</a>
             <a href="/admin/doctors" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-sky-400 hover:text-sky-700">Médicos</a>
             <a href="/admin/growth" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-slate-400 hover:text-slate-900">Growth</a>
             <a href="/admin/crm" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-emerald-400 hover:text-emerald-700">CRM</a>

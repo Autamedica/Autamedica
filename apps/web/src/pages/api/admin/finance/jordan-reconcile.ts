@@ -11,7 +11,7 @@ import {
   type VerifiedPharmacyProviderPayment,
 } from '@/lib/pharmacy/payments/referral-finance'
 import { logger } from '@autamedica/shared'
-import { isVerifiedJordanCommissionEligible } from '@/lib/pharmacy/payments/jordan-commission-eligibility'
+import { isJordanCommissionEligible } from '@/lib/pharmacy/payments/jordan-commission-eligibility'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -38,14 +38,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .select('id,referral_partner_id,care_country')
       .eq('id', dispatchId).maybeSingle()
     if (dispatchError) throw dispatchError
-    if (dispatch?.care_country !== 'BR' || !dispatch?.referral_partner_id) {
-      return badRequest('jordan_br_dispatch_required')
+    if (!['BR', 'AR'].includes(dispatch?.care_country) || !dispatch?.referral_partner_id) {
+      return badRequest('jordan_country_dispatch_required')
     }
     const { data: partner, error: partnerError } = await admin
       .from('commercial_referral_partners').select('code')
       .eq('id',dispatch.referral_partner_id).maybeSingle()
     if (partnerError) throw partnerError
-    if (partner?.code !== 'JORDAN') return badRequest('jordan_br_dispatch_required')
+    if (partner?.code !== 'JORDAN') return badRequest('jordan_country_dispatch_required')
 
     const { data: local, error: localError } = await admin.from('pharmacy_dispatch_payments')
       .select('id,dispatch_request_id,provider_payment_id,provider_preference_id,amount_minor,currency,status,provider')
@@ -53,7 +53,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (localError) throw localError
     if (!local?.provider_preference_id) return conflict('no_checkout_preference_to_reconcile')
 
-    const secret = (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN as string | undefined)
+    const secret = (dispatch.care_country === 'AR'
+      ? (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN_AR as string | undefined)
+        ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN_AR')
+      : undefined)
+      ?? (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN as string | undefined)
       ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN')
     if (!secret) return internalError('payment_provider_not_configured')
 
@@ -91,29 +95,33 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const reconciled = await reconcilePharmacyProviderPayment(admin,evidence)
     if (!reconciled.handled) return conflict(reconciled.reason ?? 'provider_match_failed')
 
-    // Provider approval alone cannot create a payable Jordan commission.
-    // Only the DB ledger is authoritative after trusted identity verification.
+    // Provider reconciliation triggers the database's first phone/CPF acquisition decision.
     const [
       { data: payment, error: paymentError },
       { data: commission, error: commissionError },
+      { data: tariff, error: tariffError },
     ] = await Promise.all([
       admin.from('pharmacy_dispatch_payments')
         .select('status').eq('dispatch_request_id',dispatchId).maybeSingle(),
       admin.from('commercial_referral_commissions')
-        .select('status,verified_subject_hash')
+        .select('status,amount_minor,currency')
         .eq('dispatch_request_id',dispatchId)
         .eq('referral_partner_id',dispatch.referral_partner_id)
         .maybeSingle(),
+      (admin as any).from('pharmacy_dispatch_pricing_configs')
+        .select('currency,partner_commission_minor')
+        .eq('country_code',dispatch.care_country).maybeSingle(),
     ])
-    if (paymentError || commissionError) throw paymentError ?? commissionError
-    const eligibleCommissionCreated = isVerifiedJordanCommissionEligible(
-      payment?.status, commission,
-    )
+    if (paymentError || commissionError || tariffError) throw paymentError ?? commissionError ?? tariffError
+    const eligibleCommissionCreated = Boolean(tariff
+      && commission?.currency === tariff.currency
+      && commission?.amount_minor === tariff.partner_commission_minor
+      && isJordanCommissionEligible(payment?.status, commission))
     return jsonOk({
       providerMatchedPayments:1,
       verifiedStatus:payment?.status ?? 'unknown',
       eligibleCommissionCreated,
-      requiresTrustedIdentityVerification: !eligibleCommissionCreated,
+      requiresTrustedIdentityVerification: false,
       paidOut:false,
       providerConfirmedIsNotBankSettled:true,
     })

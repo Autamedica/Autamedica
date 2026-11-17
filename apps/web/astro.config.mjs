@@ -4,6 +4,7 @@ import sentry from '@sentry/astro';
 import sitemap from '@astrojs/sitemap';
 import tailwind from '@astrojs/tailwind';
 import { defineConfig } from 'astro/config';
+import path from 'node:path';
 
 export default defineConfig({
   site: 'https://www.autamedica.com',
@@ -38,7 +39,7 @@ export default defineConfig({
     server: {
       forwardConsole: true,
       fs: {
-        allow: ['..', '/mnt/data/Autamedica']
+        allow: [path.resolve(process.cwd(), '../..')]
       }
     },
     ssr: {

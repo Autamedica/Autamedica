@@ -106,7 +106,7 @@ const I18N = {
     backlightAlert: 'Luz de fondo intensa: colocá la luz frente a vos',
     lowLightAlert: 'Ambiente con poca luz: iluminá tu rostro',
     permissionError: 'Acceso a cámara o micrófono no permitido.',
-    consentNotice: 'Al ingresar a la consulta, aceptás los Términos de Telemedicina y Tratamiento de Dados (LGPD).',
+    consentNotice: 'Al ingresar a la consulta, aceptás los Términos de Telemedicina y Tratamiento de Datos Personales.',
     btnPayPix: 'Pagar Consulta con Pix',
     pixPending: 'Pix Pendiente',
     particularBadge: 'Consulta Particular',
@@ -117,7 +117,7 @@ const I18N = {
 
 export default function PatientWaitingRoom({
   doctorName = 'Dr. Felipe Silva',
-  doctorRole = 'Clínica Geral & Telemedicina',
+  doctorRole,
   doctorCrm = 'CRM/SP 184.920',
   clinicName = 'AutaMedica',
   language = 'pt',
@@ -130,6 +130,7 @@ export default function PatientWaitingRoom({
   triageCompleted = false
 }: PatientWaitingRoomProps) {
   const t = I18N[language] || I18N.pt
+  const localizedDoctorRole = doctorRole ?? (language === 'pt' ? 'Clínica Geral & Telemedicina' : 'Clínica general y telemedicina')
 
   const [showPixModal, setShowPixModal] = useState(false)
   const [hasPaid, setHasPaid] = useState(isPaid || !paymentRequired)
@@ -389,40 +390,34 @@ export default function PatientWaitingRoom({
   }
 
   return (
-    <div className="min-h-[100dvh] bg-am-surface-900 flex flex-col items-center justify-center p-3 sm:p-6 select-none font-sans relative selection:bg-am-primary-500/30">
-      {/* ── Background concentric pulse decoration ── */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full border border-am-surface-700/30 animate-pulse" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full border border-am-surface-700/40" />
-      </div>
-
+    <div className="min-h-[100dvh] overflow-x-hidden bg-slate-50 text-slate-900 flex flex-col items-center justify-center p-3 sm:p-6 select-none font-sans relative selection:bg-sky-100">
       <div
         ref={containerRef}
         className="w-full max-w-4xl flex flex-col gap-2.5 sm:gap-3.5 relative z-10"
       >
         {/* ── 1. Minimal Header (Only the pure essentials) ── */}
-        <header className="w-full flex items-center justify-between px-1">
+        <header className="w-full flex flex-wrap items-center justify-between gap-2 px-1">
           <div className="flex items-center gap-2.5">
             <img
               src="/logo.png"
               alt="AutaMedica"
               className="h-6 w-6 sm:h-7 sm:w-7 object-contain"
             />
-            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-am-surface-400">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               {clinicName}
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center justify-end gap-2 sm:gap-3">
             <div className="text-right">
-              <span className="text-sm sm:text-base font-semibold text-am-surface-50 font-heading">
+              <span className="max-w-[38vw] truncate text-xs sm:max-w-none sm:text-base font-semibold text-slate-900 font-heading">
                 {doctorName}
               </span>
               <span className="hidden sm:inline text-xs text-am-surface-400 ml-2 font-mono">
                 {doctorCrm}
               </span>
             </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-am-surface-800 border border-am-surface-700/60 text-am-primary-300 text-xs font-medium">
+            <div className="flex min-h-9 items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
               <span className="h-1.5 w-1.5 rounded-full bg-am-primary-400 animate-pulse" />
               <span>{t.online}</span>
             </div>
@@ -430,7 +425,7 @@ export default function PatientWaitingRoom({
         </header>
 
         {/* ── 2. Cinematic Video Mirror with UFCLabs Dotted Reticle & Floating Controls ── */}
-        <div className="relative w-full aspect-[3/4] sm:aspect-video rounded-3xl border border-am-surface-700/60 bg-am-surface-800 shadow-2xl overflow-hidden flex items-center justify-center group">
+        <div className="relative w-full aspect-[3/4] sm:aspect-video rounded-2xl border border-slate-200 bg-slate-100 shadow-sm overflow-hidden flex items-center justify-center group">
           {mediaError ? (
             <div className="p-4 text-center max-w-sm">
               <AlertCircle className="w-8 h-8 text-rose-400 mx-auto mb-2" />
@@ -439,14 +434,14 @@ export default function PatientWaitingRoom({
                 <button
                   type="button"
                   onClick={() => void initMedia(facingMode)}
-                  className="px-4 py-2 bg-am-surface-700 hover:bg-am-surface-600 text-xs font-semibold rounded-xl text-white transition-colors border border-am-surface-600"
+                  className="min-h-11 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-xs font-semibold rounded-xl text-slate-800 transition-colors border border-slate-200"
                 >
                   {t.retryBtn}
                 </button>
                 <button
                   type="button"
                   onClick={() => onJoin({ stream: null, videoEnabled: false, audioEnabled: false })}
-                  className="px-4 py-2 bg-am-primary-600 hover:bg-am-primary-500 text-xs font-semibold rounded-xl text-white transition-colors shadow-lg"
+                  className="min-h-11 px-4 py-2 bg-[#0EA5E9] hover:bg-sky-600 text-xs font-semibold rounded-xl text-white transition-colors shadow-sm"
                 >
                   {t.joinWithoutMedia}
                 </button>
@@ -470,9 +465,9 @@ export default function PatientWaitingRoom({
 
               {/* Video Off State */}
               {!videoEnabled && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-am-surface-900 text-am-surface-400">
-                  <div className="w-14 h-14 rounded-2xl bg-am-surface-800 border border-am-surface-700 flex items-center justify-center mb-2 shadow-inner">
-                    <VideoOff className="w-7 h-7 text-am-surface-500" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 text-slate-500">
+                  <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 flex items-center justify-center mb-2 shadow-sm">
+                    <VideoOff className="w-7 h-7 text-slate-400" />
                   </div>
                   <p className="text-xs font-medium">{t.cameraOff}</p>
                 </div>
@@ -497,7 +492,7 @@ export default function PatientWaitingRoom({
               {/* ── Transient Lighting / Backlight Alert (Auto-Dismissing Toast) ── */}
               {lightingAlert && (
                 <div className="absolute top-14 inset-x-4 flex justify-center z-30 pointer-events-none animate-in fade-in slide-in-from-top-2 duration-300">
-                  <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-am-surface-900/90 backdrop-blur-md border border-white/20 text-am-surface-100 text-xs shadow-xl">
+                  <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/95 backdrop-blur-md border border-slate-200 text-slate-800 text-xs shadow-xl">
                     <Sun className="w-3.5 h-3.5 text-am-primary-400 flex-shrink-0 animate-pulse" />
                     <span>{lightingAlert}</span>
                   </div>
@@ -507,14 +502,14 @@ export default function PatientWaitingRoom({
               {/* Top Bar Floating Inside Video: Doctor Role + Audio Wave & Filters */}
               <div className="absolute top-3.5 inset-x-3.5 flex items-center justify-between z-10">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-am-surface-300 backdrop-blur-md px-3 py-1 rounded-full bg-am-surface-900/60 border border-white/10 font-medium">
-                    {doctorRole}
+                  <span className="text-xs text-slate-700 backdrop-blur-md px-3 py-1.5 rounded-full bg-white/90 border border-slate-200 font-medium">
+                    {localizedDoctorRole}
                   </span>
                   {paymentRequired && !hasPaid && (
                     <button
                       type="button"
                       onClick={() => setShowPixModal(true)}
-                      className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-am-surface-900/85 backdrop-blur-md border border-am-primary-500/40 text-am-primary-300 hover:text-white text-xs font-semibold hover:bg-am-surface-800 transition-colors shadow-sm cursor-pointer"
+                      className="flex min-h-11 items-center gap-1.5 rounded-full border border-sky-200 bg-white/95 px-3 py-1 text-xs font-semibold text-sky-700 transition-colors shadow-sm cursor-pointer"
                     >
                       <QrCode className="w-3.5 h-3.5 text-am-primary-400 animate-pulse" />
                       <span>{formatBrlFromCents(consultationFeeCents)} · {t.pixPending}</span>
@@ -524,7 +519,7 @@ export default function PatientWaitingRoom({
 
                 <div className="flex items-center gap-2">
                   {/* Audio Level Wave */}
-                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-am-surface-900/80 backdrop-blur-md border border-white/10 shadow-sm">
+                  <div className="flex min-h-9 items-center gap-1.5 rounded-full border border-slate-200 bg-white/90 px-3 py-1 shadow-sm">
                     {audioEnabled ? (
                       <>
                         <Activity className="w-3.5 h-3.5 text-am-primary-400" />
@@ -541,7 +536,7 @@ export default function PatientWaitingRoom({
                         </div>
                       </>
                     ) : (
-                      <span className="text-[10px] text-rose-400 font-medium">Mudo</span>
+                      <span className="text-[10px] text-rose-600 font-medium">{language === 'pt' ? 'Mudo' : 'Silenciado'}</span>
                     )}
                   </div>
 
@@ -549,10 +544,10 @@ export default function PatientWaitingRoom({
                   <button
                     type="button"
                     onClick={() => setShowFilters(!showFilters)}
-                    className={`p-2 rounded-full backdrop-blur-md transition-all active:scale-95 border ${
+                    className={`flex min-h-11 min-w-11 items-center justify-center rounded-full backdrop-blur-md transition-all active:scale-95 border ${
                       showFilters
-                        ? 'bg-am-primary-600 text-white border-am-primary-400 shadow-sm'
-                        : 'bg-am-surface-900/80 text-am-surface-200 border-white/10 hover:bg-am-surface-800'
+                        ? 'bg-[#0EA5E9] text-white border-sky-500 shadow-sm'
+                        : 'bg-white/90 text-slate-700 border-slate-200 hover:bg-slate-50'
                     }`}
                     title={t.imageSettings}
                   >
@@ -563,16 +558,16 @@ export default function PatientWaitingRoom({
 
               {/* ── Image & Light Calibration Drawer (Floating Inside Video) ── */}
               {showFilters && (
-                <div className="absolute inset-x-4 top-14 sm:max-w-xs sm:left-auto sm:right-4 bg-am-surface-900/95 backdrop-blur-xl border border-am-surface-700 rounded-2xl p-3.5 z-20 shadow-2xl animate-in fade-in duration-200">
-                  <div className="flex items-center justify-between pb-2 border-b border-am-surface-700/60 mb-2.5">
-                    <span className="text-xs font-semibold text-am-surface-50">
+                <div className="absolute inset-x-3 top-14 sm:inset-x-auto sm:max-w-xs sm:left-auto sm:right-4 bg-white/95 backdrop-blur-xl border border-slate-200 rounded-2xl p-3.5 z-20 shadow-lg animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200 mb-2.5">
+                    <span className="text-xs font-semibold text-slate-900">
                       {t.imageSettings}
                     </span>
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={() => setFilters(DEFAULT_FILTERS)}
-                        className="p-1 hover:text-am-primary-400 text-am-surface-400 transition-colors text-[10px] flex items-center gap-1"
+                        className="min-h-11 min-w-11 p-2 hover:text-sky-600 text-slate-500 transition-colors text-[10px] flex items-center justify-center gap-1"
                         title={t.reset}
                       >
                         <RotateCcw className="w-3 h-3" />
@@ -580,7 +575,7 @@ export default function PatientWaitingRoom({
                       <button
                         type="button"
                         onClick={() => setShowFilters(false)}
-                        className="p-1 hover:text-am-surface-100 text-am-surface-400 transition-colors"
+                        className="min-h-11 min-w-11 p-2 hover:text-slate-900 text-slate-500 transition-colors flex items-center justify-center"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -598,10 +593,10 @@ export default function PatientWaitingRoom({
                           key={key}
                           type="button"
                           onClick={() => setFilters(item.filters)}
-                          className={`py-1 px-2 rounded-lg text-[10px] font-medium transition-all ${
+                          className={`min-h-11 py-1 px-2 rounded-lg text-[10px] font-medium transition-all ${
                             isSelected
-                              ? 'bg-am-primary-600 text-white font-semibold shadow-sm'
-                              : 'bg-am-surface-800 text-am-surface-300 hover:bg-am-surface-700'
+                              ? 'bg-[#0EA5E9] text-white font-semibold shadow-sm'
+                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                           }`}
                         >
                           {language === 'pt' ? item.labelPt : item.labelEs}
@@ -610,14 +605,14 @@ export default function PatientWaitingRoom({
                     })}
                   </div>
 
-                  <div className="space-y-2 text-[10px]">
+                  <div className="space-y-3 text-xs">
                     <div>
-                      <div className="flex justify-between text-am-surface-300 mb-0.5">
+                      <div className="flex justify-between text-slate-700 mb-1">
                         <span className="flex items-center gap-1">
                           <Palette className="w-2.5 h-2.5 text-am-primary-400" />
                           {t.saturation}
                         </span>
-                        <span className="font-mono text-am-primary-400">{filters.saturation}%</span>
+                        <span className="font-mono text-sky-700">{filters.saturation}%</span>
                       </div>
                       <input
                         type="range"
@@ -625,17 +620,17 @@ export default function PatientWaitingRoom({
                         max="170"
                         value={filters.saturation}
                         onChange={e => setFilters(f => ({ ...f, saturation: Number(e.target.value) }))}
-                        className="w-full h-1 bg-am-surface-700 rounded-lg appearance-none cursor-pointer accent-am-primary-500"
+                        className="min-h-11 w-full h-2 touch-pan-y bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#0EA5E9]"
                       />
                     </div>
 
                     <div>
-                      <div className="flex justify-between text-am-surface-300 mb-0.5">
+                      <div className="flex justify-between text-slate-700 mb-1">
                         <span className="flex items-center gap-1">
                           <Sun className="w-2.5 h-2.5 text-am-primary-400" />
                           {t.brightness}
                         </span>
-                        <span className="font-mono text-am-primary-400">{filters.brightness}%</span>
+                        <span className="font-mono text-sky-700">{filters.brightness}%</span>
                       </div>
                       <input
                         type="range"
@@ -643,7 +638,7 @@ export default function PatientWaitingRoom({
                         max="145"
                         value={filters.brightness}
                         onChange={e => setFilters(f => ({ ...f, brightness: Number(e.target.value) }))}
-                        className="w-full h-1 bg-am-surface-700 rounded-lg appearance-none cursor-pointer accent-am-primary-500"
+                        className="min-h-11 w-full h-2 touch-pan-y bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#0EA5E9]"
                       />
                     </div>
                   </div>
@@ -651,15 +646,15 @@ export default function PatientWaitingRoom({
               )}
 
               {/* ── 3. FLOATING ACTION DOCK (INSIDE THE VIDEO) ── */}
-              <div className="absolute bottom-4 inset-x-4 flex flex-col sm:flex-row items-center justify-between gap-3 z-10">
+              <div className="absolute bottom-3 inset-x-3 flex flex-col sm:flex-row items-center justify-between gap-3 z-10">
                 {/* Peripheral Controls Pill */}
-                <div className="flex items-center gap-2 p-1.5 rounded-full bg-am-surface-900/80 backdrop-blur-xl border border-white/10 shadow-lg">
+                <div className="flex items-center gap-2 p-1.5 rounded-full bg-white/95 backdrop-blur-xl border border-slate-200 shadow-lg">
                   <button
                     type="button"
                     onClick={toggleAudio}
-                    className={`p-2.5 rounded-full backdrop-blur-md transition-all active:scale-95 ${
+                    className={`flex h-12 w-12 items-center justify-center rounded-full backdrop-blur-md transition-all active:scale-95 ${
                       audioEnabled
-                        ? 'bg-am-surface-800 text-white hover:bg-am-surface-700'
+                        ? 'bg-slate-100 text-slate-800 hover:bg-slate-200'
                         : 'bg-rose-600 text-white hover:bg-rose-500'
                     }`}
                     title={audioEnabled ? t.micLabel : t.micOff}
@@ -670,9 +665,9 @@ export default function PatientWaitingRoom({
                   <button
                     type="button"
                     onClick={toggleVideo}
-                    className={`p-2.5 rounded-full backdrop-blur-md transition-all active:scale-95 ${
+                    className={`flex h-12 w-12 items-center justify-center rounded-full backdrop-blur-md transition-all active:scale-95 ${
                       videoEnabled
-                        ? 'bg-am-surface-800 text-white hover:bg-am-surface-700'
+                        ? 'bg-slate-100 text-slate-800 hover:bg-slate-200'
                         : 'bg-rose-600 text-white hover:bg-rose-500'
                     }`}
                     title={videoEnabled ? t.cameraLabel : t.cameraOff}
@@ -683,7 +678,7 @@ export default function PatientWaitingRoom({
                   <button
                     type="button"
                     onClick={switchCamera}
-                    className="p-2.5 rounded-full bg-am-surface-800 text-white hover:bg-am-surface-700 backdrop-blur-md transition-all active:scale-95"
+                    className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-800 hover:bg-slate-200 backdrop-blur-md transition-all active:scale-95"
                     title={t.switchCamera}
                   >
                     <SwitchCamera className="w-4 h-4" />
@@ -695,7 +690,7 @@ export default function PatientWaitingRoom({
                   <button
                     type="button"
                     onClick={paymentRequired && !hasPaid ? () => setShowPixModal(true) : handleJoin}
-                    className="relative group w-full sm:w-auto inline-flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-am-primary-600 hover:bg-am-primary-500 text-white font-semibold px-7 py-3 text-sm sm:text-base shadow-xl transition-all shadow-am-primary/30 active:scale-[0.99]"
+                    className="relative group min-h-12 w-full sm:w-auto inline-flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-[#0EA5E9] hover:bg-sky-600 text-white font-semibold px-7 py-3 text-sm sm:text-base shadow-lg transition-all shadow-sky-100 active:scale-[0.99]"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:animate-[am-shimmer_2s_infinite]" />
                     {paymentRequired && !hasPaid ? (
@@ -709,7 +704,7 @@ export default function PatientWaitingRoom({
                         : t.btnJoin}
                     </span>
                   </button>
-                  <p className="text-[10px] text-am-surface-400 text-center mt-2 max-w-xs sm:max-w-sm">
+                  <p className="text-[10px] text-slate-600 text-center mt-2 max-w-xs sm:max-w-sm">
                     {t.consentNotice}
                   </p>
                 </div>

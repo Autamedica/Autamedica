@@ -12,6 +12,7 @@ import { logger } from '@autamedica/shared'
 import { fetchApi } from '@/lib/api-client'
 import { useCallSession } from '@/hooks/calls/useCallSession'
 import { useConsultationContext } from '@/hooks/doctors/useConsultationContext'
+import { useCurrentDoctor } from '@/hooks/doctors/useRealDoctors'
 import { useDoctorWaitingRoom, formatWaitingCountdown, getWaitingCopy } from '@/hooks/doctors/useDoctorWaitingRoom'
 import { translateCallError } from '@/lib/calls/lib/call-error-messages'
 import { GuestLinkButton } from '@/components/doctors/calls/GuestLinkButton'
@@ -25,6 +26,8 @@ import { ConsultationContextPanel } from './ConsultationContextPanel'
 import { PrescriptionCreateModal } from '@/components/doctors/medical/PrescriptionCreateModal'
 import { prescriptionService } from '@/lib/doctors/services/prescription.service'
 import { MedicalOrderCreateModal } from '@/components/doctors/medical/MedicalOrderCreateModal'
+import { CertificateCreateModal } from '@/components/doctors/medical/CertificateCreateModal'
+import { MemedPrescriptionWidget } from '@/components/doctors/medical/MemedPrescriptionWidget'
 import { medicalOrderService } from '@/lib/doctors/services/medical-order.service'
 import type { UUID, Prescription, MedicalOrder } from '@/types/medical'
 
@@ -38,11 +41,11 @@ const NOTES_AUTOSAVE_DELAY_MS = 900
 const CAPTION_HIDE_DELAY_MS = 3200
 const MAX_SUBTITLE_CHARS = 180
 
-function formatTranscriptForUi(value: string): string {
+function formatTranscriptForUi(value: string, locale: string): string {
   return value
     .replace(/\s+/g, ' ')
     .trim()
-    .toLocaleLowerCase('es-AR')
+    .toLocaleLowerCase(locale)
 }
 
 function appendTranscriptChunk(current: string, chunk: string): string {
@@ -52,8 +55,8 @@ function appendTranscriptChunk(current: string, chunk: string): string {
   return `${current}${/[\s\n]$/.test(current) ? '' : ' '}${nextChunk}`
 }
 
-function toSubtitleText(value: string): string {
-  const normalized = formatTranscriptForUi(value)
+function toSubtitleText(value: string, locale: string): string {
+  const normalized = formatTranscriptForUi(value, locale)
   if (normalized.length <= MAX_SUBTITLE_CHARS) return normalized
   return `…${normalized.slice(-MAX_SUBTITLE_CHARS)}`
 }
@@ -77,7 +80,15 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const [captionText, setCaptionText] = useState('')
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false)
   const [showStudyOrderModal, setShowStudyOrderModal] = useState(false)
-  const { context, loading: contextLoading, error: contextError } = useConsultationContext(roomId)
+  const [showCertificateModal, setShowCertificateModal] = useState(false)
+  const [showMemedWidget, setShowMemedWidget] = useState(false)
+  const [callCompletionError, setCallCompletionError] = useState<string | null>(null)
+  const [isCompletingDispatch, setIsCompletingDispatch] = useState(false)
+  const { context, loading: contextLoading, error: contextError, refresh: refreshConsultationContext } = useConsultationContext(roomId)
+  const { doctor } = useCurrentDoctor(session?.user?.id)
+  const doctorCountry = (doctor as (NonNullable<typeof doctor> & { care_country?: string }) | null)?.care_country
+  const isBrazilianDoctor = doctorCountry === 'BR' || context?.dispatchTriage?.careCountry === 'BR'
+  const transcriptionLocale = isBrazilianDoctor ? 'pt-BR' : 'es-AR'
   const {
     session: callSession,
     loading: callSessionLoading,
@@ -89,7 +100,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const { iceServers: clientTurnServers, loading: turnLoading } = useTurnCredentials('/api/doctors/turn-credentials')
 
   // Transcription — mandatory, automatic, silent
-  const [transcriptionState, transcriptionActions] = useAudioTranscription('es-AR')
+  const [transcriptionState, transcriptionActions] = useAudioTranscription(transcriptionLocale)
   const callStartTimeRef = useRef<number | null>(null)
   const transcriptionSavedRef = useRef(false)
   const transcriptionStartedRef = useRef(false)
@@ -168,7 +179,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     if (freshSegments.length === 0) return
 
     const nextChunk = freshSegments
-      .map((segment) => formatTranscriptForUi(segment.text))
+      .map((segment) => formatTranscriptForUi(segment.text, transcriptionLocale))
       .filter(Boolean)
       .join(' ')
 
@@ -194,7 +205,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
         clearTimeout(captionTimeoutRef.current)
         captionTimeoutRef.current = null
       }
-      setCaptionText(toSubtitleText(transcriptionState.interimText))
+      setCaptionText(toSubtitleText(transcriptionState.interimText, transcriptionLocale))
       return
     }
 
@@ -204,7 +215,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     }
 
     latestCaptionTimestampRef.current = latestFinalSegment.timestamp
-    setCaptionText(toSubtitleText(latestFinalSegment.text))
+    setCaptionText(toSubtitleText(latestFinalSegment.text, transcriptionLocale))
     if (captionTimeoutRef.current) clearTimeout(captionTimeoutRef.current)
     captionTimeoutRef.current = setTimeout(() => {
       setCaptionText('')
@@ -227,6 +238,13 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   }, [showDoctorWaitingRoom])
 
   const typedProfile = profile as (UserProfile & { role?: string; email?: string }) | null
+  const hasClinicalPatientId = Boolean(context?.patient?.id
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(context.patient.id))
+  const isBrazilianDispatch = context?.dispatchTriage?.careCountry === 'BR'
+  const dispatchDocument = isBrazilianDispatch
+    ? context?.dispatchTriage?.patientCpf
+    : context?.dispatchTriage?.patientDni
+  const maskedDispatchDocument = dispatchDocument ? '•••• ' + dispatchDocument.slice(-4) : null
   const callSessionId = callSession?.callId?.trim() ?? ''
   const renderableCallSession =
     Boolean(callSession)
@@ -274,7 +292,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
       fullText,
       durationSeconds,
       consentDoctor: true,
-      lang: 'es-AR',
+      lang: transcriptionLocale,
     }
 
     const url = `/api/doctors/consultations/${roomId}/transcription`
@@ -302,14 +320,38 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     }
   }, [roomId])
 
+  const finishDispatchBeforeReport = useCallback(async () => {
+    setIsCompletingDispatch(true)
+    setCallCompletionError(null)
+    try {
+      await fetchApi('/api/doctors/on-duty/complete', {
+        method: 'POST',
+        body: {
+          roomId,
+          ...(context?.dispatchTriage?.dispatchRequestId
+            ? { requestId: context.dispatchTriage.dispatchRequestId }
+            : {}),
+        },
+      })
+      window.location.href = '/doctors/call/' + roomId + '/report'
+    } catch (error) {
+      logger.error('[DoctorCallPage] pharmacy dispatch completion failed', error)
+      setCallCompletionError(isBrazilianDispatch ? 'Não foi possível confirmar o encerramento do plantão. Tente novamente para liberar a solicitação e registrar os honorários.' : 'No se pudo confirmar el cierre de la guardia. Reintentá para liberar la solicitud y registrar los honorarios.')
+    } finally {
+      setIsCompletingDispatch(false)
+    }
+  }, [roomId, context?.dispatchTriage?.dispatchRequestId])
+
   const handleCallEnd = useCallback(async () => {
     setVoiceNotesEnabled(false)
-    if (transcriptionState.isTranscribing) {
-      transcriptionActions.stop()
+    if (transcriptionState.isTranscribing) transcriptionActions.stop()
+    try {
+      await saveTranscription(transcriptionState.segments)
+    } catch (error) {
+      logger.warn('[DoctorCallPage] transcription save failed while ending call', error)
     }
-    await saveTranscription(transcriptionState.segments)
-    window.location.href = `/doctors/call/${roomId}/report`
-  }, [roomId, transcriptionState.segments, transcriptionState.isTranscribing, transcriptionActions, saveTranscription])
+    await finishDispatchBeforeReport()
+  }, [transcriptionState.segments, transcriptionState.isTranscribing, transcriptionActions, saveTranscription, finishDispatchBeforeReport])
 
   const handleAcceptCall = useCallback(async () => {
     if (!callSession?.callId) return
@@ -378,7 +420,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
       return null
     }
 
-    return toSubtitleText(transcriptionState.interimText)
+    return toSubtitleText(transcriptionState.interimText, transcriptionLocale)
   }, [transcriptionState.interimText, voiceNotesEnabled])
 
   const handlePersistCallStatus = useCallback(
@@ -442,18 +484,18 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   if (callSessionError) {
     const errorInfo = translateCallError(callSessionError)
     return (
-      <div className="flex min-h-screen items-center justify-center bg-am-surface-900 px-4">
-        <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-am-surface-900 p-8 text-center shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-am-doctor-400">
-            Telemedicina profesional
+      <div className="flex min-h-screen items-center justify-center bg-[#0D1F2D] px-4">
+        <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0D1F2D] p-8 text-center shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2DD4BF]">
+            {isBrazilianDoctor ? 'Telemedicina profissional' : 'Telemedicina profesional'}
           </p>
           <div className="mx-auto mb-4 mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
             <svg className="h-7 w-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-1.333-2.694-1.333-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
-          <h1 className="text-xl font-semibold text-am-surface-50">{errorInfo.title}</h1>
-          <p className="mt-3 text-sm text-slate-500">{errorInfo.description}</p>
+          <h1 className="text-xl font-semibold text-white">{errorInfo.title}</h1>
+          <p className="mt-3 text-sm text-slate-300">{errorInfo.description}</p>
           {errorInfo.retryHint && (
             <p className="mt-2 text-sm text-amber-600">{errorInfo.retryHint}</p>
           )}
@@ -461,16 +503,16 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             <button
               type="button"
               onClick={() => void refreshCallSession()}
-              className="rounded-2xl bg-am-doctor-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-am-doctor-700"
+              className="rounded-2xl bg-[#0D9488] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#0F766E]"
             >
-              Reintentar
+              {isBrazilianDoctor ? 'Tentar novamente' : 'Reintentar'}
             </button>
             <button
               type="button"
               onClick={() => { window.location.href = '/doctors' }}
-              className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-am-surface-900"
+              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-200 transition-colors hover:bg-[#0D1F2D]"
             >
-              Volver al portal
+              {isBrazilianDoctor ? 'Voltar ao portal' : 'Volver al portal'}
             </button>
           </div>
         </div>
@@ -480,15 +522,15 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
 
   if ((loading || !isReady) || (!callSession && callSessionLoading)) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-am-surface-900 px-4">
-        <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-am-surface-900 p-8 text-center shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-am-doctor-400">
-            Telemedicina profesional
+      <div className="flex min-h-screen items-center justify-center bg-[#0D1F2D] px-4">
+        <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0D1F2D] p-8 text-center shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2DD4BF]">
+            {isBrazilianDoctor ? 'Telemedicina profissional' : 'Telemedicina profesional'}
           </p>
           <div className="mx-auto mb-4 mt-5 h-12 w-12 animate-spin rounded-full border-b-2 border-am-doctor-400"></div>
-          <h1 className="text-xl font-semibold text-am-surface-50">Preparando videollamada...</h1>
-          <p className="mt-3 text-sm text-slate-500">
-            Estamos validando la sala, el contexto clínico y la conexión segura antes de ingresar.
+          <h1 className="text-xl font-semibold text-white">{isBrazilianDoctor ? 'Preparando videochamada...' : 'Preparando videollamada...'}</h1>
+          <p className="mt-3 text-sm text-slate-300">
+            {isBrazilianDoctor ? 'Estamos validando a sala, o contexto clínico e a conexão segura antes de entrar.' : 'Estamos validando la sala, el contexto clínico y la conexión segura antes de ingresar.'}
           </p>
         </div>
       </div>
@@ -497,34 +539,34 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
 
   if (!renderableCallSession) {
     return (
-      <div className="min-h-screen bg-am-surface-900 flex items-center justify-center px-4">
-        <div className="max-w-md w-full rounded-3xl border border-slate-200 bg-am-surface-900 p-8 text-center shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-am-doctor-400">
-            Telemedicina profesional
+      <div className="min-h-screen bg-[#0D1F2D] flex items-center justify-center px-4">
+        <div className="max-w-md w-full rounded-3xl border border-white/10 bg-[#0D1F2D] p-8 text-center shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2DD4BF]">
+            {isBrazilianDoctor ? 'Telemedicina profissional' : 'Telemedicina profesional'}
           </p>
           <div className="mx-auto mb-4 mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-amber-50">
             <svg className="h-7 w-7 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-1.333-2.694-1.333-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
-          <h1 className="text-xl font-semibold text-am-surface-50">La videollamada quedó inconsistente</h1>
-          <p className="mt-3 text-sm text-slate-500">
-            Recibimos una sesión parcial. Reintentá para reconstruir la llamada antes de volver a entrar.
+          <h1 className="text-xl font-semibold text-white">{isBrazilianDoctor ? 'A videochamada ficou inconsistente' : 'La videollamada quedó inconsistente'}</h1>
+          <p className="mt-3 text-sm text-slate-300">
+            {isBrazilianDoctor ? 'Recebemos uma sessão parcial. Tente novamente para reconstruir a chamada antes de entrar.' : 'Recibimos una sesión parcial. Reintentá para reconstruir la llamada antes de volver a entrar.'}
           </p>
           <div className="mt-6 flex flex-col gap-3">
             <button
               type="button"
               onClick={() => void refreshCallSession()}
-              className="rounded-2xl bg-am-doctor-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-am-doctor-700"
+              className="rounded-2xl bg-[#0D9488] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#0F766E]"
             >
-              Reintentar
+              {isBrazilianDoctor ? 'Tentar novamente' : 'Reintentar'}
             </button>
             <button
               type="button"
               onClick={() => { window.location.href = '/doctors' }}
-              className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-am-surface-900"
+              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-200 transition-colors hover:bg-[#0D1F2D]"
             >
-              Volver al portal
+              {isBrazilianDoctor ? 'Voltar ao portal' : 'Volver al portal'}
             </button>
           </div>
         </div>
@@ -532,24 +574,40 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     )
   }
 
-  const waitingCopy = getWaitingCopy(doctorWaitingState, callSession.waitingRoom.message, callSession.peer?.displayName)
+  const waitingCopy = getWaitingCopy(doctorWaitingState, callSession.waitingRoom.message, callSession.peer?.displayName, transcriptionLocale)
   const showWaitingRoomOverlay = showDoctorWaitingRoom && doctorWaitingState !== 'waiting'
 
   return (
-    <div className="h-screen bg-am-surface-900 overflow-hidden flex">
+    <div className="h-screen bg-[#0D1F2D] overflow-hidden flex">
+      {callCompletionError && (
+        <div role="alert" className="fixed inset-x-4 top-4 z-50 mx-auto flex max-w-xl items-center justify-between gap-3 rounded-xl border border-rose-500/40 bg-rose-950/95 p-4 text-sm text-rose-100 shadow-xl">
+          <span>{callCompletionError}</span>
+          <button type="button" disabled={isCompletingDispatch} onClick={() => void finishDispatchBeforeReport()}
+            className="shrink-0 rounded-lg bg-rose-500 px-3 py-2 font-semibold text-white disabled:opacity-50">
+            {isCompletingDispatch ? (isBrazilianDispatch ? 'Encerrando...' : 'Cerrando...') : (isBrazilianDispatch ? 'Tentar novamente' : 'Reintentar cierre')}
+          </button>
+        </div>
+      )}
+      {context?.dispatchTriage && (
+        <div className="fixed left-4 top-20 z-40 flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-slate-950/95 px-3 py-2 text-xs text-slate-100 shadow-lg">
+          <strong>{context.dispatchTriage.patientName || context.patient?.name || 'Paciente'}</strong>
+          <span className="text-slate-400">{isBrazilianDispatch ? 'CPF' : 'DNI'}: {maskedDispatchDocument || (isBrazilianDispatch ? 'Não informado' : 'No informado')}</span>
+          <span className="rounded-md bg-slate-800 px-2 py-1">{context.dispatchTriage.careCountry || (isBrazilianDispatch ? 'País não definido' : 'País no definido')}</span>
+        </div>
+      )}
       {/* Video Call */}
       <div className={`flex-1 min-w-0 transition-all duration-300 relative ${panelCollapsed ? '' : 'mr-0'}`}>
         {showWaitingRoomOverlay ? (
           <div className="h-screen flex items-center justify-center px-6">
-            <div className="w-full max-w-xl rounded-3xl border border-slate-200 bg-am-surface-900 p-8 shadow-sm">
+            <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-[#0D1F2D] p-8 shadow-sm">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className={`text-xs font-semibold uppercase tracking-[0.24em] ${
-                    (doctorWaitingState as string) === 'waiting' ? 'text-am-doctor-400' : 'text-slate-500/80'
+                    (doctorWaitingState as string) === 'waiting' ? 'text-[#2DD4BF]' : 'text-slate-300/80'
                   }`}>
-                    {(doctorWaitingState as string) === 'waiting' ? 'Videollamada lista' : 'Videollamada finalizada'}
+                    {(doctorWaitingState as string) === 'waiting' ? (isBrazilianDoctor ? 'Videochamada pronta' : 'Videollamada lista') : (isBrazilianDoctor ? 'Videochamada encerrada' : 'Videollamada finalizada')}
                   </p>
-                  <h1 className="mt-3 text-3xl font-semibold text-am-surface-50">
+                  <h1 className="mt-3 text-3xl font-semibold text-white">
                     {waitingCopy.title}
                   </h1>
                 </div>
@@ -558,40 +616,40 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                     ? 'border-am-doctor-200 bg-am-doctor-50 text-am-doctor-700'
                     : doctorWaitingState === 'canceling'
                       ? 'border-amber-200 bg-amber-50 text-amber-700'
-                      : 'border-slate-200 bg-am-surface-900 text-slate-700'
+                      : 'border-white/10 bg-[#0D1F2D] text-slate-200'
                 }`}>
                   {(doctorWaitingState as string) === 'waiting'
                     ? formatWaitingCountdown(waitSecondsRemaining)
                     : doctorWaitingState === 'canceling'
-                      ? 'Procesando'
-                      : 'Cerrada'}
+                      ? (isBrazilianDoctor ? 'Processando' : 'Procesando')
+                      : (isBrazilianDoctor ? 'Encerrada' : 'Cerrada')}
                 </div>
               </div>
 
-              <p className="mt-4 text-base leading-7 text-am-surface-300">
+              <p className="mt-4 text-base leading-7 text-slate-300">
                 {waitingCopy.description}
               </p>
 
-              <div className="mt-8 rounded-2xl border border-slate-100 bg-am-surface-900 p-5">
+              <div className="mt-8 rounded-2xl border border-white/10 bg-[#0D1F2D] p-5">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm font-semibold text-am-surface-50">Estado de invitacion</p>
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="text-sm font-semibold text-white">{isBrazilianDoctor ? 'Estado do convite' : 'Estado de invitación'}</p>
+                    <p className="mt-1 text-sm text-slate-300">
                       {(doctorWaitingState as string) === 'waiting'
-                        ? 'El paciente verá la llamada entrante y podrá aceptar desde su portal.'
-                        : 'La invitación ya no está activa para esta sala.'}
+                        ? (isBrazilianDoctor ? 'O paciente verá a chamada recebida e poderá aceitá-la pelo portal.' : 'El paciente verá la llamada entrante y podrá aceptar desde su portal.')
+                        : (isBrazilianDoctor ? 'O convite não está mais ativo para esta sala.' : 'La invitación ya no está activa para esta sala.')}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Call ID</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-700">{callSession.callId.slice(-8)}</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-200">{callSession.callId.slice(-8)}</p>
                   </div>
                 </div>
               </div>
 
               {waitingActionError && (
                 <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {waitingActionError}
+                  {isBrazilianDoctor ? 'Não foi possível cancelar a videochamada. Tente novamente em alguns segundos.' : waitingActionError}
                 </div>
               )}
 
@@ -601,24 +659,24 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                     type="button"
                     onClick={() => void cancelWaitingCall('doctor_canceled')}
                     disabled={doctorWaitingState === 'canceling'}
-                    className="inline-flex items-center justify-center rounded-2xl bg-am-surface-900 border border-red-200 px-5 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center justify-center rounded-2xl bg-[#0D1F2D] border border-red-200 px-5 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {doctorWaitingState === 'canceling' ? 'Cancelando...' : 'Cancelar llamada'}
+                    {doctorWaitingState === 'canceling' ? (isBrazilianDoctor ? 'Cancelando...' : 'Cancelando...') : (isBrazilianDoctor ? 'Cancelar chamada' : 'Cancelar llamada')}
                   </button>
                 ) : (
                   <button
                     type="button"
                     onClick={() => { window.location.href = '/doctors' }}
-                    className="inline-flex items-center justify-center rounded-2xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white hover:bg-sky-700 transition-colors"
+                    className="inline-flex items-center justify-center rounded-2xl bg-[#0D9488] px-5 py-3 text-sm font-semibold text-white hover:bg-[#0F766E] transition-colors"
                   >
-                    Volver al portal
+                    {isBrazilianDoctor ? 'Voltar ao portal' : 'Volver al portal'}
                   </button>
                 )}
 
                 <button
                   type="button"
                   onClick={() => { window.location.href = '/doctors' }}
-                  className="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-am-surface-900 transition-colors"
+                  className="inline-flex items-center justify-center rounded-2xl border border-white/10 px-5 py-3 text-sm font-semibold text-slate-200 hover:bg-[#0D1F2D] transition-colors"
                 >
                   Ir al inicio medico
                 </button>
@@ -648,19 +706,25 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             className="h-screen"
             onLocalAudioLevelChange={handleAudioLevelChange}
             auxiliaryControls={
-              context?.patient?.id && !context.dispatchTriage &&
-              /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(context.patient.id) ? (
+              hasClinicalPatientId ? (
                 <>
-                  <CallAuxiliaryButton
-                    icon={<Pill className="h-5 w-5 md:h-5.5 md:w-5.5" />}
-                    label="Receta"
-                    onClick={() => setShowPrescriptionModal(true)}
-                  />
-                  <CallAuxiliaryButton
-                    icon={<FileText className="h-5 w-5 md:h-5.5 md:w-5.5" />}
-                    label="Estudio"
-                    onClick={() => setShowStudyOrderModal(true)}
-                  />
+                  {isBrazilianDispatch ? (
+                    <CallAuxiliaryButton icon={<Pill className="h-5 w-5 md:h-5.5 md:w-5.5" />}
+                      label={isBrazilianDispatch ? 'Receita Memed' : 'Receta Memed'} onClick={() => setShowMemedWidget(true)} />
+                  ) : (
+                    <CallAuxiliaryButton icon={<Pill className="h-5 w-5 md:h-5.5 md:w-5.5" />}
+                      label={isBrazilianDoctor ? 'Receita' : 'Receta'} onClick={() => setShowPrescriptionModal(true)} />
+                  )}
+                  {!isBrazilianDispatch && (
+                    <CallAuxiliaryButton icon={<FileText className="h-5 w-5 md:h-5.5 md:w-5.5" />}
+                      label={isBrazilianDoctor ? 'Exame' : 'Estudio'} onClick={() => setShowStudyOrderModal(true)} />
+                  )}
+                  {context?.dispatchTriage?.dispatchRequestId
+                    && context?.patient?.id
+                    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(context.patient.id) && (
+                      <CallAuxiliaryButton icon={<FileText className="h-5 w-5 md:h-5.5 md:w-5.5" />}
+                        label={isBrazilianDoctor ? 'Atestado' : 'Certificado'} onClick={() => setShowCertificateModal(true)} />
+                  )}
                 </>
               ) : null
             }
@@ -669,7 +733,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
 
         {/* Transcription active indicator — minimal, non-intrusive */}
         {!showDoctorWaitingRoom && transcriptionState.isTranscribing && (
-          <div className="absolute top-3 left-3 z-20 flex items-center gap-2 bg-am-surface-900 border border-red-100 rounded-full px-3 py-1.5 shadow-sm" title="Transcripción activa">
+          <div className="absolute top-3 left-3 z-20 flex items-center gap-2 bg-[#0D1F2D] border border-red-100 rounded-full px-3 py-1.5 shadow-sm" title={isBrazilianDoctor ? "Transcrição ativa" : "Transcripción activa"}>
             <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
             <span className="text-[10px] font-bold text-red-600 select-none">REC</span>
           </div>
@@ -690,7 +754,33 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
       </div>
 
       {/* Clinical Context Panel */}
-      <div className={`shrink-0 transition-all duration-300 ${panelCollapsed ? 'w-0' : 'w-96'} bg-am-surface-900 border-l border-slate-200`}>
+      <div className={`shrink-0 transition-all duration-300 ${panelCollapsed ? 'w-0' : 'w-96'} bg-[#0D1F2D] border-l border-white/10`}>
+        {!panelCollapsed && context?.patient && (
+          <div className="border-b border-white/10 px-4 py-3">
+            <p className="text-sm font-semibold text-white">{context.patient.name}</p>
+            {context.patient.identityStatus === 'verified_renaper' ? (
+              <div className="mt-2 rounded-lg border border-emerald-400/30 bg-emerald-500/10 p-3 text-xs text-emerald-200">
+                <p className="font-semibold">✓ Filiación RENAPER + PUCO</p>
+                <p className="mt-1">Nombre legal: {context.patient.officialFullName || context.patient.name}</p>
+                <p>DNI: {context.patient.dni || context.dispatchTriage?.patientDni || 'No informado'}</p>
+                <p>CUIL: {context.patient.cuil || context.dispatchTriage?.officialCuil || 'No informado'}</p>
+                <p>Nacimiento: {context.patient.dateOfBirth || 'No informado'}</p>
+                <p>Sexo registral: {context.patient.gender || 'No informado'}</p>
+                <p>Cobertura PUCO: {context.patient.pucoCoverage || context.dispatchTriage?.pucoCoverageName || 'Sin cobertura informada'}</p>
+              </div>
+            ) : (
+              <div className="mt-2 rounded-lg border border-amber-400/30 bg-amber-500/10 p-3 text-xs text-amber-100">
+                <p className="font-semibold">Documento declarado (Sin contraste RENAPER)</p>
+                {context.dispatchTriage?.patientDni && context.dispatchTriage?.patientGenderCode && (
+                  <button type="button" onClick={async () => {
+                    await fetchApi('/api/doctors/consultations/' + roomId + '/identity/renaper', { method: 'POST' });
+                    refreshConsultationContext();
+                  }} className="mt-2 rounded-md border border-amber-300/40 px-2 py-1.5 font-semibold">Reintentar consulta RENAPER</button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         <ConsultationContextPanel
           context={context}
           loading={contextLoading}
@@ -705,13 +795,48 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
           voiceNotesAvailable={!showDoctorWaitingRoom && transcriptionState.isSupported}
           liveTranscriptPreview={liveTranscriptPreview}
           onToggleVoiceNotes={handleToggleVoiceNotes}
+          locale={transcriptionLocale}
         />
       </div>
 
-      {showPrescriptionModal && context?.patient?.id && !context.dispatchTriage &&
+      {showMemedWidget && isBrazilianDispatch && context?.patient?.id && context.dispatchTriage?.dispatchRequestId && (
+        <MemedPrescriptionWidget
+          patientId={context.patient.id}
+          requestId={context.dispatchTriage.dispatchRequestId}
+          onPrescriptionSaved={async (prescriptionId) => {
+            await fetchApi('/api/doctors/prescriptions/memed-event', {
+              method: 'POST',
+              body: { action: 'issued', patientId: context.patient?.id, requestId: context.dispatchTriage?.dispatchRequestId, prescriptionId },
+            })
+          }}
+          onPrescriptionDeleted={async (prescriptionId) => {
+            await fetchApi('/api/doctors/prescriptions/memed-event', {
+              method: 'POST',
+              body: { action: 'deleted', patientId: context.patient?.id, requestId: context.dispatchTriage?.dispatchRequestId, prescriptionId },
+            })
+          }}
+          onClose={() => setShowMemedWidget(false)}
+          onFallbackToNativePrescription={() => {
+            setShowMemedWidget(false)
+            setShowPrescriptionModal(true)
+          }}
+        />
+      )}
+
+      {showPrescriptionModal && context?.patient?.id &&
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(context.patient.id) && (
         <PrescriptionCreateModal
           patientId={context.patient.id as UUID}
+          doctorCareCountry={isBrazilianDoctor ? 'BR' : 'AR'}
+          patientIdentity={{
+            identityStatus: context.patient.identityStatus ?? 'unverified',
+            fullName: context.patient.officialFullName ?? context.patient.name,
+            dni: context.patient.dni ?? context.dispatchTriage?.patientDni,
+            cuil: context.patient.cuil ?? context.dispatchTriage?.officialCuil,
+            birthDate: context.patient.dateOfBirth,
+            gender: context.patient.gender,
+            pucoCoverageName: context.patient.pucoCoverage ?? context.dispatchTriage?.pucoCoverageName,
+          }}
           onClose={() => setShowPrescriptionModal(false)}
           onSaved={() => {
             setShowPrescriptionModal(false)
@@ -730,11 +855,11 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
           updatePrescription={async (id, updates) => {
             await prescriptionService.update(id, {} as Prescription, updates)
           }}
-          submitLabel="Emitir receta"
+          submitLabel={isBrazilianDoctor ? "Emitir receita" : "Emitir receta"}
         />
       )}
 
-      {showStudyOrderModal && context?.patient?.id && !context.dispatchTriage &&
+      {showStudyOrderModal && context?.patient?.id &&
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(context.patient.id) && (
         <MedicalOrderCreateModal
           patientId={context.patient.id as UUID}
@@ -756,9 +881,22 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
           updateMedicalOrder={async (id, updates) => {
             await medicalOrderService.update(id, {} as MedicalOrder, updates)
           }}
-          submitLabel="Solicitar estudio"
+          submitLabel={isBrazilianDoctor ? "Solicitar exame" : "Solicitar estudio"}
         />
       )}
+      {showCertificateModal
+        && context?.patient?.id
+        && context.dispatchTriage?.dispatchRequestId
+        && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(context.patient.id) && (
+          <CertificateCreateModal
+            patientId={context.patient.id}
+            patientName={context.patient.name}
+            patientDni={context.dispatchTriage.patientCpf ?? context.dispatchTriage.patientDni ?? undefined}
+            countryCode={context.dispatchTriage.careCountry === 'BR' ? 'BR' : 'AR'}
+            dispatchRequestId={context.dispatchTriage.dispatchRequestId}
+            onClose={() => setShowCertificateModal(false)}
+          />
+        )}
     </div>
   )
 }

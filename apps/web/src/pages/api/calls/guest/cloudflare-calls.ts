@@ -48,13 +48,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       })
     }
     if (await checkJordanMediaAccess(admin as unknown as SupabaseClient, guest.roomId) !== 'allowed') {
-      return new Response(JSON.stringify({ error: 'jordan_payment_required' }), {
+      return new Response(JSON.stringify({ error: 'brazil_pharmacy_payment_required' }), {
         status: 402,
         headers: { 'Content-Type': 'application/json' },
       })
     }
   } catch (error) {
-    logger.error('[guest/cloudflare-calls] Could not authorize Jordan media', error)
+    logger.error('[guest/cloudflare-calls] Could not authorize Brazil pharmacy media', error)
     return internalError('jordan_media_gate_unavailable')
   }
 

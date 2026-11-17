@@ -30,7 +30,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ (github.actor == 'coderabbitai[bot]' || github.actor == 'circleci-app[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.draft)) && 'ignored' || 'active' }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -46,7 +46,7 @@ env:
 
 jobs:
   build-gate:
-    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]'
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]'
     name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -60,6 +60,8 @@ jobs:
       - run: pnpm arch:v2:check
       - run: pnpm arch:v2:imports:changed
       - run: pnpm typecheck
+      - name: Run explicit Astro check
+        run: pnpm --filter @autamedica/web check
       - name: Build workspace packages
         run: pnpm build:packages:core
       - name: Build web
@@ -76,7 +78,7 @@ jobs:
           RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}
 
   lint-gate:
-    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]'
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]'
     name: Lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -86,6 +88,8 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
+      - name: Test operational governance independence and audit guards
+        run: node --test scripts/ci/operational-governance-contract.test.mjs
       - name: Test newsletter audience reconciliation safeguards
         run: node --test apps/newsletter-worker/scripts/sync-newsletter-audience.test.mjs
       - name: Test Memed deployment configuration safeguards
@@ -98,6 +102,8 @@ jobs:
         run: node --experimental-strip-types --test supabase/functions/update-call-status/handler.test.ts
       - run: pnpm lint
       - run: pnpm hardcode:check
+      - name: Verify country-scoped pharmacy pricing contract
+        run: node --test scripts/ci/jordan-release-contract.test.mjs
       - name: Detect hardcoded secrets
         run: |
           FOUND=0
@@ -106,7 +112,7 @@ jobs:
           if grep -rnE "eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|sbp_[A-Za-z0-9]{20,}|SUPABASE_SERVICE_ROLE_KEY[[:space:]]*[:=][[:space:]]*['\"]|SUPABASE_ACCESS_TOKEN[[:space:]]*[:=][[:space:]]*['\"]" --include="*.ts" --include="*.js" --include="*.mjs" --include="*.sh" --include="*.yml" --include="*.yaml" --exclude="*.test.ts" --exclude="*.spec.ts" . --exclude-dir=".github" --exclude-dir="node_modules" | grep -vE "process\.env|import\.meta\.env|secrets\.|<token>|placeholder|REPLACE_WITH"; then FOUND=1; fi
           if [ "$FOUND" = "1" ]; then echo "::error::Hardcoded secrets detected"; exit 1; fi
   unit-tests:
-    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]'
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]'
     name: Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -122,7 +128,7 @@ jobs:
           RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}
 
   clinical-edge-prescription:
-    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]'
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]'
     name: Clinical Edge RX (Deno)
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -145,7 +151,7 @@ jobs:
         run: deno test --no-lock --allow-env --allow-net supabase/functions/tests/issue-prescription.test.ts supabase/functions/tests/patient-identity-renaper.test.ts
 
   database-tests:
-    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]'
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]'
     name: Database & RLS
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -203,7 +209,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     needs: [build-gate, lint-gate, unit-tests, database-tests]
-    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && always()
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]' && always()
     steps:
       - name: Evaluate gates
         run: |

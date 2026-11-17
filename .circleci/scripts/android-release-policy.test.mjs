@@ -86,7 +86,7 @@ test('release jobs require GitHub tag event and original tagged configuration', 
   }
   assert.ok(bundle.includes('test "${CIRCLE_RELEASE_CONFIG_REF:-}" = "refs/tags/$tag"'));
   assert.ok(bundle.includes('test "${CIRCLE_RELEASE_TRIGGER:-}" = "github_app"'));
-  assert.ok(bundle.includes('test "${CIRCLE_RELEASE_CONFIG_REPO:-}" = "ecucondorSA/Autamedica"'));
+  assert.ok(bundle.includes('test "${CIRCLE_RELEASE_CONFIG_REPO:-}" = "Autamedica/Autamedica"'));
   assert.ok(bundle.includes('test "${CIRCLE_RELEASE_CONFIG_SHA:-}" = "$CIRCLE_RELEASE_SHA"'));
   assert.doesNotMatch(bundle, /pipeline\.event\.github\.ref/); // push-only value breaks API-triggered smoke
   assert.ok(bundle.includes('git merge-base --is-ancestor "$CIRCLE_RELEASE_SHA" FETCH_HEAD'));

@@ -365,7 +365,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   }, [doctors, locale])
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-white">
+    <div ref={containerRef} className="min-h-screen bg-slate-50">
       {/* Fixed Minimal Header - Appears on scroll */}
       <motion.header
         className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-b border-neutral-100"
@@ -373,7 +373,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
       >
         <div className="max-w-7xl mx-auto px-6 lg:px-12 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="size-9 rounded-full bg-sky-500 flex items-center justify-center text-white text-sm font-medium">
+            <div className="size-9 rounded-full bg-[#10B981] flex items-center justify-center text-white text-sm font-medium">
               {firstName.charAt(0).toUpperCase()}
             </div>
             <div className="flex items-center gap-2">
@@ -383,7 +383,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   reserveData.subscription_tier === 'cuidado'
                     ? reserveData.subscription_status === 'past_due'
                       ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                      : 'bg-cyan-50 text-cyan-700 border border-cyan-200'
+                      : 'bg-emerald-50 text-emerald-700 border border-cyan-200'
                     : 'bg-neutral-100 text-neutral-600'
                 }`}>
                   {reserveData.subscription_tier === 'cuidado' ? (
@@ -490,7 +490,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             <button type="button" className="relative p-2 hover:bg-neutral-50 rounded-lg transition-colors">
               <Bell className="size-5 text-neutral-600" />
               {hasUpcomingAppointment && (
-                <span className="absolute top-1.5 right-1.5 size-1.5 bg-sky-500 rounded-full" />
+                <span className="absolute top-1.5 right-1.5 size-1.5 bg-[#10B981] rounded-full" />
               )}
             </button>
 
@@ -535,13 +535,13 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
       {/* Immediate-care hero: primary patient action, visible without scrolling */}
       <section
         aria-labelledby="patient-home-immediate-title"
-        className="max-w-7xl mx-auto px-6 lg:px-12 pt-5 md:pt-8"
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 pt-4 sm:pt-5 md:pt-8"
       >
         <div
           className="relative isolate overflow-hidden rounded-[2rem] border bg-white shadow-sm"
           style={{ borderColor: 'color-mix(in srgb, var(--portal-patients) 22%, transparent)' }}
         >
-          <div className="relative h-24 overflow-hidden sm:h-32" aria-hidden="true">
+          <div className="relative h-20 overflow-hidden sm:h-32" aria-hidden="true">
             <img
               src="/images/hero_patient_bg.jpg"
               alt=""
@@ -551,7 +551,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             />
             <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/20 to-white/50" />
           </div>
-          <div className="relative flex flex-col gap-5 p-6 sm:p-8 lg:p-10">
+          <div className="relative flex flex-col gap-3 sm:gap-5 p-4 sm:p-6 lg:p-10">
             <div className="max-w-3xl space-y-2">
               <p className="text-xs font-bold uppercase tracking-[0.18em]" style={{ color: 'var(--portal-patients-action)' }}>
                 {greeting}
@@ -597,7 +597,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               <a
                 href="/farmacia/solicitar"
                 className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl px-6 py-4 text-base font-bold text-white shadow-md transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300 active:scale-[0.99]"
-                style={{ backgroundColor: 'var(--portal-patients-action)' }}
+                style={{ backgroundColor: '#10B981' }}
               >
                 {dict.patientPortal.immediateCare.cta}
                 <ArrowRight aria-hidden="true" className="size-5" />
@@ -607,7 +607,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               </p>
               <a
                 href="/patients/appointments"
-                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border bg-white px-5 py-3 text-sm font-semibold transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100" style={{ borderColor: 'color-mix(in srgb, var(--portal-patients) 28%, transparent)', color: 'var(--portal-patients-action)' }}
+                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border bg-white px-5 py-3 text-sm font-semibold transition-colors hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-100" style={{ borderColor: '#10B981', color: '#0D9488' }}
               >
                 <Calendar aria-hidden="true" className="size-4" />
                 {dict.patientPortal.immediateCare.scheduledCta}
@@ -619,9 +619,9 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
 
       {/* Main Content */}
       <motion.main
-        className="relative bg-white"
+        className="relative bg-slate-50"
       >
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-8 space-y-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-5 sm:py-8 space-y-8 sm:space-y-12">
 
           {/* ── CAROUSEL MÉDICOS DISPONIBLES (COMPACT ~13%) ── */}
           <AvailableDoctorsCarousel
@@ -639,7 +639,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, height: 0, marginBottom: 0, overflow: 'hidden' }}
                 transition={{ duration: 0.4 }}
-                className="relative overflow-hidden rounded-3xl bg-neutral-950 text-white p-6 md:p-8 shadow-2xl border border-neutral-800"
+                className="relative overflow-hidden rounded-3xl bg-[#0F2537] text-white p-5 sm:p-6 md:p-8 shadow-2xl border border-slate-700"
               >
                 {/* Botón de cerrar badge */}
                 <button
@@ -788,7 +788,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             <div>
               <motion.div
                 className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium mb-6 ${
-                  !anamnesisCompleted ? 'bg-sky-50 text-sky-700' : 'bg-cyan-50 text-cyan-700'
+                  !anamnesisCompleted ? 'bg-emerald-50 text-emerald-700' : 'bg-emerald-50 text-emerald-700'
                 }`}
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -828,7 +828,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
 
               <motion.a
                 href={!anamnesisCompleted ? '/patients/anamnesis' : '/patients/appointments?type=telemedicine'}
-                className="group inline-flex items-center gap-2 px-7 py-4 bg-neutral-900 text-white rounded-full hover:bg-neutral-800 transition-colors"
+                className="group inline-flex min-h-12 items-center gap-2 px-7 py-4 bg-[#10B981] text-white rounded-full hover:bg-[#0D9488] transition-colors"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -855,7 +855,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 </div>
                 <div className="h-1 bg-neutral-100 rounded-full overflow-hidden">
                   <motion.div
-                    className="h-full bg-sky-500 rounded-full"
+                    className="h-full bg-[#10B981] rounded-full"
                     initial={{ width: 0 }}
                     whileInView={{ width: `${anamnesisProgress}%` }}
                     viewport={{ once: true }}
@@ -897,7 +897,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 </div>
                 <div className="h-1 bg-neutral-100 rounded-full overflow-hidden">
                   <motion.div
-                    className="h-full bg-sky-500 rounded-full"
+                    className="h-full bg-[#10B981] rounded-full"
                     initial={{ width: 0 }}
                     whileInView={{ width: `${Math.min((freeConsults / 5) * 100, 100)}%` }}
                     viewport={{ once: true }}
@@ -917,7 +917,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               viewport={{ once: true, margin: "-100px" }}
             >
               <motion.div
-                className="inline-flex items-center gap-2 px-3 py-1.5 bg-neutral-900 text-white rounded-full text-xs font-medium mb-8"
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#0F2537] text-white rounded-full text-xs font-medium mb-8"
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
@@ -968,7 +968,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                         type="button"
                         onClick={() => { clearJoinError(); void joinAppointment(upcomingTelemedicine.id) }}
                         disabled={joiningAppointmentId === upcomingTelemedicine.id}
-                        className="group inline-flex items-center gap-2 px-7 py-4 bg-neutral-900 text-white rounded-full hover:bg-neutral-800 transition-colors disabled:opacity-70"
+                        className="group inline-flex min-h-12 items-center gap-2 px-7 py-4 bg-[#10B981] text-white rounded-full hover:bg-[#0D9488] transition-colors disabled:opacity-70"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >
@@ -990,7 +990,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   viewport={{ once: true }}
                   transition={{ delay: 0.4 }}
                 >
-                  <div className="size-32 rounded-full bg-sky-100 flex items-center justify-center">
+                  <div className="size-32 rounded-full bg-emerald-100 flex items-center justify-center">
                     <Calendar className="size-16 text-sky-600" />
                   </div>
                 </motion.div>

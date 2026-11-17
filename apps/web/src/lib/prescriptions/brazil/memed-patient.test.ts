@@ -8,13 +8,13 @@ const identity = { care_country: 'BR', user_id: 'synthetic-user', active: true, 
 
 function database(overrides: Record<string, unknown> = {}): SupabaseClient {
   const rows: Record<string, unknown> = { patient_care_team: { id: 'synthetic-team' },
-    appointments: null, patients: identity,
+    appointments: null, pharmacy_dispatch_requests: null, patients: identity,
     profiles: { first_name: 'Synthetic', last_name: 'Patient' }, ...overrides };
   return { from: vi.fn((table: string) => {
-    const chain = { select: vi.fn(), eq: vi.fn(), is: vi.fn(), or: vi.fn(), limit: vi.fn(),
+    const chain = { select: vi.fn(), update: vi.fn(), eq: vi.fn(), is: vi.fn(), or: vi.fn(), in: vi.fn(), gte: vi.fn(), order: vi.fn(), limit: vi.fn(),
       maybeSingle: vi.fn(async () => ({ data: rows[table], error: null })) };
-    chain.is.mockReturnValue(chain); chain.or.mockReturnValue(chain);
-    chain.select.mockReturnValue(chain); chain.eq.mockReturnValue(chain); chain.limit.mockReturnValue(chain);
+    chain.is.mockReturnValue(chain); chain.or.mockReturnValue(chain); chain.in.mockReturnValue(chain); chain.gte.mockReturnValue(chain);
+    chain.select.mockReturnValue(chain); chain.update.mockReturnValue(chain); chain.eq.mockReturnValue(chain); chain.order.mockReturnValue(chain); chain.limit.mockReturnValue(chain);
     return chain;
   }) } as unknown as SupabaseClient;
 }
@@ -41,17 +41,105 @@ describe('Memed patient authorization', () => {
     await expect(resolveMemedPatient(db, 'doctor', patientId)).rejects.toThrow('doctor_patient_access_required');
     expect(db.from).not.toHaveBeenCalledWith('patients');
   });
+  it('accepts a completed pharmacy dispatch assigned to the doctor without an appointment', async () => {
+    await expect(resolveMemedPatient(database({
+      patient_care_team: null,
+      appointments: null,
+      pharmacy_dispatch_requests: { id: 'dispatch' },
+    }), 'doctor', patientId)).resolves.toHaveProperty('cpf', identity.cpf);
+  });
+  it('resolves an isolated QR guest from the active dispatch identity and consent', async () => {
+    const dispatch = {
+      id: 'synthetic-dispatch',
+      patient_name: 'Synthetic Guest',
+      patient_cpf: '529.982.247-25',
+      patient_phone: '+55 51 99999-1111',
+      lgpd_consent: true,
+    };
+    const result = await resolveMemedPatient(database({
+      patient_care_team: null,
+      appointments: null,
+      pharmacy_dispatch_requests: dispatch,
+      patients: { ...identity, user_id: null, cpf: null, birth_date: null, gender: null },
+    }), 'doctor', patientId);
+    expect(result).toEqual({
+      idExterno: `autamedica-${patientId}`,
+      nome: 'Synthetic Guest',
+      cpf: '52998224725',
+      telefone: '+5551999991111',
+    });
+  });
+
+  it('rejects QR guest dispatches without recorded LGPD consent', async () => {
+    await expect(resolveMemedPatient(database({
+      patient_care_team: null,
+      appointments: null,
+      pharmacy_dispatch_requests: {
+        id: 'synthetic-dispatch', patient_name: 'Synthetic Guest',
+        patient_cpf: '52998224725', patient_phone: '+55 51 99999-1111', lgpd_consent: false,
+      },
+      patients: { ...identity, user_id: null, cpf: null },
+    }), 'doctor', patientId)).rejects.toThrow('memed_patient_consent_required');
+  });
+
+  it('rejects invalid CPF in the QR dispatch identity', async () => {
+    await expect(resolveMemedPatient(database({
+      patient_care_team: null,
+      appointments: null,
+      pharmacy_dispatch_requests: {
+        id: 'synthetic-dispatch', patient_name: 'Synthetic Guest',
+        patient_cpf: '52998224724', patient_phone: '+55 51 99999-1111', lgpd_consent: true,
+      },
+      patients: { ...identity, user_id: null, cpf: null },
+    }), 'doctor', patientId)).rejects.toThrow('memed_patient_identity_incomplete');
+  });
+
   it('accepts a legitimate completed consultation', async () => {
     await expect(resolveMemedPatient(database({ patient_care_team: null, appointments: { id: 'visit' } }),
       'doctor', patientId)).resolves.toHaveProperty('cpf', identity.cpf);
+  });
+  it('accepts clinician-confirmed demographics for express patients', async () => {
+    await expect(resolveMemedPatient(database({ patients: { ...identity, birth_date: null, gender: null } }),
+      'doctor', patientId, { birthDate: '2000-02-29', gender: 'female' }))
+      .resolves.toHaveProperty('cpf', identity.cpf);
+  });
+  it('rejects invalid clinician-entered demographics', async () => {
+    await expect(resolveMemedPatient(database(), 'doctor', patientId,
+      { birthDate: '2099-01-01', gender: 'female' }))
+      .rejects.toThrow('memed_patient_demographics_invalid');
+  });
+  it('accepts clinician-confirmed demographics for express patients', async () => {
+    await expect(resolveMemedPatient(database({ patients: { ...identity, birth_date: null, gender: null } }),
+      'doctor', patientId, { birthDate: '2000-02-29', gender: 'female' }))
+      .resolves.toHaveProperty('cpf', identity.cpf);
+  });
+  it('rejects invalid clinician-entered demographics', async () => {
+    await expect(resolveMemedPatient(database(), 'doctor', patientId,
+      { birthDate: '2099-01-01', gender: 'female' }))
+      .rejects.toThrow('memed_patient_demographics_invalid');
   });
   it.each([{ lgpd_consent: false }, { active: false }])('requires authorized active patient %j', async (change) => {
     await expect(resolveMemedPatient(database({ patients: { ...identity, ...change } }), 'doctor', patientId))
       .rejects.toThrow('memed_patient_consent_required');
   });
-  it.each([{ cpf: '00000000000' }, { birth_date: null }, { gender: null }])('rejects incomplete identity %j', async (change) => {
+  it.each([{ cpf: '00000000000' }, { cpf: '' }])('rejects incomplete required identity %j', async (change) => {
     await expect(resolveMemedPatient(database({ patients: { ...identity, ...change } }), 'doctor', patientId))
       .rejects.toThrow('memed_patient_identity_incomplete');
+  });
+  it.each([{ birth_date: null }, { gender: null }, { birth_date: null, gender: null }])(
+    'accepts express pharmacy patients without optional demographics %j', async (change) => {
+      const patient = await resolveMemedPatient(database({ patients: { ...identity, ...change } }), 'doctor', patientId);
+      expect(patient).toMatchObject({ nome: 'Synthetic Patient', cpf: identity.cpf });
+      if (change.birth_date === null) expect(patient).not.toHaveProperty('data_nascimento');
+      else expect(patient).toHaveProperty('data_nascimento');
+      if (change.gender === null) expect(patient).not.toHaveProperty('sexo');
+      else expect(patient).toHaveProperty('sexo');
+    },
+  );
+  it('omits malformed optional demographics instead of fabricating them', async () => {
+    const patient = await resolveMemedPatient(database({ patients: { ...identity, birth_date: 'bad', gender: 'unknown' } }), 'doctor', patientId);
+    expect(patient).not.toHaveProperty('data_nascimento');
+    expect(patient).not.toHaveProperty('sexo');
   });
   it('rejects manipulated patient identifiers', async () => {
     await expect(resolveMemedPatient(database(), 'doctor', '../../other')).rejects.toThrow('memed_patient_required');

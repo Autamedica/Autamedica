@@ -4,11 +4,13 @@ import android.app.Application
 import android.app.Notification
 import android.app.NotificationManager
 import android.media.RingtoneManager
+import android.os.Build
 import android.os.PowerManager
 import com.autamedica.android.MainActivity
 import com.autamedica.android.R
 import com.autamedica.android.domain.model.NotificationType
 import com.autamedica.android.domain.model.PushPayload
+import com.google.firebase.messaging.RemoteMessage
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -36,12 +38,30 @@ class DispatchIncomingAlertTest {
     }
 
     @Test
+    fun fcmDispatchPayloadPreservesOfferIdForServerVerifiedDecline() {
+        val message = RemoteMessage.Builder("autamedica-test-token")
+            .addData("type", "pharmacy_dispatch_incoming")
+            .addData("request_id", "request-123")
+            .addData("offer_id", "offer-123")
+            .addData("room_id", "cf-room-test")
+            .build()
+
+        val payload = PushNotificationService().parsePayload(message)
+
+        assertEquals(NotificationType.PHARMACY_DISPATCH_INCOMING, payload.type)
+        assertEquals("request-123", payload.appointmentId)
+        assertEquals("offer-123", payload.offerId)
+        assertEquals("cf-room-test", payload.roomId)
+    }
+
+    @Test
     fun dispatchOfferBuildsFullScreenCallAlertWithRingtoneVibrationAndWakeLock() {
         val payload = PushPayload(
             type = NotificationType.PHARMACY_DISPATCH_INCOMING,
             title = "Sensitive patient name must not be displayed",
             body = "Sensitive symptom details must not be displayed",
             appointmentId = "request-123",
+            offerId = "offer-123",
         )
 
         IncomingCallNotificationManager.showDispatchIncoming(context, payload)
@@ -74,11 +94,15 @@ class DispatchIncomingAlertTest {
         assertEquals(Notification.PRIORITY_MAX, notification.priority)
         assertEquals(Notification.VISIBILITY_PUBLIC, notification.visibility)
         val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-        assertEquals(ringtoneUri, notification.sound)
-        assertArrayEquals(
-            longArrayOf(0, 1000, 1000, 1000, 1000, 1000),
-            notification.vibrate,
-        )
+        // Android 8+ delegates notification audio and vibration to the channel.
+        // Assert legacy Notification fields only on pre-O devices.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            assertEquals(ringtoneUri, notification.sound)
+            assertArrayEquals(
+                longArrayOf(0, 1000, 1000, 1000, 1000, 1000),
+                notification.vibrate,
+            )
+        }
         assertTrue(
             "The alert remains visible until dismissal or timeout",
             (notification.flags and Notification.FLAG_ONGOING_EVENT) != 0,
@@ -113,6 +137,10 @@ class DispatchIncomingAlertTest {
             IncomingCallNotificationManager.ACTION_DECLINE_DISPATCH,
             declineIntent.action,
         )
+        assertEquals(
+            "offer-123",
+            declineIntent.getStringExtra(IncomingCallNotificationManager.EXTRA_DISPATCH_OFFER_ID),
+        )
 
         val channel = notificationManager.getNotificationChannel(
             IncomingCallNotificationManager.DISPATCH_CHANNEL_ID,
@@ -121,6 +149,10 @@ class DispatchIncomingAlertTest {
         assertTrue(channel.importance >= NotificationManager.IMPORTANCE_HIGH)
         assertEquals(Notification.VISIBILITY_PUBLIC, channel.lockscreenVisibility)
         assertEquals(ringtoneUri, channel.sound)
+        assertArrayEquals(
+            longArrayOf(0, 1000, 1000, 1000, 1000, 1000),
+            channel.vibrationPattern,
+        )
         assertEquals(
             context.getString(R.string.notification_dispatch_offer_title),
             notification.extras.getCharSequence(Notification.EXTRA_TITLE).toString(),

@@ -32,6 +32,7 @@ function buildChain(data: unknown, error: unknown = null) {
     select: ReturnType<typeof vi.fn>
     eq: ReturnType<typeof vi.fn>
     maybeSingle: ReturnType<typeof vi.fn>
+    in: ReturnType<typeof vi.fn>
     insert: ReturnType<typeof vi.fn>
     update: ReturnType<typeof vi.fn>
     single: ReturnType<typeof vi.fn>
@@ -42,11 +43,12 @@ function buildChain(data: unknown, error: unknown = null) {
     select: vi.fn(),
     eq: vi.fn(),
     maybeSingle: vi.fn(),
+    in: vi.fn(),
     insert: vi.fn(),
     update: vi.fn(),
     single: vi.fn(),
   }
-  for (const method of ['select', 'eq', 'maybeSingle', 'insert', 'update', 'single'] as const) {
+  for (const method of ['select', 'eq', 'maybeSingle', 'in', 'insert', 'update', 'single'] as const) {
     chain[method].mockReturnValue(chain)
   }
   return chain
@@ -87,9 +89,15 @@ describe('API: /api/pharmacy/dispatch/payment/create pay-first', () => {
         referral_partner_id: 'partner-jordan',
         commercial_referral_partners: { code: 'JORDAN', active: true },
       }),
-      buildChain({ doctor_fee_brl: 40, price_brl: 79 }),
+      buildChain({ country_code: 'BR', currency: 'BRL', consultation_price_minor: 7900, doctor_fee_minor: 4000, partner_commission_minor: 1000, require_payment_before_dispatch: true }),
+      buildChain({ doctor_fee_minor: 4000, price_minor: 7900, currency: 'BRL' }),
       buildChain(null),
       buildChain({ jordan_qr_payments_enabled: true, pharmacy_express_payments_enabled: true, global_pix_mp_payments_enabled: true }),
+      buildChain([
+        { scope_key: 'BR', commercial_status: 'enabled', financial_status: 'ready' },
+        { scope_key: 'EXPRESS', commercial_status: 'enabled', financial_status: 'ready' },
+        { scope_key: 'JORDAN', commercial_status: 'enabled', financial_status: 'ready' },
+      ]),
       buildChain({ id: 'payment-1' }),
       buildChain({ id: 'payment-1' }),
     ]
@@ -124,7 +132,7 @@ describe('API: /api/pharmacy/dispatch/payment/create pay-first', () => {
         ENABLE_JORDAN_PAYMENTS: 'true',
       }),
     )
-    expect(supabaseMock.from).toHaveBeenCalledTimes(6)
+    expect(supabaseMock.from).toHaveBeenCalledTimes(8)
     expect(fetch).toHaveBeenCalledTimes(1)
   })
 
@@ -145,13 +153,14 @@ describe('API: /api/pharmacy/dispatch/payment/create pay-first', () => {
     expect(fetch).not.toHaveBeenCalled()
   })
 
-  it('fails closed when the server-owned R$79/R$40 quote is missing or mismatched', async () => {
+  it('fails closed when the server-owned country quote is missing or mismatched', async () => {
     const chains = [
       buildChain({
         referral_partner_id: 'partner-jordan',
         commercial_referral_partners: { code: 'JORDAN', active: true },
       }),
-      buildChain({ doctor_fee_brl: 50, price_brl: 79 }),
+      buildChain({ country_code: 'BR', currency: 'BRL', consultation_price_minor: 7900, doctor_fee_minor: 4000 }),
+      buildChain({ doctor_fee_minor: 5000, price_minor: 7900, currency: 'BRL' }),
     ]
     supabaseMock.from.mockImplementation(() => chains.shift())
 
@@ -159,8 +168,71 @@ describe('API: /api/pharmacy/dispatch/payment/create pay-first', () => {
     const body = await response.json()
 
     expect(response.status).toBe(503)
-    expect(body.error.message).toBe('jordan_medical_quote_not_verified')
-    expect(supabaseMock.from).toHaveBeenCalledTimes(2)
+    expect(body.error.message).toBe('pharmacy_country_quote_not_verified')
+    expect(supabaseMock.from).toHaveBeenCalledTimes(3)
     expect(fetch).not.toHaveBeenCalled()
   })
+  it('creates a pending audited ARS manual-pilot payment without requiring the MP rail', async () => {
+    paymentAccessMock.authorize.mockResolvedValue({
+      id: 'dispatch-1',
+      care_country: 'AR',
+      tier_requested: 'general',
+      status: 'searching',
+    })
+    const partner = buildChain({
+      referral_partner_id: 'partner-jordan',
+      commercial_referral_partners: { code: 'JORDAN', active: true },
+    })
+    const tariff = buildChain({
+      country_code: 'AR', currency: 'ARS', consultation_price_minor: 1500000,
+      doctor_fee_minor: 800000, partner_commission_minor: 200000,
+      require_payment_before_dispatch: true,
+    })
+    const quote = buildChain({ doctor_fee_minor: 800000, price_minor: 1500000, currency: 'ARS' })
+    const oldPayment = buildChain(null)
+    const switches = buildChain({
+      jordan_qr_payments_enabled: true,
+      pharmacy_express_payments_enabled: true,
+      global_pix_mp_payments_enabled: false,
+    })
+    const scopes = buildChain([
+      { scope_key: 'AR', commercial_status: 'enabled', financial_status: 'ready' },
+      { scope_key: 'EXPRESS', commercial_status: 'enabled', financial_status: 'ready' },
+      { scope_key: 'JORDAN', commercial_status: 'enabled', financial_status: 'ready' },
+    ])
+    const insert = buildChain({ id: 'payment-ar-manual' })
+    const chains = [partner, tariff, quote, oldPayment, switches, scopes, insert]
+    supabaseMock.from.mockImplementation(() => {
+      const next = chains.shift()
+      if (!next) throw new Error('Unexpected Supabase query')
+      return next
+    })
+
+    const response = await POST(makeContext())
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.data).toMatchObject({
+      status: 'pending',
+      checkoutUrl: null,
+      amountCents: 1500000,
+      currency: 'ARS',
+      manualApprovalRequired: true,
+    })
+    expect(insert.insert).toHaveBeenCalledWith(expect.objectContaining({
+      dispatch_request_id: 'dispatch-1',
+      amount_minor: 1500000,
+      currency: 'ARS',
+      status: 'pending',
+      provider: 'manual',
+      metadata: expect.objectContaining({
+        payment_mode: 'manual_pilot',
+        manual_approval_pending: true,
+        country_code: 'AR',
+      }),
+    }))
+    expect(supabaseMock.from).toHaveBeenCalledTimes(7)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
 })

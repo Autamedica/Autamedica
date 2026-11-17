@@ -1,5 +1,4 @@
 import type { APIRoute } from 'astro';
-import type { Json } from '@autamedica/types';
 import { getUserIdFromRequest } from '@/lib/patients/api/auth';
 import { badRequest, internalError, jsonFail, jsonOk, serviceUnavailable, unauthorized } from '@/lib/api-helpers';
 import { checkRateLimit } from '@/lib/rate-limit';
@@ -14,8 +13,8 @@ import { isOfficialPhotoAvailable, maskOfficialAddress } from '@/lib/patients/se
 import {
   isRenaperLookupInPatientScope,
   returnedRenaperDocumentMatches,
-  buildMinimalRenaperAudit,
 } from '@/lib/patients/services/renaper-identity-scope';
+import { claimRenaperIdentityLookup, persistOfficialIdentityResult } from '@/lib/patients/services/patient-identity.service';
 
 function maskText(text: string | null | undefined, visibleCount = 1): string {
   if (!text) return '';
@@ -86,31 +85,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const supabase = createAstroAdminClient(locals.runtime?.env);
   const { data: patient } = await supabase
     .from('patients')
-    .select('id, insurance_info, dni, gender, care_country')
+    .select('id, user_id, dni, gender, care_country')
     .eq('user_id', userId)
     .maybeSingle();
 
   if (!patient) {
     return badRequest('No se encontró el registro de paciente correspondiente.');
-  }
-
-  // Supabase returns Json; accept only its object shape, never arbitrary unknown.
-  const insuranceInfo: Record<string, Json | undefined> =
-    patient.insurance_info && typeof patient.insurance_info === 'object' &&
-    !Array.isArray(patient.insurance_info)
-      ? patient.insurance_info as Record<string, Json | undefined>
-      : {};
-
-  const lookupCount = typeof insuranceInfo['identity_lookup_count'] === 'number'
-    ? insuranceInfo['identity_lookup_count'] as number
-    : 0;
-
-  if (lookupCount >= 3) {
-    return jsonFail(
-      'RATE_LIMITED',
-      'Excediste el límite de 3 consultas de identidad permitidas por cuenta.',
-      403,
-    );
   }
 
   const { data: payment } = await supabase
@@ -151,6 +131,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   try {
+    await claimRenaperIdentityLookup({ supabase, patientId: patient.id, limit: 3 });
     const result = await fetchOfficialIdentity({
       dni,
       sexId,
@@ -164,30 +145,24 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
     const firstName = person.nombres ?? '';
     const lastName = person.apellido ?? '';
+    const { data: profileName } = await supabase.from('profiles')
+      .select('first_name, last_name').eq('user_id', patient.user_id).maybeSingle();
+    const declaredName = [profileName?.first_name, profileName?.last_name].filter(Boolean).join(' ');
+    const persistedIdentity = await persistOfficialIdentityResult({
+      supabase, result, dni, patientId: patient.id, userId: patient.user_id,
+      declaredName, syncProfileName: true,
+    });
     // All response paths expose only a redacted address; do not send official photo bytes.
     const maskedAddress = maskOfficialAddress(buildAddress(person));
     const photoAvailable = isOfficialPhotoAvailable(person.foto);
     const coverage = result.coverages[0] ?? null;
-
-    // Do not persist provider PII to RLS-readable insurance_info.
-    // Preserve the marker required by legacy profile completion, without
-    // copying RENAPER names, birth dates, CUIL, addresses or pictures.
-    const newInsuranceInfo = buildMinimalRenaperAudit(insuranceInfo, dni, lookupCount);
-
-    const { error: updateErr } = await supabase
-      .from('patients')
-      .update({ insurance_info: newInsuranceInfo })
-      .eq('id', patient.id);
-
-    if (updateErr) {
-      logger.error('[renaper] failed to update insurance_info lookup count');
-    }
 
     if (hasPaid) {
       return jsonOk({
         source: 'RENAPER',
         checkedAt: new Date().toISOString(),
         hasPaid: true,
+        identityStatus: persistedIdentity.identityStatus,
         form: {
           dni: person.numeroDocumento ?? dni,
           firstName,
@@ -213,6 +188,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       source: 'RENAPER',
       checkedAt: new Date().toISOString(),
       hasPaid: false,
+      identityStatus: persistedIdentity.identityStatus,
       form: {
         dni: person.numeroDocumento ?? dni,
         firstName: maskText(firstName, 1),
@@ -242,6 +218,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
       // Do not log the upstream request: it carries DNI and privileged headers.
       logger.error('[patients/identity/renaper] server integration unavailable');
       return serviceUnavailable('La consulta oficial no está disponible en este momento.');
+    }
+    if (code === 'RENAPER_LOOKUP_LIMIT_REACHED') {
+      return jsonFail('RATE_LIMITED', 'Alcanzaste el límite de tres consultas RENAPER para este paciente.', 429);
+    }
+    if (code === 'RENAPER_DOCUMENT_MISMATCH') {
+      return jsonFail('CONFLICT', 'La identidad oficial no coincide con el DNI registrado.', 409);
     }
     if (code === 'RENAPER_PERSON_NOT_FOUND') {
       return badRequest('No encontramos datos oficiales para ese DNI y sexo registral.');

@@ -6,17 +6,25 @@ on:
     branches: [main]
     paths:
       - 'apps/android/**'
+      - 'supabase/functions/_shared/memed-mobile-policy.ts'
+      - 'supabase/functions/memed-mobile-preflight/**'
+      - 'apps/web/src/pages/api/doctors/prescriptions/memed-mobile-context.ts'
+      - '.github/workflows/deploy-production.yml'
       - '.github/workflows/android-ci.yml'
   push:
     branches: [main]
     paths:
       - 'apps/android/**'
+      - 'supabase/functions/_shared/memed-mobile-policy.ts'
+      - 'supabase/functions/memed-mobile-preflight/**'
+      - 'apps/web/src/pages/api/doctors/prescriptions/memed-mobile-context.ts'
+      - '.github/workflows/deploy-production.yml'
       - '.github/workflows/android-ci.yml'
   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ (github.actor == 'coderabbitai[bot]' || github.actor == 'circleci-app[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.draft)) && 'ignored' || 'active' }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -24,7 +32,7 @@ permissions:
 jobs:
   build-and-test:
     if: >-
-      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
+      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     name: Build & Test Android
     runs-on: ubuntu-latest
     timeout-minutes: 60

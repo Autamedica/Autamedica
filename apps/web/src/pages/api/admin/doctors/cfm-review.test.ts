@@ -11,7 +11,8 @@ const state = vi.hoisted(() => ({
   },
   createAdmin: vi.fn(),
   upload: vi.fn(),
-  update: vi.fn(),
+  rpc: vi.fn(),
+  reviewedLicense: null as Record<string, unknown> | null,
 }));
 
 vi.mock('@autamedica/shared', () => ({
@@ -51,9 +52,29 @@ beforeEach(() => {
     cfm_evidence_path: null,
   };
   state.upload.mockReset().mockResolvedValue({ data: { path: 'stored/path.pdf' }, error: null });
-  state.update.mockReset();
+  state.rpc.mockReset().mockImplementation((_functionName: string, args: {
+    p_cfm_status: string;
+    p_license_status: string;
+    p_reason: string;
+    p_evidence_path: string | null;
+    p_actor_id: string;
+  }) => {
+    state.reviewedLicense = {
+      ...state.license,
+      cfm_validation_status: args.p_cfm_status,
+      status: args.p_license_status,
+      cfm_review_notes: args.p_reason,
+      cfm_reviewed_by: args.p_actor_id,
+      cfm_reviewed_at: '2026-11-14T00:00:00.000Z',
+      cfm_last_checked_at: '2026-11-14T00:00:00.000Z',
+      cfm_evidence_path: args.p_evidence_path,
+    };
+    return Promise.resolve({ error: null });
+  });
+  state.reviewedLicense = null;
   state.createAdmin.mockReset().mockReturnValue({
     auth: { getUser: vi.fn() },
+    rpc: state.rpc,
     from: (table: string) => {
       if (table === 'profiles') {
         return {
@@ -64,18 +85,11 @@ beforeEach(() => {
       }
       return {
         select: () => ({
-          eq: () => ({ maybeSingle: async () => ({ data: state.license, error: null }) }),
+          eq: () => ({
+            maybeSingle: async () => ({ data: state.license, error: null }),
+            single: async () => ({ data: state.reviewedLicense ?? state.license, error: null }),
+          }),
         }),
-        update: (payload: Record<string, unknown>) => {
-          state.update(payload);
-          return {
-            eq: () => ({
-              select: () => ({
-                single: async () => ({ data: { ...state.license, ...payload }, error: null }),
-              }),
-            }),
-          };
-        },
       };
     },
     storage: {
@@ -96,14 +110,14 @@ describe('POST /api/admin/doctors/cfm-review', () => {
     }));
     expect(response.status).toBe(401);
     expect(state.upload).not.toHaveBeenCalled();
-    expect(state.update).not.toHaveBeenCalled();
+    expect(state.rpc).not.toHaveBeenCalled();
   });
 
   it('requires an evidence file before marking a CRM valid', async () => {
     const response = await invoke(makeRequest());
     expect(response.status).toBe(400);
     expect(state.upload).not.toHaveBeenCalled();
-    expect(state.update).not.toHaveBeenCalled();
+    expect(state.rpc).not.toHaveBeenCalled();
   });
 
   it('accepts an authenticated, evidenced manual review and activates only the reviewed CRM', async () => {
@@ -114,11 +128,13 @@ describe('POST /api/admin/doctors/cfm-review', () => {
     expect(response.status).toBe(200);
     expect(payload.success).toBe(true);
     expect(state.upload).toHaveBeenCalledOnce();
-    expect(state.update).toHaveBeenCalledWith(expect.objectContaining({
-      cfm_validation_status: 'valid',
-      status: 'active',
-      cfm_reviewed_by: 'reviewer-1',
-      cfm_evidence_path: expect.stringMatching(/^doctor-1\/license-1\/.+\.pdf$/),
+    expect(state.rpc).toHaveBeenCalledWith('admin_review_cfm_license', expect.objectContaining({
+      p_license_id: 'license-1',
+      p_cfm_status: 'valid',
+      p_license_status: 'active',
+      p_reason: 'Consulta oficial CFM realizada e dados conferidos.',
+      p_actor_id: 'reviewer-1',
+      p_evidence_path: expect.stringMatching(/^doctor-1\/license-1\/.+\.pdf$/),
     }));
     expect(payload.data?.license?.cfm_evidence_url).toBe('https://storage.test/signed-proof');
   });
@@ -129,7 +145,7 @@ describe('POST /api/admin/doctors/cfm-review', () => {
     }));
     expect(response.status).toBe(400);
     expect(state.upload).not.toHaveBeenCalled();
-    expect(state.update).not.toHaveBeenCalled();
+    expect(state.rpc).not.toHaveBeenCalled();
   });
 
   it('does not allow the manual CFM workflow to update a non-CRM license', async () => {
@@ -139,6 +155,6 @@ describe('POST /api/admin/doctors/cfm-review', () => {
     }));
     expect(response.status).toBe(400);
     expect(state.upload).not.toHaveBeenCalled();
-    expect(state.update).not.toHaveBeenCalled();
+    expect(state.rpc).not.toHaveBeenCalled();
   });
 });

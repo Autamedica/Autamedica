@@ -1,3 +1,4 @@
+import java.time.Duration
 import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -43,12 +44,18 @@ android {
     namespace = "com.autamedica.android"
     compileSdk = 35
 
+    // Robolectric tests exercise app resources (strings, notification channels and layouts).
+    // Without this, tests fall back to framework-only resources and fail with resource IDs.
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
     defaultConfig {
         applicationId = "com.autamedica.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 32
-        versionName = "1.2.22"
+        versionCode = 34
+        versionName = "1.2.24"
 
         resourceConfigurations += listOf("es", "es-rAR", "pt", "pt-rBR" )
 
@@ -133,6 +140,9 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -180,6 +190,7 @@ dependencies {
     implementation(libs.core.ktx)
     implementation(libs.activity.compose)
     implementation(libs.core.splashscreen)
+    implementation(libs.androidx.browser)
 
     // Navigation
     implementation(libs.navigation.compose)
@@ -267,6 +278,8 @@ dependencies {
 }
 
 tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    // A broken coroutine retry/heartbeat must never pin the release runner indefinitely.
+    timeout.set(Duration.ofMinutes(3))
     testLogging {
         events(
             org.gradle.api.tasks.testing.logging.TestLogEvent.STARTED,

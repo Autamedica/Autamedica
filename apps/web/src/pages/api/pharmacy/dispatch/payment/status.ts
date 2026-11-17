@@ -24,7 +24,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!dispatch) return unauthorized('pharmacy_request_token_required')
 
     const fetchPayment = async () => admin!.from('pharmacy_dispatch_payments')
-      .select('id,provider_payment_id,status,amount_minor,currency')
+      .select('id,provider,provider_payment_id,status,amount_minor,currency,metadata')
       .eq('dispatch_request_id',dispatch.id)
       .maybeSingle()
 
@@ -32,9 +32,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (error) throw error
     if (!local) return jsonOk({ status: 'not_started' })
 
-    const accessToken = (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN as string | undefined)
+    const accessToken = (dispatch.care_country === 'AR'
+      ? (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN_AR as string | undefined)
+        ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN_AR')
+      : undefined)
+      ?? (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN as string | undefined)
       ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN')
-    if (local.provider_payment_id && accessToken) {
+    const isManualOverride = String(local.provider_payment_id ?? '').startsWith('MANUAL_OVERRIDE_')
+    if (local.provider_payment_id && !isManualOverride && accessToken) {
       const response = await fetch(
         `https://api.mercadopago.com/v1/payments/${encodeURIComponent(local.provider_payment_id)}`,
         {
@@ -58,6 +63,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       status: latest?.status ?? 'not_started',
       amountCents: latest?.amount_minor ?? null,
       currency: latest?.currency ?? null,
+      manualApprovalRequired: latest?.status === 'pending'
+        && latest?.metadata?.payment_mode === 'manual_pilot'
+        && latest?.metadata?.manual_approval_pending === true,
     })
   } catch (error) {
     logger.error('[pharmacy-payment/status] Error checking payment', {

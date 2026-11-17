@@ -124,14 +124,22 @@ export const POST: APIRoute = async ({ request, locals }) => {
       ...(uploadedPath ? { cfm_evidence_path: uploadedPath } : {}),
     };
 
-    const { data: updatedLicense, error: updateError } = await admin
-      .from('doctor_licenses')
-      .update(update)
-      .eq('id', license.id)
-      .select('id, doctor_id, license_number, license_type, uf_brazil, status, cfm_validation_status, cfm_last_checked_at, cfm_evidence_path, cfm_review_notes, cfm_reviewed_by, cfm_reviewed_at')
-      .single();
+    const { error: reviewError } = await admin.rpc('admin_review_cfm_license', {
+      p_license_id: license.id,
+      p_cfm_status: decision,
+      p_license_status: update.status,
+      p_reason: reviewNotes.trim(),
+      p_evidence_path: uploadedPath ?? license.cfm_evidence_path ?? null,
+      p_actor_id: auth.userId,
+    });
+    if (reviewError) throw reviewError;
 
-    if (updateError) throw updateError;
+    const { data: updatedLicense, error: readUpdatedError } = await admin
+      .from('doctor_licenses')
+      .select('id, doctor_id, license_number, license_type, uf_brazil, status, cfm_validation_status, cfm_last_checked_at, cfm_evidence_path, cfm_review_notes, cfm_reviewed_by, cfm_reviewed_at')
+      .eq('id', license.id)
+      .single();
+    if (readUpdatedError || !updatedLicense) throw readUpdatedError ?? new Error('cfm_review_result_unavailable');
 
     let evidenceUrl: string | null = null;
     if (updatedLicense.cfm_evidence_path) {

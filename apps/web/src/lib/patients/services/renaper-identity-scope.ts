@@ -62,12 +62,7 @@ export function buildMinimalRenaperAudit(
   requestedDni: string,
   previousLookupCount: number,
 ): Record<string, Json | undefined> {
-  // Purge previously injected raw official records when an account is
-  // consulted again; historical rows need an independently reviewed cleanup.
+  // Legacy insurance_info stores only rate-limit metadata, never civil identity.
   const { official_data: _discardSensitiveOfficialData, ...other } = insuranceInfo;
-  return {
-    ...other,
-    identity_lookup_count: previousLookupCount + 1,
-    official_data: { dni: requestedDni },
-  };
+  return { ...other, identity_lookup_count: previousLookupCount + 1 };
 }

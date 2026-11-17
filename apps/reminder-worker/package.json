@@ -13,7 +13,8 @@
     "dev:growth-agent": "bun --watch src/growth-agent-worker.ts",
     "dev:inbound": "bun --watch src/inbound-watcher.ts",
     "dev:adherence": "bun --watch src/adherence-reminder.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "start:patient-whatsapp": "bun src/patient-whatsapp-worker.ts"
   },
   "dependencies": {
     "@autamedica/prescriptions": "workspace:*",

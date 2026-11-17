@@ -93,8 +93,9 @@ export interface PatientPrescription {
     vendor_id: string | null;
     qr_code_content: string | null;
     signed_pdf_url: string | null;
+    access_code: string | null;
     artifact_warning: string | null;
     is_digital_artifact_ready: boolean;
     requires_strict_validation: boolean;
-    source: 'legacy' | 'prescriptions_core';
+    source: 'legacy' | 'prescriptions_core' | 'memed_br';
 }

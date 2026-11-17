@@ -72,16 +72,21 @@ export function assertElectronicCertificateEligible(source: ElectronicCertificat
   }
   const start = String(cert.start_date);
   const days = Number(cert.days_of_rest);
+  const hours = Number(cert.rest_hours ?? 0);
   const parsed = new Date(`${start}T12:00:00Z`);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !Number.isFinite(parsed.getTime()) ||
       parsed.toISOString().slice(0, 10) !== start || !Number.isInteger(days) || days < 0 || days > 365 ||
-      (days === 0 && cert.end_date !== null)) {
+      !Number.isInteger(hours) || hours < 0 || hours > 8760 ||
+      (days > 0 && hours > 0) || ((days === 0 || hours > 0) && cert.end_date !== null)) {
     throw new Error('certificate_period_invalid');
+  }
+  if ((days > 0 || hours > 0) && !String(cert.diagnosis ?? '').trim()) {
+    throw new Error('certificate_period_or_diagnosis_invalid');
   }
   if (days > 0) {
     const end = new Date(`${start}T12:00:00Z`);
     end.setUTCDate(end.getUTCDate() + days - 1);
-    if (end.toISOString().slice(0, 10) !== cert.end_date || !String(cert.diagnosis ?? '').trim()) {
+    if (end.toISOString().slice(0, 10) !== cert.end_date) {
       throw new Error('certificate_period_or_diagnosis_invalid');
     }
   }
@@ -120,6 +125,7 @@ export async function issueElectronicCertificate(
     diagnosis: cert.diagnosis as string | null, hideDiagnosis: cert.hide_diagnosis === true,
     treatment: cert.treatment as string | null, observations: cert.observations as string | null,
     daysOfRest: Number(cert.days_of_rest), startDate: String(cert.start_date),
+    restHours: Number(cert.rest_hours ?? 0),
     endDate: cert.end_date as string | null, createdAt: String(cert.created_at),
     electronicSignature: { signature, stamp, confirmedAt },
   }, 'electronic');

@@ -46,10 +46,18 @@ export interface ResolvedRoomParticipants {
   appointmentId: string | null;
   /** Present only for on-demand pharmacy/kiosk dispatch flows */
   triage?: {
+    patientId: string | null;
     patientDni: string | null;
+    patientCpf: string | null;
     patientName: string | null;
+    patientPhone: string | null;
+    careCountry: string | null;
     symptomSummary: string | null;
     dispatchRequestId: string;
+    identityStatus: 'verified_renaper' | 'unverified' | 'mismatch' | null;
+    officialFullName: string | null; officialCuil: string | null; officialBirthDate: string | null;
+    officialGender: string | null; pucoCoverageName: string | null; pucoCoverageCode: string | null;
+    patientGenderCode: 'F' | 'M' | 'X' | null;
   };
 }
 
@@ -60,7 +68,7 @@ async function resolvePharmacyDispatchRoom(
   // 3. Pharmacy dispatch: a document number is NOT patient identity verification.
   const { data: dispatchRow, error: dispatchError } = await admin
     .from('pharmacy_dispatch_requests')
-    .select('id, patient_id, patient_dni, patient_name, assigned_doctor_id, symptom_summary')
+    .select('id, patient_id, patient_dni, patient_cpf, patient_name, patient_phone, care_country, assigned_doctor_id, symptom_summary, patient_gender_code, identity_status, official_full_name, official_cuil, official_birth_date, official_gender, puco_coverage_name, puco_coverage_code')
     .eq('cloudflare_room_id', roomId)
     .in('status', ['matched', 'in_call', 'transferring', 'transferred', 'completed'])
     .order('created_at', { ascending: false })
@@ -72,7 +80,14 @@ async function resolvePharmacyDispatchRoom(
       id: string;
       patient_id: string | null;
       patient_dni: string | null;
+      patient_cpf: string | null;
       patient_name: string | null;
+      patient_phone: string | null;
+      care_country: string | null;
+      patient_gender_code: 'F' | 'M' | 'X' | null;
+      identity_status: 'verified_renaper' | 'unverified' | 'mismatch' | null;
+      official_full_name: string | null; official_cuil: string | null; official_birth_date: string | null;
+      official_gender: string | null; puco_coverage_name: string | null; puco_coverage_code: string | null;
       assigned_doctor_id: string | null;
       symptom_summary: string | null;
     };
@@ -87,10 +102,18 @@ async function resolvePharmacyDispatchRoom(
       doctorId: dispatch.assigned_doctor_id,
       appointmentId: null,
       triage: {
+        patientId: dispatch.patient_id,
         patientDni: dispatch.patient_dni,
+        patientCpf: dispatch.patient_cpf,
         patientName: dispatch.patient_name,
+        patientPhone: dispatch.patient_phone,
+        careCountry: dispatch.care_country,
         symptomSummary: dispatch.symptom_summary,
         dispatchRequestId: dispatch.id,
+        identityStatus: dispatch.identity_status, officialFullName: dispatch.official_full_name,
+        officialCuil: dispatch.official_cuil, officialBirthDate: dispatch.official_birth_date,
+        officialGender: dispatch.official_gender, pucoCoverageName: dispatch.puco_coverage_name,
+        pucoCoverageCode: dispatch.puco_coverage_code, patientGenderCode: dispatch.patient_gender_code,
       },
     };
   }

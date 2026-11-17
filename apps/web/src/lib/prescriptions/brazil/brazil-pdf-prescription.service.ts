@@ -71,11 +71,11 @@ export function generateBrazilPrescriptionPdf(input: BrazilPrescriptionInput): U
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.text('Em conformidade com a Resolução CFM nº 2.299/2021 e nº 2.314/2022', marginLeft, 23);
+  doc.text('Documento médico eletrônico · CFM Resolução nº 2.381/2024', marginLeft, 23);
   doc.text(`Emitida em: ${formatDateBr(input.issuedAt)}  |  Validade até: ${formatDateBr(input.expiresAt)}`, marginLeft, 30);
   doc.text(`ID: ${input.prescriptionId}`, marginLeft, 36);
 
-  const qrUrl = input.itiValidationUrl || 'https://validar.iti.gov.br';
+  const qrUrl = input.verificationUrl || '';
   drawQrCodeVector(doc, qrUrl, pageWidth - 45, 6, 30);
 
   let y = 50;
@@ -144,7 +144,7 @@ export function generateBrazilPrescriptionPdf(input: BrazilPrescriptionInput): U
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(100, 116, 139);
-  doc.text('MÉDICO PRESCRITOR (ICP-BRASIL)', marginLeft + 4, footerY + 6);
+  doc.text('MÉDICO PRESCRITOR (CRM/UF)', marginLeft + 4, footerY + 6);
 
   doc.setFontSize(10);
   doc.setTextColor(15, 23, 42);
@@ -156,16 +156,16 @@ export function generateBrazilPrescriptionPdf(input: BrazilPrescriptionInput): U
   doc.text(`CRM/${input.prescriber.uf}: ${input.prescriber.crm} ${input.prescriber.rqe ? ` | RQE: ${input.prescriber.rqe}` : ''}`, marginLeft + 4, footerY + 19);
   doc.text(`CPF: ${input.prescriber.cpf}`, marginLeft + 4, footerY + 25);
 
-  // Legal Disclaimer
+  // The AutaMedica validation QR is not represented as an ITI/SNCR registration.
   doc.setFontSize(6.5);
   doc.setTextColor(148, 163, 184);
   doc.text(
-    'Documento assinado digitalmente com certificado ICP-Brasil nos termos da MP 2.200-2/2001 e Resolução CFM nº 2.299/2021.',
+    'PDF com assinatura criptográfica incorporada. Consulte a autenticidade pelo código de validação AutaMedica.',
     marginLeft,
     268,
   );
   doc.text(
-    'Para validação da autenticidade da assinatura digital e dispensação em farmácia, consulte https://validar.iti.gov.br.',
+    'O código AutaMedica não substitui o registro SNCR exigido para receituários sujeitos a controle especial.',
     marginLeft,
     273,
   );

@@ -25,8 +25,8 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
-private class FakeAuthRepository : AuthRepository {
-    override fun observeSession(): Flow<User?> = flowOf(null)
+private class FakeAuthRepository(var currentUser: User? = null) : AuthRepository {
+    override fun observeSession(): Flow<User?> = flowOf(currentUser)
     override suspend fun login(email: String, password: String, selectedRole: UserRole?): Result<User> =
         Result.failure(Exception("No user"))
     override suspend fun loginWithGoogle(idToken: String, selectedRole: UserRole?): Result<User> =
@@ -34,7 +34,7 @@ private class FakeAuthRepository : AuthRepository {
     override suspend fun register(email: String, password: String, selectedRole: UserRole): Result<UserRegistrationResult> =
         Result.failure(Exception("No user"))
     override suspend fun logout() {}
-    override suspend fun getCurrentUser(): User? = null
+    override suspend fun getCurrentUser(): User? = currentUser
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -43,6 +43,7 @@ class PharmacyDispatchRepositoryImplTest {
     private lateinit var mockWebServer: MockWebServer
     private lateinit var supabaseClient: SupabaseClient
     private lateinit var repository: PharmacyDispatchRepositoryImpl
+    private lateinit var fakeAuthRepository: FakeAuthRepository
     private val testDispatcher = UnconfinedTestDispatcher()
     private val secureValues = mutableMapOf<String, String>()
     private val securePrefs = mockk<SecurePreferences>()
@@ -69,9 +70,10 @@ class PharmacyDispatchRepositoryImplTest {
             install(Postgrest)
         }
 
+        fakeAuthRepository = FakeAuthRepository()
         repository = PharmacyDispatchRepositoryImpl(
             supabaseClient = supabaseClient,
-            authRepository = FakeAuthRepository(),
+            authRepository = fakeAuthRepository,
             ioDispatcher = testDispatcher,
             httpClient = OkHttpClient(),
             json = Json { ignoreUnknownKeys = true },
@@ -221,6 +223,37 @@ class PharmacyDispatchRepositoryImplTest {
         assertThat(posted.method).isEqualTo("POST")
         assertThat(posted.path).isEqualTo("/api/pharmacy/dispatch/resume")
         assertThat(posted.body.readUtf8()).contains(recoveryToken)
+    }
+
+    @Test
+    fun `doctor refusal without an authenticated session fails closed`() = runTest {
+        val result = repository.declinePharmacyOffer("44444444-4444-4444-8444-444444444444")
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(mockWebServer.requestCount).isEqualTo(0)
+    }
+
+    @Test
+    fun `doctor refusal sends exact offer id to server guarded RPC`() = runTest {
+        fakeAuthRepository.currentUser = User(
+            id = "33333333-3333-4333-8333-333333333333",
+            email = "doctor@example.invalid",
+            role = UserRole.DOCTOR,
+        )
+        val offerId = "44444444-4444-4444-8444-444444444444"
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"declined":true}"""),
+        )
+
+        assertThat(repository.declinePharmacyOffer(offerId).getOrThrow()).isTrue()
+
+        val request = mockWebServer.takeRequest()
+        assertThat(request.method).isEqualTo("POST")
+        assertThat(request.path).isEqualTo("/rest/v1/rpc/decline_my_pharmacy_dispatch_offer")
+        assertThat(request.body.readUtf8()).contains("\"p_offer_id\":\"$offerId\"")
+        assertThat(mockWebServer.requestCount).isEqualTo(1)
     }
 
     @Test

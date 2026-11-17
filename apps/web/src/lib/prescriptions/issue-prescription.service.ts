@@ -6,6 +6,7 @@
  *       → audit events → create dispensation order
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { fetchAndPersistOfficialIdentity } from '@/lib/patients/services/patient-identity.service';
 import { getServerEnvOrDefault, logger } from '@autamedica/shared';
 import { getRuntimeEnvValue } from '@/lib/runtime-env';
 import {
@@ -14,6 +15,7 @@ import {
 } from './prescription-issuance-gate';
 import { FarmalinkClient } from './farmalink.client';
 import { claimFarmalinkIssue, recordFarmalinkIssue } from './farmalink.issue-gate';
+import { resolvePrescriptionProviderRoute } from './prescription-provider-route';
 import {
   FarmalinkMappingError,
   buildFarmalinkAltaRecetaRequest,
@@ -25,7 +27,7 @@ import type {
 } from './farmalink.types';
 import { generatePrescriptionPdf, type PrescriptionArtifacts } from './pdf-prescription.service';
 import { generateBrazilPrescriptionPdf } from './brazil/brazil-pdf-prescription.service';
-import { rctaService } from './rcta.service';
+import { validCpf } from './brazil/memed-patient';
 // Certificate queries are Supabase-only (no node-forge dependency)
 import { getActiveCertificate, loadSigningCredentials } from '../doctors/services/certificate-query.service';
 import {
@@ -109,6 +111,8 @@ function resolveInsurancePlan(insuranceInfo: unknown): string | undefined {
 }
 
 export interface IssuanceResult {
+  id: string;
+  status: 'active';
   cuir: string;
   qrContent: string;
   signedPdfUrl: string | null;
@@ -123,6 +127,7 @@ export type IssuanceError =
   | { code: 'missing_license_number' }
   | { code: 'missing_refeps_id' }
   | { code: 'prescriber_validation_required' }
+  | { code: 'prescription_country_mismatch' }
   | { code: 'missing_professional_address' }
   | { code: 'prescription_not_found' }
   | { code: 'not_your_prescription' }
@@ -135,7 +140,10 @@ export type IssuanceError =
   | { code: 'prescription_country_required' }
   | { code: 'doctor_country_mismatch' }
   | { code: 'patient_country_required_or_mismatched' }
-  | { code: 'br_requires_memed_provider' }
+  | { code: 'br_cfm_license_required' }
+  | { code: 'br_doctor_cpf_required' }
+  | { code: 'br_patient_cpf_required' }
+  | { code: 'br_special_prescription_provider_required' }
   | { code: 'ar_production_homologation_required' }
   | { code: 'digital_signature_required' }
   | { code: 'digital_signature_failed' }
@@ -189,6 +197,17 @@ type PrescriberValidationStatus = 'pending' | 'valid' | 'pending_review' | 'reje
 
 function canIssueWithPrescriberValidationStatus(status?: string | null): boolean {
   return status === 'valid' || status === 'exempt';
+}
+
+function shouldRegisterFarmalink(country: string | null): boolean {
+  return country === 'AR';
+}
+
+function farmalinkRegistrationRequired(
+  country: string | null,
+  registration: FarmalinkRegistration | undefined,
+): boolean {
+  return country === 'AR' && !registration;
 }
 
 interface FarmalinkRegistration {
@@ -544,6 +563,32 @@ export async function issuePrescription(
   if (!doctor.license_number) return fail({ code: 'missing_license_number' });
   if (!doctor.professional_address) return fail({ code: 'missing_professional_address' });
 
+  if (doctor.care_country === 'BR' || doctor.license_type === 'CRM') {
+    const doctorCpf = String(doctor.cpf ?? '').replace(/\D/g, '');
+    if (!validCpf(doctorCpf)) return fail({ code: 'br_doctor_cpf_required' });
+    if (doctor.license_type !== 'CRM' || !/^[A-Z]{2}$/.test(doctor.uf_brazil ?? '')) {
+      return fail({ code: 'br_cfm_license_required' });
+    }
+    const { data: cfmLicenses, error: cfmError } = await supabase
+      .from('doctor_licenses')
+      .select('license_number, uf_brazil, status, cfm_validation_status, cfm_evidence_path, cfm_review_notes, cfm_reviewed_by, cfm_reviewed_at, cfm_last_checked_at')
+      .eq('doctor_id', doctor.id)
+      .eq('license_type', 'CRM')
+      .eq('status', 'active')
+      .eq('cfm_validation_status', 'valid')
+      .limit(20);
+    if (cfmError) return fail({ code: 'br_cfm_license_required' });
+    const digits = (value: string | null | undefined) => (value ?? '').replace(/\D/g, '');
+    const cfmVerified = cfmLicenses?.some(license =>
+      digits(license.license_number) === digits(doctor.license_number)
+      && license.uf_brazil?.toUpperCase() === doctor.uf_brazil?.toUpperCase()
+      && Boolean(license.cfm_evidence_path?.trim())
+      && (license.cfm_review_notes?.trim().length ?? 0) >= 10
+      && Boolean(license.cfm_reviewed_by && license.cfm_reviewed_at && license.cfm_last_checked_at)
+    );
+    if (!cfmVerified) return fail({ code: 'br_cfm_license_required' });
+  }
+
   // 2. Get and validate prescription
   const { data: rx } = await supabase
     .from('prescriptions')
@@ -565,8 +610,11 @@ export async function issuePrescription(
     .eq('user_id', userId)
     .single();
 
-  // Validate prescriber according to country regulations
-  if (prescriptionCountry === 'AR') {
+  // REFEPS is an Argentine registry. Brazilian care/CRM credentials are
+  // validated under CFM and must not be rejected for lacking an Argentine ID.
+  const isBrazilianCfmPrescriber = doctor.care_country === 'BR'
+    || (doctor.license_type === 'CRM' && Boolean(doctor.uf_brazil));
+  if (prescriptionCountry === 'AR' && !isBrazilianCfmPrescriber) {
     if (!doctor.refeps_id) return fail({ code: 'missing_refeps_id' });
     if (!canIssueWithPrescriberValidationStatus(
       profile?.sss_validation_status as PrescriberValidationStatus | null | undefined,
@@ -578,18 +626,21 @@ export async function issuePrescription(
   // 3. Get and validate patient
   const { data: patient } = await supabase
     .from('patients')
-    .select('user_id, care_country, dni, cuil, cpf, cns, address, birth_date, gender, insurance_info')
+    .select('user_id, care_country, dni, cuil, cpf, cns, address, birth_date, gender, insurance_info, identity_status, official_full_name, official_cuil, official_birth_date, official_gender, puco_coverage_name, puco_coverage_code')
     .eq('id', rx.patient_id)
     .single();
 
   if (!patient) return fail({ code: 'patient_not_found' });
+  if (rx.country_code === 'BR' && !validCpf(String(patient.cpf ?? '').replace(/\D/g, ''))) {
+    return fail({ code: 'br_patient_cpf_required' });
+  }
 
   const doctorCountry = doctor.care_country === 'AR' || doctor.care_country === 'BR'
     ? doctor.care_country
     : doctor.license_type === 'CRM' && doctor.uf_brazil ? 'BR'
       : doctor.license_type === 'MN' || doctor.license_type === 'MP' ? 'AR'
         : null;
-
+  
   const issuanceGate = checkDirectPrescriptionIssuance({
     prescriptionCountry,
     doctorCountry,
@@ -598,10 +649,27 @@ export async function issuePrescription(
   });
   if ('code' in issuanceGate) return fail({ code: issuanceGate.code });
 
+  // Provider routing is canonical and independent from browser locale or mutable UI input.
+  // The BR route points to the separate Memed mobile module; the generic BR PDF
+  // remains an internal document and never masquerades as a provider issuance.
+  const providerRoute = resolvePrescriptionProviderRoute(
+    doctorCountry, prescriptionCountry, patient.care_country,
+  );
+  if (!providerRoute) return fail({ code: 'prescription_country_mismatch' });
+
   // 4. Parse clinical data
   const clinicalData = rx.clinical_data as ClinicalData;
   const externalPatient = clinicalData?.external_patient;
   
+  const { data: dispatch } = await supabase
+    .from('pharmacy_dispatch_requests')
+    .select('id, kiosk_id, pharmacy_id, patient_dni, patient_cpf, patient_phone, patient_gender_code, identity_status, official_full_name, official_cuil, official_birth_date, official_gender, puco_coverage_name, puco_coverage_code')
+    .eq('patient_id', rx.patient_id)
+    .eq('status', 'completed')
+    .not('patient_phone', 'is', null)
+    .limit(1)
+    .maybeSingle();
+  const dispatchIdentity = dispatch?.patient_cpf || dispatch?.patient_dni;
   const hasPatientId = patient.dni
     || patient.cuil
     || (patient as { cpf?: string }).cpf
@@ -609,16 +677,69 @@ export async function issuePrescription(
     || externalPatient?.dni
     || externalPatient?.cuil
     || (externalPatient as { cpf?: string })?.cpf
-    || (externalPatient as { ci?: string })?.ci;
+    || (externalPatient as { ci?: string })?.ci
+    || dispatchIdentity;
 
   if (!hasPatientId) {
     return fail({ code: 'missing_patient_identification' });
   }
-  if (!patient.address && !externalPatient?.address) return fail({ code: 'missing_patient_address' });
+
+  let patientAddress = patient.address || externalPatient?.address || undefined;
+  if (!patientAddress && dispatch?.patient_phone) {
+    // QR guests do not necessarily have a residential address. The consultation
+    // takes place at the pharmacy counter, so persist that truthful care location
+    // rather than blocking issuance for a missing home address.
+    const counterId = dispatch.pharmacy_id || dispatch.kiosk_id || dispatch.id;
+    patientAddress = `Atención en mostrador de farmacia (identificador ${counterId})`;
+  }
+  if (!patientAddress) return fail({ code: 'missing_patient_address' });
 
   // 5. Resolve names
-  const patientName = externalPatient?.name?.trim()
+  const dispatchIdentityRow = dispatch as typeof dispatch & {
+    identity_status?: string | null; official_full_name?: string | null; official_cuil?: string | null;
+    official_birth_date?: string | null; official_gender?: string | null; puco_coverage_name?: string | null;
+    patient_gender_code?: 'F' | 'M' | 'X' | null;
+  };
+  const storedIdentity = patient as typeof patient & {
+    identity_status?: string | null; official_full_name?: string | null; official_cuil?: string | null;
+    official_birth_date?: string | null; official_gender?: string | null; puco_coverage_name?: string | null;
+  };
+  let identitySource: 'declared' | 'msal_bus_renaper' = 'declared';
+  let officialIdentity: { fullName?: string | null; cuil?: string | null; birthDate?: string | null; gender?: string | null; pucoCoverage?: string | null } | null = null;
+  if (prescriptionCountry === 'AR') {
+    const verified = storedIdentity.identity_status === 'verified_renaper' ? storedIdentity
+      : dispatchIdentityRow?.identity_status === 'verified_renaper' ? dispatchIdentityRow : null;
+    if (verified) {
+      identitySource = 'msal_bus_renaper';
+      officialIdentity = { fullName: verified.official_full_name, cuil: verified.official_cuil,
+        birthDate: verified.official_birth_date, gender: verified.official_gender, pucoCoverage: verified.puco_coverage_name };
+    } else {
+      const dni = String(patient.dni ?? dispatchIdentityRow?.patient_dni ?? externalPatient?.dni ?? '').replace(/\D/g, '');
+      const gender = String(patient.gender ?? externalPatient?.gender ?? '').toUpperCase();
+      const sex = gender === 'F' || gender === 'FEMALE' ? 'F' : gender === 'M' || gender === 'MALE' ? 'M'
+        : gender === 'X' || gender === 'OTHER' ? 'X' : dispatchIdentityRow?.patient_gender_code ?? null;
+      if (dni.length >= 6 && dni.length <= 10 && sex) {
+        const resolved = await fetchAndPersistOfficialIdentity({
+          supabase, dni, sexId: sex === 'F' ? 1 : sex === 'M' ? 2 : 3, patientId: rx.patient_id,
+          dispatchRequestId: dispatch?.id, userId: patient.user_id,
+          declaredName: externalPatient?.name ?? undefined, runtimeEnv, timeoutMs: 3500,
+        }).catch(() => null);
+        if (resolved?.identityStatus === 'verified_renaper') {
+          identitySource = 'msal_bus_renaper';
+          officialIdentity = { fullName: resolved.officialFullName, cuil: resolved.cuil, birthDate: resolved.birthDate,
+            gender: resolved.gender, pucoCoverage: resolved.pucoCoverageName };
+        }
+      }
+    }
+  }
+  const patientName = officialIdentity?.fullName || externalPatient?.name?.trim()
     || (patient.user_id ? await resolveProfileName(supabase, patient.user_id, '') : 'Paciente');
+  const effectivePatient = {
+    ...patient, cuil: officialIdentity?.cuil ?? patient.cuil,
+    birth_date: officialIdentity?.birthDate ?? patient.birth_date,
+    gender: officialIdentity?.gender === 'F' ? 'female' : officialIdentity?.gender === 'M' ? 'male'
+      : officialIdentity?.gender === 'X' ? 'other' : patient.gender,
+  };
   const doctorName = await resolveProfileName(supabase, userId, 'Dr.');
 
   const item = clinicalData?.items?.[0];
@@ -628,6 +749,11 @@ export async function issuePrescription(
   const substanceCategory = getSubstanceCategory(medicationName);
   const databaseDrugCategory = mapDrugCategoryForDatabase(substanceCategory);
   const isControlledSubstance = requiresStrictPrescriptionValidation(medicationName);
+  if (prescriptionCountry === 'BR' && (
+    isControlledSubstance || (rx.prescription_model_br && rx.prescription_model_br !== 'simples')
+  )) {
+    return fail({ code: 'br_special_prescription_provider_required' });
+  }
   const validityDays = getValidityPeriodDays(medicationName);
   const issuedAtDate = new Date();
   const now = issuedAtDate.toISOString();
@@ -660,7 +786,7 @@ export async function issuePrescription(
   }
 
   let externalRegistration: FarmalinkRegistration | undefined;
-  if (prescriptionCountry === 'AR') {
+  if (shouldRegisterFarmalink(prescriptionCountry)) {
     const farmalinkRegistration = await registerFarmalinkIfEnabled({
       supabase,
       prescriptionId,
@@ -669,7 +795,7 @@ export async function issuePrescription(
       doctor,
       doctorName,
       item,
-      patient,
+      patient: effectivePatient,
       patientName,
       now,
       expiresAt,
@@ -678,63 +804,60 @@ export async function issuePrescription(
     externalRegistration = farmalinkRegistration.registration;
   }
 
-  // A locally manufactured vendor identifier is NOT official registration.
-  if (!externalRegistration) return fail({ code: 'farmalink_registration_required' });
-  const vendorName = externalRegistration.vendorName;
-  const vendorId = externalRegistration.vendorId;
+  // Farmalink is exclusively Argentine. Brazil uses an independent, unique
+  // AutaMedica validation code and never creates an RCTA/CUIR registration.
+  if (farmalinkRegistrationRequired(prescriptionCountry, externalRegistration)) {
+    return fail({ code: 'farmalink_registration_required' });
+  }
+  const vendorName = externalRegistration?.vendorName ?? 'autamedica_br_pades';
+  const vendorId = externalRegistration?.vendorId
+    ?? `BR-AUTA-${Date.now().toString(36).toUpperCase()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
   // 6. Generate artifacts (PDF + QR + CUIR)
   let artifacts: PrescriptionArtifacts;
   try {
     if (prescriptionCountry === 'BR') {
-      const generated = await rctaService.registerPrescription(
-        userId,
-        rx.patient_id,
-        medicationName,
-        { groupId: prescriptionId },
-      );
-      const verificationUrl = `https://autamedica.com/verify/${generated.cuir}`;
+      const validationCode = vendorId;
+      const verificationUrl = `https://www.autamedica.com/verify/${validationCode}`;
       const brPdf = generateBrazilPrescriptionPdf({
         prescriptionId,
-        model: ((rx as { prescription_model_br?: string })?.prescription_model_br as 'simples') || 'simples',
+        model: 'simples',
         patient: {
           name: patientName,
-          cpf: (patient as { cpf?: string }).cpf || (externalPatient as { cpf?: string })?.cpf || patient.dni || externalPatient?.dni || '',
+          cpf: String(patient.cpf).replace(/\D/g, ''),
           cns: (patient as { cns?: string }).cns,
           birthDate: patient.birth_date || externalPatient?.birth_date,
-          address: patient.address || externalPatient?.address,
+          address: patientAddress,
         },
         prescriber: {
           name: doctorName,
           crm: doctor.license_number,
-          uf: doctor.uf_brazil || 'RS',
+          uf: doctor.uf_brazil!,
           rqe: (doctor as { rqe_number?: string }).rqe_number || undefined,
-          cpf: (doctor as { cpf?: string }).cpf || '',
+          cpf: String(doctor.cpf).replace(/\D/g, ''),
           specialty: doctor.specialty || undefined,
           address: doctor.professional_address || undefined,
           signatureImageUrl: doctor.signature_image_url || undefined,
         },
-        medications: [
-          {
-            genericName: medicationName,
-            commercialName: item.commercial_name,
-            dosage: item.dosage || '',
-            presentation: item.presentation || '',
-            quantity: item.quantity || 1,
-            instructions: item.instructions || '',
-          },
-        ],
+        medications: [{
+          genericName: medicationName,
+          commercialName: item.commercial_name,
+          registroAnvisa: (item as ClinicalItem & { registro_anvisa?: string }).registro_anvisa,
+          dosage: item.dosage || '',
+          presentation: item.presentation || '',
+          quantity: item.quantity || 1,
+          instructions: item.instructions || '',
+        }],
         diagnosis: clinicalData.diagnosis || '',
         notes: clinicalData.notes,
         issuedAt: now,
         expiresAt,
-        itiValidationUrl: verificationUrl,
+        verificationUrl,
       });
-
       artifacts = {
-        cuir: generated.cuir,
+        cuir: validationCode,
         pdfBuffer: brPdf,
-        pdfFilename: `Receita_Digital_${doctor.license_number}_${generated.cuir.slice(-6)}.pdf`,
+        pdfFilename: `Receita_Digital_${doctor.license_number}_${validationCode.slice(-6)}.pdf`,
         qrDataUrl: '',
         qrContent: verificationUrl,
       };
@@ -752,18 +875,21 @@ export async function issuePrescription(
           instructions: item.instructions ?? '',
         },
         diagnosis: clinicalData.diagnosis ?? '',
-        notes: clinicalData.notes,
+        notes: [
+          clinicalData.notes,
+          identitySource === 'msal_bus_renaper' ? 'Filiación contrastada con RENAPER / PUCO.' : null,
+        ].filter(Boolean).join('\n') || undefined,
         patient: {
           name: patientName,
           dni: patient.dni ?? externalPatient?.dni ?? (patient as { ci?: string }).ci ?? (externalPatient as { ci?: string })?.ci ?? undefined,
           // Never mix locally modified data with the CUIL accepted by Farmalink.
-          cuil: externalRegistration?.affiliateCuil ?? patient.cuil ?? externalPatient?.cuil ?? undefined,
-          dateOfBirth: patient.birth_date ?? externalPatient?.birth_date ?? undefined,
-          sex: patient.gender ?? externalPatient?.gender ?? undefined,
-          insurancePlan: externalRegistration?.affiliateCredential.plan ?? resolveInsurancePlan(patient.insurance_info),
+          cuil: officialIdentity?.cuil ?? externalRegistration?.affiliateCuil ?? effectivePatient.cuil ?? externalPatient?.cuil ?? undefined,
+          dateOfBirth: effectivePatient.birth_date ?? externalPatient?.birth_date ?? undefined,
+          sex: effectivePatient.gender ?? externalPatient?.gender ?? undefined,
+          insurancePlan: officialIdentity?.pucoCoverage ?? externalRegistration?.affiliateCredential.plan ?? resolveInsurancePlan(patient.insurance_info),
           affiliateCredential: externalRegistration?.affiliateCredential.pan,
           insuranceEntityCode: externalRegistration?.affiliateCredential.codEntidad,
-          address: patient.address ?? externalPatient?.address ?? undefined,
+          address: patientAddress,
         },
         prescriber: {
           name: doctorName,
@@ -814,8 +940,12 @@ export async function issuePrescription(
       p12Buffer,
       password,
       signerName: doctorName,
-      reason: `Receta ${artifacts.cuir} - ${doctorName}`,
-      location: doctor.enrollment_jurisdiction ?? 'Argentina',
+      reason: prescriptionCountry === 'BR'
+        ? `Receita médica digital AutaMedica ${artifacts.cuir}`
+        : `Receta ${artifacts.cuir} - ${doctorName}`,
+      location: prescriptionCountry === 'BR'
+        ? `CRM/${doctor.uf_brazil}`
+        : doctor.enrollment_jurisdiction ?? 'Argentina',
     });
     finalPdfBuffer = signResult.signedPdfBuffer;
     if (!finalPdfBuffer?.byteLength) throw new Error('empty_signed_pdf');
@@ -865,7 +995,7 @@ export async function issuePrescription(
     .from('prescriptions')
     .update({
       cuir: artifacts.cuir,
-      status: 'sent',
+      status: 'active',
       vendor_name: vendorName,
       vendor_id: vendorId,
       qr_code_content: artifacts.qrContent,
@@ -897,6 +1027,8 @@ export async function issuePrescription(
         document_hash: signatureHash,
         cert_fingerprint: certFingerprint,
         version: '2.0',
+        identity_source: identitySource,
+        identity_status: identitySource === 'msal_bus_renaper' ? 'verified_renaper' : 'unverified',
       },
     },
     {
@@ -910,6 +1042,8 @@ export async function issuePrescription(
         drug_category: substanceCategory,
         is_controlled_substance: isControlledSubstance,
         expires_at: expiresAt,
+        identity_source: identitySource,
+        identity_status: identitySource === 'msal_bus_renaper' ? 'verified_renaper' : 'unverified',
       },
     },
   ]);
@@ -960,6 +1094,8 @@ export async function issuePrescription(
   return {
     ok: true,
     data: {
+      id: prescriptionId,
+      status: 'active',
       cuir: artifacts.cuir,
       qrContent: artifacts.qrContent,
       signedPdfUrl,
@@ -988,6 +1124,8 @@ export async function regenerateIssuedPrescriptionPdf(
 
 export const __testables = {
   registerFarmalinkIfEnabled,
+  shouldRegisterFarmalink,
+  farmalinkRegistrationRequired,
   buildFarmalinkPrescriptionMapInput,
   canIssueWithPrescriberValidationStatus,
 };

@@ -54,14 +54,16 @@ class PrescriptionRepositoryImpl @Inject constructor(
             }
             .decodeList<PrescriptionRowDto>()
 
-        if (rows.isEmpty()) {
-            return@runCatching emptyList()
-        }
+        // Read the service-owned Memed feed as well as the normalized prescription
+        // feed so Brazilian patients see provider records without a mirror dependency.
+        val memedRows = supabaseClient.postgrest
+            .rpc("patient_memed_prescriptions_get")
+            .decodeList<MemedPrescriptionRowDto>()
 
-        val doctorIds = rows.mapNotNull { it.doctorId }.distinct()
+        val doctorIds = (rows.mapNotNull { it.doctorId } + memedRows.map { it.doctorId }).distinct()
         val (doctorNameMap, doctorLicenseMap) = resolveDoctorsInfo(doctorIds)
 
-        rows.map { row ->
+        val normalized = rows.map { row ->
             val clinical = parseClinicalData(row.clinicalData)
             val docId = row.doctorId
             Prescription(
@@ -85,6 +87,41 @@ class PrescriptionRepositoryImpl @Inject constructor(
                 items = clinical.items,
             )
         }
+
+        val memed = memedRows.map { row ->
+            val provider = row.providerData as? JsonObject
+            val links = row.digitalLinkData as? JsonObject
+            val clinical = parseClinicalData(provider)
+            val documentUrl = links?.memedString("pdf_url", "document_url", "url", "link")
+                ?: provider?.memedString("pdf_url", "document_url", "digital_link", "url")
+            Prescription(
+                id = "memed:${row.memedId}",
+                status = if (row.status == "deleted") "cancelled" else "verified_at_provider",
+                cuir = null,
+                signedPdfUrl = documentUrl,
+                qrCodeContent = links?.memedString("qr_code", "qrCode"),
+                medicationName = clinical.medicationName.ifBlank { "Prescripción Memed" },
+                dosage = clinical.dosage,
+                frequency = clinical.frequency,
+                instructions = clinical.instructions,
+                doctorName = doctorNameMap[row.doctorId],
+                doctorLicense = doctorLicenseMap[row.doctorId],
+                createdAt = row.createdAt,
+                countryCode = "BR",
+                duration = clinical.duration,
+                diagnosis = clinical.diagnosis,
+                notes = clinical.notes,
+                prescribedDate = clinical.prescribedDate ?: row.createdAt,
+                items = clinical.items,
+            )
+        }
+
+        val mirroredMemedIds = rows.mapNotNull { row ->
+            (row.clinicalData as? JsonObject)?.memedString("memed_prescription_id", "vendor_id")
+        }.toSet()
+        (normalized + memed.filterNot { it.id.removePrefix("memed:") in mirroredMemedIds })
+            .distinctBy { it.id }
+            .sortedByDescending { runCatching { Instant.parse(it.createdAt) }.getOrNull() ?: Instant.EPOCH }
     }.onFailure {
         SecureLog.error("[Prescriptions] Failed fetching prescriptions", it)
     }
@@ -309,7 +346,7 @@ class PrescriptionRepositoryImpl @Inject constructor(
         val finalPdfUrl = targetObj["signed_pdf_url"]?.jsonPrimitive?.contentOrNull
         val finalStatus = targetObj["status"]?.jsonPrimitive?.contentOrNull
             ?: throw IllegalStateException("Falta el estado del documento")
-        require(finalStatus == "sent" && !finalPdfUrl.isNullOrBlank()) {
+        require(finalStatus in setOf("sent", "active") && !finalPdfUrl.isNullOrBlank()) {
             "La receta no tiene una emisión confirmada por el servicio"
         }
         val finalQr = targetObj["qr_code_content"]?.jsonPrimitive?.contentOrNull
@@ -480,39 +517,82 @@ class PrescriptionRepositoryImpl @Inject constructor(
 
         val doctor = supabaseClient.postgrest
             .from("doctors")
-            .select(Columns.list("id", "license_number")) {
+            .select(Columns.list("id", "license_number", "license_type", "uf_brazil", "care_country", "active")) {
                 filter { eq("user_id", userId) }
             }
             .decodeSingleOrNull<DoctorRecordDto>()
             ?: throw IllegalStateException("Perfil médico no encontrado")
 
-        val validationStatus = runCatching {
-            supabaseClient.postgrest
-                .from("profiles")
-                .select(Columns.list("sss_validation_status")) {
-                    filter { eq("user_id", userId) }
+        val countryCode = InCallDocumentPolicy.doctorCountry(
+            doctor.licenseType, doctor.careCountry, doctor.ufBrazil,
+        )
+        val hasLicense = !doctor.licenseNumber.isNullOrBlank() && doctor.active
+        if (countryCode == "BR") {
+            val crmNumber = doctor.licenseNumber.orEmpty().filter(Char::isDigit)
+            val uf = doctor.ufBrazil?.uppercase().orEmpty()
+            val licenses = supabaseClient.postgrest.from("doctor_licenses")
+                .select(Columns.list(
+                    "license_number", "license_type", "uf_brazil", "status",
+                    "cfm_validation_status", "cfm_evidence_path", "cfm_review_notes",
+                    "cfm_reviewed_by", "cfm_reviewed_at", "cfm_last_checked_at",
+                )) {
+                    filter {
+                        eq("doctor_id", doctor.id)
+                        eq("license_type", "CRM")
+                        eq("status", "active")
+                        eq("cfm_validation_status", "valid")
+                    }
+                }.decodeList<CfmLicenseEligibilityDto>()
+            val verified = hasLicense && doctor.licenseType.equals("CRM", ignoreCase = true) &&
+                crmNumber.isNotBlank() && uf.matches(Regex("^[A-Z]{2}$")) &&
+                licenses.any { license ->
+                    license.licenseNumber.orEmpty().filter(Char::isDigit) == crmNumber &&
+                        license.ufBrazil?.uppercase() == uf &&
+                        !license.evidencePath.isNullOrBlank() &&
+                        (license.reviewNotes?.trim()?.length ?: 0) >= 10 &&
+                        !license.reviewedBy.isNullOrBlank() &&
+                        !license.reviewedAt.isNullOrBlank() &&
+                        !license.lastCheckedAt.isNullOrBlank()
                 }
-                .decodeSingleOrNull<DoctorProfileValidationDto>()
-                ?.sssValidationStatus
-        }.getOrNull()
-
-        val hasLicense = !doctor.licenseNumber.isNullOrBlank()
-        val isStatusValid = validationStatus.equals("valid", ignoreCase = true) ||
-                validationStatus.equals("exempt", ignoreCase = true)
-
-        val isEligible = hasLicense && isStatusValid
-
-        val reason = when {
-            !hasLicense -> "Matrícula profesional no registrada en el perfil"
-            !isStatusValid -> "Validación profesional SISA / REFEPS pendiente (Decreto 63/2024)"
-            else -> null
+            return@runCatching DoctorEligibility(
+                isEligible = verified,
+                doctorLicense = doctor.licenseNumber,
+                validationStatus = if (verified) "valid" else "pending_review",
+                reason = if (verified) null else "Validação CRM/UF no CFM pendente",
+                countryCode = "BR",
+            )
         }
 
+        if (countryCode != "AR") {
+            return@runCatching DoctorEligibility(
+                isEligible = false,
+                doctorLicense = doctor.licenseNumber,
+                validationStatus = "unsupported_jurisdiction",
+                reason = "Jurisdição profissional não habilitada para atestados",
+                countryCode = countryCode,
+            )
+        }
+
+        val validationStatus = supabaseClient.postgrest
+            .from("profiles")
+            .select(Columns.list("sss_validation_status")) {
+                filter { eq("user_id", userId) }
+            }
+            .decodeSingleOrNull<DoctorProfileValidationDto>()
+            ?.sssValidationStatus
+        val isStatusValid = validationStatus.equals("valid", ignoreCase = true) ||
+            validationStatus.equals("exempt", ignoreCase = true)
+        val isEligible = hasLicense && isStatusValid
         DoctorEligibility(
             isEligible = isEligible,
             doctorLicense = doctor.licenseNumber,
             validationStatus = validationStatus,
-            reason = reason,
+            reason = when {
+                !hasLicense -> "Matrícula profesional no registrada en el perfil"
+                !isStatusValid -> "Validación profesional SISA / REFEPS pendiente (Decreto 63/2024)"
+                else -> null
+            },
+            countryCode = "AR",
         )
     }.onFailure {
         SecureLog.error("[Prescriptions] Failed checking doctor eligibility", it)
@@ -846,6 +926,21 @@ class PrescriptionRepositoryImpl @Inject constructor(
     private data class RecordIdDto(val id: String)
 
     @Serializable
+    private data class MemedPrescriptionRowDto(
+        val id: String,
+        @SerialName("doctor_id") val doctorId: String,
+        @SerialName("patient_id") val patientId: String,
+        @SerialName("memed_id") val memedId: String,
+        val status: String = "verified_at_provider",
+        @SerialName("provider_data") val providerData: JsonElement? = null,
+        @SerialName("digital_link_data") val digitalLinkData: JsonElement? = null,
+        @SerialName("created_at") val createdAt: String,
+    )
+
+    private fun JsonObject.memedString(vararg keys: String): String? =
+        keys.firstNotNullOfOrNull { key -> this[key]?.jsonPrimitive?.contentOrNull?.takeIf(String::isNotBlank) }
+
+    @Serializable
     private data class PrescriptionRowDto(
         val id: String,
         val status: String = "activa",
@@ -881,6 +976,17 @@ class PrescriptionRepositoryImpl @Inject constructor(
         @SerialName("user_id") val userId: String,
         @SerialName("first_name") val firstName: String? = null,
         @SerialName("last_name") val lastName: String? = null,
+    )
+
+    @Serializable
+    private data class CfmLicenseEligibilityDto(
+        @SerialName("license_number") val licenseNumber: String? = null,
+        @SerialName("uf_brazil") val ufBrazil: String? = null,
+        @SerialName("cfm_evidence_path") val evidencePath: String? = null,
+        @SerialName("cfm_review_notes") val reviewNotes: String? = null,
+        @SerialName("cfm_reviewed_by") val reviewedBy: String? = null,
+        @SerialName("cfm_reviewed_at") val reviewedAt: String? = null,
+        @SerialName("cfm_last_checked_at") val lastCheckedAt: String? = null,
     )
 
     @Serializable

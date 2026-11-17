@@ -30,6 +30,7 @@ data class Prescription(
         get() = !signedPdfUrl.isNullOrBlank() && (
             status.equals("activa", ignoreCase = true) ||
             status.equals("active", ignoreCase = true) ||
+            status.equals("sent", ignoreCase = true) ||
             status.equals("signed", ignoreCase = true) ||
             status.equals("firmada", ignoreCase = true)
         )
@@ -113,13 +114,14 @@ data class CreatePrescriptionRequest(
 )
 
 /**
- * Doctor qualification and regulatory status for prescribing under Decreto 63 / SISA REFEPS.
+ * Doctor qualification and regulatory status in the licensing jurisdiction (SISA/REFEPS for AR, CFM/CRM for BR).
  */
 data class DoctorEligibility(
     val isEligible: Boolean,
     val doctorLicense: String?,
     val validationStatus: String?,
     val reason: String? = null,
+    val countryCode: String? = null,
 )
 
 /**

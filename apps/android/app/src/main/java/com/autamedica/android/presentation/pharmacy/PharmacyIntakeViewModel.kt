@@ -8,6 +8,7 @@ import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.logging.SecureLog
+import java.time.Instant
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
@@ -32,7 +33,10 @@ data class PharmacyIntakeUiState(
     val patientName: String = "",
     val patientPhone: String = "",
     val patientDni: String = "",
+    val hasAcceptedLgpdConsent: Boolean = false,
     val careCountry: String? = null,
+    val currency: String? = null,
+    val priceMinor: Int? = null,
     val selectedReasonChip: String? = null,
     val reasonText: String = "",
     val isAuthenticated: Boolean = false,
@@ -56,8 +60,14 @@ data class PharmacyIntakeUiState(
     val onlineDoctorsInMarket: Int? = null,
 ) {
     /** The signed backend resolves partner provenance; recovery must not bypass payment. */
+    val requiresDispatchPayment: Boolean
+        get() = careCountry in setOf("AR", "BR") &&
+            ((priceMinor != null && priceMinor > 0 && currency in setOf("ARS", "BRL")) ||
+                referralCode == "JORDAN" || activeReferralPartnerId != null)
+
+    // Backward-compatible alias for existing call sites and tests.
     val requiresBrazilianPayment: Boolean
-        get() = careCountry == "BR" && (referralCode == "JORDAN" || activeReferralPartnerId != null)
+        get() = requiresDispatchPayment
 
     val effectiveReason: String
         get() = when {
@@ -72,9 +82,8 @@ data class PharmacyIntakeUiState(
         get() = patientName.trim().isNotBlank() &&
             patientPhone.trim().length >= 6 &&
             careCountry in setOf("AR", "BR") &&
-            (if (careCountry == "BR")
-                patientDni.count(Char::isDigit) == 11
-             else patientDni.count(Char::isDigit) in 5..10) &&
+            (if (careCountry == "BR") isValidBrazilianCpf(patientDni) else patientDni.count(Char::isDigit) in 5..10) &&
+            (careCountry != "BR" || hasAcceptedLgpdConsent) &&
             effectiveReason.trim().isNotBlank()
 }
 
@@ -171,6 +180,8 @@ class PharmacyIntakeViewModel @Inject constructor(
                     val phone = profile?.phone?.takeIf { it.isNotBlank() }
                         ?: currentUser.phone.orEmpty()
                     val dni = snapshot?.dni.orEmpty()
+                    val persistedCareCountry = if (referralCodeParam == "JORDAN") "BR"
+                        else profileRepository.getCareCountry().getOrNull()?.takeIf { it == "AR" || it == "BR" }
 
                     _uiState.update { state ->
                         val currentName = state.patientName
@@ -184,6 +195,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                             patientName = resolvedPatientName,
                             patientPhone = if (state.patientPhone.isBlank()) phone else state.patientPhone,
                             patientDni = if (state.patientDni.isBlank()) dni else state.patientDni,
+                            careCountry = state.careCountry ?: persistedCareCountry,
                             isLoadingProfile = false,
                         )
                     }
@@ -207,6 +219,8 @@ class PharmacyIntakeViewModel @Inject constructor(
                                 it.copy(
                                     activeRequestId = request.id,
                                     careCountry = request.careCountry,
+                                    currency = request.currency,
+                                    priceMinor = request.priceMinor,
                                     activeReferralPartnerId = request.referralPartnerId,
                                     patientName = request.patientName ?: it.patientName,
                                     patientDni = request.patientDni,
@@ -217,8 +231,12 @@ class PharmacyIntakeViewModel @Inject constructor(
                                     // Dispatch state alone never authorizes a Jordan video call after process death.
                                     readyToJoinCall = request.doctorAttendedCall &&
                                         request.cloudflareRoomId.isNotBlank() &&
-                                        !(request.careCountry == "BR" &&
-                                            (referralCodeParam == "JORDAN" || request.referralPartnerId != null)),
+                                        !(
+                                            (request.priceMinor != null && request.priceMinor > 0 &&
+                                                request.currency in setOf("ARS", "BRL")) ||
+                                                (request.careCountry == "BR" &&
+                                                    (referralCodeParam == "JORDAN" || request.referralPartnerId != null))
+                                        ),
                                     error = null,
                                     statusNotice = null,
                                 )
@@ -246,6 +264,10 @@ class PharmacyIntakeViewModel @Inject constructor(
 
     fun onPatientDniChanged(dni: String) {
         _uiState.update { it.copy(patientDni = dni, error = null) }
+    }
+
+    fun onLgpdConsentChanged(accepted: Boolean) {
+        _uiState.update { it.copy(hasAcceptedLgpdConsent = accepted, error = null) }
     }
 
     fun onCountrySelected(country: String) {
@@ -298,14 +320,16 @@ class PharmacyIntakeViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     error = when {
-                        state.patientName.isBlank() -> "Ingresá el nombre completo del paciente"
-                        state.careCountry !in setOf("AR", "BR") -> "Seleccioná Argentina o Brasil"
-                        state.careCountry == "BR" && state.patientDni.count(Char::isDigit) != 11 ->
-                            "Ingresá un CPF de 11 dígitos"
-                        state.patientDni.count(Char::isDigit) !in 5..10 -> "Ingresá un DNI válido"
-                        state.patientPhone.length < 6 -> "Ingresá un teléfono de contacto válido"
-                        state.effectiveReason.isBlank() -> "Indicá el motivo de consulta o medicamento solicitado"
-                        else -> "Completá los datos obligatorios"
+                        state.patientName.isBlank() -> "pharmacy_error_patient_name"
+                        state.careCountry !in setOf("AR", "BR") -> "pharmacy_error_country"
+                        state.careCountry == "BR" && !isValidBrazilianCpf(state.patientDni) ->
+                            "pharmacy_error_cpf_checksum"
+                        state.careCountry == "BR" && !state.hasAcceptedLgpdConsent ->
+                            "pharmacy_error_lgpd_required"
+                        state.patientDni.count(Char::isDigit) !in 5..10 -> "pharmacy_error_dni"
+                        state.patientPhone.length < 6 -> "pharmacy_error_phone"
+                        state.effectiveReason.isBlank() -> "pharmacy_error_reason"
+                        else -> "pharmacy_error_complete"
                     }
                 )
             }
@@ -314,6 +338,22 @@ class PharmacyIntakeViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null, statusNotice = null) }
+            try {
+                if (state.careCountry == "BR" && state.isAuthenticated) {
+                    val userId = authRepository.getCurrentUser()?.id
+                        ?: throw IllegalStateException("pharmacy_error_lgpd_login")
+                    val acceptedAt = Instant.now().toString()
+                    profileRepository.persistLgpdConsent(
+                        userId = userId,
+                        acceptedAt = acceptedAt,
+                        version = "1.0",
+                    ).getOrThrow()
+                }
+            } catch (consentError: Exception) {
+                SecureLog.error("[PharmacyIntakeVM] LGPD consent persistence failed", consentError)
+                _uiState.update { it.copy(isSubmitting = false, error = "pharmacy_error_lgpd_persist") }
+                return@launch
+            }
             pharmacyDispatchRepository.createPatientDispatchRequest(
                 patientDni = state.patientDni.trim(),
                 patientPhone = state.patientPhone.trim(),
@@ -330,6 +370,8 @@ class PharmacyIntakeViewModel @Inject constructor(
                         isSubmitting = false,
                         activeRequestId = request.id,
                         careCountry = request.careCountry ?: state.careCountry,
+                        currency = request.currency,
+                        priceMinor = request.priceMinor,
                         activeReferralPartnerId = request.referralPartnerId,
                         paymentStatus = "not_started",
                         paymentCheckoutUrl = null,
@@ -361,7 +403,7 @@ class PharmacyIntakeViewModel @Inject constructor(
     fun beginBrazilianCheckout() {
         val state = _uiState.value
         val requestId = state.activeRequestId ?: return
-        if (!state.requiresBrazilianPayment || state.isPaymentLoading ||
+        if (!state.requiresDispatchPayment || state.isPaymentLoading ||
             state.status !in setOf(PharmacyConsultationStatus.PENDING, PharmacyConsultationStatus.ASSIGNED, PharmacyConsultationStatus.IN_CALL)) return
         viewModelScope.launch {
             _uiState.update { it.copy(isPaymentLoading = true, paymentError = null) }
@@ -400,8 +442,11 @@ class PharmacyIntakeViewModel @Inject constructor(
                     val joinable = request.doctorAttendedCall
                     val terminal = request.status == "cancelled" || request.status == "expired"
                     val hasRoom = request.cloudflareRoomId.isNotBlank()
-                    val paymentRequired = (_uiState.value.referralCode == "JORDAN" ||
-                        request.referralPartnerId != null) && request.careCountry == "BR"
+                    val paymentRequired =
+                        (request.priceMinor != null && request.priceMinor > 0 &&
+                            request.currency in setOf("ARS", "BRL")) ||
+                            (request.careCountry == "BR" &&
+                                (_uiState.value.referralCode == "JORDAN" || request.referralPartnerId != null))
 
                     if (request.status == "searching" || request.status == "matched") {
                         refreshCountryDoctorCount(_uiState.value.careCountry)
@@ -410,6 +455,8 @@ class PharmacyIntakeViewModel @Inject constructor(
                         state.copy(
                             status = mapDispatchStatus(request.status),
                             activeReferralPartnerId = request.referralPartnerId ?: state.activeReferralPartnerId,
+                            currency = request.currency ?: state.currency,
+                            priceMinor = request.priceMinor ?: state.priceMinor,
                             queuePosition = 0,
                             estimatedMinutes = 0,
                             roomId = if (hasRoom) request.cloudflareRoomId else state.roomId,
@@ -445,7 +492,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                 while (currentCoroutineContext().isActive) {
                     val state = _uiState.value
                     if (state.activeRequestId != requestId) break
-                    val eligible = state.requiresBrazilianPayment && state.status in setOf(
+                    val eligible = state.requiresDispatchPayment && state.status in setOf(
                         PharmacyConsultationStatus.PENDING,
                         PharmacyConsultationStatus.ASSIGNED,
                         PharmacyConsultationStatus.IN_CALL,
@@ -579,3 +626,23 @@ internal fun classifyIntakeCreationFailure(error: Throwable): String {
             "No pudimos registrar tu consulta. Intentá nuevamente o contactá soporte."
     }
 }
+
+private fun isValidBrazilianCpf(value: String): Boolean {
+    val digits = value.filter(Char::isDigit)
+    if (digits.length != 11 || digits.all { it == digits.first() }) return false
+    fun verifier(length: Int): Int {
+        val sum = (0 until length).sumOf { index ->
+            digits[index].digitToInt() * (length + 1 - index)
+        }
+        val remainder = (sum * 10) % 11
+        return if (remainder == 10) 0 else remainder
+    }
+    return verifier(9) == digits[9].digitToInt() && verifier(10) == digits[10].digitToInt()
+}
+
+@kotlinx.serialization.Serializable
+private data class PharmacyLgpdConsentDto(
+    @kotlinx.serialization.SerialName("lgpd_consent") val lgpdConsent: Boolean = false,
+    @kotlinx.serialization.SerialName("lgpd_consent_date") val lgpdConsentDate: String? = null,
+    @kotlinx.serialization.SerialName("lgpd_consent_version") val lgpdConsentVersion: String? = null,
+)

@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,31 +26,41 @@ fun ConsentScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    LaunchedEffect(uiState.isSuccess) {
+        if (uiState.isSuccess) onAccept()
+    }
+
     Column(
         modifier = modifier.fillMaxSize().background(AuBackground).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(stringResource(R.string.consent_title), style = MaterialTheme.typography.headlineSmall, color = AuTextPrimary)
         Text(stringResource(R.string.consent_description), color = AuTextSecondary)
-        
+
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(
-                checked = uiState.isAccepted, 
+                checked = uiState.isAccepted,
                 onCheckedChange = { viewModel.onAcceptedChanged(it); viewModel.onReadConsentChanged(it) },
-                colors = CheckboxDefaults.colors(checkedColor = AuAccent)
+                colors = CheckboxDefaults.colors(checkedColor = AuAccent),
+                enabled = !uiState.isLoading
             )
             Text(stringResource(R.string.consent_checkbox_label), color = AuTextPrimary)
         }
 
+        uiState.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         Spacer(modifier = Modifier.weight(1f))
 
         Button(
-            onClick = onAccept,
-            enabled = uiState.isAccepted,
+            onClick = viewModel::submitConsent,
+            enabled = uiState.isAccepted && uiState.hasReadConsent && !uiState.isLoading,
             modifier = Modifier.fillMaxWidth().height(52.dp),
             colors = ButtonDefaults.buttonColors(containerColor = AuAccent)
         ) {
-            Text(stringResource(R.string.consent_submit_button))
+            if (uiState.isLoading) CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                color = MaterialTheme.colorScheme.onPrimary,
+                strokeWidth = 2.dp
+            ) else Text(stringResource(R.string.consent_submit_button))
         }
     }
 }

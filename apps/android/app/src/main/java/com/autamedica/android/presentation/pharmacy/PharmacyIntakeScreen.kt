@@ -39,6 +39,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -79,7 +80,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import com.autamedica.android.R
-import com.autamedica.android.util.CareCountryLocale
 import com.autamedica.android.presentation.common.CareCountryPicker
 import com.autamedica.android.domain.model.PharmacyConsultationStatus
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -106,6 +106,9 @@ import com.autamedica.android.presentation.theme.PortalPharmacistsSoft
 import com.autamedica.android.presentation.theme.SuccessContainer
 import com.autamedica.android.presentation.pharmacy.components.DispatchTelemetryTicker
 import com.autamedica.android.presentation.pharmacy.components.LiveMedicalPresenceRadar
+import java.text.NumberFormat
+import java.util.Currency
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -148,19 +151,6 @@ fun PharmacyIntakeScreen(
                 }
             },
         )
-    }
-
-    // Recovered requests must reopen in their own market language, too.
-    LaunchedEffect(uiState.referralCode, uiState.careCountry) {
-        if (uiState.referralCode == "JORDAN" && uiState.careCountry == "BR") {
-            CareCountryLocale.applyCountry(context, "BR")
-        }
-    }
-
-    LaunchedEffect(uiState.activeRequestId, uiState.careCountry) {
-        if (uiState.activeRequestId != null && uiState.careCountry in setOf("AR", "BR")) {
-            CareCountryLocale.applyCountry(context, requireNotNull(uiState.careCountry))
-        }
     }
 
     // Browser return is not payment evidence. The backend status API alone can
@@ -274,10 +264,8 @@ fun PharmacyIntakeScreen(
                 onPatientNameChanged = viewModel::onPatientNameChanged,
                 onPatientDniChanged = viewModel::onPatientDniChanged,
                 onPatientPhoneChanged = viewModel::onPatientPhoneChanged,
-                onCountrySelected = { country ->
-                    viewModel.onCountrySelected(country)
-                    CareCountryLocale.applyCountry(context, country)
-                },
+                onLgpdConsentChanged = viewModel::onLgpdConsentChanged,
+                onCountrySelected = viewModel::onCountrySelected,
                 onSubmit = viewModel::submitRequest,
                 modifier = Modifier
                     .fillMaxSize()
@@ -296,6 +284,7 @@ private fun PharmacyIntakeFormView(
     onPatientNameChanged: (String) -> Unit,
     onPatientDniChanged: (String) -> Unit,
     onPatientPhoneChanged: (String) -> Unit,
+    onLgpdConsentChanged: (Boolean) -> Unit,
     onCountrySelected: (String) -> Unit,
     onSubmit: () -> Unit,
     modifier: Modifier = Modifier,
@@ -308,13 +297,15 @@ private fun PharmacyIntakeFormView(
             .verticalScroll(scrollState)
             .padding(horizontal = 20.dp, vertical = 12.dp),
     ) {
-        CareCountryPicker(
-            selectedCountry = uiState.careCountry,
-            onCountrySelected = onCountrySelected,
-            enabled = uiState.referralCode != "JORDAN",
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(modifier = Modifier.height(22.dp))
+        if (uiState.careCountry == null && !uiState.isLoadingProfile && !uiState.isRestoringRequest) {
+            CareCountryPicker(
+                selectedCountry = null,
+                onCountrySelected = onCountrySelected,
+                enabled = uiState.referralCode != "JORDAN",
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(22.dp))
+        }
 
         // 1. Motivo de Consulta (Focus principal del usuario)
         Text(
@@ -474,6 +465,18 @@ private fun PharmacyIntakeFormView(
             ),
         )
 
+        if (uiState.careCountry == "BR") {
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = uiState.hasAcceptedLgpdConsent, onCheckedChange = onLgpdConsentChanged)
+                Text(
+                    text = stringResource(R.string.pharmacy_lgpd_consent),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AuTextSecondary,
+                )
+            }
+        }
+
         // Ended/cancelled legacy requests are an informational state, not a red error.
         AnimatedVisibility(
             visible = uiState.statusNotice != null,
@@ -591,7 +594,7 @@ private fun PharmacyWaitingRoomView(
             .fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (uiState.requiresBrazilianPayment) {
+        if (uiState.requiresDispatchPayment) {
             Surface(
                 shape = RoundedCornerShape(18.dp),
                 color = AuSurface,
@@ -602,18 +605,23 @@ private fun PharmacyWaitingRoomView(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text("Consulta médica · R$ 79,00", style = MaterialTheme.typography.titleMedium,
-                        color = AuTextPrimary, fontWeight = FontWeight.Bold)
+                    val consultationPrice = formatDispatchPrice(uiState.priceMinor, uiState.currency)
+                    Text(
+                        text = consultationPrice?.let { stringResource(R.string.pharmacy_consultation_title, it) } ?: stringResource(R.string.pharmacy_consultation_title_default),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = AuTextPrimary,
+                        fontWeight = FontWeight.Bold,
+                    )
                     val confirmed = uiState.paymentStatus == "approved"
                     val canStartCheckout = uiState.status == PharmacyConsultationStatus.PENDING ||
                         uiState.status == PharmacyConsultationStatus.ASSIGNED ||
                         uiState.status == PharmacyConsultationStatus.IN_CALL
                     Text(
                         text = when {
-                            confirmed -> "Pagamento confirmado. Acesso liberado quando o médico iniciar a consulta."
-                            uiState.paymentStatus == "pending" -> "Aguardando confirmação do Mercado Pago."
+                            confirmed -> stringResource(R.string.pharmacy_payment_confirmed)
+                            uiState.paymentStatus == "pending" -> stringResource(R.string.pharmacy_payment_pending)
                             canStartCheckout -> stringResource(R.string.jordan_payment_start_message)
-                            else -> "Aguardando um médico disponível antes do pagamento."
+                            else -> stringResource(R.string.pharmacy_payment_waiting_doctor)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextSecondary,
@@ -624,7 +632,7 @@ private fun PharmacyWaitingRoomView(
                             if (uiState.isPaymentLoading) {
                                 CircularProgressIndicator(modifier = Modifier.size(18.dp),
                                     strokeWidth = 2.dp)
-                            } else Text("Pagar R$ 79,00")
+                            } else Text(consultationPrice?.let { stringResource(R.string.pharmacy_payment_button, it) } ?: stringResource(R.string.pharmacy_payment_button_default))
                         }
                     }
                     uiState.paymentError?.let { error ->
@@ -1039,6 +1047,16 @@ private fun CaseDetailsCard(
 
 @Composable
 private fun localizedPharmacyMessage(message: String): String = when (message) {
+    "pharmacy_error_patient_name" -> stringResource(R.string.pharmacy_flow_error_name)
+    "pharmacy_error_country" -> stringResource(R.string.pharmacy_flow_error_country)
+    "pharmacy_error_cpf_checksum" -> stringResource(R.string.pharmacy_error_cpf_checksum)
+    "pharmacy_error_lgpd_required" -> stringResource(R.string.pharmacy_error_lgpd_required)
+    "pharmacy_error_dni" -> stringResource(R.string.pharmacy_flow_error_dni)
+    "pharmacy_error_phone" -> stringResource(R.string.pharmacy_flow_error_phone)
+    "pharmacy_error_reason" -> stringResource(R.string.pharmacy_flow_error_reason)
+    "pharmacy_error_complete" -> stringResource(R.string.pharmacy_flow_error_complete)
+    "pharmacy_error_lgpd_login" -> stringResource(R.string.pharmacy_error_lgpd_login)
+    "pharmacy_error_lgpd_persist" -> stringResource(R.string.pharmacy_error_lgpd_persist)
     "Ingresá el nombre completo del paciente" -> stringResource(R.string.pharmacy_flow_error_name)
     "Seleccioná Argentina o Brasil" -> stringResource(R.string.pharmacy_flow_error_country)
     "Ingresá un CPF de 11 dígitos" -> stringResource(R.string.pharmacy_flow_error_cpf)
@@ -1058,4 +1076,15 @@ private fun localizedPharmacyMessage(message: String): String = when (message) {
     "Esta solicitud anterior finalizó. Podés iniciar una nueva consulta." -> stringResource(R.string.pharmacy_flow_notice_expired)
     "La solicitud fue cancelada." -> stringResource(R.string.pharmacy_flow_notice_cancelled)
     else -> message // Keep unexpected backend failures visible for diagnostics.
+}
+
+private fun formatDispatchPrice(priceMinor: Int?, currencyCode: String?): String? {
+    if (priceMinor == null || priceMinor <= 0 || currencyCode !in setOf("BRL", "ARS")) return null
+    val locale = if (currencyCode == "BRL") Locale.forLanguageTag("pt-BR")
+        else Locale.forLanguageTag("es-AR")
+    return NumberFormat.getCurrencyInstance(locale).apply {
+        currency = Currency.getInstance(currencyCode)
+        maximumFractionDigits = 2
+        minimumFractionDigits = 2
+    }.format(priceMinor / 100.0)
 }

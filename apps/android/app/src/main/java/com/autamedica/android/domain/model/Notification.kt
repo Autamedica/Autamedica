@@ -17,4 +17,5 @@ data class PushPayload(
     val rawType: String? = null,
     val doctorName: String? = null,
     val doctorAvatarUrl: String? = null,
+    val offerId: String? = null,
 )

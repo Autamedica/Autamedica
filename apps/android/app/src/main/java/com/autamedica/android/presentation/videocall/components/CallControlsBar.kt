@@ -35,6 +35,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -89,7 +91,7 @@ fun CallControlsBar(
                     Box {
                         ControlDockButton(
                             icon = Icons.Filled.MedicalServices,
-                            contentDescription = "Guía clínica",
+                            contentDescription = stringResource(R.string.call_clinical_guide),
                             isActive = isFichaOpen,
                             activeColor = TealFicha,
                             onClick = onOpenFicha,
@@ -110,7 +112,7 @@ fun CallControlsBar(
                     Box {
                         ControlDockButton(
                             icon = Icons.Filled.MoreHoriz,
-                            contentDescription = "Medios y chat",
+                            contentDescription = stringResource(R.string.call_media_chat),
                             isActive = isOverflowOpen,
                             activeColor = PrimarySky,
                             onClick = onOpenOverflow,
@@ -128,14 +130,14 @@ fun CallControlsBar(
             } else {
                 ControlDockButton(
                     icon = if (isAudioEnabled) Icons.Filled.Mic else Icons.Filled.MicOff,
-                    contentDescription = if (isAudioEnabled) "Silenciar" else "Activar micrófono",
+                    contentDescription = if (isAudioEnabled) stringResource(R.string.call_mute) else stringResource(R.string.call_activate_microphone),
                     isActive = isAudioEnabled,
                     isDanger = !isAudioEnabled,
                     onClick = onToggleAudio,
                 )
                 ControlDockButton(
                     icon = if (isVideoEnabled) Icons.Filled.Videocam else Icons.Filled.VideocamOff,
-                    contentDescription = if (isVideoEnabled) "Desactivar cámara" else "Activar cámara",
+                    contentDescription = if (isVideoEnabled) stringResource(R.string.call_disable_camera) else stringResource(R.string.call_enable_camera),
                     isActive = isVideoEnabled,
                     isDanger = !isVideoEnabled,
                     onClick = onToggleVideo,
@@ -143,7 +145,7 @@ fun CallControlsBar(
                 if (onToggleSpeaker != null) {
                     ControlDockButton(
                         icon = if (isSpeakerOn) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
-                        contentDescription = if (isSpeakerOn) "Altavoz activo" else "Auricular",
+                        contentDescription = if (isSpeakerOn) stringResource(R.string.call_speaker_active) else stringResource(R.string.call_earpiece),
                         isActive = isSpeakerOn,
                         onClick = onToggleSpeaker,
                     )
@@ -152,7 +154,7 @@ fun CallControlsBar(
                     Box {
                         ControlDockButton(
                             icon = Icons.AutoMirrored.Filled.Chat,
-                            contentDescription = "Chat",
+                            contentDescription = stringResource(R.string.call_chat),
                             isActive = isChatOpen,
                             activeColor = PrimarySky,
                             onClick = onToggleChat,
@@ -190,7 +192,7 @@ fun CallControlsBar(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.CallEnd,
-                        contentDescription = "Finalizar llamada",
+                        contentDescription = stringResource(R.string.call_end),
                         tint = Color.White,
                         modifier = Modifier.size(22.dp),
                     )

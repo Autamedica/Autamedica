@@ -50,11 +50,7 @@ describe('RENAPER patient scope (synthetic fixtures)', () => {
         foto: 'BASE64_SENSITIVE',
       },
     }, '12345678', 1);
-    expect(info).toEqual({
-      coverage: 'Particular',
-      identity_lookup_count: 2,
-      official_data: { dni: '12345678' },
-    });
+    expect(info).toEqual({ coverage: 'Particular', identity_lookup_count: 2 });
     const serialized = JSON.stringify(info);
     expect(serialized).not.toContain('SHOULD_BE_REMOVED');
     expect(serialized).not.toContain('PRIVATE_STREET');

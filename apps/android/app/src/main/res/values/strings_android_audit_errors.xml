@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?><resources>
+<string name="appointments_error_country_save">No se pudo guardar el país de atención.</string>
+<string name="appointments_error_cancel">No se pudo cancelar el turno. Reintentá.</string>
+<string name="appointments_error_slot_required">Seleccioná un horario disponible.</string>
+<string name="appointments_error_reschedule">No se pudo reprogramar el turno. Reintentá.</string>
+<string name="appointments_error_doctor_required">Seleccioná un profesional médico para tu consulta.</string>
+<string name="appointments_error_booking">No se pudo confirmar el turno. Reintentá.</string>
+<string name="appointments_error_unexpected">Ocurrió un error inesperado al agendar.</string>
+<string name="appointments_error_country_lookup">No se pudo consultar el país de atención.</string>
+<string name="pharmacy_error_cpf_checksum">Ingresá un CPF válido con dígitos verificadores correctos.</string>
+<string name="pharmacy_error_lgpd_required">Aceptá el consentimiento de tratamiento de datos para continuar.</string>
+<string name="pharmacy_error_lgpd_login">Iniciá sesión para registrar el consentimiento LGPD.</string>
+<string name="pharmacy_error_lgpd_persist">No se pudo confirmar el consentimiento LGPD. Intentá nuevamente.</string>
+</resources>

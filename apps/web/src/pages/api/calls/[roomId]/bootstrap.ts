@@ -49,7 +49,7 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
       if (result.kind === 'conflict') return conflict(result.message)
       if (result.kind === 'forbidden') return forbidden('call_access_denied')
       if (await checkJordanMediaAccess(admin as unknown as SupabaseClient, roomId) !== 'allowed') {
-        return conflict('jordan_payment_required')
+        return conflict('brazil_pharmacy_payment_required')
       }
 
       return jsonOk(result.data)

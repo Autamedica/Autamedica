@@ -48,6 +48,14 @@ type TableChain = {
   maybeSingle: ReturnType<typeof vi.fn>
   single: ReturnType<typeof vi.fn>
   insert: ReturnType<typeof vi.fn>
+  update: ReturnType<typeof vi.fn>
+  or: ReturnType<typeof vi.fn>
+}
+
+function pricingRow(country: 'AR' | 'BR') {
+  return country === 'BR'
+    ? { country_code: 'BR', currency: 'BRL', consultation_price_minor: 7900, doctor_fee_minor: 4000, partner_commission_minor: 1000, require_payment_before_dispatch: true }
+    : { country_code: 'AR', currency: 'ARS', consultation_price_minor: 1500000, doctor_fee_minor: 800000, partner_commission_minor: 200000, require_payment_before_dispatch: true }
 }
 
 function buildTableChain(data: unknown, error: unknown = null): TableChain {
@@ -60,12 +68,16 @@ function buildTableChain(data: unknown, error: unknown = null): TableChain {
     maybeSingle: vi.fn(),
     single: vi.fn(),
     insert: vi.fn(),
+    update: vi.fn(),
+    or: vi.fn(),
   }
   chain.select.mockReturnValue(chain)
   chain.eq.mockReturnValue(chain)
   chain.maybeSingle.mockReturnValue(chain)
   chain.single.mockReturnValue(chain)
   chain.insert.mockReturnValue(chain)
+  chain.update.mockReturnValue(chain)
+  chain.or.mockReturnValue(chain)
   return chain
 }
 
@@ -75,24 +87,28 @@ function makeContext(options?: {
   jordanEnabled?: boolean
   bearerToken?: string
 }): Parameters<typeof POST>[0] {
+  const rawBody = options?.body !== undefined
+    ? options.body
+    : {
+        careCountry: 'AR',
+        patientDni: '38123456',
+        patientPhone: '+5491122334455',
+        patientName: 'Ana Gomez',
+        tier: 'general',
+      };
+  const body = typeof rawBody === 'object' && rawBody !== null && !Array.isArray(rawBody)
+    && (rawBody as { careCountry?: string }).careCountry === 'AR'
+    && !Object.prototype.hasOwnProperty.call(rawBody, 'patientGenderCode')
+    ? { ...rawBody, patientGenderCode: 'M' }
+    : rawBody;
   const request = new Request('http://localhost/api/pharmacy/dispatch/request', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      'x-test-care-country': typeof options?.body === 'object' && options.body !== null && 'careCountry' in options.body ? String((options.body as { careCountry?: string }).careCountry ?? '') : 'AR',
+      'x-test-care-country': typeof rawBody === 'object' && rawBody !== null && 'careCountry' in rawBody ? String((rawBody as { careCountry?: string }).careCountry ?? '') : 'AR',
       ...(options?.bearerToken ? { authorization: options.bearerToken } : {}),
     },
-    body: JSON.stringify(
-      options?.body !== undefined
-        ? options.body
-        : {
-            careCountry: 'AR',
-          patientDni: '38123456',
-            patientPhone: '+5491122334455',
-            patientName: 'Ana Gomez',
-            tier: 'general',
-          },
-    ),
+    body: JSON.stringify(body),
   })
 
   return {
@@ -140,14 +156,17 @@ describe('API: /api/pharmacy/dispatch/request', () => {
       id: '22222222-2222-4222-8222-222222222222',
       cloudflare_room_id: 'cf-room-native-1', care_country: 'BR',
       status: 'searching', patient_name: 'Paciente BR', requested_by_user_id: ownerId,
+      patient_id: 'patient-row-99',
       referral_partner_id: partnerId,
     }
     const dispatchTable = buildTableChain(dispatchRow)
     const recoveryTable = buildTableChain(null)
     supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_pricing_configs') return buildTableChain(pricingRow('BR'))
       if (table === 'commercial_referral_partners') return buildTableChain({ id: partnerId })
       if (table === 'pharmacy_dispatch_requests') return dispatchTable
       if (table === 'pharmacy_guest_dispatch_sessions') return recoveryTable
+      if (table === 'patients') return buildTableChain({ id: 'patient-row-99' })
       return buildTableChain(null)
     })
     const response = await POST(makeContext({
@@ -155,7 +174,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
       session: null,
       jordanEnabled: true,
       body: {
-        careCountry: 'BR', patientCpf: '12345678909',
+        careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909',
         patientPhone: '+5551987654321', patientName: 'Paciente BR',
         referralCode: 'JORDAN',
       },
@@ -166,7 +185,9 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     expect(supabaseMock.auth.getUser).toHaveBeenCalledWith('valid-native-patient-jwt')
     expect(dispatchTable.insert).toHaveBeenCalledWith(expect.objectContaining({
       requested_by_user_id: ownerId, care_country: 'BR', referral_partner_id: partnerId,
+      lgpd_consent: true,
     }))
+    expect(dispatchTable.insert.mock.calls[0][0]).not.toHaveProperty('patient_gender_code')
     expect(recoveryTable.insert).toHaveBeenCalledWith(expect.objectContaining({
       request_id: dispatchRow.id, token_sha256: expect.any(String),
     }))
@@ -179,7 +200,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     const response = await POST(makeContext({
       bearerToken: 'Bearer forged-native-jwt',
       jordanEnabled: true,
-      body: { careCountry: 'BR', patientCpf: '12345678909', patientPhone: '+5551987654321', referralCode: 'JORDAN' },
+      body: { careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909', patientPhone: '+5551987654321', referralCode: 'JORDAN' },
     }))
     expect(response.status).toBe(401)
     expect(supabaseMock.from).not.toHaveBeenCalled()
@@ -193,7 +214,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
       bearerToken: 'Bearer valid-native-jwt',
       jordanEnabled: true,
       session: { user: { id: 'different-browser-patient' } },
-      body: { careCountry: 'BR', patientCpf: '12345678909', patientPhone: '+5551987654321', referralCode: 'JORDAN' },
+      body: { careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909', patientPhone: '+5551987654321', referralCode: 'JORDAN' },
     }))
     expect(response.status).toBe(403)
     expect(supabaseMock.from).not.toHaveBeenCalled()
@@ -202,7 +223,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
   it('rejects malformed Authorization headers rather than silently creating a guest', async () => {
     const response = await POST(makeContext({
       bearerToken: 'TokenNotBearer random',
-      body: { careCountry: 'BR', patientCpf: '12345678909', patientPhone: '+5551987654321' },
+      body: { careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909', patientPhone: '+5551987654321' },
     }))
     expect(response.status).toBe(401)
     expect(supabaseMock.from).not.toHaveBeenCalled()
@@ -211,17 +232,24 @@ describe('API: /api/pharmacy/dispatch/request', () => {
   it('crea un dispatch brasileño usando CPF y no DNI', async () => {
     const dispatch = {
       id: 'dispatch-br-synthetic',
+      patient_id: 'patient-row-br-cpf',
       patient_cpf: '12345678909',
       care_country: 'BR',
       cloudflare_room_id: 'cf-room-general-8909-test',
       status: 'searching',
     }
     const table = buildTableChain(dispatch)
-    supabaseMock.from.mockReturnValue(table)
+    const patientTable = buildTableChain({ id: 'patient-row-br-cpf' })
+    supabaseMock.from.mockImplementation((tableName: string) => {
+      if (tableName === 'pharmacy_dispatch_pricing_configs') return buildTableChain(pricingRow('BR'))
+      if (tableName === 'pharmacy_dispatch_requests') return table
+      if (tableName === 'patients') return patientTable
+      return buildTableChain(null)
+    })
 
     const response = await POST(makeContext({
       body: {
-        careCountry: 'BR',
+        careCountry: 'BR', lgpdConsent: true,
         patientCpf: '12345678909',
         patientPhone: '+5551987654321',
         patientName: 'PACIENTE DEMO',
@@ -233,13 +261,15 @@ describe('API: /api/pharmacy/dispatch/request', () => {
       care_country: 'BR',
       patient_cpf: '12345678909',
       patient_dni: null,
+      lgpd_consent: true,
       requested_by_user_id: 'patient-auth-user-99',
     }))
+    expect(table.insert.mock.calls[0][0]).not.toHaveProperty('patient_gender_code')
   })
 
   it('rechaza CPF brasileño incompleto', async () => {
     const response = await POST(makeContext({
-      body: { careCountry: 'BR', patientCpf: '1234', patientPhone: '+5551987654321' },
+      body: { careCountry: 'BR', lgpdConsent: true, patientCpf: '1234', patientPhone: '+5551987654321' },
     }))
     expect(response.status).toBe(400)
     expect(supabaseMock.from).not.toHaveBeenCalled()
@@ -382,6 +412,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     }
 
     supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_pricing_configs') return buildTableChain(pricingRow('AR'))
       if (table === 'pharmacy_dispatch_requests') {
         return buildTableChain(insertedRow, null)
       }
@@ -407,25 +438,34 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     expect(body.data.request.id).toBe('dispatch-req-123')
     expect(body.data.accessToken).toBeDefined()
     expect(body.data.cloudflare_room_id).toBeDefined()
+    const argentinaInsert = supabaseMock.from.mock.results
+      .map((result) => result.value)
+      .find((table) => table?.insert?.mock?.calls?.length)?.insert.mock.calls[0][0] as Record<string, unknown>
+    expect(argentinaInsert).toHaveProperty('patient_gender_code', 'M')
+    expect(argentinaInsert).not.toHaveProperty('lgpd_consent')
   })
   it('atribuye un QR Jordan válido a la solicitud sin inventar farmacia', async () => {
     const partnerId = 'aaaaaaa1-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
     const row = {
       id: 'dispatch-jordan-demo',
+      patient_id: 'patient-row-jordan',
       cloudflare_room_id: 'cf-room-test',
       patient_name: 'Paciente sintético',
       status: 'searching',
     }
     const dispatchTable = buildTableChain(row)
+    const patientTable = buildTableChain({ id: 'patient-row-jordan' })
     supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_pricing_configs') return buildTableChain(pricingRow('BR'))
       if (table === 'commercial_referral_partners') return buildTableChain({ id: partnerId })
       if (table === 'pharmacy_dispatch_requests') return dispatchTable
+      if (table === 'patients') return patientTable
       return buildTableChain(null)
     })
 
     const response = await POST(makeContext({
       body: {
-        careCountry: 'BR', patientCpf: '12345678909',
+        careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909',
         patientPhone: '+5551999998888', patientName: 'Paciente sintético',
         referralCode: 'JORDAN',
       },
@@ -448,7 +488,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     })
     const response = await POST(makeContext({
       body: {
-        careCountry: 'BR', patientCpf: '12345678909', patientName: 'Paciente sintético',
+        careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909', patientName: 'Paciente sintético',
         patientPhone: '+5551999998888', referralCode: 'JORDAN',
       },
     }))
@@ -456,20 +496,35 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     expect(supabaseMock.from).not.toHaveBeenCalled()
   })
 
-  it('rechaza Jordan Argentina y especialidades sin consumir guardia médica', async () => {
+  it('accepts Jordan general consultation in Argentina and rejects specialist tiers', async () => {
+    const partnerId = 'aaaaaaa1-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    const dispatch = buildTableChain({
+      id: 'dispatch-jordan-ar-demo', cloudflare_room_id: 'cf-room-jordan-ar',
+      patient_name: 'Paciente AR', status: 'searching',
+    })
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_pricing_configs') return buildTableChain(pricingRow('AR'))
+      if (table === 'commercial_referral_partners') return buildTableChain({ id: partnerId })
+      if (table === 'pharmacy_dispatch_requests') return dispatch
+      return buildTableChain(null)
+    })
     const ar = await POST(makeContext({
       body: {
-        careCountry: 'AR', patientDni: '38123456',
+        careCountry: 'AR', patientDni: '38123456', patientName: 'Paciente AR',
         patientPhone: '+549112345678', referralCode: 'JORDAN',
       },
       jordanEnabled: true,
     }))
-    expect(ar.status).toBe(400)
+    expect(ar.status).toBe(200)
+    expect(dispatch.insert).toHaveBeenCalledWith(expect.objectContaining({
+      care_country: 'AR', referral_partner_id: partnerId, patient_dni: '38123456',
+    }))
+    supabaseMock.from.mockClear()
     const specialist = await POST(makeContext({
       body: {
-        careCountry: 'BR', patientCpf: '12345678909',
-        patientPhone: '+5551999998888', referralCode: 'JORDAN',
-        tier: 'cardiologia',
+        careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909',
+        patientName: 'Paciente BR', patientPhone: '+5551999998888',
+        referralCode: 'JORDAN', tier: 'cardiologia',
       },
       jordanEnabled: true,
     }))
@@ -492,6 +547,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     const dispatchTable = buildTableChain(dispatchRow)
     const recoveryTable = buildTableChain(null)
     supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_pricing_configs') return buildTableChain(pricingRow('AR'))
       if (table === 'pharmacy_dispatch_requests') return dispatchTable
       if (table === 'pharmacy_guest_dispatch_sessions') return recoveryTable
       return buildTableChain(null)
@@ -527,7 +583,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
 
   it('rejects a request country that differs from the authenticated patient country', async () => {
     vi.mocked(resolvePatientContext).mockResolvedValue({ userId: 'p', patientId: 'p-row', careCountry: 'AR' })
-    const response = await POST(makeContext({ body: { careCountry: 'BR', patientCpf: '12345678909', patientPhone: '+5551987654321' } }))
+    const response = await POST(makeContext({ body: { careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909', patientPhone: '+5551987654321' } }))
     expect(response.status).toBe(403)
     expect(supabaseMock.from).not.toHaveBeenCalledWith('pharmacy_dispatch_requests')
   })
@@ -536,7 +592,8 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     const dispatchTable = buildTableChain({
       id: 'dispatch-no-ref-demo', cloudflare_room_id: 'cf-room-demo', status: 'searching',
     })
-    supabaseMock.from.mockReturnValue(dispatchTable)
+    supabaseMock.from.mockImplementation((tableName: string) => tableName === 'pharmacy_dispatch_pricing_configs'
+      ? buildTableChain(pricingRow('AR')) : dispatchTable)
     const response = await POST(makeContext())
     expect(response.status).toBe(200)
     expect(dispatchTable.insert).toHaveBeenCalledWith(expect.objectContaining({ referral_partner_id: null }))
@@ -546,7 +603,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
   it('rechaza referralCode manipulados antes de realizar cualquier escritura', async () => {
     const response = await POST(makeContext({
       body: {
-        careCountry: 'BR', patientCpf: '12345678909',
+        careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909',
         patientPhone: '+5551999998888', patientName: 'Paciente sintético',
         referralCode: 'jordan<script>',
       },
@@ -563,7 +620,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     })
     const response = await POST(makeContext({
       body: {
-        careCountry: 'BR', patientCpf: '12345678909',
+        careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909',
         patientPhone: '+5551999998888', patientName: 'Paciente sintético',
         referralCode: 'FAKEPARTNER',
       },
@@ -574,7 +631,8 @@ describe('API: /api/pharmacy/dispatch/request', () => {
 
   it('nunca devuelve detalles clínicos presentes en errores SQL', async () => {
     const table = buildTableChain(null, { code: '23514', message: 'PRIVATE CLINICAL DETAILS 123456789' })
-    supabaseMock.from.mockReturnValue(table)
+    supabaseMock.from.mockImplementation((tableName: string) => tableName === 'pharmacy_dispatch_pricing_configs'
+      ? buildTableChain(pricingRow('AR')) : table)
 
     const response = await POST(makeContext())
     expect(response.status).toBe(500)

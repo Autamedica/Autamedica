@@ -76,12 +76,13 @@ export function mapPrescriptionRecordToPatientPrescription(
     vendor_id: asString(content.vendor_id),
     qr_code_content: qrCodeContent,
     signed_pdf_url: signedPdfUrl,
+    access_code: asString(content.access_code),
     artifact_warning:
       asString(content.artifact_warning) ??
       buildStrictPrescriptionArtifactWarning(medicationName, digitalArtifactReady),
     is_digital_artifact_ready: digitalArtifactReady,
     requires_strict_validation: strictValidation,
-    source: asString(content.source) === "prescriptions_core" ? "prescriptions_core" : "legacy",
+    source: asString(content.source) === "memed_br" ? "memed_br" : asString(content.source) === "prescriptions_core" ? "prescriptions_core" : "legacy",
   };
 }
 

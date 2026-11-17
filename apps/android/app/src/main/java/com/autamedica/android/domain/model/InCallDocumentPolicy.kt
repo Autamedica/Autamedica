@@ -37,11 +37,16 @@ object InCallDocumentPolicy {
         }
     }
 
+    /** In-call documents require the linked patient's persisted care country to match the doctor's license. */
+    fun countriesMatchForDocumentIssuance(doctorCountry: String?, patientCareCountry: String?): Boolean =
+        doctorCountry in setOf("AR", "BR") && doctorCountry == patientCareCountry
+
     /** A non-resolved patient or country must not silently become Argentina. */
     fun requireCountry(country: String?): String {
         require(country == "AR" || country == "BR") { "País y matrícula médica no verificados" }
         return country
     }
 
+    /** The generic native issuer is Argentina-only; Brazilian prescriptions use the official Memed flow. */
     fun canUseNativePrescriptionIssuer(country: String): Boolean = country == "AR"
 }

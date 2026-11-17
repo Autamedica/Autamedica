@@ -310,6 +310,7 @@ export async function generatePrescriptionPdf(
       ...originalInput.patient,
       name: sanitizePdfText(originalInput.patient.name),
       insurancePlan: sanitizePdfText(originalInput.patient.insurancePlan),
+      cuil: sanitizePdfText(originalInput.patient.cuil)?.replace(/\D/g, ''),
       affiliateCredential: sanitizePdfText(originalInput.patient.affiliateCredential),
       address: sanitizePdfText(originalInput.patient.address),
     },
@@ -491,9 +492,12 @@ export async function generatePrescriptionPdf(
   doc.text(input.patient.name, marginLeft + textOffset, y + 14);
 
   const patientSex = formatPatientSex(input.patient.sex);
+  const isFarmalinkPdf = input.externalPrescription?.provider === 'farmalink';
   const patientMeta = [
     input.patient.dni ? `DNI: ${input.patient.dni}` : null,
-    input.patient.cuil ? `CUIL: ${input.patient.cuil}` : null,
+    // Farmalink reconciles the affiliate number against the electronic record.
+    // Never expose the patient's CUIL in this PDF: it is not the affiliate PAN.
+    !isFarmalinkPdf && input.patient.cuil ? `CUIL: ${input.patient.cuil}` : null,
     patientSex ? `Sexo: ${patientSex}` : null,
     input.patient.dateOfBirth ? `Fecha de Nacimiento: ${formatDate(input.patient.dateOfBirth)}` : null,
   ].filter(Boolean).join('  |  ');
@@ -633,25 +637,26 @@ export async function generatePrescriptionPdf(
   }
 
   const barcodeOffset = template === 'female' ? 6 : 4;
-  const submittedCuil = input.externalPrescription?.provider === 'farmalink'
-    ? input.patient.cuil?.replace(/\D/g, '')
+  const submittedPan = input.externalPrescription?.provider === 'farmalink'
+    ? input.patient.affiliateCredential?.replace(/\D/g, '')
     : undefined;
-  if (input.externalPrescription?.provider === 'farmalink' && submittedCuil?.length === 11) {
-    // MSAL requires distinct scannable Code128 codes for Farmalink receipt ID and patient CUIL.
+  if (input.externalPrescription?.provider === 'farmalink' && submittedPan && /^\d{8,19}$/.test(submittedPan)) {
+    // Keep the Farmalink receipt ID and PAN as separate, explicitly labelled Code128 values.
+    // The patient CUIL remains printed in the patient identity block and is never used as the PAN barcode.
     const leftX = marginLeft + barcodeOffset;
     const rightX = marginLeft + 91;
     doc.setFontSize(6.3);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
     doc.text('RECETA FARMALINK', leftX, barcodeY + 3.8);
-    doc.text('CUIL PACIENTE', rightX, barcodeY + 3.8);
+    doc.text('PAN / CREDENCIAL', rightX, barcodeY + 3.8);
     drawCode128Barcode(doc, barcodeValue, leftX + 2, barcodeY + 5.2, 69, 6.5);
-    drawCode128Barcode(doc, submittedCuil, rightX + 2, barcodeY + 5.2, 69, 6.5);
+    drawCode128Barcode(doc, submittedPan, rightX + 2, barcodeY + 5.2, 69, 6.5);
     doc.setFontSize(7.2);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
     doc.text(`${barcodeDisplayLabel}: ${barcodeValue}`, leftX + 2, barcodeY + 14.4);
-    doc.text(`CUIL: ${submittedCuil}`, rightX + 2, barcodeY + 14.4);
+    doc.text(`PAN: ${submittedPan}`, rightX + 2, barcodeY + 14.4);
   } else {
     // Other countries and providers retain their pre-existing single-barcode PDF layout.
     doc.setFontSize(7);
@@ -748,6 +753,21 @@ export async function generatePrescriptionPdf(
     }
   }
 
+  const drawStampPlaceholder = () => {
+    doc.setFillColor(patientBgColor[0], patientBgColor[1], patientBgColor[2]);
+    doc.rect(marginLeft + 40, signatureY, 35, 20, 'F');
+    doc.setDrawColor(203, 213, 225);
+    doc.setLineWidth(0.3);
+    doc.rect(marginLeft + 40, signatureY, 35, 20, 'S');
+    doc.setFontSize(5.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
+    doc.text('SELLO PROFESIONAL', marginLeft + 57.5, signatureY + 10, {
+      align: 'center',
+      maxWidth: 31,
+    });
+  };
+
   if (input.prescriber.stampImageUrl) {
     // Stamp professional seal image
     try {
@@ -758,12 +778,14 @@ export async function generatePrescriptionPdf(
       const stampDataUrl = `data:image/${stampFormat.toLowerCase()};base64,${stampBase64}`;
       doc.addImage(stampDataUrl, stampFormat, marginLeft + 40, signatureY, 35, 20);
     } catch {
-      // Silently skip stamp if fetch fails
+      drawStampPlaceholder();
     }
+  } else {
+    drawStampPlaceholder();
   }
 
-  // Digital signature info box (next to visual signature)
-  const infoBoxX = input.prescriber.stampImageUrl ? marginLeft + 80 : marginLeft + 40;
+  // Prescriber identity panel beside the signature and seal areas.
+  const infoBoxX = marginLeft + 80;
   const infoBoxWidth = pageWidth - 20 - infoBoxX;
   doc.setFillColor(patientBgColor[0], patientBgColor[1], patientBgColor[2]);
   doc.rect(infoBoxX, signatureY, infoBoxWidth, 25, 'F');
@@ -784,20 +806,23 @@ export async function generatePrescriptionPdf(
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
-  doc.text('VERIFICACIÓN DE FIRMA', infoBoxX + sigInfoOffset, signatureY + 5);
-  doc.setFontSize(5.5);
+  doc.text('EMISOR DE LA RECETA', infoBoxX + sigInfoOffset, signatureY + 5);
+
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text(input.prescriber.name, infoBoxX + sigInfoOffset, signatureY + 12, {
+    maxWidth: infoBoxWidth - sigInfoOffset - 4,
+  });
+
+  doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
-  const signatureLegend = doc.splitTextToSize(
-    'Verificar la firma en el certificado PDF o registro del emisor.',
-    infoBoxWidth - 6,
+  doc.setTextColor(infoTextColor[0], infoTextColor[1], infoTextColor[2]);
+  doc.text(
+    `Matrícula: ${input.prescriber.license} (${input.prescriber.licenseJurisdiction || 'MN'})`,
+    infoBoxX + sigInfoOffset,
+    signatureY + 19,
+    { maxWidth: infoBoxWidth - sigInfoOffset - 4 },
   );
-  doc.text(signatureLegend, infoBoxX + 3, signatureY + 10);
-  const validatorY = signatureY + 10 + signatureLegend.length * 3.5;
-  if (cuir) {
-    doc.text(`Validador RCTA: ${cuir}`, infoBoxX + 3, validatorY);
-    doc.text(`Fecha de registro: ${formatDate(input.issuedAt)}`, infoBoxX + 3, validatorY + 4);
-    doc.text('Hash: verificable vía QR', infoBoxX + 3, validatorY + 8);
-  }
 
   // Footer (Compliance & Privacy)
   const footerY = 276;

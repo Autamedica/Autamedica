@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+const migration=readFileSync('supabase/migrations/20261114230216_operational_governance_center.sql','utf8');
+const checkout=readFileSync('apps/web/src/pages/api/pharmacy/dispatch/payment/create.ts','utf8');
+const status=readFileSync('apps/web/src/pages/api/admin/governance/status.ts','utf8');
+const overview=readFileSync('apps/web/src/pages/api/admin/governance/overview.ts','utf8');
+const finance=readFileSync('apps/web/src/pages/api/admin/finance/pharmacy-payments.ts','utf8');
+const cfm=readFileSync('apps/web/src/pages/api/admin/doctors/cfm-review.ts','utf8');
+test('four domains update independently',()=>{for(const f of ['operational_status','clinical_status','financial_status','commercial_status'])assert.match(migration,new RegExp(`CASE WHEN p_domain='${f}' THEN p_status ELSE ${f} END`))});
+test('clinical outages are not checkout gates',()=>{const gate=checkout.slice(checkout.indexOf('platform_operational_domains'));assert.doesNotMatch(gate,/clinical_status/);assert.match(gate,/commercial_status/);assert.match(gate,/financial_status/)});
+test('admin actions use guarded RPCs and purge is narrowly scoped',()=>{assert.match(status,/admin_set_operational_domain_status/);assert.match(overview,/withAuthRole/);assert.match(migration,/admin_purge_orphan_dispatch_requests/);assert.match(migration,/assigned_doctor_id IS NULL/);assert.match(migration,/call_id IS NULL/)});
+test('CFM review and payment override require evidence and audit',()=>{assert.match(cfm,/admin_review_cfm_license/);assert.match(finance,/evidence_reference/);assert.match(migration,/manual_override_reason_and_evidence_required/);assert.match(migration,/approved_by/)});
+test('governance overview only reads consent records',()=>{assert.match(overview,/informed_consents/);assert.doesNotMatch(overview,/\.update\(|\.insert\(|\.upsert\(/)});

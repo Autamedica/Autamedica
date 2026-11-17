@@ -78,10 +78,37 @@ describe('public prescription verification must fail closed until trusted signin
     },
   );
 
+  it('fails closed if the CUIR row disappears before signature verification', async () => {
+    mocks.rx = { id: 'legacy-test' };
+    let lookupCount = 0;
+    mocks.from.mockImplementation((table: string) => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => {
+            lookupCount += 1;
+            return { data: lookupCount === 1 ? mocks.rx : null, error: null };
+          },
+        }),
+      }),
+    }));
+    const result = await verify();
+    expect(result.status).toBe(200);
+    expect(result.body).toMatchObject({
+      valid: false,
+      reason: 'prescription_signature_unverified',
+      prescription: null,
+      certificate: null,
+    });
+    expect(mocks.from).toHaveBeenCalledTimes(2);
+  });
+
   it('does not query patient or clinical_data for a public prescription lookup', async () => {
     mocks.rx = { id: 'legacy-test' };
     await verify();
-    expect(mocks.from).toHaveBeenCalledTimes(1);
+    expect(mocks.from).toHaveBeenNthCalledWith(1, 'prescriptions');
+    expect(mocks.from).toHaveBeenNthCalledWith(2, 'prescriptions');
+    expect(mocks.from).toHaveBeenCalledTimes(2);
+    expect(mocks.from).not.toHaveBeenCalledWith('patients');
   });
 
   it('does not consider an unsigned certificate with a local QR and PDF valid', async () => {

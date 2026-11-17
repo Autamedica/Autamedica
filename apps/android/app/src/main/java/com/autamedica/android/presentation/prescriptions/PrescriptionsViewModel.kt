@@ -84,20 +84,20 @@ class PrescriptionsViewModel @Inject constructor(
         val rxResult = prescriptionRepository.getPatientPrescriptions()
         val certResult = certificateRepository.getPatientCertificates()
 
-        val prescriptions = rxResult.getOrDefault(emptyList())
-        val certificates = certResult.getOrDefault(emptyList())
+        val rxError = rxResult.exceptionOrNull()
+        val certificateError = certResult.exceptionOrNull()
 
-        val error = if (rxResult.isFailure && certResult.isFailure) {
-            rxResult.exceptionOrNull()?.message ?: "No se pudieron cargar los documentos."
-        } else null
-
-        _uiState.update {
-            it.copy(
+        _uiState.update { current ->
+            val partialErrors = buildList {
+                rxError?.let { add("Recetas: " + (it.message ?: "no se pudieron actualizar")) }
+                certificateError?.let { add("Atestados: " + (it.message ?: "no se pudieron actualizar")) }
+            }
+            current.copy(
                 isLoading = false,
                 isRefreshing = false,
-                prescriptions = prescriptions,
-                certificates = certificates,
-                error = error,
+                prescriptions = rxResult.getOrElse { current.prescriptions },
+                certificates = certResult.getOrElse { current.certificates },
+                error = partialErrors.takeIf { it.isNotEmpty() }?.joinToString(". "),
             )
         }
     }

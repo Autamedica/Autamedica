@@ -4,25 +4,37 @@ import { Loader2, AlertCircle } from 'lucide-react';
 
 interface MemedPrescriptionWidgetProps {
   patientId: string;
+  requestId?: string;
   onPrescriptionSaved: (memedId: string) => Promise<void>;
   onPrescriptionDeleted: (memedId: string) => Promise<void>;
   onClose: () => void;
+  onFallbackToNativePrescription: () => void;
+  /** Use the full viewport inside Android Custom Tabs. */
+  mobileFullscreen?: boolean;
 }
 
 export function MemedPrescriptionWidget({
   patientId,
+  requestId,
   onPrescriptionSaved,
   onPrescriptionDeleted,
   onClose,
+  onFallbackToNativePrescription,
+  mobileFullscreen = false,
 }: MemedPrescriptionWidgetProps) {
   const [patientLabel, setPatientLabel] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [fallbackAvailable, setFallbackAvailable] = useState(false);
   const [issuedId, setIssuedId] = useState<string | null>(null);
   const [identityRequired, setIdentityRequired] = useState(false);
   const [doctorCpfInput, setDoctorCpfInput] = useState('');
   const [doctorBirthInput, setDoctorBirthInput] = useState('');
   const [doctorIdentitySubmitted, setDoctorIdentitySubmitted] = useState<{ cpf: string; birthDate: string } | null>(null);
+  const [patientDemographicsRequired, setPatientDemographicsRequired] = useState(false);
+  const [patientBirthInput, setPatientBirthInput] = useState('');
+  const [patientGenderInput, setPatientGenderInput] = useState<'male' | 'female' | ''>('');
+  const [patientDemographicsSubmitted, setPatientDemographicsSubmitted] = useState<{ patientBirthDate: string; patientGender: 'male' | 'female' } | null>(null);
   const onSavedRef = useRef(onPrescriptionSaved);
   const onDeletedRef = useRef(onPrescriptionDeleted);
   onSavedRef.current = onPrescriptionSaved;
@@ -34,6 +46,8 @@ export function MemedPrescriptionWidget({
     setPatientLabel(null);
     setIssuedId(null);
     setErrorMessage(null);
+    setFallbackAvailable(false);
+    setPatientDemographicsRequired(false);
     const onIssued = (id: string) => {
       if (cancelled) return;
       void onSavedRef.current(id).then(() => {
@@ -55,7 +69,7 @@ export function MemedPrescriptionWidget({
         const tokenRequest: RequestInit = {
           method: 'POST', credentials: 'include', cache: 'no-store',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ patientId, ...doctorIdentitySubmitted }),
+          body: JSON.stringify({ patientId, ...(requestId ? { requestId } : {}), ...doctorIdentitySubmitted, ...patientDemographicsSubmitted }),
         };
         const response = await fetch('/api/doctors/prescriptions/memed-token', tokenRequest);
         const json = await response.json();
@@ -70,12 +84,26 @@ export function MemedPrescriptionWidget({
           return;
         }
         if (!response.ok || json.success !== true || !json.data?.token || !json.data?.scriptUrl || !json.data?.patient) {
-          throw new Error(json.error?.message === 'memed_issuance_not_enabled'
-            ? 'A emissão de receitas está desativada enquanto concluímos a validação da integração.'
-            : 'Não foi possível autorizar o médico e o paciente para a Memed. Confira os dados do cadastro.');
+          const code = json.error?.message;
+          const patientGate = ['memed_patient_consent_required', 'memed_patient_identity_incomplete',
+            'memed_patient_required', 'memed_patient_country_required'].includes(code);
+          const doctorGate = ['verified_brazilian_license_required', 'memed_doctor_identity_incomplete',
+            'active_brazilian_doctor_required', 'memed_pilot_prescriber_only'].includes(code);
+          throw new Error(code === 'memed_issuance_not_enabled'
+            ? 'Memed está em validação clínica. A consulta continua normalmente e você pode emitir a receita nativa Autamedica.'
+            : patientGate
+              ? 'Paciente sem consentimento LGPD ativo ou identidade completa. A receita Memed foi bloqueada; continue pela receita nativa Autamedica.'
+              : doctorGate
+                ? 'Identidade ou habilitação do prescritor ainda não está validada para Memed. Continue pela receita nativa Autamedica.'
+                : 'Memed não autorizou esta emissão. Continue pela receita nativa Autamedica; a videoconsulta permanece ativa.');
         }
         if (cancelled) return;
         setPatientLabel(json.data.patient.nome);
+        if (json.data.patientDemographicsMissing) {
+          setPatientDemographicsRequired(true);
+          setLoading(false);
+          return;
+        }
         await ensureMemedScript(json.data.token, json.data.scriptUrl, json.data.doctor.userId);
         if (cancelled) return;
         await openMemedPatient(json.data.patient, () => !cancelled);
@@ -83,6 +111,7 @@ export function MemedPrescriptionWidget({
       } catch (error) {
         if (!cancelled) {
           setLoading(false);
+          setFallbackAvailable(true);
           setErrorMessage(error instanceof Error ? error.message : 'Erro ao iniciar Memed.');
         }
       }
@@ -95,11 +124,15 @@ export function MemedPrescriptionWidget({
       void hub?.module.hide?.('plataforma.prescricao').catch(() => undefined);
       // Leave the script in place to prevent duplicate initialization.
     };
-  }, [patientId, doctorIdentitySubmitted]);
+  }, [patientId, requestId, doctorIdentitySubmitted, patientDemographicsSubmitted]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="relative flex h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
+    <div className={mobileFullscreen
+      ? "fixed inset-0 z-50 flex min-h-0 items-stretch bg-white"
+      : "fixed inset-0 z-50 flex items-center justify-center bg-black/50"}>
+      <div className={mobileFullscreen
+        ? "relative flex h-[100dvh] min-h-0 w-full flex-col overflow-hidden bg-white"
+        : "relative flex h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl"}>
         <div className="flex items-center justify-between border-b p-4">
           <div>
             <h2 className="font-semibold text-slate-900">Prescrição digital Brasil — Memed</h2>
@@ -130,17 +163,67 @@ export function MemedPrescriptionWidget({
                 className="mt-1 block w-full rounded border p-2" />
             </label>
             <p className="text-xs text-slate-600">A data de nascimento será transmitida à Memed apenas para o cadastro, sem armazenamento na AutaMedica.</p>
-            <button type="submit" className="rounded bg-blue-700 px-4 py-2 text-sm font-medium text-white">
-              Validar cadastro Memed
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button type="submit" className="rounded bg-blue-700 px-4 py-2 text-sm font-medium text-white">
+                Validar cadastro Memed
+              </button>
+              <button type="button" onClick={onFallbackToNativePrescription}
+                className="rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800">
+                Continuar con receta nativa Autamedica
+              </button>
+            </div>
+          </form>
+        )}
+        {patientDemographicsRequired && !loading && (
+          <form className="space-y-3 border-b p-5" onSubmit={(event) => {
+            event.preventDefault();
+            if (!patientBirthInput || !patientGenderInput) return;
+            setPatientDemographicsRequired(false);
+            setErrorMessage(null);
+            setLoading(true);
+            setPatientDemographicsSubmitted({ patientBirthDate: patientBirthInput, patientGender: patientGenderInput });
+          }}>
+            <p className="text-sm text-slate-800">Complete os dados que faltam do paciente, confirmando a informação diretamente com ele. A Memed pode exigir data de nascimento e sexo para determinados medicamentos e receituários.</p>
+            <label className="block text-sm text-slate-700">
+              Data de nascimento do paciente
+              <input type="date" required max={new Date().toISOString().slice(0, 10)}
+                value={patientBirthInput} onChange={(event) => setPatientBirthInput(event.target.value)}
+                className="mt-1 block w-full rounded border p-2" />
+            </label>
+            <label className="block text-sm text-slate-700">
+              Sexo cadastral do paciente
+              <select required value={patientGenderInput} onChange={(event) => setPatientGenderInput(event.target.value as 'male' | 'female' | '')}
+                className="mt-1 block w-full rounded border p-2">
+                <option value="">Selecione</option>
+                <option value="female">Feminino</option>
+                <option value="male">Masculino</option>
+              </select>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button type="submit" className="rounded bg-blue-700 px-4 py-2 text-sm font-medium text-white">
+                Salvar dados e abrir Memed
+              </button>
+              <button type="button" onClick={onFallbackToNativePrescription}
+                className="rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800">
+                Continuar con receta nativa Autamedica
+              </button>
+            </div>
           </form>
         )}
         {loading && <div className="flex items-center gap-2 p-5 text-slate-700"><Loader2 className="h-5 w-5 animate-spin" />Carregando Memed...</div>}
-        {errorMessage && <div role="alert" className="flex items-start gap-2 p-5 text-red-700"><AlertCircle className="h-5 w-5 shrink-0" />{errorMessage}</div>}
+        {errorMessage && <div role="alert" className="space-y-3 border-b border-amber-200 bg-amber-50 p-5 text-amber-950">
+          <div className="flex items-start gap-2 text-sm"><AlertCircle className="h-5 w-5 shrink-0" />{errorMessage}</div>
+          {fallbackAvailable && <button type="button" onClick={onFallbackToNativePrescription}
+            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+            Continuar con receta nativa Autamedica
+          </button>}
+        </div>}
         {issuedId && <div role="status" className="p-3 text-sm text-amber-800">
           Prescrição confirmada na API Memed e registrada como pendente (ID {issuedId}). Confirme a assinatura e a entrega ao paciente antes de concluir o atendimento.
         </div>}
-        <div id="memed-prescricao-container" className="min-h-[400px] flex-1 overflow-auto" />
+        <div id="memed-prescricao-container" className={mobileFullscreen
+          ? "min-h-0 flex-1 overflow-auto overscroll-contain"
+          : "min-h-[400px] flex-1 overflow-auto"} />
       </div>
     </div>
   );

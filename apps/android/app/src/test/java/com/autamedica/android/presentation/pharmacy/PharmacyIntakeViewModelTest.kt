@@ -1,6 +1,7 @@
 package com.autamedica.android.presentation.pharmacy
 
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.viewModelScope
 import com.autamedica.android.domain.model.DispatchClaimResult
 import com.autamedica.android.domain.model.DoctorDutyStatus
 import com.autamedica.android.domain.model.PatientProfileSnapshot
@@ -15,6 +16,7 @@ import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.domain.repository.UserRegistrationResult
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,6 +55,8 @@ private class FakeProfileRepository(
         Result.success(snapshot)
     override suspend fun updateProfile(firstName: String, lastName: String, phone: String?): Result<User> =
         user?.let { Result.success(it) } ?: Result.failure(Exception("No profile"))
+    override suspend fun persistLgpdConsent(userId: String, acceptedAt: String, version: String): Result<Unit> =
+        Result.success(Unit)
 }
 
 private class FakePharmacyDispatchRepository(
@@ -161,6 +165,7 @@ class PharmacyIntakeViewModelTest {
     private lateinit var authRepo: FakeAuthRepository
     private lateinit var profileRepo: FakeProfileRepository
     private lateinit var pharmacyRepo: FakePharmacyDispatchRepository
+    private val activeViewModels = mutableListOf<PharmacyIntakeViewModel>()
 
     @Before
     fun setUp() {
@@ -172,6 +177,10 @@ class PharmacyIntakeViewModelTest {
 
     @After
     fun tearDown() {
+        // Intake status/payment polling intentionally remains active while a request is pending.
+        // Stop every ViewModel even when an assertion fails, so runTest can finish deterministically.
+        activeViewModels.forEach { it.viewModelScope.cancel() }
+        activeViewModels.clear()
         Dispatchers.resetMain()
     }
 
@@ -204,6 +213,7 @@ class PharmacyIntakeViewModelTest {
             authRepository = authRepo, profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
         vm.onCountrySelected("AR")
         vm.onPatientNameChanged("Paciente de prueba")
@@ -220,6 +230,7 @@ class PharmacyIntakeViewModelTest {
         assertThat(vm.uiState.value.error).doesNotContain("conexión")
         assertThat(vm.uiState.value.activeRequestId).isNull()
         assertThat(vm.uiState.value.isSubmitting).isFalse()
+        vm.viewModelScope.cancel()
     }
 
     @Test
@@ -245,6 +256,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
 
         advanceUntilIdle()
 
@@ -269,6 +281,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
 
         advanceUntilIdle()
 
@@ -288,17 +301,19 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
         assertThat(vm.uiState.value.careCountry).isEqualTo("BR")
         vm.onCountrySelected("AR")
         assertThat(vm.uiState.value.careCountry).isEqualTo("BR")
         vm.onPatientNameChanged("Paciente brasileiro")
         vm.onPatientPhoneChanged("+5551987654321")
-        vm.onPatientDniChanged("12345678909")
+        vm.onPatientDniChanged("52998224725")
+        vm.onLgpdConsentChanged(true)
         vm.onReasonTextChanged("Consulta geral")
         pharmacyRepo.createResult = Result.success(
             PharmacyDispatchRequest(
-                id = "guest-jordan-br", patientDni = "12345678909",
+                id = "guest-jordan-br", patientDni = "52998224725",
                 patientPhone = "+5551987654321", patientName = "Paciente brasileiro",
                 tierRequested = "general", status = "searching",
                 cloudflareRoomId = "cf-room-br", createdAt = "2026-11-05T18:00:00Z",
@@ -309,6 +324,7 @@ class PharmacyIntakeViewModelTest {
         testScheduler.runCurrent()
         assertThat(pharmacyRepo.lastCreatedCountry).isEqualTo("BR")
         assertThat(pharmacyRepo.lastReferralCode).isEqualTo("JORDAN")
+        vm.viewModelScope.cancel()
     }
 
     @Test
@@ -319,12 +335,14 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
         vm.onPatientNameChanged("PACIENTE DEMO")
         vm.onPatientPhoneChanged("+5551987654321")
         vm.onReasonTextChanged("Consulta de demonstração")
         vm.onCountrySelected("BR")
-        vm.onPatientDniChanged("12345678909")
+        vm.onPatientDniChanged("52998224725")
+        vm.onLgpdConsentChanged(true)
         assertThat(vm.uiState.value.isFormValid).isTrue()
 
         pharmacyRepo.createResult = Result.success(
@@ -342,6 +360,7 @@ class PharmacyIntakeViewModelTest {
         vm.submitRequest()
         testScheduler.runCurrent()
         assertThat(pharmacyRepo.lastCreatedCountry).isEqualTo("BR")
+        vm.viewModelScope.cancel()
     }
 
     @Test
@@ -352,6 +371,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
 
         vm.onReasonChipSelected("Renovación de Receta")
@@ -372,6 +392,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
 
         vm.onCountrySelected("AR")
@@ -384,7 +405,7 @@ class PharmacyIntakeViewModelTest {
         assertThat(vm.uiState.value.selectedReasonChip).isNull()
         assertThat(vm.uiState.value.reasonText).isEmpty()
 
-        vm.onPatientDniChanged("12345678909")
+        vm.onPatientDniChanged("52998224725")
         vm.onReasonTextChanged("Consulta particular")
         vm.onCountrySelected("AR")
 
@@ -401,12 +422,14 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
 
         vm.onCountrySelected("AR")
         vm.submitRequest()
         assertThat(vm.uiState.value.error).isNotNull()
         assertThat(vm.uiState.value.activeRequestId).isNull()
+        vm.viewModelScope.cancel()
     }
 
     @Test
@@ -417,6 +440,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
         vm.onReasonChipSelected("Renovación de Receta")
         assertThat(vm.uiState.value.effectiveReason).isEqualTo("Renovación de Receta")
@@ -461,6 +485,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
 
         vm.onReasonChipSelected("Presión / Hipertensión")
@@ -476,11 +501,10 @@ class PharmacyIntakeViewModelTest {
         // La espera (radar) queda activa: la sala existe pero el médico aún no atendió la llamada.
         assertThat(vm.uiState.value.roomId).isEqualTo("cf-room-general-9888")
         assertThat(vm.uiState.value.readyToJoinCall).isFalse()
-
-        // Close the synthetic request so the ViewModel's realtime and PSP pollers
-        // finish deterministically instead of keeping the JVM test alive.
+        // Close the synthetic request so realtime and PSP polling stop deterministically.
         pharmacyRepo.requestFlow.value = fakeCreatedRequest.copy(status = "expired")
         testScheduler.runCurrent()
+        vm.viewModelScope.cancel()
     }
 
     @Test
@@ -499,6 +523,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
 
         assertThat(vm.uiState.value.patientName).isEqualTo("Jaqueline Marques")
@@ -539,6 +564,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
 
         vm.onPatientNameChanged("María López")
@@ -566,6 +592,7 @@ class PharmacyIntakeViewModelTest {
         assertThat(vm.uiState.value.status).isEqualTo(PharmacyConsultationStatus.IN_CALL)
         assertThat(vm.uiState.value.readyToJoinCall).isTrue()
         assertThat(vm.uiState.value.roomId).isEqualTo("cf-room-general-race1")
+        vm.viewModelScope.cancel()
     }
 
     @Test
@@ -589,6 +616,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
 
         vm.onPatientNameChanged("Carlos Gómez")
@@ -610,6 +638,7 @@ class PharmacyIntakeViewModelTest {
         assertThat(vm.uiState.value.status).isNull()
         assertThat(vm.uiState.value.queuePosition).isEqualTo(0)
         assertThat(vm.uiState.value.isSubmitting).isFalse()
+        vm.viewModelScope.cancel()
     }
 
     @Test
@@ -620,6 +649,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
 
         vm.onPatientNameChanged("Esteban Quito")
@@ -651,6 +681,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
         vm.onPatientNameChanged("Paciente sintético")
         vm.onPatientDniChanged("28999888")
@@ -677,13 +708,14 @@ class PharmacyIntakeViewModelTest {
         assertThat(vm.uiState.value.error).contains("No pudimos cancelar")
         assertThat(vm.uiState.value.isSubmitting).isFalse()
         assertThat(pharmacyRepo.cancellationAttempts).containsExactly(created.id, created.id)
+        vm.viewModelScope.cancel()
     }
 
     @Test
     fun `Jordan consultation does not enter video until payment provider approves`() = runTest(testDispatcher) {
         val req = PharmacyDispatchRequest(
             id = "synthetic-jordan-br", careCountry = "BR", referralPartnerId = "partner-jordan-br",
-            patientDni = "12345678909", patientPhone = "+5551987654321",
+            patientDni = "52998224725", patientPhone = "+5551987654321",
             patientName = "Paciente BR", status = "searching",
             cloudflareRoomId = "cf-room-br-test", createdAt = "2026-11-05T18:00:00Z",
         )
@@ -694,10 +726,12 @@ class PharmacyIntakeViewModelTest {
             authRepository = authRepo, profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
         vm.onPatientNameChanged("Paciente BR")
         vm.onPatientPhoneChanged("+5551987654321")
-        vm.onPatientDniChanged("12345678909")
+        vm.onPatientDniChanged("52998224725")
+        vm.onLgpdConsentChanged(true)
         vm.onReasonTextChanged("Consulta geral")
         vm.submitRequest()
         testScheduler.runCurrent()
@@ -724,13 +758,14 @@ class PharmacyIntakeViewModelTest {
         pharmacyRepo.requestFlow.value = req.copy(status = "in_call", patientName = "Paciente BR aprovado")
         testScheduler.runCurrent()
         assertThat(vm.uiState.value.readyToJoinCall).isTrue()
+        vm.viewModelScope.cancel()
     }
 
     @Test
     fun `Jordan app restore keeps in-call patient on checkout while payment is pending and polls PSP`() = runTest(testDispatcher) {
         val restored = PharmacyDispatchRequest(
             id = "restored-jordan-pending", careCountry = "BR", referralPartnerId = "partner-jordan-br",
-            patientDni = "12345678909", patientPhone = "+5551987654321", patientName = "Paciente BR",
+            patientDni = "52998224725", patientPhone = "+5551987654321", patientName = "Paciente BR",
             status = "in_call", cloudflareRoomId = "cf-room-restored-jordan",
             createdAt = "2026-11-12T00:00:00Z",
         )
@@ -741,6 +776,7 @@ class PharmacyIntakeViewModelTest {
             savedStateHandle = SavedStateHandle(mapOf("referralCode" to "JORDAN")),
             authRepository = authRepo, profileRepository = profileRepo, pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         testScheduler.runCurrent()
         assertThat(vm.uiState.value.activeRequestId).isEqualTo(restored.id)
         assertThat(vm.uiState.value.status).isEqualTo(PharmacyConsultationStatus.IN_CALL)
@@ -767,7 +803,7 @@ class PharmacyIntakeViewModelTest {
     fun `Jordan app restore unlocks in-call navigation only after PSP approval`() = runTest(testDispatcher) {
         val restored = PharmacyDispatchRequest(
             id = "restored-jordan-approved", careCountry = "BR", referralPartnerId = "partner-jordan-br",
-            patientDni = "12345678909", patientPhone = "+5551987654321", patientName = "Paciente BR",
+            patientDni = "52998224725", patientPhone = "+5551987654321", patientName = "Paciente BR",
             status = "in_call", cloudflareRoomId = "cf-room-restored-approved",
             createdAt = "2026-11-12T00:00:00Z",
         )
@@ -778,6 +814,7 @@ class PharmacyIntakeViewModelTest {
             savedStateHandle = SavedStateHandle(mapOf("referralCode" to "JORDAN")),
             authRepository = authRepo, profileRepository = profileRepo, pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         testScheduler.runCurrent()
         assertThat(vm.uiState.value.paymentStatus).isEqualTo("approved")
         assertThat(vm.uiState.value.readyToJoinCall).isTrue()
@@ -788,7 +825,7 @@ class PharmacyIntakeViewModelTest {
     fun `Jordan app restore never unlocks in-call navigation for refunded payment`() = runTest(testDispatcher) {
         val restored = PharmacyDispatchRequest(
             id = "restored-jordan-refunded", careCountry = "BR", referralPartnerId = "partner-jordan-br",
-            patientDni = "12345678909", patientPhone = "+5551987654321", patientName = "Paciente BR",
+            patientDni = "52998224725", patientPhone = "+5551987654321", patientName = "Paciente BR",
             status = "in_call", cloudflareRoomId = "cf-room-restored-refunded",
             createdAt = "2026-11-12T00:00:00Z",
         )
@@ -799,6 +836,7 @@ class PharmacyIntakeViewModelTest {
             savedStateHandle = SavedStateHandle(mapOf("referralCode" to "JORDAN")),
             authRepository = authRepo, profileRepository = profileRepo, pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         testScheduler.runCurrent()
         assertThat(vm.uiState.value.paymentStatus).isEqualTo("refunded")
         assertThat(vm.uiState.value.readyToJoinCall).isFalse()
@@ -826,6 +864,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
         vm.onPatientNameChanged("Paciente sintético AR")
         vm.onPatientDniChanged("28999888")
@@ -851,6 +890,7 @@ class PharmacyIntakeViewModelTest {
         assertThat(vm.uiState.value.activeRequestId).isNull()
         assertThat(vm.uiState.value.error).isNull()
         assertThat(vm.uiState.value.statusNotice).contains("finalizó")
+        vm.viewModelScope.cancel()
     }
 
     @Test
@@ -871,6 +911,7 @@ class PharmacyIntakeViewModelTest {
             profileRepository = profileRepo,
             pharmacyDispatchRepository = pharmacyRepo,
         )
+        activeViewModels += vm
         advanceUntilIdle()
 
         // Doctor is online
@@ -882,5 +923,15 @@ class PharmacyIntakeViewModelTest {
 
         // Immediately updates to empty list
         assertThat(vm.uiState.value.activeDoctors).isEmpty()
+    }
+    @Test
+    fun `configured ARS quote enables dispatch payment in Argentina`() {
+        val state = PharmacyIntakeUiState(
+            careCountry = "AR",
+            currency = "ARS",
+            priceMinor = 1_500_000,
+        )
+        assertThat(state.requiresDispatchPayment).isTrue()
+        assertThat(state.requiresBrazilianPayment).isTrue()
     }
 }

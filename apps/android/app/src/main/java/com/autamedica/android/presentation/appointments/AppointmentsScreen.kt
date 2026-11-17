@@ -91,7 +91,6 @@ import com.autamedica.android.domain.model.DoctorBookingInfo
 import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
 import com.autamedica.android.presentation.dashboard.components.AppointmentCard
 import com.autamedica.android.presentation.common.CareCountryPicker
-import com.autamedica.android.util.CareCountryLocale
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
@@ -132,16 +131,6 @@ fun AppointmentsScreen(
     val isDoctor = uiState.userRole == "doctor"
     val accentColor = if (isDoctor) PortalDoctors else PortalPatients
     val title = if (isDoctor) stringResource(R.string.appointments_title_doctor) else stringResource(R.string.appointments_title_patient)
-
-    val context = LocalContext.current
-
-    // The clinical market is persisted by the server. UI locale follows only
-    // after a confirmed country is loaded or a country change succeeds.
-    LaunchedEffect(uiState.careCountry, isDoctor) {
-        if (!isDoctor && uiState.careCountry in setOf("AR", "BR")) {
-            CareCountryLocale.applyCountry(context, requireNotNull(uiState.careCountry))
-        }
-    }
 
     if (!isDoctor && uiState.needsCareCountry) {
         AlertDialog(
@@ -417,7 +406,7 @@ fun AppointmentsScreen(
                                             modifier = Modifier.size(22.dp),
                                         )
                                         Text(
-                                            text = errorMsg,
+                                            text = localizedAppointmentMessage(errorMsg),
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = AuDanger,
                                             fontWeight = FontWeight.Medium,
@@ -1081,16 +1070,16 @@ private fun BookingCalendarCard(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 2,
+                            overflow = TextOverflow.Clip,
                         )
                         if (!isExpanded) {
                             Text(
                                 text = stringResource(R.string.appointments_book_new_subtitle),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AuTextSecondary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
+                                maxLines = 2,
+                                overflow = TextOverflow.Clip,
                             )
                         }
                     }
@@ -1216,8 +1205,8 @@ private fun BookingCalendarCard(
                                         style = MaterialTheme.typography.titleSmall,
                                         color = AuTextPrimary,
                                         fontWeight = FontWeight.SemiBold,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Clip,
                                     )
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
@@ -1228,8 +1217,8 @@ private fun BookingCalendarCard(
                                             style = MaterialTheme.typography.labelSmall,
                                             color = PortalPatients,
                                             fontWeight = FontWeight.Medium,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Clip,
                                         )
                                         if (!selectedDoctor.subspecialty.isNullOrBlank()) {
                                             Surface(
@@ -1242,8 +1231,8 @@ private fun BookingCalendarCard(
                                                     color = PortalPatients,
                                                     fontWeight = FontWeight.SemiBold,
                                                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
-                                                    maxLines = 1,
-                                                    softWrap = false,
+                                                    maxLines = 2,
+                                                    softWrap = true,
                                                 )
                                             }
                                         }
@@ -2221,3 +2210,17 @@ private fun parseLocalDate(value: String): LocalDate? {
     return parseDateTime(value)?.toLocalDate()
 }
 
+
+
+@Composable
+private fun localizedAppointmentMessage(message: String): String = when (message) {
+    "appointments_error_country_save" -> stringResource(R.string.appointments_error_country_save)
+    "appointments_error_cancel" -> stringResource(R.string.appointments_error_cancel)
+    "appointments_error_slot_required" -> stringResource(R.string.appointments_error_slot_required)
+    "appointments_error_reschedule" -> stringResource(R.string.appointments_error_reschedule)
+    "appointments_error_doctor_required" -> stringResource(R.string.appointments_error_doctor_required)
+    "appointments_error_booking" -> stringResource(R.string.appointments_error_booking)
+    "appointments_error_unexpected" -> stringResource(R.string.appointments_error_unexpected)
+    "appointments_error_country_lookup" -> stringResource(R.string.appointments_error_country_lookup)
+    else -> message
+}

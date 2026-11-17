@@ -10,6 +10,8 @@ import { hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payme
 import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { getOperationalPaymentSwitches } from '@/lib/payments/operational-switches'
+import { validCpf } from '@/lib/prescriptions/brazil/cpf'
+import { fetchAndPersistOfficialIdentity } from '@/lib/patients/services/patient-identity.service'
 
 const VALID_TIERS: DispatchTierCategory[] = [
   'general',
@@ -35,36 +37,37 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return badRequest('Cuerpo de solicitud inválido')
     }
 
-    const { patientDni, patientCpf, careCountry, patientPhone, patientName, tier, kioskId, pharmacyId, symptomSummary, referralCode } = body
+    const { patientDni, patientCpf, patientGenderCode, careCountry, patientPhone, patientName, tier, kioskId, pharmacyId, symptomSummary, referralCode, lgpdConsent } = body
 
     // Choose the country explicitly. A DNI/CPF or mobile dialing prefix cannot
     // determine clinical jurisdiction or grant access to an existing patient.
     if (careCountry !== 'AR' && careCountry !== 'BR') {
       return badRequest('Seleccioná Argentina o Brasil como país de atención')
     }
+    if (careCountry === 'BR' && lgpdConsent !== true) {
+      return badRequest('lgpd_consent_required')
+    }
 
     // Do not send a referred Jordan patient into a clinical queue without
     // a checkout that's explicitly live and secured server-side.
     const operationalSwitches = await getOperationalPaymentSwitches(createAstroAdminClient(locals.runtime?.env)).catch(() => null)
     if (!operationalSwitches?.pharmacy_express_payments_enabled) return serviceUnavailable('pharmacy_express_payments_disabled')
-    if (referralCode === 'JORDAN') {
-      if (careCountry !== 'BR') return badRequest('jordan_referral_brazil_only')
-      if (tier && tier !== 'general') return badRequest('jordan_general_consultation_only')
-      if (!operationalSwitches.jordan_qr_payments_enabled || !hasSecureGuestPaymentSecret(locals.runtime?.env)) {
-        return serviceUnavailable('jordan_checkout_not_ready')
-      }
+    if (tier && tier !== 'general') return badRequest('pharmacy_general_consultation_only')
+    if (referralCode === 'JORDAN' && !operationalSwitches.jordan_qr_payments_enabled) {
+      return serviceUnavailable('jordan_checkout_not_ready')
     }
-
     const rawDocument = careCountry === 'BR' ? (patientCpf ?? patientDni) : patientDni
     if (typeof rawDocument !== 'string' || !rawDocument.trim()) {
       return badRequest('Número de documento requerido')
     }
     const normalizedDocument = rawDocument.replace(/\D/g, '')
-    if (careCountry === 'BR' ? normalizedDocument.length !== 11 : normalizedDocument.length < 5 || normalizedDocument.length > 10) {
-      return badRequest(careCountry === 'BR' ? 'CPF inválido: ingresar 11 dígitos' : 'DNI inválido')
+    if (careCountry === 'BR' ? !validCpf(normalizedDocument) : normalizedDocument.length < 5 || normalizedDocument.length > 10) {
+      return badRequest(careCountry === 'BR' ? 'CPF inválido: informe os 11 dígitos válidos' : 'DNI inválido')
     }
     const sanitizedDni = careCountry === 'AR' ? normalizedDocument : null
     const sanitizedCpf = careCountry === 'BR' ? normalizedDocument : null
+    const sanitizedGenderCode = careCountry === 'AR' && ['F', 'M', 'X'].includes(patientGenderCode) ? patientGenderCode as 'F' | 'M' | 'X' : null
+    if (careCountry === 'AR' && !sanitizedGenderCode) return badRequest('Sexo según DNI requerido para validar RENAPER')
 
     if (!patientPhone || typeof patientPhone !== 'string') {
       return badRequest('Teléfono celular requerido')
@@ -182,11 +185,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return forbidden('kiosk_country_not_configured')
     }
 
-    // Jordan is a Brazil-only commercial referral source, never an Argentina channel.
-    // Reject before registration so AR requests cannot contaminate partner reporting.
-    if (referralCode === 'JORDAN' && careCountry !== 'BR') {
-      return badRequest('jordan_referral_brazil_only')
-    }
+    // Referral attribution is country-scoped by the tariff config and matcher.
+    // Jordan supports both BR and AR general-consultation channels.
 
     // Attribution only at creation time, resolving the QR code on the server.
     // Never trust a client-submitted partner ID or pharmacy ID as commercial proof.
@@ -213,6 +213,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const cloudflareRoomId = `cf-room-${selectedTier}-${crypto.randomUUID()}`
 
+    const pricingAdmin = createAstroAdminClient(locals.runtime?.env) as any
+    const { data: countryPricing, error: pricingError } = await pricingAdmin
+      .from('pharmacy_dispatch_pricing_configs')
+      .select('country_code,currency,consultation_price_minor,doctor_fee_minor,partner_commission_minor,require_payment_before_dispatch')
+      .eq('country_code', careCountry)
+      .maybeSingle()
+    if (pricingError || !countryPricing) return serviceUnavailable('pharmacy_dispatch_pricing_not_configured')
+
+    if (countryPricing.require_payment_before_dispatch && !hasSecureGuestPaymentSecret(locals.runtime?.env)) {
+      return serviceUnavailable('pharmacy_checkout_guest_security_not_configured')
+    }
+
      const secret = resolveGuestSecret(locals.runtime?.env)
     if (!secret) {
       logger.error('[api/pharmacy/dispatch/request] GUEST_TOKEN_SECRET not configured')
@@ -222,8 +234,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const insertPayload = {
       care_country: context?.careCountry ?? careCountry,
       patient_id: context?.patientId ?? null,
+      ...(careCountry === 'BR' ? { lgpd_consent: lgpdConsent === true } : {}),
       patient_dni: sanitizedDni,
       patient_cpf: sanitizedCpf,
+      ...(careCountry === 'AR' ? { patient_gender_code: sanitizedGenderCode } : {}),
       patient_phone: sanitizedPhone,
       patient_name: sanitizedName,
       tier_requested: selectedTier,
@@ -251,6 +265,50 @@ export const POST: APIRoute = async ({ request, locals }) => {
         code: typeof error.code === 'string' && /^[A-Z0-9]{5}$/.test(error.code) ? error.code : 'INTERNAL',
       })
       return internalError('dispatch_request_failed')
+    }
+
+    // RENAPER/PUCO is visit enrichment, never an admission dependency.
+    if (careCountry === 'AR' && sanitizedDni && sanitizedGenderCode) {
+      await fetchAndPersistOfficialIdentity({
+        supabase, dni: sanitizedDni, sexId: sanitizedGenderCode === 'F' ? 1 : sanitizedGenderCode === 'M' ? 2 : 3,
+        patientId: data.patient_id, dispatchRequestId: data.id, declaredName: sanitizedName,
+        runtimeEnv: locals.runtime?.env, timeoutMs: 3500,
+      }).catch((lookupError) => {
+        logger.warn('[api/pharmacy/dispatch/request] RENAPER enrichment unavailable', {
+          code: lookupError instanceof Error && 'code' in lookupError ? String(lookupError.code) : 'RENAPER_LOOKUP_UNAVAILABLE',
+        });
+        return null;
+      });
+    }
+
+    // Persist only an explicit kiosk acceptance, with immutable evidence metadata.
+    // A conflicting AR patient record is never relabelled as Brazilian.
+    if (careCountry === 'BR') {
+      if (!data.patient_id) {
+        await supabase.from('pharmacy_dispatch_requests')
+          .update({ status: 'cancelled' }).eq('id', data.id).eq('status', 'searching')
+        return serviceUnavailable('patient_consent_persistence_failed')
+      }
+      const { data: consentedPatient, error: consentError } = await (supabase as unknown as SupabaseClient)
+        .from('patients')
+        .update({
+          care_country: 'BR',
+          lgpd_consent: true,
+          lgpd_consent_date: new Date().toISOString(),
+          lgpd_consent_version: 'pharmacy-express-lgpd-v1',
+        })
+        .eq('id', data.patient_id)
+        .or('care_country.eq.BR,care_country.is.null')
+        .select('id')
+        .maybeSingle()
+      if (consentError || !consentedPatient) {
+        await supabase.from('pharmacy_dispatch_requests')
+          .update({ status: 'cancelled' }).eq('id', data.id).eq('status', 'searching')
+        logger.error('[api/pharmacy/dispatch/request] patient_consent_persistence_failed', {
+          code: consentError?.code ?? 'NO_PATIENT_ROW',
+        })
+        return serviceUnavailable('patient_consent_persistence_failed')
+      }
     }
 
     // Generar token de acceso criptográfico (JWT firmado con HS256)

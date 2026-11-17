@@ -90,6 +90,42 @@ describe('anonymous pharmacy queue recovery', () => {
     expect(signed?.roomId).toBe('guest-ar-test-room')
   })
 
+  it('restores an unexpired recovery credential for completed document delivery', async () => {
+    const digest = await hashGuestQueueRecoveryToken(RECOVERY_TOKEN)
+    const expiresAt = new Date(Date.now() + 3600_000).toISOString()
+    const session = chain({
+      request_id: REQUEST_ID,
+      token_sha256: digest,
+      expires_at: expiresAt,
+      revoked_at: new Date(Date.now() - 60_000).toISOString(),
+    })
+    const completed = {
+      id: REQUEST_ID,
+      cloudflare_room_id: 'cf-room-completed',
+      care_country: 'BR',
+      patient_name: 'Synthetic Completed Guest',
+      status: 'completed',
+      created_at: '2026-11-05T00:00:00Z',
+    }
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_guest_dispatch_sessions') return session
+      if (table === 'pharmacy_dispatch_requests') return chain(completed)
+      return chain(null)
+    })
+
+    const response = await POST(context(RECOVERY_TOKEN))
+    expect(response.status).toBe(200)
+    const payload = await response.json()
+    const token = await verifyGuestToken(payload.data.accessToken, SECRET)
+    expect(token?.callId).toBe(REQUEST_ID)
+    expect(token?.roomId).toBe('cf-room-completed')
+    expect(session.update).toHaveBeenCalledWith({
+      last_used_at: expect.any(String),
+      expires_at: expiresAt,
+      revoked_at: null,
+    })
+  })
+
   it('requires both owner bearer and device secret to restore an authenticated BR queue', async () => {
     const digest = await hashGuestQueueRecoveryToken(RECOVERY_TOKEN)
     const ownerId = '22222222-2222-4222-8222-222222222222'

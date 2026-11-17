@@ -57,6 +57,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
                 status = row.status,
                 certificateType = CertificateType.fromCode(row.certificateType),
                 daysOfRest = row.daysOfRest,
+                restHours = row.restHours,
                 startDate = row.startDate,
                 endDate = row.endDate,
                 diagnosis = if (row.hideDiagnosis) null else row.diagnosis,
@@ -65,6 +66,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
                 doctorName = docId?.let { doctorNameMap[it] },
                 doctorLicense = docId?.let { doctorLicenseMap[it] },
                 signedPdfUrl = row.signedPdfUrl,
+                signatureVerifiedAt = row.signatureVerifiedAt,
                 qrCodeContent = row.qrCodeContent ?: "https://autamedica.com/verify/${row.cuir}",
                 countryCode = row.countryCode,
                 createdAt = row.createdAt,
@@ -94,6 +96,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             status = row.status,
             certificateType = CertificateType.fromCode(row.certificateType),
             daysOfRest = row.daysOfRest,
+            restHours = row.restHours,
             startDate = row.startDate,
             endDate = row.endDate,
             diagnosis = if (row.hideDiagnosis) null else row.diagnosis,
@@ -104,6 +107,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             patientName = patId?.let { patientNameMap[it] },
             patientDni = patId?.let { patientDniMap[it] },
             signedPdfUrl = row.signedPdfUrl,
+            signatureVerifiedAt = row.signatureVerifiedAt,
             qrCodeContent = row.qrCodeContent ?: "https://autamedica.com/verify/${row.cuir}",
             countryCode = row.countryCode,
             createdAt = row.createdAt,
@@ -142,6 +146,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
                 status = row.status,
                 certificateType = CertificateType.fromCode(row.certificateType),
                 daysOfRest = row.daysOfRest,
+                restHours = row.restHours,
                 startDate = row.startDate,
                 endDate = row.endDate,
                 diagnosis = if (row.hideDiagnosis) null else row.diagnosis,
@@ -152,6 +157,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
                 patientName = patId?.let { patientNameMap[it] },
                 patientDni = patId?.let { patientDniMap[it] },
                 signedPdfUrl = row.signedPdfUrl,
+                signatureVerifiedAt = row.signatureVerifiedAt,
                 qrCodeContent = row.qrCodeContent ?: "https://autamedica.com/verify/${row.cuir}",
                 countryCode = row.countryCode,
                 createdAt = row.createdAt,
@@ -164,10 +170,20 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
     override suspend fun createCertificate(request: CreateCertificateRequest): Result<MedicalCertificate> = runCatching {
         require(request.patientId.isNotBlank()) { "ID de paciente requerido" }
         val startDate = LocalDate.parse(request.startDate)
+        require(request.daysOfRest in 0..365) { "Días de dispensa fuera del rango permitido" }
+        require(request.restHours in 0..8760) { "Horas de dispensa fuera del rango permitido" }
+        require(request.daysOfRest == 0 || request.restHours == 0) {
+            "La dispensa debe expresarse en días o en horas, no en ambas unidades"
+        }
         val expectedEndDate = InCallDocumentPolicy.inclusiveEndDate(startDate, request.daysOfRest)?.toString()
         require(request.endDate == expectedEndDate) { "Período de reposo inconsistente" }
-        require(request.daysOfRest == 0 || !request.diagnosis.isNullOrBlank()) {
-            "El diagnóstico clínico es obligatorio para un certificado de reposo"
+        require(request.restHours == 0 || request.endDate == null) {
+            "Una dispensa por horas no debe definir una fecha de reintegro por días"
+        }
+        require(
+            (request.daysOfRest == 0 && request.restHours == 0) || !request.diagnosis.isNullOrBlank()
+        ) {
+            "El diagnóstico clínico es obligatorio para justificar la dispensa"
         }
 
         val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
@@ -185,7 +201,9 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
         val doctorCountry = InCallDocumentPolicy.doctorCountry(
             doctor.licenseType, doctor.careCountry, doctor.ufBrazil,
         )
-        check(doctorCountry == request.countryCode && doctorCountry != null) {
+        val resolvedCountry = doctorCountry
+            ?: throw IllegalStateException("No se pudo determinar el país a partir de la matrícula profesional")
+        check(request.countryCode.isBlank() || resolvedCountry == request.countryCode) {
             "El país del certificado no coincide con la matrícula médica"
         }
         val eligiblePatients = prescriptionRepository.getEligiblePatients().getOrElse {
@@ -198,12 +216,12 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             .select(Columns.list("id", "care_country")) {
                 filter { eq("id", request.patientId) }
             }.decodeSingleOrNull<PatientCountryDto>()?.countryCode
-        InCallDocumentPolicy.requireMatchingPatientCountry(patientCountry, request.countryCode)
+        InCallDocumentPolicy.requireMatchingPatientCountry(patientCountry, resolvedCountry)
 
         val timestampHex = java.lang.Long.toHexString(System.currentTimeMillis()).uppercase()
         val randomHex = UUID.randomUUID().toString().replace("-", "").take(6).uppercase()
         // Internal reference only. A draft has no public verification QR.
-        val cuir = "${request.countryCode}-CERT-$timestampHex-$randomHex"
+        val cuir = "${resolvedCountry}-CERT-$timestampHex-$randomHex"
         val certId = UUID.randomUUID().toString()
         val now = Instant.now().toString()
 
@@ -215,12 +233,14 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             put("status", "draft")
             put("certificate_type", request.certificateType.code)
             put("days_of_rest", request.daysOfRest)
+            put("rest_hours", request.restHours)
             put("start_date", request.startDate)
             request.endDate?.let { put("end_date", it) }
             request.diagnosis?.let { put("diagnosis", it) }
-            put("hide_diagnosis", request.countryCode == "BR" || request.hideDiagnosis)
+            put("hide_diagnosis", request.hideDiagnosis || resolvedCountry == "BR")
+            request.cid10Code?.takeIf { it.isNotBlank() }?.let { put("cid10_code", it) }
             request.observations?.let { put("observations", it) }
-            put("country_code", request.countryCode)
+            put("country_code", resolvedCountry)
             put("created_at", now)
             put("updated_at", now)
         }
@@ -236,10 +256,11 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             status = "draft",
             certificateType = request.certificateType,
             daysOfRest = request.daysOfRest,
+            restHours = request.restHours,
             startDate = request.startDate,
             endDate = request.endDate,
-            diagnosis = if (request.hideDiagnosis) null else request.diagnosis,
-            hideDiagnosis = request.countryCode == "BR" || request.hideDiagnosis,
+            diagnosis = if (resolvedCountry == "BR" || request.hideDiagnosis) null else request.diagnosis,
+            hideDiagnosis = resolvedCountry == "BR" || request.hideDiagnosis,
             observations = request.observations,
             doctorName = doctorNameMap[doctor.id],
             doctorLicense = doctorLicenseMap[doctor.id] ?: doctor.licenseNumber,
@@ -247,7 +268,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             patientDni = patientDniMap[request.patientId],
             signedPdfUrl = null,
             qrCodeContent = null,
-            countryCode = request.countryCode,
+            countryCode = resolvedCountry,
             createdAt = now,
         )
     }.onFailure {
@@ -401,6 +422,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
         val status: String = "draft",
         @SerialName("certificate_type") val certificateType: String = "reposo_laboral",
         @SerialName("days_of_rest") val daysOfRest: Int = 0,
+        @SerialName("rest_hours") val restHours: Int = 0,
         @SerialName("start_date") val startDate: String,
         @SerialName("end_date") val endDate: String? = null,
         val diagnosis: String? = null,
@@ -409,9 +431,10 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
         @SerialName("doctor_id") val doctorId: String? = null,
         @SerialName("patient_id") val patientId: String? = null,
         @SerialName("signed_pdf_url") val signedPdfUrl: String? = null,
+        @SerialName("signature_verified_at") val signatureVerifiedAt: String? = null,
         @SerialName("qr_code_content") val qrCodeContent: String? = null,
         @SerialName("created_at") val createdAt: String,
-        @SerialName("country_code") val countryCode: String = "AR",
+        @SerialName("country_code") val countryCode: String = "",
     )
 
     @Serializable

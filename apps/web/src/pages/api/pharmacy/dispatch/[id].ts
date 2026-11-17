@@ -15,6 +15,59 @@ import { logger } from '@autamedica/shared'
  * a) Usuario autenticado en sesión: debe ser médico asignado, médico de guardia o paciente dueño (requested_by_user_id).
  * b) Kiosco / invitado: requiere token de acceso criptográfico válido (?token= o Authorization: Bearer).
  */
+function findMemedString(
+  value: unknown,
+  acceptedKeys: Set<string>,
+  depth = 0,
+): string | null {
+  if (depth > 6 || !value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findMemedString(item, acceptedKeys, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+  const object = value as Record<string, unknown>;
+  for (const [key, nested] of Object.entries(object)) {
+    const normalized = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (acceptedKeys.has(normalized) && typeof nested === 'string'
+      && nested.trim().length >= 4 && nested.trim().length <= 128) {
+      return nested.trim();
+    }
+  }
+  for (const nested of Object.values(object)) {
+    const found = findMemedString(nested, acceptedKeys, depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
+function findMemedDocumentUrl(value: unknown, depth = 0): string | null {
+  if (depth > 6 || !value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findMemedDocumentUrl(item, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+  const object = value as Record<string, unknown>;
+  for (const [key, nested] of Object.entries(object)) {
+    if (/(url|link|pdf|document)/i.test(key) && typeof nested === 'string') {
+      try {
+        const url = new URL(nested);
+        if (url.protocol === 'https:' && /(^|[.])memed[.]com(?:[.]br)?$/i.test(url.hostname)) return url.toString();
+      } catch { /* Ignore malformed provider URL. */ }
+    }
+  }
+  for (const nested of Object.values(object)) {
+    const found = findMemedDocumentUrl(nested, depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
 export const GET: APIRoute = async ({ params, locals, request }) => {
   const id = params.id?.trim()
   if (!id) return notFound('missing_request_id')
@@ -163,7 +216,73 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       }
     }
 
-    return jsonOk({ request: requestRecord, doctor })
+    const documents: Array<{
+      id: string; kind: 'memed' | 'core' | 'certificate'; title: string;
+      provider: string; createdAt: string; status: string; verificationCode: string | null;
+      accessCode?: string | null; downloadUrl: string;
+    }> = []
+    if (['in_call', 'completed'].includes(String(requestRecord.status))
+      && requestRecord.patient_id && requestRecord.assigned_doctor_id) {
+      const startedAt = String(requestRecord.call_started_at ?? requestRecord.created_at)
+      const [{ data: memedRows }, { data: coreRows }, { data: certificates }] = await Promise.all([
+        dispatchAdmin.from('memed_prescriptions')
+          .select('id,memed_id,status,provider_data,digital_link_data,created_at')
+          .eq('patient_id', requestRecord.patient_id)
+          .eq('doctor_id', requestRecord.assigned_doctor_id)
+          .gte('created_at', startedAt)
+          .order('created_at', { ascending: false }),
+        dispatchAdmin.from('prescriptions')
+          .select('id,status,cuir,clinical_data,signed_pdf_url,signature_method,created_at,vendor_name')
+          .eq('patient_id', requestRecord.patient_id)
+          .eq('doctor_id', requestRecord.assigned_doctor_id)
+          .gte('created_at', startedAt)
+          .order('created_at', { ascending: false }),
+        dispatchAdmin.from('medical_certificates')
+          .select('id,status,cuir,certificate_type,signed_pdf_url,created_at')
+          .eq('patient_id', requestRecord.patient_id)
+          .eq('doctor_id', requestRecord.assigned_doctor_id)
+          .gte('created_at', startedAt)
+          .order('created_at', { ascending: false }),
+      ])
+      const tokenSuffix = candidateGuestToken ? `?token=${encodeURIComponent(candidateGuestToken)}` : ''
+      for (const row of memedRows ?? []) {
+        if (row.status === 'deleted' || !findMemedDocumentUrl(row.digital_link_data)) continue
+        const provider = row.provider_data && typeof row.provider_data === 'object' ? row.provider_data as Record<string, unknown> : {}
+        const linkData = row.digital_link_data
+        const label = String(provider.medication_name ?? provider.nome ?? provider.title ?? 'Receita digital Memed')
+        documents.push({
+          id: `memed-${row.id}`, kind: 'memed', title: label,
+          provider: 'Memed BR', createdAt: row.created_at, status: row.status,
+          verificationCode: findMemedString(linkData, new Set(['verificationcode', 'prescriptiontoken', 'recipetoken', 'tokenreceita', 'tokenfarmacia', 'farmaciatoken'])),
+          accessCode: findMemedString(linkData, new Set(['unlockcode', 'accesscode', 'password', 'senha', 'codigodesbloqueio', 'codigoacesso', 'pin'])),
+          downloadUrl: `/api/pharmacy/dispatch/${encodeURIComponent(id)}/documents/memed-${encodeURIComponent(row.id)}${tokenSuffix}`,
+        })
+      }
+      for (const row of coreRows ?? []) {
+        if (row.status !== 'active' || row.signature_method !== 'ac_external') continue
+        const clinical = row.clinical_data && typeof row.clinical_data === 'object' ? row.clinical_data as Record<string, unknown> : {}
+        const items = Array.isArray(clinical.items) ? clinical.items as Array<Record<string, unknown>> : []
+        const title = String(clinical.medication_name ?? items[0]?.commercialName ?? items[0]?.genericName ?? 'Receta médica')
+        documents.push({
+          id: `core-${row.id}`, kind: 'core', title,
+          provider: row.vendor_name === 'memed' ? 'Memed BR' : 'RCTA / Core AR',
+          createdAt: row.created_at, status: row.status, verificationCode: row.cuir,
+          downloadUrl: `/api/pharmacy/dispatch/${encodeURIComponent(id)}/documents/core-${encodeURIComponent(row.id)}${tokenSuffix}`,
+        })
+      }
+      for (const row of certificates ?? []) {
+        if (row.status !== 'signed') continue
+        documents.push({
+          id: `certificate-${row.id}`, kind: 'certificate',
+          title: row.certificate_type === 'reposo_laboral' ? 'Atestado médico' : 'Certificado médico',
+          provider: 'AutaMedica', createdAt: row.created_at, status: row.status,
+          verificationCode: row.cuir,
+          downloadUrl: `/api/pharmacy/dispatch/${encodeURIComponent(id)}/documents/certificate-${encodeURIComponent(row.id)}${tokenSuffix}`,
+        })
+      }
+    }
+
+    return jsonOk({ request: requestRecord, doctor, documents })
   } catch (err) {
     logger.error('[api/pharmacy/dispatch/[id]] Exception', { err })
     return internalError()

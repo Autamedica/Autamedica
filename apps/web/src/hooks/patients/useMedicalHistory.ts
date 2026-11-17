@@ -11,6 +11,8 @@ import { useCallback, useEffect, useState } from 'react'
 
 interface MedicalHistoryApiResponse {
   prescriptions?: unknown[]
+  certificates?: unknown[]
+  orders?: unknown[]
   summary: {
     medications: unknown[]
     conditions: unknown[]
@@ -24,6 +26,8 @@ export function useMedicalHistory(patientId?: string) {
   const [summary, setSummary] = useState<MedicalHistorySummary | null>(null)
   const [timeline, setTimeline] = useState<MedicalHistoryTimeline | null>(null)
   const [prescriptions, setPrescriptions] = useState<PatientPrescription[]>([])
+  const [certificates, setCertificates] = useState<Array<Record<string, unknown>>>([])
+  const [orders, setOrders] = useState<Array<Record<string, unknown>>>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -44,6 +48,8 @@ export function useMedicalHistory(patientId?: string) {
       typeof buildPatientPrescriptions
     >[0]
     setPrescriptions(buildPatientPrescriptions(rawPrescriptions))
+    setCertificates((data.certificates ?? []) as Array<Record<string, unknown>>)
+    setOrders((data.orders ?? []) as Array<Record<string, unknown>>)
   }, [patientId])
 
   const fetchMedicalHistory = useCallback(async () => {
@@ -165,6 +171,8 @@ export function useMedicalHistory(patientId?: string) {
     summary,
     timeline,
     prescriptions,
+    certificates,
+    orders,
     loading,
     error,
     refresh: fetchMedicalHistory,

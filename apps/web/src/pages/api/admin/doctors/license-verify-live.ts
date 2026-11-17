@@ -8,6 +8,7 @@ import { logger } from '@autamedica/shared';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { resolveBusTokenSecret, resolveBusDomainUrl } from '@/lib/runtime-env';
 import { RefepsApiValidator } from '@autamedica/prescriptions';
+import { fetchOfficialIdentity } from '@/lib/interoperability/non-fhir.service';
 import { badRequest, internalError, jsonOk, jsonFail, unauthorized } from '@/lib/api-helpers';
 
 type RequestBody = {
@@ -163,7 +164,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // 1. Fetch the target doctor's details from the database
     const doctorQuery = admin
       .from('doctors')
-      .select('id, user_id, license_type, license_number, enrollment_jurisdiction, enrollment_entity, specialty, refeps_id');
+      .select('id, user_id, license_type, license_number, enrollment_jurisdiction, enrollment_entity, specialty, refeps_id, dni, gender, cuil');
 
     const targetUserId = body.userId?.trim();
     const targetDoctorId = body.doctorId?.trim();
@@ -237,6 +238,40 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const persist = body.persist !== false;
     const source = verification.source ?? 'unverified';
+    let civilIdentityStatus: 'verified_renaper' | 'mismatch' | 'unverified' = 'unverified';
+    let civilIdentityMessage: string | null = null;
+    const gender = String(doctor.gender ?? '').toUpperCase();
+    const sexId = gender === 'F' || gender === 'FEMALE' || gender === 'FEMENINO' ? 1
+      : gender === 'M' || gender === 'MALE' || gender === 'MASCULINO' ? 2
+        : gender === 'X' || gender === 'OTHER' ? 3 : null;
+    if (isNonEmptyString(doctor.dni) && sexId) {
+      try {
+        const civil = await fetchOfficialIdentity({ dni: doctor.dni.replace(/\D/g, ''), sexId: sexId as 1 | 2 | 3, runtimeEnv: locals.runtime?.env });
+        const legalName = [civil.person.nombres, civil.person.apellido].filter(Boolean).join(' ').trim();
+        const normalize = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9 ]/g, ' ').split(/\s+/).filter(Boolean).sort().join(' ');
+        const matchDni = (civil.person.numeroDocumento ?? '').replace(/\D/g, '') === doctor.dni.replace(/\D/g, '');
+        const matchName = normalize(legalName) === normalize(String(verification.fullName ?? ''));
+        const officialCuil = (civil.person.cuil ?? '').replace(/\D/g, '');
+        const matchCuil = !isNonEmptyString(doctor.cuil) || officialCuil === doctor.cuil.replace(/\D/g, '');
+        civilIdentityStatus = matchDni && matchName && matchCuil && officialCuil.length === 11 ? 'verified_renaper' : 'mismatch';
+        if (civilIdentityStatus === 'mismatch') civilIdentityMessage = 'RENAPER no coincide con DNI, titular de REFEPS o CUIL registrado.';
+        if (persist) {
+          const { error: civilError } = await admin.from('doctors').update({
+            identity_status: civilIdentityStatus, official_full_name: legalName || null,
+            official_first_name: civil.person.nombres, official_last_name: civil.person.apellido,
+            official_cuil: officialCuil || null, official_birth_date: civil.person.fechaNacimiento || null,
+            official_gender: civil.person.sexo || null, identity_verified_at: civilIdentityStatus === 'verified_renaper' ? checkedAt : null,
+            identity_source: 'msal_bus_renaper', cuil: officialCuil || doctor.cuil,
+          }).eq('id', doctor.id);
+          if (civilError) throw civilError;
+        }
+        if (civilIdentityStatus === 'mismatch') finalStatus = 'pending_review';
+      } catch (civilError) {
+        logger.warn('[license-verify-live] RENAPER civil identity unavailable', {
+          doctorId: doctor.id, code: civilError instanceof Error && 'code' in civilError ? String(civilError.code) : 'RENAPER_LOOKUP_UNAVAILABLE',
+        });
+      }
+    }
 
     // Local doctor records and offline mock data cannot establish professional
     // accreditation. Never persist a medical license decision from those sources.
@@ -352,6 +387,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       status: finalStatus,
       checkedAt,
       source,
+      civilIdentityStatus,
+      civilIdentityMessage,
       practitionerId,
       registeredSpecialty,
       registrationStatus: verification.registrationStatus,

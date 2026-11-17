@@ -36,16 +36,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
-import java.text.NumberFormat
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PatientWalletBottomSheet(
     walletBalanceCents: Long,
+    walletCurrency: String? = null,
     freeConsultationsCount: Int,
     onDismiss: () -> Unit,
     onTopupClick: () -> Unit,
@@ -88,14 +89,14 @@ fun PatientWalletBottomSheet(
                 }
                 Column {
                     Text(
-                        text = "BILLETERA AUTAMÉDICA",
+                        text = stringResource(R.string.wallet_heading),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = AuTextTertiary,
                         letterSpacing = 0.8.sp,
                     )
                     Text(
-                        text = "Saldos y beneficios",
+                        text = stringResource(R.string.wallet_subheading),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         color = AuTextPrimary,
@@ -130,15 +131,13 @@ fun PatientWalletBottomSheet(
                                 modifier = Modifier.size(20.dp),
                             )
                             Text(
-                                text = "Saldo en cuenta",
+                                text = stringResource(R.string.wallet_balance_label),
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color(0xFF334155),
                             )
                         }
-                        val formattedBalance = NumberFormat.getCurrencyInstance(Locale.getDefault()).apply {
-                            maximumFractionDigits = 0
-                        }.format(walletBalanceCents / 100.0)
+                        val formattedBalance = formatCents(walletBalanceCents, walletCurrency)
                         Text(
                             text = formattedBalance,
                             fontSize = 17.sp,
@@ -173,7 +172,7 @@ fun PatientWalletBottomSheet(
                                 modifier = Modifier.size(20.dp),
                             )
                             Text(
-                                text = "Consultas libres",
+                                text = stringResource(R.string.wallet_free_consultations_label),
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color(0xFF334155),
@@ -181,9 +180,9 @@ fun PatientWalletBottomSheet(
                         }
                         Text(
                             text = if (freeConsultationsCount > 0) {
-                                "$freeConsultationsCount disponible${if (freeConsultationsCount > 1) "s" else ""}"
+                                stringResource(R.string.wallet_free_consultations_count, freeConsultationsCount)
                             } else {
-                                "Sin consultas"
+                                stringResource(R.string.wallet_no_consultations)
                             },
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
@@ -217,7 +216,7 @@ fun PatientWalletBottomSheet(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Reserva de Salud",
+                        text = stringResource(R.string.wallet_health_reserve),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                     )
@@ -245,7 +244,7 @@ fun PatientWalletBottomSheet(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Cargar saldo",
+                        text = stringResource(R.string.wallet_topup),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                     )
