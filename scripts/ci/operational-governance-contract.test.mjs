@@ -9,7 +9,7 @@ const finance=readFileSync('apps/web/src/pages/api/admin/finance/pharmacy-paymen
 const cfm=readFileSync('apps/web/src/pages/api/admin/doctors/cfm-review.ts','utf8');
 const presenceMigration=readFileSync('supabase/migrations/20261117120000_doctor_online_presence.sql','utf8');
 const presenceRoute=readFileSync('apps/web/src/pages/api/doctors/presence/heartbeat.ts','utf8');
-const presenceHook=readFileSync('apps/web/src/hooks/doctors/useDoctorOnDuty.ts','utf8');
+const portalFrame=readFileSync('apps/web/src/components/doctors/DoctorsPortalFrame.tsx','utf8');
 const androidMain=readFileSync('apps/android/app/src/main/java/com/autamedica/android/MainActivity.kt','utf8');
 const governanceUi=readFileSync('apps/web/src/components/admin/OperationalGovernanceCenter.tsx','utf8');
 test('four domains update independently',()=>{for(const f of ['operational_status','clinical_status','financial_status','commercial_status'])assert.match(migration,new RegExp(`CASE WHEN p_domain='${f}' THEN p_status ELSE ${f} END`))});
@@ -27,7 +27,7 @@ test('doctor online presence is authenticated, independent of duty, and expires 
   assert.match(presenceMigration,/GRANT EXECUTE ON FUNCTION public\.heartbeat_my_doctor_presence\(\) TO authenticated/);
   assert.match(presenceRoute,/withAuthRole/);
   assert.match(presenceRoute,/heartbeat_my_doctor_presence/);
-  assert.match(presenceHook,/api\/doctors\/presence\/heartbeat/);
+  assert.match(portalFrame,/api\/doctors\/presence\/heartbeat/);
   assert.match(androidMain,/repeatOnLifecycle\(Lifecycle\.State\.STARTED\)/);
   assert.match(androidMain,/sendDoctorPresenceHeartbeat\(\)/);
   assert.match(governanceUi,/Médicos online/);
