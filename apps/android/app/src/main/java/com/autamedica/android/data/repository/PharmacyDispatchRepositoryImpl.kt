@@ -12,7 +12,6 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.logging.HttpLoggingInterceptor
 import java.util.concurrent.ConcurrentHashMap
-import java.time.Instant
 import com.autamedica.android.di.IoDispatcher
 import com.autamedica.android.domain.model.DispatchClaimResult
 import com.autamedica.android.domain.model.DoctorDutyStatus
@@ -580,9 +579,6 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 put("symptom_summary", symptomSummary.trim())
             }
             put("cloudflare_room_id", cloudflareRoomId)
-            val searchStartedAt = Instant.now()
-            put("search_started_at", searchStartedAt.toString())
-            put("search_timeout_at", searchStartedAt.plusSeconds(15 * 60L).toString())
             put("status", "searching")
             put("requested_by_user_id", currentUser.id)
         }
