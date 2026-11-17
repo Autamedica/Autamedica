@@ -776,7 +776,7 @@ private fun PharmacyWaitingRoomView(
             // ── RADAR DE MÉDICOS HABILITADOS PARA DESPACHO ──
             val availableDoctorCount = uiState.availableDoctorsInMarket
             // This aggregate counts eligible dispatch capacity, not all signed-in doctors.
-            val hasOnlineDoctors = availableDoctorCount != null && availableDoctorCount > 0
+            val hasDispatchCapacity = availableDoctorCount != null && availableDoctorCount > 0
             val doctorAssigned = uiState.status == PharmacyConsultationStatus.ASSIGNED
 
             val marketName = when (uiState.careCountry) {
@@ -816,8 +816,8 @@ private fun PharmacyWaitingRoomView(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Estado explícito si no hay médicos en línea (Cero Amarillo - Paleta Cyan / Slate)
-            if (!hasOnlineDoctors && !doctorAssigned) {
+            // Estado explícito si no hay capacidad clínica habilitada para despacho (Cero Amarillo - Paleta Cyan / Slate)
+            if (!hasDispatchCapacity && !doctorAssigned) {
                 Surface(
                     shape = RoundedCornerShape(14.dp),
                     color = AuCyanSoft,
@@ -857,7 +857,7 @@ private fun PharmacyWaitingRoomView(
                 }
             }
 
-            if (hasOnlineDoctors && !doctorAssigned) {
+            if (hasDispatchCapacity && !doctorAssigned) {
                 Text(
                     text = stringResource(
                         R.string.pharmacy_flow_online_count,
