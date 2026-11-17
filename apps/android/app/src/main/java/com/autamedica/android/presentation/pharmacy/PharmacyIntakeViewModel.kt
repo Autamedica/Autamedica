@@ -9,6 +9,7 @@ import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.logging.SecureLog
 import java.time.Instant
+import java.time.Duration
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
@@ -48,6 +49,7 @@ data class PharmacyIntakeUiState(
     val statusNotice: String? = null,
     val activeRequestId: String? = null,
     val searchStartedAt: Instant? = null,
+    val waitingSeconds: Int = 0,
     val status: PharmacyConsultationStatus? = null,
     val queuePosition: Int = 0,
     val estimatedMinutes: Int = 0,
@@ -63,7 +65,7 @@ data class PharmacyIntakeUiState(
     val canCancelRequest: Boolean
         get() = activeRequestId != null &&
             status in setOf(PharmacyConsultationStatus.PENDING, PharmacyConsultationStatus.EXPIRED) &&
-            searchStartedAt?.plusSeconds(15 * 60L)?.let { !Instant.now().isBefore(it) } == true
+            waitingSeconds >= 15 * 60
 
     /** The signed backend resolves partner provenance; recovery must not bypass payment. */
     val requiresDispatchPayment: Boolean
@@ -225,6 +227,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                                 it.copy(
                                     activeRequestId = request.id,
                                     searchStartedAt = parseSearchStartedAt(request),
+                                    waitingSeconds = elapsedSearchSeconds(parseSearchStartedAt(request)),
                                     careCountry = request.careCountry,
                                     currency = request.currency,
                                     priceMinor = request.priceMinor,
@@ -377,6 +380,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                         isSubmitting = false,
                         activeRequestId = request.id,
                         searchStartedAt = parseSearchStartedAt(request),
+                        waitingSeconds = elapsedSearchSeconds(parseSearchStartedAt(request)),
                         careCountry = request.careCountry ?: state.careCountry,
                         currency = request.currency,
                         priceMinor = request.priceMinor,
@@ -463,6 +467,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                         state.copy(
                             status = mapDispatchStatus(request.status),
                             searchStartedAt = parseSearchStartedAt(request) ?: state.searchStartedAt,
+                            waitingSeconds = elapsedSearchSeconds(parseSearchStartedAt(request) ?: state.searchStartedAt),
                             activeReferralPartnerId = request.referralPartnerId ?: state.activeReferralPartnerId,
                             currency = request.currency ?: state.currency,
                             priceMinor = request.priceMinor ?: state.priceMinor,
@@ -548,6 +553,14 @@ class PharmacyIntakeViewModel @Inject constructor(
         return runCatching { Instant.parse(raw) }.getOrNull()
     }
 
+    private fun elapsedSearchSeconds(startedAt: Instant?): Int {
+        if (startedAt == null) return 0
+        return Duration.between(startedAt, Instant.now()).seconds
+            .coerceAtLeast(0)
+            .coerceAtMost(Int.MAX_VALUE.toLong())
+            .toInt()
+    }
+
     private fun mapDispatchStatus(dispatchStatus: String): PharmacyConsultationStatus? = when (dispatchStatus) {
         "searching" -> PharmacyConsultationStatus.PENDING
         "matched" -> PharmacyConsultationStatus.ASSIGNED
@@ -574,6 +587,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                                 isSubmitting = false,
                                 activeRequestId = null,
                                 searchStartedAt = null,
+                                waitingSeconds = 0,
                                 status = null,
                                 queuePosition = 0,
                                 estimatedMinutes = 0,
