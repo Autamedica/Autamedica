@@ -69,11 +69,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (offerError) return internalError('cancel_failed')
     if (activeOffer) return jsonOk({ cancelled: false, code: 'DOCTOR_OFFER_STILL_ACTIVE' })
 
-    const { data: updated, error: updateError } = await admin
+    const updateQuery = admin
       .from('pharmacy_dispatch_requests')
       .update({ status: 'cancelled' })
       .eq('id', requestId)
-      .is('requested_by_user_id', null)
+    const scopedUpdate = ownerAuthorized
+      ? updateQuery.eq('requested_by_user_id', existing.requested_by_user_id)
+      : updateQuery.is('requested_by_user_id', null)
+    const { data: updated, error: updateError } = await scopedUpdate
       .in('status', ['searching', 'expired'])
       .select('id')
       .maybeSingle()
