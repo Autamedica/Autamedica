@@ -1556,7 +1556,7 @@ class VideoCallViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isOpeningMemed = false,
-                            memedLaunchError = "Memed indisponível. Verifique a habilitación e os dados da consulta.",
+                            memedLaunchError = "Memed indisponível. Verifique a habilitação e os dados da consulta.",
                         )
                     }
                 }
