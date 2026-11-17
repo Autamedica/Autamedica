@@ -45,6 +45,7 @@ env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
   TURBO_API: ${{ vars.TURBO_API }}
+  TURBO_REMOTE_CACHE_SIGNATURE_KEY: ${{ secrets.TURBO_REMOTE_CACHE_SIGNATURE_KEY }}
 
 jobs:
   build-gate:
@@ -58,6 +59,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
+          cache-actions: "true"
           build-core: "false"
           cache-turbo: "true"
       - run: pnpm arch:v2:check
@@ -91,6 +93,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
+          cache-actions: "true"
       - name: Test operational governance independence and audit guards
         run: node --test scripts/ci/operational-governance-contract.test.mjs
       - name: Test newsletter audience reconciliation safeguards
@@ -126,6 +129,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
+          cache-actions: "true"
       - run: pnpm test:unit
         env:
           RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}
@@ -141,6 +145,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
+          cache-actions: "true"
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
