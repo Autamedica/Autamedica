@@ -227,7 +227,7 @@ export function PharmacyExpressConsultation({
 
       const req = data?.request
       if (!req) return
-      if (req.search_started_at) setSearchStartedAt(req.search_started_at)
+      setSearchStartedAt(req.search_started_at ?? null)
       setInternationalSearchEnabled(req.international_search_enabled === true)
       if (Array.isArray(data.documents)) setDocuments(data.documents)
 
@@ -419,7 +419,7 @@ export function PharmacyExpressConsultation({
   }
 
   const refreshInternationalAvailability = useCallback(async () => {
-    if (!requestId || !accessToken || waitingSeconds < 15 * 60) return
+    if (!requestId || !accessToken) return
     try {
       const result = await fetchApi<{
         search_started_at: string | null
@@ -438,17 +438,19 @@ export function PharmacyExpressConsultation({
     } catch {
       setInternationalAvailability(null)
     }
-  }, [requestId, accessToken, waitingSeconds])
+  }, [requestId, accessToken])
+
+  const searchWindowElapsed = waitingSeconds >= 15 * 60
 
   useEffect(() => {
-    if (step !== 'WAITING' || waitingSeconds < 15 * 60 || !requestId || !accessToken) {
+    if (step !== 'WAITING' || !searchWindowElapsed || !requestId || !accessToken) {
       setInternationalAvailability(null)
       return
     }
     void refreshInternationalAvailability()
     const timer = window.setInterval(() => void refreshInternationalAvailability(), 15000)
     return () => window.clearInterval(timer)
-  }, [step, waitingSeconds >= 15 * 60, requestId, accessToken, refreshInternationalAvailability])
+  }, [step, searchWindowElapsed, requestId, accessToken, refreshInternationalAvailability])
 
   const advanceSearch = async (mode: 'continue_local' | 'international') => {
     if (!requestId || !accessToken || searchTransitioning) return
@@ -732,7 +734,9 @@ export function PharmacyExpressConsultation({
                       onClick={() => void advanceSearch('continue_local')}
                       className="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
                     >
-                      {isPortuguese ? 'Continuar buscando no Brasil' : formData.careCountry === 'AR' ? 'Seguir buscando en Argentina' : 'Seguir buscando en Brasil'}
+                      {internationalSearchEnabled
+                        ? (isPortuguese ? 'Continuar busca internacional' : 'Continuar búsqueda internacional')
+                        : (isPortuguese ? 'Continuar buscando no Brasil' : formData.careCountry === 'AR' ? 'Seguir buscando en Argentina' : 'Seguir buscando en Brasil')}
                     </button>
                     {internationalAvailability && !internationalAvailability.available && (
                       <p className="text-[11px] text-slate-500">
