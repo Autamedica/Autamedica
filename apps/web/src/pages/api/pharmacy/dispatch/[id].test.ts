@@ -165,6 +165,39 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
     expect(supabaseMock.from).toHaveBeenCalledTimes(1)
   })
 
+  it('denies a valid guest token for an authenticated patient request', async () => {
+    patientContextMock.resolve.mockResolvedValue(null)
+    supabaseMock.from.mockReturnValue(buildTableChain(REQUEST_RECORD))
+    const guestToken = await signGuestToken(
+      { callId: 'req-1', roomId: 'cf-room-1', guestName: 'Guest' },
+      TEST_SECRET,
+    )
+    const response = await DELETE(makeContext({
+      method: 'DELETE',
+      headers: { 'x-guest-token': guestToken },
+    }))
+    expect(response.status).toBe(401)
+    expect(supabaseMock.from).toHaveBeenCalledTimes(1)
+  })
+
+  it('denies cancellation while a physician offer is still active', async () => {
+    const requestLookup = buildTableChain({ ...REQUEST_RECORD, requested_by_user_id: null })
+    const offerLookup = buildTableChain({ id: 'offer-pending' })
+    let call = 0
+    supabaseMock.from.mockImplementation(() => [requestLookup, offerLookup][call++])
+    patientContextMock.resolve.mockResolvedValue(null)
+    const guestToken = await signGuestToken(
+      { callId: 'req-1', roomId: 'cf-room-1', guestName: 'Guest' },
+      TEST_SECRET,
+    )
+    const response = await DELETE(makeContext({
+      method: 'DELETE',
+      headers: { 'x-guest-token': guestToken },
+    }))
+    expect(response.status).toBe(409)
+    expect(supabaseMock.from).toHaveBeenCalledTimes(2)
+  })
+
   it('no cancela sin sesión ni credencial de invitado válida', async () => {
     patientContextMock.resolve.mockResolvedValue(null)
     supabaseMock.from.mockReturnValue(buildTableChain(REQUEST_RECORD))
