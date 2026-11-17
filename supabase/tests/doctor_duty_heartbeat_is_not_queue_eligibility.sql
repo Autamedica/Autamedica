@@ -8,8 +8,9 @@ DECLARE
   v_matcher text := pg_get_functiondef('app_private.match_dispatch_doctors_without_switch(uuid)'::regprocedure);
   v_trigger text := pg_get_functiondef('app_private.dispatch_waiting_patient_on_doctor_presence()'::regprocedure);
 BEGIN
-  IF position('last_heartbeat_at' IN lower(v_capacity)) > 0 THEN
-    RAISE EXCEPTION 'Patient capacity must not hide an active guard because heartbeat is stale';
+  IF position('last_heartbeat_at' IN lower(v_capacity)) > 0
+     OR position('fcm_token' IN lower(v_capacity)) > 0 THEN
+    RAISE EXCEPTION 'Patient capacity must reflect active guard duty, not heartbeat freshness or FCM registration';
   END IF;
   IF position('last_heartbeat_at' IN lower(v_active)) > 0 THEN
     RAISE EXCEPTION 'Active doctor radar must show explicit guard duty independently of heartbeat';
