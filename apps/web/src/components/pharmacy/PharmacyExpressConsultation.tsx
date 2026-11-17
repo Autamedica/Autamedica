@@ -462,6 +462,7 @@ export function PharmacyExpressConsultation({
             )}
 
             <form onSubmit={handleSubmit} className="space-y-3.5">
+              {!initialCareCountry && !isJordanReferral && (
               <fieldset className="grid grid-cols-2 gap-2">
                 <legend className="mb-2 text-xs font-medium text-slate-600">{copy.country}</legend>
                 {(['BR', 'AR'] as const).map((country) => {
@@ -475,6 +476,7 @@ export function PharmacyExpressConsultation({
                   )
                 })}
               </fieldset>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor={dniInputId} className="block text-xs font-medium text-slate-600 mb-1.5 flex items-center gap-1.5">
