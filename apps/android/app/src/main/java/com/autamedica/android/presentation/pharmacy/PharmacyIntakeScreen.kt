@@ -773,10 +773,10 @@ private fun PharmacyWaitingRoomView(
             // backend rightfully refuses after assignment.
 
         } else {
-            // ── EFECTO UBER PARA TELEMEDICINA DE GUARDIA ──
-            val onlineDoctorCount = uiState.onlineDoctorsInMarket
-            // Only the jurisdiction-filtered backend aggregate is authoritative.
-            val hasOnlineDoctors = onlineDoctorCount != null && onlineDoctorCount > 0
+            // ── RADAR DE MÉDICOS HABILITADOS PARA DESPACHO ──
+            val availableDoctorCount = uiState.availableDoctorsInMarket
+            // This aggregate counts eligible dispatch capacity, not all signed-in doctors.
+            val hasOnlineDoctors = availableDoctorCount != null && availableDoctorCount > 0
             val doctorAssigned = uiState.status == PharmacyConsultationStatus.ASSIGNED
 
             val marketName = when (uiState.careCountry) {
@@ -811,7 +811,7 @@ private fun PharmacyWaitingRoomView(
             // avatars obtained for a different authenticated jurisdiction.
             LiveMedicalPresenceRadar(
                 doctors = emptyList(),
-                availableCount = uiState.onlineDoctorsInMarket,
+                availableCount = uiState.availableDoctorsInMarket,
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -838,7 +838,7 @@ private fun PharmacyWaitingRoomView(
                         )
                         Column {
                             Text(
-                                text = if (onlineDoctorCount == null)
+                                text = if (availableDoctorCount == null)
                                     stringResource(R.string.pharmacy_flow_checking_capacity, marketName)
                                 else
                                     stringResource(R.string.pharmacy_flow_waiting_capacity, marketName),
@@ -861,7 +861,7 @@ private fun PharmacyWaitingRoomView(
                 Text(
                     text = stringResource(
                         R.string.pharmacy_flow_online_count,
-                        onlineDoctorCount ?: uiState.activeDoctors.count { it.isAvailable },
+                        availableDoctorCount ?: uiState.activeDoctors.count { it.isAvailable },
                         marketName,
                     ),
                     color = AuTextSecondary,
@@ -871,7 +871,7 @@ private fun PharmacyWaitingRoomView(
             }
 
             // 2. Ticker de Telemetría Dinámica (Dispatch Status Ticker)
-            DispatchTelemetryTicker(onlineDoctorCount = onlineDoctorCount)
+            DispatchTelemetryTicker(availableDoctorCount = availableDoctorCount)
 
             Spacer(modifier = Modifier.height(16.dp))
 
