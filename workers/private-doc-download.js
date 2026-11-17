@@ -19,7 +19,7 @@ export default {
     const objectPath = url.searchParams.get("f") || "";
     const expires = Number(url.searchParams.get("e"));
     const signature = url.searchParams.get("s") || "";
-    const match = objectPath.match(/^farmalink-homologation\\/[0-9]+\\/([^/]+)$/);
+    const match = objectPath.match(/^farmalink-homologation\/[0-9]+\/([^/]+)$/);
     const filename = match?.[1];
 
     if (!match || !FILES.has(filename) || !Number.isSafeInteger(expires)) {
