@@ -427,7 +427,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   // ── BOT DETECTION ──────────────────────────────────────────────────────────
   const userAgent = context.request.headers.get("user-agent");
-  if (isBlockedBot(userAgent)) {
+  // The Argentina Mercado Pago broker is a server-to-server endpoint.
+  // Its handler authenticates every request with a timestamped HMAC signature,
+  // so it must not be rejected by browser-oriented User-Agent bot detection.
+  // Keep IP abuse tracking and API rate limiting active for this route.
+  const isSignedArgentinaBrokerRequest =
+    pathname === "/api/ops/mercadopago/argentina-broker" &&
+    context.request.method === "POST";
+  if (!isSignedArgentinaBrokerRequest && isBlockedBot(userAgent)) {
     const response = new Response("Forbidden", { status: 403 });
     applySecurityHeaders(response);
     return response;
