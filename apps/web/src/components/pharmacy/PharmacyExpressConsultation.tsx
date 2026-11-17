@@ -24,6 +24,7 @@ interface PharmacyExpressConsultationProps {
   pharmacyName?: string
   initialDni?: string
   initialCareCountry?: 'AR' | 'BR' | null
+  uiLocale?: 'es' | 'pt'
   referralCode?: string | null
   referralPartnerName?: string | null
   jordanPaymentsEnabled?: boolean
@@ -61,6 +62,7 @@ export function PharmacyExpressConsultation({
   referralPartnerName = null,
   initialDni = '',
   initialCareCountry = null,
+  uiLocale = 'es',
   referralCode = null,
   jordanPaymentsEnabled = false,
   pharmacyPaymentsEnabled = false,
@@ -136,10 +138,7 @@ export function PharmacyExpressConsultation({
     return () => { active = false }
   }, [isJordanReferral])
 
-  const uiLanguage = typeof document !== 'undefined' && document.documentElement.lang.trim()
-    ? document.documentElement.lang.toLowerCase()
-    : (typeof navigator !== 'undefined' ? navigator.language.toLowerCase() : 'es')
-  const isPortuguese = uiLanguage.startsWith('pt')
+  const isPortuguese = uiLocale === 'pt'
   const currentPricing = formData.careCountry ? pricingByCountry[formData.careCountry] : undefined
   const requiresCountryPayment = currentPricing?.require_payment_before_dispatch === true
   const amountLabel = currentPricing ? new Intl.NumberFormat(currentPricing.currency === 'BRL' ? 'pt-BR' : 'es-AR', { style: 'currency', currency: currentPricing.currency }).format(currentPricing.consultation_price_minor / 100) : null
