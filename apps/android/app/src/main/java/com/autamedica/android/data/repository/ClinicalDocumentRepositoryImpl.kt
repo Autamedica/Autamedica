@@ -41,7 +41,8 @@ class ClinicalDocumentRepositoryImpl @Inject constructor(
 ) : ClinicalDocumentRepository {
 
     override suspend fun getDocuments(): Result<List<ClinicalDocument>> = runCatching {
-        val patientId = resolvePatientId()
+        val userId = resolveAuthenticatedUserId()
+        val patientId = resolvePatientId(userId)
 
         val rows = supabaseClient.postgrest
             .from("medical_records")
@@ -56,7 +57,11 @@ class ClinicalDocumentRepositoryImpl @Inject constructor(
 
         rows.mapNotNull { row ->
             val document = row.toDomain() ?: return@mapNotNull null
-            val storagePath = row.storagePath() ?: return@mapNotNull document
+            // Never return a persisted public/expired URL. Re-sign only an object
+            // whose path is scoped to the authenticated owner in the private bucket.
+            val storagePath = row.storagePath()
+                ?.takeIf { it.startsWith("$userId/") }
+                ?: return@mapNotNull document.copy(fileUrl = "")
             val signedUrl = supabaseClient.storage.from(DOCUMENT_BUCKET)
                 .createSignedUrl(storagePath, expiresIn = SIGNED_URL_TTL)
             document.copy(fileUrl = signedUrl)

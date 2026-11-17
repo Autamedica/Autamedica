@@ -17,7 +17,9 @@ import kotlinx.serialization.json.put
 
 /**
  * Cliente SFU para pacientes/doctores con Supabase JWT y pacientes invitados
- * con el JWT HMAC de alcance único del flujo Jordan.
+ * de farmacia QR con JWT HMAC de alcance único. En el flujo invitado, el claim
+ * callId del JWT identifica pharmacy_dispatch_requests.id y roomId vincula la sala;
+ * la Edge Function valida ambos contra el dispatch y la llamada enlazada.
  */
 interface CloudflareCallsApi {
     suspend fun call(method: String, path: String, body: JsonElement? = null): JsonElement
