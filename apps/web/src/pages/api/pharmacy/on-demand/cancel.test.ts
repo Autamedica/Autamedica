@@ -29,9 +29,13 @@ function chain(data: unknown, error: unknown = null) {
     eq: vi.fn(),
     maybeSingle: vi.fn().mockResolvedValue({ data, error }),
     update: vi.fn(),
+    in: vi.fn(),
+    gt: vi.fn(),
   }
   obj.select.mockReturnValue(obj)
   obj.eq.mockReturnValue(obj)
+  obj.in.mockReturnValue(obj)
+  obj.gt.mockReturnValue(obj)
   obj.update.mockReturnValue(obj)
   return obj
 }
@@ -90,23 +94,34 @@ describe('Gen-2 clinical pharmacy cancellation', () => {
       { callId: ID, roomId: row.cloudflare_room_id, guestName: 'Synthetic guest' }, SECRET,
     )
     const original = chain(row)
+    const offerLookup = chain(null)
     const changed = chain({ id: ID })
-    supabaseMock.from.mockReturnValueOnce(original).mockReturnValueOnce(changed)
+    supabaseMock.from.mockReturnValueOnce(original).mockReturnValueOnce(offerLookup).mockReturnValueOnce(changed)
     const response = await POST(context({ requestId: ID, accessToken: token }))
     expect(response.status).toBe(200)
     expect((await response.json()).data.cancelled).toBe(true)
     expect(changed.update).toHaveBeenCalledWith({ status: 'cancelled' })
     expect(changed.eq).toHaveBeenCalledWith('status', 'searching')
     expect(supabaseMock.from).toHaveBeenNthCalledWith(1, 'pharmacy_dispatch_requests')
-    expect(supabaseMock.from).toHaveBeenNthCalledWith(2, 'pharmacy_dispatch_requests')
+    expect(supabaseMock.from).toHaveBeenNthCalledWith(2, 'dispatch_offers')
+    expect(supabaseMock.from).toHaveBeenNthCalledWith(3, 'pharmacy_dispatch_requests')
   })
 
   it('autoriza solo a paciente autenticado dueño de la consulta', async () => {
     const original = chain(row)
+    const offerLookup = chain(null)
     const changed = chain({ id: ID })
-    supabaseMock.from.mockReturnValueOnce(original).mockReturnValueOnce(changed)
+    supabaseMock.from.mockReturnValueOnce(original).mockReturnValueOnce(offerLookup).mockReturnValueOnce(changed)
     const response = await POST(context({ requestId: ID }, 'patient-user-1'))
     expect((await response.json()).data.cancelled).toBe(true)
+  })
+
+  it('bloquea la cancelación antes de completar los 15 minutos de búsqueda', async () => {
+    const recentRow = { ...row, search_started_at: new Date().toISOString(), created_at: new Date().toISOString() }
+    supabaseMock.from.mockReturnValue(chain(recentRow))
+    const response = await POST(context({ requestId: ID }, 'patient-user-1'))
+    expect((await response.json()).data.code).toBe('WAIT_WINDOW_NOT_REACHED')
+    expect(supabaseMock.from).toHaveBeenCalledTimes(1)
   })
 
   it('no permite a otro paciente autenticado cancelar la solicitud', async () => {
