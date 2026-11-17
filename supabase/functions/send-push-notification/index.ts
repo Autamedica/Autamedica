@@ -1,3 +1,4 @@
+import { withEdgeSentry } from '../_shared/sentry.ts';
 import { createClient } from '@supabase/supabase-js'
 import { corsHeaders } from '../_shared/cors.ts'
 import { isAuthorizedPushRequest } from './authorization.ts'
@@ -147,7 +148,7 @@ function parseServiceAccount(raw: string | null): ServiceAccount | null {
   }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withEdgeSentry('send-push-notification', async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -280,4 +281,4 @@ Deno.serve(async (req) => {
     console.error('send-push-notification error:', error)
     return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
-})
+}))

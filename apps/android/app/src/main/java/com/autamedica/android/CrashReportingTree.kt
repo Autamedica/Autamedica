@@ -1,21 +1,17 @@
 package com.autamedica.android
 
-import timber.log.Timber
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import io.sentry.Sentry
 import java.io.File
 import java.io.FileWriter
-import java.io.PrintWriter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import timber.log.Timber
 
 /**
- * Timber tree for release builds.
- * - Filters: only WARN, ERROR, and ASSERT reach this tree
- * - Persists ERROR/WTF to file (crash_log.txt) for post-mortem diagnosis
- * - Auto-rotates log file at 1MB to prevent unbounded growth
- * - Ready for Firebase Crashlytics: swap persistToFile() with
- *   FirebaseCrashlytics.getInstance().recordException()
+ * Release Timber tree. Only sanitized telemetry is sent to Crashlytics/Sentry
+ * or persisted locally. Telemetry failures never interrupt application flows.
  */
 class CrashReportingTree(private val logsDir: File) : Timber.Tree() {
 
@@ -25,9 +21,8 @@ class CrashReportingTree(private val logsDir: File) : Timber.Tree() {
         File(logsDir, "crash_log.txt")
     }
 
-    override fun isLoggable(tag: String?, priority: Int): Boolean {
-        return priority >= WARN_PRIORITY
-    }
+    override fun isLoggable(tag: String?, priority: Int): Boolean =
+        priority >= WARN_PRIORITY
 
     override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
         val level = when (priority) {
@@ -36,31 +31,68 @@ class CrashReportingTree(private val logsDir: File) : Timber.Tree() {
             ASSERT_PRIORITY -> "WTF"
             else -> return
         }
-        persistToFile(level, tag, message, t)
-    }
 
-    private fun persistToFile(level: String, tag: String?, message: String, t: Throwable?) {
+        val safeTag = TelemetrySanitizer.safeTag(tag)
+        val safeMessage = TelemetrySanitizer.clean(message)
+        persistSanitizedLog(level, safeTag, safeMessage, t)
+
         try {
             val crashlytics = FirebaseCrashlytics.getInstance()
-            crashlytics.log("[$level/${tag ?: "General"}]: $message")
-            
+            crashlytics.log("[$level/$safeTag]: $safeMessage")
             if (t != null) {
-                crashlytics.recordException(t)
+                crashlytics.recordException(TelemetrySanitizer.safeThrowable(t, safeMessage))
             } else if (level == "ERROR" || level == "WTF") {
-                // If there's no throwable but it's an error, log a synthetic exception
-                // to trigger a non-fatal report in the Crashlytics dashboard.
-                val syntheticException = Exception(message)
-                crashlytics.recordException(syntheticException)
+                crashlytics.recordException(Exception("$level/$safeTag: $safeMessage"))
             }
         } catch (_: Exception) {
-            // Logging must never crash the app
+            // Crash reporting must not affect application behavior.
+        }
+
+        try {
+            if (t != null) {
+                Sentry.captureException(TelemetrySanitizer.safeThrowable(t, safeMessage))
+            } else if (level == "ERROR" || level == "WTF") {
+                Sentry.captureException(Exception("$level/$safeTag: $safeMessage"))
+            }
+        } catch (_: Exception) {
+            // Sentry is an optional telemetry sink, not a business dependency.
+        }
+    }
+
+    private fun persistSanitizedLog(
+        level: String,
+        tag: String,
+        message: String,
+        throwable: Throwable?,
+    ) {
+        try {
+            rotateIfNeeded()
+            FileWriter(logFile, true).use { writer ->
+                writer.append(dateFormat.format(Date()))
+                    .append(" [").append(level).append("/")
+                    .append(tag).append("]: ").append(message)
+                    .append('\n')
+                throwable?.stackTrace?.take(MAX_STACK_FRAMES)?.forEach { frame ->
+                    writer.append("  at ")
+                        .append(frame.className.take(160))
+                        .append(".")
+                        .append(frame.methodName.take(100))
+                        .append("(")
+                        .append(frame.fileName?.take(100) ?: "Unknown Source")
+                        .append(":")
+                        .append(frame.lineNumber.toString())
+                        .append(")\n")
+                }
+            }
+        } catch (_: Exception) {
+            // Local diagnostic persistence must never crash the app.
         }
     }
 
     private fun rotateIfNeeded() {
         if (logFile.exists() && logFile.length() > MAX_FILE_SIZE_BYTES) {
             val backup = File(logsDir, "crash_log.prev.txt")
-            backup.delete()
+            if (backup.exists()) backup.delete()
             logFile.renameTo(backup)
         }
     }
@@ -69,6 +101,7 @@ class CrashReportingTree(private val logsDir: File) : Timber.Tree() {
         private const val WARN_PRIORITY = 5
         private const val ERROR_PRIORITY = 6
         private const val ASSERT_PRIORITY = 7
-        private const val MAX_FILE_SIZE_BYTES = 1_048_576L // 1 MB
+        private const val MAX_STACK_FRAMES = 24
+        private const val MAX_FILE_SIZE_BYTES = 1_048_576L
     }
 }

@@ -3,7 +3,7 @@ import {
   jsonResponse,
   requireAuth,
 } from '../_shared/auth-helpers.ts';
-import { captureEdgeException, initEdgeSentry } from '../_shared/sentry.ts';
+import {captureEdgeException, initEdgeSentry, withEdgeSentry } from '../_shared/sentry.ts';
 
 type ObservationType = 'vital_sign' | 'medication' | 'symptom' | 'lab_result';
 
@@ -181,7 +181,7 @@ async function resolvePatientId(
 
 initEdgeSentry('ingest-patient-observation');
 
-Deno.serve(async (req) => {
+Deno.serve(withEdgeSentry('ingest-patient-observation', async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get('origin'));
 
   if (req.method === 'OPTIONS') {
@@ -425,7 +425,7 @@ Deno.serve(async (req) => {
       });
 
       if (error) {
-        captureEdgeException(error, {
+        await captureEdgeException(error, {
           layer: 'data-platform',
           surface: 'ingest-patient-observation:create-alert',
           owner: 'Clinical Ops',
@@ -458,7 +458,7 @@ Deno.serve(async (req) => {
       return error;
     }
 
-    captureEdgeException(error, {
+    await captureEdgeException(error, {
       layer: 'data-platform',
       surface: 'ingest-patient-observation:unexpected',
       owner: 'Clinical Ops',
@@ -474,4 +474,4 @@ Deno.serve(async (req) => {
       corsHeaders,
     );
   }
-});
+}));

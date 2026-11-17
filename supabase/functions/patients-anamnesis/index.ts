@@ -1,3 +1,4 @@
+import { withEdgeSentry } from '../_shared/sentry.ts';
 import { createClient } from '@supabase/supabase-js'
 import { corsHeaders } from '../_shared/cors.ts'
 
@@ -435,4 +436,4 @@ export async function handler(req: Request): Promise<Response> {
   }
 }
 
-Deno.serve(handler)
+Deno.serve(withEdgeSentry('patients-anamnesis', handler));

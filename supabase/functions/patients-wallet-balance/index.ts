@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { corsHeaders } from '../_shared/cors.ts'
 import { resolveBillingCurrency } from '../_shared/billing-currency.ts'
+import { withEdgeSentry } from '../_shared/sentry.ts';
 
 interface PatientRow {
   id: string
@@ -189,4 +190,4 @@ export async function handler(req: Request): Promise<Response> {
   }
 }
 
-Deno.serve(handler)
+Deno.serve(withEdgeSentry('patients-wallet-balance', handler))

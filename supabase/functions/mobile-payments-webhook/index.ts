@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import type { BillingCurrency } from '../_shared/billing-currency.ts'
 import { getMercadoPagoMarketToken } from '../_shared/mercadopago-market-token.ts'
 import {
+import { withEdgeSentry } from '../_shared/sentry.ts';
   mercadoPagoMarketSecrets,
   paymentAmountCents,
   verifyMercadoPagoMarketSignature,
@@ -145,4 +146,4 @@ export async function handler(req: Request): Promise<Response> {
   }
 }
 
-Deno.serve(handler)
+Deno.serve(withEdgeSentry('mobile-payments-webhook', handler))

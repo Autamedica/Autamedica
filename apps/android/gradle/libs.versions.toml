@@ -32,6 +32,7 @@ androidx-browser = "1.8.0"
 firebase-bom = "33.8.0"
 firebase-crashlytics-plugin = "3.0.8"
 firebase-perf-plugin = "2.0.2"
+sentry-android = "8.64.0"
 room = "2.8.5"
 mlkit-face = "16.1.7"
 zxing = "3.5.3"
@@ -122,6 +123,7 @@ firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashly
 firebase-perf = { group = "com.google.firebase", name = "firebase-perf" }
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
 firebase-config = { group = "com.google.firebase", name = "firebase-config" }
+sentry-android = { group = "io.sentry", name = "sentry-android", version.ref = "sentry-android" }
 
 # ML Kit (Phase 4)
 mlkit-face-detection = { group = "com.google.mlkit", name = "face-detection", version.ref = "mlkit-face" }

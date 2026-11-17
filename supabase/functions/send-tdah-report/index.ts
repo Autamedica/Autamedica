@@ -1,3 +1,4 @@
+import { withEdgeSentry } from '../_shared/sentry.ts';
 const BREVO_URL = "https://api.brevo.com/v3/smtp/email";
 const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY") ?? "";
 
@@ -7,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-Deno.serve(async (req) => {
+Deno.serve(withEdgeSentry('send-tdah-report', async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -96,7 +97,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}));
 
 function escapeHtml(text: string): string {
   return text

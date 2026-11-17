@@ -5,6 +5,7 @@
  */
 import { getCorsHeaders, jsonResponse, requireAuth } from '../_shared/auth-helpers.ts';
 import {
+import { withEdgeSentry } from '../_shared/sentry.ts';
   appointmentPermitsPrescription,
   buildMemedMobileLaunchUrl,
   validMemedMobileAppointment,
@@ -113,4 +114,4 @@ export async function handler(req: Request): Promise<Response> {
   }
 }
 
-Deno.serve(handler);
+Deno.serve(withEdgeSentry('memed-mobile-preflight', handler))

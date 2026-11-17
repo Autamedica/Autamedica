@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { corsHeaders } from '../_shared/cors.ts'
 import { authorizeEdgeSfuBinding, recordEdgeSfuSession } from '../_shared/sfu-room-session-binding.ts'
 import { guestDispatchCallMatches } from '../_shared/guest-dispatch-access.ts'
+import { withEdgeSentry } from '../_shared/sentry.ts';
 
 /**
  * cloudflare-calls
@@ -629,4 +630,4 @@ export async function handler(req: Request): Promise<Response> {
   }
 }
 
-Deno.serve(handler)
+Deno.serve(withEdgeSentry('cloudflare-calls', handler))
