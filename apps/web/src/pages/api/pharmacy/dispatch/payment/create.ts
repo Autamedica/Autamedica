@@ -69,9 +69,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       ? (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN_AR as string | undefined)
         ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN_AR')
       : undefined
-    // Never send ARS through a Brazilian merchant token. Without a dedicated
-    // Argentina PSP credential, leave an auditable manual-pilot payment row.
-    const manualPilot = dispatch.care_country === 'AR' && !argentinaProviderToken
+    // Never route Argentine pesos through the Brazilian merchant account.
+    // An AR checkout can start only when its own Mercado Pago credential exists.
     const { data: old, error: oldError } = await admin.from('pharmacy_dispatch_payments')
       .select('id,status,checkout_url,amount_minor,currency,provider,provider_preference_id,provider_payment_id,metadata')
       .eq('dispatch_request_id',dispatch.id).maybeSingle()
@@ -82,25 +81,46 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (old.status === 'pending' && old.checkout_url) {
         return jsonOk({ status: 'pending', checkoutUrl: old.checkout_url, amountCents, currency })
       }
-      if (manualPilot && old.status === 'pending' && old.metadata?.payment_mode === 'manual_pilot'
-          && old.metadata?.manual_approval_pending === true) {
-        return jsonOk({ status: 'pending', checkoutUrl: null, amountCents, currency, manualApprovalRequired: true })
+
+      // Legacy AR manual-pilot rows never created a provider order. Once the
+      // Argentine credential is configured, safely promote that row to a real
+      // Mercado Pago checkout instead of requiring an impossible manual review.
+      const legacyManualPilot = dispatch.care_country === 'AR'
+        && old.provider === 'manual'
+        && ['pending', 'failed'].includes(old.status)
+        && old.metadata?.payment_mode === 'manual_pilot'
+        && old.metadata?.manual_approval_pending === true
+        && !old.provider_preference_id && !old.provider_payment_id
+      if (legacyManualPilot) {
+        if (!argentinaProviderToken) return serviceUnavailable('argentina_checkout_not_configured')
+        const { data: migrated, error: migrateError } = await admin.from('pharmacy_dispatch_payments')
+          .update({
+            status: 'initializing',
+            provider: 'mercadopago',
+            checkout_url: null,
+            metadata: {
+              ...(old.metadata ?? {}),
+              payment_mode: 'mercadopago_ar',
+              manual_approval_pending: false,
+              manual_pilot_migrated_at: new Date().toISOString(),
+            },
+          })
+          .eq('id', old.id).eq('status', old.status).select('id').maybeSingle()
+        if (migrateError || !migrated) throw migrateError ?? new Error('legacy_manual_payment_migration_conflict')
+        initializedPaymentId = old.id
+      } else {
+        // A provider request may have succeeded even if the response was lost.
+        // Do not create a second preference for the same dispatch automatically.
+        return serviceUnavailable('checkout_requires_manual_reconciliation')
       }
-      if (manualPilot && old.status === 'failed' && !old.provider_preference_id && !old.provider_payment_id) {
-        const { data: recovered, error: recoverError } = await admin.from('pharmacy_dispatch_payments')
-          .update({ status: 'pending', checkout_url: null, metadata: { ...(old.metadata ?? {}), payment_mode: 'manual_pilot', manual_approval_pending: true, country_code: 'AR' } })
-          .eq('id', old.id).eq('status', 'failed').select('id').maybeSingle()
-        if (recoverError || !recovered) throw recoverError ?? new Error('manual_pilot_payment_recovery_failed')
-        return jsonOk({ status: 'pending', checkoutUrl: null, amountCents, currency, manualApprovalRequired: true })
-      }
-      // A provider request may have succeeded even if the response was lost.
-      // Do not create a second preference for the same dispatch automatically.
-      return serviceUnavailable('checkout_requires_manual_reconciliation')
     } else {
+      if (dispatch.care_country === 'AR' && !argentinaProviderToken) {
+        return serviceUnavailable('argentina_checkout_not_configured')
+      }
       // Operational switches stop new checkouts only. Existing pending/approved payments
       // above remain readable and usable after an Admin pause.
       const operationalSwitches = await getOperationalPaymentSwitches(admin).catch(() => null)
-      if (!operationalSwitches?.pharmacy_express_payments_enabled || (!manualPilot && !operationalSwitches.global_pix_mp_payments_enabled) || (isJordan && !operationalSwitches.jordan_qr_payments_enabled)) {
+      if (!operationalSwitches?.pharmacy_express_payments_enabled || !operationalSwitches.global_pix_mp_payments_enabled || (isJordan && !operationalSwitches.jordan_qr_payments_enabled)) {
         return serviceUnavailable('pharmacy_checkout_not_enabled')
       }
       // Clinical provider health is intentionally not a checkout dependency.
@@ -127,17 +147,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
           dispatch_request_id: dispatch.id,
           amount_minor: amountCents,
           currency,
-          status: manualPilot ? 'pending' : 'initializing',
-          provider: manualPilot ? 'manual' : 'mercadopago',
-          ...(manualPilot ? { metadata: { payment_mode: 'manual_pilot', manual_approval_pending: true, country_code: 'AR' } } : {}),
+          status: 'initializing',
+          provider: 'mercadopago',
         })
         .select('id').single()
       if (createError?.code === '23505') return serviceUnavailable('checkout_already_initializing')
       if (createError || !created) throw createError ?? new Error('payment_row_creation_failed')
       initializedPaymentId = created.id
-      if (manualPilot) {
-        return jsonOk({ status: 'pending', checkoutUrl: null, amountCents, currency, manualApprovalRequired: true })
-      }
     }
 
     const secret = dispatch.care_country === 'AR'
