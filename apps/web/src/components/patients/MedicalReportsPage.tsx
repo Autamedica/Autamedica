@@ -6,15 +6,13 @@ import { FileText, Download, Loader2, AlertCircle, Sparkles, ArrowRight } from '
 import { fetchApi } from '@/lib/api-client'
 import { usePatientReports } from '@/hooks/patients/usePatientReports'
 import { usePatientSession } from '@/hooks/patients/usePatientSession'
+import { formatPatientDocumentDate } from '@/lib/patients/format-patient-document-date'
 
 type Certificate = Record<string, unknown>
 type ArchivedDocument = { reference: string; status: 'registered' | 'revoked'; documentDate: string; registeredAt: string; pdfSha256: string; signatureType: 'scanned_signature'; issuer: { name: string | null; profession: string | null; license: string | null; jurisdiction: string | null } }
 
 function formatDate(value: string | null, locale: string): string {
-  if (!value) return locale === 'pt-BR' ? 'Sem data' : 'Sin fecha'
-  const parsed = new Date(value)
-  if (!Number.isFinite(parsed.getTime())) return locale === 'pt-BR' ? 'Sem data' : 'Sin fecha'
-  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' }).format(parsed)
+  return formatPatientDocumentDate(value, locale)
 }
 
 export default function MedicalReportsPage() {
