@@ -2,6 +2,11 @@ name: Test email via Brevo
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/test-email-brevo.yml
 
 permissions:
   contents: read
@@ -9,6 +14,7 @@ permissions:
 
 jobs:
   send-test-email:
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.head_commit.message == 'test(email): send SOL-3144 PDF samples to internal mailbox [once-20261117]')
     name: Send Farmalink homologation test with PDF attachments
     runs-on: ubuntu-latest
     timeout-minutes: 5
