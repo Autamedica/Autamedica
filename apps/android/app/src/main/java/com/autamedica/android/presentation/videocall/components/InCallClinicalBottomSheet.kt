@@ -94,6 +94,7 @@ fun InCallClinicalBottomSheet(
     isSubmitting: Boolean,
     onOpenMemed: (() -> Unit)? = null,
     memedLaunchError: String? = null,
+    memedLaunchNotice: String? = null,
     isVerifyingMemedPrescription: Boolean = false,
     onIssuePrescription: (medicationName: String, dosage: String, instructions: String, diagnosis: String, onResult: (Boolean, String?) -> Unit) -> Unit,
     onIssueCertificate: (type: CertificateType, daysOfRest: Int, diagnosis: String, hideDiagnosis: Boolean, onResult: (Boolean, String?) -> Unit) -> Unit,
@@ -451,6 +452,13 @@ fun InCallClinicalBottomSheet(
                                 Text(
                                     text = memedLaunchError,
                                     color = AuDanger,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                            if (memedLaunchNotice != null) {
+                                Text(
+                                    text = memedLaunchNotice,
+                                    color = AuTextSecondary,
                                     style = MaterialTheme.typography.bodySmall,
                                 )
                             }
