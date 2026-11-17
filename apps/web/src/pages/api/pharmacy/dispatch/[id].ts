@@ -308,6 +308,40 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
     if (lookupError) return internalError()
     if (!requestRecord) return notFound('request_not_found')
 
+    const context = await resolvePatientContext(request, locals).catch(() => null)
+    const ownerAuthorized = Boolean(
+      context?.careCountry &&
+      requestRecord.patient_id === context.patientId &&
+      requestRecord.requested_by_user_id === context.userId &&
+      requestRecord.care_country === context.careCountry,
+    )
+
+    let guestAuthorized = false
+    if (!ownerAuthorized) {
+      const guestBody = await request.clone().json().catch(() => null) as {
+        accessToken?: unknown
+        guestRecoveryCredential?: unknown
+      } | null
+      const guestToken = request.headers.get('x-guest-token')?.trim()
+        || request.headers.get('x-guest-recovery-credential')?.trim()
+        || request.headers.get('x-access-token')?.trim()
+        || request.headers.get('authorization')?.replace(/^Bearer\\s+/i, '').trim()
+        || (typeof guestBody?.accessToken === 'string' ? guestBody.accessToken.trim() : '')
+        || (typeof guestBody?.guestRecoveryCredential === 'string' ? guestBody.guestRecoveryCredential.trim() : '')
+      if (guestToken) {
+        const secret = resolveGuestSecret(locals.runtime?.env)
+        if (secret) {
+          const guestPayload = await verifyGuestToken(guestToken, secret)
+          guestAuthorized = Boolean(
+            guestPayload &&
+            guestPayload.callId === requestRecord.id &&
+            guestPayload.roomId === requestRecord.cloudflare_room_id,
+          )
+        }
+      }
+    }
+    if (!ownerAuthorized && !guestAuthorized) return unauthorized()
+
     const searchStartedAt = new Date(
       requestRecord.search_started_at ?? requestRecord.created_at,
     ).getTime()
@@ -316,6 +350,7 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
     if (!['searching', 'expired'].includes(String(requestRecord.status)) || !cancellationWindowOpen) {
       return conflict('cancellation_available_after_15_minutes')
     }
+
     const { data: activeOffer, error: offerError } = await admin
       .from('dispatch_offers')
       .select('id')
@@ -326,44 +361,20 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
     if (offerError) return internalError()
     if (activeOffer) return conflict('doctor_offer_still_active')
 
-    const context = await resolvePatientContext(request, locals).catch(() => null)
-    if (context?.careCountry &&
-        requestRecord.patient_id === context.patientId &&
-        requestRecord.requested_by_user_id === context.userId &&
-        requestRecord.care_country === context.careCountry) {
+    if (ownerAuthorized) {
       const { data, error } = await admin
         .from('pharmacy_dispatch_requests')
         .update({ status: 'cancelled' })
         .eq('id', id)
-        .eq('patient_id', context.patientId)
-        .eq('requested_by_user_id', context.userId)
-        .eq('care_country', context.careCountry)
+        .eq('patient_id', context!.patientId)
+        .eq('requested_by_user_id', context!.userId)
+        .eq('care_country', context!.careCountry!)
         .in('status', ['searching', 'expired'])
         .select('id')
         .maybeSingle()
       if (error) return internalError()
       if (!data) return conflict('request_cannot_be_cancelled')
       return jsonOk({ cancelled: true })
-    }
-
-    const guestBody = await request.clone().json().catch(() => null) as {
-      accessToken?: unknown
-      guestRecoveryCredential?: unknown
-    } | null
-    const guestToken = request.headers.get('x-guest-token')?.trim()
-      || request.headers.get('x-guest-recovery-credential')?.trim()
-      || request.headers.get('x-access-token')?.trim()
-      || request.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim()
-      || (typeof guestBody?.accessToken === 'string' ? guestBody.accessToken.trim() : '')
-      || (typeof guestBody?.guestRecoveryCredential === 'string' ? guestBody.guestRecoveryCredential.trim() : '')
-    if (!guestToken) return unauthorized()
-    const secret = resolveGuestSecret(locals.runtime?.env)
-    if (!secret) return unauthorized()
-    const guestPayload = await verifyGuestToken(guestToken, secret)
-    if (!guestPayload ||
-        guestPayload.callId !== requestRecord.id ||
-        guestPayload.roomId !== requestRecord.cloudflare_room_id) {
-      return unauthorized()
     }
 
     const { data, error } = await admin
