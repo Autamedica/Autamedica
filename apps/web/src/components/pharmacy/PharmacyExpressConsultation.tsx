@@ -94,7 +94,7 @@ export function PharmacyExpressConsultation({
   const [recoveryToken, setRecoveryToken] = useState<string | null>(null)
   const [callRoomId, setCallRoomId] = useState<string | null>(null)
   const [countryPaymentApproved, setCountryPaymentApproved] = useState(false)
-  const [onlineDoctorCount, setOnlineDoctorCount] = useState<number | null>(null)
+  const [onDutyDoctorCount, setOnDutyDoctorCount] = useState<number | null>(null)
   const [documents, setDocuments] = useState<EncounterDocument[]>([])
   const recoveryInProgress = useRef(false)
   const lastRecoveryAttemptAt = useRef(0)
@@ -166,7 +166,7 @@ export function PharmacyExpressConsultation({
     const active = step === 'WAITING' &&
       (formData.careCountry === 'AR' || formData.careCountry === 'BR') &&
       (!pricingByCountry[formData.careCountry]?.require_payment_before_dispatch || countryPaymentApproved)
-    if (!active) { setOnlineDoctorCount(null); return }
+    if (!active) { setOnDutyDoctorCount(null); return }
     let current = true
     const refresh = async () => {
       try {
@@ -179,8 +179,8 @@ export function PharmacyExpressConsultation({
         if (error) throw error
         if (!current) return
         const count = typeof data === 'number' ? data : typeof data === 'string' ? Number(data) : Number.NaN
-        setOnlineDoctorCount(Number.isSafeInteger(count) && count >= 0 ? count : null)
-      } catch { if (current) setOnlineDoctorCount(null) }
+        setOnDutyDoctorCount(Number.isSafeInteger(count) && count >= 0 ? count : null)
+      } catch { if (current) setOnDutyDoctorCount(null) }
     }
     void refresh()
     const timer = window.setInterval(() => void refresh(), 15000)
@@ -608,7 +608,7 @@ export function PharmacyExpressConsultation({
           <div className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm sm:p-5">
             {(!requiresCountryPayment || countryPaymentApproved) && (
               <>
-                <div className="mb-2 w-full"><LiveMedicalPresenceRadar onlineCount={onlineDoctorCount} isPortuguese={isPortuguese} /></div>
+                <div className="mb-2 w-full"><LiveMedicalPresenceRadar onDutyCount={onDutyDoctorCount} isPortuguese={isPortuguese} /></div>
                 <p className="mb-3 text-xs font-medium text-slate-600" aria-live="polite">{copy.searching}</p>
                 <div className="mb-4 grid grid-cols-2 gap-2">
                   
