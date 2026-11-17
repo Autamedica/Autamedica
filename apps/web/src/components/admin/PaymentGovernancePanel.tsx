@@ -24,6 +24,15 @@ const SWITCHES: {key:SwitchKey;label:string;description:string;flows:string;inFl
  {key:'email_send_enabled',label:'Envío email',description:'Autoriza campañas de newsletter, no los correos transaccionales clínicos o de cuenta.',flows:'apps/newsletter-worker/src/index.ts: sendViaResend y sendViaBrevo, con comprobación previa al envío a Resend/Brevo.',inFlight:'No se inician nuevos envíos de campañas. Los mensajes/campañas ya aceptados por el proveedor continúan; los correos transaccionales quedan fuera de este interruptor.'},
  {key:'dry_run_enabled',label:'Dry run',description:'Growth Agent simula entregas; Newsletter Worker bloquea llamadas a proveedores mientras el modo está activo.',flows:'apps/reminder-worker/src/growth-agent-worker.ts y apps/newsletter-worker/src/index.ts; se vuelve a consultar antes de entregar.',inFlight:'No revierte trabajos ya procesados. Mientras esté activo no salen campañas externas; Growth registra el resultado simulado.'},
 ]
+const errorMessage = (value: unknown, fallback: string) => {
+ if (typeof value === 'string' && value.trim()) return value
+ if (value && typeof value === 'object') {
+  const item = value as {message?:unknown;code?:unknown}
+  if (typeof item.message === 'string' && item.message.trim()) return item.message
+  if (typeof item.code === 'string' && item.code.trim()) return item.code
+ }
+ return fallback
+}
 export function PaymentGovernancePanel(){
  const [switches,setSwitches]=useState<Switches|null>(null)
  const [approvals,setApprovals]=useState<Approval[]>([])
@@ -52,7 +61,7 @@ export function PaymentGovernancePanel(){
   if(!window.confirm('¿Registrar MANUAL_OVERRIDE con esta referencia externa y liberar el despacho elegible?'))return
   const r=await fetch('/api/admin/finance/pharmacy-payments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'manual_approve',payment_id:paymentId,reason,evidence_reference})})
   const j=await r.json().catch(()=>null)
-  if(!r.ok||!j?.success){setError(j?.error??j?.code??'El pago quedó registrado; el despacho requiere resolución');await load();return}
+  if(!r.ok||!j?.success){setError(errorMessage(j?.error??j?.code,'El pago fue procesado; el despacho puede requerir recuperación'));await load();return}
   await load()
  }
  const decide=async(decisionId:string,status:'APPROVED'|'REJECTED',resolutionAction?:'reopen'|'refund')=>{
