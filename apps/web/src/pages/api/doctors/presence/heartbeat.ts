@@ -9,10 +9,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   try {
     // The RPC resolves auth.uid() server-side; callers cannot heartbeat another doctor.
-    const { data, error } = await auth.supabase.rpc(
-      'heartbeat_my_doctor_presence' as never,
-      {} as never,
-    )
+    const { data, error } = await auth.supabase.rpc('heartbeat_my_doctor_presence' as never)
 
     if (error) {
       if (error.code === '42501') return forbidden('Se requiere un perfil médico activo')
