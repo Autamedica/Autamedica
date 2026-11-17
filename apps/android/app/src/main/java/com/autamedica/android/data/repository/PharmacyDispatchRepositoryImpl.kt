@@ -327,6 +327,21 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         SecureLog.error("[PharmacyDispatch] Failed sending doctor heartbeat", it)
     }
 
+    override suspend fun sendDoctorPresenceHeartbeat(): Result<Unit> = runCatching {
+        check(!supabaseClient.auth.currentSessionOrNull()?.accessToken.isNullOrBlank()) {
+            "Authenticated doctor session required for online presence"
+        }
+        val confirmation = supabaseClient.postgrest
+            .rpc("heartbeat_my_doctor_presence")
+            .decodeAs<DoctorOnlinePresenceHeartbeatRpcDto>()
+        check(confirmation.online) {
+            "Doctor online presence heartbeat was not accepted by the server"
+        }
+        Unit
+    }.onFailure {
+        SecureLog.error("[DoctorPresence] Failed renewing authenticated online presence", it)
+    }
+
     override fun observeSearchingRequests(): kotlinx.coroutines.flow.StateFlow<List<PharmacyDispatchRequest>> {
         // This stream is NOT a country-wide clinical waiting list. Only the
         // server-authorized physician's offers are returned (least privilege).
@@ -828,6 +843,11 @@ private data class DoctorGuardDutyRpcDto(
 @Serializable
 private data class DoctorGuardHeartbeatRpcDto(
     val success: Boolean = false,
+)
+
+@Serializable
+private data class DoctorOnlinePresenceHeartbeatRpcDto(
+    val online: Boolean = false,
 )
 
 @Serializable

@@ -194,6 +194,34 @@ export function DoctorsPortalFrame({
   const currentTime = useClock();
   const currentDate = new Date();
   const { user, loading: authLoading } = useAuthenticatedUser();
+  // Renew authenticated online presence across every doctor-portal section.
+  // This does not activate clinical duty; the server TTL expires after 90 seconds.
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const sendPresenceHeartbeat = async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        await fetchApi("/api/doctors/presence/heartbeat", { method: "POST" });
+      } catch {
+        // Missed pings expire naturally without changing the doctor's duty state.
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") void sendPresenceHeartbeat();
+    };
+
+    void sendPresenceHeartbeat();
+    const interval = window.setInterval(() => void sendPresenceHeartbeat(), 30000);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [user?.id]);
+
   const { doctor, refetch: refetchDoctor } = useCurrentDoctor(user?.id);
   const { stats } = useDoctorStats(doctor?.id, user?.id);
   const { exists: _doctorExists } = useCheckDoctorExists(user?.id);

@@ -501,6 +501,9 @@ class PharmacyIntakeViewModelTest {
         // La espera (radar) queda activa: la sala existe pero el médico aún no atendió la llamada.
         assertThat(vm.uiState.value.roomId).isEqualTo("cf-room-general-9888")
         assertThat(vm.uiState.value.readyToJoinCall).isFalse()
+        // Close the synthetic request so realtime and PSP polling stop deterministically.
+        pharmacyRepo.requestFlow.value = fakeCreatedRequest.copy(status = "expired")
+        testScheduler.runCurrent()
         vm.viewModelScope.cancel()
     }
 

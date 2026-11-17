@@ -22,12 +22,20 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import androidx.navigation.compose.rememberNavController
 import com.autamedica.android.data.attribution.PartnerAttributionTracker
 import com.autamedica.android.domain.repository.AuthRepository
+import com.autamedica.android.domain.repository.PharmacyDispatchRepository
+import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.domain.model.VideoCallStateHolder
 import com.autamedica.android.navigation.AppNavHost
 import com.autamedica.android.navigation.NotificationRouteResolver
@@ -35,11 +43,17 @@ import com.autamedica.android.navigation.Route
 import com.autamedica.android.navigation.resolveStartupRoute
 import com.autamedica.android.presentation.theme.AutamedicaTheme
 import com.autamedica.android.util.CareCountryLocale
+import com.autamedica.android.logging.SecureLog
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    private companion object {
+        const val DOCTOR_PRESENCE_INTERVAL_MS = 30_000L
+    }
+
 
     @Inject
     lateinit var videoCallStateHolder: VideoCallStateHolder
@@ -49,6 +63,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var partnerAttributionTracker: PartnerAttributionTracker
+
+    @Inject
+    lateinit var pharmacyDispatchRepository: PharmacyDispatchRepository
 
     var isInPipMode by mutableStateOf(false)
         private set
@@ -78,6 +95,22 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             authRepository.observeSession().collect { user ->
                 if (user != null) partnerAttributionTracker.submitPending()
+            }
+        }
+        // Online presence is an app-foreground signal, not a pharmacy duty signal.
+        // The server derives doctor identity from auth.uid() and expires this row after 90s.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                authRepository.observeSession().collectLatest { user ->
+                    if (user?.role != UserRole.DOCTOR) return@collectLatest
+                    while (currentCoroutineContext().isActive) {
+                        pharmacyDispatchRepository.sendDoctorPresenceHeartbeat()
+                            .onFailure { error ->
+                                SecureLog.warn("[DoctorPresence] Foreground heartbeat failed: ${error.message}")
+                            }
+                        delay(DOCTOR_PRESENCE_INTERVAL_MS)
+                    }
+                }
             }
         }
         enableEdgeToEdge()
