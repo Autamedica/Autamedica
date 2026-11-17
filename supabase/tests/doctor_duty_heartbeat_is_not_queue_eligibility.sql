@@ -57,6 +57,14 @@ BEGIN
   IF position('max(recent.offered_at)' IN v_matcher) = 0 THEN
     RAISE EXCEPTION 'Ties must prioritize the doctor waiting longest since their last offer';
   END IF;
+  IF position('search_timeout_at is null' IN v_matcher) = 0
+     OR position('search_timeout_at > now()' IN v_matcher) = 0 THEN
+    RAISE EXCEPTION 'Matcher must stop issuing new offers once the 15-minute search expires';
+  END IF;
+  IF position('new.search_started_at := pg_catalog.now()' IN lower(pg_get_functiondef('app_private.initialize_pharmacy_dispatch_search_window()'::regprocedure))) = 0
+     OR position('new.search_timeout_at := new.search_started_at + interval ''15 minutes''' IN lower(pg_get_functiondef('app_private.initialize_pharmacy_dispatch_search_window()'::regprocedure))) = 0 THEN
+    RAISE EXCEPTION 'Local search timestamps must be server-owned on insert';
+  END IF;
   IF position('interval ''15 minutes''' IN v_activation) = 0 THEN
     RAISE EXCEPTION 'Approved payment must start a full 15-minute local search window';
   END IF;
@@ -75,6 +83,7 @@ BEGIN
       AND NOT tgisinternal
       AND (tgtype & 2) = 2
       AND (tgtype & 4) = 4
+      AND (tgtype & 1) = 1
   ) THEN
     RAISE EXCEPTION 'Server-clock search window insert trigger is missing';
   END IF;
