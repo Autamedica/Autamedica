@@ -141,7 +141,7 @@ object CareCountryLocale {
             val target = normalized
                 ?: country?.let { runCatching { languageTagForCountry(it) }.getOrNull() }
             val manager = context.getSystemService(LocaleManager::class.java) ?: return
-            manager.applicationLocales = target?.let(LocaleList::forLanguageTags)
+            manager.applicationLocales = target?.let { LocaleList.forLanguageTags(it) }
                 ?: LocaleList.getEmptyLocaleList()
         } else {
             context.findActivity()?.recreate()
@@ -178,7 +178,7 @@ object CareCountryLocale {
 
     private fun supportedLanguageTag(value: String?): String? {
         val parsed = value?.trim()?.replace('_', '-')?.takeIf { it.isNotEmpty() }
-            ?.let(Locale::forLanguageTag) ?: return null
+            ?.let { Locale.forLanguageTag(it) } ?: return null
         return when (parsed.language.lowercase(Locale.ROOT)) {
             "es" -> "es"
             "pt" -> if (parsed.country.equals("BR", ignoreCase = true)) "pt-BR" else "pt"
