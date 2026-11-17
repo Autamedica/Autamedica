@@ -349,6 +349,13 @@ class PharmacyDispatchRepositoryImplTest {
     }
 
     @Test
+    fun `online presence heartbeat without an authenticated Supabase session never uses anon credentials`() = runTest {
+        val result = repository.sendDoctorPresenceHeartbeat()
+        assertThat(result.isFailure).isTrue()
+        assertThat(mockWebServer.requestCount).isEqualTo(0)
+    }
+
+    @Test
     fun `forbidden consultation finish never falls back to direct clinical updates`() = runTest {
         mockWebServer.enqueue(
             MockResponse()
