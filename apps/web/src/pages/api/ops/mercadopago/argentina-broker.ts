@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro'
 import { getRuntimeEnvValue } from '@/lib/runtime-env'
 import { verifyMercadoPagoBrokerRequest } from '@/lib/payments/mercadopago-broker-signature'
 import { badRequest, internalError, jsonOk, serviceUnavailable, unauthorized } from '@/lib/api-helpers'
+import { captureSentryException } from '@/lib/observability/sentry'
 
 const API = 'https://api.mercadopago.com'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -72,10 +73,30 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const token = (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN as string | undefined)
     ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN')
-  if (!token) return serviceUnavailable('argentina_mercadopago_access_not_configured')
+  if (!token) {
+    const error = new Error('argentina_mercadopago_access_not_configured')
+    captureSentryException(error, { surface: 'mercadopago_argentina_broker', layer: 'server', owner: 'argentina_broker', runtimeEnv: locals.runtime?.env, tags: { country: 'AR', failure_stage: 'resolve_access_token' } })
+    return serviceUnavailable('argentina_mercadopago_access_not_configured')
+  }
 
+  let failureStage = 'validate_argentina_access_token'
   try {
+    // Validate that the company secret belongs to Mercado Pago Argentina (MLA),
+    // rather than accepting a valid Brazilian (MLB) token by mistake.
+    const accountResponse = await providerFetch('/users/me', token)
+    if (!accountResponse.ok) {
+      const error = new Error('argentina_mercadopago_token_rejected')
+      captureSentryException(error, { surface: 'mercadopago_argentina_broker', layer: 'server', owner: 'argentina_broker', runtimeEnv: locals.runtime?.env, tags: { country: 'AR', failure_stage: 'validate_access_token', provider_http_status: accountResponse.status } })
+      return serviceUnavailable('argentina_mercadopago_token_rejected')
+    }
+    const account = await accountResponse.json() as { country_id?: string; site_id?: string }
+    if (account.country_id !== 'AR' || account.site_id !== 'MLA') {
+      const error = new Error('argentina_mercadopago_token_wrong_account')
+      captureSentryException(error, { surface: 'mercadopago_argentina_broker', layer: 'server', owner: 'argentina_broker', runtimeEnv: locals.runtime?.env, tags: { country: 'AR', failure_stage: 'validate_account_country', account_country: account.country_id ?? 'unknown', account_site: account.site_id ?? 'unknown' } })
+      return serviceUnavailable('argentina_mercadopago_token_wrong_account')
+    }
     if (body.action === 'create_preference') {
+      failureStage = 'create_preference';
       const amountMinor = Number(body.amountMinor)
       if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0) {
         return badRequest('invalid_argentina_payment_amount')
@@ -104,7 +125,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
           },
         }),
       })
-      if (!response.ok) return serviceUnavailable('argentina_mercadopago_checkout_unavailable')
+      if (!response.ok) {
+        const error = new Error('argentina_mercadopago_checkout_unavailable')
+        captureSentryException(error, { surface: 'mercadopago_argentina_broker', layer: 'server', owner: 'argentina_broker', runtimeEnv: locals.runtime?.env, tags: { country: 'AR', failure_stage: failureStage, provider_http_status: response.status } })
+        return serviceUnavailable('argentina_mercadopago_checkout_unavailable')
+      }
       const preference = await response.json() as { id?: string; init_point?: string }
       if (!preference.id || !preference.init_point?.startsWith('https://')) {
         return serviceUnavailable('argentina_mercadopago_preference_invalid')
@@ -140,7 +165,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     return badRequest('unsupported_argentina_broker_action')
-  } catch {
+  } catch (error) {
+    captureSentryException(error, { surface: 'mercadopago_argentina_broker', layer: 'server', owner: 'argentina_broker', runtimeEnv: locals.runtime?.env, tags: { country: 'AR', failure_stage: failureStage }, fingerprint: ['mercadopago-argentina-broker', failureStage] })
     return internalError('argentina_mercadopago_broker_failed')
   }
 }
