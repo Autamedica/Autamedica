@@ -21,6 +21,8 @@ const row = {
   cloudflare_room_id: 'cf-room-synthetic',
   requested_by_user_id: 'patient-user-1',
   status: 'searching',
+  search_started_at: '2026-11-17T00:00:00.000Z',
+  created_at: '2026-11-17T00:00:00.000Z',
 }
 
 function chain(data: unknown, error: unknown = null) {
@@ -101,7 +103,7 @@ describe('Gen-2 clinical pharmacy cancellation', () => {
     expect(response.status).toBe(200)
     expect((await response.json()).data.cancelled).toBe(true)
     expect(changed.update).toHaveBeenCalledWith({ status: 'cancelled' })
-    expect(changed.eq).toHaveBeenCalledWith('status', 'searching')
+    expect(changed.in).toHaveBeenCalledWith('status', ['searching', 'expired'])
     expect(supabaseMock.from).toHaveBeenNthCalledWith(1, 'pharmacy_dispatch_requests')
     expect(supabaseMock.from).toHaveBeenNthCalledWith(2, 'dispatch_offers')
     expect(supabaseMock.from).toHaveBeenNthCalledWith(3, 'pharmacy_dispatch_requests')
@@ -145,8 +147,9 @@ describe('Gen-2 clinical pharmacy cancellation', () => {
 
   it('oculta al cliente el contenido confidencial de errores SQL', async () => {
     const original = chain(row)
+    const offerLookup = chain(null)
     const changed = chain(null, { code: '23514', message: 'SECRET CLINICAL DETAILS' })
-    supabaseMock.from.mockReturnValueOnce(original).mockReturnValueOnce(changed)
+    supabaseMock.from.mockReturnValueOnce(original).mockReturnValueOnce(offerLookup).mockReturnValueOnce(changed)
     const response = await POST(context({ requestId: ID }, 'patient-user-1'))
     expect(response.status).toBe(500)
     expect(JSON.stringify(await response.json())).not.toContain('SECRET CLINICAL DETAILS')
