@@ -340,17 +340,19 @@ jobs:
             export PUBLIC_SIGNALING_URL="${PUBLIC_SIGNALING_URL:-wss://autamedica-http-signaling-server.marques-eduardo95466020.workers.dev/signaling}"
             export PUBLIC_APP_URL="${PUBLIC_APP_URL:-https://www.autamedica.com}"
             export RENAPDIS_RL_NUMBER="${RENAPDIS_RL_NUMBER:-RL-2026-47574120-APN-SSVEIYES#MS}"
-            missing=0
+            missing_vars=()
             for key in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID PUBLIC_SUPABASE_URL PUBLIC_SUPABASE_ANON_KEY; do
               if [[ -z "${!key:-}" ]]; then
                 echo "MISSING_REQUIRED_VARIABLE: ${key}"
-                missing=1
+                missing_vars+=("${key}")
               else
                 echo "PRESENT_VARIABLE: ${key}"
               fi
             done
-            if [[ "${missing}" -ne 0 ]]; then
-              echo "NO-GO: One or more required CircleCI environment variables are missing. Configure them in CircleCI Project Settings -> Environment Variables."
+            if [[ "${#missing_vars[@]}" -gt 0 ]]; then
+              missing_list=$(IFS=', '; echo "${missing_vars[*]}")
+              echo "NO-GO: Missing required CircleCI environment variable(s): ${missing_list}"
+              echo "Configure the listed variable(s) in CircleCI Project Settings -> Environment Variables."
               exit 1
             fi
       - run:
@@ -371,7 +373,7 @@ jobs:
             export PUBLIC_PATIENTS_URL="https://paciente.autamedica.com"
             export PUBLIC_DOCTORS_URL="https://doctor.autamedica.com"
             export PUBLIC_COMPANIES_URL="https://empresa.autamedica.com"
-            export PUBLIC_ADMIN_URL="https://autamedica-admin.pages.dev"
+            export PUBLIC_ADMIN_URL="https://autamedica-admin-5r9.pages.dev"
             export RENAPDIS_RL_NUMBER="${RENAPDIS_RL_NUMBER:-RL-2026-47574120-APN-SSVEIYES#MS}"
             pnpm build:packages:core
             pnpm --filter @autamedica/web build
@@ -395,7 +397,7 @@ jobs:
             done
             for project in "${projects[@]}"; do
               echo "Deploying ${project} from apps/web/dist to branch main..."
-              npx wrangler pages deploy dist --project-name="${project}" --branch=main --commit-hash="${CIRCLE_SHA1}" --commit-dirty=false
+              npx --yes wrangler@4.76.0 pages deploy dist --project-name="${project}" --branch=main --commit-hash="${CIRCLE_SHA1}" --commit-dirty=false
               response=$(curl --fail --silent --show-error --max-time 30 \
                 "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${project}" \
                 -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
@@ -415,7 +417,7 @@ jobs:
               https://paciente.autamedica.com \
               https://doctor.autamedica.com \
               https://empresa.autamedica.com \
-              https://autamedica-admin.pages.dev
+              https://autamedica-admin-5r9.pages.dev
             do
               status=$(curl -so /dev/null -w '%{http_code}' -L --max-time 30 "${url}")
               echo "${url}: HTTP ${status}"
