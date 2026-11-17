@@ -576,7 +576,7 @@ export function DoctorsPrescriptionsPage() {
                   setEditingPrescription(null);
                   setShowCreateModal(true);
                 }}
-                className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-neutral-800 active:scale-[0.97]"
+                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700 active:scale-[0.97]"
               >
                 <Plus className="h-4 w-4" />
                 {certificateCountry === "AR"
@@ -596,7 +596,7 @@ export function DoctorsPrescriptionsPage() {
             )}
             <button
               onClick={() => setShowCertificateModal(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-teal-700 active:scale-[0.97]"
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700 active:scale-[0.97]"
             >
               <FileText className="h-4 w-4" />
               Preparar atestado
@@ -641,7 +641,7 @@ export function DoctorsPrescriptionsPage() {
                       onClick={() => setSelectedPatientId(isSelected ? null : p.id)}
                       className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-all ${
                         isSelected
-                          ? "border-neutral-900 bg-neutral-900 text-white"
+                          ? "border-neutral-900 bg-blue-600 text-white"
                           : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50"
                       }`}
                     >
@@ -678,14 +678,14 @@ export function DoctorsPrescriptionsPage() {
                   setEditingPrescription(null);
                   setShowCreateModal(true);
                 }}
-                className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
+                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
               >
                 <Plus className="h-4 w-4" />
                 Nueva receta
               </button>
               <button
                 onClick={() => setShowCertificateModal(true)}
-                className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-teal-700"
+                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
               >
                 <FileText className="h-4 w-4" />
                 Preparar atestado
@@ -705,7 +705,7 @@ export function DoctorsPrescriptionsPage() {
                   onClick={() => setDocMode("prescriptions")}
                   className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
                     docMode === "prescriptions"
-                      ? "bg-neutral-900 text-white shadow-sm"
+                      ? "bg-blue-600 text-white shadow-sm"
                       : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
                   }`}
                 >
@@ -727,7 +727,7 @@ export function DoctorsPrescriptionsPage() {
                   onClick={() => setDocMode("certificates")}
                   className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
                     docMode === "certificates"
-                      ? "bg-teal-700 text-white shadow-sm"
+                      ? "bg-blue-700 text-white shadow-sm"
                       : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
                   }`}
                 >
@@ -749,7 +749,7 @@ export function DoctorsPrescriptionsPage() {
                 <button
                   type="button"
                   onClick={() => setShowCertificateModal(true)}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-teal-700 transition"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 transition"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Preparar atestado
@@ -903,7 +903,7 @@ export function DoctorsPrescriptionsPage() {
                               setEditingPrescription(null);
                               setShowCreateModal(true);
                             }}
-                            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
+                            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
                           >
                             <Plus className="h-4 w-4" />
                             Nueva receta
@@ -961,7 +961,7 @@ export function DoctorsPrescriptionsPage() {
                                       href={viewUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-neutral-800 shadow-sm"
+                                      className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-blue-700 shadow-sm"
                                       title="Descargar o ver PDF oficial"
                                     >
                                       <Download className="h-3.5 w-3.5" />
@@ -1043,7 +1043,7 @@ export function DoctorsPrescriptionsPage() {
                     <button
                       type="button"
                       onClick={() => setShowCertificateModal(true)}
-                      className="mt-4 inline-flex items-center gap-2 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-teal-700 shadow-sm"
+                      className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 shadow-sm"
                     >
                       <Plus className="h-4 w-4" />
                       Preparar atestado
@@ -1076,7 +1076,7 @@ export function DoctorsPrescriptionsPage() {
                           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                             <div className="flex-1 min-w-0">
                               <div className="flex flex-wrap items-center gap-2 mb-2">
-                                <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700 border border-teal-200">
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 border border-blue-200">
                                   <FileCheck className="h-3 w-3" />
                                   {typeLabel}
                                 </span>
@@ -1131,7 +1131,7 @@ export function DoctorsPrescriptionsPage() {
                                 <Clock className="h-3 w-3" />
                                 <span>{formatDateTime(cert.created_at)}</span>
                                 {cert.status === "signed" && cert.cuir && (
-                                  <span className="font-mono text-[10px] text-teal-600 font-semibold bg-teal-50 px-2 py-0.5 rounded border border-teal-100">
+                                  <span className="font-mono text-[10px] text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
                                     Ref.: {cert.cuir}
                                   </span>
                                 )}
@@ -1156,7 +1156,7 @@ export function DoctorsPrescriptionsPage() {
                                   href={certUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1.5 rounded-lg bg-teal-700 px-3 py-2 text-xs font-medium text-white transition hover:bg-teal-800 shadow-sm"
+                                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-700 px-3 py-2 text-xs font-medium text-white transition hover:bg-blue-800 shadow-sm"
                                   title={
                                     cert.status === "draft"
                                       ? "Descargar PDF privado sin firma"
@@ -1429,7 +1429,7 @@ function PrescriptionDetailPanel({
               href={signedPdfUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 transition shadow-sm"
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm"
             >
               <Download className="h-4 w-4" />
               Descargar PDF oficial

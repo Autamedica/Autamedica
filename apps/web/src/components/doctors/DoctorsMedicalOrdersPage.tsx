@@ -180,7 +180,7 @@ export function DoctorsMedicalOrdersPage() {
             type="button"
             onClick={() => setShowCreateModal(true)}
             disabled={!selectedPatientId}
-            className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Plus className="h-4 w-4" />
             Nueva solicitud
@@ -218,7 +218,7 @@ export function DoctorsMedicalOrdersPage() {
                       onClick={() => setSelectedPatientId(isSelected ? null : patient.id)}
                       className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-all ${
                         isSelected
-                          ? "border-neutral-900 bg-neutral-900 text-white"
+                          ? "border-neutral-900 bg-blue-600 text-white"
                           : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50"
                       }`}
                     >
@@ -266,7 +266,7 @@ export function DoctorsMedicalOrdersPage() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(true)}
-                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
+                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
                 >
                   <Plus className="h-4 w-4" />
                   Nueva solicitud
@@ -309,7 +309,7 @@ export function DoctorsMedicalOrdersPage() {
                           await medicalOrderService.issue(order.id);
                           await refreshOrders();
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-700 transition hover:border-teal-300 hover:bg-teal-100"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:border-blue-300 hover:bg-blue-100"
                       >
                         Emitir
                       </button>
