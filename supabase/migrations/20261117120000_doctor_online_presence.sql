@@ -61,4 +61,33 @@ $presence$;
 REVOKE ALL ON FUNCTION public.heartbeat_my_doctor_presence() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.heartbeat_my_doctor_presence() TO authenticated, service_role;
 
+-- Admin-only country aggregates; no clinician identities are exposed.
+CREATE OR REPLACE FUNCTION public.admin_get_online_doctors_by_country()
+RETURNS TABLE (care_country text, online_count bigint)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path TO ''
+AS $summary$
+  SELECT
+    countries.care_country,
+    count(DISTINCT presence.doctor_id)::bigint AS online_count
+  FROM (VALUES ('AR'::text), ('BR'::text)) AS countries(care_country)
+  LEFT JOIN public.doctors d
+    ON upper(d.care_country) = countries.care_country
+   AND d.active IS TRUE
+  LEFT JOIN public.profiles p
+    ON p.user_id = d.user_id
+   AND p.active IS TRUE
+   AND p.role = 'doctor'
+  LEFT JOIN public.doctor_presence presence
+    ON presence.doctor_id = d.id
+   AND p.user_id IS NOT NULL
+   AND presence.last_seen_at > clock_timestamp() - interval '90 seconds'
+  GROUP BY countries.care_country
+  ORDER BY countries.care_country;
+$summary$;
+
+REVOKE ALL ON FUNCTION public.admin_get_online_doctors_by_country() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_get_online_doctors_by_country() TO service_role;
+
 COMMIT;
