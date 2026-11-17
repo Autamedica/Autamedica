@@ -126,6 +126,8 @@ export function PharmacyExpressConsultation({
         setRecoveryToken(saved.recoveryToken)
         setCallRoomId(restored.request.cloudflare_room_id)
         setWaitingStartedAt(restored.request.search_started_at ? Date.parse(restored.request.search_started_at) : null)
+        setCountryPaymentApproved(restored.request.status !== 'pending_payment')
+        if (restored.request.status === 'expired') setWaitingSeconds(15 * 60)
         setFormData((current) => ({ ...current, careCountry: country }))
         const next = { ...saved, guestToken: restored.accessToken, country, careCountry: country, savedAt: Date.now() }
         window.sessionStorage.setItem(key, JSON.stringify(next))
@@ -218,6 +220,9 @@ export function PharmacyExpressConsultation({
       if (!req) return
       if (Array.isArray(data.documents)) setDocuments(data.documents)
       if (req.search_started_at) setWaitingStartedAt(Date.parse(req.search_started_at))
+      if (req.status === 'searching' || req.status === 'matched' || req.status === 'in_call' || req.status === 'expired') {
+        setCountryPaymentApproved(true)
+      }
       if (req.status === 'expired') setWaitingSeconds(15 * 60)
 
       // `assigned` no pertenece al enum `dispatch_request_status` de la tabla
