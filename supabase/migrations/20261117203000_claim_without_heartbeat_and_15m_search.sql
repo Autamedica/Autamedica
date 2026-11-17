@@ -110,6 +110,15 @@ BEGIN
     RETURN jsonb_build_object('cancelled',false,'code','WAIT_WINDOW_NOT_REACHED');
   END IF;
 
+  IF EXISTS (
+    SELECT 1 FROM public.dispatch_offers offer
+    WHERE offer.dispatch_request_id=p_request_id
+      AND offer.status='pending'
+      AND offer.expires_at>now()
+  ) THEN
+    RETURN jsonb_build_object('cancelled',false,'code','DOCTOR_OFFER_STILL_ACTIVE');
+  END IF;
+
   UPDATE public.pharmacy_dispatch_requests
   SET status='cancelled', updated_at=NOW()
   WHERE id=p_request_id AND status IN ('searching','expired');
