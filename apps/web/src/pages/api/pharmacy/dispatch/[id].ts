@@ -333,6 +333,7 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
         if (secret) {
           const guestPayload = await verifyGuestToken(guestToken, secret)
           guestAuthorized = Boolean(
+            requestRecord.requested_by_user_id === null &&
             guestPayload &&
             guestPayload.callId === requestRecord.id &&
             guestPayload.roomId === requestRecord.cloudflare_room_id,
