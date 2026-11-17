@@ -669,6 +669,7 @@ fun VideoCallScreen(
                 viewModel::openMemedForBrazil
             } else null,
             memedLaunchError = uiState.memedLaunchError,
+            memedLaunchNotice = uiState.memedLaunchNotice,
             isVerifyingMemedPrescription = uiState.isVerifyingMemedPrescription,
             onIssuePrescription = { med, dosage, instructions, diagnosis, onResult ->
                 viewModel.issueInCallPrescription(
