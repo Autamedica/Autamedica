@@ -1,4 +1,5 @@
--- Contract test for FCM-backed guard presence. Disposable local Supabase only.
+-- Contract test for FCM push reachability and heartbeat-gated dispatch offers.
+-- Disposable local Supabase only.
 BEGIN;
 DO $presence$
 DECLARE
@@ -18,11 +19,11 @@ BEGIN
      OR position('match_dispatch_doctors_without_switch' IN v_matcher)=0 THEN
     RAISE EXCEPTION 'Public matcher must enforce configured country payment before delegating';
   END IF;
-  IF position('fcm_token' IN v_private_matcher)=0
-     OR position('last_heartbeat_at' IN v_private_matcher)=0
-     OR position('dds.is_on_duty' IN v_private_matcher)=0
-     OR position('or exists (' IN v_private_matcher)=0 THEN
-    RAISE EXCEPTION 'Private matcher must require active guard and (fresh heartbeat OR registered FCM)';
+  IF position('dds.last_heartbeat_at >= now() - interval ''90 seconds''' IN v_private_matcher)=0
+     OR position('fcm_token' IN v_private_matcher)>0
+     OR position('or exists (' IN v_private_matcher)>0
+     OR position('dds.is_on_duty' IN v_private_matcher)=0 THEN
+    RAISE EXCEPTION 'Private matcher must require heartbeat <=90 seconds; FCM alone must never qualify';
   END IF;
   IF position('fcm_token' IN v_capacity)=0
      OR position('s.is_on_duty' IN v_capacity)=0 THEN
