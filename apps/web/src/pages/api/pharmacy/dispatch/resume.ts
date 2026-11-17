@@ -43,7 +43,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const { data: activeRequest, error: requestError } = await admin
       .from('pharmacy_dispatch_requests')
-      .select('id,cloudflare_room_id,patient_name,patient_dni,patient_cpf,patient_phone,tier_requested,symptom_summary,status,created_at,care_country,assigned_doctor_id,referral_partner_id,requested_by_user_id')
+      .select('id,cloudflare_room_id,patient_name,patient_dni,patient_cpf,patient_phone,tier_requested,symptom_summary,status,created_at,care_country,assigned_doctor_id,referral_partner_id,requested_by_user_id,search_started_at,search_timeout_at,international_search_enabled,international_search_started_at')
       .eq('id', requestId)
       .maybeSingle()
 
