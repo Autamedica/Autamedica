@@ -176,7 +176,7 @@ describe('Gen-2 clinical pharmacy cancellation', () => {
     const token = await signGuestToken(
       { callId: ID, roomId: row.cloudflare_room_id, guestName: 'Synthetic guest' }, SECRET,
     )
-    const original = chain({ ...row, status: 'in_call' })
+    const original = chain({ ...row, requested_by_user_id: null, status: 'in_call' })
     supabaseMock.from.mockReturnValue(original)
     const response = await POST(context({ requestId: ID, accessToken: token }))
     expect((await response.json()).data.cancelled).toBe(false)
