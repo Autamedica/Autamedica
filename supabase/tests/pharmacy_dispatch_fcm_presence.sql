@@ -1,5 +1,5 @@
--- Contract test: FCM is the delivery mechanism for incoming offers, not a
--- prerequisite for explicit clinical on-duty membership in the sequential queue.
+-- Contract test: on-duty membership is independent of reachability, but offers
+-- require a fresh heartbeat. FCM is push delivery only. Disposable local Supabase.
 BEGIN;
 DO $presence$
 DECLARE
@@ -20,23 +20,25 @@ BEGIN
     RAISE EXCEPTION 'Public matcher must enforce configured country payment before delegating';
   END IF;
 
-  IF position('fcm_token' IN v_private_matcher)>0
-     OR position('last_heartbeat_at' IN v_private_matcher)>0
+  IF position('dds.last_heartbeat_at >= now() - interval ''90 seconds''' IN v_private_matcher)=0
+     OR position('fcm_token' IN v_private_matcher)>0
      OR position('dds.is_on_duty' IN v_private_matcher)=0
      OR position('is_doctor_dispatch_approved' IN v_private_matcher)=0 THEN
-    RAISE EXCEPTION 'Private matcher must use explicit approved guard duty, independently of heartbeat or FCM';
+    RAISE EXCEPTION 'Private matcher must require heartbeat <=90 seconds; FCM alone must never qualify';
   END IF;
 
+  -- Guard membership/capacity is explicit; do not hide on-duty doctors merely
+  -- because their app heartbeat is stale. The offer matcher remains the hard gate.
   IF position('fcm_token' IN v_capacity)>0
      OR position('last_heartbeat_at' IN v_capacity)>0
      OR position('s.is_on_duty' IN v_capacity)=0 THEN
-    RAISE EXCEPTION 'Country capacity must reflect active guard duty, independently of heartbeat and FCM';
+    RAISE EXCEPTION 'Country capacity must reflect explicit on-duty membership';
   END IF;
 
   IF position('fcm_token' IN v_trigger)>0
      OR position('new.last_heartbeat_at' IN v_trigger)>0
      OR position('new.is_on_duty' IN v_trigger)=0 THEN
-    RAISE EXCEPTION 'Waiting queue trigger must react to explicit guard activation, not FCM or heartbeat';
+    RAISE EXCEPTION 'Waiting queue trigger must react to explicit guard activation';
   END IF;
 
   IF position('last_heartbeat_at' IN v_activation)=0
