@@ -1,5 +1,6 @@
 package com.autamedica.android.presentation.ondemand
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autamedica.android.di.IoDispatcher
@@ -10,6 +11,8 @@ import com.autamedica.android.domain.repository.DoctorRepository
 import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.logging.SecureLog
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import com.autamedica.android.service.DoctorDutyHeartbeatService
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -44,6 +47,7 @@ class DoctorOnDemandViewModel @Inject constructor(
     private val pharmacyDispatchRepository: PharmacyDispatchRepository,
     private val connectivityObserver: com.autamedica.android.util.ConnectivityObserver,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    @ApplicationContext private val applicationContext: Context? = null,
 ) : ViewModel() {
 
     companion object {
@@ -63,12 +67,29 @@ class DoctorOnDemandViewModel @Inject constructor(
     private var heartbeatJob: Job? = null
     private var networkObservationJob: Job? = null
     private val heartbeatTrigger = kotlinx.coroutines.channels.Channel<Unit>(kotlinx.coroutines.channels.Channel.CONFLATED)
+    private var persistentHeartbeatServiceStarted = false
 
     private fun startHeartbeat(doctorIdParam: String? = null) {
         val doctorId = doctorIdParam?.takeIf { it.isNotBlank() } ?: _uiState.value.doctorId
         if (doctorId.isBlank()) return
 
         stopHeartbeat()
+
+        // The foreground service outlives this ViewModel and keeps clinical duty
+        // heartbeats alive with the screen off. Keep the in-process loop only as
+        // a fallback for previews/tests or when Android rejects service startup.
+        val appContext = applicationContext
+        if (appContext != null) {
+            DoctorDutyHeartbeatService.start(appContext, doctorId)
+                .onSuccess {
+                    persistentHeartbeatServiceStarted = true
+                    SecureLog.info("[DoctorOnDemand] Persistent duty heartbeat service started")
+                    return
+                }
+                .onFailure { error ->
+                    SecureLog.error("[DoctorOnDemand] Persistent heartbeat service unavailable; using foreground fallback", error)
+                }
+        }
 
         // 1. Escuchar reconexión de red para emitir heartbeat de inmediato sin esperar los 30s
         networkObservationJob = viewModelScope.launch(ioDispatcher) {
@@ -115,11 +136,15 @@ class DoctorOnDemandViewModel @Inject constructor(
         }
     }
 
-    private fun stopHeartbeat() {
+    private fun stopHeartbeat(stopPersistentService: Boolean = false) {
         heartbeatJob?.cancel()
         heartbeatJob = null
         networkObservationJob?.cancel()
         networkObservationJob = null
+        if (stopPersistentService && persistentHeartbeatServiceStarted) {
+            applicationContext?.let(DoctorDutyHeartbeatService::stop)
+            persistentHeartbeatServiceStarted = false
+        }
     }
 
     init {
@@ -152,7 +177,7 @@ class DoctorOnDemandViewModel @Inject constructor(
                 // since this screen was opened.
                 val approval = pharmacyDispatchRepository.getMyGuardApproval().getOrNull()
                 if (approval?.approved != true) {
-                    stopHeartbeat()
+                    stopHeartbeat(stopPersistentService = true)
                     _uiState.update {
                         it.copy(
                             isOnDuty = false,
@@ -177,7 +202,7 @@ class DoctorOnDemandViewModel @Inject constructor(
                 if (target) {
                     startHeartbeat(doctorId)
                 } else {
-                    stopHeartbeat()
+                    stopHeartbeat(stopPersistentService = true)
                 }
             }.onFailure { error ->
                 SecureLog.error("[DoctorOnDemand] Failed toggling duty", error)
@@ -289,7 +314,7 @@ class DoctorOnDemandViewModel @Inject constructor(
                         if (duty.isOnDuty && isAuthorized) {
                             startHeartbeat(profile.id)
                         } else {
-                            stopHeartbeat()
+                            stopHeartbeat(stopPersistentService = true)
                         }
                     }
                     .onFailure { error ->
