@@ -66,7 +66,9 @@ BEGIN
   END IF;
   IF position('wait_window_not_reached' IN v_cancel) = 0
      OR position('interval ''15 minutes''' IN v_cancel) = 0
-     OR position('status in (''searching'',''expired'')' IN v_cancel) = 0 THEN
+     OR position('status in (''searching'',''expired'')' IN v_cancel) = 0
+     OR position('offer.status=''pending''' IN v_cancel) = 0
+     OR position('offer.expires_at>now()' IN v_cancel) = 0 THEN
     RAISE EXCEPTION 'Patient cancellation must unlock only after 15 minutes for an unassigned request';
   END IF;
 END;
