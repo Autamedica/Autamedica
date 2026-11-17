@@ -299,6 +299,16 @@ describe('API: /api/pharmacy/dispatch/payment/create pay-first', () => {
       }),
       buildChain({ doctor_fee_minor: 800000, price_minor: 1500000, currency: 'ARS' }),
       legacyManual,
+      buildChain({
+        jordan_qr_payments_enabled: true,
+        pharmacy_express_payments_enabled: true,
+        global_pix_mp_payments_enabled: true,
+      }),
+      buildChain([
+        { scope_key: 'AR', commercial_status: 'enabled', financial_status: 'ready' },
+        { scope_key: 'EXPRESS', commercial_status: 'enabled', financial_status: 'ready' },
+        { scope_key: 'JORDAN', commercial_status: 'enabled', financial_status: 'ready' },
+      ]),
       migration,
       saveCheckout,
     ]
