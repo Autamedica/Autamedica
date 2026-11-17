@@ -54,7 +54,7 @@ function buildChain(data: unknown, error: unknown = null) {
   return chain
 }
 
-function makeContext(): Parameters<typeof POST>[0] {
+function makeContext(envOverrides: Record<string, string> = {}): Parameters<typeof POST>[0] {
   return {
     request: new Request('https://autamedica.test/api/pharmacy/dispatch/payment/create', {
       method: 'POST',
@@ -68,6 +68,7 @@ function makeContext(): Parameters<typeof POST>[0] {
           GUEST_TOKEN_SECRET: 'test-guest-secret-long-enough-for-security',
           MERCADOPAGO_ACCESS_TOKEN: 'test-provider-token',
           PUBLIC_APP_URL: 'https://autamedica.test',
+          ...envOverrides,
         },
       },
     },
@@ -172,36 +173,26 @@ describe('API: /api/pharmacy/dispatch/payment/create pay-first', () => {
     expect(supabaseMock.from).toHaveBeenCalledTimes(3)
     expect(fetch).not.toHaveBeenCalled()
   })
-  it('creates a pending audited ARS manual-pilot payment without requiring the MP rail', async () => {
+  it('does not create an internal-only ARS payment when the Argentina PSP credential is missing', async () => {
     paymentAccessMock.authorize.mockResolvedValue({
       id: 'dispatch-1',
       care_country: 'AR',
       tier_requested: 'general',
       status: 'searching',
     })
-    const partner = buildChain({
-      referral_partner_id: 'partner-jordan',
-      commercial_referral_partners: { code: 'JORDAN', active: true },
-    })
-    const tariff = buildChain({
-      country_code: 'AR', currency: 'ARS', consultation_price_minor: 1500000,
-      doctor_fee_minor: 800000, partner_commission_minor: 200000,
-      require_payment_before_dispatch: true,
-    })
-    const quote = buildChain({ doctor_fee_minor: 800000, price_minor: 1500000, currency: 'ARS' })
-    const oldPayment = buildChain(null)
-    const switches = buildChain({
-      jordan_qr_payments_enabled: true,
-      pharmacy_express_payments_enabled: true,
-      global_pix_mp_payments_enabled: false,
-    })
-    const scopes = buildChain([
-      { scope_key: 'AR', commercial_status: 'enabled', financial_status: 'ready' },
-      { scope_key: 'EXPRESS', commercial_status: 'enabled', financial_status: 'ready' },
-      { scope_key: 'JORDAN', commercial_status: 'enabled', financial_status: 'ready' },
-    ])
-    const insert = buildChain({ id: 'payment-ar-manual' })
-    const chains = [partner, tariff, quote, oldPayment, switches, scopes, insert]
+    const chains = [
+      buildChain({
+        referral_partner_id: 'partner-jordan',
+        commercial_referral_partners: { code: 'JORDAN', active: true },
+      }),
+      buildChain({
+        country_code: 'AR', currency: 'ARS', consultation_price_minor: 1500000,
+        doctor_fee_minor: 800000, partner_commission_minor: 200000,
+        require_payment_before_dispatch: true,
+      }),
+      buildChain({ doctor_fee_minor: 800000, price_minor: 1500000, currency: 'ARS' }),
+      buildChain(null),
+    ]
     supabaseMock.from.mockImplementation(() => {
       const next = chains.shift()
       if (!next) throw new Error('Unexpected Supabase query')
@@ -211,28 +202,130 @@ describe('API: /api/pharmacy/dispatch/payment/create pay-first', () => {
     const response = await POST(makeContext())
     const body = await response.json()
 
+    expect(response.status).toBe(503)
+    expect(body.error.message).toBe('argentina_checkout_not_configured')
+    expect(supabaseMock.from).toHaveBeenCalledTimes(4)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('creates a real ARS Mercado Pago checkout with the Argentina credential', async () => {
+    paymentAccessMock.authorize.mockResolvedValue({
+      id: 'dispatch-1',
+      care_country: 'AR',
+      tier_requested: 'general',
+      status: 'searching',
+    })
+    const chains = [
+      buildChain({
+        referral_partner_id: 'partner-jordan',
+        commercial_referral_partners: { code: 'JORDAN', active: true },
+      }),
+      buildChain({
+        country_code: 'AR', currency: 'ARS', consultation_price_minor: 1500000,
+        doctor_fee_minor: 800000, partner_commission_minor: 200000,
+        require_payment_before_dispatch: true,
+      }),
+      buildChain({ doctor_fee_minor: 800000, price_minor: 1500000, currency: 'ARS' }),
+      buildChain(null),
+      buildChain({
+        jordan_qr_payments_enabled: true,
+        pharmacy_express_payments_enabled: true,
+        global_pix_mp_payments_enabled: true,
+      }),
+      buildChain([
+        { scope_key: 'AR', commercial_status: 'enabled', financial_status: 'ready' },
+        { scope_key: 'EXPRESS', commercial_status: 'enabled', financial_status: 'ready' },
+        { scope_key: 'JORDAN', commercial_status: 'enabled', financial_status: 'ready' },
+      ]),
+      buildChain({ id: 'payment-ar' }),
+      buildChain({ id: 'payment-ar' }),
+    ]
+    supabaseMock.from.mockImplementation(() => {
+      const next = chains.shift()
+      if (!next) throw new Error('Unexpected Supabase query')
+      return next
+    })
+
+    const response = await POST(makeContext({ MERCADOPAGO_ACCESS_TOKEN_AR: 'test-ar-provider-token' }))
+    const body = await response.json()
+
     expect(response.status).toBe(200)
     expect(body.data).toMatchObject({
       status: 'pending',
-      checkoutUrl: null,
+      checkoutUrl: 'https://www.mercadopago.com.br/checkout/test',
       amountCents: 1500000,
       currency: 'ARS',
-      manualApprovalRequired: true,
     })
-    expect(insert.insert).toHaveBeenCalledWith(expect.objectContaining({
-      dispatch_request_id: 'dispatch-1',
-      amount_minor: 1500000,
-      currency: 'ARS',
+    expect(chains).toHaveLength(0)
+    expect(fetch).toHaveBeenCalledWith(
+      'https://api.mercadopago.com/checkout/preferences',
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer test-ar-provider-token' }),
+        body: expect.stringContaining('"currency_id":"ARS"'),
+      }),
+    )
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('migrates an old internal manual-pilot row into a real ARS checkout when the AR credential exists', async () => {
+    paymentAccessMock.authorize.mockResolvedValue({
+      id: 'dispatch-1',
+      care_country: 'AR',
+      tier_requested: 'general',
+      status: 'searching',
+    })
+    const legacyManual = buildChain({
+      id: 'payment-legacy',
       status: 'pending',
       provider: 'manual',
+      amount_minor: 1500000,
+      currency: 'ARS',
+      checkout_url: null,
+      provider_preference_id: null,
+      provider_payment_id: null,
+      metadata: { payment_mode: 'manual_pilot', manual_approval_pending: true, country_code: 'AR' },
+    })
+    const migration = buildChain({ id: 'payment-legacy' })
+    const saveCheckout = buildChain({ id: 'payment-legacy' })
+    const chains = [
+      buildChain({
+        referral_partner_id: 'partner-jordan',
+        commercial_referral_partners: { code: 'JORDAN', active: true },
+      }),
+      buildChain({
+        country_code: 'AR', currency: 'ARS', consultation_price_minor: 1500000,
+        doctor_fee_minor: 800000, partner_commission_minor: 200000,
+        require_payment_before_dispatch: true,
+      }),
+      buildChain({ doctor_fee_minor: 800000, price_minor: 1500000, currency: 'ARS' }),
+      legacyManual,
+      migration,
+      saveCheckout,
+    ]
+    supabaseMock.from.mockImplementation(() => {
+      const next = chains.shift()
+      if (!next) throw new Error('Unexpected Supabase query')
+      return next
+    })
+
+    const response = await POST(makeContext({ MERCADOPAGO_ACCESS_TOKEN_AR: 'test-ar-provider-token' }))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.data).toMatchObject({
+      status: 'pending',
+      checkoutUrl: 'https://www.mercadopago.com.br/checkout/test',
+      currency: 'ARS',
+    })
+    expect(migration.update).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'initializing',
+      provider: 'mercadopago',
       metadata: expect.objectContaining({
-        payment_mode: 'manual_pilot',
-        manual_approval_pending: true,
-        country_code: 'AR',
+        payment_mode: 'mercadopago_ar',
+        manual_approval_pending: false,
       }),
     }))
-    expect(supabaseMock.from).toHaveBeenCalledTimes(7)
-    expect(fetch).not.toHaveBeenCalled()
+    expect(fetch).toHaveBeenCalledTimes(1)
   })
 
 })
