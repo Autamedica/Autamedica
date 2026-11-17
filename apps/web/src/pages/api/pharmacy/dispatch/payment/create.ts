@@ -16,11 +16,21 @@ interface CheckoutPreference {
 
 const API = 'https://api.mercadopago.com'
 
+async function readArgentinaBrokerErrorCode(response: Response): Promise<string | null> {
+  const payload = await response.clone().json().catch(() => null) as {
+    error?: { code?: unknown; message?: unknown }
+  } | null
+  const code = payload?.error?.message ?? payload?.error?.code
+  return typeof code === 'string' && /^[a-z0-9_]{2,80}$/i.test(code) ? code : null
+}
+
 export const POST: APIRoute = async ({ request, locals }) => {
   let initializedPaymentId: string | null = null
   let admin: SupabaseClient | null = null
   let failureStage = 'initialize'
   let failureCountry: 'AR' | 'BR' | 'unknown' = 'unknown'
+  let brokerHttpStatus: number | null = null
+  let brokerErrorCode: string | null = null
   try {
     admin = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient
     if (!hasSecureGuestPaymentSecret(locals.runtime?.env)) return serviceUnavailable('pharmacy_checkout_guest_security_not_configured')
@@ -111,9 +121,59 @@ export const POST: APIRoute = async ({ request, locals }) => {
         if (recoverError) throw recoverError
         if (!recovered) return serviceUnavailable('checkout_already_initializing')
         initializedPaymentId = old.id
+      } else if (old.status === 'failed' && currency === 'ARS' &&
+          !old.provider_preference_id && !old.provider_payment_id && !old.checkout_url) {
+        // A failed AR checkout with no stored preference/payment cannot be shown to the patient.
+        // Reconcile the provider's payment ledger before retrying; this prevents a second
+        // preference when an earlier payment actually exists while unblocking transient failures.
+        failureStage = 'argentina_reconcile_signature'
+        const brokerPath = '/api/ops/mercadopago/argentina-broker'
+        const reconcileBody = JSON.stringify({ action: 'search_payment', dispatchId: dispatch.id })
+        const reconcileHeaders = await createMercadoPagoBrokerHeaders(
+          'POST', brokerPath, reconcileBody, locals.runtime?.env,
+        )
+        failureStage = 'argentina_reconcile_http'
+        const reconcileResponse = await fetch('https://empresa.autamedica.com' + brokerPath, {
+          method: 'POST', headers: reconcileHeaders, body: reconcileBody,
+          signal: AbortSignal.timeout(18000),
+        })
+        if (!reconcileResponse.ok) {
+          brokerHttpStatus = reconcileResponse.status
+          brokerErrorCode = await readArgentinaBrokerErrorCode(reconcileResponse)
+          throw new Error('argentina_checkout_reconciliation_unavailable')
+        }
+        failureStage = 'argentina_reconcile_response'
+        const reconcileResult = await reconcileResponse.json() as {
+          success?: boolean
+          data?: { found?: boolean; payment?: { status?: string } }
+        }
+        if (reconcileResult.success !== true || typeof reconcileResult.data?.found !== 'boolean') {
+          throw new Error('argentina_checkout_reconciliation_response_invalid')
+        }
+        const providerPaymentStatus = reconcileResult.data.payment?.status ?? ''
+        if (reconcileResult.data.found && !['rejected', 'cancelled'].includes(providerPaymentStatus)) {
+          return serviceUnavailable('checkout_requires_manual_reconciliation')
+        }
+        const { data: recovered, error: recoverError } = await admin.from('pharmacy_dispatch_payments')
+          .update({
+            status: 'initializing',
+            metadata: {
+              ...(old.metadata ?? {}),
+              payment_mode: 'mercadopago',
+              manual_approval_pending: false,
+              recovered_failed_checkout_at: new Date().toISOString(),
+              provider_reconciliation: reconcileResult.data.found ? providerPaymentStatus : 'no_payment_found',
+            },
+          })
+          .eq('id', old.id).eq('status', 'failed')
+          .is('provider_preference_id', null).is('provider_payment_id', null).is('checkout_url', null)
+          .select('id').maybeSingle()
+        if (recoverError) throw recoverError
+        if (!recovered) return serviceUnavailable('checkout_already_initializing')
+        initializedPaymentId = old.id
       } else {
         // A provider request may have succeeded even if the response was lost.
-        // Do not create a second preference for the same dispatch automatically.
+        // Keep unresolved rows blocked unless the provider ledger proves a safe retry.
         return serviceUnavailable(old.status === 'initializing'
           ? 'checkout_already_initializing'
           : 'checkout_requires_manual_reconciliation')
@@ -160,7 +220,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
     let checkout: CheckoutPreference
     if (dispatch.care_country === 'AR') {
-      failureStage = 'argentina_broker_request'
+      failureStage = 'argentina_broker_signature'
       // ARS is always created by the MLA account hosted in empresa.autamedica.com.
       // The patient portal never reads or forwards its local MLB token for AR.
       const brokerPath = '/api/ops/mercadopago/argentina-broker'
@@ -172,6 +232,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       const brokerHeaders = await createMercadoPagoBrokerHeaders(
         'POST', brokerPath, brokerBody, locals.runtime?.env,
       )
+      failureStage = 'argentina_broker_http'
       const brokerResponse = await fetch('https://empresa.autamedica.com' + brokerPath, {
         method: 'POST',
         headers: brokerHeaders,
@@ -179,9 +240,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
         signal: AbortSignal.timeout(18000),
       })
       if (!brokerResponse.ok) {
-        logger.warn('[pharmacy-payment/create] Argentina broker unavailable', { httpStatus: brokerResponse.status })
+        brokerHttpStatus = brokerResponse.status
+        brokerErrorCode = await readArgentinaBrokerErrorCode(brokerResponse)
+        logger.warn('[pharmacy-payment/create] Argentina broker unavailable', {
+          httpStatus: brokerHttpStatus, brokerErrorCode: brokerErrorCode ?? 'unknown',
+        })
         throw new Error('argentina_checkout_broker_unavailable')
       }
+      failureStage = 'argentina_broker_response'
       const brokerResult = await brokerResponse.json() as {
         success?: boolean
         data?: { id?: string; init_point?: string }
@@ -246,20 +312,41 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const reason = error instanceof Error ? error.message : 'unknown'
     logger.error('[pharmacy-payment/create] Could not create checkout', {
       reason, failureStage, country: failureCountry, paymentIdPresent: Boolean(initializedPaymentId),
+      brokerHttpStatus: brokerHttpStatus ?? undefined, brokerErrorCode: brokerErrorCode ?? undefined,
     })
     captureSentryException(error, {
       surface: 'pharmacy_payment_checkout',
       layer: 'server',
       owner: 'pharmacy_dispatch_payment_create',
       runtimeEnv: locals.runtime?.env,
-      tags: { country: failureCountry, failure_stage: failureStage, operation: 'create_preference' },
-      context: { reason, paymentIdPresent: Boolean(initializedPaymentId) },
+      tags: {
+        country: failureCountry, failure_stage: failureStage, operation: 'create_preference',
+        broker_http_status: brokerHttpStatus ? String(brokerHttpStatus) : 'none',
+        broker_error_code: brokerErrorCode ?? 'none',
+      },
+      context: { reason, paymentIdPresent: Boolean(initializedPaymentId), brokerHttpStatus, brokerErrorCode },
       fingerprint: ['pharmacy-payment-checkout', failureCountry, failureStage],
     })
     if (admin && initializedPaymentId) {
+      const { data: failedPayment } = await admin.from('pharmacy_dispatch_payments')
+        .select('metadata').eq('id', initializedPaymentId).maybeSingle()
+      const existingMetadata = failedPayment?.metadata && typeof failedPayment.metadata === 'object'
+        ? failedPayment.metadata as Record<string, unknown> : {}
       await admin.from('pharmacy_dispatch_payments')
-        .update({ status: 'failed' })
+        .update({
+          status: 'failed',
+          metadata: {
+            ...existingMetadata,
+            last_checkout_failure: {
+              stage: failureStage, reason, broker_http_status: brokerHttpStatus,
+              broker_error_code: brokerErrorCode, failed_at: new Date().toISOString(),
+            },
+          },
+        })
         .eq('id',initializedPaymentId).eq('status','initializing')
+    }
+    if (failureStage.startsWith('argentina_reconcile_')) {
+      return serviceUnavailable('argentina_checkout_reconciliation_unavailable')
     }
     return internalError('pharmacy_checkout_unavailable')
   }
