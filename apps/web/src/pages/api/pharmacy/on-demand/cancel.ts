@@ -26,7 +26,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const admin = createAstroAdminClient(locals.runtime?.env)
     const { data: existing, error: readError } = await admin
       .from('pharmacy_dispatch_requests')
-      .select('id, cloudflare_room_id, requested_by_user_id, status')
+      .select('id, cloudflare_room_id, requested_by_user_id, status, search_started_at, created_at')
       .eq('id', requestId)
       .maybeSingle()
 
@@ -50,14 +50,29 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if (!ownerAuthorized && !guestAuthorized) return unauthorized('request_not_authorized')
 
-    // A matched or active consultation must not be disrupted by a stale kiosk.
-    if (existing.status !== 'searching') return jsonOk({ cancelled: false })
+    // A patient can cancel only after the local 15-minute search has elapsed
+    // and the current 30-second physician offer is no longer pending.
+    const searchStartedAt = new Date(existing.search_started_at ?? existing.created_at).getTime()
+    if (!['searching', 'expired'].includes(String(existing.status))
+      || !Number.isFinite(searchStartedAt)
+      || Date.now() < searchStartedAt + 15 * 60 * 1000) {
+      return jsonOk({ cancelled: false, code: 'WAIT_WINDOW_NOT_REACHED' })
+    }
+    const { data: activeOffer, error: offerError } = await admin
+      .from('dispatch_offers')
+      .select('id')
+      .eq('dispatch_request_id', requestId)
+      .eq('status', 'pending')
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle()
+    if (offerError) return internalError('cancel_failed')
+    if (activeOffer) return jsonOk({ cancelled: false, code: 'DOCTOR_OFFER_STILL_ACTIVE' })
 
     const { data: updated, error: updateError } = await admin
       .from('pharmacy_dispatch_requests')
       .update({ status: 'cancelled' })
       .eq('id', requestId)
-      .eq('status', 'searching')
+      .in('status', ['searching', 'expired'])
       .select('id')
       .maybeSingle()
 
