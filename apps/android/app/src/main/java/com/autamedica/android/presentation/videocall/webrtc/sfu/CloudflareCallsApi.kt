@@ -68,7 +68,8 @@ class SupabaseCloudflareCallsApi(
 ) : CloudflareCallsApi {
 
     override suspend fun call(method: String, path: String, body: JsonElement?): JsonElement {
-        cloudflareCallsContractError(method, path)?.let { errorCode ->
+        val normalizedMethod = method.trim().uppercase()
+        cloudflareCallsContractError(normalizedMethod, path)?.let { errorCode ->
             throw CloudflareCallsApiException(400, errorCode, errorCode)
         }
         if (roomId.isBlank()) {
@@ -76,7 +77,7 @@ class SupabaseCloudflareCallsApi(
         }
         val payload = buildJsonObject {
             put("roomId", roomId)
-            put("method", method)
+            put("method", normalizedMethod)
             put("path", path)
             if (body != null) put("body", body)
         }
