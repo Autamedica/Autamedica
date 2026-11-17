@@ -185,7 +185,9 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     expect(supabaseMock.auth.getUser).toHaveBeenCalledWith('valid-native-patient-jwt')
     expect(dispatchTable.insert).toHaveBeenCalledWith(expect.objectContaining({
       requested_by_user_id: ownerId, care_country: 'BR', referral_partner_id: partnerId,
+      lgpd_consent: true,
     }))
+    expect(dispatchTable.insert.mock.calls[0][0]).not.toHaveProperty('patient_gender_code')
     expect(recoveryTable.insert).toHaveBeenCalledWith(expect.objectContaining({
       request_id: dispatchRow.id, token_sha256: expect.any(String),
     }))
@@ -259,8 +261,10 @@ describe('API: /api/pharmacy/dispatch/request', () => {
       care_country: 'BR',
       patient_cpf: '12345678909',
       patient_dni: null,
+      lgpd_consent: true,
       requested_by_user_id: 'patient-auth-user-99',
     }))
+    expect(table.insert.mock.calls[0][0]).not.toHaveProperty('patient_gender_code')
   })
 
   it('rechaza CPF brasileño incompleto', async () => {
@@ -434,6 +438,11 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     expect(body.data.request.id).toBe('dispatch-req-123')
     expect(body.data.accessToken).toBeDefined()
     expect(body.data.cloudflare_room_id).toBeDefined()
+    const argentinaInsert = supabaseMock.from.mock.results
+      .map((result) => result.value)
+      .find((table) => table?.insert?.mock?.calls?.length)?.insert.mock.calls[0][0] as Record<string, unknown>
+    expect(argentinaInsert).toHaveProperty('patient_gender_code', 'M')
+    expect(argentinaInsert).not.toHaveProperty('lgpd_consent')
   })
   it('atribuye un QR Jordan válido a la solicitud sin inventar farmacia', async () => {
     const partnerId = 'aaaaaaa1-aaaa-4aaa-8aaa-aaaaaaaaaaaa'

@@ -76,7 +76,7 @@ export function PharmacyExpressConsultation({
 
   const [step, setStep] = useState<Step>('FORM')
   const [formData, setFormData] = useState({
-    careCountry: (initialCareCountry ?? (isJordanReferral ? 'BR' : '')) as '' | 'AR' | 'BR',
+    careCountry: (initialCareCountry ?? '') as '' | 'AR' | 'BR',
     dni: initialDni,
     genderCode: '' as '' | 'F' | 'M' | 'X',
     name: '',
@@ -143,6 +143,9 @@ export function PharmacyExpressConsultation({
   const requiresCountryPayment = currentPricing?.require_payment_before_dispatch === true
   const amountLabel = currentPricing ? new Intl.NumberFormat(currentPricing.currency === 'BRL' ? 'pt-BR' : 'es-AR', { style: 'currency', currency: currentPricing.currency }).format(currentPricing.consultation_price_minor / 100) : null
   const copy = isPortuguese ? COPY.BR : COPY.AR
+  // Civil document type is determined only by the selected clinical country.
+  const documentLabel = formData.careCountry === 'BR' ? 'CPF' : 'DNI'
+  const documentPlaceholder = formData.careCountry === 'BR' ? '123.456.789-09' : '35.123.456'
   const selectedReason = reasonCategory === 'pain' ? (isPortuguese ? 'Dor / mal-estar' : 'Dolor / malestar') : reasonCategory === 'prescription' ? (isPortuguese ? 'Receita' : 'Receta') : reasonCategory === 'other' ? (isPortuguese ? 'Outro motivo' : 'Otro motivo') : ''
   const reasonSummary = [selectedReason, formData.reason.trim()].filter(Boolean).join(': ')
   const reasonOptions = isPortuguese
@@ -464,7 +467,7 @@ export function PharmacyExpressConsultation({
             )}
 
             <form onSubmit={handleSubmit} className="space-y-3.5">
-              {!initialCareCountry && !isJordanReferral && (
+              {!initialCareCountry && (
               <fieldset className="grid grid-cols-2 gap-2">
                 <legend className="mb-2 text-xs font-medium text-slate-600">{copy.country}</legend>
                 {(['BR', 'AR'] as const).map((country) => {
@@ -483,7 +486,7 @@ export function PharmacyExpressConsultation({
                 <div>
                   <label htmlFor={dniInputId} className="block text-xs font-medium text-slate-600 mb-1.5 flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5 text-slate-500" />
-                    {copy.document}
+                    {documentLabel}
                   </label>
                   <input
                     id={dniInputId}
@@ -491,7 +494,7 @@ export function PharmacyExpressConsultation({
                     inputMode="numeric"
                     pattern="[0-9]*"
                     required
-                    placeholder={isPortuguese ? '123.456.789-09' : '35.123.456'}
+                    placeholder={documentPlaceholder}
                     value={formData.dni}
                     onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
                     className="min-h-12 w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] transition"

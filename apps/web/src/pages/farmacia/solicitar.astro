@@ -13,8 +13,11 @@ const pharmacyId = Astro.url.searchParams.get('pharmacyId');
 const requestedReferral = Astro.url.searchParams.get('ref')?.trim().toUpperCase() ?? null;
 const requestedCareCountry = Astro.url.searchParams.get('careCountry')?.toUpperCase();
 const patientContext = await resolvePatientContext(Astro.request, Astro.locals).catch(() => null);
-const initialCareCountry = requestedReferral === 'JORDAN' ? 'BR'
-  : patientContext?.careCountry ?? (requestedCareCountry === 'AR' || requestedCareCountry === 'BR' ? requestedCareCountry : null);
+// Commercial attribution and clinical jurisdiction are independent.
+// The patient's persisted jurisdiction wins; an explicit QR parameter is the
+// fallback for guests. A referral partner never selects the country of care.
+const initialCareCountry = patientContext?.careCountry
+  ?? (requestedCareCountry === 'AR' || requestedCareCountry === 'BR' ? requestedCareCountry : null);
 let referralCode: string | null = null;
 let referralPartnerName: string | null = null;
 if (requestedReferral && /^[A-Z0-9_-]{3,32}$/.test(requestedReferral)) {
