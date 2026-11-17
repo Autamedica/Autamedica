@@ -35,6 +35,31 @@ BEGIN
 END;
 $claim_acceptance$;
 
+DO $matcher_search_timeout$
+DECLARE
+  v_definition text;
+  v_old text := $old$  WHERE id=p_dispatch_id AND status='searching'
+  FOR UPDATE SKIP LOCKED;$old$;
+  v_new text := $new$  WHERE id=p_dispatch_id
+    AND status='searching'
+    AND (search_timeout_at IS NULL OR search_timeout_at > now())
+  FOR UPDATE SKIP LOCKED;$new$;
+BEGIN
+  SELECT pg_get_functiondef(
+    'app_private.match_dispatch_doctors_without_switch(uuid)'::regprocedure
+  ) INTO v_definition;
+
+  IF position(v_old IN v_definition) > 0 THEN
+    v_definition := replace(v_definition, v_old, v_new);
+  ELSIF position('search_timeout_at IS NULL' IN lower(v_definition)) = 0
+     OR position('search_timeout_at > now()' IN lower(v_definition)) = 0 THEN
+    RAISE EXCEPTION 'Unexpected dispatch matcher timeout predicate; refusing migration';
+  END IF;
+
+  EXECUTE v_definition;
+END;
+$matcher_search_timeout$;
+
 DO $activate_paid_search$
 DECLARE
   v_definition text;
@@ -136,6 +161,13 @@ END;
 $function$;
 
 
+-- Repair searches already in flight from the legacy 25-second window.
+-- Preserve their original start time; already-aged requests naturally expire.
+UPDATE public.pharmacy_dispatch_requests
+SET search_started_at = COALESCE(search_started_at, created_at),
+    search_timeout_at = COALESCE(search_started_at, created_at) + INTERVAL '15 minutes'
+WHERE status::text = 'searching';
+
 -- The database clock is authoritative for every unpaid/local search. This
 -- covers signed-in Android inserts as well as web/kiosk intake without trusting
 -- the client device clock. Payment-first requests start only when payment clears.
@@ -146,11 +178,9 @@ SET search_path TO 'pg_catalog', 'public'
 AS $function$
 BEGIN
   IF NEW.status::text = 'searching' THEN
-    NEW.search_started_at := COALESCE(NEW.search_started_at, pg_catalog.now());
-    NEW.search_timeout_at := COALESCE(
-      NEW.search_timeout_at,
-      NEW.search_started_at + INTERVAL '15 minutes'
-    );
+    -- Ignore client-supplied timestamps. The server owns the search clock.
+    NEW.search_started_at := pg_catalog.now();
+    NEW.search_timeout_at := NEW.search_started_at + INTERVAL '15 minutes';
   END IF;
   RETURN NEW;
 END;
