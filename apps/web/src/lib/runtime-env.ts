@@ -112,7 +112,10 @@ export function resolvePublicSentryDsn(runtimeEnv?: RuntimeEnvRecord): string | 
     readCached(['PUBLIC_SENTRY_DSN', 'NEXT_PUBLIC_SENTRY_DSN']) ??
     import.meta.env.PUBLIC_SENTRY_DSN ??
     import.meta.env.NEXT_PUBLIC_SENTRY_DSN ??
-    readProcess(['PUBLIC_SENTRY_DSN', 'NEXT_PUBLIC_SENTRY_DSN'])
+    readProcess(['PUBLIC_SENTRY_DSN', 'NEXT_PUBLIC_SENTRY_DSN']) ??
+    // Keep runtime capture aligned with apps/web/sentry.shared.config.js.
+    // The DSN is public by design; secrets and auth tokens are never included.
+    'https://485f1dbb686db51681cf8159012dcdf1@o4511195725168640.ingest.us.sentry.io/4511195726741504'
   );
 }
 
