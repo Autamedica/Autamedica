@@ -93,6 +93,30 @@ export const POST: APIRoute = async ({ request, locals }) => {
         && !old.provider_preference_id && !old.provider_payment_id
       if (legacyManualPilot) {
         if (!argentinaProviderToken) return serviceUnavailable('argentina_checkout_not_configured')
+        // A legacy internal row does not exempt a newly-created provider order
+        // from the current financial and country operational switches.
+        const operationalSwitches = await getOperationalPaymentSwitches(admin).catch(() => null)
+        if (!operationalSwitches?.pharmacy_express_payments_enabled
+            || !operationalSwitches.global_pix_mp_payments_enabled
+            || (isJordan && !operationalSwitches.jordan_qr_payments_enabled)) {
+          return serviceUnavailable('pharmacy_checkout_not_enabled')
+        }
+        const requiredScopes = ['AR', 'EXPRESS', ...(isJordan ? ['JORDAN'] : [])]
+        const scopes = await admin.from('platform_operational_domains')
+          .select('scope_key,commercial_status,financial_status')
+          .in('scope_key', requiredScopes)
+        if (scopes.error) return serviceUnavailable('commercial_governance_unavailable')
+        const scopeByKey = new Map((scopes.data ?? []).map((row: any) => [row.scope_key,row]))
+        const channelOpen = requiredScopes.every((key) => {
+          const row: any = scopeByKey.get(key)
+          return row && ['enabled','limited'].includes(row.commercial_status)
+        })
+        const financialOpen = requiredScopes.every((key) => {
+          const row: any = scopeByKey.get(key)
+          return row && row.financial_status !== 'unavailable'
+        })
+        if (!channelOpen) return serviceUnavailable('pharmacy_commercial_channel_paused')
+        if (!financialOpen) return serviceUnavailable('pharmacy_financial_rail_unavailable')
         const { data: migrated, error: migrateError } = await admin.from('pharmacy_dispatch_payments')
           .update({
             status: 'initializing',
