@@ -3,7 +3,7 @@ import {MemedPrescriptionWidget} from './MemedPrescriptionWidget';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-type State = {status: 'loading'|'ready'|'error'|'login'; patientId?: string; error?: string};
+type State = {status: 'loading'|'ready'|'error'|'login'; patientId?: string; requestId?: string; error?: string};
 
 /** Dedicated narrow-screen doctor flow. NEVER accepts patientId directly from URL. */
 export function MemedMobileRoute() {
@@ -42,7 +42,11 @@ export function MemedMobileRoute() {
         }
         const json: {data?: {patientId?: string}} = await response.json();
         if (!json.data?.patientId || !UUID.test(json.data.patientId)) throw new Error('Paciente não validado.');
-        if (!controller.signal.aborted) setState({status: 'ready', patientId: json.data.patientId});
+        if (!controller.signal.aborted) setState({
+          status: 'ready',
+          patientId: json.data.patientId,
+          requestId: isDispatch ? requestId : undefined,
+        });
       }).catch(() => {
         if (!controller.signal.aborted) setState({status: 'error', error: 'Não foi possível autorizar esta consulta.'});
       });
@@ -59,7 +63,12 @@ export function MemedMobileRoute() {
     const response = await fetch('/api/doctors/prescriptions/memed-event', {
       method: 'POST', credentials: 'include', cache: 'no-store',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({action, patientId: state.patientId, prescriptionId}),
+      body: JSON.stringify({
+        action,
+        patientId: state.patientId,
+        prescriptionId,
+        ...(state.requestId ? {requestId: state.requestId} : {}),
+      }),
     });
     if (!response.ok) throw new Error('Falha ao confirmar evento com Memed.');
   };
