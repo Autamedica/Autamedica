@@ -767,21 +767,9 @@ BEGIN
   WHERE call_id=v_call_id ORDER BY created_at DESC LIMIT 1;
   IF v_invite_id IS NULL THEN v_invite_id:=gen_random_uuid(); END IF;
 
-  UPDATE public.pharmacy_dispatch_requests
-  SET assigned_doctor_id=v_resolved_doc_id,
-      cross_border_route_id=v_offer.cross_border_route_id,
-      doctor_payout_fee_minor=v_payout_minor,
-      doctor_payout_currency=v_payout_currency,
-      call_id=v_call_id,
-      guest_invite_id=v_invite_id,
-      status='matched',
-      matched_at=now(),
-      price_brl=CASE WHEN v_req.currency='BRL' THEN v_req.price_minor::numeric/100 ELSE NULL END,
-      price_minor=v_req.price_minor,
-      currency=v_req.currency,
-      doctor_fee_minor=v_req.doctor_fee_minor
-  WHERE id=v_offer.dispatch_request_id;
-
+  -- The accepted offer itself proves the reviewed cross-border route to
+  -- the call trigger. Insert the referenced rows before writing their FKs
+  -- back to the dispatch request.
   IF NOT EXISTS (SELECT 1 FROM public.calls WHERE id=v_call_id) THEN
     INSERT INTO public.calls(id,doctor_id,patient_id,room_id,status)
     VALUES(v_call_id,v_resolved_doc_id,v_req.patient_id,v_room_id,'requested');
@@ -797,6 +785,21 @@ BEGIN
     INSERT INTO public.call_guest_invites(id,call_id,room_id,guest_name,expires_at)
     VALUES(v_invite_id,v_call_id,v_room_id,COALESCE(v_req.patient_name,'Paciente Farmacia'),now()+interval '24 hours');
   END IF;
+
+  UPDATE public.pharmacy_dispatch_requests
+  SET assigned_doctor_id=v_resolved_doc_id,
+      cross_border_route_id=v_offer.cross_border_route_id,
+      doctor_payout_fee_minor=v_payout_minor,
+      doctor_payout_currency=v_payout_currency,
+      call_id=v_call_id,
+      guest_invite_id=v_invite_id,
+      status='matched',
+      matched_at=now(),
+      price_brl=CASE WHEN v_req.currency='BRL' THEN v_req.price_minor::numeric/100 ELSE NULL END,
+      price_minor=v_req.price_minor,
+      currency=v_req.currency,
+      doctor_fee_minor=v_req.doctor_fee_minor
+  WHERE id=v_offer.dispatch_request_id;
 
   UPDATE public.doctor_duty_status
   SET current_active_request_id=v_offer.dispatch_request_id,updated_at=now()
