@@ -101,14 +101,14 @@ Deno.serve(withEdgeSentry('get-meeting-token', async (req) => {
         video: {
           room: roomName,
           roomJoin: true
-        }
+        },
+        name: participantName,
       })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuer(livekitApiKey)
       .setSubject(user.id) // Participant identity
       .setExpirationTime('2h') // Expire strict in 2 hours
       .setJti(crypto.randomUUID())
-      .setClaim('name', participantName)
       .sign(new TextEncoder().encode(livekitApiSecret))
 
     return new Response(JSON.stringify({ 
