@@ -60,7 +60,7 @@ DECLARE
       )
     )
 $old$;
-  v_new_order text := $new$  ORDER BY (
+  v_new_order text := $new$ORDER BY (
     SELECT CASE
       WHEN COUNT(*) = 0 THEN 1::numeric
       ELSE COUNT(*) FILTER (WHERE recent.status='accepted')::numeric / COUNT(*)::numeric
@@ -84,8 +84,7 @@ $old$;
     ) recent
   ) ASC NULLS FIRST,
   dds.duty_started_at ASC NULLS FIRST,
-  d.id ASC
-$ new$;
+  d.id ASC$new$;
 BEGIN
   SELECT pg_get_functiondef(
     'app_private.match_dispatch_doctors_without_switch(uuid)'::regprocedure
@@ -101,7 +100,7 @@ BEGIN
   IF position('ORDER BY dds.duty_started_at ASC' IN v_definition) > 0 THEN
     v_definition := replace(v_definition,
       'ORDER BY dds.duty_started_at ASC',
-      substring(v_new_order from 3 for length(v_new_order)-4));
+      v_new_order);
   ELSIF position('recent.status=''accepted''' IN v_definition) = 0 THEN
     RAISE EXCEPTION 'Unexpected matcher ordering; refusing unsafe migration';
   END IF;
