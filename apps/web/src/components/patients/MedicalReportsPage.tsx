@@ -88,11 +88,10 @@ export default function MedicalReportsPage() {
           >
             {isPortuguese ? 'Atestados e certificados' : 'Certificados / Atestados'}
           </button>
-        </div>
-
           <button type="button" onClick={() => setActiveTab('archives')} className={'col-span-2 min-h-11 rounded-xl px-3 text-xs font-semibold transition ' + (activeTab === 'archives' ? 'bg-[#10B981] text-white' : 'text-slate-600 hover:bg-slate-50')}>
             {isPortuguese ? 'Documentos arquivados' : 'Documentos archivados'} ({archivedDocuments.length})
           </button>
+        </div>
 
         {activeTab === 'reports' && error && (
           <motion.div className="mb-6 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
