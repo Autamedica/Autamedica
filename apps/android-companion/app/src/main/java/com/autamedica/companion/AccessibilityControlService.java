@@ -27,6 +27,7 @@ public final class AccessibilityControlService extends AccessibilityService {
     private static volatile AccessibilityControlService instance;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private LocalControlServer server;
+    private LocalCdpProxy cdpProxy;
 
     public static boolean isConnected() {
         return instance != null;
@@ -37,6 +38,8 @@ public final class AccessibilityControlService extends AccessibilityService {
         instance = this;
         server = new LocalControlServer(this);
         server.start();
+        cdpProxy = new LocalCdpProxy(this);
+        cdpProxy.start();
     }
 
     @Override public void onAccessibilityEvent(AccessibilityEvent event) {
@@ -50,6 +53,8 @@ public final class AccessibilityControlService extends AccessibilityService {
     @Override public void onDestroy() {
         if (server != null) server.stop();
         server = null;
+        if (cdpProxy != null) cdpProxy.stop();
+        cdpProxy = null;
         if (instance == this) instance = null;
         super.onDestroy();
     }
