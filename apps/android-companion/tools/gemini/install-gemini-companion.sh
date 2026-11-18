@@ -29,10 +29,13 @@ if ! command -v gemini >/dev/null 2>&1; then
     npm install --global --prefix "$HOME/.local" @google/gemini-cli
     export PATH="$HOME/.local/bin:$PATH"
     PROFILE="$HOME/.profile"
-    if [[ -f "$PROFILE" ]] && ! grep -Fq '# AutaMedica Gemini CLI PATH' "$PROFILE"; then
-      printf '\\n# AutaMedica Gemini CLI PATH\\nexport PATH="$HOME/.local/bin:$PATH"\\n' >> "$PROFILE"
-    elif [[ ! -f "$PROFILE" ]]; then
-      printf '# AutaMedica Gemini CLI PATH\\nexport PATH="$HOME/.local/bin:$PATH"\\n' > "$PROFILE"
+    touch "$PROFILE"
+    if ! grep -Fq '# AutaMedica Gemini CLI PATH' "$PROFILE"; then
+      cat >> "$PROFILE" <<'PROFILE_BLOCK'
+
+# AutaMedica Gemini CLI PATH
+export PATH="$HOME/.local/bin:$PATH"
+PROFILE_BLOCK
     fi
   fi
   hash -r
