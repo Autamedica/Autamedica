@@ -1,13 +1,14 @@
 ---
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAstroAdminClient } from '@/lib/supabase';
-import { loadPublicDocumentArchive, type PublicDocumentArchive } from '@/lib/documents/archive-verification';
+import { loadPublicDocumentVerification } from '@/lib/documents/public-document-verification';
+import type { PublicDocumentArchive } from '@/lib/documents/archive-verification';
 
 let document: PublicDocumentArchive | null = null;
 let unavailable = false;
 try {
   const admin = createAstroAdminClient(Astro.locals.runtime?.env) as unknown as SupabaseClient;
-  document = await loadPublicDocumentArchive(admin, Astro.params.reference ?? '');
+  document = await loadPublicDocumentVerification(admin, (Astro.params.reference ?? '').toUpperCase());
 } catch { unavailable = true; }
 if (!unavailable && !document) {
   const target = new URL('/verify/documentos', Astro.url);
@@ -45,7 +46,7 @@ const displayDate = (value: string) => value.slice(0, 10).split('-').reverse().j
             <dt>Matrícula y jurisdicción</dt><dd>{document.issuer.license} · {document.issuer.jurisdiction}</dd>
             <dt>Fecha del documento</dt><dd>{displayDate(document.documentDate)}</dd>
             <dt>Fecha de registro</dt><dd>{displayDate(document.registeredAt)}</dd>
-            <dt>Modalidad de firma</dt><dd>Imágenes de firma y sello incorporadas administrativamente.</dd>
+            <dt>Modalidad de firma</dt><dd>{document.signatureType === 'electronic_verified' ? 'Firma electrónica confirmada por el profesional en AutaMedica' : document.signatureType === 'ac_external' ? 'Firma PAdES verificada por proveedor externo' : 'Firma y sello escaneados archivados por el profesional'}.</dd>
           </dl>
           <aside>Este QR permite consultar el registro y comparar la integridad del archivo. No certifica una firma digital criptográfica ni acredita por sí solo una habilitación ministerial. Los datos del paciente y su información clínica son reservados.</aside>
           {active && <section class="compare">
@@ -70,7 +71,9 @@ const displayDate = (value: string) => value.slice(0, 10).split('-').reverse().j
         if (!result) return;
         result.textContent = '';
         if (!file) return;
-        if (file.size > 25 * 1024 * 1024) { result.textContent = 'El archivo supera el límite de 25 MB.'; return; }
+        if (file.size < 8 || file.size > 25 * 1024 * 1024) { result.textContent = 'El PDF debe tener entre 8 bytes y 25 MB.'; return; }
+        const header = new Uint8Array(await file.slice(0, 5).arrayBuffer());
+        if (String.fromCharCode(...header) !== '%PDF-') { result.textContent = 'El archivo seleccionado no es un PDF válido.'; return; }
         result.textContent = 'Comparando archivo…';
         try {
           const hash = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
