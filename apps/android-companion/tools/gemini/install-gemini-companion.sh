@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null || cd "$SCRIPT_DIR/../../.." && pwd)"
-GEMINI_HOME="${GEMINI_CLI_HOME:-$HOME/.gemini}"
+GEMINI_HOME="$HOME/.gemini"
 SETTINGS="$GEMINI_HOME/settings.json"
 BRIDGE="$HOME/.local/share/autamedica-android"
 MCP_LAUNCHER="$BRIDGE/launch-mcp.sh"
