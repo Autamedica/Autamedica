@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import {
-  classifyVerifiedPharmacyPayment, GENERAL_PHARMACY_BR_PRICE_CENTS,
+  classifyVerifiedPharmacyPayment, reconcilePharmacyProviderPayment, GENERAL_PHARMACY_BR_PRICE_CENTS,
   JORDAN_REFERRAL_CENTS, JORDAN_DOCTOR_FEE_CENTS, JORDAN_PRE_COST_MARGIN_CENTS,
   type LocalPharmacyPayment, type VerifiedPharmacyProviderPayment,
 } from './referral-finance'
@@ -51,6 +52,32 @@ describe('Jordan commercial payment proof', () => {
     expect(classifyVerifiedPharmacyPayment(argentinaLocal, argentinaPayment)).toBe('approved')
     expect(classifyVerifiedPharmacyPayment(argentinaLocal, { ...argentinaPayment, currency_id: 'BRL' })).toBeNull()
     expect(classifyVerifiedPharmacyPayment(argentinaLocal, { ...argentinaPayment, transaction_amount: 79 })).toBeNull()
+  })
+  it('reconciles a late approved Mercado Pago event after a local failed checkout', async () => {
+    let updatePayload: Record<string, unknown> | null = null
+    let allowedStatuses: string[] = []
+    const query: Record<string, any> = {}
+    query.select = () => query
+    query.eq = () => query
+    query.maybeSingle = async () => ({
+      data: { ...local, status: 'failed' },
+      error: null,
+    })
+    query.update = (payload: Record<string, unknown>) => {
+      updatePayload = payload
+      return query
+    }
+    query.in = async (_column: string, values: string[]) => {
+      allowedStatuses = values
+      return { error: null }
+    }
+    const admin = { from: () => query } as unknown as SupabaseClient
+
+    const result = await reconcilePharmacyProviderPayment(admin, approved)
+
+    expect(result.handled).toBe(true)
+    expect(updatePayload?.status).toBe('approved')
+    expect(allowedStatuses).toContain('failed')
   })
   it('voids any refunded or partially refunded sale', () => {
     expect(classifyVerifiedPharmacyPayment(local, { ...approved, status: 'refunded' })).toBe('refunded')

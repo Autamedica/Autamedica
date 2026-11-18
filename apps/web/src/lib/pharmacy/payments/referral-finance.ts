@@ -100,7 +100,7 @@ export async function reconcilePharmacyProviderPayment(
     })
     .eq('id', row.id)
     .eq('dispatch_request_id', dispatchId)
-    .in('status', ['initializing','pending','approved','rejected','cancelled'])
+    .in('status', ['initializing', 'pending', 'approved', 'rejected', 'cancelled', 'failed'])
   if (updateError) throw updateError
 
   return { handled: true }
