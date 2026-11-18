@@ -16,6 +16,20 @@ type Switches = {
 type PharmacyPayment = {id:string;request_id:string;amount_minor:number;currency:string;status:string;provider:string;payment_mode:string|null;manual_approval_pending:boolean;request_status:string|null;provider_payment_id:string|null;metadata?:Record<string,unknown>|null;assigned_doctor_id:string|null;jordan_commission_minor:number|null;created_at:string}
 type Approval = { id:string; status:string; domain:string; proposed_by:string; summary:string; risk_reason:string; impact_scope:string; created_at:string; payload?:{action_type?:string;risk_level?:string;recommendation?:string;operation_summary?:string;source?:string} }
 type SwitchKey = Exclude<keyof Switches,'updated_by'|'updated_at'|'switch_audit'>
+function errorMessage(err: unknown): string {
+ if (typeof err === 'string') return err
+ if (err && typeof err === 'object') {
+  const value = err as { message?: unknown; code?: unknown; error?: unknown }
+  if (typeof value.message === 'string' && value.message.trim()) return value.message
+  if (typeof value.code === 'string' && value.code.trim()) return value.code
+  if (value.error && typeof value.error === 'object') {
+   const nested = value.error as { message?: unknown; code?: unknown }
+   if (typeof nested.message === 'string' && nested.message.trim()) return nested.message
+   if (typeof nested.code === 'string' && nested.code.trim()) return nested.code
+  }
+ }
+ return 'No se pudo completar la operación'
+}
 const SWITCHES: {key:SwitchKey;label:string;description:string;flows:string;inFlight:string}[] = [
  {key:'jordan_qr_payments_enabled',label:'Pagos QR Jordan',description:'Autoriza la creación de nuevos checkouts QR del partner JORDAN.',flows:'POST /api/pharmacy/dispatch/payment/create. Exige solicitud BR/general y partner JORDAN; este checkout también requiere activos los controles Farmacias Express y MercadoPago.',inFlight:'Los pagos pending/approved existentes siguen devolviendo su checkout/estado. Apagarlo bloquea únicamente la creación de un nuevo checkout; no revierte pagos ni corta consultas.'},
  {key:'pharmacy_express_payments_enabled',label:'Pagos Farmacias Express',description:'Habilita la creación de cobros del flujo de despacho farmacéutico.',flows:'POST /api/pharmacy/dispatch/payment/create en el rollout actual Jordan BR; actúa como una de las tres condiciones de apertura del checkout.',inFlight:'Los pagos pending/approved existentes siguen devolviendo su checkout/estado. No cancela preferencias existentes ni consultas asignadas.'},
@@ -34,18 +48,19 @@ export function PaymentGovernancePanel(){
  const load=async()=>{
   try{
    const [s,a,p]=await Promise.all([fetch('/api/admin/payments/toggle').then(r=>r.json()),fetch('/api/admin/approvals?status=pending').then(r=>r.json()),fetch('/api/admin/finance/pharmacy-payments').then(r=>r.json())])
-   if(s.success)setSwitches(s.data)
-   if(a.success)setApprovals(a.data)
-   if(p.success)setPharmacyPayments(p.data)
+   if(!s.success) throw s.error??s
+   if(!a.success) throw a.error??a
+   if(!p.success) throw p.error??p
+   setSwitches(s.data); setApprovals(a.data); setPharmacyPayments(p.data)
    setError('')
-  }catch{setError('No se pudo cargar la gobernanza administrativa')}
+  }catch(err){setError(errorMessage(err))}
  }
  useEffect(()=>{void load();const refresh=setInterval(()=>void load(),15000);return ()=>clearInterval(refresh)},[])
  const toggle=async(key:SwitchKey,enabled:boolean)=>{
   const reason=window.prompt('Describí la causa concreta del cambio (mínimo 12 caracteres):')?.trim()??''
   if(reason.length<12)return
   const r=await fetch('/api/admin/payments/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key,enabled,reason})})
-  const j=await r.json(); if(!r.ok||!j.success){setError(j?.error??'No se pudo actualizar el interruptor');return}
+  const j=await r.json(); if(!r.ok||!j.success){setError(errorMessage(j?.error??j));return}
   setNotice('Interruptor actualizado y auditoría registrada.')
   await load()
  }
@@ -58,7 +73,7 @@ export function PaymentGovernancePanel(){
   const r=await fetch('/api/admin/finance/pharmacy-payments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'manual_approve',payment_id:paymentId,reason,evidence_reference})})
   const j=await r.json().catch(()=>null)
   const result=j?.data??j
-  if(!r.ok||!j?.success){setError(j?.error??j?.code??'No se pudo validar el pago');await load();return}
+  if(!r.ok||!j?.success){setError(errorMessage(j?.error??j));await load();return}
   if(result?.status==='approved_pending_dispatch_resolution'){
    setNotice('Cobro aprobado. El despacho requiere una decisión en la Bandeja de Autorizaciones; no vuelvas a validar este pago.')
   } else {
@@ -70,7 +85,7 @@ export function PaymentGovernancePanel(){
   const notes=window.prompt('Motivo de la decisión administrativa (obligatorio):')
   if(!notes?.trim())return
   const r=await fetch('/api/admin/approvals',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:decisionId,decision:status,notes:notes.trim(),...(resolutionAction ? { resolution_action: resolutionAction } : {})})})
-  const j=await r.json(); if(!r.ok||!j.success){setError('No se pudo registrar la decisión');return}
+  const j=await r.json().catch(()=>null); if(!r.ok||!j?.success){setError(errorMessage(j?.error??j));return}
   await load()
  }
  return <section className="space-y-6 rounded-xl border border-slate-200 bg-white p-5">
