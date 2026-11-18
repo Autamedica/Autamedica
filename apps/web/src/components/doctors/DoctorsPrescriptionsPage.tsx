@@ -746,14 +746,24 @@ export function DoctorsPrescriptionsPage() {
               </div>
 
               {docMode === "certificates" && (
-                <button
-                  type="button"
-                  onClick={() => setShowCertificateModal(true)}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-am-primary-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-am-primary-700 transition"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Preparar atestado
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <a
+                    href="/doctors/documentos/archivar"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-300 bg-white px-4 py-2 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-50"
+                  >
+                    <FileCheck className="h-3.5 w-3.5" />
+                    Archivar PDF externo
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setShowCertificateModal(true)}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-am-primary-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-am-primary-700 transition"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Preparar atestado
+                  </button>
+                </div>
               )}
             </div>
 
