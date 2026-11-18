@@ -25,7 +25,7 @@ public final class MainActivity extends Activity {
             if (statusView != null) {
                 boolean connected = AccessibilityControlService.isConnected();
                 statusView.setText(connected
-                    ? "Servicio de accesibilidad: ACTIVO\nServidor local: 127.0.0.1:18765"
+                    ? "Servicio de accesibilidad: ACTIVO\nAndroid control: 127.0.0.1:18765\nChromium CDP: 127.0.0.1:18766\nNavegación por Internet: habilitada"
                     : "Servicio de accesibilidad: pendiente de autorización");
             }
             handler.postDelayed(this, 1500);
