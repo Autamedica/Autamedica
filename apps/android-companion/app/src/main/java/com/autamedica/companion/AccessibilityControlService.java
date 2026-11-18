@@ -188,6 +188,16 @@ public final class AccessibilityControlService extends AccessibilityService {
         return onMain(() -> performGlobalAction(action));
     }
 
+    boolean openBrowser(String url) throws Exception {
+        return onMain(() -> {
+            android.content.Intent intent = new android.content.Intent(this, BrowserActivity.class);
+            intent.putExtra("url", url);
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+            return true;
+        });
+    }
+
     boolean openApp(String packageName) throws Exception {
         return onMain(() -> {
             android.content.Intent intent = getPackageManager().getLaunchIntentForPackage(packageName);
