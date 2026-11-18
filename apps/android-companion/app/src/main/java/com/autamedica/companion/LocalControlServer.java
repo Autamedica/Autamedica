@@ -53,10 +53,12 @@ final class LocalControlServer {
     }
 
     private void handle(Socket socket) {
+        OutputStream errorOutput = null;
         try (Socket client = socket) {
             client.setSoTimeout(6000);
             InputStream input = client.getInputStream();
             OutputStream output = client.getOutputStream();
+            errorOutput = output;
             String requestLine = readLine(input);
             if (requestLine == null || requestLine.isEmpty()) return;
             String[] parts = requestLine.split(" ");
@@ -99,6 +101,9 @@ final class LocalControlServer {
                 result.put("cdpPort", LocalCdpProxy.PORT);
                 result.put("browserEngine", "Android System WebView / Chromium");
                 result.put("internetPermission", true);
+                result.put("browserActivityReady", BrowserActivity.isReady());
+                result.put("cdpProxyListening", service.isCdpListening());
+                result.put("webViewDevToolsSocketAvailable", service.isWebViewSocketAvailable());
                 respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
             } else if ("GET".equals(method) && "/v1/ui".equals(path)) {
                 JSONObject result = service.getUiTree();
@@ -214,6 +219,15 @@ final class LocalControlServer {
             }
         } catch (Exception error) {
             android.util.Log.w("AutamedicaCompanion", "Local request failed: " + error.getClass().getSimpleName());
+            if (errorOutput != null) {
+                try {
+                    JSONObject body = new JSONObject()
+                        .put("ok", false)
+                        .put("error", error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage());
+                    respond(errorOutput, 500, "application/json; charset=utf-8",
+                        body.toString().getBytes(StandardCharsets.UTF_8));
+                } catch (Exception ignored) {}
+            }
         }
     }
 
@@ -245,8 +259,8 @@ final class LocalControlServer {
     }
 
     private static void respond(OutputStream output, int status, String type, byte[] body) throws Exception {
-        String label = status == 200 ? "OK" : status == 401 ? "Unauthorized" : status == 404 ? "Not Found" :
-            status == 413 ? "Payload Too Large" : status == 409 ? "Action Failed" : "Bad Request";
+        String label = status == 200 ? "OK" : status == 400 ? "Bad Request" : status == 401 ? "Unauthorized" :
+            status == 404 ? "Not Found" : status == 409 ? "Action Failed" : status == 413 ? "Payload Too Large" : "Internal Server Error";
         String headers = "HTTP/1.1 " + status + " " + label + "\r\n"
             + "Content-Type: " + type + "\r\n"
             + "Content-Length: " + body.length + "\r\n"

@@ -35,14 +35,25 @@ final class LocalCdpProxy {
         if (running) return;
         running = true;
         Thread thread = new Thread(() -> {
-            try {
-                listener = new ServerSocket(PORT, 32, InetAddress.getByName("127.0.0.1"));
-                while (running) {
-                    Socket socket = listener.accept();
-                    clients.execute(() -> handle(socket));
+            while (running) {
+                try {
+                    ServerSocket candidate = new ServerSocket(PORT, 32, InetAddress.getByName("127.0.0.1"));
+                    listener = candidate;
+                    while (running) {
+                        Socket socket = candidate.accept();
+                        clients.execute(() -> handle(socket));
+                    }
+                } catch (Exception error) {
+                    if (running) {
+                        android.util.Log.e("AutamedicaCDP", "CDP proxy listener failed; retrying", error);
+                        try { Thread.sleep(1500); }
+                        catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); break; }
+                    }
+                } finally {
+                    ServerSocket current = listener;
+                    listener = null;
+                    if (current != null) try { current.close(); } catch (Exception ignored) {}
                 }
-            } catch (Exception error) {
-                if (running) android.util.Log.e("AutamedicaCDP", "CDP proxy stopped", error);
             }
         }, "autamedica-cdp-listener");
         thread.setDaemon(true);
@@ -53,6 +64,23 @@ final class LocalCdpProxy {
         running = false;
         try { if (listener != null) listener.close(); } catch (Exception ignored) {}
         clients.shutdownNow();
+    }
+
+    boolean isListening() {
+        ServerSocket current = listener;
+        return running && current != null && !current.isClosed();
+    }
+
+    boolean isWebViewSocketAvailable() {
+        LocalSocket probe = new LocalSocket();
+        try {
+            probe.connect(new LocalSocketAddress(socketName, LocalSocketAddress.Namespace.ABSTRACT));
+            return true;
+        } catch (Exception unavailable) {
+            return false;
+        } finally {
+            try { probe.close(); } catch (Exception ignored) {}
+        }
     }
 
     private void handle(Socket client) {

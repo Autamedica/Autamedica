@@ -71,7 +71,12 @@ public final class MainActivity extends Activity {
 
         Button runBackground = new Button(this);
         runBackground.setText("Mantener navegador activo con pantalla apagada");
-        runBackground.setOnClickListener(v -> startBackgroundRuntime());
+        runBackground.setOnClickListener(v -> {
+            Intent browser = new Intent(this, BrowserActivity.class);
+            browser.putExtra("url", SecureVault.get(this, "browser.lastUrl", "https://www.google.com"));
+            startActivity(browser);
+            startBackgroundRuntime();
+        });
         root.addView(runBackground, matchWrap());
 
         Button stopBackground = new Button(this);

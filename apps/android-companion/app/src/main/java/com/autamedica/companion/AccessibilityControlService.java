@@ -33,6 +33,14 @@ public final class AccessibilityControlService extends AccessibilityService {
         return instance != null;
     }
 
+    boolean isCdpListening() {
+        return cdpProxy != null && cdpProxy.isListening();
+    }
+
+    boolean isWebViewSocketAvailable() {
+        return cdpProxy != null && cdpProxy.isWebViewSocketAvailable();
+    }
+
     @Override public void onServiceConnected() {
         super.onServiceConnected();
         instance = this;
@@ -194,13 +202,20 @@ public final class AccessibilityControlService extends AccessibilityService {
     }
 
     boolean openBrowser(String url) throws Exception {
-        return onMain(() -> {
+        boolean requested = onMain(() -> {
             android.content.Intent intent = new android.content.Intent(this, BrowserActivity.class);
             intent.putExtra("url", url);
             intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
             startActivity(intent);
             return true;
         });
+        if (!requested) return false;
+        long deadline = android.os.SystemClock.uptimeMillis() + 2500;
+        while (android.os.SystemClock.uptimeMillis() < deadline) {
+            if (BrowserActivity.isReady()) return true;
+            Thread.sleep(100);
+        }
+        return BrowserActivity.isReady();
     }
 
     boolean openApp(String packageName) throws Exception {
