@@ -140,6 +140,37 @@ final class LocalControlServer {
                         if (url.length() > 2048) throw new IllegalArgumentException("URL too long");
                         ok = service.openUrl(url);
                         break;
+                    case "/v1/browser/navigate":
+                        String browserUrl = args.getString("url");
+                        if (!(browserUrl.startsWith("https://") || browserUrl.startsWith("http://")))
+                            throw new IllegalArgumentException("Only http and https URLs are supported");
+                        BrowserActivity.navigate(browserUrl);
+                        ok = true;
+                        break;
+                    case "/v1/browser/evaluate":
+                        String script = args.getString("script");
+                        if (script.length() > 12000) throw new IllegalArgumentException("Script too long");
+                        JSONObject evaluation = new JSONObject();
+                        evaluation.put("value", BrowserActivity.evaluate(script));
+                        respond(output, 200, "application/json; charset=utf-8", evaluation.toString().getBytes(StandardCharsets.UTF_8));
+                        return;
+                    case "/v1/browser/click":
+                        String clickSelector = args.getString("selector");
+                        if (clickSelector.length() > 1000) throw new IllegalArgumentException("Selector too long");
+                        String clickScript = "(function(){const e=document.querySelector(" + JSONObject.quote(clickSelector) + ");if(!e)return false;e.click();return true})()";
+                        JSONObject clickResult = new JSONObject();
+                        clickResult.put("ok", "true".equals(BrowserActivity.evaluate(clickScript)));
+                        respond(output, 200, "application/json; charset=utf-8", clickResult.toString().getBytes(StandardCharsets.UTF_8));
+                        return;
+                    case "/v1/browser/fill":
+                        String fillSelector = args.getString("selector");
+                        String fillValue = args.getString("value");
+                        if (fillSelector.length() > 1000 || fillValue.length() > 10000) throw new IllegalArgumentException("Input too long");
+                        String fillScript = "(function(){const e=document.querySelector(" + JSONObject.quote(fillSelector) + ");if(!e)return false;const p=e instanceof HTMLTextAreaElement?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;const d=Object.getOwnPropertyDescriptor(p,'value');if(d&&d.set)d.set.call(e," + JSONObject.quote(fillValue) + ");else e.value=" + JSONObject.quote(fillValue) + ";e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));return true})()";
+                        JSONObject fillResult = new JSONObject();
+                        fillResult.put("ok", "true".equals(BrowserActivity.evaluate(fillScript)));
+                        respond(output, 200, "application/json; charset=utf-8", fillResult.toString().getBytes(StandardCharsets.UTF_8));
+                        return;
                     default:
                         respond(output, 404, "application/json", jsonError("unknown endpoint"));
                         return;
