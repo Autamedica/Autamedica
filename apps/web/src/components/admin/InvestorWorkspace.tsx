@@ -175,6 +175,26 @@ export function InvestorWorkspace() {
     }
   };
 
+  const loadInitialList = async () => {
+    setSaving(true);
+    setError('');
+    setNotice('');
+    try {
+      const result = await readJson(await fetch('/api/admin/social-agents/investors', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ action: 'load_initial_list' }),
+      }));
+      setNotice(`Pipeline inicial listo: ${result.inserted} inversores agregados; ${result.already_present} ya estaban cargados.`);
+      await loadInvestors();
+    } catch (seedError) {
+      setError(seedError instanceof Error ? seedError.message : 'No se pudo cargar la lista inicial.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const exportXlsx = async () => {
     setError('');
     setNotice('');
@@ -239,6 +259,7 @@ export function InvestorWorkspace() {
           </div>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => void loadInvestors()} className="rounded-lg border border-white/20 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/10">Actualizar</button>
+            <button onClick={() => void loadInitialList()} disabled={saving} className="rounded-lg border border-cyan-300/50 bg-cyan-300/10 px-4 py-2.5 text-sm font-bold text-cyan-100 hover:bg-cyan-300/20 disabled:opacity-50">Cargar 24 fondos iniciales</button>
             <button onClick={() => void exportXlsx()} className="rounded-lg bg-emerald-400 px-4 py-2.5 text-sm font-bold text-slate-950 hover:bg-emerald-300">Descargar Excel</button>
             <button onClick={() => setShowForm((value) => !value)} className="rounded-lg bg-white px-4 py-2.5 text-sm font-bold text-slate-950 hover:bg-slate-100">Agregar inversor</button>
           </div>
