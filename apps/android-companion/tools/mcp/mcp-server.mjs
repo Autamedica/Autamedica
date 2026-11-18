@@ -22,7 +22,13 @@ const tools = [
   { name: "android_back", description: "Ejecuta la acción global Atrás.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "android_home", description: "Vuelve a la pantalla de inicio Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "android_open_url", description: "Abre un enlace http, https o whatsapp en Android.", inputSchema: { type: "object", properties: { url: { type: "string" } }, required: ["url"], additionalProperties: false } },
-  { name: "android_wait_for_text", description: "Espera hasta que un texto aparezca en el árbol de accesibilidad.", inputSchema: { type: "object", properties: { text: { type: "string" }, timeout_ms: { type: "integer", minimum: 500, maximum: 15000 } }, required: ["text"], additionalProperties: false } }
+  { name: "android_wait_for_text", description: "Espera hasta que un texto aparezca en el árbol de accesibilidad.", inputSchema: { type: "object", properties: { text: { type: "string" }, timeout_ms: { type: "integer", minimum: 500, maximum: 15000 } }, required: ["text"], additionalProperties: false } },
+  { name: "browser_navigate", description: "Abre una URL en el navegador WebView integrado de Android.", inputSchema: { type: "object", properties: { url: { type: "string" } }, required: ["url"], additionalProperties: false } },
+  { name: "browser_evaluate", description: "Ejecuta JavaScript en la página activa y devuelve el resultado JSON.", inputSchema: { type: "object", properties: { script: { type: "string" } }, required: ["script"], additionalProperties: false } },
+  { name: "browser_click", description: "Pulsa un elemento DOM por selector CSS, como Playwright locator.click.", inputSchema: { type: "object", properties: { selector: { type: "string" } }, required: ["selector"], additionalProperties: false } },
+  { name: "browser_fill", description: "Rellena un input o textarea por selector CSS, como Playwright locator.fill.", inputSchema: { type: "object", properties: { selector: { type: "string" }, value: { type: "string" } }, required: ["selector", "value"], additionalProperties: false } },
+  { name: "browser_get_text", description: "Obtiene el texto visible de la página activa.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "browser_get_url", description: "Obtiene la URL de la página activa.", inputSchema: { type: "object", properties: {}, additionalProperties: false } }
 ];
 
 async function request(path, options = {}) {
@@ -74,6 +80,18 @@ async function callTool(name, args) {
       return [{ type: "text", text: JSON.stringify(await post("/v1/home", {})) }];
     case "android_open_url":
       return [{ type: "text", text: JSON.stringify(await post("/v1/url", args)) }];
+    case "browser_navigate":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/browser/navigate", args)) }];
+    case "browser_evaluate":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/browser/evaluate", args)) }];
+    case "browser_click":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/browser/click", args)) }];
+    case "browser_fill":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/browser/fill", args)) }];
+    case "browser_get_text":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/browser/evaluate", {script:"document.body.innerText"})) }];
+    case "browser_get_url":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/browser/evaluate", {script:"location.href"})) }];
     case "android_wait_for_text": {
       const needle = String(args.text || "").toLocaleLowerCase();
       const timeout = Math.max(500, Math.min(15000, Number(args.timeout_ms || 8000)));
