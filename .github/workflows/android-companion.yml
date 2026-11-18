@@ -2,12 +2,12 @@ name: Android Companion CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, 'feat/android-companion-v1']
     paths:
       - 'apps/android-companion/**'
       - '.github/workflows/android-companion.yml'
   push:
-    branches: [main, 'feat/android-companion-v1']
+    branches: [main, 'feat/android-companion-v1', 'codex/repair-android-companion']
     paths:
       - 'apps/android-companion/**'
       - '.github/workflows/android-companion.yml'
