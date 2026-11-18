@@ -9,7 +9,12 @@ try {
   const admin = createAstroAdminClient(Astro.locals.runtime?.env) as unknown as SupabaseClient;
   document = await loadPublicDocumentArchive(admin, Astro.params.reference ?? '');
 } catch { unavailable = true; }
-Astro.response.status = unavailable ? 503 : document ? 200 : 404;
+if (!unavailable && !document) {
+  const target = new URL('/verify/documentos', Astro.url);
+  target.searchParams.set('reference', Astro.params.reference ?? '');
+  return Astro.redirect(target.toString(), 302);
+}
+Astro.response.status = unavailable ? 503 : 200;
 Astro.response.headers.set('Cache-Control', 'no-store');
 Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
 const active = document?.status === 'registered';
