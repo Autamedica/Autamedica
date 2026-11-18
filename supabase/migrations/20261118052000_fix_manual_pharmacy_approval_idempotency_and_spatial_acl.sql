@@ -1,0 +1,1 @@
+-- Selective rescue of PR #803; preserves the hardened manual_pilot and dispatch gates.\n
