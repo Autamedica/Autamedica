@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { isManualPilotApprovalEligible } from '@/lib/payments/manual-payment-governance'
 
 type Switches = {
  jordan_qr_payments_enabled:boolean
@@ -12,7 +13,7 @@ type Switches = {
  updated_at:string|null
  switch_audit?:Record<string,{updated_by:string;updated_by_name?:string|null;updated_at:string;reason:string|null}>
 }
-type PharmacyPayment = {id:string;request_id:string;amount_minor:number;currency:string;status:string;provider:string;provider_payment_id:string|null;metadata?:Record<string,unknown>|null;assigned_doctor_id:string|null;jordan_commission_minor:number|null;created_at:string}
+type PharmacyPayment = {id:string;request_id:string;amount_minor:number;currency:string;status:string;provider:string;payment_mode:string|null;manual_approval_pending:boolean;request_status:string|null;provider_payment_id:string|null;metadata?:Record<string,unknown>|null;assigned_doctor_id:string|null;jordan_commission_minor:number|null;created_at:string}
 type Approval = { id:string; status:string; domain:string; proposed_by:string; summary:string; risk_reason:string; impact_scope:string; created_at:string; payload?:{action_type?:string;risk_level?:string;recommendation?:string;operation_summary?:string;source?:string} }
 type SwitchKey = Exclude<keyof Switches,'updated_by'|'updated_at'|'switch_audit'>
 const SWITCHES: {key:SwitchKey;label:string;description:string;flows:string;inFlight:string}[] = [
@@ -29,6 +30,7 @@ export function PaymentGovernancePanel(){
  const [approvals,setApprovals]=useState<Approval[]>([])
  const [pharmacyPayments,setPharmacyPayments]=useState<PharmacyPayment[]>([])
  const [error,setError]=useState('')
+ const [notice,setNotice]=useState('')
  const load=async()=>{
   try{
    const [s,a,p]=await Promise.all([fetch('/api/admin/payments/toggle').then(r=>r.json()),fetch('/api/admin/approvals?status=pending').then(r=>r.json()),fetch('/api/admin/finance/pharmacy-payments').then(r=>r.json())])
@@ -40,8 +42,11 @@ export function PaymentGovernancePanel(){
  }
  useEffect(()=>{void load();const refresh=setInterval(()=>void load(),15000);return ()=>clearInterval(refresh)},[])
  const toggle=async(key:SwitchKey,enabled:boolean)=>{
-  const r=await fetch('/api/admin/payments/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key,enabled,reason:'Cambio manual desde Admin'})})
-  const j=await r.json(); if(!r.ok||!j.success){setError('No se pudo actualizar el interruptor');return}
+  const reason=window.prompt('Describí la causa concreta del cambio (mínimo 12 caracteres):')?.trim()??''
+  if(reason.length<12)return
+  const r=await fetch('/api/admin/payments/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key,enabled,reason})})
+  const j=await r.json(); if(!r.ok||!j.success){setError(j?.error??'No se pudo actualizar el interruptor');return}
+  setNotice('Interruptor actualizado y auditoría registrada.')
   await load()
  }
  const manualApprove=async(paymentId:string)=>{
@@ -52,7 +57,13 @@ export function PaymentGovernancePanel(){
   if(!window.confirm('¿Registrar MANUAL_OVERRIDE con esta referencia externa y liberar el despacho elegible?'))return
   const r=await fetch('/api/admin/finance/pharmacy-payments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'manual_approve',payment_id:paymentId,reason,evidence_reference})})
   const j=await r.json().catch(()=>null)
-  if(!r.ok||!j?.success){setError(j?.error??j?.code??'El pago quedó registrado; el despacho requiere resolución');await load();return}
+  const result=j?.data??j
+  if(!r.ok||!j?.success){setError(j?.error??j?.code??'No se pudo validar el pago');await load();return}
+  if(result?.status==='approved_pending_dispatch_resolution'){
+   setNotice('Cobro aprobado. El despacho requiere una decisión en la Bandeja de Autorizaciones; no vuelvas a validar este pago.')
+  } else {
+   setNotice('Pago manual aprobado y despacho activado.')
+  }
   await load()
  }
  const decide=async(decisionId:string,status:'APPROVED'|'REJECTED',resolutionAction?:'reopen'|'refund')=>{
@@ -65,6 +76,7 @@ export function PaymentGovernancePanel(){
  return <section className="space-y-6 rounded-xl border border-slate-200 bg-white p-5">
   <div><h2 className="text-lg font-semibold text-slate-900">Control de Cobros y Operaciones en Vivo</h2><p className="text-sm text-slate-500">Estado central en Supabase. Cada cambio registra actor, fecha y motivo.</p></div>
   {error&&<p role="alert" className="text-sm text-red-700">{error}</p>}
+  {notice&&<p role="status" className="text-sm text-emerald-700">{notice}</p>}
   <div className="grid gap-3 md:grid-cols-2">
    {SWITCHES.map(item=><article key={item.key} className="rounded-lg border p-4">
     <label className="flex items-center justify-between gap-3"><span className="text-sm font-semibold">{item.label}</span><input type="checkbox" checked={switches?.[item.key]??false} disabled={!switches} onChange={e=>void toggle(item.key,e.target.checked)} className="h-5 w-5"/></label>
@@ -79,7 +91,7 @@ export function PaymentGovernancePanel(){
   </div>
   <div><h2 className="text-lg font-semibold text-slate-900">Cobros de Farmacia Express / Jordan</h2>
    <div className="mt-3 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b text-xs uppercase text-slate-500"><th className="p-2">Estado</th><th className="p-2">Monto</th><th className="p-2">Comisión Jordan</th><th className="p-2">Request ID</th><th className="p-2">Médico asignado</th><th className="p-2">Fecha</th></tr></thead><tbody>
-    {pharmacyPayments.map(p=><tr key={p.id} className="border-b"><td className="p-2"><div className="flex flex-col items-start gap-1"><span>{p.status}</span>{p.metadata?.manual_override_by&&<span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-bold tracking-wide text-amber-900">[MANUAL OVERRIDE]</span>}{['pending','pending_payment'].includes(p.status)&&<button type="button" onClick={()=>void manualApprove(p.id)} className="rounded border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500">Validar Pago Manualmente (Excepción Mostrador)</button>}</div></td><td className="p-2">{new Intl.NumberFormat(p.currency==='BRL'?'pt-BR':'es-AR',{style:'currency',currency:p.currency}).format(p.amount_minor/100)}</td><td className="p-2">{p.jordan_commission_minor===null?'—':new Intl.NumberFormat(p.currency==='BRL'?'pt-BR':'es-AR',{style:'currency',currency:p.currency}).format(p.jordan_commission_minor/100)}</td><td className="p-2 font-mono text-xs">{p.request_id}</td><td className="p-2">{p.assigned_doctor_id??'Sin asignar'}</td><td className="p-2">{new Date(p.created_at).toLocaleString()}</td></tr>)}
+    {pharmacyPayments.map(p=><tr key={p.id} className="border-b"><td className="p-2"><div className="flex flex-col items-start gap-1"><span>{p.status}</span>{p.metadata?.manual_override_by&&<span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-bold tracking-wide text-amber-900">[MANUAL OVERRIDE]</span>}{isManualPilotApprovalEligible({provider:p.provider,payment_mode:p.payment_mode,manual_approval_pending:p.manual_approval_pending,status:p.status,request_status:p.request_status})&&<button type="button" onClick={()=>void manualApprove(p.id)} className="rounded border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500">Validar Pago Manualmente</button>}</div></td><td className="p-2">{new Intl.NumberFormat(p.currency==='BRL'?'pt-BR':'es-AR',{style:'currency',currency:p.currency}).format(p.amount_minor/100)}</td><td className="p-2">{p.jordan_commission_minor===null?'—':new Intl.NumberFormat(p.currency==='BRL'?'pt-BR':'es-AR',{style:'currency',currency:p.currency}).format(p.jordan_commission_minor/100)}</td><td className="p-2 font-mono text-xs">{p.request_id}</td><td className="p-2">{p.assigned_doctor_id??'Sin asignar'}</td><td className="p-2">{new Date(p.created_at).toLocaleString()}</td></tr>)}
     {pharmacyPayments.length===0&&<tr><td colSpan={6} className="p-3 text-slate-500">Sin pagos de farmacia registrados.</td></tr>}
    </tbody></table></div>
   </div>

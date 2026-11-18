@@ -220,6 +220,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .eq('country_code', careCountry)
       .maybeSingle()
     if (pricingError || !countryPricing) return serviceUnavailable('pharmacy_dispatch_pricing_not_configured')
+    if (countryPricing.require_payment_before_dispatch && !operationalSwitches?.global_pix_mp_payments_enabled) {
+      return serviceUnavailable('global_pix_mp_payments_disabled')
+    }
 
     if (countryPricing.require_payment_before_dispatch && !hasSecureGuestPaymentSecret(locals.runtime?.env)) {
       return serviceUnavailable('pharmacy_checkout_guest_security_not_configured')
