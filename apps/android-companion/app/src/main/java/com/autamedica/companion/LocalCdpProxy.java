@@ -86,6 +86,8 @@ final class LocalCdpProxy {
 
             String responseText = new String(responseHeader, StandardCharsets.ISO_8859_1);
             if (websocket && responseText.startsWith("HTTP/1.1 101")) {
+                client.setSoTimeout(0);
+                upstream.setSoTimeout(0);
                 clientOut.write(responseHeader);
                 clientOut.flush();
                 handedOff = true;
