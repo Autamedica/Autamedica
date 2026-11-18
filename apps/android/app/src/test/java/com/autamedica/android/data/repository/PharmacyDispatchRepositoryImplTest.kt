@@ -9,6 +9,7 @@ import com.autamedica.android.domain.repository.UserRegistrationResult
 import com.google.common.truth.Truth.assertThat
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.postgrest.Postgrest
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -24,6 +25,7 @@ import io.mockk.mockk
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import java.util.concurrent.TimeUnit
 
 private class FakeAuthRepository(var currentUser: User? = null) : AuthRepository {
     override fun observeSession(): Flow<User?> = flowOf(currentUser)
@@ -67,6 +69,7 @@ class PharmacyDispatchRepositoryImplTest {
             supabaseUrl = mockWebServer.url("/").toString(),
             supabaseKey = "test-anon-key",
         ) {
+            install(Auth)
             install(Postgrest)
         }
 
@@ -339,6 +342,16 @@ class PharmacyDispatchRepositoryImplTest {
         val recordedRequest = mockWebServer.takeRequest()
         assertThat(recordedRequest.path).contains("doctor_duty_status")
         assertThat(recordedRequest.path).contains("doctor_id=eq.$doctorId")
+    }
+
+    @Test
+    fun `pending offer polling skips the protected RPC without an authenticated session`() = runTest {
+        repository.observeSearchingRequests()
+
+        // The observer starts before sign-in on some app paths. It must not
+        // issue the protected PostgREST RPC with the project's anon credential.
+        val request = mockWebServer.takeRequest(2, TimeUnit.SECONDS)
+        assertThat(request).isNull()
     }
 
     @Test
