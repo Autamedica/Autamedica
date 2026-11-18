@@ -34,6 +34,13 @@ public final class BrowserActivity extends Activity {
         if (url != null) webView.loadUrl(url);
     }
 
+    @Override protected void onNewIntent(android.content.Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        String url = intent.getStringExtra("url");
+        if (url != null && webView != null) webView.loadUrl(url);
+    }
+
     @Override protected void onDestroy() {
         if (instance == this) instance = null;
         if (webView != null) { webView.stopLoading(); webView.destroy(); webView = null; }
