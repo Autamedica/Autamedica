@@ -232,3 +232,52 @@ Deno.test("patients-wallet-balance - Returns verified Brazilian BRL wallet balan
     globalThis.fetch = originalFetch;
   }
 });
+
+
+Deno.test("patients-wallet-balance - returns zero without creating an unresolved wallet", async () => {
+  Deno.env.set("SUPABASE_URL", "https://dummy.supabase.co");
+  Deno.env.set("SUPABASE_ANON_KEY", "dummy_anon");
+  Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", "dummy_service_role");
+
+  const originalFetch = globalThis.fetch;
+  let balanceRpcCalled = false;
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (url.includes("/auth/v1/user")) {
+      return Response.json({ id: "user-without-currency" });
+    }
+    if (url.includes("/rest/v1/patients")) {
+      return Response.json({
+        id: "patient-without-currency",
+        user_id: "user-without-currency",
+        cpf: null,
+        dni: null,
+        care_country: null,
+      });
+    }
+    if (url.includes("/rest/v1/patient_wallets")) return Response.json(null);
+    if (url.includes("/rpc/patient_wallet_get_balance")) {
+      balanceRpcCalled = true;
+      return Response.json({ message: "billing_currency_unresolved" }, { status: 500 });
+    }
+    return originalFetch(input, init);
+  };
+
+  try {
+    const req = new Request("http://localhost/patients-wallet-balance", {
+      method: "GET",
+      headers: { Authorization: "Bearer valid-token" },
+    });
+    const res = await handler(req);
+    assertEquals(res.status, 200);
+    assertEquals(await res.json(), {
+      available_credit_cents: 0,
+      locked_credit_cents: 0,
+      total_credit_cents: 0,
+      currency: null,
+    });
+    assertEquals(balanceRpcCalled, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
