@@ -7,7 +7,7 @@ export interface PublicDocumentArchive {
   documentDate: string;
   registeredAt: string;
   pdfSha256: string;
-  signatureType: 'scanned_signature';
+  signatureType: 'scanned_signature' | 'electronic_verified' | 'ac_external';
   issuer: { name: string; profession: string; license: string; jurisdiction: string };
 }
 
@@ -16,7 +16,7 @@ export const isArchiveReference = (value: string): boolean => value.length === 3
 export function publicArchiveRecord(row: Record<string, unknown>): PublicDocumentArchive | null {
   if (typeof row.reference !== 'string' || !isArchiveReference(row.reference) ||
       !['registered', 'revoked'].includes(String(row.status)) ||
-      row.signature_type !== 'scanned_signature' ||
+      !['scanned_signature', 'electronic_verified', 'ac_external'].includes(String(row.signature_type)) ||
       typeof row.pdf_sha256 !== 'string' || row.pdf_sha256.length !== 64 || !/^[a-f0-9]{64}$/.test(row.pdf_sha256) ||
       typeof row.document_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(row.document_date) ||
       typeof row.registered_at !== 'string' || !Number.isFinite(Date.parse(row.registered_at))) return null;
@@ -33,7 +33,7 @@ export function publicArchiveRecord(row: Record<string, unknown>): PublicDocumen
     documentDate: row.document_date,
     registeredAt: row.registered_at,
     pdfSha256: row.pdf_sha256,
-    signatureType: 'scanned_signature',
+    signatureType: row.signature_type as PublicDocumentArchive['signatureType'],
     issuer: {
       name: fields.name as string, profession: fields.profession as string,
       license: fields.license as string, jurisdiction: fields.jurisdiction as string,
