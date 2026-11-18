@@ -24,6 +24,12 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
         }
+        create("repair") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".repair"
+            versionNameSuffix = "-repair"
+            matchingFallbacks += listOf("debug")
+        }
         release {
             isMinifyEnabled = false
         }
