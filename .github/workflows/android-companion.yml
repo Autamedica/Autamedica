@@ -41,6 +41,16 @@ jobs:
         run: |
           test -s apps/android-companion/app/build/outputs/apk/debug/app-debug.apk
           sha256sum apps/android-companion/app/build/outputs/apk/debug/app-debug.apk
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate MCP and Debian installer
+        working-directory: apps/android-companion/tools/mcp
+        run: |
+          node --check mcp-server.mjs
+          bash -n install-termux.sh
+          npm install --omit=optional --no-audit --no-fund
+          node --input-type=module -e "import('playwright-core').then(m => { if (!m.chromium?.connectOverCDP) process.exit(1); console.log('Playwright Core CDP client OK'); })"
       - uses: actions/upload-artifact@v4
         with:
           name: autamedica-android-companion-debug
