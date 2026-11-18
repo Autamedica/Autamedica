@@ -18,7 +18,7 @@ import java.util.concurrent.Executors;
 
 final class LocalControlServer {
     private static final int PORT = 18765;
-    private static final int MAX_BODY = 16384;
+    private static final int MAX_BODY = 65536;
     private final AccessibilityControlService service;
     private final ExecutorService clients = Executors.newCachedThreadPool();
     private volatile boolean running;
@@ -118,6 +118,27 @@ final class LocalControlServer {
                 JSONObject args = new JSONObject(new String(body, StandardCharsets.UTF_8));
                 boolean ok;
                 switch (path) {
+                    case "/v1/vault/put":
+                        String vaultName = args.getString("name");
+                        String vaultValue = args.getString("value");
+                        if ("control_token".equals(vaultName) || vaultValue.length() > 32768)
+                            throw new IllegalArgumentException("Invalid or protected vault entry");
+                        SecureVault.put(service, vaultName, vaultValue);
+                        ok = true;
+                        break;
+                    case "/v1/vault/get":
+                        String getName = args.getString("name");
+                        JSONObject secret = new JSONObject();
+                        secret.put("name", getName);
+                        secret.put("value", SecureVault.get(service, getName, null));
+                        respond(output, 200, "application/json; charset=utf-8", secret.toString().getBytes(StandardCharsets.UTF_8));
+                        return;
+                    case "/v1/vault/delete":
+                        String deleteName = args.getString("name");
+                        if ("control_token".equals(deleteName)) throw new IllegalArgumentException("Protected vault entry");
+                        SecureVault.delete(service, deleteName);
+                        ok = true;
+                        break;
                     case "/v1/vault/put":
                         String vaultName = args.getString("name");
                         String vaultValue = args.getString("value");
