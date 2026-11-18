@@ -144,8 +144,7 @@ final class LocalControlServer {
                         String browserUrl = args.getString("url");
                         if (!(browserUrl.startsWith("https://") || browserUrl.startsWith("http://")))
                             throw new IllegalArgumentException("Only http and https URLs are supported");
-                        BrowserActivity.navigate(browserUrl);
-                        ok = true;
+                        ok = service.openBrowser(browserUrl);
                         break;
                     case "/v1/browser/evaluate":
                         String script = args.getString("script");
