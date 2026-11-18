@@ -18,6 +18,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       return new Response('Documento no disponible', { status: 404, headers: noStore });
     }
 
+    // Resolve the immutable archive first, then the issued-certificate namespaces.
     const storage = admin.storage.from('medical-documents');
     const objectPaths = [
       `document-archives/${document.reference}/${document.pdfSha256}.pdf`,
