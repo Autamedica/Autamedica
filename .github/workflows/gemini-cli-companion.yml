@@ -2,6 +2,7 @@ name: Gemini CLI Android Companion
 
 on:
   pull_request:
+    branches: [main, codex/repair-android-companion]
     paths:
       - "gemini.sh"
       - "GEMINI.md"
@@ -9,7 +10,7 @@ on:
       - "docs/GEMINI_CLI_ANDROID_COMPANION.md"
       - ".github/workflows/gemini-cli-companion.yml"
   push:
-    branches: [main]
+    branches: [main, feat/gemini-cli-android-companion]
     paths:
       - "gemini.sh"
       - "GEMINI.md"
