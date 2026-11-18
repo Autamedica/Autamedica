@@ -1,0 +1,6 @@
+interface:
+  display_name: "AutaMedica Android Companion"
+  short_description: "Control the paired Android device through the local Companion MCP"
+  default_prompt: "Use AutaMedica Android Companion as the primary tool to inspect and control this Android device. Start with android_status."
+policy:
+  allow_implicit_invocation: true
