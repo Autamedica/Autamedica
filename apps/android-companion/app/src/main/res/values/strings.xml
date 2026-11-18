@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Autamedica Android Companion</string>
+    <string name="accessibility_service_name">Autamedica Android control</string>
+    <string name="accessibility_service_description">Permite que Codex controle la pantalla cuando el propietario lo solicita desde su entorno local. Las acciones se ejecutan en este dispositivo y el servicio escucha únicamente en localhost.</string>
+</resources>
