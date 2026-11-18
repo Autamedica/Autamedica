@@ -139,27 +139,6 @@ final class LocalControlServer {
                         SecureVault.delete(service, deleteName);
                         ok = true;
                         break;
-                    case "/v1/vault/put":
-                        String vaultName = args.getString("name");
-                        String vaultValue = args.getString("value");
-                        if ("control_token".equals(vaultName) || vaultValue.length() > 32768)
-                            throw new IllegalArgumentException("Invalid or protected vault entry");
-                        SecureVault.put(service, vaultName, vaultValue);
-                        ok = true;
-                        break;
-                    case "/v1/vault/get":
-                        String getName = args.getString("name");
-                        JSONObject secret = new JSONObject();
-                        secret.put("name", getName);
-                        secret.put("value", SecureVault.get(service, getName, null));
-                        respond(output, 200, "application/json; charset=utf-8", secret.toString().getBytes(StandardCharsets.UTF_8));
-                        return;
-                    case "/v1/vault/delete":
-                        String deleteName = args.getString("name");
-                        if ("control_token".equals(deleteName)) throw new IllegalArgumentException("Protected vault entry");
-                        SecureVault.delete(service, deleteName);
-                        ok = true;
-                        break;
                     case "/v1/click":
                         ok = service.clickPath(args.getString("path"));
                         break;
