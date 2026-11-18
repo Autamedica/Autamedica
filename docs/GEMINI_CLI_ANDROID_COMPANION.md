@@ -40,16 +40,16 @@ That setup asks for the token directly in the terminal. Never paste the token in
 Direct session:
 
 ```bash
-bash gemini.sh
+./gemini.sh
 ```
 
 Independent tmux session:
 
 ```bash
-bash gemini.sh --tmux
+./gemini.sh --tmux
 ```
 
-The tmux session name is `autamedica-gemini`; Codex sessions are not stopped or reused.
+The installer marks `gemini.sh` executable. Use `bash gemini.sh` if the checkout filesystem does not preserve executable bits. The tmux session name is `autamedica-gemini`; Codex sessions are not stopped or reused.
 
 At first launch, Gemini may ask you to authenticate with your Google account and trust the AutaMedica repository folder. Complete that interactive setup in the terminal.
 
