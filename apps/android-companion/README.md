@@ -67,21 +67,26 @@ Después de instalar:
 
 ## Integración MCP (dentro de Debian proot)
 
-El archivo `tools/mcp/install-termux.sh` debe ejecutarse dentro de Debian, que es donde se ejecuta Codex:
+El MCP debe instalarse **en el mismo Debian/Termux donde corre Codex**, no en otra terminal o en Windows. Desde la raíz del repositorio:
 
 ```bash
+cd apps/android-companion
 bash tools/mcp/install-termux.sh
 ```
 
-El instalador garantiza Node.js 22+, instala Playwright Core 1.65.1 sin descargar otro navegador, guarda el token en un archivo privado y actualiza `~/.codex/config.toml`.
+El instalador garantiza Node.js 22+, instala Playwright Core 1.65.1 sin descargar otro navegador, solicita el token privado mostrado por Autamedica Companion, lo guarda en un archivo con permisos `600` y registra el servidor `autamedica_android` en `~/.codex/config.toml`.
 
-Verificar:
+En Android, habilitá **Autamedica Android control** en Ajustes > Accesibilidad y abrí/iniciá la sesión en Autamedica Companion. Para automatización web, iniciá también la sesión de navegador dentro de la app.
+
+Verificar desde la misma instalación Debian:
 
 ```bash
 codex mcp list
 ```
 
-Reiniciar Codex para cargar el servidor MCP.
+Reiniciá Codex y ejecutá `/mcp`. Debe aparecer `autamedica_android`. La primera llamada de diagnóstico es `android_status`; para verificar WebView/CDP, usá `browser_status`.
+
+**Shizuku no forma parte del flujo normal del Companion.** El control nativo se realiza mediante Android AccessibilityService y el MCP local autenticado. ADB queda reservado a instalación, actualización y depuración inicial.
 
 ## Herramientas MCP
 
