@@ -19,7 +19,7 @@ import java.util.concurrent.Executors;
 
 /** Authenticated TCP-to-abstract-socket relay for this app's Chromium WebView CDP endpoint. */
 final class LocalCdpProxy {
-    static final int PORT = 18766;
+    static final int PORT = BuildConfig.CDP_PORT;
     private static final int MAX_HEADER = 64 * 1024;
     private final Context context;
     private final String socketName = "webview_devtools_remote_" + Process.myPid();
