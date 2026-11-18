@@ -17,10 +17,7 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/**
- * Authenticated TCP-to-abstract-Unix-socket relay for the Chromium WebView CDP endpoint.
- * TCP listens on device loopback only. The upstream abstract socket remains app-UID scoped.
- */
+/** Authenticated TCP-to-abstract-socket relay for this app's Chromium WebView CDP endpoint. */
 final class LocalCdpProxy {
     static final int PORT = 18766;
     private static final int MAX_HEADER = 64 * 1024;
@@ -108,12 +105,11 @@ final class LocalCdpProxy {
 
             if (responseText.toLowerCase(Locale.ROOT).contains("content-type: application/json")) {
                 String json = new String(responseBody, StandardCharsets.UTF_8);
-                json = json.replaceAll("ws://(?:localhost|127\\\\.0\\\\.0\\\\.1)(?::[0-9]+)?/",
+                json = json.replaceAll("ws://(?:localhost|127\\.0\\.0\\.1)(?::[0-9]+)?/",
                     "ws://127.0.0.1:" + PORT + "/");
                 responseBody = json.getBytes(StandardCharsets.UTF_8);
                 responseText = replaceHeader(responseText, "Content-Length", String.valueOf(responseBody.length));
                 responseText = removeHeader(responseText, "Transfer-Encoding");
-                if (!responseText.endsWith("\\r\\n\\r\\n")) responseText += "\\r\\n";
                 responseHeader = responseText.getBytes(StandardCharsets.ISO_8859_1);
             }
 
@@ -157,13 +153,13 @@ final class LocalCdpProxy {
             if (lower.startsWith("authorization:")) continue;
             if (!websocket && lower.startsWith("connection:")) continue;
             if (lower.startsWith("accept-encoding:")) continue;
-            out.append(line).append("\\r\\n");
+            out.append(line).append("\r\n");
         }
         if (!websocket) {
-            out.append("Accept-Encoding: identity\\r\\n");
-            out.append("Connection: close\\r\\n");
+            out.append("Accept-Encoding: identity\r\n");
+            out.append("Connection: close\r\n");
         }
-        out.append("\\r\\n");
+        out.append("\r\n");
         return out.toString();
     }
 
@@ -198,18 +194,18 @@ final class LocalCdpProxy {
     }
 
     private static String setHeader(String headers, String name, String value) {
-        int end = headers.indexOf("\\r\\n\\r\\n");
+        int end = headers.indexOf("\r\n\r\n");
         if (end < 0) return headers;
-        return headers.substring(0, end) + name + ": " + value + "\\r\\n\\r\\n";
+        return headers.substring(0, end) + "\r\n" + name + ": " + value + "\r\n\r\n";
     }
 
     private static String removeHeader(String headers, String name) {
         StringBuilder result = new StringBuilder();
         for (String line : headers.split("\\r\\n")) {
             if (line.toLowerCase(Locale.ROOT).startsWith(name.toLowerCase(Locale.ROOT) + ":")) continue;
-            if (!line.isEmpty()) result.append(line).append("\\r\\n");
+            if (!line.isEmpty()) result.append(line).append("\r\n");
         }
-        return result.append("\\r\\n").toString();
+        return result.append("\r\n").toString();
     }
 
     private static byte[] readExact(InputStream in, int count) throws Exception {
@@ -258,9 +254,9 @@ final class LocalCdpProxy {
     }
 
     private static void writeError(OutputStream out, int status, String reason) throws Exception {
-        byte[] body = ("{\\"error\\":\\"" + reason + "\\"}").getBytes(StandardCharsets.UTF_8);
-        out.write(("HTTP/1.1 " + status + " " + reason + "\\r\\nContent-Type: application/json\\r\\nContent-Length: "
-            + body.length + "\\r\\nConnection: close\\r\\n\\r\\n").getBytes(StandardCharsets.US_ASCII));
+        byte[] body = ("{\"error\":\"" + reason + "\"}").getBytes(StandardCharsets.UTF_8);
+        out.write(("HTTP/1.1 " + status + " " + reason + "\r\nContent-Type: application/json\r\nContent-Length: "
+            + body.length + "\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
         out.write(body);
         out.flush();
     }
