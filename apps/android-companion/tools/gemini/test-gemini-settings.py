@@ -30,6 +30,7 @@ class GeminiSettingsMergeTest(unittest.TestCase):
             text=True,
             capture_output=True,
             encoding="utf-8",
+            errors="replace",
             check=False,
         )
 
