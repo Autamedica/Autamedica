@@ -35,6 +35,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   const params = new URL(request.url).searchParams;
   const status = params.get('status');
   const priority = params.get('priority');
+  const search = (params.get('q') ?? '').trim().toLocaleLowerCase('es');
 
   let query = db.from(TABLE).select(SELECT_COLUMNS)
     .eq('owner_profile_id', auth.user.id)
@@ -49,10 +50,11 @@ export const GET: APIRoute = async ({ request, locals }) => {
   if (error) return internalError('investor_crm_unavailable');
 
   const rows = (data ?? []) as InvestorExportRow[];
+  const filteredRows = search ? rows.filter((row: any) => [row.organization_name, row.contact_name, row.role_title, row.country_code, row.thesis].some((value) => typeof value === 'string' && value.toLocaleLowerCase('es').includes(search))) : rows;
   if (params.get('export') === 'xlsx') {
-    const workbook = buildInvestorXlsx(rows);
+    const workbook = buildInvestorXlsx(filteredRows);
     const filename = `autamedica-inversores-${new Date().toISOString().slice(0, 10)}.xlsx`;
-    return new Response(workbook, {
+    return new Response(workbook.buffer as ArrayBuffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -63,7 +65,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     });
   }
 
-  return jsonOk(rows);
+  return jsonOk(filteredRows);
 };
 
 export const POST: APIRoute = async ({ request, locals }) => {
