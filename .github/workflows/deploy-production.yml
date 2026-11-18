@@ -278,6 +278,18 @@ jobs:
       - name: Unit tests before deployment
         run: pnpm test:unit
 
+      - name: Ensure clean Git tree for Pages deployment metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          git reset --hard "$GITHUB_SHA"
+          git clean -fd
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "::error::Git tree is dirty before Pages deployment"
+            git status --short
+            exit 1
+          fi
+
       - name: Snapshot production deployments
         id: snapshot
         env:
@@ -302,7 +314,7 @@ jobs:
           workingDirectory: apps/web
           packageManager: pnpm
           wranglerVersion: 4.162.0
-          command: pages deploy dist --project-name=autamedica-web --branch=main
+          command: pages deploy dist --project-name=autamedica-web --branch=main --commit-dirty=false --commit-hash=${{ github.sha }}
 
       - name: Deploy (subdomains)
         working-directory: apps/web
@@ -311,7 +323,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           for project in autamedica-doctors autamedica-patients autamedica-companies autamedica-admin; do
-            pnpm dlx wrangler@4.162.0 pages deploy dist --project-name="$project" --branch=main
+            pnpm dlx wrangler@4.162.0 pages deploy dist --project-name="$project" --branch=main --commit-dirty=false --commit-hash="$GITHUB_SHA"
           done
 
       - name: Create Sentry Release
