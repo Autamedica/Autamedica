@@ -28,7 +28,7 @@ const initialReference = Astro.url.searchParams.get('reference') ?? '';
       <button type="submit">Verificar documento</button>
     </form>
     <section id="result" aria-live="polite" aria-atomic="true" hidden></section>
-    <p class="disclaimer">La verificación confirma la existencia del registro y la integridad del PDF. No reemplaza la consulta de matrícula ante la autoridad profesional competente ni equivale por sí sola a una firma digital certificada.</p>
+    <p class="disclaimer">La consulta confirma la referencia registrada y la coincidencia SHA-256 del PDF. Los datos clínicos y de identidad del paciente permanecen reservados.</p>
     <footer>AutaMedica · Verificación pública de documentos</footer>
   </main>
   <script>
