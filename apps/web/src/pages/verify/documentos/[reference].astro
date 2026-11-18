@@ -48,7 +48,7 @@ const displayDate = (value: string) => value.slice(0, 10).split('-').reverse().j
             <dt>Fecha de registro</dt><dd>{displayDate(document.registeredAt)}</dd>
             <dt>Modalidad de firma</dt><dd>{document.signatureType === 'electronic_verified' ? 'Firma electrónica confirmada por el profesional en AutaMedica' : document.signatureType === 'ac_external' ? 'Firma PAdES verificada por proveedor externo' : 'Firma y sello escaneados archivados por el profesional'}.</dd>
           </dl>
-          <aside>Este QR permite consultar el registro y comparar la integridad del archivo. No certifica una firma digital criptográfica ni acredita por sí solo una habilitación ministerial. Los datos del paciente y su información clínica son reservados.</aside>
+          <aside>Esta consulta confirma el registro de emisión y permite comparar la integridad exacta del PDF. La modalidad de firma se identifica en el registro. Los datos clínicos y de identidad del paciente permanecen reservados.</aside>
           {active && <section class="compare">
             <h2>Comprobar el PDF recibido</h2>
             <p>Seleccione el archivo para comprobar si coincide exactamente con el registrado. La comparación se realiza en su dispositivo; el archivo no se envía.</p>
