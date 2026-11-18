@@ -63,6 +63,10 @@ fi
 mkdir -p "$GEMINI_HOME"
 chmod 700 "$GEMINI_HOME"
 
+if [[ -f "$REPO_ROOT/gemini.sh" ]]; then
+  chmod u+x "$REPO_ROOT/gemini.sh"
+fi
+
 python3 - "$SETTINGS" "$MCP_LAUNCHER" "$BRIDGE" <<'PY'
 # -*- coding: utf-8 -*-
 import json
@@ -127,5 +131,5 @@ say "Companion MCP registrado como autamedica_android (STDIO)."
 say "La configuración conserva otros servidores MCP y mantiene trust=false."
 say "Comprobá la conexión con: gemini mcp list"
 say "En el primer inicio, aprobá la confianza del directorio AutaMedica para habilitar la configuración MCP del proyecto."
-say "Launcher: bash gemini.sh"
+say "Launcher: ./gemini.sh (o bash gemini.sh)"
 say "Sesión tmux independiente: bash gemini.sh --tmux"
