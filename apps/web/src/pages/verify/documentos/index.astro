@@ -16,7 +16,7 @@ const initialReference = Astro.url.searchParams.get('reference') ?? '';
     <section class="intro">
       <p class="eyebrow">VALIDACIÓN DE DOCUMENTOS</p>
       <h1>Comprobá si el PDF coincide con el registro</h1>
-      <p>Ingresá el código que aparece en el QR o en la constancia y seleccioná el PDF original. AutaMedica comprobará si la referencia está registrada y si el PDF coincide con el archivo archivado al emitirlo.</p>
+      <p>Ingresá el código que aparece en el QR o en la constancia y seleccioná el PDF original. AutaMedica comprobará el registro de emisión y si el PDF coincide con el archivo original registrado.</p>
     </section>
     <form id="verify-form">
       <label for="reference">Código de verificación o contenido del QR</label>
@@ -36,7 +36,7 @@ const initialReference = Astro.url.searchParams.get('reference') ?? '';
     const result = document.querySelector<HTMLElement>('#result');
     const referenceInput = document.querySelector<HTMLInputElement>('#reference');
     const fileInput = document.querySelector<HTMLInputElement>('#pdf');
-    const normalizeReference = (value: string) => value.toUpperCase().match(/DOC-[A-F0-9]{32}/)?.[0] ?? '';
+    const normalizeReference = (value: string) => value.toUpperCase().match(/DOC-[A-F0-9]{32}|(?:AR|BR)-CERT-[A-F0-9]+-[A-F0-9]{6}/)?.[0] ?? '';
     form?.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (!result || !referenceInput || !fileInput) return;
@@ -47,7 +47,7 @@ const initialReference = Astro.url.searchParams.get('reference') ?? '';
       result.textContent = '';
       if (!reference) {
         result.className = 'result invalid';
-        result.textContent = 'No se encontró un código DOC válido. Pegá el texto del QR o ingresá el código de 32 caracteres.';
+        result.textContent = 'No se encontró un código de documento válido. Pegá el texto del QR o ingresá el código DOC o CUIR.';
         return;
       }
       if (!file) {
