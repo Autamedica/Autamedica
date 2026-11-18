@@ -54,11 +54,12 @@ public final class BrowserActivity extends Activity {
                 return !("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme));
             }
 
-            @Override public void onRenderProcessGone(WebView view, android.webkit.RenderProcessGoneDetail detail) {
+            @Override public boolean onRenderProcessGone(WebView view, android.webkit.RenderProcessGoneDetail detail) {
                 if (view == webView) {
                     String last = SecureVault.get(BrowserActivity.this, "browser.lastUrl", "https://www.google.com");
                     view.post(() -> view.loadUrl(last));
                 }
+                return true;
             }
         });
         webView.setWebChromeClient(new WebChromeClient() {
