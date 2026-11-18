@@ -315,7 +315,7 @@ export async function finishPharmacyDispatchRequest(
     const supabase = getBrowserSupabaseClient()
     const { error } = await supabase
       .from('pharmacy_dispatch_requests')
-      .update({ status: 'completed' as DispatchRequestStatus, ...blob })
+      .update({ status: 'completed', ...blob })
       .eq('id', requestId)
 
     if (error) {
