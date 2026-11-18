@@ -82,6 +82,14 @@ public final class MainActivity extends Activity {
         Button battery = new Button(this);
         battery.setText("Configurar batería sin restricciones");
         battery.setOnClickListener(v -> {
+            android.os.PowerManager power = (android.os.PowerManager) getSystemService(POWER_SERVICE);
+            if (Build.VERSION.SDK_INT >= 23 && !power.isIgnoringBatteryOptimizations(getPackageName())) {
+                try {
+                    startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                        Uri.parse("package:" + getPackageName())));
+                    return;
+                } catch (Exception ignored) {}
+            }
             try {
                 startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
             } catch (Exception ignored) {
