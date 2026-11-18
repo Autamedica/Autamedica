@@ -43,6 +43,12 @@ const tools = [
   { name: "browser_list_tabs", description: "Lista las páginas/tabs Chromium visibles para la sesión CDP.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "browser_network_log", description: "Devuelve eventos de solicitudes, respuestas y fallos HTTP observados desde el inicio de la captura.", inputSchema: { type: "object", properties: { clear: { type: "boolean" }, limit: { type: "integer", minimum: 1, maximum: 200 } }, additionalProperties: false } },
   { name: "browser_reload", description: "Recarga la página actual mediante Playwright.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "browser_cdp_send", description: "Envía cualquier método CDP directamente al target Chromium activo, sin una lista blanca de comandos. Ejemplos: Network.enable, Page.getLayoutMetrics, Runtime.evaluate, Fetch.enable.", inputSchema: { type: "object", properties: { method: { type: "string" }, params: { type: "object" } }, required: ["method"], additionalProperties: false } },
+  { name: "browser_session_state", description: "Informa dominios y nombres de cookies persistidas, claves de localStorage y URL restaurable. Nunca devuelve valores de cookies.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "vault_list_keys", description: "Lista nombres de claves guardadas en la bóveda cifrada Android Keystore.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "vault_store_secret", description: "Guarda una clave o secreto en la bóveda AES-256-GCM protegida por Android Keystore.", inputSchema: { type: "object", properties: { name: { type: "string" }, value: { type: "string" } }, required: ["name", "value"], additionalProperties: false } },
+  { name: "vault_read_secret", description: "Lee un secreto de la bóveda Android cifrada cuando la tarea lo necesita.", inputSchema: { type: "object", properties: { name: { type: "string" } }, required: ["name"], additionalProperties: false } },
+  { name: "vault_delete_secret", description: "Elimina un secreto de la bóveda cifrada; el token de conexión está protegido.", inputSchema: { type: "object", properties: { name: { type: "string" } }, required: ["name"], additionalProperties: false } },
 
   { name: "android_wait_for_text", description: "Espera texto visible en el árbol de accesibilidad Android.", inputSchema: { type: "object", properties: { text: { type: "string" }, timeout_ms: { type: "integer", minimum: 500, maximum: 15000 } }, required: ["text"], additionalProperties: false } }
 ];
@@ -276,6 +282,42 @@ async function callTool(name, args) {
       await page.reload({ waitUntil: "domcontentloaded", timeout: 60000 });
       return [{ type: "text", text: JSON.stringify({ reloaded: true, url: redactUrl(page.url()) }) }];
     }
+    case "browser_cdp_send": {
+      const page = await ensurePage();
+      if (!/^[A-Za-z][A-Za-z0-9_]*\\.[A-Za-z][A-Za-z0-9_]*$/.test(args.method))
+        throw new Error("CDP method must use Domain.command notation.");
+      const session = await page.context().newCDPSession(page);
+      try {
+        const result = await session.send(args.method, args.params || {});
+        return [{ type: "text", text: JSON.stringify(result).slice(0, 60000) }];
+      } finally {
+        await session.detach().catch(() => {});
+      }
+    }
+    case "browser_session_state": {
+      const page = await ensurePage();
+      const context = page.context();
+      const cookies = await context.cookies();
+      const localStorageKeys = await page.evaluate(() => Object.keys(localStorage));
+      return [{ type: "text", text: JSON.stringify({
+        url: redactUrl(page.url()),
+        title: await page.title(),
+        cookieCount: cookies.length,
+        cookies: cookies.map(cookie => ({ name: cookie.name, domain: cookie.domain, path: cookie.path, expires: cookie.expires, httpOnly: cookie.httpOnly, secure: cookie.secure, sameSite: cookie.sameSite, value: "[stored]" })),
+        localStorageKeys,
+        persistence: "Chromium WebView app-private profile; CookieManager.flush() on page lifecycle"
+      }) }];
+    }
+    case "vault_list_keys": {
+      const result = await (await request("/v1/vault/names")).json();
+      return [{ type: "text", text: JSON.stringify(result) }];
+    }
+    case "vault_store_secret":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/vault/put", args)) }];
+    case "vault_read_secret":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/vault/get", args)) }];
+    case "vault_delete_secret":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/vault/delete", args)) }];
     default:
       throw new Error("Unknown tool: " + name);
   }
