@@ -53,6 +53,7 @@ const PUBLIC_ROUTES = [
   "/auth/forgot-password",
   "/auth/reset-password",
   "/api/health",
+  "/api/verify", // Public QR/document verification endpoints for recipients without an account.
   "/verify",
   "/doctors/pricing",
   "/reserva-saude",
