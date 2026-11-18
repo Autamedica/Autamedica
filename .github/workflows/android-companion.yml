@@ -11,7 +11,7 @@ on:
       - 'apps/android-companion/tools/gemini/**'
       - 'docs/GEMINI_CLI_ANDROID_COMPANION.md'
   push:
-    branches: [main, 'feat/android-companion-v1', 'codex/repair-android-companion']
+    branches: [main, 'feat/android-companion-v1', 'codex/repair-android-companion', 'feat/gemini-cli-android-companion']
     paths:
       - 'apps/android-companion/**'
       - '.github/workflows/android-companion.yml'
