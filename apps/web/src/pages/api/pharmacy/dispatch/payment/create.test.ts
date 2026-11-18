@@ -315,7 +315,7 @@ describe('API: /api/pharmacy/dispatch/payment/create pay-first', () => {
       metadata: expect.objectContaining({
         payment_mode: 'mercadopago',
         manual_approval_pending: false,
-        recovered_from_manual_placeholder_at: expect.stringMatching(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}/),
+        recovered_from_manual_placeholder_at: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/),
       }),
     }))
     const recoveryPayload = recovered.update.mock.calls[0]?.[0] as {
