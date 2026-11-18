@@ -2,9 +2,9 @@
   "name": "autamedica-android-mcp",
   "private": true,
   "type": "module",
-  "version": "0.2.0",
-  "description": "Codex MCP bridge for native Android control and Playwright CDP over the companion WebView",
+  "version": "0.3.0",
+  "description": "Codex MCP bridge for native Android, Playwright Core and the authenticated WebView CDP endpoint",
   "dependencies": {
-    "playwright-core": "1.61.0"
+    "playwright-core": "1.65.1"
   }
 }
