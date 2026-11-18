@@ -56,7 +56,14 @@ describe('Jordan commercial payment proof', () => {
   it('reconciles a late approved Mercado Pago event after a local failed checkout', async () => {
     let updatePayload: Record<string, unknown> | null = null
     let allowedStatuses: string[] = []
-    const query: Record<string, any> = {}
+    type ReconcileQuery = {
+      select: () => ReconcileQuery
+      eq: (_column: string, _value: string) => ReconcileQuery
+      maybeSingle: () => Promise<{ data: LocalPharmacyPayment; error: null }>
+      update: (payload: Record<string, unknown>) => ReconcileQuery
+      in: (_column: string, values: string[]) => Promise<{ error: null }>
+    }
+    const query = {} as ReconcileQuery
     query.select = () => query
     query.eq = () => query
     query.maybeSingle = async () => ({
@@ -76,7 +83,7 @@ describe('Jordan commercial payment proof', () => {
     const result = await reconcilePharmacyProviderPayment(admin, approved)
 
     expect(result.handled).toBe(true)
-    expect(updatePayload?.status).toBe('approved')
+    expect(updatePayload).toEqual(expect.objectContaining({ status: 'approved' }))
     expect(allowedStatuses).toContain('failed')
   })
   it('voids any refunded or partially refunded sale', () => {
