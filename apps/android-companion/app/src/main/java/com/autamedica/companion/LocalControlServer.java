@@ -96,6 +96,10 @@ final class LocalControlServer {
                 result.put("accessibility", true);
                 result.put("bind", "127.0.0.1");
                 result.put("port", PORT);
+                result.put("cdpBind", "127.0.0.1");
+                result.put("cdpPort", LocalCdpProxy.PORT);
+                result.put("browserEngine", "Android System WebView / Chromium");
+                result.put("internetPermission", true);
                 respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
             } else if ("GET".equals(method) && "/v1/ui".equals(path)) {
                 JSONObject result = service.getUiTree();
