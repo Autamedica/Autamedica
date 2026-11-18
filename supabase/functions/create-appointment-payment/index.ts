@@ -116,7 +116,7 @@ export async function handler(req: Request): Promise<Response> {
     // 2. Fetch patient record for this user
     const { data: patient, error: patientError } = await supabaseAdmin
       .from('patients')
-      .select('id, user_id, cpf, dni')
+      .select('id, user_id, cpf, dni, care_country')
       .eq('user_id', user.id)
       .maybeSingle()
 
@@ -272,12 +272,14 @@ export async function handler(req: Request): Promise<Response> {
       const existingMarket = resolveBillingCurrency({
         patientCpf: patient.cpf,
         patientDni: patient.dni,
+        patientCareCountry: patient.care_country,
         doctorBrazilUf: doctor.uf_brazil,
         doctorArgentinaRefeps: doctor.refeps_id,
-        walletCurrency: existingPayment.currency,
       })
-      if (!existingMarket.ok) {
-        return new Response(JSON.stringify({ error: existingMarket.error }), {
+      if (!existingMarket.ok || existingPayment.currency !== existingMarket.currency) {
+        return new Response(JSON.stringify({
+          error: existingMarket.ok ? 'billing_currency_conflict' : existingMarket.error,
+        }), {
           status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }
@@ -341,6 +343,7 @@ export async function handler(req: Request): Promise<Response> {
     const billing = resolveBillingCurrency({
       patientCpf: patient.cpf,
       patientDni: patient.dni,
+      patientCareCountry: patient.care_country,
       doctorBrazilUf: doctor.uf_brazil,
       doctorArgentinaRefeps: doctor.refeps_id,
       walletCurrency: walletRecord?.currency,
