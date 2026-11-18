@@ -14,14 +14,34 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     const reference = (params.reference ?? '').toUpperCase();
     const admin = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient;
     const document = await loadPublicDocumentVerification(admin, reference);
-    if (!document || document.status !== 'registered') {
+    if (document?.status !== 'registered') {
       return new Response('Documento no disponible', { status: 404, headers: noStore });
     }
 
-    const objectPath = `document-archives/${document.reference}/${document.pdfSha256}.pdf`;
-    const { data } = await admin.storage.from('medical-documents')
-      .createSignedUrl(objectPath, 300, { download: `${document.reference}.pdf` });
-    if (data?.signedUrl) return Response.redirect(data.signedUrl, 302);
+    const storage = admin.storage.from('medical-documents');
+    const objectPaths = [
+      `document-archives/${document.reference}/${document.pdfSha256}.pdf`,
+    ];
+
+    // Issued certificates use their canonical CUIR reference in the public
+    // route, while Storage objects are keyed by the certificate UUID.
+    const { data: certificate } = await admin.from('medical_certificates')
+      .select('id, signature_hash, signed_pdf_url')
+      .eq('cuir', reference).maybeSingle();
+    if (certificate?.id) {
+      if (certificate.signed_pdf_url) objectPaths.push(certificate.signed_pdf_url);
+      objectPaths.push(
+        `certificates/electronic/${certificate.id}/${certificate.signature_hash}.pdf`,
+        `certificates/signed/${certificate.id}.pdf`,
+      );
+    }
+
+    for (const objectPath of [...new Set(objectPaths)]) {
+      const { data } = await storage.createSignedUrl(objectPath, 300, {
+        download: `${document.reference}.pdf`,
+      });
+      if (data?.signedUrl) return Response.redirect(data.signedUrl, 302);
+    }
 
     // Deployment-bundled fallback. The public asset is the exact original PDF,
     // named by immutable document reference and checked against the archive hash.
