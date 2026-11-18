@@ -5,6 +5,9 @@ plugins {
 android {
     namespace = "com.autamedica.companion"
     compileSdk = 35
+    buildFeatures {
+        buildConfig = true
+    }
 
     defaultConfig {
         applicationId = "com.autamedica.companion"
@@ -23,15 +26,21 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            buildConfigField("int", "CONTROL_PORT", "18765")
+            buildConfigField("int", "CDP_PORT", "18766")
         }
         create("repair") {
             initWith(getByName("debug"))
             applicationIdSuffix = ".repair"
             versionNameSuffix = "-repair"
+            buildConfigField("int", "CONTROL_PORT", "18775")
+            buildConfigField("int", "CDP_PORT", "18776")
             matchingFallbacks += listOf("debug")
         }
         release {
             isMinifyEnabled = false
+            buildConfigField("int", "CONTROL_PORT", "18765")
+            buildConfigField("int", "CDP_PORT", "18766")
         }
     }
 }
