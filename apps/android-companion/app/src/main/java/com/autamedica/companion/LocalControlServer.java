@@ -82,8 +82,7 @@ final class LocalControlServer {
             }
             byte[] body = readBytes(input, contentLength);
 
-            String expected = service.getSharedPreferences("companion_private", android.content.Context.MODE_PRIVATE)
-                .getString("control_token", "");
+            String expected = SecureVault.get(service, "control_token", "");
             String supplied = headers.getOrDefault("authorization", "");
             if (expected.isEmpty() || !constantTimeEquals("Bearer " + expected, supplied)) {
                 respond(output, 401, "application/json", jsonError("unauthorized"));
@@ -104,6 +103,14 @@ final class LocalControlServer {
             } else if ("GET".equals(method) && "/v1/ui".equals(path)) {
                 JSONObject result = service.getUiTree();
                 respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
+            } else if ("GET".equals(method) && "/v1/vault/names".equals(path)) {
+                org.json.JSONArray names = new org.json.JSONArray();
+                for (String name : SecureVault.names(service)) {
+                    if (!"control_token".equals(name)) names.put(name);
+                }
+                JSONObject result = new JSONObject();
+                result.put("names", names);
+                respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
             } else if ("GET".equals(method) && "/v1/screenshot".equals(path)) {
                 byte[] image = android.util.Base64.decode(service.screenshotBase64(), android.util.Base64.NO_WRAP);
                 respond(output, 200, "image/png", image);
@@ -111,6 +118,27 @@ final class LocalControlServer {
                 JSONObject args = new JSONObject(new String(body, StandardCharsets.UTF_8));
                 boolean ok;
                 switch (path) {
+                    case "/v1/vault/put":
+                        String vaultName = args.getString("name");
+                        String vaultValue = args.getString("value");
+                        if ("control_token".equals(vaultName) || vaultValue.length() > 32768)
+                            throw new IllegalArgumentException("Invalid or protected vault entry");
+                        SecureVault.put(service, vaultName, vaultValue);
+                        ok = true;
+                        break;
+                    case "/v1/vault/get":
+                        String getName = args.getString("name");
+                        JSONObject secret = new JSONObject();
+                        secret.put("name", getName);
+                        secret.put("value", SecureVault.get(service, getName, null));
+                        respond(output, 200, "application/json; charset=utf-8", secret.toString().getBytes(StandardCharsets.UTF_8));
+                        return;
+                    case "/v1/vault/delete":
+                        String deleteName = args.getString("name");
+                        if ("control_token".equals(deleteName)) throw new IllegalArgumentException("Protected vault entry");
+                        SecureVault.delete(service, deleteName);
+                        ok = true;
+                        break;
                     case "/v1/click":
                         ok = service.clickPath(args.getString("path"));
                         break;
@@ -119,7 +147,7 @@ final class LocalControlServer {
                         break;
                     case "/v1/type":
                         String text = args.optString("text", "");
-                        if (text.length() > 2000) throw new IllegalArgumentException("text too long");
+                        if (text.length() > 32768) throw new IllegalArgumentException("text too long");
                         ok = service.typeText(text);
                         break;
                     case "/v1/swipe":
@@ -152,7 +180,7 @@ final class LocalControlServer {
                         break;
                     case "/v1/browser/evaluate":
                         String script = args.getString("script");
-                        if (script.length() > 12000) throw new IllegalArgumentException("Script too long");
+                        if (script.length() > 1024 * 1024) throw new IllegalArgumentException("Script too long");
                         JSONObject evaluation = new JSONObject();
                         evaluation.put("value", BrowserActivity.evaluate(script));
                         respond(output, 200, "application/json; charset=utf-8", evaluation.toString().getBytes(StandardCharsets.UTF_8));
