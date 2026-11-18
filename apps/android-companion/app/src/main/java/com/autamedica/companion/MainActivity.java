@@ -31,7 +31,9 @@ public final class MainActivity extends Activity {
             if (statusView != null) {
                 boolean connected = AccessibilityControlService.isConnected();
                 statusView.setText(connected
-                    ? "Accesibilidad: ACTIVA\nControl Android: 127.0.0.1:18765\nChromium CDP: 127.0.0.1:18766\nInternet: habilitado\nSesiones web: perfil persistente"
+                    ? "Accesibilidad: ACTIVA\nControl Android: 127.0.0.1:" + BuildConfig.CONTROL_PORT
+                        + "\nChromium CDP: 127.0.0.1:" + BuildConfig.CDP_PORT
+                        + "\nInternet: habilitado\nSesiones web: perfil persistente"
                     : "Accesibilidad: pendiente de autorización\nActivá el servicio para iniciar el control local.");
             }
             handler.postDelayed(this, 1500);
