@@ -7,15 +7,27 @@ CODEX_DIR="$HOME/.codex"
 CONFIG="$CODEX_DIR/config.toml"
 mkdir -p "$TARGET" "$CODEX_DIR"
 chmod 700 "$TARGET" "$CODEX_DIR"
-cp "$SCRIPT_DIR/mcp-server.mjs" "$TARGET/mcp-server.mjs"
-chmod 600 "$TARGET/mcp-server.mjs"
 
-if ! command -v node >/dev/null 2>&1; then
-  printf 'Instalando Node.js en Termux...\n'
+if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
+  printf 'Instalando Node.js y npm en Termux...\n'
   pkg install -y nodejs
 fi
 
-printf 'Pegá el token que muestra Autamedica Android Companion: '
+NODE_MAJOR="$(node -p 'Number(process.versions.node.split(".")[0])')"
+if [ "$NODE_MAJOR" -lt 20 ]; then
+  printf 'Se requiere Node.js 20 o superior para el cliente Playwright/CDP. Versión actual: %s\n' "$(node --version)" >&2
+  exit 1
+fi
+
+cp "$SCRIPT_DIR/mcp-server.mjs" "$TARGET/mcp-server.mjs"
+cp "$SCRIPT_DIR/package.json" "$TARGET/package.json"
+chmod 600 "$TARGET/mcp-server.mjs" "$TARGET/package.json"
+
+printf 'Instalando Playwright Core (cliente CDP; no descarga otro navegador)...\n'
+npm install --prefix "$TARGET" --omit=optional --no-audit --no-fund
+chmod -R go-rwx "$TARGET"
+
+printf 'Pegá el token de 256 bits que muestra Autamedica Android Companion: '
 IFS= read -r -s TOKEN
 printf '\n'
 if [ "${#TOKEN}" -lt 64 ]; then
@@ -35,11 +47,12 @@ block = (
     "\n\n[mcp_servers.autamedica_android]\n"
     "command = \"node\"\n"
     f"args = [{json.dumps(script)}]\n"
-    f"env = {{ AUTAMEDICA_ANDROID_TOKEN = {json.dumps(token)}, AUTAMEDICA_ANDROID_URL = \"http://127.0.0.1:18765\" }}\n"
+    f"env = {{ AUTAMEDICA_ANDROID_TOKEN = {json.dumps(token)}, AUTAMEDICA_ANDROID_URL = \"http://127.0.0.1:18765\", AUTAMEDICA_CDP_URL = \"http://127.0.0.1:18766\" }}\n"
 )
 config.write_text(old + block)
 config.chmod(0o600)
 PY
 
-printf 'MCP instalado y configurado en Codex.\n'
-printf 'Comprobá con: codex mcp list\n'
+printf 'MCP + Playwright Core instalados y configurados en Codex.\n'
+printf 'Verificá con: codex mcp list\n'
+printf 'Después usá browser_navigate para abrir un sitio con Internet.\n'
