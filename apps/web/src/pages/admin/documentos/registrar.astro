@@ -1,0 +1,49 @@
+---
+export const prerender = false;
+---
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Registrar documento | AutaMedica</title></head>
+<body>
+<main>
+  <a href="/admin">← Administración</a>
+  <h1>Registrar documento para verificación</h1>
+  <p>Registra la referencia y la huella SHA-256 del PDF. El archivo se procesa en memoria y no se almacena.</p>
+  <form id="archive-form">
+    <fieldset><legend>Archivo</legend><label>PDF original<input name="pdf" type="file" accept="application/pdf,.pdf" required /></label><label>Fecha del documento<input name="document_date" type="date" required /></label><label>ID del médico en Autamedica<input name="doctor_id" required /></label></fieldset>
+    <fieldset><legend>Profesional emisor</legend><label>Nombre<input name="issuer_name" required /></label><label>Profesión<input name="issuer_profession" required /></label><label>Matrícula<input name="issuer_license" required /></label><label>Jurisdicción<input name="issuer_jurisdiction" required /></label></fieldset>
+    <fieldset><legend>Paciente y documento</legend><label>Nombre del paciente<input name="patient_name" required /></label><label>Documento del paciente<input name="patient_document" required /></label><label>Tipo de documento<input name="document_type" placeholder="Constancia, certificado, informe…" required /></label><label>Descripción clínica breve<textarea name="document_description" rows="3"></textarea></label></fieldset>
+    <fieldset><legend>Integridad y autorización</legend><label>SHA-256 de la imagen de firma<input name="signature_image_sha256" pattern="[a-fA-F0-9]{64}" minlength="64" maxlength="64" required /></label><label>SHA-256 de la imagen del sello<input name="stamp_image_sha256" pattern="[a-fA-F0-9]{64}" minlength="64" maxlength="64" required /></label><label>Constancia de autorización del profesional<textarea name="authorization_statement" rows="4" required placeholder="Identifique cómo se confirmó la autorización del profesional para archivar este documento."></textarea></label></fieldset>
+    <button type="submit">Registrar documento y generar QR</button>
+    <p id="result" role="status" aria-live="polite"></p>
+  </form>
+</main>
+<script>
+const form = document.querySelector<HTMLFormElement>('#archive-form');
+const result = document.querySelector<HTMLElement>('#result');
+form?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!form || !result) return;
+  const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+  if (button) button.disabled = true;
+  result.textContent = 'Registrando documento…';
+  try {
+    const response = await fetch('/api/admin/document-archives', { method: 'POST', body: new FormData(form) });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'No se pudo registrar el documento.');
+    const link = document.createElement('a');
+    link.href = data.verificationUrl;
+    link.textContent = location.origin + data.verificationUrl;
+    link.target = '_blank'; link.rel = 'noopener noreferrer';
+    result.textContent = 'Documento registrado. Referencia: ' + data.reference + ' · SHA-256: ' + data.pdfSha256 + ' · Verificación: ';
+    result.append(link);
+    form.reset();
+  } catch (error) { result.textContent = error instanceof Error ? error.message : 'No se pudo registrar el documento.'; }
+  finally { if (button) button.disabled = false; }
+});
+</script>
+</body>
+</html>
+<style>
+:global(body){margin:0;background:#f1f5f9;color:#0f172a;font:16px/1.5 system-ui,sans-serif}main{max-width:760px;margin:32px auto;padding:24px}form,fieldset{display:grid;gap:14px}fieldset{border:1px solid #cbd5e1;border-radius:12px;padding:18px;margin:0 0 16px}legend{font-weight:700;padding:0 8px}label{display:grid;gap:6px;font-weight:600}input,textarea{width:100%;padding:11px;border:1px solid #94a3b8;border-radius:8px;font:inherit}button{padding:14px;border:0;border-radius:9px;background:#0f766e;color:white;font-weight:700;font-size:16px;cursor:pointer}button:disabled{opacity:.6}#result{overflow-wrap:anywhere}
+</style>
