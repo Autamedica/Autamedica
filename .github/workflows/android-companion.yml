@@ -34,13 +34,15 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Assemble debug APK
+      - name: Assemble debug and repair APKs
         working-directory: apps/android-companion
-        run: gradle --no-daemon --stacktrace :app:assembleDebug
-      - name: Verify APK
+        run: gradle --no-daemon --stacktrace :app:assembleDebug :app:assembleRepair
+      - name: Verify APKs
         run: |
           test -s apps/android-companion/app/build/outputs/apk/debug/app-debug.apk
           sha256sum apps/android-companion/app/build/outputs/apk/debug/app-debug.apk
+          test -s apps/android-companion/app/build/outputs/apk/repair/app-repair.apk
+          sha256sum apps/android-companion/app/build/outputs/apk/repair/app-repair.apk
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -53,7 +55,9 @@ jobs:
           node --input-type=module -e "import('playwright-core').then(m => { if (!m.chromium?.connectOverCDP) process.exit(1); console.log('Playwright Core CDP client OK'); })"
       - uses: actions/upload-artifact@v4
         with:
-          name: autamedica-android-companion-debug
-          path: apps/android-companion/app/build/outputs/apk/debug/app-debug.apk
+          name: autamedica-android-companion-repair
+          path: |
+            apps/android-companion/app/build/outputs/apk/debug/app-debug.apk
+            apps/android-companion/app/build/outputs/apk/repair/app-repair.apk
           if-no-files-found: error
           retention-days: 14
