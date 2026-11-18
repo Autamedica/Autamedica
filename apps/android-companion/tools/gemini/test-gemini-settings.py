@@ -29,6 +29,7 @@ class GeminiSettingsMergeTest(unittest.TestCase):
             input=MATCH.group(1),
             text=True,
             capture_output=True,
+            encoding="utf-8",
             check=False,
         )
 
