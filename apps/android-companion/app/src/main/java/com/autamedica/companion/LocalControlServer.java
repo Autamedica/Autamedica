@@ -17,7 +17,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 final class LocalControlServer {
-    private static final int PORT = 18765;
+    private static final int PORT = BuildConfig.CONTROL_PORT;
     private static final int MAX_BODY = 1024 * 1024;
     private final AccessibilityControlService service;
     private final ExecutorService clients = Executors.newCachedThreadPool();
