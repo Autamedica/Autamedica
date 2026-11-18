@@ -34,28 +34,28 @@ const displayDate = (value: string) => value.slice(0, 10).split('-').reverse().j
       <header><img src="/logo.png" alt="" width="48" height="48" /><a href="/">AUTAMEDICA</a></header>
       <section class="card">
         <p class="eyebrow">VERIFICACIÓN DOCUMENTAL</p>
-        <h1>{unavailable ? 'Verificación temporalmente no disponible' : !document ? 'Documento no encontrado' : active ? 'Documento registrado' : 'Documento revocado'}</h1>
+        <h1>{unavailable ? 'Verificación temporalmente no disponible' : !document ? 'Documento no encontrado' : active ? 'Documento válido y registrado' : 'Documento revocado'}</h1>
         {unavailable && <p>Intente nuevamente más tarde. Este resultado no determina el estado del documento.</p>}
         {!unavailable && !document && <p>La referencia consultada no corresponde a un documento registrado en este archivo.</p>}
         {document && <>
-          <p class:list={['state', { revoked: !active }]}>{active ? 'Registro de AutaMedica disponible' : 'Este registro fue revocado'}</p>
+          <p class:list={['state', { revoked: !active }]}>{active ? '✓ DOCUMENTO REGISTRADO Y VALIDADO' : 'Este registro fue revocado'}</p>
           <dl>
             <dt>Referencia interna</dt><dd class="code">{document.reference}</dd>
             <dt>Profesional</dt><dd>{document.issuer.name}</dd>
             <dt>Profesión</dt><dd>{document.issuer.profession}</dd>
             <dt>Matrícula y jurisdicción</dt><dd>{document.issuer.license} · {document.issuer.jurisdiction}</dd>
-            <dt>Fecha del documento</dt><dd>{displayDate(document.documentDate)}</dd>
-            <dt>Fecha de registro</dt><dd>{displayDate(document.registeredAt)}</dd>
-            <dt>Modalidad de firma</dt><dd>{document.signatureType === 'electronic_verified' ? 'Firma electrónica confirmada por el profesional en AutaMedica' : document.signatureType === 'ac_external' ? 'Firma PAdES verificada por proveedor externo' : 'Firma y sello escaneados archivados por el profesional'}.</dd>
+            <dt>Fecha de emisión</dt><dd>{displayDate(document.documentDate)}</dd>
+            <dt>Estado de validación</dt><dd>Emitido y registrado oficialmente en AutaMedica</dd>
           </dl>
-          <aside>Esta consulta confirma el registro de emisión y permite comparar la integridad exacta del PDF. La modalidad de firma se identifica en el registro. Los datos clínicos y de identidad del paciente permanecen reservados.</aside>
-          {active && <section class="compare">
-            <h2>Comprobar el PDF recibido</h2>
-            <p>Seleccione el archivo para comprobar si coincide exactamente con el registrado. La comparación se realiza en su dispositivo; el archivo no se envía.</p>
+          <p class="verification-subtitle">Certificado y validado por el Registro Clínico de AutaMedica</p>
+          <p class="privacy-note">Los datos clínicos y de identidad del paciente permanecen reservados.</p>
+          {active && <a class="download-button" href={`/api/verify/documentos/${document.reference}/download`}>Descargar PDF Original</a>}
+          <details><summary>Verificación técnica avanzada por archivo</summary>
+            <p>Comprobá la coincidencia exacta del PDF mediante su huella SHA-256 en este dispositivo.</p>
             <label for="document-file">Seleccionar PDF</label>
             <input id="document-file" type="file" accept="application/pdf,.pdf" data-hash={document.pdfSha256} />
             <p id="file-result" role="status" aria-live="polite"></p>
-          </section>}
+          </details>
           <details><summary>Huella de integridad SHA-256</summary><p class="code hash">{document.pdfSha256}</p></details>
         </>}
       </section>
@@ -91,5 +91,5 @@ const displayDate = (value: string) => value.slice(0, 10).split('-').reverse().j
   :global(*){box-sizing:border-box} :global(body){margin:0;background:#f1f5f9;color:#0f172a;font-family:system-ui,sans-serif;line-height:1.55}
   main{max-width:760px;margin:auto;padding:28px 20px} header{display:flex;align-items:center;gap:14px;margin-bottom:28px} header img{border-radius:10px} a{color:inherit;font-weight:750;text-decoration:none;letter-spacing:.05em}
   .card{background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:32px;box-shadow:0 8px 30px #0f172a08} .eyebrow{font-size:12px;color:#0f766e;font-weight:700;letter-spacing:.12em} h1{font-size:clamp(25px,5vw,34px);line-height:1.2;margin:12px 0 24px} h2{font-size:19px} p{overflow-wrap:anywhere}
-  .state{background:#f0fdfa;color:#115e59;border:1px solid #99f6e4;border-radius:9px;padding:12px 16px;font-weight:650}.revoked{background:#fef2f2;color:#991b1b;border-color:#fecaca} dl{margin:26px 0}dt{font-size:12px;color:#64748b;margin-top:18px}dd{margin:3px 0 0;font-weight:550;overflow-wrap:anywhere}.code{font-family:ui-monospace,monospace;font-size:13px;overflow-wrap:anywhere} aside{background:#f8fafc;padding:18px;border-radius:9px;font-size:13px;color:#475569}.compare{border-top:1px solid #e2e8f0;margin-top:26px;padding-top:12px}.compare p{font-size:14px;color:#475569}label{display:block;font-weight:600;margin:18px 0 8px}input{max-width:100%;font:inherit}#file-result{min-height:24px;color:#0f172a}details{margin-top:24px;font-size:13px;color:#475569}.hash{padding:10px;background:#f8fafc}footer{text-align:center;color:#64748b;font-size:12px;padding:24px 0}@media(max-width:480px){main{padding:20px 12px}.card{padding:22px 18px}}
+  .state{background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:9px;padding:14px 16px;font-weight:800;font-size:15px}.verification-subtitle{font-weight:650;color:#166534;margin:12px 0 24px}.privacy-note{font-size:12px;color:#64748b}.download-button{display:flex;justify-content:center;align-items:center;background:#0f766e;color:white;border-radius:10px;padding:15px 20px;margin:24px 0;font-weight:750;text-decoration:none}.download-button:hover{background:#115e59}.revoked{background:#fef2f2;color:#991b1b;border-color:#fecaca} dl{margin:26px 0}dt{font-size:12px;color:#64748b;margin-top:18px}dd{margin:3px 0 0;font-weight:550;overflow-wrap:anywhere}.code{font-family:ui-monospace,monospace;font-size:13px;overflow-wrap:anywhere} aside{background:#f8fafc;padding:18px;border-radius:9px;font-size:13px;color:#475569}.compare{border-top:1px solid #e2e8f0;margin-top:26px;padding-top:12px}.compare p{font-size:14px;color:#475569}label{display:block;font-weight:600;margin:18px 0 8px}input{max-width:100%;font:inherit}#file-result{min-height:24px;color:#0f172a}details{margin-top:24px;font-size:13px;color:#475569}.hash{padding:10px;background:#f8fafc}footer{text-align:center;color:#64748b;font-size:12px;padding:24px 0}@media(max-width:480px){main{padding:20px 12px}.card{padding:22px 18px}}
 </style>
