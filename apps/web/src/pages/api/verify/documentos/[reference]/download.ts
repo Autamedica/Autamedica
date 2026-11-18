@@ -36,6 +36,11 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
         `certificates/signed/${certificate.id}.pdf`,
       );
     }
+    // Legacy issuances may be keyed by their public reference instead of UUID.
+    objectPaths.push(
+      `certificates/electronic/${reference}.pdf`,
+      `certificates/signed/${reference}.pdf`,
+    );
 
     for (const objectPath of [...new Set(objectPaths)]) {
       const { data } = await storage.createSignedUrl(objectPath, 300, {
