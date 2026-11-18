@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 
 type Investor = {
   id: string;
@@ -126,7 +126,7 @@ export function InvestorWorkspace() {
     followUps: investors.filter((item) => item.next_follow_up_at && new Date(item.next_follow_up_at).getTime() <= Date.now()).length,
   }), [investors]);
 
-  const createInvestor = async (event: React.FormEvent<HTMLFormElement>) => {
+  const createInvestor = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaving(true);
     setError('');
@@ -182,6 +182,7 @@ export function InvestorWorkspace() {
       const params = new URLSearchParams();
       if (statusFilter !== 'all') params.set('status', statusFilter);
       if (priorityFilter !== 'all') params.set('priority', priorityFilter);
+      if (search.trim()) params.set('q', search.trim());
       params.set('export', 'xlsx');
       const response = await fetch(`/api/admin/social-agents/investors?${params.toString()}`, { credentials: 'same-origin' });
       if (!response.ok) throw new Error('No se pudo generar el Excel.');
@@ -381,6 +382,6 @@ export function InvestorWorkspace() {
 
 const inputClass = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100';
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return <label className="mt-4 block text-xs font-semibold text-slate-600">{label}<div className="mt-1.5">{children}</div></label>;
 }
