@@ -15,8 +15,8 @@ const initialReference = Astro.url.searchParams.get('reference') ?? '';
     <header><a href="/" aria-label="AutaMedica inicio">AUTAMEDICA</a><span>VERIFICACIÓN PÚBLICA</span></header>
     <section class="intro">
       <p class="eyebrow">VALIDACIÓN DE DOCUMENTOS</p>
-      <h1>Comprobá la autenticidad del documento</h1>
-      <p>Ingresá el código que aparece en el QR o en la constancia y seleccioná el PDF original. AutaMedica comprobará si la referencia está registrada y si el archivo coincide exactamente con el emitido.</p>
+      <h1>Comprobá si el PDF coincide con el registro</h1>
+      <p>Ingresá el código que aparece en el QR o en la constancia y seleccioná el PDF original. AutaMedica comprobará si la referencia está registrada y si el PDF coincide con el archivo archivado al emitirlo.</p>
     </section>
     <form id="verify-form">
       <label for="reference">Código de verificación o contenido del QR</label>
@@ -28,6 +28,7 @@ const initialReference = Astro.url.searchParams.get('reference') ?? '';
       <button type="submit">Verificar documento</button>
     </form>
     <section id="result" aria-live="polite" aria-atomic="true" hidden></section>
+    <p class="disclaimer">La verificación confirma la existencia del registro y la integridad del PDF. No reemplaza la consulta de matrícula ante la autoridad profesional competente ni equivale por sí sola a una firma digital certificada.</p>
     <footer>AutaMedica · Verificación pública de documentos</footer>
   </main>
   <script>
@@ -73,7 +74,7 @@ const initialReference = Astro.url.searchParams.get('reference') ?? '';
         const payload = await response.json();
         if (!response.ok || !payload.registered || !payload.document) {
           result.className = 'result invalid';
-          result.innerHTML = '<strong>Documento no registrado</strong><p>La referencia no figura en el registro documental de AutaMedica. No es posible confirmar su autenticidad.</p>';
+          result.innerHTML = '<strong>Documento no registrado</strong><p>La referencia no figura en el registro documental de AutaMedica. No se puede confirmar que este documento haya sido emitido por nuestra plataforma.</p>';
           return;
         }
         const record = payload.document;
@@ -97,14 +98,14 @@ const initialReference = Astro.url.searchParams.get('reference') ?? '';
         add('Referencia', record.reference);
         if (hash === record.pdfSha256) {
           result.className = 'result valid';
-          heading.textContent = 'PDF auténtico: coincide con el registro';
+          heading.textContent = 'Coincidencia confirmada: PDF registrado';
           result.replaceChildren(heading, details);
           const message = document.createElement('p');
-          message.textContent = 'La referencia está registrada y la huella SHA-256 del PDF coincide exactamente con el archivo archivado por AutaMedica.';
+          message.textContent = 'La referencia está registrada y la huella SHA-256 coincide exactamente con el PDF archivado por AutaMedica.';
           result.append(message);
         } else {
           result.className = 'result invalid';
-          heading.textContent = 'El PDF no coincide con el documento registrado';
+          heading.textContent = 'El PDF no coincide con el registro';
           result.replaceChildren(heading, details);
           const message = document.createElement('p');
           message.textContent = 'La referencia existe, pero el archivo seleccionado tiene una huella digital diferente. Puede ser otro documento o una versión modificada.';
@@ -131,6 +132,6 @@ const initialReference = Astro.url.searchParams.get('reference') ?? '';
   .hint{font-size:13px;color:#64748b;margin:0 0 6px}button{padding:14px 18px;border:0;border-radius:9px;background:#0f766e;color:white;font:700 16px system-ui;cursor:pointer}button:hover{background:#115e59}
   .result{margin-top:20px;border-radius:12px;padding:20px;overflow-wrap:anywhere}.result strong{display:block;font-size:20px}.result p{margin:10px 0 0}.valid{background:#ecfdf5;border:1px solid #6ee7b7;color:#065f46}.invalid{background:#fff7ed;border:1px solid #fdba74;color:#9a3412}.pending{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af}
   dl{display:grid;grid-template-columns:minmax(130px, .6fr) 1fr;gap:7px 16px;margin:18px 0 0}dt{font-size:13px;color:#64748b}dd{margin:0;font-weight:650}
-  footer{text-align:center;color:#64748b;font-size:12px;margin-top:32px}
+  footer{text-align:center;color:#64748b;font-size:12px;margin-top:24px}.disclaimer{font-size:12px;color:#64748b;line-height:1.5;margin:24px 4px 0}
   @media(max-width:520px){main{padding:18px 14px 30px}form{padding:18px}dl{grid-template-columns:1fr;gap:2px}dd{margin-bottom:8px}}
 </style>
