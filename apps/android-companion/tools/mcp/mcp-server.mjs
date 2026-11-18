@@ -284,7 +284,7 @@ async function callTool(name, args) {
     }
     case "browser_cdp_send": {
       const page = await ensurePage();
-      if (!/^[A-Za-z][A-Za-z0-9_]*\\.[A-Za-z][A-Za-z0-9_]*$/.test(args.method))
+      if (!/^[A-Za-z][A-Za-z0-9_]*\.[A-Za-z][A-Za-z0-9_]*$/.test(args.method))
         throw new Error("CDP method must use Domain.command notation.");
       const session = await page.context().newCDPSession(page);
       try {
