@@ -1,25 +1,6 @@
 ---
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { createAstroAdminClient } from '@/lib/supabase';
-import { loadPublicDocumentVerification } from '@/lib/documents/public-document-verification';
-import type { PublicDocumentArchive } from '@/lib/documents/archive-verification';
-
-let document: PublicDocumentArchive | null = null;
-let unavailable = false;
-try {
-  const admin = createAstroAdminClient(Astro.locals.runtime?.env) as unknown as SupabaseClient;
-  document = await loadPublicDocumentVerification(admin, (Astro.params.reference ?? '').toUpperCase());
-} catch { unavailable = true; }
-if (!unavailable && !document) {
-  const target = new URL('/verify/documentos', Astro.url);
-  target.searchParams.set('reference', Astro.params.reference ?? '');
-  return Astro.redirect(target.toString(), 302);
-}
-Astro.response.status = unavailable ? 503 : 200;
-Astro.response.headers.set('Cache-Control', 'no-store');
-Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
-const active = document?.status === 'registered';
-const displayDate = (value: string) => value.slice(0, 10).split('-').reverse().join('/');
+export const prerender = false;
+const reference = Astro.params.reference ?? '';
 ---
 <!doctype html>
 <html lang="es">
@@ -31,65 +12,117 @@ const displayDate = (value: string) => value.slice(0, 10).split('-').reverse().j
   </head>
   <body>
     <main>
-      <header><img src="/logo.png" alt="" width="48" height="48" /><a href="/">AUTAMEDICA</a></header>
-      <section class="card">
-        <p class="eyebrow">VERIFICACIÓN DOCUMENTAL</p>
-        <h1>{unavailable ? 'Verificación temporalmente no disponible' : !document ? 'Documento no encontrado' : active ? 'Documento válido y registrado' : 'Documento revocado'}</h1>
-        {unavailable && <p>Intente nuevamente más tarde. Este resultado no determina el estado del documento.</p>}
-        {!unavailable && !document && <p>La referencia consultada no corresponde a un documento registrado en este archivo.</p>}
-        {document && <>
-          <p class:list={['state', { revoked: !active }]}>{active ? '✓ DOCUMENTO REGISTRADO Y VALIDADO' : 'Este registro fue revocado'}</p>
-          <dl>
-            <dt>Referencia interna</dt><dd class="code">{document.reference}</dd>
-            <dt>Profesional</dt><dd>{document.issuer.name}</dd>
-            <dt>Profesión</dt><dd>{document.issuer.profession}</dd>
-            <dt>Matrícula y jurisdicción</dt><dd>{document.issuer.license} · {document.issuer.jurisdiction}</dd>
-            <dt>Fecha de emisión</dt><dd>{displayDate(document.documentDate)}</dd>
-            <dt>Estado de validación</dt><dd>Emitido y registrado oficialmente en AutaMedica</dd>
-          </dl>
-          <p class="verification-subtitle">Certificado y validado por el Registro Clínico de AutaMedica</p>
-          <p class="privacy-note">Los datos clínicos y de identidad del paciente permanecen reservados.</p>
-          {active && <a class="download-button" href={`/api/verify/documentos/${document.reference}/download`}>Descargar PDF Original</a>}
-          <details><summary>Verificación técnica avanzada por archivo</summary>
-            <p>Comprobá la coincidencia exacta del PDF mediante su huella SHA-256 en este dispositivo.</p>
-            <label for="document-file">Seleccionar PDF</label>
-            <input id="document-file" type="file" accept="application/pdf,.pdf" data-hash={document.pdfSha256} />
-            <p id="file-result" role="status" aria-live="polite"></p>
-          </details>
-          <details><summary>Huella de integridad SHA-256</summary><p class="code hash">{document.pdfSha256}</p></details>
-        </>}
+      <h1>AUTAMEDICA · VERIFICACIÓN DOCUMENTAL</h1>
+      <section id="selection">
+        <p>Referencia: <code>{reference}</code></p>
+        <p>Seleccioná el archivo PDF original para comprobar su autenticidad.</p>
+        <label class="select-button">Seleccionar PDF
+          <input id="document-file" type="file" accept="application/pdf,.pdf" />
+        </label>
       </section>
-      <footer>AutaMedica · Verificación de documentos registrados</footer>
+      <section id="result" aria-live="polite" aria-atomic="true" hidden>
+        <p id="seal" class="seal"></p>
+        <p id="professional" hidden></p>
+        <p id="issued-at" hidden></p>
+      </section>
     </main>
     <script>
+      const reference = document.querySelector('code')?.textContent?.trim() ?? '';
       const input = document.querySelector<HTMLInputElement>('#document-file');
-      const result = document.querySelector<HTMLElement>('#file-result');
+      const selection = document.querySelector<HTMLElement>('#selection');
+      const result = document.querySelector<HTMLElement>('#result');
+      const seal = document.querySelector<HTMLElement>('#seal');
+      const professional = document.querySelector<HTMLElement>('#professional');
+      const issuedAt = document.querySelector<HTMLElement>('#issued-at');
       let revision = 0;
+
+      const showMismatch = () => {
+        if (!selection || !result || !seal || !professional || !issuedAt) return;
+        selection.hidden = true;
+        result.hidden = false;
+        result.className = 'result invalid';
+        seal.textContent = '✕ El archivo seleccionado no coincide con el registro oficial.';
+        professional.hidden = true;
+        issuedAt.hidden = true;
+      };
+
       input?.addEventListener('change', async () => {
         const current = ++revision;
         const file = input.files?.[0];
-        if (!result) return;
-        result.textContent = '';
         if (!file) return;
-        if (file.size < 8 || file.size > 25 * 1024 * 1024) { result.textContent = 'El PDF debe tener entre 8 bytes y 25 MB.'; return; }
-        const header = new Uint8Array(await file.slice(0, 5).arrayBuffer());
-        if (String.fromCharCode(...header) !== '%PDF-') { result.textContent = 'El archivo seleccionado no es un PDF válido.'; return; }
-        result.textContent = 'Comparando archivo…';
+        if (!selection || !result || !seal || !professional || !issuedAt) return;
+
         try {
-          const hash = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+          if (file.size < 8 || file.size > 25 * 1024 * 1024) {
+            showMismatch();
+            return;
+          }
+
+          const header = new Uint8Array(await file.slice(0, 5).arrayBuffer());
           if (current !== revision) return;
-          const hex = Array.from(new Uint8Array(hash)).map(byte => byte.toString(16).padStart(2, '0')).join('');
-          result.textContent = hex === input.dataset.hash
-            ? 'El archivo coincide exactamente con el PDF registrado.'
-            : 'El archivo no coincide con el PDF registrado. Puede haber sido modificado o ser otra versión.';
-        } catch { if (current === revision) result.textContent = 'No se pudo comparar el archivo en este dispositivo.'; }
+          if (String.fromCharCode(...header) !== '%PDF-') {
+            showMismatch();
+            return;
+          }
+
+          const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+          if (current !== revision) return;
+          const sha256 = Array.from(new Uint8Array(digest))
+            .map(byte => byte.toString(16).padStart(2, '0'))
+            .join('');
+          const response = await fetch(
+            `/api/verify/documentos/${encodeURIComponent(reference)}?sha256=${sha256}`,
+            { headers: { Accept: 'application/json' }, cache: 'no-store' },
+          );
+          if (!response.ok) throw new Error('verification_unavailable');
+          const payload: {
+            registered?: boolean;
+            verified?: boolean;
+            issuedAt?: string;
+            professional?: string;
+            license?: string;
+          } = await response.json();
+          if (current !== revision) return;
+
+          if (payload.verified !== true) {
+            showMismatch();
+            return;
+          }
+
+          selection.hidden = true;
+          result.hidden = false;
+          result.className = 'result valid';
+          seal.textContent = '✓ DOCUMENTO AUTÉNTICO Y VERIFICADO';
+          professional.textContent = `Profesional: ${payload.professional ?? ''} (${payload.license ?? ''})`;
+          issuedAt.textContent = `Fecha de emisión: ${payload.issuedAt ?? ''}`;
+          professional.hidden = false;
+          issuedAt.hidden = false;
+        } catch {
+          if (current !== revision) return;
+          selection.hidden = true;
+          result.hidden = false;
+          result.className = 'result unavailable';
+          seal.textContent = 'No se pudo completar la verificación. Intentá nuevamente.';
+          professional.hidden = true;
+          issuedAt.hidden = true;
+        }
       });
     </script>
   </body>
 </html>
 <style>
-  :global(*){box-sizing:border-box} :global(body){margin:0;background:#f1f5f9;color:#0f172a;font-family:system-ui,sans-serif;line-height:1.55}
-  main{max-width:760px;margin:auto;padding:28px 20px} header{display:flex;align-items:center;gap:14px;margin-bottom:28px} header img{border-radius:10px} a{color:inherit;font-weight:750;text-decoration:none;letter-spacing:.05em}
-  .card{background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:32px;box-shadow:0 8px 30px #0f172a08} .eyebrow{font-size:12px;color:#0f766e;font-weight:700;letter-spacing:.12em} h1{font-size:clamp(25px,5vw,34px);line-height:1.2;margin:12px 0 24px} h2{font-size:19px} p{overflow-wrap:anywhere}
-  .state{background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:9px;padding:14px 16px;font-weight:800;font-size:15px}.verification-subtitle{font-weight:650;color:#166534;margin:12px 0 24px}.privacy-note{font-size:12px;color:#64748b}.download-button{display:flex;justify-content:center;align-items:center;background:#0f766e;color:white;border-radius:10px;padding:15px 20px;margin:24px 0;font-weight:750;text-decoration:none}.download-button:hover{background:#115e59}.revoked{background:#fef2f2;color:#991b1b;border-color:#fecaca} dl{margin:26px 0}dt{font-size:12px;color:#64748b;margin-top:18px}dd{margin:3px 0 0;font-weight:550;overflow-wrap:anywhere}.code{font-family:ui-monospace,monospace;font-size:13px;overflow-wrap:anywhere} aside{background:#f8fafc;padding:18px;border-radius:9px;font-size:13px;color:#475569}.compare{border-top:1px solid #e2e8f0;margin-top:26px;padding-top:12px}.compare p{font-size:14px;color:#475569}label{display:block;font-weight:600;margin:18px 0 8px}input{max-width:100%;font:inherit}#file-result{min-height:24px;color:#0f172a}details{margin-top:24px;font-size:13px;color:#475569}.hash{padding:10px;background:#f8fafc}footer{text-align:center;color:#64748b;font-size:12px;padding:24px 0}@media(max-width:480px){main{padding:20px 12px}.card{padding:22px 18px}}
+  :global(*){box-sizing:border-box}
+  :global(body){margin:0;min-height:100vh;background:#f8fafc;color:#0f172a;font-family:system-ui,sans-serif;line-height:1.55}
+  main{width:min(100% - 32px,680px);margin:0 auto;padding:64px 0}
+  h1{font-size:clamp(20px,4vw,28px);letter-spacing:.025em;line-height:1.25;margin:0 0 28px}
+  p{margin:0 0 16px;overflow-wrap:anywhere}
+  code{font-family:ui-monospace,monospace;overflow-wrap:anywhere}
+  .select-button{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:12px 22px;border-radius:8px;background:#0f766e;color:#fff;font-weight:750;cursor:pointer}
+  .select-button:focus-within,.select-button:focus-visible{outline:3px solid #99f6e4;outline-offset:3px}
+  input[type=file]{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .result{margin-top:28px}
+  .seal{font-weight:850}
+  .valid .seal{color:#15803d}
+  .invalid .seal{color:#b91c1c}
+  .unavailable .seal{color:#475569}
 </style>
