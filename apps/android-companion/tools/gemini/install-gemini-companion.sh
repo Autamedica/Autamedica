@@ -28,6 +28,12 @@ if ! command -v gemini >/dev/null 2>&1; then
     mkdir -p "$HOME/.local"
     npm install --global --prefix "$HOME/.local" @google/gemini-cli
     export PATH="$HOME/.local/bin:$PATH"
+    PROFILE="$HOME/.profile"
+    if [[ -f "$PROFILE" ]] && ! grep -Fq '# AutaMedica Gemini CLI PATH' "$PROFILE"; then
+      printf '\\n# AutaMedica Gemini CLI PATH\\nexport PATH="$HOME/.local/bin:$PATH"\\n' >> "$PROFILE"
+    elif [[ ! -f "$PROFILE" ]]; then
+      printf '# AutaMedica Gemini CLI PATH\\nexport PATH="$HOME/.local/bin:$PATH"\\n' > "$PROFILE"
+    fi
   fi
   hash -r
 fi
@@ -55,6 +61,7 @@ mkdir -p "$GEMINI_HOME"
 chmod 700 "$GEMINI_HOME"
 
 python3 - "$SETTINGS" "$MCP_LAUNCHER" "$BRIDGE" <<'PY'
+# -*- coding: utf-8 -*-
 import json
 import os
 import pathlib
