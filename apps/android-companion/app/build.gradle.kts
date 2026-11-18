@@ -31,8 +31,8 @@ android {
         }
         create("repair") {
             initWith(getByName("debug"))
-            applicationIdSuffix = ".repair"
-            versionNameSuffix = "-repair"
+            applicationIdSuffix = ".repair2"
+            versionNameSuffix = "-repair2"
             buildConfigField("int", "CONTROL_PORT", "18775")
             buildConfigField("int", "CDP_PORT", "18776")
             matchingFallbacks += listOf("debug")
