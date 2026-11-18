@@ -53,8 +53,8 @@ GitHub Actions construye el mismo APK y publica el artefacto autamedica-android-
 - android_back
 - android_home
 - android_open_url
-- android_wait_for_text
+- browser_navigate\n- browser_evaluate\n- browser_click\n- browser_fill\n- browser_get_text\n- browser_get_url\n- android_wait_for_text
 
-## Limitaciones
+## Automatización de navegador\n\nEl navegador integrado ofrece una API MCP con semántica Playwright para navegación y acciones DOM. Es un WebView Chromium del sistema Android, no el runtime Node de Playwright: no expone todavía Playwright `Page/BrowserContext`, CDP, múltiples contextos ni interceptación de red. Es una superficie dedicada que Codex puede automatizar con selectores CSS y JavaScript.\n\n## Limitaciones
 
 La automatización respeta las restricciones de Android. No puede inspeccionar contenido que una app excluya del árbol de accesibilidad ni capturar pantallas protegidas por FLAG_SECURE. La captura requiere Android 11 o posterior. La disponibilidad permanente depende de que Android mantenga habilitado el servicio de accesibilidad y de las políticas de batería del fabricante.
