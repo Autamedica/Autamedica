@@ -29,16 +29,17 @@ export const GET: APIRoute = async ({ request, locals }) => {
     if (approvalError) return internalError('No se pudo comprobar aprobación médica')
     if (approved !== true) return forbidden('doctor_pending_clinical_approval')
 
+    // Duty is an explicit physician decision. Heartbeat is telemetry only:
+    // an Android background delay must not hide an unexpired offer already
+    // assigned to this doctor. Offer ownership + pending status + expires_at
+    // below are the authoritative visibility gates.
     const { data: duty, error: dutyError } = await admin
       .from('doctor_duty_status')
-      .select('is_on_duty,last_heartbeat_at')
+      .select('is_on_duty')
       .eq('doctor_id', doctor.id)
       .maybeSingle()
     if (dutyError) return internalError('No se pudo comprobar guardia')
-    const heartbeatAge = duty?.last_heartbeat_at
-      ? Date.now() - new Date(duty.last_heartbeat_at).getTime()
-      : Number.POSITIVE_INFINITY
-    if (!duty?.is_on_duty || heartbeatAge < 0 || heartbeatAge > 90_000) {
+    if (!duty?.is_on_duty) {
       return jsonOk({ queue: [], count: 0, careCountry: doctor.care_country })
     }
 
