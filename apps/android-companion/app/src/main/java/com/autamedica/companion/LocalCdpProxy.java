@@ -139,8 +139,7 @@ final class LocalCdpProxy {
                 break;
             }
         }
-        String token = context.getSharedPreferences("companion_private", Context.MODE_PRIVATE)
-            .getString("control_token", "");
+        String token = SecureVault.get(context, "control_token", "");
         return token.length() >= 64 && MessageDigest.isEqual(
             ("Bearer " + token).getBytes(StandardCharsets.UTF_8),
             supplied.getBytes(StandardCharsets.UTF_8));
