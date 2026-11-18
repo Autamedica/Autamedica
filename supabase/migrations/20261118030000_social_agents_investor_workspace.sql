@@ -1,7 +1,7 @@
 -- Social Agents: investor CRM and durable job ledger.
 create table if not exists public.social_agent_investors (
  id uuid primary key default gen_random_uuid(),
- owner_profile_id uuid not null references public.profiles(id) on delete cascade,
+ owner_profile_id uuid not null references public.profiles(user_id) on delete cascade,
  organization_name text not null, contact_name text, role_title text, country_code text,
  thesis text, stage_focus text[] not null default '{}', ticket_range text,
  linkedin_url text, website_url text, source_url text,
@@ -19,7 +19,7 @@ create index if not exists social_agent_investors_follow_up_idx on public.social
 
 create table if not exists public.social_agent_jobs (
  id uuid primary key default gen_random_uuid(),
- owner_profile_id uuid not null references public.profiles(id) on delete cascade,
+ owner_profile_id uuid not null references public.profiles(user_id) on delete cascade,
  agent text not null check (agent in ('linkedin_investors','whatsapp_operations')),
  action text not null,
  status text not null default 'queued' check (status in ('queued','running','succeeded','retryable_failure','terminal_failure','awaiting_approval')),
