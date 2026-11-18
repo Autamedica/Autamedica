@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.CookieManager;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -20,10 +21,18 @@ public final class BrowserActivity extends Activity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         instance = this;
+        // This is intentional: Autamedica Companion exposes CDP through a separately
+        // authenticated loopback proxy for the owner's local Codex/Playwright client.
+        WebView.setWebContentsDebuggingEnabled(true);
         webView = new WebView(this);
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setDomStorageEnabled(true);
         webView.getSettings().setDatabaseEnabled(true);
+        webView.getSettings().setBlockNetworkLoads(false);
+        webView.getSettings().setAllowFileAccess(false);
+        webView.getSettings().setSafeBrowsingEnabled(true);
+        CookieManager.getInstance().setAcceptCookie(true);
+        CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
         webView.getSettings().setJavaScriptCanOpenWindowsAutomatically(false);
         webView.setWebViewClient(new WebViewClient());
         webView.setWebChromeClient(new WebChromeClient());
