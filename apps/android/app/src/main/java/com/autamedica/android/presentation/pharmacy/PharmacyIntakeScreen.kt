@@ -79,6 +79,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
+import com.autamedica.android.util.CareCountryLocale
 import com.autamedica.android.R
 import com.autamedica.android.presentation.common.CareCountryPicker
 import com.autamedica.android.domain.model.PharmacyConsultationStatus
@@ -123,6 +124,13 @@ fun PharmacyIntakeScreen(
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
     var showCancelConfirmation by remember { mutableStateOf(false) }
+
+    LaunchedEffect(uiState.careCountry) {
+        val country = uiState.careCountry
+        if (country in setOf("AR", "BR")) {
+            CareCountryLocale.applyCareCountryDefault(context, requireNotNull(country))
+        }
+    }
 
     // Leaving a waiting room must never cancel a clinical request silently.
     BackHandler(enabled = uiState.activeRequestId != null &&
