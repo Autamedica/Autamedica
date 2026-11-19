@@ -28,6 +28,10 @@ const { lastUpdated } = Astro.props;
         Piso 2, Dpto 6, Ciudad Autónoma de Buenos Aires. Base de datos inscripta ante la
         Dirección Nacional de Protección de Datos Personales (AAIP), Expediente EX-2026-36544262-APN-DNPDP#AAIP.
       </p>
+      <p class="mt-4">
+        En las operaciones vinculadas a Brasil, el tratamiento de datos personales también se rige por
+        la Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018, LGPD).
+      </p>
     </section>
 
     <section>
@@ -79,7 +83,9 @@ const { lastUpdated } = Astro.props;
         El tratamiento de tus datos se basa en: (a) tu consentimiento expreso para datos sensibles
         de salud; (b) la ejecución del contrato de servicios; (c) el cumplimiento de obligaciones
         legales aplicables al sector salud en Argentina, incluyendo el régimen obligatorio de
-        recetas electrónicas (Ley 27.553).
+        recetas electrónicas (Ley 27.553). Para operaciones vinculadas a Brasil, también se aplican
+        las bases legales previstas por la Lei nº 13.709/2018 (LGPD), de acuerdo con cada finalidad
+        del tratamiento.
       </p>
     </section>
 
@@ -115,10 +121,13 @@ const { lastUpdated } = Astro.props;
     <section>
       <h2 class="text-2xl font-light text-white mb-4">7. Transferencia Internacional de Datos</h2>
       <p>
-        Tus datos se almacenan en servidores de Supabase (Amazon Web Services) ubicados en Estados Unidos.
-        Esta transferencia se realiza bajo acuerdos de protección de datos que garantizan un nivel de
-        seguridad equivalente al exigido por la legislación argentina. Los proveedores de infraestructura
-        cuentan con certificaciones SOC 2 Type II e ISO 27001.
+        La base de datos principal del proyecto en Supabase (PostgreSQL) está alojada en Amazon Web
+        Services, región <strong>sa-east-1 (São Paulo, Brasil)</strong>. Esta ubicación corresponde a la
+        base de datos principal. Los servicios auxiliares y terceros que intervienen en videollamadas,
+        mensajería, pagos, monitoreo o soporte pueden procesar datos en otras regiones, según su
+        configuración y condiciones de servicio. Cuando un tratamiento implique una transferencia
+        internacional de datos, se aplicarán los mecanismos y garantías previstos por la normativa
+        correspondiente: la Ley 25.326 en Argentina y la LGPD en Brasil.
       </p>
     </section>
 
@@ -131,6 +140,8 @@ const { lastUpdated } = Astro.props;
         <li><strong class="text-white">Supresión:</strong> solicitar la eliminación de tus datos</li>
         <li><strong class="text-white">Oposición:</strong> oponerte al tratamiento de tus datos</li>
         <li><strong class="text-white">Portabilidad:</strong> recibir tus datos en formato legible</li>
+        <li><strong class="text-white">Revocación:</strong> retirar tu consentimiento cuando el tratamiento se base en él, sin afectar su validez previa</li>
+        <li><strong class="text-white">Información:</strong> conocer las categorías de destinatarios con quienes se comparten tus datos, en los términos previstos por la normativa aplicable</li>
       </ul>
       <p class="mt-4">
         Para ejercer estos derechos, contactanos en{' '}
