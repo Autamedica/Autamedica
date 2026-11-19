@@ -309,13 +309,27 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
     if (!requestRecord) return notFound('request_not_found')
 
     const logCancellationConflict = async (actor: 'patient' | 'guest') => {
-      const { data: payment } = await admin
-        .from('pharmacy_dispatch_payments')
-        .select('status, provider, currency')
-        .eq('dispatch_request_id', id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
+      let payment: { status?: string | null; provider?: string | null; currency?: string | null } | null = null
+      try {
+        const { data, error } = await admin
+          .from('pharmacy_dispatch_payments')
+          .select('status, provider, currency')
+          .eq('dispatch_request_id', id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        payment = data
+        if (error) {
+          logger.warn('[api/pharmacy/dispatch/[id]] cancellation_diagnostic_lookup_failed', {
+            operation: 'DELETE', request_id: id, error,
+          })
+        }
+      } catch (error) {
+        // Diagnostic logging must never replace the deterministic 409 response.
+        logger.warn('[api/pharmacy/dispatch/[id]] cancellation_diagnostic_lookup_failed', {
+          operation: 'DELETE', request_id: id, error,
+        })
+      }
       logger.warn('[api/pharmacy/dispatch/[id]] cancellation_conflict', {
         operation: 'DELETE',
         actor,
