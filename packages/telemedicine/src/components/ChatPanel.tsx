@@ -25,14 +25,14 @@ export interface ChatPanelProps {
   onKeyDown: (e: KeyboardEvent<HTMLTextAreaElement>) => void
   onClose: () => void
   chatReady: boolean
-  accentColor: 'violet' | 'sky'
+  accentColor: 'sky'
   isDesktopViewport: boolean
   chatMessagesRef: RefObject<HTMLDivElement | null>
 }
 
 export function ChatPanel({
   isOpen, messages, chatInput, onChatInputChange, onSubmit, onKeyDown,
-  onClose, chatReady, accentColor, isDesktopViewport, chatMessagesRef,
+  onClose, chatReady, isDesktopViewport, chatMessagesRef,
 }: ChatPanelProps) {
   const panelVariants = isDesktopViewport ? slideRight : slideFromBottom
 
@@ -117,10 +117,10 @@ export function ChatPanel({
                   animate="visible"
                 >
                   <div className={`mb-4 flex h-16 w-16 items-center justify-center rounded-[22px] ${
-                    accentColor === 'violet' ? 'bg-violet-500/12' : 'bg-cyan-500/12'
+                    'bg-sky-500/12'
                   }`}>
                     <MessageSquare className={`h-7 w-7 ${
-                      accentColor === 'violet' ? 'text-violet-400' : 'text-cyan-400'
+                      'text-sky-400'
                     }`} />
                   </div>
                   <p className="text-sm font-semibold text-slate-200">Aún no hay mensajes</p>
@@ -142,7 +142,7 @@ export function ChatPanel({
                   <div
                     className={`max-w-[86%] rounded-[22px] px-4 py-3 shadow-lg ${
                       msg.mine
-                        ? accentColor === 'violet' ? 'bg-violet-600 text-white' : 'bg-cyan-600 text-white'
+                        ? 'bg-sky-600 text-white'
                         : 'border border-white/8 bg-white/[0.06] text-slate-100'
                     }`}
                   >
@@ -174,9 +174,7 @@ export function ChatPanel({
                   type="submit"
                   disabled={!chatReady || chatInput.trim().length === 0}
                   className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-all disabled:cursor-not-allowed disabled:opacity-30 ${
-                    accentColor === 'violet'
-                      ? 'bg-violet-600 text-white hover:bg-violet-500'
-                      : 'bg-cyan-600 text-white hover:bg-cyan-500'
+                    'bg-sky-600 text-white hover:bg-sky-500'
                   }`}
                   whileHover={buttonGentleHover}
                   whileTap={buttonGentleTap}

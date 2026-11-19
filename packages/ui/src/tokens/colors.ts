@@ -59,7 +59,7 @@ export const colors = {
   success: { light: '#D1FAE5', DEFAULT: '#10B981', dark: '#065F46' },
   warning: { light: '#FEF3C7', DEFAULT: '#F59E0B', dark: '#92400E' },
   danger: { light: '#FEE2E2', DEFAULT: '#EF4444', dark: '#991B1B' },
-  info: { light: '#DBEAFE', DEFAULT: '#3B82F6', dark: '#1E40AF' },
+  info: { light: '#E0F2FE', DEFAULT: '#0EA5E9', dark: '#0369A1' },
 
   /* ── Text ── */
   text: {

@@ -10,6 +10,7 @@ import {
   Wallet, Plus, Loader2, CreditCard, Gift, Coins, Sparkles, X, Stethoscope, Zap, MapPin,
 } from 'lucide-react'
 import { PixCheckoutModal } from '@/components/payments/PixCheckoutModal'
+import { RESERVA_SAUDE, formatReservaMonthlyPrice } from '@/config/reserva-saude'
 import { fetchApi } from '@/lib/api-client'
 import { usePatientSession } from '@/hooks/patients/usePatientSession'
 import { useAppointments } from '@/hooks/patients/useAppointments'
@@ -86,6 +87,8 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   } = useJoinTelemedicineAppointment()
 
   const { dict } = getClientI18n(locale ?? 'es')
+  const reserveCopy = dict.patientPortal.reserveBanner
+  const formattedReserveMonthlyPrice = formatReservaMonthlyPrice()
 
   const [showMenu, setShowMenu] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
@@ -373,7 +376,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
       >
         <div className="max-w-7xl mx-auto px-6 lg:px-12 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="size-9 rounded-full bg-[#10B981] flex items-center justify-center text-white text-sm font-medium">
+            <div className="size-9 rounded-full bg-sky-500 flex items-center justify-center text-white text-sm font-medium">
               {firstName.charAt(0).toUpperCase()}
             </div>
             <div className="flex items-center gap-2">
@@ -383,13 +386,13 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   reserveData.subscription_tier === 'cuidado'
                     ? reserveData.subscription_status === 'past_due'
                       ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                      : 'bg-emerald-50 text-emerald-700 border border-cyan-200'
+                      : 'bg-emerald-50 text-emerald-700 border border-sky-200'
                     : 'bg-neutral-100 text-neutral-600'
                 }`}>
                   {reserveData.subscription_tier === 'cuidado' ? (
-                    <Sparkles className="size-3 text-cyan-600" />
+                    <Sparkles className="size-3 text-sky-600" />
                   ) : (
-                    <Coins className="size-3 text-neutral-400" />
+                    <Coins className="size-3 text-sky-100/80" />
                   )}
                   {reserveData.subscription_tier === 'cuidado'
                     ? (reserveData.subscription_status === 'past_due' ? dict.patientPortal.subscription.planCuidadoPastDue : dict.patientPortal.subscription.planCuidadoActive)
@@ -490,7 +493,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             <button type="button" className="relative p-2 hover:bg-neutral-50 rounded-lg transition-colors">
               <Bell className="size-5 text-neutral-600" />
               {hasUpcomingAppointment && (
-                <span className="absolute top-1.5 right-1.5 size-1.5 bg-[#10B981] rounded-full" />
+                <span className="absolute top-1.5 right-1.5 size-1.5 bg-emerald-500 rounded-full" />
               )}
             </button>
 
@@ -597,7 +600,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               <a
                 href="/farmacia/solicitar"
                 className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl px-6 py-4 text-base font-bold text-white shadow-md transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300 active:scale-[0.99]"
-                style={{ backgroundColor: '#10B981' }}
+                style={{ backgroundColor: 'var(--au-accent)' }}
               >
                 {dict.patientPortal.immediateCare.cta}
                 <ArrowRight aria-hidden="true" className="size-5" />
@@ -607,7 +610,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               </p>
               <a
                 href="/patients/appointments"
-                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border bg-white px-5 py-3 text-sm font-semibold transition-colors hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-100" style={{ borderColor: '#10B981', color: '#0D9488' }}
+                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-sky-200 bg-white px-5 py-3 text-sm font-semibold text-sky-700 transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100"
               >
                 <Calendar aria-hidden="true" className="size-4" />
                 {dict.patientPortal.immediateCare.scheduledCta}
@@ -639,56 +642,56 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, height: 0, marginBottom: 0, overflow: 'hidden' }}
                 transition={{ duration: 0.4 }}
-                className="relative overflow-hidden rounded-3xl bg-[#0F2537] text-white p-5 sm:p-6 md:p-8 shadow-2xl border border-slate-700"
+                className="relative overflow-hidden rounded-3xl bg-sky-800 text-white p-5 sm:p-6 md:p-8 shadow-2xl border border-sky-900"
               >
                 {/* Botón de cerrar badge */}
                 <button
                   type="button"
                   onClick={() => setShowReservaBanner(false)}
-                  className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-neutral-400 hover:text-white transition-colors z-20"
-                  title="Fechar"
-                  aria-label="Fechar"
+                  className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-sky-100/80 hover:text-white transition-colors z-20"
+                  title={reserveCopy.close}
+                  aria-label={reserveCopy.close}
                 >
                   <X className="size-4" />
                 </button>
 
                 <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
                   <div className="space-y-3 max-w-2xl">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-neutral-300 text-xs font-semibold uppercase tracking-wider">
-                      <Coins className="size-3.5 text-neutral-300" />
-                      AUTAMÉDICA Free
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-sky-100 text-xs font-semibold uppercase tracking-wider">
+                      <Coins className="size-3.5 text-sky-100" />
+                      {reserveCopy.freeLabel}
                     </div>
                     <h2 className="text-3xl md:text-4xl font-light tracking-tight text-white">
-                      Assinatura AutaMedica
+                      {reserveCopy.subscriptionTitle}
                     </h2>
-                    <p className="text-neutral-300 text-sm md:text-base leading-relaxed">
-                      Você tem acesso ao benefício de atendimento clínico. <strong className="text-white font-semibold">Precisou? Use. </strong> 
-                      <strong className="text-cyan-400 font-semibold">Não precisou? Acumule (+22 créditos/mês) </strong> 
-                      para especialistas, exames e farmácia.
+                    <p className="text-sky-100 text-sm md:text-base leading-relaxed">
+                      {reserveCopy.benefitIntro} <strong className="text-white font-semibold">{reserveCopy.benefitUse} </strong>
+                      <strong className="text-sky-200 font-semibold">{reserveCopy.benefitAccumulate} (+{RESERVA_SAUDE.monthlyCredits} {reserveCopy.monthlyCreditsLabel}) </strong>
+                      {reserveCopy.benefitTail}
                     </p>
                   </div>
 
                   {/* Saldo e Capacidade */}
                   <div className="w-full lg:w-auto min-w-[280px] bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 p-5 shadow-lg space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-neutral-400 uppercase tracking-wider">Saldo Disponível</span>
-                      <Coins className="size-5 text-cyan-400" />
+                      <span className="text-xs font-medium text-sky-100 uppercase tracking-wider">{reserveCopy.balanceAvailable}</span>
+                      <Coins className="size-5 text-sky-200" />
                     </div>
                     <div className="flex items-baseline gap-2">
                       <span className="text-4xl font-light text-white tracking-tight">
                         {reserveData?.benefit_balance ?? 0}
                       </span>
-                      <span className="text-sm font-semibold text-cyan-400">AUTA Créditos</span>
+                      <span className="text-sm font-semibold text-sky-200">{reserveCopy.creditUnit}</span>
                     </div>
                     <div className="space-y-1.5 pt-1">
-                      <div className="flex justify-between text-xs text-neutral-400">
-                        <span>Capacidade acumulada</span>
-                        <span>{reserveData?.benefit_balance ?? 0} / {reserveData?.max_cap_credits ?? 600} pts</span>
+                      <div className="flex justify-between text-xs text-sky-100/80">
+                        <span>{reserveCopy.capacityLabel}</span>
+                        <span>{reserveData?.benefit_balance ?? 0} / {reserveData?.max_cap_credits ?? RESERVA_SAUDE.maxCapCredits} {reserveCopy.pointsLabel}</span>
                       </div>
                       <div className="w-full h-2 bg-neutral-800 rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-gradient-to-r from-cyan-500 to-sky-400 rounded-full transition-all duration-500" 
-                          style={{ width: `${Math.min(Math.round(((reserveData?.benefit_balance ?? 0) / (reserveData?.max_cap_credits ?? 600)) * 100), 100)}%` }}
+                          className="h-full bg-gradient-to-r from-sky-400 to-sky-200 rounded-full transition-all duration-500" 
+                          style={{ width: `${Math.min(Math.round(((reserveData?.benefit_balance ?? 0) / (reserveData?.max_cap_credits ?? RESERVA_SAUDE.maxCapCredits)) * 100), 100)}%` }}
                         />
                       </div>
                     </div>
@@ -700,14 +703,14 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <h3 className="text-base md:text-lg font-semibold text-white">
-                        Ative o Plano Cuidado por R$ 49,90/mês
+                        {reserveCopy.activatePlanTitle} {formattedReserveMonthlyPrice}/mês
                       </h3>
-                      <span className="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                        Pix ou Cartão
+                      <span className="text-[10px] font-bold text-sky-200 bg-sky-500/15 border border-sky-300/30 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                        {reserveCopy.paymentMethods}
                       </span>
                     </div>
-                    <p className="text-neutral-400 text-xs md:text-sm">
-                      Garanta 1 atendimento clínico mensal e acumule 22 AUTA Créditos todo mês que não precisar de consulta.
+                    <p className="text-sky-100/80 text-xs md:text-sm">
+                      {reserveCopy.planDescriptionPrefix} {RESERVA_SAUDE.monthlyCredits} {reserveCopy.planDescriptionSuffix}
                     </p>
                   </div>
 
@@ -715,43 +718,43 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                     <button
                       type="button"
                       onClick={() => setShowPixSubscriptionModal(true)}
-                      className="w-full md:w-auto px-6 py-3 rounded-full bg-cyan-500 hover:bg-cyan-400 text-neutral-950 font-bold text-sm transition-all shadow-lg hover:shadow-cyan-500/25 flex items-center justify-center gap-2 shrink-0 active:scale-[0.98]"
+                      className="w-full md:w-auto px-6 py-3 rounded-full bg-sky-500 hover:bg-sky-600 text-white font-bold text-sm transition-all shadow-lg hover:shadow-sky-500/25 flex items-center justify-center gap-2 shrink-0 active:scale-[0.98]"
                     >
                       <Sparkles className="size-4" />
-                      Assinar com Pix (R$ 49,90)
+                      {reserveCopy.subscribeWithPix} ({formattedReserveMonthlyPrice})
                     </button>
                     <a
                       href="/patients/reserva-saude"
                       className="px-4 py-3 rounded-full bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors flex items-center gap-1.5 shrink-0"
                     >
-                      Ver detalhes
+                      {reserveCopy.viewDetails}
                       <ArrowRight className="size-3.5" />
                     </a>
                   </div>
                 </div>
 
                 {/* Sub-informações: Catálogo e Extrato */}
-                <div className="mt-6 pt-6 border-t border-white/5 grid md:grid-cols-2 gap-4 text-xs text-neutral-400">
+                <div className="mt-6 pt-6 border-t border-white/5 grid md:grid-cols-2 gap-4 text-xs text-sky-100/80">
                   <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1.5">
                     <div className="flex items-center gap-2 text-white font-medium text-sm">
-                      <Stethoscope className="size-4 text-cyan-400" />
-                      Catálogo de Resgate em Rede Credenciada
+                      <Stethoscope className="size-4 text-sky-200" />
+                      {reserveCopy.catalogTitle}
                     </div>
                     <p className="leading-relaxed">
-                      Troque seus AUTA Créditos por consultas especializadas, check-ups laboratoriais e medicamentos.
+                      {reserveCopy.catalogDescription}
                     </p>
                   </div>
 
                   <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-white font-medium text-sm flex items-center gap-2">
-                        <FileText className="size-4 text-cyan-400" />
-                        Extrato da Reserva de Saúde
+                        <FileText className="size-4 text-sky-200" />
+                        {reserveCopy.ledgerTitle}
                       </span>
-                      <span className="text-[10px] text-neutral-500">Todos • Acumulações • Resgates</span>
+                      <span className="text-[10px] text-sky-100/70">{reserveCopy.ledgerFilters}</span>
                     </div>
-                    <p className="text-neutral-500 italic">
-                      Nenhuma movimentação registrada na sua Reserva de Saúde até o momento.
+                    <p className="text-sky-100/70 italic">
+                      {reserveCopy.emptyLedger}
                     </p>
                   </div>
                 </div>
@@ -770,7 +773,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   onClick={() => setShowReservaBanner(true)}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-neutral-100 hover:bg-neutral-200/80 border border-neutral-200 text-neutral-800 text-xs font-semibold transition-all shadow-2xs group"
                 >
-                  <Sparkles className="size-3.5 text-cyan-600 group-hover:scale-110 transition-transform" />
+                  <Sparkles className="size-3.5 text-sky-600 group-hover:scale-110 transition-transform" />
                   <span>{locale === 'pt' ? 'Ver planos da AutaMédica' : 'Ver planes de AutaMédica'}</span>
                 </button>
               </motion.div>
@@ -828,7 +831,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
 
               <motion.a
                 href={!anamnesisCompleted ? '/patients/anamnesis' : '/patients/appointments?type=telemedicine'}
-                className="group inline-flex min-h-12 items-center gap-2 px-7 py-4 bg-[#10B981] text-white rounded-full hover:bg-[#0D9488] transition-colors"
+                className="group inline-flex min-h-12 items-center gap-2 px-7 py-4 bg-sky-500 text-white rounded-full hover:bg-sky-600 transition-colors"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -855,7 +858,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 </div>
                 <div className="h-1 bg-neutral-100 rounded-full overflow-hidden">
                   <motion.div
-                    className="h-full bg-[#10B981] rounded-full"
+                    className="h-full bg-sky-500 rounded-full"
                     initial={{ width: 0 }}
                     whileInView={{ width: `${anamnesisProgress}%` }}
                     viewport={{ once: true }}
@@ -897,7 +900,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 </div>
                 <div className="h-1 bg-neutral-100 rounded-full overflow-hidden">
                   <motion.div
-                    className="h-full bg-[#10B981] rounded-full"
+                    className="h-full bg-sky-500 rounded-full"
                     initial={{ width: 0 }}
                     whileInView={{ width: `${Math.min((freeConsults / 5) * 100, 100)}%` }}
                     viewport={{ once: true }}
@@ -917,7 +920,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               viewport={{ once: true, margin: "-100px" }}
             >
               <motion.div
-                className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#0F2537] text-white rounded-full text-xs font-medium mb-8"
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#0284C7] text-white rounded-full text-xs font-medium mb-8"
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
@@ -968,7 +971,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                         type="button"
                         onClick={() => { clearJoinError(); void joinAppointment(upcomingTelemedicine.id) }}
                         disabled={joiningAppointmentId === upcomingTelemedicine.id}
-                        className="group inline-flex min-h-12 items-center gap-2 px-7 py-4 bg-[#10B981] text-white rounded-full hover:bg-[#0D9488] transition-colors disabled:opacity-70"
+                        className="group inline-flex min-h-12 items-center gap-2 px-7 py-4 bg-sky-500 text-white rounded-full hover:bg-sky-600 transition-colors disabled:opacity-70"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >
@@ -1088,7 +1091,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   <div className="relative z-10 flex flex-col justify-between h-full">
                     <div className="flex items-center justify-between">
                       {action.iconImage ? (
-                        <div className="size-14 rounded-2xl overflow-hidden shadow-md border border-slate-200/80 bg-slate-950 shrink-0 group-hover:scale-105 group-hover:border-cyan-400/50 transition-all duration-300">
+                        <div className="size-14 rounded-2xl overflow-hidden shadow-md border border-slate-200/80 bg-slate-950 shrink-0 group-hover:scale-105 group-hover:border-sky-300 transition-all duration-300">
                           <img
                             src={action.iconImage}
                             alt=""
@@ -1098,8 +1101,8 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                           />
                         </div>
                       ) : (
-                        <div className="size-14 rounded-2xl bg-slate-950 text-cyan-400 flex items-center justify-center shadow-md border border-slate-800 shrink-0 group-hover:scale-105 transition-transform duration-300">
-                          <action.icon className="size-7 text-cyan-400" strokeWidth={1.8} />
+                        <div className="size-14 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center shadow-md border border-sky-100 shrink-0 group-hover:scale-105 transition-transform duration-300">
+                          <action.icon className="size-7 text-sky-600" strokeWidth={1.8} />
                         </div>
                       )}
                       <div className="size-8 rounded-full bg-white/80 backdrop-blur-sm border border-slate-200/60 flex items-center justify-center text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all shadow-xs">

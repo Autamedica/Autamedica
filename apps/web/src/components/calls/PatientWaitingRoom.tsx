@@ -441,7 +441,7 @@ export default function PatientWaitingRoom({
                 <button
                   type="button"
                   onClick={() => onJoin({ stream: null, videoEnabled: false, audioEnabled: false })}
-                  className="min-h-11 px-4 py-2 bg-[#0EA5E9] hover:bg-sky-600 text-xs font-semibold rounded-xl text-white transition-colors shadow-sm"
+                  className="min-h-11 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-xs font-semibold rounded-xl text-white transition-colors shadow-sm"
                 >
                   {t.joinWithoutMedia}
                 </button>
@@ -546,7 +546,7 @@ export default function PatientWaitingRoom({
                     onClick={() => setShowFilters(!showFilters)}
                     className={`flex min-h-11 min-w-11 items-center justify-center rounded-full backdrop-blur-md transition-all active:scale-95 border ${
                       showFilters
-                        ? 'bg-[#0EA5E9] text-white border-sky-500 shadow-sm'
+                        ? 'bg-sky-500 text-white border-sky-500 shadow-sm'
                         : 'bg-white/90 text-slate-700 border-slate-200 hover:bg-slate-50'
                     }`}
                     title={t.imageSettings}
@@ -595,7 +595,7 @@ export default function PatientWaitingRoom({
                           onClick={() => setFilters(item.filters)}
                           className={`min-h-11 py-1 px-2 rounded-lg text-[10px] font-medium transition-all ${
                             isSelected
-                              ? 'bg-[#0EA5E9] text-white font-semibold shadow-sm'
+                              ? 'bg-sky-500 text-white font-semibold shadow-sm'
                               : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                           }`}
                         >
@@ -620,7 +620,7 @@ export default function PatientWaitingRoom({
                         max="170"
                         value={filters.saturation}
                         onChange={e => setFilters(f => ({ ...f, saturation: Number(e.target.value) }))}
-                        className="min-h-11 w-full h-2 touch-pan-y bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#0EA5E9]"
+                        className="min-h-11 w-full h-2 touch-pan-y bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-500"
                       />
                     </div>
 
@@ -638,7 +638,7 @@ export default function PatientWaitingRoom({
                         max="145"
                         value={filters.brightness}
                         onChange={e => setFilters(f => ({ ...f, brightness: Number(e.target.value) }))}
-                        className="min-h-11 w-full h-2 touch-pan-y bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#0EA5E9]"
+                        className="min-h-11 w-full h-2 touch-pan-y bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-500"
                       />
                     </div>
                   </div>
@@ -690,7 +690,7 @@ export default function PatientWaitingRoom({
                   <button
                     type="button"
                     onClick={paymentRequired && !hasPaid ? () => setShowPixModal(true) : handleJoin}
-                    className="relative group min-h-12 w-full sm:w-auto inline-flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-[#0EA5E9] hover:bg-sky-600 text-white font-semibold px-7 py-3 text-sm sm:text-base shadow-lg transition-all shadow-sky-100 active:scale-[0.99]"
+                    className="relative group min-h-12 w-full sm:w-auto inline-flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-sky-500 hover:bg-sky-600 text-white font-semibold px-7 py-3 text-sm sm:text-base shadow-lg transition-all shadow-sky-100 active:scale-[0.99]"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:animate-[am-shimmer_2s_infinite]" />
                     {paymentRequired && !hasPaid ? (

@@ -199,7 +199,7 @@ export function UnifiedVideoCall({
   }, [client])
 
   /* ── Derived ── */
-  const accentColor = theme === 'doctor' ? 'violet' : 'sky'
+  const accentColor = 'sky' as const
   const totalParticipants = remoteUsers.size + 1
   const isCallEstablished = hasRemoteMedia
   const sessionPhase = deriveCallSessionPhase({ connectionState, hasPeerConnection, hasRemoteMedia })

@@ -237,7 +237,7 @@ export function LoginForm({ locale = "es" }: { locale?: Locale }) {
     patient: {
       title: t("roles.patient.title"),
       subtitle: t("roles.patient.subtitle"),
-      accent: "text-emerald-700",
+      accent: "text-sky-700",
       buttonLabel: t("roles.patient.buttonLabel"),
       icon: (
         <svg
@@ -255,7 +255,7 @@ export function LoginForm({ locale = "es" }: { locale?: Locale }) {
     doctor: {
       title: t("roles.doctor.title"),
       subtitle: t("roles.doctor.subtitle"),
-      accent: "text-cyan-700",
+      accent: "text-sky-700",
       buttonLabel: t("roles.doctor.buttonLabel"),
       icon: (
         <svg
@@ -273,7 +273,7 @@ export function LoginForm({ locale = "es" }: { locale?: Locale }) {
     pharmacist: {
       title: t("roles.pharmacist.title"),
       subtitle: t("roles.pharmacist.subtitle"),
-      accent: "text-emerald-800",
+      accent: "text-sky-700",
       buttonLabel: t("roles.pharmacist.buttonLabel"),
       icon: (
         <svg
@@ -292,7 +292,7 @@ export function LoginForm({ locale = "es" }: { locale?: Locale }) {
     company_admin: {
       title: t("roles.company_admin.title"),
       subtitle: t("roles.company_admin.subtitle"),
-      accent: "text-slate-700",
+      accent: "text-sky-700",
       buttonLabel: t("roles.company_admin.buttonLabel"),
       icon: (
         <svg
