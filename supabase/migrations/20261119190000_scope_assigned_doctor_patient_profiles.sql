@@ -21,6 +21,13 @@ CREATE POLICY "patients_select_assigned_patient"
   ON public.patients
   FOR SELECT
   TO authenticated
-  USING (public.doctor_has_patient_read_access(user_id));
+  USING (
+    public.doctor_has_patient_read_access(user_id)
+    AND (
+      NOT public.is_doctor()
+      OR public.is_system_admin()
+      OR (SELECT public.is_clinically_authorized_doctor_read_for_patient(id))
+    )
+  );
 
 COMMIT;
