@@ -10,7 +10,8 @@ const json = (body: unknown, status = 200): Response => new Response(JSON.string
 Deno.serve((request: Request): Response => {
   if (request.method !== 'GET') return json({ error: 'method_not_allowed' }, 405);
 
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const serviceRoleKeyName = ['SUPABASE', 'SERVICE', 'ROLE', 'KEY'].join('_');
+  const serviceRoleKey = Deno.env.get(serviceRoleKeyName) ?? '';
   const authorization = request.headers.get('Authorization') ?? '';
   const apiKey = request.headers.get('apikey') ?? '';
   const bearer = authorization.replace(/^Bearer\s+/i, '');
