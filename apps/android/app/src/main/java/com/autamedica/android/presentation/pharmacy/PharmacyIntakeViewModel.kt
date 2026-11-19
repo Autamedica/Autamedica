@@ -70,7 +70,8 @@ data class PharmacyIntakeUiState(
     val canCancelRequest: Boolean
         get() = activeRequestId != null &&
             status in setOf(PharmacyConsultationStatus.PENDING, PharmacyConsultationStatus.EXPIRED) &&
-            waitingSeconds >= 15 * 60
+            waitingSeconds >= 15 * 60 &&
+            (!requiresDispatchPayment || paymentStatus == "approved")
 
     /** The signed backend resolves partner provenance; recovery must not bypass payment. */
     val requiresDispatchPayment: Boolean
