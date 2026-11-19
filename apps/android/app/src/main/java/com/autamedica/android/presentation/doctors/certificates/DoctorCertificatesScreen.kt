@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.doctors.certificates
 
+import com.autamedica.android.presentation.common.maskPatientDocument
+
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -307,7 +309,7 @@ fun DoctorCertificatesScreen(
                     )
                     cert.patientName?.let { name ->
                         val patientText = cert.patientDni?.takeIf { it.isNotBlank() }?.let { dni ->
-                            stringResource(R.string.cert_detail_patient_with_dni, name, dni)
+                            stringResource(R.string.cert_detail_patient_with_dni, name, maskPatientDocument(dni))
                         } ?: stringResource(R.string.cert_detail_patient, name)
                         Text(
                             text = patientText,
@@ -434,7 +436,7 @@ private fun DoctorCertificateCard(
                         )
                         certificate.patientDni?.takeIf { it.isNotBlank() }?.let { dni ->
                             Text(
-                                text = stringResource(R.string.cert_card_dni_label, dni),
+                                text = stringResource(R.string.cert_card_dni_label, maskPatientDocument(dni)),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AuTextTertiary
                             )
