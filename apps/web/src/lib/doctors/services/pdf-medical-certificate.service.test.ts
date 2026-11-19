@@ -28,6 +28,19 @@ describe('medical certificate PDF', () => {
     expect(text).not.toContain('https://autamedica.com/verify/');
   });
 
+  it('encodes the internal verification link in the signing-source QR without claiming signature', () => {
+    const qr = vi.spyOn(QRCode, 'create');
+    try {
+      const pdf = generateMedicalCertificatePdf(caseFile, 'signing-source');
+      expect(Buffer.from(pdf).toString('latin1')).toContain('Original pendiente de firma');
+      expect(qr).toHaveBeenCalledWith('https://autamedica.com/verify/AR-CERT-TEST-001', {
+        errorCorrectionLevel: 'M',
+      });
+    } finally {
+      qr.mockRestore();
+    }
+  });
+
   it('omits confidential diagnosis in both draft preview and signing source', () => {
     const privateCase = {
       ...caseFile,
