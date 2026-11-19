@@ -32,7 +32,7 @@ vi.mock('@/lib/pharmacy/payments/jordan-media-access', () => ({
 }))
 
 vi.mock('@/lib/calls/sfu-room-binding', () => ({
-  handleRoomBoundCloudflareProxy: (...args: unknown[]) => sfuProxyMock(...args),
+  handleRoomBoundCloudflareProxy: () => sfuProxyMock(),
 }))
 
 import { POST } from './cloudflare-calls'
