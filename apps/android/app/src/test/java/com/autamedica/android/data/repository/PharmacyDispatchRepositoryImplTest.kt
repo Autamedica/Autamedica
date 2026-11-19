@@ -360,6 +360,56 @@ class PharmacyDispatchRepositoryImplTest {
     }
 
     @Test
+    fun `pending offers transition from anon to authenticated session and clear on logout`() = runTest {
+        val anonymousOffers = repository.observeSearchingRequests()
+        assertThat(anonymousOffers.value).isEmpty()
+        assertThat(mockWebServer.requestCount).isEqualTo(0)
+
+        supabaseClient.auth.importAuthToken(
+            accessToken = "synthetic-authenticated-doctor-jwt",
+            retrieveUser = false,
+            autoRefresh = false,
+        )
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """[
+                      {
+                        "id": "offer-request-123",
+                        "patient_phone": "+5491100000000",
+                        "patient_name": "Synthetic Patient",
+                        "tier_requested": "general",
+                        "status": "searching",
+                        "cloudflare_room_id": "synthetic-doctor-room",
+                        "created_at": "2026-11-19T00:00:00Z",
+                        "care_country": "AR",
+                        "offer_id": "offer-123",
+                        "offer_expires_at": "2026-11-19T00:10:00Z"
+                      }
+                    ]""".trimIndent(),
+                ),
+        )
+
+        val authenticatedOffers = repository.observeSearchingRequests()
+        val rpc = mockWebServer.takeRequest(2, TimeUnit.SECONDS)
+        assertThat(rpc).isNotNull()
+        assertThat(rpc!!.path).isEqualTo("/rest/v1/rpc/get_my_pending_dispatch_offers")
+        assertThat(rpc.getHeader("Authorization"))
+            .isEqualTo("Bearer synthetic-authenticated-doctor-jwt")
+        assertThat(authenticatedOffers.value.map { it.id })
+            .containsExactly("offer-request-123")
+
+        mockWebServer.enqueue(MockResponse().setResponseCode(204))
+        supabaseClient.auth.signOut()
+        val loggedOutOffers = repository.observeSearchingRequests()
+        val logout = mockWebServer.takeRequest(2, TimeUnit.SECONDS)
+        assertThat(logout?.path).contains("/auth/v1/logout")
+        assertThat(loggedOutOffers.value).isEmpty()
+        assertThat(mockWebServer.requestCount).isEqualTo(2)
+    }
+
+    @Test
     fun `doctor heartbeat without an authenticated Supabase session never uses anon credentials`() = runTest {
         val result = repository.sendDoctorHeartbeat("doc-uuid-456")
         assertThat(result.isFailure).isTrue()
