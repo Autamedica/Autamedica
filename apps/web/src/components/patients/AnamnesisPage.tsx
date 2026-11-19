@@ -409,7 +409,7 @@ export default function AnamnesisPage({ locale = 'es' }: { locale?: Locale }) {
         </AnimatePresence>
 
         <section className="relative h-[50vh] overflow-hidden bg-sky-700 flex items-center justify-center">
-          <div className="absolute inset-0 bg-gradient-to-br from-neutral-800 to-neutral-900" />
+          <div className="absolute inset-0 bg-gradient-to-br from-sky-700 to-sky-800" />
           <motion.div
             className="relative z-10 text-center px-6"
             initial={{ opacity: 0, y: 40 }}
@@ -509,7 +509,7 @@ export default function AnamnesisPage({ locale = 'es' }: { locale?: Locale }) {
                       }`}
                     >
                       <action.icon className={`size-8 mb-5 ${
-                        action.color === 'sky' ? 'text-sky-400' : 'text-neutral-300 group-hover:text-neutral-900'
+                        action.color === 'sky' ? 'text-sky-400' : 'text-sky-200 group-hover:text-sky-300'
                       }`} strokeWidth={1.5} />
                       <p className={`text-base font-medium ${action.color === 'sky' ? 'text-white' : 'text-neutral-900'}`}>
                         {action.label}
@@ -529,7 +529,7 @@ export default function AnamnesisPage({ locale = 'es' }: { locale?: Locale }) {
                       }`}
                     >
                       <action.icon className={`size-8 mb-5 ${
-                        action.color === 'sky' ? 'text-sky-400' : 'text-neutral-300 group-hover:text-neutral-900'
+                        action.color === 'sky' ? 'text-sky-400' : 'text-sky-200 group-hover:text-sky-300'
                       }`} strokeWidth={1.5} />
                       <p className={`text-base font-medium ${action.color === 'sky' ? 'text-white' : 'text-neutral-900'}`}>
                         {action.label}
@@ -558,7 +558,7 @@ export default function AnamnesisPage({ locale = 'es' }: { locale?: Locale }) {
                     }`}
                   >
                     {isComplete && <Check className="size-3" strokeWidth={2} />}
-                    {copy.shortSections[step.id] ?? step.id}
+                    {copy.shortSections[step.id as keyof typeof copy.shortSections] ?? step.id}
                   </span>
                 )
               })}
@@ -756,7 +756,7 @@ export default function AnamnesisPage({ locale = 'es' }: { locale?: Locale }) {
             animate={{ opacity: 1, y: 0 }}
           >
             <Sparkles className="size-3.5" strokeWidth={1.5} />
-            {copy.ui.prioritize} {copy.shortSections[smartStepOrder] ?? smartStepOrder}
+            {copy.ui.prioritize} {copy.shortSections[smartStepOrder as keyof typeof copy.shortSections] ?? smartStepOrder}
           </motion.div>
         </div>
       )}
