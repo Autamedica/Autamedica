@@ -33,7 +33,7 @@ WHERE user_id = '00000000-0000-4000-8000-00000000a102';
 
 UPDATE public.doctors d
 SET license_number = 'DEMO-NO-HABILITANTE', license_type = 'MN',
-    specialty = 'Medicina general', active = true,
+    specialty = 'Medicina general', active = true, care_country = 'AR',
     signature_image_url = 'https://invalid.example/storage/v1/object/sign/medical-documents/'
       || d.user_id::text || '/signatures/' || d.id::text || '/signature.png',
     stamp_image_url = 'https://invalid.example/storage/v1/object/sign/medical-documents/'
@@ -41,7 +41,7 @@ SET license_number = 'DEMO-NO-HABILITANTE', license_type = 'MN',
 WHERE d.user_id = '00000000-0000-4000-8000-00000000a101';
 
 UPDATE public.patients
-SET dni = '00000000', active = true
+SET dni = '00000000', active = true, care_country = 'AR'
 WHERE user_id = '00000000-0000-4000-8000-00000000a102';
 
 INSERT INTO public.patient_care_team (doctor_id, patient_id, active, role)
