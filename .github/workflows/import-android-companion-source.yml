@@ -1,0 +1,90 @@
+name: Import Android Companion source bundle
+
+on:
+  push:
+    branches:
+      - codex/repair-android-companion
+    paths:
+      - apps/android-companion/.source-import.zip
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-companion-source-import
+  cancel-in-progress: false
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+      - name: Materialize uploaded source files without changing their behavior
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os
+          import pathlib
+          import shutil
+          import zipfile
+
+          repo = pathlib.Path(os.environ["GITHUB_WORKSPACE"])
+          bundle = repo / "apps/android-companion/.source-import.zip"
+          temp = pathlib.Path(os.environ["RUNNER_TEMP"]) / "autamedica-android-source"
+          temp.mkdir(parents=True, exist_ok=True)
+
+          with zipfile.ZipFile(bundle) as archive:
+              for item in archive.infolist():
+                  target = (temp / item.filename).resolve()
+                  if temp.resolve() not in target.parents and target != temp.resolve():
+                      raise RuntimeError("Invalid path in source archive")
+                  if item.is_dir():
+                      target.mkdir(parents=True, exist_ok=True)
+                  else:
+                      target.parent.mkdir(parents=True, exist_ok=True)
+                      with archive.open(item) as source, target.open("wb") as dest:
+                          shutil.copyfileobj(source, dest)
+
+          for source in temp.rglob("*"):
+              if source.is_file():
+                  destination = repo / source.relative_to(temp)
+                  destination.parent.mkdir(parents=True, exist_ok=True)
+                  shutil.copy2(source, destination)
+
+          installer = repo / "apps/android-companion/tools/mcp/install-termux.sh"
+          text = installer.read_text()
+          text = text.replace(r"\${#TOKEN}", "${#TOKEN}")
+          installer.write_text(text)
+          PY
+          git add -A .editorconfig .gitignore .github/workflows/android-companion.yml apps/android-companion
+          git rm -f .github/workflows/import-android-companion-source.yml
+          git diff --cached --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "feat(android-companion): apply uploaded source bundle"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+      - name: Build Android Companion variants
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Assemble debug and repair APKs
+        working-directory: apps/android-companion
+        run: gradle --no-daemon --stacktrace :app:assembleDebug :app:assembleRepair
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate MCP and installer
+        working-directory: apps/android-companion/tools/mcp
+        run: |
+          node --check mcp-server.mjs
+          bash -n install-termux.sh
+          npm install --omit=optional --no-audit --no-fund
+          node --input-type=module -e "import('playwright-core').then(m => { if (!m.chromium?.connectOverCDP) process.exit(1); console.log('Playwright Core CDP client OK'); })"
