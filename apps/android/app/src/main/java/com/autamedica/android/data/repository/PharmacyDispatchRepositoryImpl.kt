@@ -18,6 +18,7 @@ import com.autamedica.android.domain.model.DoctorDutyStatus
 import com.autamedica.android.domain.model.DoctorGuardApproval
 import com.autamedica.android.domain.model.PharmacyDispatchRequest
 import com.autamedica.android.data.local.SecurePreferences
+import com.autamedica.android.data.remote.currentAuthenticatedUserIdOrNull
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.domain.repository.DispatchCheckoutResult
@@ -33,14 +34,18 @@ import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
@@ -49,7 +54,6 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -66,7 +70,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
     private val _searchingRequests = MutableStateFlow<List<PharmacyDispatchRequest>>(emptyList())
-    private var searchingChannel: RealtimeChannel? = null
+    private var searchingQueueJob: Job? = null
 
     // Never write short-lived guest JWTs to logs, analytics or persistent storage.
     private val guestAccessTokens = ConcurrentHashMap<String, String>()
@@ -257,7 +261,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         }
 
     override suspend fun getMyGuardApproval(): Result<DoctorGuardApproval> = runCatching {
-        check(!supabaseClient.auth.currentSessionOrNull()?.accessToken.isNullOrBlank()) {
+        check(supabaseClient.currentAuthenticatedUserIdOrNull() != null) {
             "Authenticated medical professional required for eligibility query"
         }
         val eligibility = supabaseClient.postgrest
@@ -274,6 +278,9 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getDoctorDutyStatus(doctorId: String): Result<DoctorDutyStatus> = runCatching {
+        check(supabaseClient.currentAuthenticatedUserIdOrNull() != null) {
+            "Authenticated doctor session required for duty status"
+        }
         supabaseClient.postgrest
             .from("doctor_duty_status")
             .select(Columns.ALL) {
@@ -291,6 +298,9 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         isOnDuty: Boolean,
         activeTiers: List<String>,
     ): Result<Unit> = runCatching {
+        check(supabaseClient.currentAuthenticatedUserIdOrNull() != null) {
+            "Authenticated doctor session required to change duty status"
+        }
         val params = buildJsonObject {
             put("p_doctor_id", doctorId)
             put("p_is_on_duty", isOnDuty)
@@ -310,7 +320,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     override suspend fun sendDoctorHeartbeat(doctorId: String): Result<Unit> = runCatching {
         // A cached doctor profile is not proof of an authenticated Supabase session.
         // Never send a clinical heartbeat with the anonymous API credential.
-        check(!supabaseClient.auth.currentSessionOrNull()?.accessToken.isNullOrBlank()) {
+        check(supabaseClient.currentAuthenticatedUserIdOrNull() != null) {
             "Authenticated doctor session required for heartbeat"
         }
         val params = buildJsonObject {
@@ -328,7 +338,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     }
 
     override suspend fun sendDoctorPresenceHeartbeat(): Result<Unit> = runCatching {
-        check(!supabaseClient.auth.currentSessionOrNull()?.accessToken.isNullOrBlank()) {
+        check(supabaseClient.currentAuthenticatedUserIdOrNull() != null) {
             "Authenticated doctor session required for online presence"
         }
         val confirmation = supabaseClient.postgrest
@@ -343,17 +353,17 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     }
 
     override fun observeSearchingRequests(): kotlinx.coroutines.flow.StateFlow<List<PharmacyDispatchRequest>> {
-        // Never expose cached offers while no authenticated doctor session exists.
-        // Clear synchronously on logout; loadSearchingRequests repeats this guard at request time.
-        if (supabaseClient.auth.currentSessionOrNull()?.accessToken.isNullOrBlank()) {
+        // Never retain offers while logged out, even when a screen re-observes the flow.
+        if (supabaseClient.currentAuthenticatedUserIdOrNull() == null) {
             _searchingRequests.value = emptyList()
-            return _searchingRequests.asStateFlow()
         }
-
-        // This stream is NOT a country-wide clinical waiting list. Only the
-        // server-authorized physician's offers are returned (least privilege).
-        scope.launch { loadSearchingRequests() }
-        scope.launch { subscribeToSearchingQueue() }
+        // A single session-aware worker waits for login and resumes polling after auth.
+        if (searchingQueueJob?.isActive != true) {
+            searchingQueueJob = scope.launch {
+                loadSearchingRequests()
+                subscribeToSearchingQueue()
+            }
+        }
         return _searchingRequests.asStateFlow()
     }
 
@@ -367,6 +377,9 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         requestId: String,
         doctorId: String,
     ): Result<DispatchClaimResult> = runCatching {
+        check(supabaseClient.currentAuthenticatedUserIdOrNull() != null) {
+            "Authenticated physician required to claim a dispatch offer"
+        }
         val params = buildJsonObject {
             put("p_request_id", requestId)
             put("p_doctor_id", doctorId)
@@ -387,7 +400,9 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     override suspend fun cancelPatientDispatchRequest(requestId: String): Result<Boolean> = runCatching {
         require(requestId.isNotBlank()) { "Missing request ID" }
         val tokenOwner = securePreferences?.getString(guestRecoveryOwnerKey)
+        val activeSessionUserId = supabaseClient.currentAuthenticatedUserIdOrNull()
         val activeUserId = authRepository.getCurrentUser()?.id
+            ?.takeIf { it == activeSessionUserId }
         val guestToken = if (tokenOwner == activeUserId) guestAccessTokens[requestId] else null
         if (guestToken != null) {
             // Renew only when the in-memory guest JWT reaches its refresh
@@ -425,7 +440,9 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             if (confirmed) clearGuestRecovery(requestId)
             confirmed
         } else {
-            check(authRepository.getCurrentUser() != null) { "Missing authenticated owner or guest token" }
+            check(activeSessionUserId != null && activeUserId == activeSessionUserId) {
+                "Missing authenticated owner or guest token"
+            }
             // The old direct UPDATE was rejected by the protected clinical
             // table trigger. The RPC validates request ownership server-side.
             supabaseClient.postgrest
@@ -440,7 +457,10 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 
     override suspend fun declinePharmacyOffer(offerId: String): Result<Boolean> = runCatching {
         require(offerId.isNotBlank()) { "Missing offer ID" }
-        check(authRepository.getCurrentUser() != null) { "Authenticated physician required" }
+        val sessionUserId = supabaseClient.currentAuthenticatedUserIdOrNull()
+        check(sessionUserId != null && authRepository.getCurrentUser()?.id == sessionUserId) {
+            "Authenticated physician required"
+        }
         supabaseClient.postgrest
             .rpc("decline_my_pharmacy_dispatch_offer",
                  buildJsonObject { put("p_offer_id", offerId) })
@@ -454,6 +474,9 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         requestId: String,
         status: String,
     ): Result<Unit> = runCatching {
+        check(supabaseClient.currentAuthenticatedUserIdOrNull() != null) {
+            "Authenticated session required for clinical dispatch transition"
+        }
         require(status == "in_call" || status == "completed") {
             "Unsupported clinical dispatch transition"
         }
@@ -481,6 +504,9 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         doctorId: String,
         requestId: String,
     ): Result<Unit> = runCatching {
+        check(supabaseClient.currentAuthenticatedUserIdOrNull() != null) {
+            "Authenticated doctor session required to finish a consultation"
+        }
         val rpcParams = buildJsonObject {
             put("p_doctor_id", doctorId)
             if (requestId.isNotBlank()) put("p_request_id", requestId)
@@ -494,7 +520,8 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getActivePatientDispatchRequest(): Result<PharmacyDispatchRequest?> = runCatching {
-        val currentUser = authRepository.getCurrentUser()
+        val sessionUserId = supabaseClient.currentAuthenticatedUserIdOrNull()
+        val currentUser = authRepository.getCurrentUser()?.takeIf { it.id == sessionUserId }
         val recovery = savedGuestRecovery()
         val recoveryOwner = securePreferences?.getString(guestRecoveryOwnerKey)
         if (recovery != null && recoveryOwner == currentUser?.id) {
@@ -707,6 +734,9 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     }.onFailure { SecureLog.warn("[PharmacyDispatch] Payment confirmation not available") }
 
     override suspend fun getCountryOnDutyCapacity(careCountry: String): Result<Int> = runCatching {
+        check(supabaseClient.currentAuthenticatedUserIdOrNull() != null) {
+            "Authenticated session required for on-duty capacity"
+        }
         require(careCountry == "AR" || careCountry == "BR") { "Invalid care country" }
         supabaseClient.postgrest
             .rpc("get_country_on_duty_capacity", buildJsonObject {
@@ -719,6 +749,9 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getActiveOnDutyDoctors(): Result<List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo>> = runCatching {
+        check(supabaseClient.currentAuthenticatedUserIdOrNull() != null) {
+            "Authenticated doctor session required for active on-duty doctors"
+        }
         supabaseClient.postgrest
             .rpc("get_active_on_duty_doctors")
             .decodeAs<List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo>>()
@@ -727,50 +760,82 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     }
 
     override fun observeActiveOnDutyDoctors(): Flow<List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo>> = callbackFlow {
-        val channel = supabaseClient.channel("doctor_duty_realtime")
-        val changeFlow = channel.postgresChangeFlow<PostgresAction>(
-            schema = "public",
-        ) {
-            table = "doctor_duty_status"
-        }
+        val sessionJob = launch {
+            authRepository.observeSession().collectLatest { user ->
+                val sessionUserId = supabaseClient.currentAuthenticatedUserIdOrNull()
+                if (user == null || user.id != sessionUserId) {
+                    trySend(emptyList())
+                    return@collectLatest
+                }
 
-        suspend fun fetchCurrent() {
-            runCatching {
-                supabaseClient.postgrest
-                    .rpc("get_active_on_duty_doctors")
-                    .decodeAs<List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo>>()
-            }.onSuccess { docs ->
-                trySend(docs)
-            }.onFailure { err ->
-                SecureLog.error("[PharmacyDispatch] Failed fetching active on-duty doctors in realtime stream", err)
+                var activeChannel: RealtimeChannel? = null
+                var changeFlow: Flow<PostgresAction>? = null
+                try {
+                    try {
+                        val channel = supabaseClient.channel("doctor_duty_realtime")
+                        activeChannel = channel
+                        val changes = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
+                            table = "doctor_duty_status"
+                        }
+                        channel.subscribe()
+                        changeFlow = changes
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (error: Exception) {
+                        // Keep the polling fallback active while realtime reconnects.
+                        SecureLog.warn("[PharmacyDispatch] Active doctors realtime unavailable; polling continues", error)
+                    }
+
+                    suspend fun fetchCurrent() {
+                        if (supabaseClient.currentAuthenticatedUserIdOrNull() != sessionUserId) {
+                            trySend(emptyList())
+                            return
+                        }
+                        runCatching {
+                            supabaseClient.postgrest
+                                .rpc("get_active_on_duty_doctors")
+                                .decodeAs<List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo>>()
+                        }.onSuccess { doctors ->
+                            if (supabaseClient.currentAuthenticatedUserIdOrNull() == sessionUserId) {
+                                trySend(doctors)
+                            }
+                        }.onFailure { error ->
+                            SecureLog.error(
+                                "[PharmacyDispatch] Failed fetching active on-duty doctors in realtime stream",
+                                error,
+                            )
+                        }
+                    }
+
+                    coroutineScope {
+                        fetchCurrent()
+                        val realtimeJob = changeFlow?.let { changes ->
+                            launch { changes.collect { fetchCurrent() } }
+                        }
+                        try {
+                            while (isActive &&
+                                supabaseClient.currentAuthenticatedUserIdOrNull() == sessionUserId
+                            ) {
+                                delay(2_000L)
+                                fetchCurrent()
+                            }
+                        } finally {
+                            realtimeJob?.cancel()
+                        }
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    SecureLog.error("[PharmacyDispatch] Active doctors polling failed", error)
+                } finally {
+                    activeChannel?.let { channel ->
+                        runCatching { supabaseClient.realtime.removeChannel(channel) }
+                    }
+                }
             }
         }
 
-        // Emit initial state immediately
-        launch { fetchCurrent() }
-
-        // Realtime change collection (INSERT, UPDATE, DELETE)
-        val realtimeJob = launch {
-            changeFlow.collect {
-                fetchCurrent()
-            }
-        }
-
-        // Polling ticker fallback (2 seconds): guarantees updates even if websocket reconnects/lags
-        val pollJob = launch {
-            while (isActive) {
-                delay(2000L)
-                fetchCurrent()
-            }
-        }
-
-        channel.subscribe()
-
-        awaitClose {
-            realtimeJob.cancel()
-            pollJob.cancel()
-            launch { supabaseClient.realtime.removeChannel(channel) }
-        }
+        awaitClose { sessionJob.cancel() }
     }
 
     // ────────────────────────────────────────────────────────────
@@ -778,20 +843,22 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     // ────────────────────────────────────────────────────────────
 
     private suspend fun loadSearchingRequests() {
+        val sessionUserId = supabaseClient.currentAuthenticatedUserIdOrNull()
+        if (sessionUserId == null) {
+            _searchingRequests.value = emptyList()
+            return
+        }
         runCatching {
-            // This RPC requires an authenticated doctor JWT. The observer can start
-            // before sign-in, so skip the request instead of polling PostgREST as anon.
-            if (supabaseClient.auth.currentSessionOrNull()?.accessToken.isNullOrBlank()) {
-                _searchingRequests.value = emptyList()
-                return@runCatching
-            }
-
             // Server resolves doctor from the verified JWT and restricts results
             // to unexpired offers in the same clinical jurisdiction.
             val dtos = supabaseClient.postgrest
                 .rpc("get_my_pending_dispatch_offers")
                 .decodeAs<List<DispatchRequestDto>>()
-            _searchingRequests.value = dtos.map { it.toDomain() }
+            if (supabaseClient.currentAuthenticatedUserIdOrNull() == sessionUserId) {
+                _searchingRequests.value = dtos.map { it.toDomain() }
+            } else {
+                _searchingRequests.value = emptyList()
+            }
         }.onFailure {
             // Never keep another doctor's cached offers after auth changes.
             _searchingRequests.value = emptyList()
@@ -800,39 +867,55 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     }
 
     private suspend fun subscribeToSearchingQueue() {
-        if (searchingChannel != null) return
-        if (supabaseClient.auth.currentSessionOrNull()?.accessToken.isNullOrBlank()) {
-            _searchingRequests.value = emptyList()
-            return
-        }
-
-        runCatching {
-            val channel = supabaseClient.channel("pharmacy-dispatch-doctor-offers")
-            val changeFlow = channel.postgresChangeFlow<PostgresAction>(
-                schema = "public",
-            ) {
-                table = "dispatch_offers"
+        while (scope.isActive) {
+            val sessionUserId = supabaseClient.currentAuthenticatedUserIdOrNull()
+            if (sessionUserId == null) {
+                _searchingRequests.value = emptyList()
+                delay(1_000L)
+                continue
             }
 
-            channel.subscribe()
-            searchingChannel = channel
-
-            val realtimeJob = scope.launch {
-                changeFlow.collect {
-                    Timber.d("[PharmacyDispatch] Own offer stream updated")
-                    loadSearchingRequests()
+            var activeChannel: RealtimeChannel? = null
+            try {
+                loadSearchingRequests()
+                val channel = supabaseClient.channel("pharmacy-dispatch-doctor-offers")
+                activeChannel = channel
+                val changeFlow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
+                    table = "dispatch_offers"
+                }
+                channel.subscribe()
+                val realtimeJob = scope.launch {
+                    changeFlow.collect {
+                        if (supabaseClient.currentAuthenticatedUserIdOrNull() == sessionUserId) {
+                            loadSearchingRequests()
+                        }
+                    }
+                }
+                try {
+                    while (scope.isActive &&
+                        supabaseClient.currentAuthenticatedUserIdOrNull() == sessionUserId
+                    ) {
+                        delay(1_000L)
+                        if (supabaseClient.currentAuthenticatedUserIdOrNull() == sessionUserId) {
+                            loadSearchingRequests()
+                        }
+                    }
+                } finally {
+                    realtimeJob.cancel()
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                SecureLog.error("[PharmacyDispatch] Failed subscribing to searching queue", error)
+            } finally {
+                activeChannel?.let { channel ->
+                    runCatching { supabaseClient.realtime.removeChannel(channel) }
+                }
+                if (supabaseClient.currentAuthenticatedUserIdOrNull() != sessionUserId) {
+                    _searchingRequests.value = emptyList()
                 }
             }
-
-            // Notifications may be delayed by a phone or websocket reconnect.
-            // A periodic authenticated fetch keeps the doctor UI synchronized.
-            while (scope.isActive) {
-                delay(3000L)
-                loadSearchingRequests()
-            }
-            realtimeJob.cancel()
-        }.onFailure {
-            SecureLog.error("[PharmacyDispatch] Failed subscribing to searching queue", it)
+            delay(1_000L)
         }
     }
 }
