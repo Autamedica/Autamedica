@@ -5,7 +5,7 @@ on:
     branches:
       - codex/repair-android-companion
     paths:
-      - apps/android-companion/.source-import.zip
+      - apps/android-companion/.source-import.ready
 
 permissions:
   contents: write
@@ -27,15 +27,19 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
+          import base64
           import os
           import pathlib
           import shutil
           import zipfile
 
           repo = pathlib.Path(os.environ["GITHUB_WORKSPACE"])
-          bundle = repo / "apps/android-companion/.source-import.zip"
+          parts = repo / "apps/android-companion/.source-import.parts"
           temp = pathlib.Path(os.environ["RUNNER_TEMP"]) / "autamedica-android-source"
           temp.mkdir(parents=True, exist_ok=True)
+          encoded = "".join(p.read_text().strip() for p in sorted(parts.glob("*.b64")))
+          bundle = temp / "source.zip"
+          bundle.write_bytes(base64.b64decode(encoded, validate=True))
 
           with zipfile.ZipFile(bundle) as archive:
               for item in archive.infolist():
@@ -50,7 +54,7 @@ jobs:
                           shutil.copyfileobj(source, dest)
 
           for source in temp.rglob("*"):
-              if source.is_file():
+              if source.is_file() and source.name != "source.zip":
                   destination = repo / source.relative_to(temp)
                   destination.parent.mkdir(parents=True, exist_ok=True)
                   shutil.copy2(source, destination)
@@ -60,7 +64,8 @@ jobs:
           text = text.replace(r"\${#TOKEN}", "${#TOKEN}")
           installer.write_text(text)
           PY
-          rm -f apps/android-companion/.source-import.zip
+          rm -rf apps/android-companion/.source-import.parts
+          rm -f apps/android-companion/.source-import.ready
           git add -A .editorconfig .gitignore .github/workflows/android-companion.yml apps/android-companion
           git rm -f .github/workflows/import-android-companion-source.yml
           git diff --cached --check
