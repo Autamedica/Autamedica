@@ -1,5 +1,6 @@
 package com.autamedica.android.data.repository
 
+import com.autamedica.android.BuildConfig
 import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.model.CertificateType
 import com.autamedica.android.domain.model.CreateCertificateRequest
@@ -10,6 +11,7 @@ import com.autamedica.android.domain.repository.MedicalCertificateRepository
 import com.autamedica.android.domain.repository.PrescriptionRepository
 import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
@@ -17,9 +19,16 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONObject
+import java.net.URI
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,6 +38,10 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
     private val securePreferences: SecurePreferences,
     private val prescriptionRepository: PrescriptionRepository,
 ) : MedicalCertificateRepository {
+
+    private val downloadClient = OkHttpClient.Builder()
+        .callTimeout(15, TimeUnit.SECONDS)
+        .build()
 
     override suspend fun getPatientCertificates(): Result<List<MedicalCertificate>> = runCatching {
         val patientId = resolvePatientId()
@@ -67,6 +80,8 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
                 doctorLicense = docId?.let { doctorLicenseMap[it] },
                 signedPdfUrl = row.signedPdfUrl,
                 signatureVerifiedAt = row.signatureVerifiedAt,
+                signatureHash = row.signatureHash,
+                signatureMethod = row.signatureMethod,
                 qrCodeContent = row.qrCodeContent ?: "https://autamedica.com/verify/${row.cuir}",
                 countryCode = row.countryCode,
                 createdAt = row.createdAt,
@@ -108,12 +123,55 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             patientDni = patId?.let { patientDniMap[it] },
             signedPdfUrl = row.signedPdfUrl,
             signatureVerifiedAt = row.signatureVerifiedAt,
+            signatureHash = row.signatureHash,
+            signatureMethod = row.signatureMethod,
             qrCodeContent = row.qrCodeContent ?: "https://autamedica.com/verify/${row.cuir}",
             countryCode = row.countryCode,
             createdAt = row.createdAt,
         )
     }.onFailure {
         SecureLog.error("[Certificates] Failed fetching certificate $id", it)
+    }
+
+    override suspend fun getCertificatePdfDownloadUrl(certificate: MedicalCertificate): Result<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            require(certificate.isActive) { "El atestado no tiene una emisión verificable" }
+            val accessToken = supabaseClient.auth.currentSessionOrNull()?.accessToken
+                ?: throw IllegalStateException("Sesión autenticada requerida para descargar el atestado")
+
+            val endpoint = BuildConfig.WEB_API_URL.trimEnd('/') +
+                "/api/doctors/certificates/${certificate.id}/pdf?downloadUrl=true"
+            val request = Request.Builder()
+                .url(endpoint)
+                .header("Authorization", "Bearer $accessToken")
+                .header("Accept", "application/json")
+                .get()
+                .build()
+
+            downloadClient.newCall(request).execute().use { response ->
+                val responseBody = response.body?.string().orEmpty()
+                if (!response.isSuccessful) {
+                    throw IllegalStateException("No se pudo autorizar la descarga del atestado (HTTP ${response.code})")
+                }
+
+                val envelope = JSONObject(responseBody)
+                if (!envelope.optBoolean("success", false)) {
+                    throw IllegalStateException("El servidor no autorizó la descarga del atestado")
+                }
+                val signedUrl = envelope.optJSONObject("data")?.optString("url").orEmpty()
+                val signedUri = runCatching { URI(signedUrl) }.getOrNull()
+                    ?: throw IllegalStateException("El servidor devolvió una URL de descarga inválida")
+                val expectedHost = URI(BuildConfig.SUPABASE_URL).host
+                require(signedUri.scheme.equals("https", ignoreCase = true) &&
+                    signedUri.host.equals(expectedHost, ignoreCase = true) &&
+                    signedUri.userInfo == null) {
+                    "El servidor devolvió una URL de Storage no confiable"
+                }
+                signedUri.toASCIIString()
+            }
+        }.onFailure {
+            SecureLog.error("[Certificates] Failed resolving authenticated PDF download URL", it)
+        }
     }
 
     override suspend fun getDoctorCertificates(patientId: String?): Result<List<MedicalCertificate>> = runCatching {
@@ -158,6 +216,8 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
                 patientDni = patId?.let { patientDniMap[it] },
                 signedPdfUrl = row.signedPdfUrl,
                 signatureVerifiedAt = row.signatureVerifiedAt,
+                signatureHash = row.signatureHash,
+                signatureMethod = row.signatureMethod,
                 qrCodeContent = row.qrCodeContent ?: "https://autamedica.com/verify/${row.cuir}",
                 countryCode = row.countryCode,
                 createdAt = row.createdAt,
@@ -432,6 +492,8 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
         @SerialName("patient_id") val patientId: String? = null,
         @SerialName("signed_pdf_url") val signedPdfUrl: String? = null,
         @SerialName("signature_verified_at") val signatureVerifiedAt: String? = null,
+        @SerialName("signature_hash") val signatureHash: String? = null,
+        @SerialName("signature_method") val signatureMethod: String? = null,
         @SerialName("qr_code_content") val qrCodeContent: String? = null,
         @SerialName("created_at") val createdAt: String,
         @SerialName("country_code") val countryCode: String = "",

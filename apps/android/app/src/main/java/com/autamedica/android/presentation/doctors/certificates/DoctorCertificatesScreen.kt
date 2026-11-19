@@ -70,15 +70,26 @@ fun DoctorCertificatesScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val onOpenPdf: (String) -> Unit = { pdfUrl ->
-        runCatching {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(pdfUrl)).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            context.startActivity(intent)
-        }.onFailure {
-            Toast.makeText(context, context.getString(R.string.cert_toast_open_pdf_error), Toast.LENGTH_SHORT).show()
-        }
+    val onOpenPdf: (MedicalCertificate) -> Unit = { certificate ->
+        viewModel.openCertificatePdf(
+            certificate = certificate,
+            onReady = { signedUrl ->
+                runCatching {
+                    val uri = Uri.parse(signedUrl)
+                    require(uri.scheme.equals("https", ignoreCase = true)) {
+                        "El servidor devolvió una URL de descarga no segura"
+                    }
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                }.onFailure {
+                    Toast.makeText(context, context.getString(R.string.cert_toast_open_pdf_error), Toast.LENGTH_SHORT).show()
+                }
+            },
+            onFailure = {
+                Toast.makeText(context, context.getString(R.string.cert_toast_open_pdf_error), Toast.LENGTH_SHORT).show()
+            },
+        )
     }
 
     var selectedCertForDetail by remember { mutableStateOf<MedicalCertificate?>(null) }
@@ -346,8 +357,6 @@ fun DoctorCertificatesScreen(
                 }
             },
             confirmButton = {
-                val pdfUrl = cert.effectivePdfUrl
-                    ?: "https://autamedica.com/verify/${cert.cuir}"
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -355,7 +364,7 @@ fun DoctorCertificatesScreen(
                     Button(
                         onClick = {
                             selectedCertForDetail = null
-                            onOpenPdf(pdfUrl)
+                            onOpenPdf(cert)
                         },
                         enabled = cert.isActive,
                         colors = ButtonDefaults.buttonColors(
@@ -380,7 +389,7 @@ fun DoctorCertificatesScreen(
 @Composable
 private fun DoctorCertificateCard(
     certificate: MedicalCertificate,
-    onOpenPdf: (String) -> Unit,
+    onOpenPdf: (MedicalCertificate) -> Unit,
     onCopyCuir: () -> Unit,
     onOpenDetail: () -> Unit,
 ) {
@@ -537,11 +546,8 @@ private fun DoctorCertificateCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    val pdfUrl = certificate.signedPdfUrl?.takeIf { it.isNotBlank() }
-                        ?: "https://autamedica.com/verify/${certificate.cuir}"
-
                     Button(
-                        onClick = { onOpenPdf(pdfUrl) },
+                        onClick = { onOpenPdf(certificate) },
                         enabled = isValid && certificate.signedPdfUrl?.isNotBlank() == true,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF0F766E),

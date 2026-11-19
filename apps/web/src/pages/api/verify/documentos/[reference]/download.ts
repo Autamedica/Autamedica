@@ -43,6 +43,17 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     );
 
     for (const objectPath of [...new Set(objectPaths)]) {
+      if (objectPath === `document-archives/${document.reference}/${document.pdfSha256}.pdf`) {
+        const { data: archivedPdf, error: archivedPdfError } = await storage.download(objectPath);
+        if (archivedPdfError || !archivedPdf) continue;
+        const bytes = new Uint8Array(await archivedPdf.arrayBuffer());
+        const digest = await crypto.subtle.digest('SHA-256', bytes);
+        const actualHash = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+        if (actualHash !== document.pdfSha256 || new TextDecoder().decode(bytes.subarray(0, 5)) !== '%PDF-') {
+          return new Response('El PDF archivado no coincide con el registro', { status: 409, headers: noStore });
+        }
+      }
+
       const { data } = await storage.createSignedUrl(objectPath, 300, {
         download: `${document.reference}.pdf`,
       });
