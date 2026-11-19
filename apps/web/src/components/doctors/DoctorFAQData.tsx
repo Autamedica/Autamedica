@@ -95,12 +95,26 @@ export const faqItems: FAQItem[] = [
     id: "paciente-otros-medicos",
     category: "patients",
     question: "¿Este paciente externo después estará disponible para los otros médicos?",
-    tags: ["privacidad", "padron", "historial clinico", "portabilidad", "secreto", "ley 25.326"],
+    tags: ["privacidad", "padron", "historial clinico", "portabilidad", "secreto", "ley 25.326", "lei 13.709", "lgpd", "lei 13.787"],
     answer: (
       <div className="space-y-4 text-sm leading-relaxed text-am-surface-600">
         <p>
-          <span className="font-semibold text-am-surface-900">No.</span> Los datos clínicos y de contacto de tus pacientes privados están completamente protegidos bajo secreto profesional y en conformidad con la Ley de Protección de Datos Personales N° 25.326.
+          <span className="font-semibold text-am-surface-900">No.</span> Los expedientes clínicos privados se mantienen separados del resto de la red profesional. Las referencias normativas de privacidad y documentación clínica varían por jurisdicción:
         </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-am-surface-800">Argentina</p>
+            <p className="mt-2 text-xs leading-relaxed text-am-surface-600">
+              Ley 25.326 de Protección de Datos Personales y Ley 26.529 de Derechos del Paciente, Historia Clínica y Consentimiento Informado.
+            </p>
+          </div>
+          <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-am-surface-800">Brasil</p>
+            <p className="mt-2 text-xs leading-relaxed text-am-surface-600">
+              Lei 13.709/2018 (LGPD) e Lei 13.787/2018, sobre digitalização, guarda e manuseio do prontuário do paciente.
+            </p>
+          </div>
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-4 space-y-2">
@@ -128,12 +142,22 @@ export const faqItems: FAQItem[] = [
     id: "paciente-decidir-otro",
     category: "patients",
     question: "¿Puede el paciente que yo traje a la plataforma decidir atenderse con otro médico?",
-    tags: ["libre eleccion", "competencia", "pacientes", "portabilidad", "decreto 345/2024"],
+    tags: ["libre eleccion", "competencia", "pacientes", "portabilidad", "ley 26.529", "lei 13.787", "lgpd"],
     answer: (
       <div className="space-y-4 text-sm leading-relaxed text-am-surface-600">
         <p>
-          <span className="font-semibold text-am-surface-900">Sí.</span> La legislación de salud digital y la Ley de Derechos del Paciente N° 26.529 garantizan la libre elección. El paciente es el único dueño de su salud y puede programar consultas con cualquier médico disponible en la cartilla general cuando lo decida.
+          <span className="font-semibold text-am-surface-900">Sí.</span> El paciente puede elegir otro profesional y solicitar la atención disponible en la cartilla general. Las referencias normativas sobre derechos del paciente y documentación clínica se distinguen por jurisdicción:
         </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-am-surface-800">Argentina</p>
+            <p className="mt-2 text-xs leading-relaxed text-am-surface-600">Ley 26.529 de Derechos del Paciente, Historia Clínica y Consentimiento Informado.</p>
+          </div>
+          <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-am-surface-800">Brasil</p>
+            <p className="mt-2 text-xs leading-relaxed text-am-surface-600">Lei 13.787/2018 sobre prontuário do paciente, em conjunto com a LGPD (Lei 13.709/2018) para o tratamento de dados pessoais.</p>
+          </div>
+        </div>
         <div className="rounded-xl bg-am-surface-50 border border-am-surface-200 p-4 flex gap-3 items-start">
           <Info className="h-5 w-5 text-am-surface-400 shrink-0 mt-0.5" strokeWidth={1.5} />
           <div>
@@ -577,18 +601,18 @@ export const faqItems: FAQItem[] = [
     id: "comisiones-plataforma",
     category: "billing",
     question: "¿AutaMedica me cobra comisiones sobre mis consultas particulares?",
-    tags: ["comisiones", "cobros", "honorarios", "costo", "mercadopago", "descuentos"],
+    tags: ["comisiones", "cobros", "honorarios", "costo", "procesamiento", "facturación"],
     answer: (
       <div className="space-y-3 text-sm leading-relaxed text-am-surface-600">
         <p>
-          <span className="font-semibold text-am-surface-900">Sí.</span> Para sostener la infraestructura de videollamadas, la red de recetas firmadas y el soporte del sistema, <span className="font-semibold text-am-surface-900">AutaMedica retiene una comisión del 15% por cada videoconsulta realizada</span> en la cartilla pública.
+          Las condiciones económicas de las consultas, las comisiones y los costos de procesamiento dependen de la configuración vigente del servicio, del país y del medio de pago.
         </p>
         <div className="rounded-xl bg-am-surface-50 border border-am-surface-200 p-4 flex gap-3 items-start mt-2">
           <Info className="h-5 w-5 text-am-surface-400 shrink-0 mt-0.5" strokeWidth={1.5} />
           <div>
-            <h6 className="text-xs font-bold text-am-surface-800 uppercase">Aranceles de la pasarela de pagos (MercadoPago)</h6>
+            <h6 className="text-xs font-bold text-am-surface-800 uppercase">Condiciones comerciales vigentes</h6>
             <p className="text-xs text-am-surface-500 mt-1 leading-relaxed">
-              Adicionalmente, por cada cobro con tarjeta, MercadoPago aplica una tasa fija de procesamiento financiero del <span className="font-semibold text-am-surface-700">4%</span> sobre la transacción. Esto cubre el costo del procesamiento seguro de cobro bancario de la tarjeta del paciente.
+              Consultá las condiciones aplicables en la información de tu plan y en el detalle de cada operación. Esta guía no fija porcentajes universales de comisión ni cargos de pasarela.
             </p>
           </div>
         </div>

@@ -11,6 +11,7 @@ import { ErrorState } from '@/components/ui/ErrorState'
 import { Input } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
+import { useCurrentDoctor } from '@/hooks/doctors/useRealDoctors'
 import { useRealPatients } from '@/hooks/doctors/useRealPatients'
 import { useDoctorAppointments } from '@/hooks/doctors/useDoctorAppointments'
 import { useStartCall } from '@/hooks/doctors/useStartCall'
@@ -60,7 +61,7 @@ function PatientCardActions({
             void startCall()
           }}
           disabled={isStarting}
-          className="au-focus-ring inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="au-focus-ring inline-flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-3 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Video className="h-3.5 w-3.5" />
           {isStarting ? 'Llamando...' : 'Videollamada'}
@@ -117,6 +118,10 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
   const [pulseLoading, setPulseLoading] = useState(false)
   const [chatPatient, setChatPatient] = useState<{ id: string; name: string } | null>(null)
   const { user } = useAuthenticatedUser()
+  const { doctor } = useCurrentDoctor(user?.id)
+  const doctorCountry = (doctor as (NonNullable<typeof doctor> & { care_country?: string }) | null)
+    ?.care_country
+  const dateLocale = doctorCountry === 'BR' ? 'pt-BR' : 'es-AR'
 
   const { patients, loading, error, refetch } = useRealPatients()
 
@@ -295,7 +300,7 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
                         <p className="text-sm font-bold text-neutral-900 truncate">{item.name}</p>
                         <p className="text-xs text-neutral-500 truncate">{item.email}</p>
                         <p className="text-[10px] text-sky-600 font-bold mt-1">
-                          Se unió {new Date(item.joinedAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
+                          Se unió {new Date(item.joinedAt).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' })}
                         </p>
                       </div>
                     </div>
@@ -390,7 +395,7 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
                         )}
                         {patient.birth_date && (
                           <span className="text-[10px] text-muted-foreground">
-                            {new Date(patient.birth_date).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            {new Date(patient.birth_date).toLocaleDateString(dateLocale, { day: '2-digit', month: 'short', year: 'numeric' })}
                           </span>
                         )}
                       </div>
@@ -408,7 +413,7 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
                         )}
                         <span className="text-muted-foreground">Proximo turno:</span>
                         <span className="font-medium text-foreground">
-                          {new Date(nextAppt.start_time).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}{' '}
+                          {new Date(nextAppt.start_time).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' })}{' '}
                           {new Date(nextAppt.start_time).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>

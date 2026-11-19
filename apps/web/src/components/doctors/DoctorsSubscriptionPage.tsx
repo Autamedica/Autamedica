@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAuthenticatedUser } from "@/hooks/doctors/useAuthenticatedUser";
+import { useCurrentDoctor } from "@/hooks/doctors/useRealDoctors";
 import { useSubscription } from "@/hooks/doctors/useSubscription";
 import { DoctorsPortalFrame } from "./DoctorsPortalFrame";
 import {
@@ -31,19 +32,21 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   cancelled: { label: "Cancelada", color: "bg-neutral-100 text-neutral-500" },
 };
 
-function formatDate(iso: string | null): string {
+function formatDate(iso: string | null, locale: string): string {
   if (!iso) return "-";
-  return new Date(iso).toLocaleDateString("es-AR", {
+  return new Date(iso).toLocaleDateString(locale, {
     day: "numeric",
     month: "long",
     year: "numeric",
   });
 }
 
-function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat("es-AR", {
+function formatCurrency(cents: number, currencyCode: string): string {
+  const currency = currencyCode === "BRL" ? "BRL" : "ARS";
+  const locale = currency === "BRL" ? "pt-BR" : "es-AR";
+  return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: "ARS",
+    currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(cents / 100);
@@ -51,6 +54,10 @@ function formatCurrency(cents: number): string {
 
 export function DoctorsSubscriptionPage({ locale: _locale }: { locale?: string }) {
   const { user } = useAuthenticatedUser();
+  const { doctor } = useCurrentDoctor(user?.id);
+  const doctorCountry = (doctor as (NonNullable<typeof doctor> & { care_country?: string }) | null)
+    ?.care_country;
+  const dateLocale = doctorCountry === "BR" ? "pt-BR" : "es-AR";
   const { plans, subscription, loading, error, subscribe, cancel } =
     useSubscription(user?.id);
   const [cancelling, setCancelling] = useState(false);
@@ -156,7 +163,7 @@ export function DoctorsSubscriptionPage({ locale: _locale }: { locale?: string }
                     </div>
                     <p className="mt-1 text-[13px] text-neutral-400">
                       {currentPlan
-                        ? `${formatCurrency(currentPlan.priceCents)}/${currentPlan.interval === "monthly" ? "mes" : "ano"}`
+                        ? `${formatCurrency(currentPlan.priceCents, currentPlan.currency)}/${currentPlan.interval === "monthly" ? "mes" : "ano"}`
                         : ""}
                       {isCheckoutPro ? " — Pago unico" : " — Renovacion automatica"}
                     </p>
@@ -193,7 +200,7 @@ export function DoctorsSubscriptionPage({ locale: _locale }: { locale?: string }
                   </p>
                   <p className="mt-1 flex items-center gap-2 text-[13px] font-medium text-neutral-900">
                     <CalendarClock className="h-3.5 w-3.5 text-neutral-400" strokeWidth={1.5} />
-                    {formatDate(subscription.currentPeriodStart)}
+                    {formatDate(subscription.currentPeriodStart, dateLocale)}
                   </p>
                 </div>
                 <div>
@@ -202,7 +209,7 @@ export function DoctorsSubscriptionPage({ locale: _locale }: { locale?: string }
                   </p>
                   <p className="mt-1 flex items-center gap-2 text-[13px] font-medium text-neutral-900">
                     <CalendarClock className="h-3.5 w-3.5 text-neutral-400" strokeWidth={1.5} />
-                    {formatDate(subscription.currentPeriodEnd)}
+                    {formatDate(subscription.currentPeriodEnd, dateLocale)}
                   </p>
                 </div>
                 {subscription.cancelledAt && (
@@ -211,7 +218,7 @@ export function DoctorsSubscriptionPage({ locale: _locale }: { locale?: string }
                       Cancelada el
                     </p>
                     <p className="mt-1 text-[13px] font-medium text-red-600">
-                      {formatDate(subscription.cancelledAt)}
+                      {formatDate(subscription.cancelledAt, dateLocale)}
                     </p>
                   </div>
                 )}
@@ -266,7 +273,7 @@ export function DoctorsSubscriptionPage({ locale: _locale }: { locale?: string }
                                 {plan.name}
                               </p>
                               <p className="text-[11px] text-neutral-400">
-                                {formatCurrency(plan.priceCents)}/
+                                {formatCurrency(plan.priceCents, plan.currency)}/
                                 {plan.interval === "monthly" ? "mes" : "ano"}
                               </p>
                             </div>
@@ -302,7 +309,7 @@ export function DoctorsSubscriptionPage({ locale: _locale }: { locale?: string }
               <h3 className="text-lg font-semibold text-neutral-900">Cancelar suscripcion</h3>
               <p className="mt-2 text-[13px] leading-relaxed text-neutral-500">
                 Tu suscripcion seguira activa hasta el final del periodo actual
-                ({formatDate(subscription?.currentPeriodEnd ?? null)}). Despues de eso perderas
+                ({formatDate(subscription?.currentPeriodEnd ?? null, dateLocale)}). Despues de eso perderas
                 acceso a las funcionalidades del plan.
               </p>
               {actionError && (
