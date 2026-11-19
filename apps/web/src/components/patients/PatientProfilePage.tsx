@@ -99,7 +99,7 @@ function AuthenticatedPatientProfilePage({
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       {/* Hero */}
-      <section className="bg-[#0F2537] px-6 lg:px-12 pt-10 pb-16">
+      <section className="bg-[#0284C7] px-6 lg:px-12 pt-10 pb-16">
         <div className="max-w-7xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 text-white/80 rounded-full text-xs font-medium mb-6">
             <Sparkles className="h-3.5 w-3.5" />
@@ -204,7 +204,7 @@ function AuthenticatedPatientProfilePage({
 
               <div className="mt-6 h-3 overflow-hidden rounded-full bg-slate-50">
                 <div
-                  className="h-full rounded-full bg-[#10B981] transition-[width] duration-500"
+                  className="h-full rounded-full bg-sky-500 transition-[width] duration-500"
                   style={{ width: `${profileCompletion}%` }}
                 />
               </div>
@@ -268,7 +268,7 @@ function AuthenticatedPatientProfilePage({
                         type="button"
                         onClick={lookupOfficialIdentity}
                         disabled={isLookingUpIdentity || !form.dni.trim() || !form.gender}
-                        className="inline-flex items-center gap-2 rounded-full bg-[#10B981] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0D9488] disabled:cursor-not-allowed disabled:bg-emerald-200"
+                        className="inline-flex items-center gap-2 rounded-full bg-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-sky-100"
                       >
                         {isLookingUpIdentity ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -452,7 +452,7 @@ function AuthenticatedPatientProfilePage({
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:border-[#10B981] hover:text-gray-950"
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:border-sky-500 hover:text-gray-950"
                   >
                     <RefreshCcw className="h-4 w-4" />
                     {isPortuguese ? 'Redefinir' : 'Restablecer'}
@@ -463,7 +463,7 @@ function AuthenticatedPatientProfilePage({
                       void saveProfile();
                     }}
                     disabled={isSaving}
-                    className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#10B981] px-5 py-2.5 text-sm font-semibold text-white shadow-am-primary-sm transition-colors hover:bg-[#0D9488] disabled:cursor-wait disabled:opacity-80 active:scale-[0.98]"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-full bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-am-primary-sm transition-colors hover:bg-sky-600 disabled:cursor-wait disabled:opacity-80 active:scale-[0.98]"
                   >
                     {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     {isSaving ? (isPortuguese ? 'Salvando...' : 'Guardando...') : (isPortuguese ? 'Salvar alterações' : 'Guardar cambios')}

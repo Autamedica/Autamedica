@@ -20,6 +20,7 @@ import {
   Check
 } from 'lucide-react'
 import { PixCheckoutModal } from '@/components/payments/PixCheckoutModal'
+import { RESERVA_SAUDE, formatReservaMonthlyPrice } from '@/config/reserva-saude'
 
 interface HealthReserveData {
   patient_id: string
@@ -173,11 +174,11 @@ export default function ReservaSaudePage() {
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'consultation':
-        return <Stethoscope className="w-5 h-5 text-cyan-600" strokeWidth={1.5} />
+        return <Stethoscope className="w-5 h-5 text-sky-600" strokeWidth={1.5} />
       case 'lab_exam':
-        return <FlaskConical className="w-5 h-5 text-emerald-600" strokeWidth={1.5} />
+        return <FlaskConical className="w-5 h-5 text-sky-600" strokeWidth={1.5} />
       case 'medication':
-        return <Pill className="w-5 h-5 text-indigo-600" strokeWidth={1.5} />
+        return <Pill className="w-5 h-5 text-sky-600" strokeWidth={1.5} />
       default:
         return <Shield className="w-5 h-5 text-neutral-600" strokeWidth={1.5} />
     }
@@ -187,7 +188,7 @@ export default function ReservaSaudePage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-3">
-          <RefreshCw className="w-8 h-8 text-neutral-900 animate-spin" />
+          <RefreshCw className="w-8 h-8 text-sky-600 animate-spin" />
           <p className="text-neutral-500 text-sm font-medium">Carregando sua Reserva de Saúde...</p>
         </div>
       </div>
@@ -195,14 +196,15 @@ export default function ReservaSaudePage() {
   }
 
   const balance = reserve?.benefit_balance ?? 0
-  const maxCap = reserve?.max_cap_credits ?? 600
+  const maxCap = reserve?.max_cap_credits ?? RESERVA_SAUDE.maxCapCredits
   const progressPercent = Math.min(Math.round((balance / maxCap) * 100), 100)
   const isCuidado = reserve?.subscription_tier === 'cuidado'
+  const monthlyPrice = formatReservaMonthlyPrice()
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
       {/* ── HEADER CARD ──────────────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl bg-neutral-900 text-white p-6 md:p-8 shadow-xl">
+      <div className="relative overflow-hidden rounded-3xl bg-[#0284C7] text-white p-6 md:p-8 shadow-xl">
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-semibold uppercase tracking-wider ${
@@ -220,8 +222,8 @@ export default function ReservaSaudePage() {
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                    Plano AUTAMÉDICA Cuidado (R$ 49,90/mês)
+                    <Sparkles className="w-3.5 h-3.5 text-sky-300" />
+                    Plano AUTAMÉDICA Cuidado ({monthlyPrice}/mês)
                   </>
                 )
               ) : (
@@ -237,7 +239,7 @@ export default function ReservaSaudePage() {
             <p className="text-neutral-300 text-sm md:text-base max-w-xl font-normal leading-relaxed">
               Você tem acesso ao benefício de atendimento clínico. 
               <strong className="text-white font-semibold"> Precisou? Use. </strong> 
-              <strong className="text-emerald-400 font-semibold">Não precisou? Acumule (+22 créditos/mês) </strong> 
+              <strong className="text-sky-200 font-semibold">Não precisou? Acumule (+{RESERVA_SAUDE.monthlyCredits} créditos/mês) </strong> 
               para especialistas, exames e farmácia.
             </p>
           </div>
@@ -246,11 +248,11 @@ export default function ReservaSaudePage() {
           <div className="w-full md:w-auto min-w-[280px] bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 p-5 shadow-lg space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-neutral-400 uppercase tracking-wider">Saldo Disponível</span>
-              <Coins className="w-5 h-5 text-cyan-400" />
+              <Coins className="w-5 h-5 text-sky-300" />
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-4xl font-light text-white tracking-tight">{balance}</span>
-              <span className="text-sm font-semibold text-cyan-400">AUTA Créditos</span>
+              <span className="text-sm font-semibold text-sky-300">AUTA Créditos</span>
             </div>
             <div className="space-y-1.5 pt-1">
               <div className="flex justify-between text-xs text-neutral-400">
@@ -259,7 +261,7 @@ export default function ReservaSaudePage() {
               </div>
               <div className="w-full h-2 bg-neutral-800 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 rounded-full transition-all duration-500" 
+                  className="h-full bg-gradient-to-r from-sky-500 to-sky-300 rounded-full transition-all duration-500" 
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
@@ -278,7 +280,7 @@ export default function ReservaSaudePage() {
             <div>
               <h3 className="text-lg font-semibold text-amber-950">Pagamento Pendente / Vencido</h3>
               <p className="text-xs text-amber-800 mt-1 max-w-xl">
-                A renovação mensal do seu Plano Cuidado não foi confirmada. Regularize seu pagamento via Pix para continuar acumulando seus +22 AUTA Créditos mensais e manter o resgate de benefícios ativo.
+                A renovação mensal do seu Plano Cuidado não foi confirmada. Regularize seu pagamento via Pix para continuar acumulando seus +{RESERVA_SAUDE.monthlyCredits} AUTA Créditos mensais e manter o resgate de benefícios ativo.
               </p>
             </div>
           </div>
@@ -301,21 +303,21 @@ export default function ReservaSaudePage() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold text-neutral-900">Ative o Plano Cuidado por R$ 49,90/mês</h3>
+                <h3 className="text-lg font-semibold text-neutral-900">Ative o Plano Cuidado por {monthlyPrice}/mês</h3>
                 <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
                   Pix ou Cartão
                 </span>
               </div>
               <p className="text-neutral-500 text-sm mt-0.5">
-                Garanta 1 atendimento clínico mensal e acumule 22 AUTA Créditos todo mês que não precisar de consulta.
+                Garanta 1 atendimento clínico mensal e acumule {RESERVA_SAUDE.monthlyCredits} AUTA Créditos todo mês que não precisar de consulta.
               </p>
             </div>
           </div>
           <button 
             onClick={() => setShowPixModal(true)}
-            className="w-full md:w-auto px-6 py-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-semibold text-sm transition-all shadow-sm flex items-center justify-center gap-2 shrink-0"
+            className="w-full md:w-auto px-6 py-3 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-semibold text-sm transition-all shadow-sm flex items-center justify-center gap-2 shrink-0"
           >
-            Assinar com Pix (R$ 49,90)
+            Assinar com Pix ({monthlyPrice})
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
@@ -326,7 +328,7 @@ export default function ReservaSaudePage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-neutral-900 flex items-center gap-2">
-              <Ticket className="w-5 h-5 text-emerald-600" />
+              <Ticket className="w-5 h-5 text-sky-600" />
               Seus Vouchers Ativos
             </h2>
             <span className="text-xs text-neutral-500 font-medium">{vouchers.length} disponível(is)</span>
@@ -366,7 +368,7 @@ export default function ReservaSaudePage() {
                   >
                     {copiedVoucherCode === v.voucher_code ? (
                       <>
-                        <Check className="w-4 h-4 text-emerald-600" />
+                        <Check className="w-4 h-4 text-sky-600" />
                         <span className="text-emerald-700">Copiado!</span>
                       </>
                     ) : (
@@ -392,7 +394,7 @@ export default function ReservaSaudePage() {
       <div className="space-y-4">
         <div>
           <h2 className="text-xl font-semibold text-neutral-900 flex items-center gap-2">
-            <Coins className="w-5 h-5 text-cyan-600" />
+            <Coins className="w-5 h-5 text-sky-600" />
             Catálogo de Resgate em Rede Credenciada
           </h2>
           <p className="text-neutral-500 text-sm">
@@ -431,7 +433,7 @@ export default function ReservaSaudePage() {
                       <p className="text-xs text-neutral-500 mt-1 line-clamp-2 leading-relaxed">{item.description}</p>
                     )}
                   </div>
-                  <p className="text-xs text-cyan-700 font-medium">📍 {item.partner_name}</p>
+                  <p className="text-xs text-sky-700 font-medium">📍 {item.partner_name}</p>
                 </div>
 
                 <div className="pt-4 border-t border-neutral-100 mt-4 flex items-center justify-between">
@@ -452,7 +454,7 @@ export default function ReservaSaudePage() {
                     disabled={!canAfford}
                     className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
                       canAfford
-                        ? 'bg-neutral-900 text-white hover:bg-neutral-800 shadow-sm'
+                        ? 'bg-sky-500 text-white hover:bg-sky-600 shadow-sm'
                         : 'bg-neutral-100 text-neutral-400 cursor-not-allowed'
                     }`}
                   >
@@ -512,14 +514,14 @@ export default function ReservaSaudePage() {
                         isPositive 
                           ? 'bg-emerald-50 text-emerald-700' 
                           : isZero 
-                            ? 'bg-cyan-50 text-cyan-700' 
+                            ? 'bg-sky-50 text-sky-700' 
                             : 'bg-neutral-100 text-neutral-700'
                       }`}>
                         {isPositive ? <Sparkles className="w-4 h-4" /> : isZero ? <CheckCircle2 className="w-4 h-4" /> : <Ticket className="w-4 h-4" />}
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-neutral-900">
-                          {m.kind === 'monthly_benefit_accrual' && 'Acumulação Mensal de Reserva (+22)'}
+                          {m.kind === 'monthly_benefit_accrual' && `Acumulação Mensal de Reserva (+${RESERVA_SAUDE.monthlyCredits})`}
                           {m.kind === 'benefit_consumed' && 'Benefício de Atendimento Clínico Utilizado'}
                           {m.kind === 'redeem_specialist' && `Resgate: Especialista (${m.metadata.item_name || 'Consulta'})`}
                           {m.kind === 'redeem_laboratory' && `Resgate: Exame Laboratorial`}
@@ -568,7 +570,7 @@ export default function ReservaSaudePage() {
                 <>
                   <div className="flex items-start justify-between">
                     <div>
-                      <span className="text-[11px] font-bold text-cyan-700 uppercase tracking-wider">Confirmar Resgate</span>
+                      <span className="text-[11px] font-bold text-sky-700 uppercase tracking-wider">Confirmar Resgate</span>
                       <h3 className="text-xl font-semibold text-neutral-900 mt-1">{selectedItem.name}</h3>
                       <p className="text-xs text-neutral-500">{selectedItem.partner_name}</p>
                     </div>
@@ -591,7 +593,7 @@ export default function ReservaSaudePage() {
                     </div>
                     <div className="border-t border-neutral-200 pt-2 flex justify-between text-sm">
                       <span className="text-neutral-500">Saldo após o resgate:</span>
-                      <span className="font-bold text-cyan-700">{balance - selectedItem.redemption_credits} créditos</span>
+                      <span className="font-bold text-sky-700">{balance - selectedItem.redemption_credits} créditos</span>
                     </div>
                   </div>
 
@@ -612,7 +614,7 @@ export default function ReservaSaudePage() {
                     <button
                       onClick={handleRedeem}
                       disabled={redeeming}
-                      className="flex-1 px-4 py-3 rounded-xl bg-neutral-900 text-white font-semibold text-sm hover:bg-neutral-800 transition-all flex items-center justify-center gap-2"
+                      className="flex-1 px-4 py-3 rounded-xl bg-sky-500 text-white font-semibold text-sm hover:bg-sky-600 transition-all flex items-center justify-center gap-2"
                     >
                       {redeeming ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Confirmar Resgate'}
                     </button>
@@ -620,7 +622,7 @@ export default function ReservaSaudePage() {
                 </>
               ) : (
                 <div className="text-center space-y-4 py-2">
-                  <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+                  <div className="w-16 h-16 rounded-full bg-emerald-50 text-sky-600 flex items-center justify-center mx-auto">
                     <CheckCircle2 className="w-8 h-8" />
                   </div>
                   <div>
@@ -646,7 +648,7 @@ export default function ReservaSaudePage() {
                       setSelectedItem(null)
                       setRedeemSuccessVoucher(null)
                     }}
-                    className="w-full px-4 py-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-semibold text-sm transition-all"
+                    className="w-full px-4 py-3 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-semibold text-sm transition-all"
                   >
                     Fechar
                   </button>

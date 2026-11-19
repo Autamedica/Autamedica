@@ -30,7 +30,7 @@ const currentPath = Astro.url.pathname;
 const currentSearch = getSafeAuthNavigationSearch(Astro.url.searchParams);
 const role = Astro.url.searchParams.get('role') || 'patient';
 
-const themeClass = `theme-${role}`;
+const themeClass = role === 'patient' ? 'theme-patient' : role === 'doctor' ? 'theme-doctor' : 'theme-company';
 
 const authFlowLinks = [
   { href: '/auth/login', label: 'Iniciar sesión' },
@@ -42,7 +42,7 @@ const { publicSupabaseUrl, publicSupabaseAnonKey, publicSentryDsn } = resolvePub
 ---
 
 <!doctype html>
-<html lang="es" dir="ltr">
+<html lang={locale === 'pt' ? 'pt-BR' : 'es'} dir="ltr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
