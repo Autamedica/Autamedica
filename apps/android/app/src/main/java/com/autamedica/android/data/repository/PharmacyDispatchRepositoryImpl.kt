@@ -343,6 +343,13 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     }
 
     override fun observeSearchingRequests(): kotlinx.coroutines.flow.StateFlow<List<PharmacyDispatchRequest>> {
+        // Never expose cached offers while no authenticated doctor session exists.
+        // Clear synchronously on logout; loadSearchingRequests repeats this guard at request time.
+        if (supabaseClient.auth.currentSessionOrNull()?.accessToken.isNullOrBlank()) {
+            _searchingRequests.value = emptyList()
+            return _searchingRequests.asStateFlow()
+        }
+
         // This stream is NOT a country-wide clinical waiting list. Only the
         // server-authorized physician's offers are returned (least privilege).
         scope.launch { loadSearchingRequests() }
@@ -772,6 +779,13 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 
     private suspend fun loadSearchingRequests() {
         runCatching {
+            // This RPC requires an authenticated doctor JWT. The observer can start
+            // before sign-in, so skip the request instead of polling PostgREST as anon.
+            if (supabaseClient.auth.currentSessionOrNull()?.accessToken.isNullOrBlank()) {
+                _searchingRequests.value = emptyList()
+                return@runCatching
+            }
+
             // Server resolves doctor from the verified JWT and restricts results
             // to unexpired offers in the same clinical jurisdiction.
             val dtos = supabaseClient.postgrest
@@ -787,6 +801,10 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 
     private suspend fun subscribeToSearchingQueue() {
         if (searchingChannel != null) return
+        if (supabaseClient.auth.currentSessionOrNull()?.accessToken.isNullOrBlank()) {
+            _searchingRequests.value = emptyList()
+            return
+        }
 
         runCatching {
             val channel = supabaseClient.channel("pharmacy-dispatch-doctor-offers")
