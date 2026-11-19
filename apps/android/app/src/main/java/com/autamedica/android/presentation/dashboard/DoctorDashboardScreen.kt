@@ -151,16 +151,16 @@ private const val DOCTOR_TAB_PATIENTS = 3
 // Switch Guardia: Muy grande (escala 1.5f) con track verde activo
 // Triaje: Rojo urgencia, Cian quirúrgico prioritario, Azul control, Verde estable
 // =============================================================================
-private val AutaBlue = Color(0xFF155EEF)      // Color principal AutaMedica
+private val AutaBlue = Color(0xFF0EA5E9)      // AutaMedica sky-500
 private val AutaGreen = Color(0xFF16C784)     // EN LÍNEA, disponible, éxito
 private val AutaRed = Color(0xFFFF4D4F)       // Urgencias de triaje
 private val MedicalBlue = AutaBlue            // Alias de compatibilidad
-private val MedicalCyan = Color(0xFF06B6D4)   // Cian Quirúrgico (Prioritario - Zero-Yellow Gate)
-private val SoftBlueBg = Color(0xFFEBF1FF)
+private val MedicalCyan = Color(0xFF0284C7)   // AutaMedica sky-600
+private val SoftBlueBg = Color(0xFFE0F2FE)
 private val SoftGreenBg = Color(0xFFECFDF5)
 private val SoftRedBg = Color(0xFFFEF2F2)
 private val SoftCyanBg = Color(0xFFF0F9FF)
-private val GlassBorder = Color(0x1E155EEF)   // Glassmorphism borde sutil
+private val GlassBorder = Color(0x1E0EA5E9)   // Glassmorphism borde sutil
 private val Slate50 = Color(0xFFF8FAFC)
 private val Slate100 = Color(0xFFF1F5F9)
 private val Slate200 = Color(0xFFE2E8F0)
@@ -171,7 +171,7 @@ private val Slate900 = Color(0xFF0F172A)
 private val CardRadius = 28.dp
 
 /**
- * Modificador de sombra ultra-suave con glow azul AutaMedica (#155EEF)
+ * Modificador de sombra ultra-suave con glow azul AutaMedica (#0EA5E9)
  */
 private fun Modifier.auSoftShadow(radius: Dp = CardRadius): Modifier = this.shadow(
     elevation = 3.dp,
@@ -667,7 +667,7 @@ private fun AutaMedicaOsDutyHero(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = if (isOnDuty) "Conectado a guardia médica • Heartbeat activo cada 30s" else "Desconectado • Telemetría en espera",
+                        text = if (isOnDuty) stringResource(R.string.doctor_duty_connected) else stringResource(R.string.doctor_duty_disconnected),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 11.sp,
                             fontWeight = if (isOnDuty) FontWeight.Bold else FontWeight.Medium,
@@ -793,7 +793,7 @@ private fun FollowUpStarSection(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "CONTINUIDAD ASISTENCIAL",
+                    text = stringResource(R.string.doctor_continuity_title),
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = 11.sp,
                         fontWeight = FontWeight.ExtraBold,
@@ -803,7 +803,7 @@ private fun FollowUpStarSection(
                     maxLines = 1,
                 )
                 Text(
-                    text = "Seguimiento activo a 30 días",
+                    text = stringResource(R.string.doctor_continuity_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary,
                     maxLines = 1,
@@ -812,7 +812,7 @@ private fun FollowUpStarSection(
             }
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Ver todos →",
+                text = stringResource(R.string.doctor_view_all),
                 style = MaterialTheme.typography.labelMedium,
                 color = MedicalBlue,
                 fontWeight = FontWeight.Bold,
@@ -896,7 +896,7 @@ private fun FollowUpPatientCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = "${patient.appointmentCount} consultas previas",
+                        text = if (patient.appointmentCount == 1) stringResource(R.string.doctor_prior_consultations_single, patient.appointmentCount) else stringResource(R.string.doctor_prior_consultations_plural, patient.appointmentCount),
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                         color = AuTextTertiary,
                     )
@@ -919,7 +919,7 @@ private fun FollowUpPatientCard(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Telemetría y Adherencia OK",
+                        text = stringResource(R.string.doctor_telemetry_adherence_ok),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
@@ -960,7 +960,7 @@ private fun UberEatsLiveAgendaSection(
         ) {
             Column {
                 Text(
-                    text = "Agenda de hoy",
+                    text = stringResource(R.string.doctor_schedule_today_title),
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontSize = 20.sp,
                         fontWeight = FontWeight.ExtraBold,
@@ -987,7 +987,7 @@ private fun UberEatsLiveAgendaSection(
         Spacer(modifier = Modifier.height(16.dp))
         if (todayScheduled.isEmpty()) {
             Text(
-                text = "No hay consultas programadas para hoy.",
+                text = stringResource(R.string.doctor_schedule_empty_state),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Slate500,
                 modifier = Modifier.padding(vertical = 14.dp),
@@ -1026,7 +1026,7 @@ private fun UberEatsLiveAgendaSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "+ Agendar turno",
+                text = stringResource(R.string.doctor_schedule_new),
                 style = MaterialTheme.typography.labelMedium,
                 color = MedicalBlue,
                 fontWeight = FontWeight.Bold,
@@ -1043,7 +1043,7 @@ private fun UberEatsLiveAgendaSection(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Ver agenda completa",
+                    text = stringResource(R.string.doctor_schedule_view_all),
                     style = MaterialTheme.typography.labelMedium,
                     color = MedicalBlue,
                     fontWeight = FontWeight.Bold,
@@ -1199,7 +1199,7 @@ private fun HeroNextInQueueCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "PRÓXIMO EN ESPERA",
+                        text = stringResource(R.string.doctor_next_waiting),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.ExtraBold,
@@ -1210,7 +1210,7 @@ private fun HeroNextInQueueCard(
                 }
 
                 Text(
-                    text = "${formatTime(appointment.startTime)} hs",
+                    text = stringResource(R.string.doctor_appointment_time_label, formatTime(appointment.startTime)), 
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = FontWeight.Bold,
                     ),
@@ -1300,7 +1300,7 @@ private fun HeroNextInQueueCard(
                         modifier = Modifier.size(22.dp),
                     )
                     Text(
-                        text = if (isJoinable) "ATENDER AHORA (ENTRAR A SALA)" else "ABRIR CONSULTA DE TELEMEDICINA",
+                        text = if (isJoinable) stringResource(R.string.doctor_consult_start_now) else stringResource(R.string.doctor_consult_open),
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp),
                     )
@@ -1343,7 +1343,7 @@ fun StripeWeeklySummaryCard(
             ) {
                 Column(modifier = Modifier.weight(1f, fill = false)) {
                     Text(
-                        text = "Resumen semanal",
+                        text = stringResource(R.string.doctor_weekly_summary_title),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Slate800,
@@ -1352,7 +1352,7 @@ fun StripeWeeklySummaryCard(
                     )
                     Spacer(modifier = Modifier.height(3.dp))
                     Text(
-                        text = "Últimos 7 días",
+                        text = stringResource(R.string.doctor_last_seven_days),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
                         color = Slate500,
@@ -1378,7 +1378,7 @@ fun StripeWeeklySummaryCard(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "7 DÍAS",
+                            text = stringResource(R.string.doctor_seven_days_badge),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
@@ -1608,7 +1608,7 @@ private fun LivePatientQueueSection(
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Guardia activa · Sin pacientes en espera",
+                                text = stringResource(R.string.doctor_duty_active_no_waiting),
                                 style = MaterialTheme.typography.titleSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 15.sp,
@@ -1642,7 +1642,7 @@ private fun LivePatientQueueSection(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
-                            text = "Pacientes esperando ahora",
+                            text = stringResource(R.string.doctor_patients_waiting_now),
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.ExtraBold,
@@ -1906,7 +1906,7 @@ private fun TriagePatientCard(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "${patient.waitMinutes} min",
+                            text = stringResource(R.string.doctor_wait_time_minutes, patient.waitMinutes),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (isUrgent) AutaRed else Slate500,
@@ -1918,7 +1918,7 @@ private fun TriagePatientCard(
                             color = if (isActivelyOffered) SoftBlueBg else Slate100,
                         ) {
                             Text(
-                                text = if (isActivelyOffered) "⏱ 30s · Ofertada" else "En espera",
+                                text = if (isActivelyOffered) stringResource(R.string.doctor_offer_countdown) else stringResource(R.string.doctor_waiting_status),
                                 fontSize = 10.sp,
                                 fontWeight = if (isActivelyOffered) FontWeight.Bold else FontWeight.Medium,
                                 color = if (isActivelyOffered) AutaBlue else Slate500,
@@ -1936,7 +1936,7 @@ private fun TriagePatientCard(
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
                     ) {
                         Text(
-                            text = "VER FICHA",
+                            text = stringResource(R.string.doctor_view_patient_record),
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp,
                             color = AutaBlue,
@@ -2016,7 +2016,7 @@ private fun PreConsultationBottomSheet(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Ficha clínica de pre-consulta • Resumen en 20 segundos",
+                    text = stringResource(R.string.doctor_preconsultation_summary),
                     fontSize = 12.sp,
                     color = Slate500,
                 )
@@ -2029,7 +2029,7 @@ private fun PreConsultationBottomSheet(
                 border = BorderStroke(0.5.dp, GlassBorder),
             ) {
                 Text(
-                    text = "“Ningún médico atiende a ciegas. Ficha clínica estructurada lista antes de conectar.”",
+                    text = stringResource(R.string.doctor_preconsultation_quote),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = AutaBlue,
@@ -2040,7 +2040,7 @@ private fun PreConsultationBottomSheet(
             // Signos Vitales
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    text = "SIGNOS VITALES REGISTRADOS",
+                    text = stringResource(R.string.doctor_vitals_recorded),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Slate500,
@@ -2063,7 +2063,7 @@ private fun PreConsultationBottomSheet(
             // Anamnesis / Motivo
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    text = "ANAMNESIS DE INGRESO",
+                    text = stringResource(R.string.doctor_intake_anamnesis),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Slate500,
@@ -2080,7 +2080,7 @@ private fun PreConsultationBottomSheet(
             // Antecedentes
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    text = "ANTECEDENTES & MEDICACIÓN HABITUAL",
+                    text = stringResource(R.string.doctor_history_medication),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Slate500,
@@ -2106,7 +2106,7 @@ private fun PreConsultationBottomSheet(
                 colors = ButtonDefaults.buttonColors(containerColor = AutaBlue),
             ) {
                 Text(
-                    text = "Entendido • Cerrar Ficha",
+                    text = stringResource(R.string.doctor_close_record),
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                 )
