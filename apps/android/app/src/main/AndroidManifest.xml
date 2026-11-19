@@ -135,6 +135,11 @@
             android:name="google_analytics_automatic_screen_reporting_enabled"
             android:value="false" />
 
+        <!-- Sentry is initialized manually in AutamedicaApplication with privacy sanitizers. -->
+        <meta-data
+            android:name="io.sentry.auto-init"
+            android:value="false" />
+
         <!-- FCM default notification channel -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
