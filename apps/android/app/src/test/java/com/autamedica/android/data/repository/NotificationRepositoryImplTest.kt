@@ -12,9 +12,7 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.mockk.every
-import io.mockk.firstArg
 import io.mockk.mockk
-import io.mockk.secondArg
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -39,13 +37,17 @@ class NotificationRepositoryImplTest {
     @Before
     fun setUp() {
         server = MockWebServer().also { it.start() }
-        every { securePreferences.getString(any()) } answers { secureValues[firstArg<String>()] }
+        every { securePreferences.getString(any()) } answers {
+            secureValues[invocation.args[0] as String]
+        }
         every { securePreferences.putString(any(), any()) } answers {
-            secureValues[firstArg<String>()] = secondArg<String>()
+            val key = invocation.args[0] as String
+            val value = invocation.args[1] as String
+            secureValues[key] = value
             Unit
         }
         every { securePreferences.remove(any()) } answers {
-            val key = firstArg<String>()
+            val key = invocation.args[0] as String
             secureValues.remove(key)
             if (key == "fcm_token_pending_registration") pendingTokenRegistered.countDown()
             Unit
