@@ -778,3 +778,109 @@ export default function AppointmentsPage({
     </ErrorBoundary>
   )
 }
+ : '
+                  <input
+                    type="number"
+                    id="topupAmount"
+                    value={topupAmount}
+                    onChange={(e) => setTopupAmount(e.target.value)}
+                    placeholder="Monto"
+                    min="1"
+                    required
+                    disabled={topupLoading}
+                    className="w-full pl-8 pr-4 py-3 bg-transparent text-stone-900 placeholder-neutral-400 focus:outline-none font-semibold text-lg"
+                  />
+                </div>
+              </div>
+
+              {topupError && (
+                <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-600">
+                  {topupError}
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsTopupModalOpen(false)}
+                  disabled={topupLoading}
+                  className="flex-1 rounded-full border border-neutral-200 py-3 text-sm font-semibold text-stone-600 hover:bg-stone-50 disabled:opacity-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={topupLoading}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-sky-700 py-3 text-sm font-semibold text-white hover:bg-sky-800 disabled:opacity-70 active:scale-[0.98] transition-all shadow-sm"
+                >
+                  {topupLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Iniciando...
+                    </>
+                  ) : (
+                    'Cargar'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+    </ErrorBoundary>
+  )
+}
+}</span>
+                  <input
+                    type="number"
+                    id="topupAmount"
+                    value={topupAmount}
+                    onChange={(e) => setTopupAmount(e.target.value)}
+                    placeholder="Monto"
+                    min="1"
+                    required
+                    disabled={topupLoading}
+                    className="w-full pl-8 pr-4 py-3 bg-transparent text-stone-900 placeholder-neutral-400 focus:outline-none font-semibold text-lg"
+                  />
+                </div>
+              </div>
+
+              {topupError && (
+                <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-600">
+                  {topupError}
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsTopupModalOpen(false)}
+                  disabled={topupLoading}
+                  className="flex-1 rounded-full border border-neutral-200 py-3 text-sm font-semibold text-stone-600 hover:bg-stone-50 disabled:opacity-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={topupLoading}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-sky-700 py-3 text-sm font-semibold text-white hover:bg-sky-800 disabled:opacity-70 active:scale-[0.98] transition-all shadow-sm"
+                >
+                  {topupLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Iniciando...
+                    </>
+                  ) : (
+                    'Cargar'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+    </ErrorBoundary>
+  )
+}
