@@ -651,6 +651,11 @@ export const es = {
         continueWithoutSpeaking: 'Continuar sin hablar',
         reviewAll: 'Revisar todo desde el inicio',
         prioritize: 'Basado en tu motivo de consulta, priorizaremos',
+        step: 'Paso',
+        of: 'de',
+        completedSections: 'Secciones completadas',
+        updateQuestion: '¿Qué querés actualizar?',
+        patient: 'Paciente',
       },
       shortSections: {
         edad: 'Edad',
