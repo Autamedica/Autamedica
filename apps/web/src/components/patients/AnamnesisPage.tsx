@@ -17,20 +17,6 @@ import { AnamnesisFlowTour } from '@/components/patients/tours/AnamnesisFlowTour
 import { PdfPreviewModal } from '@/components/patients/anamnesis/PdfPreviewModal'
 import { getClientI18n, type Locale } from '@/i18n/index'
 
-const SECTION_SHORT_LABELS: Record<string, string> = {
-  edad: 'Edad', ocupacion: 'Trabajo', motivo_consulta: 'Motivo',
-  enfermedades_previas: 'Enfermedades', medicamentos: 'Medicamentos',
-  alergias: 'Alergias', antecedentes_familiares: 'Familia',
-  habitos: 'Hábitos', cardiovascular: 'Corazón', respiratorio: 'Pulmones',
-  digestivo: 'Digestivo', genitourinario: 'Urinario', resumen_final: 'Resumen',
-}
-
-const CATEGORY_LABELS: Record<string, string> = {
-  filiacion: 'Filiación', motivo_consulta: 'Motivo consulta',
-  antecedentes: 'Antecedentes', habitos: 'Estilo de vida',
-  sistemas: 'Aparatos/Sistemas', cierre: 'Cierre',
-}
-
 const UPDATE_PICKER_OPTIONS = [
   { id: 'motivo_consulta', label: 'Nuevo motivo de consulta' },
   { id: 'medicamentos', label: 'Medicamentos' },
@@ -489,10 +475,10 @@ export default function AnamnesisPage({ locale = 'es' }: { locale?: Locale }) {
           {/* ── Action grid — editorial 4-column ── */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-24">
             {[
-              { icon: Brain, label: 'Actualizar', sub: '{copy.ui.modifySections}', color: 'neutral' as const, onClick: () => setShowUpdatePicker(true), href: undefined as string | undefined },
-              { icon: Mic, label: 'Hablar', sub: '{copy.ui.voiceMode}', color: 'sky' as const, onClick: () => setShowVoiceChat(true), href: undefined as string | undefined },
-              { icon: Heart, label: 'Mi panel', sub: '{copy.ui.backToDashboard}', color: 'neutral' as const, onClick: undefined as (() => void) | undefined, href: '/patients/dashboard' },
-              { icon: Video, label: 'Consultar', sub: '{copy.ui.scheduleTeleconsultation}', color: 'sky' as const, onClick: undefined as (() => void) | undefined, href: '/patients/appointments?type=telemedicine' },
+              { icon: Brain, label: copy.ui.update, sub: copy.ui.modifySections, color: 'neutral' as const, onClick: () => setShowUpdatePicker(true), href: undefined as string | undefined },
+              { icon: Mic, label: copy.ui.talk, sub: copy.ui.voiceMode, color: 'sky' as const, onClick: () => setShowVoiceChat(true), href: undefined as string | undefined },
+              { icon: Heart, label: copy.ui.dashboard, sub: copy.ui.backToDashboard, color: 'neutral' as const, onClick: undefined as (() => void) | undefined, href: '/patients/dashboard' },
+              { icon: Video, label: copy.ui.consult, sub: copy.ui.scheduleTeleconsultation, color: 'sky' as const, onClick: undefined as (() => void) | undefined, href: '/patients/appointments?type=telemedicine' },
             ].map((action, i) => {
               const isLink = !!action.href
               return (
@@ -656,9 +642,9 @@ export default function AnamnesisPage({ locale = 'es' }: { locale?: Locale }) {
 
           <motion.div className="space-y-6 mb-16" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
             {[
-              { title: '{copy.ui.dataProtection}', sub: '{copy.ui.dataProtectionDescription}' },
-              { title: '{copy.ui.controlledAccess}', sub: '{copy.ui.controlledAccessDescription}' },
-              { title: '{copy.ui.fullControl}', sub: '{copy.ui.fullControlDescription}' },
+              { title: copy.ui.dataProtection, sub: copy.ui.dataProtectionDescription },
+              { title: copy.ui.controlledAccess, sub: copy.ui.controlledAccessDescription },
+              { title: copy.ui.fullControl, sub: copy.ui.fullControlDescription },
             ].map((item) => (
               <div key={item.title} className="flex items-start gap-4">
                 <div className="size-6 rounded-full bg-sky-700 flex items-center justify-center shrink-0 mt-1">
@@ -729,14 +715,14 @@ export default function AnamnesisPage({ locale = 'es' }: { locale?: Locale }) {
               <span className="text-lg font-medium text-neutral-900">AutaMedica</span>
             </div>
             <button type="button" onClick={handleExitWizard} className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors">
-              {editMode ? '{copy.ui.backToSummary}' : '{copy.ui.saveAndExit}'}
+              {editMode ? copy.ui.backToSummary : copy.ui.saveAndExit}
             </button>
           </div>
 
           {/* Progress */}
           <div className="py-6">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-neutral-500">Paso {currentStepIndex + 1} de {anamnesisSteps.length}</span>
+              <span className="text-sm text-neutral-500">{copy.ui.step} {currentStepIndex + 1} {copy.ui.of} {anamnesisSteps.length}</span>
               <span className="text-sm text-neutral-900 tabular-nums font-medium">{Math.round(completionPct)}%</span>
             </div>
             <div className="h-1 bg-neutral-100 rounded-full overflow-hidden">
@@ -814,14 +800,14 @@ export default function AnamnesisPage({ locale = 'es' }: { locale?: Locale }) {
                 <div className="border border-neutral-200 rounded-2xl overflow-hidden">
                   <div className="border-b border-neutral-100 px-6 py-4">
                     <p className="text-sm font-medium text-neutral-800">
-                      {currentStep.mutability === 'carry_forward_additive' ? '{copy.ui.carriedAdditive}' : '{copy.ui.carriedChanged}'}
+                      {currentStep.mutability === 'carry_forward_additive' ? copy.ui.carriedAdditive : copy.ui.carriedChanged}
                     </p>
                   </div>
                   <div className="divide-y divide-neutral-100 px-6">
                     {currentStep.fields.filter(f => formData[currentStep.id]?.[f.id] != null).map(f => {
                       const val = formData[currentStep.id]?.[f.id]
                       const display = val === true ? copy.ui.yes : val === false ? copy.ui.no
-                        : Array.isArray(val) ? (val as string[]).join(', ') || 'Ninguno'
+                        : Array.isArray(val) ? (val as string[]).join(', ') || copy.ui.none
                         : String(val ?? '')
                       return (
                         <div key={f.id} className="flex items-center justify-between py-4">
@@ -840,7 +826,7 @@ export default function AnamnesisPage({ locale = 'es' }: { locale?: Locale }) {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    {currentStep.mutability === 'carry_forward_additive' ? '{copy.ui.addData}' : '{copy.ui.updateData}'}
+                    {currentStep.mutability === 'carry_forward_additive' ? copy.ui.addData : copy.ui.updateData}
                   </motion.button>
                   <motion.button
                     type="button"
