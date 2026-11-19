@@ -16,8 +16,12 @@ class AppointmentTelemedicineRulesTest {
         patientId = "pat-1",
         doctorId = "doc-1",
         startTime = startTime,
+        endTime = null,
+        durationMinutes = 30,
         status = status,
         type = type,
+        notes = null,
+        meetingUrl = null,
     )
 
     @Test
