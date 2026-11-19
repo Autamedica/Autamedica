@@ -56,6 +56,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -74,6 +75,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.foundation.Image
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -122,7 +126,16 @@ fun PharmacyIntakeScreen(
 
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     var showCancelConfirmation by remember { mutableStateOf(false) }
+
+    DisposableEffect(lifecycleOwner, viewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) viewModel.refreshActiveRequest()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     // Leaving a waiting room must never cancel a clinical request silently.
     BackHandler(enabled = uiState.activeRequestId != null &&
@@ -248,6 +261,7 @@ fun PharmacyIntakeScreen(
                 onJoinCall = {
                     if (uiState.readyToJoinCall) uiState.roomId?.let(onNavigateToCall)
                 },
+                onStartNewConsultation = viewModel::startNewConsultation,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),
@@ -534,7 +548,7 @@ private fun PharmacyIntakeFormView(
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onSubmit()
             },
-            enabled = !uiState.isSubmitting && !uiState.isRestoringRequest && uiState.isFormValid,
+            enabled = uiState.canSubmitRequest,
             colors = ButtonDefaults.buttonColors(
                 containerColor = Primary,
                 disabledContainerColor = Primary.copy(alpha = 0.4f),
@@ -545,7 +559,7 @@ private fun PharmacyIntakeFormView(
                 .fillMaxWidth()
                 .height(52.dp),
         ) {
-            if (uiState.isSubmitting) {
+            if (uiState.isSubmitting || uiState.isPersistingCareCountry) {
                 CircularProgressIndicator(
                     color = Color.White,
                     strokeWidth = 2.dp,
@@ -553,7 +567,10 @@ private fun PharmacyIntakeFormView(
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = stringResource(R.string.pharmacy_flow_submit_connecting),
+                    text = stringResource(
+                        if (uiState.isPersistingCareCountry) R.string.pharmacy_flow_country_saving
+                        else R.string.pharmacy_flow_submit_connecting
+                    ),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                 )
@@ -565,7 +582,13 @@ private fun PharmacyIntakeFormView(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = stringResource(R.string.pharmacy_flow_submit),
+                    text = stringResource(
+                        if (uiState.isAuthenticated && !uiState.careCountryPersisted) {
+                            R.string.pharmacy_flow_country_retry
+                        } else {
+                            R.string.pharmacy_flow_submit
+                        }
+                    ),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                 )
@@ -582,6 +605,7 @@ private fun PharmacyWaitingRoomView(
     onCancelRequest: () -> Unit = {},
     onBeginPayment: () -> Unit = {},
     onJoinCall: () -> Unit = {},
+    onStartNewConsultation: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val callReady = uiState.readyToJoinCall
@@ -595,6 +619,28 @@ private fun PharmacyWaitingRoomView(
             .fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        if (uiState.statusNotice != null) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = AuCyanSoft,
+                border = BorderStroke(1.dp, AuCyan.copy(alpha = 0.25f)),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = localizedPharmacyMessage(uiState.statusNotice),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AuTextPrimary,
+                    modifier = Modifier.padding(14.dp),
+                )
+            }
+            Spacer(modifier = Modifier.height(14.dp))
+        }
+        if (uiState.status == PharmacyConsultationStatus.COMPLETED) {
+            Button(onClick = onStartNewConsultation, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.pharmacy_flow_new_consultation))
+            }
+            Spacer(modifier = Modifier.height(18.dp))
+        }
         if (uiState.requiresDispatchPayment) {
             Surface(
                 shape = RoundedCornerShape(18.dp),
@@ -1058,6 +1104,8 @@ private fun localizedPharmacyMessage(message: String): String = when (message) {
     "pharmacy_error_complete" -> stringResource(R.string.pharmacy_flow_error_complete)
     "pharmacy_error_lgpd_login" -> stringResource(R.string.pharmacy_error_lgpd_login)
     "pharmacy_error_lgpd_persist" -> stringResource(R.string.pharmacy_error_lgpd_persist)
+    "pharmacy_flow_error_country_persist" -> stringResource(R.string.pharmacy_flow_error_country_persist)
+    "pharmacy_flow_notice_completed" -> stringResource(R.string.pharmacy_flow_notice_completed)
     "Ingresá el nombre completo del paciente" -> stringResource(R.string.pharmacy_flow_error_name)
     "Seleccioná Argentina o Brasil" -> stringResource(R.string.pharmacy_flow_error_country)
     "Ingresá un CPF de 11 dígitos" -> stringResource(R.string.pharmacy_flow_error_cpf)

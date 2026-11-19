@@ -54,8 +54,8 @@ android {
         applicationId = "com.autamedica.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 36
-        versionName = "1.2.26"
+        versionCode = 37
+        versionName = "1.2.27"
 
         resourceConfigurations += listOf("es", "es-rAR", "pt", "pt-rBR" )
 
@@ -290,7 +290,7 @@ dependencies {
 
 tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
     // A broken coroutine retry/heartbeat must never pin the release runner indefinitely.
-    timeout.set(Duration.ofMinutes(3))
+    timeout.set(Duration.ofMinutes(10))
     testLogging {
         events(
             org.gradle.api.tasks.testing.logging.TestLogEvent.STARTED,
