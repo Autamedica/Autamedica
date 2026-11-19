@@ -143,7 +143,8 @@ fun AppNavHost(
                             isIncomingCall = true,
                         )
                     ) {
-                        popUpTo<Route.PharmacyIntake> { inclusive = true }
+                        // Preserve PharmacyIntake below VideoCall so Back returns
+                        // to the same request and retained ViewModel.
                         launchSingleTop = true
                     }
                 }
