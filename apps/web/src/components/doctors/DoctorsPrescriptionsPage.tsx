@@ -1274,6 +1274,7 @@ export function DoctorsPrescriptionsPage() {
         {showDetailPanel && selectedPrescription && (
           <PrescriptionDetailPanel
             prescription={selectedPrescription}
+            locale={dateLocale}
             onClose={() => {
               setShowDetailPanel(false);
               setSelectedPrescription(null);
@@ -1372,9 +1373,11 @@ function getId(rx: IssuedPrescription): string {
 
 function PrescriptionDetailPanel({
   prescription,
+  locale,
   onClose,
 }: {
   prescription: IssuedPrescription;
+  locale: string;
   onClose: () => void;
 }) {
   const detail = mapCoreToDisplay(prescription);
@@ -1439,7 +1442,7 @@ function PrescriptionDetailPanel({
           {createdAt && (
             <div>
               <p className="text-[10px] font-semibold uppercase text-neutral-500">Creada</p>
-              <p className="text-sm text-neutral-600">{formatDateTime(createdAt, dateLocale)}</p>
+              <p className="text-sm text-neutral-600">{formatDateTime(createdAt, locale)}</p>
             </div>
           )}
           {signedPdfUrl && (

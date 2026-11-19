@@ -198,7 +198,9 @@ function getLocalDateKey(date: Date): string {
 export function AppointmentsPanel() {
   const { user } = useAuthenticatedUser()
   const { doctor } = useCurrentDoctor(user?.id)
-  const dateLocale = doctor?.care_country === 'BR' ? 'pt-BR' : 'es-AR'
+  const doctorCountry = (doctor as (NonNullable<typeof doctor> & { care_country?: string }) | null)
+    ?.care_country
+  const dateLocale = doctorCountry === 'BR' ? 'pt-BR' : 'es-AR'
 
   const doctorId = user?.doctorProfileId
   const {
