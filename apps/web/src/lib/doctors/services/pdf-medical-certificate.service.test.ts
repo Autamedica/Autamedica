@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest'
+import QRCode from 'qrcode';
 import { generateMedicalCertificatePdf, type MedicalCertificatePdfInput } from './pdf-medical-certificate.service';
 
 const caseFile: MedicalCertificatePdfInput = {
