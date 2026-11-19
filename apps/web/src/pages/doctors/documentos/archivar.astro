@@ -35,6 +35,8 @@ export const prerender = false;
         <input id="patient_name" name="patient_name" maxlength="200" required />
         <label for="patient_document">Documento de identidad</label>
         <input id="patient_document" name="patient_document" maxlength="80" required />
+        <label for="patient_id">ID de paciente en AutaMedica (opcional, vincula el documento a su portal)</label>
+        <input id="patient_id" name="patient_id" maxlength="36" minlength="36" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}" placeholder="UUID del paciente" autocomplete="off" />
       </fieldset>
       <fieldset>
         <legend>Confirmación del profesional emisor</legend>
@@ -43,7 +45,7 @@ export const prerender = false;
           <span>Confirmo que emití este documento y autorizo su registro para verificación de integridad en AutaMedica.</span>
         </label>
       </fieldset>
-      <p class="privacy">El PDF se procesa para calcular su huella SHA-256 y no se conserva ni se almacena en AutaMedica. Se guardan la huella, la referencia, los datos de emisión y tu constancia de autorización. Los datos clínicos y de identificación del paciente quedan en el archivo privado.</p>
+      <p class="privacy">El PDF original se conserva en Storage privado con su huella SHA-256. Al informar un ID de paciente, AutaMedica valida que su documento de identidad coincida y lo incorpora a su portal.</p>
       <button type="submit">Registrar documento emitido</button>
       <p id="result" role="status" aria-live="polite"></p>
     </form>
@@ -75,7 +77,7 @@ export const prerender = false;
         link.rel = 'noopener noreferrer';
         result.className = 'success';
         result.replaceChildren(
-          document.createTextNode('Documento registrado. Referencia: ' + data.reference + ' · SHA-256: ' + data.pdfSha256 + ' · Verificador: '),
+          document.createTextNode('Documento registrado' + (data.patientLinked ? ' y vinculado al portal del paciente' : '') + '. Referencia: ' + data.reference + ' · SHA-256: ' + data.pdfSha256 + ' · Verificador: '),
           link,
         );
         form.reset();

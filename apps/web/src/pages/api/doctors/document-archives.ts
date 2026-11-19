@@ -45,6 +45,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const documentDate = clean(form.get('document_date'), 10);
     const patientName = clean(form.get('patient_name'), 200);
     const patientDocument = clean(form.get('patient_document'), 80);
+    const patientId = clean(form.get('patient_id'), 36);
     const documentType = clean(form.get('document_type'), 100);
     const description = clean(form.get('document_description'), 2000);
     const statement = clean(form.get('authorization_statement'), 300);
@@ -53,6 +54,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!/^DOC-[A-F0-9]{32}$/.test(reference)) return badRequest('invalid_document_archive_reference');
     if (!isIsoDate(documentDate)) return badRequest('invalid_document_date');
     if (!patientName || !patientDocument || !documentType) return badRequest('document_archive_metadata_required');
+    if (patientId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(patientId)) {
+      return badRequest('invalid_patient_id');
+    }
     if (statement !== ARCHIVE_CONFIRMATION) return forbidden('physician_document_attestation_required');
     if (!(file instanceof File) || file.size < 8 || file.size > MAX_PDF_BYTES) {
       return badRequest('invalid_pdf_size');
@@ -67,11 +71,31 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const admin = createAstroAdminClient(locals.runtime?.env);
     const db = admin as unknown as SupabaseClient;
     const { data: doctor, error: doctorError } = await db.from('doctors')
-      .select('id,user_id,active,license_type,license_number,enrollment_jurisdiction,uf_brazil,signature_image_url,stamp_image_url,signature_url,stamp_url')
+      .select('id,user_id,active,care_country,license_type,license_number,enrollment_jurisdiction,uf_brazil,signature_image_url,stamp_image_url,signature_url,stamp_url')
       .eq('user_id', auth.user.id).maybeSingle();
     if (doctorError) throw doctorError;
     if (!doctor?.id || doctor.active !== true || doctor.user_id !== auth.user.id) {
       return forbidden('active_doctor_profile_required');
+    }
+
+    if (patientId) {
+      const { data: linkedPatient, error: patientError } = await db.from('patients')
+        .select('id,care_country,dni,cpf,active')
+        .eq('id', patientId)
+        .maybeSingle();
+      if (patientError) throw patientError;
+      const storedDocument = linkedPatient?.care_country === 'BR'
+        ? String(linkedPatient.cpf ?? '')
+        : linkedPatient?.care_country === 'AR'
+          ? String(linkedPatient.dni ?? '')
+          : '';
+      const normalizeDocument = (value: string) => value.replace(/[^0-9]/g, '');
+      if (!linkedPatient || linkedPatient.active !== true ||
+          linkedPatient.care_country !== doctor.care_country ||
+          !normalizeDocument(storedDocument) ||
+          normalizeDocument(storedDocument) !== normalizeDocument(patientDocument)) {
+        return forbidden('document_archive_patient_identity_mismatch');
+      }
     }
 
     const { data: profile, error: profileError } = await db.from('profiles')
@@ -106,37 +130,55 @@ export const POST: APIRoute = async ({ request, locals }) => {
     ]);
 
     const registeredAt = new Date().toISOString();
-    const { error: insertError } = await db.from('medical_document_archives').insert({
-      reference,
-      doctor_id: doctor.id,
-      document_date: documentDate,
-      status: 'registered',
-      signature_type: 'scanned_signature',
-      pdf_sha256: pdfSha256,
-      issuer_snapshot: {
+    const storagePath = `document-archives/${reference}/${pdfSha256}.pdf`;
+    const storage = admin.storage.from('medical-documents');
+    const { error: uploadError } = await storage.upload(storagePath, pdfBytes, {
+      contentType: 'application/pdf',
+      upsert: false,
+    });
+    if (uploadError) {
+      if (uploadError.code === 'Duplicate') return conflict('document_reference_or_pdf_already_registered');
+      throw uploadError;
+    }
+
+    const { error: archiveError } = await db.rpc('register_medical_document_archive', {
+      p_reference: reference,
+      p_doctor_id: doctor.id,
+      p_document_date: documentDate,
+      p_pdf_sha256: pdfSha256,
+      p_issuer_snapshot: {
         name: issuerName,
         profession: 'Médico',
         license: `${doctor.license_type}: ${doctor.license_number}`,
         jurisdiction,
       },
-      patient_snapshot: { name: patientName, document_number: patientDocument },
-      clinical_snapshot: { document_type: documentType, description },
-      authorization_snapshot: {
+      p_patient_snapshot: { name: patientName, document_number: patientDocument },
+      p_clinical_snapshot: { document_type: documentType, description },
+      p_authorization_snapshot: {
         source: 'physician_attested_upload',
         statement: ARCHIVE_CONFIRMATION,
         registered_by: auth.user.id,
         registered_at: registeredAt,
       },
-      signature_image_sha256: signatureImageSha256,
-      stamp_image_sha256: stampImageSha256,
+      p_signature_image_sha256: signatureImageSha256,
+      p_stamp_image_sha256: stampImageSha256,
+      p_patient_id: patientId || null,
+      p_patient_document_number: patientId ? patientDocument : null,
     });
-    if (insertError) {
-      if (insertError.code === '23505') return conflict('document_reference_or_pdf_already_registered');
-      throw insertError;
+    if (archiveError) {
+      const { error: cleanupError } = await storage.remove([storagePath]);
+      if (cleanupError) {
+        logger.error('[doctors/document-archive] orphan PDF cleanup failed', {
+          reference,
+          reason: cleanupError.message,
+        });
+      }
+      if (archiveError.code === '23505') return conflict('document_reference_or_pdf_already_registered');
+      throw archiveError;
     }
 
     const verificationUrl = `/verify/documentos/${reference}`;
-    const response = jsonOk({ ok: true, reference, pdfSha256, verificationUrl }, 201);
+    const response = jsonOk({ ok: true, reference, pdfSha256, verificationUrl, patientLinked: Boolean(patientId) }, 201);
     response.headers.set('Cache-Control', 'no-store');
     return response;
   } catch (error) {

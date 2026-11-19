@@ -22,15 +22,25 @@ data class MedicalCertificate(
     val createdAt: String,
     val signatureVerifiedAt: String? = null,
     val restHours: Int = 0,
+    val signatureHash: String? = null,
+    val signatureMethod: String? = null,
 ) {
+    /** A certificate is downloadable only when its persisted issuance evidence is complete. */
     val isActive: Boolean
-        get() = status.equals("signed", ignoreCase = true)
-            && !signedPdfUrl.isNullOrBlank()
-            && when (countryCode.uppercase()) {
-                "AR" -> true
-                "BR" -> !signatureVerifiedAt.isNullOrBlank()
+        get() {
+            val hash = signatureHash?.trim().orEmpty()
+            val path = signedPdfUrl?.trim().orEmpty()
+            if (!status.equals("signed", ignoreCase = true) ||
+                signatureVerifiedAt.isNullOrBlank() ||
+                !hash.matches(Regex("^[a-f0-9]{64}$")) ||
+                countryCode.uppercase() !in setOf("AR", "BR")) return false
+
+            return when (signatureMethod) {
+                "electronic_verified" -> path == "certificates/electronic/$id/$hash.pdf"
+                "ac_external" -> path == "certificates/signed/$id.pdf"
                 else -> false
             }
+        }
 
     val effectiveQrContent: String
         get() = if (!isActive) "" else (
@@ -38,8 +48,9 @@ data class MedicalCertificate(
                 ?: "https://autamedica.com/verify/$cuir"
         )
 
-    val effectivePdfUrl: String?
-        get() = if (!isActive) null else signedPdfUrl?.takeIf { it.isNotBlank() }
+    /** Private Storage object path. It must never be opened as an HTTPS URL directly. */
+    val effectivePdfStoragePath: String?
+        get() = signedPdfUrl?.trim()?.takeIf { isActive }
 
     val displayDaysOfRest: String
         get() = when {

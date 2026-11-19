@@ -122,6 +122,21 @@ class PrescriptionsViewModel @Inject constructor(
         _uiState.update { it.copy(selectedCertificate = null) }
     }
 
+    fun openCertificatePdf(
+        certificate: MedicalCertificate,
+        onReady: (String) -> Unit,
+        onFailure: () -> Unit,
+    ) {
+        viewModelScope.launch {
+            certificateRepository.getCertificatePdfDownloadUrl(certificate)
+                .onSuccess(onReady)
+                .onFailure { error ->
+                    SecureLog.error("[Certificates] Authenticated PDF download URL unavailable", error)
+                    onFailure()
+                }
+        }
+    }
+
     fun setFilter(filter: PrescriptionFilter) {
         _uiState.update { it.copy(selectedFilter = filter) }
     }
