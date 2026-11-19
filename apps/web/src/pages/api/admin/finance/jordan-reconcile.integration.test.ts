@@ -102,6 +102,10 @@ describe('POST /api/admin/finance/jordan-reconcile integration contract', () => 
       currency_id: 'BRL',
       external_reference: `pharm:${DISPATCH_ID}`,
       date_approved: '2026-11-19T12:00:00Z',
+      metadata: {
+        payment_type: 'pharmacy_consultation',
+        dispatch_id: DISPATCH_ID,
+      },
     })
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
       new Response(JSON.stringify({ results: [matchingCharge(101), matchingCharge(102)] }), { status: 200 }),
