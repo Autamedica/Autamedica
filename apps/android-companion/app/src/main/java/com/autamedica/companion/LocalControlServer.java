@@ -1,13 +1,6 @@
 package com.autamedica.companion;
 
 import android.accessibilityservice.AccessibilityService;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.os.Build;
-
-import java.util.Collections;
-import java.util.List;
 
 import org.json.JSONObject;
 
@@ -102,7 +95,6 @@ final class LocalControlServer {
                 JSONObject result = new JSONObject();
                 result.put("ok", true);
                 result.put("accessibility", true);
-                result.put("notificationListenerConnected", CompanionNotificationListenerService.isConnected());
                 result.put("bind", "127.0.0.1");
                 result.put("port", PORT);
                 result.put("cdpBind", "127.0.0.1");
@@ -112,48 +104,30 @@ final class LocalControlServer {
                 result.put("browserActivityReady", BrowserActivity.isReady());
                 result.put("cdpProxyListening", service.isCdpListening());
                 result.put("webViewDevToolsSocketAvailable", service.isWebViewSocketAvailable());
-                respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
-            } else if ("GET".equals(method) && "/v1/device".equals(path)) {
-                JSONObject result = new JSONObject();
-                result.put("manufacturer", Build.MANUFACTURER);
-                result.put("brand", Build.BRAND);
-                result.put("model", Build.MODEL);
-                result.put("device", Build.DEVICE);
-                result.put("product", Build.PRODUCT);
-                result.put("androidRelease", Build.VERSION.RELEASE);
-                result.put("sdkInt", Build.VERSION.SDK_INT);
-                result.put("accessibilityConnected", AccessibilityControlService.isConnected());
-                result.put("notificationListenerConnected", CompanionNotificationListenerService.isConnected());
-                JSONObject app = new JSONObject();
-                PackageInfo appInfo = service.getPackageManager().getPackageInfo(service.getPackageName(), 0);
-                app.put("packageName", service.getPackageName());
-                app.put("versionName", appInfo.versionName == null ? "" : appInfo.versionName);
-                app.put("versionCode", Build.VERSION.SDK_INT >= 28 ? appInfo.getLongVersionCode() : appInfo.versionCode);
-                result.put("app", app);
-                respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
-            } else if ("GET".equals(method) && "/v1/packages".equals(path)) {
-                PackageManager packageManager = service.getPackageManager();
-                List<PackageInfo> installed = packageManager.getInstalledPackages(0);
-                Collections.sort(installed, (left, right) -> left.packageName.compareToIgnoreCase(right.packageName));
-                org.json.JSONArray packages = new org.json.JSONArray();
-                for (PackageInfo info : installed) {
-                    if (info.applicationInfo == null) continue;
-                    JSONObject item = new JSONObject();
-                    CharSequence label = info.applicationInfo.loadLabel(packageManager);
-                    item.put("packageName", info.packageName);
-                    item.put("label", label == null ? info.packageName : label.toString());
-                    item.put("versionName", info.versionName == null ? "" : info.versionName);
-                    item.put("versionCode", Build.VERSION.SDK_INT >= 28 ? info.getLongVersionCode() : info.versionCode);
-                    item.put("system", (info.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0);
-                    item.put("enabled", info.applicationInfo.enabled);
-                    packages.put(item);
-                }
-                JSONObject result = new JSONObject();
-                result.put("count", packages.length());
-                result.put("packages", packages);
+                result.put("notificationListenerConnected", CompanionNotificationListener.isConnected());
                 respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
             } else if ("GET".equals(method) && "/v1/ui".equals(path)) {
                 JSONObject result = service.getUiTree();
+                respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
+            } else if ("GET".equals(method) && "/v1/packages".equals(path)) {
+                JSONObject result = new JSONObject();
+                result.put("ok", true);
+                result.put("packages", service.listPackages());
+                respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
+            } else if ("GET".equals(method) && "/v1/device".equals(path)) {
+                JSONObject result = service.getDeviceInfo();
+                result.put("ok", true);
+                respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
+            } else if ("GET".equals(method) && "/v1/clipboard".equals(path)) {
+                JSONObject result = new JSONObject();
+                result.put("ok", true);
+                result.put("text", service.getClipboard());
+                respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
+            } else if ("GET".equals(method) && "/v1/notifications/recent".equals(path)) {
+                JSONObject result = new JSONObject();
+                result.put("ok", true);
+                result.put("connected", CompanionNotificationListener.isConnected());
+                result.put("notifications", CompanionNotificationListener.getRecent(50));
                 respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
             } else if ("GET".equals(method) && "/v1/vault/names".equals(path)) {
                 org.json.JSONArray names = new org.json.JSONArray();
@@ -194,6 +168,24 @@ final class LocalControlServer {
                     case "/v1/click":
                         ok = service.clickPath(args.getString("path"));
                         break;
+                    case "/v1/click_text":
+                        ok = service.clickText(args.optString("text", ""), args.optString("view_id", ""), args.optLong("timeout_ms", 3000));
+                        break;
+                    case "/v1/scroll":
+                        ok = service.scroll(!"backward".equalsIgnoreCase(args.optString("direction", "forward")));
+                        break;
+                    case "/v1/clipboard": {
+                        String clipText = args.optString("text", "");
+                        if (clipText.length() > 32768) throw new IllegalArgumentException("clipboard text too long");
+                        ok = service.setClipboard(clipText);
+                        break;
+                    }
+                    case "/v1/paste": {
+                        String pasteText = args.has("text") ? args.optString("text", "") : null;
+                        if (pasteText != null && pasteText.length() > 32768) throw new IllegalArgumentException("text too long");
+                        ok = service.pasteText(pasteText);
+                        break;
+                    }
                     case "/v1/tap":
                         ok = service.tap((float) args.getDouble("x"), (float) args.getDouble("y"));
                         break;
@@ -213,6 +205,89 @@ final class LocalControlServer {
                     case "/v1/home":
                         ok = service.globalAction(AccessibilityService.GLOBAL_ACTION_HOME);
                         break;
+                    case "/v1/recents":
+                        ok = service.globalAction(AccessibilityService.GLOBAL_ACTION_RECENTS);
+                        break;
+                    case "/v1/notifications":
+                        ok = service.globalAction(AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS);
+                        break;
+                    case "/v1/batch": {
+                        org.json.JSONArray steps = args.getJSONArray("steps");
+                        if (steps.length() > 30) throw new IllegalArgumentException("batch max 30 steps");
+                        org.json.JSONArray results = new org.json.JSONArray();
+                        boolean allOk = true;
+                        for (int i = 0; i < steps.length(); i++) {
+                            JSONObject step = steps.getJSONObject(i);
+                            String action = step.getString("action");
+                            JSONObject stepRes = new JSONObject().put("action", action);
+                            boolean stepOk = false;
+                            switch (action) {
+                                case "open": {
+                                    String pkg = step.getString("package");
+                                    if (!pkg.matches("[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+)+"))
+                                        throw new IllegalArgumentException("invalid package name");
+                                    stepOk = service.openApp(pkg);
+                                    break;
+                                }
+                                case "tap":
+                                    stepOk = service.tap((float) step.getDouble("x"), (float) step.getDouble("y"));
+                                    break;
+                                case "click":
+                                    stepOk = service.clickPath(step.getString("path"));
+                                    break;
+                                case "click_text":
+                                    stepOk = service.clickText(step.optString("text", ""), step.optString("view_id", ""), step.optLong("timeout_ms", 3000));
+                                    break;
+                                case "scroll":
+                                    stepOk = service.scroll(!"backward".equalsIgnoreCase(step.optString("direction", "forward")));
+                                    break;
+                                case "paste":
+                                    stepOk = service.pasteText(step.has("text") ? step.optString("text", "") : null);
+                                    break;
+                                case "type": {
+                                    String t = step.optString("text", "");
+                                    if (t.length() > 32768) throw new IllegalArgumentException("text too long");
+                                    stepOk = service.typeText(t);
+                                    break;
+                                }
+                                case "swipe":
+                                    stepOk = service.swipe((float) step.getDouble("x1"), (float) step.getDouble("y1"),
+                                        (float) step.getDouble("x2"), (float) step.getDouble("y2"),
+                                        Math.max(50, Math.min(5000, step.optLong("duration_ms", 350))));
+                                    break;
+                                case "back":
+                                    stepOk = service.globalAction(AccessibilityService.GLOBAL_ACTION_BACK);
+                                    break;
+                                case "home":
+                                    stepOk = service.globalAction(AccessibilityService.GLOBAL_ACTION_HOME);
+                                    break;
+                                case "recents":
+                                    stepOk = service.globalAction(AccessibilityService.GLOBAL_ACTION_RECENTS);
+                                    break;
+                                case "sleep": {
+                                    long ms = Math.max(50, Math.min(5000, step.optLong("ms", 500)));
+                                    Thread.sleep(ms);
+                                    stepOk = true;
+                                    break;
+                                }
+                                case "ui":
+                                    stepRes.put("ui", service.getUiTree());
+                                    stepOk = true;
+                                    break;
+                                default:
+                                    throw new IllegalArgumentException("unknown batch action: " + action);
+                            }
+                            stepRes.put("ok", stepOk);
+                            results.put(stepRes);
+                            if (!stepOk) {
+                                allOk = false;
+                                if (step.optBoolean("stop_on_error", true)) break;
+                            }
+                        }
+                        JSONObject batchOut = new JSONObject().put("ok", allOk).put("results", results);
+                        respond(output, allOk ? 200 : 409, "application/json; charset=utf-8", batchOut.toString().getBytes(StandardCharsets.UTF_8));
+                        return;
+                    }
                     case "/v1/open":
                         String packageName = args.getString("package");
                         if (!packageName.matches("[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+)+"))

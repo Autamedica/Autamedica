@@ -25,10 +25,21 @@ const tools = [
   { name: "android_open_app", description: "Abre una aplicación Android por package name.", inputSchema: { type: "object", properties: { package: { type: "string" } }, required: ["package"], additionalProperties: false } },
   { name: "android_tap", description: "Toca una coordenada de pantalla Android.", inputSchema: { type: "object", properties: { x: { type: "number" }, y: { type: "number" } }, required: ["x", "y"], additionalProperties: false } },
   { name: "android_click_element", description: "Pulsa un nodo Android por su path del árbol UI.", inputSchema: { type: "object", properties: { path: { type: "string" } }, required: ["path"], additionalProperties: false } },
+  { name: "android_click_text", description: "Busca y pulsa un elemento Android por texto, descripción o view_id con espera automática.", inputSchema: { type: "object", properties: { text: { type: "string" }, view_id: { type: "string" }, timeout_ms: { type: "integer", minimum: 0, maximum: 15000 } }, additionalProperties: false } },
+  { name: "android_scroll", description: "Hace scroll semántico (forward o backward) en el contenedor scrolleable activo.", inputSchema: { type: "object", properties: { direction: { type: "string", enum: ["forward", "backward"] } }, additionalProperties: false } },
+  { name: "android_get_clipboard", description: "Lee el texto actual del portapapeles de Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_set_clipboard", description: "Copia un texto al portapapeles de Android.", inputSchema: { type: "object", properties: { text: { type: "string" } }, required: ["text"], additionalProperties: false } },
+  { name: "android_paste", description: "Pega texto en el campo Android enfocado usando el portapapeles.", inputSchema: { type: "object", properties: { text: { type: "string" } }, additionalProperties: false } },
+  { name: "android_recent_notifications", description: "Devuelve las notificaciones recientes capturadas por NotificationListenerService.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "android_type", description: "Escribe en el campo Android que tenga el foco.", inputSchema: { type: "object", properties: { text: { type: "string" } }, required: ["text"], additionalProperties: false } },
   { name: "android_swipe", description: "Ejecuta un gesto Android.", inputSchema: { type: "object", properties: { x1: { type: "number" }, y1: { type: "number" }, x2: { type: "number" }, y2: { type: "number" }, duration_ms: { type: "integer", minimum: 50, maximum: 5000 } }, required: ["x1", "y1", "x2", "y2"], additionalProperties: false } },
   { name: "android_back", description: "Ejecuta Atrás en Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "android_home", description: "Vuelve al inicio de Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_recents", description: "Abre apps recientes en Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_notifications", description: "Despliega la barra de notificaciones en Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_list_packages", description: "Lista las aplicaciones instaladas y lanzables en Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_device_info", description: "Devuelve batería, carga, screen_off_timeout, stay_on_while_plugged_in y resolución de pantalla.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_batch", description: "Ejecuta múltiples acciones Android (open, tap, click, type, swipe, back, home, recents, sleep, ui) en una sola llamada HTTP.", inputSchema: { type: "object", properties: { steps: { type: "array", items: { type: "object" } } }, required: ["steps"], additionalProperties: false } },
   { name: "android_open_url", description: "Abre un enlace web o esquema de aplicación en Android.", inputSchema: { type: "object", properties: { url: { type: "string" } }, required: ["url"], additionalProperties: false } },
 
   { name: "browser_status", description: "Comprueba conexión CDP, motor Chromium/WebView, pestañas, URL y título.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
@@ -184,6 +195,18 @@ async function callTool(name, args) {
       return [{ type: "text", text: JSON.stringify(await post("/v1/tap", args)) }];
     case "android_click_element":
       return [{ type: "text", text: JSON.stringify(await post("/v1/click", args)) }];
+    case "android_click_text":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/click_text", args)) }];
+    case "android_scroll":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/scroll", args)) }];
+    case "android_get_clipboard":
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/clipboard")).json()) }];
+    case "android_set_clipboard":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/clipboard", args)) }];
+    case "android_paste":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/paste", args)) }];
+    case "android_recent_notifications":
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/notifications/recent")).json()) }];
     case "android_type":
       return [{ type: "text", text: JSON.stringify(await post("/v1/type", args)) }];
     case "android_swipe":
@@ -192,6 +215,16 @@ async function callTool(name, args) {
       return [{ type: "text", text: JSON.stringify(await post("/v1/back", {})) }];
     case "android_home":
       return [{ type: "text", text: JSON.stringify(await post("/v1/home", {})) }];
+    case "android_recents":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/recents", {})) }];
+    case "android_notifications":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/notifications", {})) }];
+    case "android_list_packages":
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/packages")).json()) }];
+    case "android_device_info":
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/device")).json()) }];
+    case "android_batch":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/batch", args)) }];
     case "android_open_url":
       return [{ type: "text", text: JSON.stringify(await post("/v1/url", args)) }];
     case "android_wait_for_text": {

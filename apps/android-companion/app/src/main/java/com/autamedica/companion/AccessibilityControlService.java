@@ -138,8 +138,153 @@ public final class AccessibilityControlService extends AccessibilityService {
         return onMain(() -> {
             AccessibilityNodeInfo node = nodeAtPath(path);
             if (node == null) return false;
-            boolean result = node.isEnabled() && node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            boolean result = clickNodeOrAncestor(node);
             node.recycle();
+            return result;
+        });
+    }
+
+    private boolean clickNodeOrAncestor(AccessibilityNodeInfo node) {
+        AccessibilityNodeInfo current = node;
+        boolean result = false;
+        int depth = 0;
+        while (current != null && depth < 6) {
+            if (current.isEnabled() && current.isClickable()) {
+                result = current.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                break;
+            }
+            AccessibilityNodeInfo parent = current.getParent();
+            if (current != node) current.recycle();
+            current = parent;
+            depth++;
+        }
+        if (current != null && current != node) current.recycle();
+        if (!result && node.isEnabled()) {
+            result = node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+        }
+        return result;
+    }
+
+    boolean clickText(String query, String viewId, long timeoutMs) throws Exception {
+        long deadline = android.os.SystemClock.uptimeMillis() + Math.max(0, Math.min(15000, timeoutMs));
+        String needle = query == null ? "" : query.toLowerCase(java.util.Locale.ROOT);
+        while (true) {
+            boolean clicked = onMain(() -> {
+                AccessibilityNodeInfo root = getRootInActiveWindow();
+                if (root == null) return false;
+                try {
+                    if (viewId != null && !viewId.isEmpty()) {
+                        java.util.List<AccessibilityNodeInfo> byId = root.findAccessibilityNodeInfosByViewId(viewId);
+                        if (byId != null) {
+                            for (AccessibilityNodeInfo candidate : byId) {
+                                boolean ok = clickNodeOrAncestor(candidate);
+                                candidate.recycle();
+                                if (ok) return true;
+                            }
+                        }
+                    }
+                    if (!needle.isEmpty()) {
+                        AccessibilityNodeInfo match = findFirstMatchingNode(root, needle, 0);
+                        if (match != null) {
+                            boolean ok = clickNodeOrAncestor(match);
+                            if (match != root) match.recycle();
+                            return ok;
+                        }
+                    }
+                    return false;
+                } finally {
+                    root.recycle();
+                }
+            });
+            if (clicked) return true;
+            if (android.os.SystemClock.uptimeMillis() >= deadline) return false;
+            Thread.sleep(250);
+        }
+    }
+
+    private AccessibilityNodeInfo findFirstMatchingNode(AccessibilityNodeInfo node, String needle, int depth) {
+        if (node == null || depth > 12) return null;
+        String text = safe(node.getText()).toLowerCase(java.util.Locale.ROOT);
+        String desc = safe(node.getContentDescription()).toLowerCase(java.util.Locale.ROOT);
+        if (text.contains(needle) || desc.contains(needle)) return node;
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo child = node.getChild(i);
+            if (child == null) continue;
+            AccessibilityNodeInfo found = findFirstMatchingNode(child, needle, depth + 1);
+            if (found != null) {
+                if (found != child) child.recycle();
+                return found;
+            }
+            child.recycle();
+        }
+        return null;
+    }
+
+    boolean scroll(boolean forward) throws Exception {
+        return onMain(() -> {
+            AccessibilityNodeInfo root = getRootInActiveWindow();
+            if (root == null) return false;
+            try {
+                AccessibilityNodeInfo scrollable = findScrollableNode(root, 0);
+                if (scrollable == null) return false;
+                int action = forward ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD;
+                boolean ok = scrollable.performAction(action);
+                if (scrollable != root) scrollable.recycle();
+                return ok;
+            } finally {
+                root.recycle();
+            }
+        });
+    }
+
+    private AccessibilityNodeInfo findScrollableNode(AccessibilityNodeInfo node, int depth) {
+        if (node == null || depth > 10) return null;
+        if (node.isScrollable()) return node;
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo child = node.getChild(i);
+            if (child == null) continue;
+            AccessibilityNodeInfo found = findScrollableNode(child, depth + 1);
+            if (found != null) {
+                if (found != child) child.recycle();
+                return found;
+            }
+            child.recycle();
+        }
+        return null;
+    }
+
+    String getClipboard() throws Exception {
+        return onMain(() -> {
+            android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            if (cm == null || !cm.hasPrimaryClip()) return "";
+            android.content.ClipData clip = cm.getPrimaryClip();
+            if (clip == null || clip.getItemCount() == 0) return "";
+            CharSequence text = clip.getItemAt(0).coerceToText(this);
+            return text == null ? "" : text.toString();
+        });
+    }
+
+    boolean setClipboard(String text) throws Exception {
+        return onMain(() -> {
+            android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            if (cm == null) return false;
+            cm.setPrimaryClip(android.content.ClipData.newPlainText("autamedica", text == null ? "" : text));
+            return true;
+        });
+    }
+
+    boolean pasteText(String text) throws Exception {
+        if (text != null) setClipboard(text);
+        return onMain(() -> {
+            AccessibilityNodeInfo root = getRootInActiveWindow();
+            if (root == null) return false;
+            AccessibilityNodeInfo target = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
+            boolean result = false;
+            if (target != null && target.isEditable() && !target.isPassword()) {
+                result = target.performAction(AccessibilityNodeInfo.ACTION_PASTE);
+                target.recycle();
+            }
+            root.recycle();
             return result;
         });
     }
@@ -237,6 +382,54 @@ public final class AccessibilityControlService extends AccessibilityService {
             intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
             return true;
+        });
+    }
+
+    JSONArray listPackages() throws Exception {
+        return onMain(() -> {
+            JSONArray packages = new JSONArray();
+            android.content.pm.PackageManager pm = getPackageManager();
+            java.util.List<android.content.pm.ApplicationInfo> apps = pm.getInstalledApplications(0);
+            java.util.Collections.sort(apps, (a, b) -> a.packageName.compareTo(b.packageName));
+            for (android.content.pm.ApplicationInfo app : apps) {
+                if (pm.getLaunchIntentForPackage(app.packageName) != null) {
+                    packages.put(app.packageName);
+                }
+            }
+            return packages;
+        });
+    }
+
+    JSONObject getDeviceInfo() throws Exception {
+        return onMain(() -> {
+            JSONObject info = new JSONObject();
+            info.put("model", Build.MODEL);
+            info.put("manufacturer", Build.MANUFACTURER);
+            info.put("sdkInt", Build.VERSION.SDK_INT);
+            info.put("release", Build.VERSION.RELEASE);
+
+            android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+            info.put("widthPx", dm.widthPixels);
+            info.put("heightPx", dm.heightPixels);
+            info.put("densityDpi", dm.densityDpi);
+
+            android.content.Intent battery = registerReceiver(null, new android.content.IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED));
+            if (battery != null) {
+                int level = battery.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1);
+                int scale = battery.getIntExtra(android.os.BatteryManager.EXTRA_SCALE, 100);
+                int plugged = battery.getIntExtra(android.os.BatteryManager.EXTRA_PLUGGED, 0);
+                info.put("batteryPercent", scale > 0 ? (level * 100) / scale : level);
+                info.put("plugged", plugged != 0);
+                info.put("pluggedType", plugged);
+            }
+
+            try {
+                info.put("screenOffTimeoutMs", android.provider.Settings.System.getInt(getContentResolver(), android.provider.Settings.System.SCREEN_OFF_TIMEOUT));
+            } catch (Exception ignored) {}
+            try {
+                info.put("stayOnWhilePluggedIn", android.provider.Settings.Global.getInt(getContentResolver(), android.provider.Settings.Global.STAY_ON_WHILE_PLUGGED_IN));
+            } catch (Exception ignored) {}
+            return info;
         });
     }
 
