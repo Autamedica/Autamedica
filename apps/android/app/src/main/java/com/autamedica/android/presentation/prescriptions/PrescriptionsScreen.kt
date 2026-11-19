@@ -124,6 +124,28 @@ fun PrescriptionsScreen(
         }
     }
 
+    val onOpenCertificatePdf: (MedicalCertificate) -> Unit = { certificate ->
+        viewModel.openCertificatePdf(
+            certificate = certificate,
+            onReady = { signedUrl ->
+                runCatching {
+                    val uri = Uri.parse(signedUrl)
+                    require(uri.scheme.equals("https", ignoreCase = true)) {
+                        "El servidor devolvió una URL de descarga no segura"
+                    }
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                }.onFailure {
+                    Toast.makeText(context, context.getString(R.string.prescriptions_toast_cert_pdf_error), Toast.LENGTH_SHORT).show()
+                }
+            },
+            onFailure = {
+                Toast.makeText(context, context.getString(R.string.prescriptions_toast_cert_pdf_error), Toast.LENGTH_SHORT).show()
+            },
+        )
+    }
+
     LaunchedEffect(uiState.downloadedPdf?.localPath) {
         val downloadedPdf = uiState.downloadedPdf ?: return@LaunchedEffect
         runCatching {
@@ -347,16 +369,7 @@ fun PrescriptionsScreen(
                         isLoading = uiState.isLoading,
                         error = uiState.error,
                         onSelectCertificate = viewModel::selectCertificate,
-                        onOpenPdf = { pdfUrl ->
-                            runCatching {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(pdfUrl)).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                }
-                                context.startActivity(intent)
-                            }.onFailure {
-                                Toast.makeText(context, context.getString(R.string.prescriptions_toast_cert_pdf_error), Toast.LENGTH_SHORT).show()
-                            }
-                        },
+                        onOpenPdf = onOpenCertificatePdf,
                         onRequestConsultation = onRequestConsultation,
                         onRetry = viewModel::loadDocuments,
                         modifier = Modifier
@@ -388,16 +401,7 @@ fun PrescriptionsScreen(
         CertificateDetailBottomSheet(
             certificate = selectedCert,
             onDismiss = viewModel::clearSelectedCertificate,
-            onOpenPdf = { pdfUrl ->
-                runCatching {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(pdfUrl)).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    context.startActivity(intent)
-                }.onFailure {
-                    Toast.makeText(context, context.getString(R.string.prescriptions_toast_cert_pdf_error), Toast.LENGTH_SHORT).show()
-                }
-            },
+            onOpenPdf = onOpenCertificatePdf,
             onCopyCuir = { cuir ->
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 val clip = ClipData.newPlainText("CUIR", cuir)
@@ -1299,7 +1303,7 @@ private fun CertificatesContentView(
     isLoading: Boolean,
     error: String?,
     onSelectCertificate: (MedicalCertificate) -> Unit,
-    onOpenPdf: (String) -> Unit,
+    onOpenPdf: (MedicalCertificate) -> Unit,
     onRequestConsultation: () -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1468,10 +1472,10 @@ private fun formatCertificateDaysOfRest(daysOfRest: Int): String {
 private fun CertificateCard(
     certificate: MedicalCertificate,
     onClick: () -> Unit,
-    onOpenPdf: (String) -> Unit,
+    onOpenPdf: (MedicalCertificate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val pdfUrl = certificate.effectivePdfUrl
+    val canDownloadPdf = certificate.effectivePdfStoragePath != null
 
     Surface(
         shape = RoundedCornerShape(16.dp),
@@ -1579,11 +1583,11 @@ private fun CertificateCard(
                         )
                     }
 
-                    if (pdfUrl != null) {
+                    if (canDownloadPdf) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),
                             color = Color(0xFFFEE2E2),
-                            modifier = Modifier.clickable { onOpenPdf(pdfUrl) },
+                            modifier = Modifier.clickable { onOpenPdf(certificate) },
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -1616,11 +1620,11 @@ private fun CertificateCard(
 private fun CertificateDetailBottomSheet(
     certificate: MedicalCertificate,
     onDismiss: () -> Unit,
-    onOpenPdf: (String) -> Unit,
+    onOpenPdf: (MedicalCertificate) -> Unit,
     onCopyCuir: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val pdfUrl = certificate.effectivePdfUrl
+    val canDownloadPdf = certificate.effectivePdfStoragePath != null
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -1783,10 +1787,10 @@ private fun CertificateDetailBottomSheet(
                     }
 
                     // Botón Descargar PDF
-                    if (pdfUrl != null) {
+                    if (canDownloadPdf) {
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(
-                            onClick = { onOpenPdf(pdfUrl) },
+                            onClick = { onOpenPdf(certificate) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(48.dp),

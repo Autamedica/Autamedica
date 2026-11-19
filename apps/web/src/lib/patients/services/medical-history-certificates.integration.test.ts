@@ -5,7 +5,7 @@ import { isMedicalCertificatePubliclyVerifiable } from '@/lib/doctors/services/m
 
 function createQueryChain(result: { data: unknown; error: unknown }) {
   const chain: Record<string, unknown> = {};
-  const methods = ['select', 'eq', 'neq', 'in', 'is', 'order', 'limit', 'maybeSingle', 'single'];
+  const methods = ['select', 'eq', 'neq', 'in', 'is', 'not', 'order', 'limit', 'maybeSingle', 'single'];
   for (const method of methods) {
     chain[method] = vi.fn(() => chain);
   }
@@ -29,7 +29,7 @@ describe('medicalHistoryService ↔ certificate PDF verification contract', () =
       diagnosis: 'Cuadro viral',
       observations: null,
       qr_code_content: 'https://autamedica.com/verify/CUIR-VALID-1',
-      signed_pdf_url: `certificates/electronic/11111111-1111-4111-8111-111111111111/${validHash}.pdf`,
+      signed_pdf_url: 'certificates/electronic/11111111-1111-4111-8111-111111111111/' + validHash + '.pdf',
       country_code: 'AR',
       created_at: '2026-11-19T08:00:00.000Z',
       updated_at: '2026-11-19T08:00:00.000Z',
@@ -48,7 +48,7 @@ describe('medicalHistoryService ↔ certificate PDF verification contract', () =
       days_of_rest: 1,
       start_date: '2026-10-01',
       end_date: '2026-10-02',
-      diagnosis: 'Histórico sin firma verificable',
+      diagnosis: 'Legacy unverified certificate',
       observations: null,
       qr_code_content: null,
       signed_pdf_url: 'certificates/signed/22222222-2222-4222-8222-222222222222.pdf',
@@ -73,7 +73,7 @@ describe('medicalHistoryService ↔ certificate PDF verification contract', () =
     const snapshot = await medicalHistoryService.getFullHistory(supabase as never, 'pat-1', supabase);
     const returned = (snapshot as unknown as { certificates?: Array<Record<string, unknown>> }).certificates ?? [];
 
-    expect(returned.length).toBeGreaterThan(0);
+    expect(returned.map((cert) => cert.id)).toEqual([verifiableCert.id]);
     for (const cert of returned) {
       expect(
         isMedicalCertificatePubliclyVerifiable(
@@ -81,6 +81,5 @@ describe('medicalHistoryService ↔ certificate PDF verification contract', () =
         ),
       ).toBe(true);
     }
-    expect(returned.map((c) => c.id)).toEqual([verifiableCert.id]);
   });
 });
