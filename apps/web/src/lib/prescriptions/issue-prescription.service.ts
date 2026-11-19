@@ -960,6 +960,10 @@ export async function issuePrescription(
     return fail({ code: 'farmalink_pending_reconciliation' });
   }
 
+  // Persist the digest of the exact PAdES-signed bytes before exposing the prescription.
+  const signatureHash = await sha256BytesHex(finalPdfBuffer);
+  const pdfByteLength = finalPdfBuffer.byteLength;
+
   // 7. Store digitally signed PDF only
   const pdfPath = `prescriptions/${artifacts.cuir}/${artifacts.pdfFilename}`;
   const { error: uploadError } = await supabase.storage
@@ -1001,6 +1005,10 @@ export async function issuePrescription(
       qr_code_content: artifacts.qrContent,
       signed_pdf_url: signedPdfUrl,
       signature_method: signatureMethod,
+      pdf_sha256: signatureHash,
+      pdf_byte_length: pdfByteLength,
+      pdf_storage_path: pdfPath,
+      pdf_integrity_captured_at: new Date().toISOString(),
       drug_category: databaseDrugCategory,
       is_controlled_substance: isControlledSubstance,
       controlled_substance_list: isControlledSubstance ? substanceCategory : null,
@@ -1014,8 +1022,6 @@ export async function issuePrescription(
 
   // 9. Audit only events supported by the actual PAdES and provider response.
   // Never fabricate an official national registration identifier or COMPLIANT status.
-  const signatureHash = await sha256BytesHex(finalPdfBuffer);
-
   await supabase.from('prescription_audit_events').insert([
     {
       prescription_id: prescriptionId,

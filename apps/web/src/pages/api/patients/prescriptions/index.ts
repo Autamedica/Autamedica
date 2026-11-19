@@ -169,7 +169,10 @@ export const GET: APIRoute = async ({ request, locals }) => {
       .map((row) => {
         const provider = asObject(row.provider_data);
         const digitalData = asObject(row.digital_link_data);
-        const url = memedLink(digitalData.pdf) ?? memedLink(digitalData.digital) ?? memedLink(row.digital_link_data);
+        const providerPdfUrl = memedLink(digitalData.pdf) ?? memedLink(digitalData.digital) ?? memedLink(row.digital_link_data);
+        const patientPdfUrl = providerPdfUrl
+          ? `/api/patients/prescriptions/${encodeURIComponent(`memed-${row.id}`)}/pdf`
+          : null;
         return {
           id: 'memed-' + row.id,
           medicationName: asText(provider.medication_name) ?? asText(provider.medicationName) ?? asText(provider.nome) ?? asText(provider.name) ?? 'Receita digital Memed',
@@ -178,12 +181,12 @@ export const GET: APIRoute = async ({ request, locals }) => {
           instructions: asText(provider.instructions) ?? '',
           status: row.status,
           cuir: asText(provider.cuir),
-          signedPdfUrl: url,
+          signedPdfUrl: patientPdfUrl,
           accessCode: memedAccessCode(row.digital_link_data),
           prescribedDate: row.created_at,
           expiresAt: null,
           doctorName: doctorNameMap.get(row.doctor_id) ?? 'Medico',
-          isDigitalReady: Boolean(url),
+          isDigitalReady: Boolean(patientPdfUrl),
           provider: 'Memed BR',
         };
       });

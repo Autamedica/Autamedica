@@ -145,6 +145,16 @@
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="autamedica_general" />
 
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/prescription_file_paths" />
+        </provider>
+
     </application>
 
 </manifest>

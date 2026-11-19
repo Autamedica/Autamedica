@@ -3,6 +3,7 @@ package com.autamedica.android.presentation.prescriptions
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autamedica.android.domain.model.MedicalCertificate
+import com.autamedica.android.domain.model.DownloadedPrescriptionPdf
 import com.autamedica.android.domain.model.Prescription
 import com.autamedica.android.domain.repository.MedicalCertificateRepository
 import com.autamedica.android.domain.repository.PrescriptionRepository
@@ -37,6 +38,9 @@ data class PrescriptionsUiState(
     val selectedPrescription: Prescription? = null,
     val selectedCertificate: MedicalCertificate? = null,
     val error: String? = null,
+    val downloadedPdf: DownloadedPrescriptionPdf? = null,
+    val isDownloadingPdf: Boolean = false,
+    val pdfDownloadFailed: Boolean = false,
 ) {
     val activeCount: Int
         get() = prescriptions.count { it.isActive }
@@ -124,5 +128,29 @@ class PrescriptionsViewModel @Inject constructor(
 
     fun setFilter(filter: PrescriptionFilter) {
         _uiState.update { it.copy(selectedFilter = filter) }
+    }
+
+    fun downloadPrescriptionPdf(prescription: Prescription) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(isDownloadingPdf = true, downloadedPdf = null, pdfDownloadFailed = false)
+            }
+            val result = prescriptionRepository.downloadPatientPrescriptionPdf(prescription.id)
+            _uiState.update {
+                it.copy(
+                    isDownloadingPdf = false,
+                    downloadedPdf = result.getOrNull(),
+                    pdfDownloadFailed = result.isFailure,
+                )
+            }
+        }
+    }
+
+    fun clearDownloadedPdf() {
+        _uiState.update { it.copy(downloadedPdf = null) }
+    }
+
+    fun clearPdfDownloadFailure() {
+        _uiState.update { it.copy(pdfDownloadFailed = false) }
     }
 }

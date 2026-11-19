@@ -2,6 +2,7 @@ package com.autamedica.android.data.repository
 
 import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.model.CreatePrescriptionRequest
+import com.autamedica.android.domain.model.DownloadedPrescriptionPdf
 import com.autamedica.android.domain.model.DoctorEligibility
 import com.autamedica.android.domain.model.InCallDocumentPolicy
 import com.autamedica.android.domain.model.Prescription
@@ -38,7 +39,12 @@ import javax.inject.Singleton
 class PrescriptionRepositoryImpl @Inject constructor(
     private val supabaseClient: SupabaseClient,
     private val securePreferences: SecurePreferences,
+    private val pdfDownloader: PrescriptionPdfDownloader,
 ) : PrescriptionRepository {
+
+    override suspend fun downloadPatientPrescriptionPdf(
+        prescriptionId: String,
+    ): Result<DownloadedPrescriptionPdf> = pdfDownloader.download(prescriptionId)
 
     override suspend fun getPatientPrescriptions(): Result<List<Prescription>> = runCatching {
         val patientId = resolvePatientId()
@@ -95,10 +101,10 @@ class PrescriptionRepositoryImpl @Inject constructor(
             val documentUrl = links?.memedString("pdf_url", "document_url", "url", "link")
                 ?: provider?.memedString("pdf_url", "document_url", "digital_link", "url")
             Prescription(
-                id = "memed:${row.memedId}",
+                id = "memed:${row.id}",
                 status = if (row.status == "deleted") "cancelled" else "verified_at_provider",
                 cuir = null,
-                signedPdfUrl = documentUrl,
+                signedPdfUrl = documentUrl?.let { "/api/patients/prescriptions/memed-${row.id}/pdf" },
                 qrCodeContent = links?.memedString("qr_code", "qrCode"),
                 medicationName = clinical.medicationName.ifBlank { "Prescripción Memed" },
                 dosage = clinical.dosage,
@@ -113,13 +119,14 @@ class PrescriptionRepositoryImpl @Inject constructor(
                 notes = clinical.notes,
                 prescribedDate = clinical.prescribedDate ?: row.createdAt,
                 items = clinical.items,
+                providerId = row.memedId,
             )
         }
 
         val mirroredMemedIds = rows.mapNotNull { row ->
             (row.clinicalData as? JsonObject)?.memedString("memed_prescription_id", "vendor_id")
         }.toSet()
-        (normalized + memed.filterNot { it.id.removePrefix("memed:") in mirroredMemedIds })
+        (normalized + memed.filterNot { it.providerId != null && it.providerId in mirroredMemedIds })
             .distinctBy { it.id }
             .sortedByDescending { runCatching { Instant.parse(it.createdAt) }.getOrNull() ?: Instant.EPOCH }
     }.onFailure {
