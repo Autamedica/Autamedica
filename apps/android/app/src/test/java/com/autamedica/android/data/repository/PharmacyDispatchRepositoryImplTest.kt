@@ -10,6 +10,7 @@ import com.google.common.truth.Truth.assertThat
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.auth.MemorySessionManager
 import io.github.jan.supabase.postgrest.Postgrest
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -69,7 +70,11 @@ class PharmacyDispatchRepositoryImplTest {
             supabaseUrl = mockWebServer.url("/").toString(),
             supabaseKey = "test-anon-key",
         ) {
-            install(Auth)
+            install(Auth) {
+                // The JVM fixture has no Android Settings backend. Keep auth state
+                // explicit and in-memory so tests exercise the real Auth plugin.
+                sessionManager = MemorySessionManager()
+            }
             install(Postgrest)
         }
 
