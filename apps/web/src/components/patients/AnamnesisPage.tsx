@@ -358,7 +358,7 @@ export default function AnamnesisPage({ locale = 'es' }: { locale?: Locale }) {
 
   if (pageView === 'completed') {
     const completedSections = progress?.completedSections ?? []
-    const patientName = user?.user_metadata?.full_name as string ?? user?.email?.split('@')[0] ?? 'Paciente'
+    const patientName = user?.user_metadata?.full_name as string ?? user?.email?.split('@')[0] ?? copy.ui.patient
     const completedDate = anamnesis?.completedAt
       ? new Date(anamnesis.completedAt).toLocaleDateString(locale === 'pt' ? 'pt-BR' : 'es', { day: 'numeric', month: 'long', year: 'numeric' })
       : null
@@ -401,7 +401,7 @@ export default function AnamnesisPage({ locale = 'es' }: { locale?: Locale }) {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
                 >
-                  100% completada
+                  {copy.ui.completedPercent}
                 </motion.p>
               </motion.div>
             </motion.div>
@@ -438,7 +438,7 @@ export default function AnamnesisPage({ locale = 'es' }: { locale?: Locale }) {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
             >
-              {completedSections.length} secciones completadas — ya podes acceder a todos los servicios
+              {completedSections.length} {copy.ui.completedDescription}
             </motion.p>
           </motion.div>
         </section>
@@ -467,7 +467,17 @@ export default function AnamnesisPage({ locale = 'es' }: { locale?: Locale }) {
             saving={saving}
             patientName={patientName}
             completedDate={completedDate}
-            sections={anamnesisSteps}
+            sections={anamnesisSteps.map((step) => ({
+              ...step,
+              title: localize(step.title),
+              subtitle: localize(step.subtitle),
+              fields: step.fields.map((field) => ({
+                ...field,
+                label: localize(field.label),
+                placeholder: field.placeholder ? localize(field.placeholder) : undefined,
+                options: field.options?.map((option) => ({ ...option, label: localize(option.label) })),
+              })),
+            }))}
             formData={formData}
             completedSections={completedSections}
           />
@@ -536,7 +546,7 @@ export default function AnamnesisPage({ locale = 'es' }: { locale?: Locale }) {
 
           {/* ── Sections overview ── */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
-            <h2 className="text-xl font-light text-neutral-900 mb-6">Secciones completadas</h2>
+            <h2 className="text-xl font-light text-neutral-900 mb-6">{copy.ui.completedSections}</h2>
             <div className="flex flex-wrap gap-2.5">
               {anamnesisSteps.map((step) => {
                 const isComplete = completedSections.includes(step.id)
@@ -579,7 +589,7 @@ export default function AnamnesisPage({ locale = 'es' }: { locale?: Locale }) {
                 transition={{ type: "spring", damping: 30, stiffness: 300 }}
               >
                 <div className="p-6 border-b border-neutral-100 flex items-center justify-between">
-                  <h3 className="text-xl font-medium text-neutral-900">¿Qué querés actualizar?</h3>
+                  <h3 className="text-xl font-medium text-neutral-900">{copy.ui.updateQuestion}</h3>
                   <button type="button" onClick={() => setShowUpdatePicker(false)} className="p-2 hover:bg-neutral-100 rounded-lg transition-colors">
                     <X className="size-5 text-neutral-600" />
                   </button>
@@ -746,7 +756,7 @@ export default function AnamnesisPage({ locale = 'es' }: { locale?: Locale }) {
             animate={{ opacity: 1, y: 0 }}
           >
             <Sparkles className="size-3.5" strokeWidth={1.5} />
-            Basado en tu motivo de consulta, priorizaremos {copy.shortSections[smartStepOrder] ?? smartStepOrder}
+            {copy.ui.prioritize} {copy.shortSections[smartStepOrder] ?? smartStepOrder}
           </motion.div>
         </div>
       )}
