@@ -65,6 +65,8 @@ jobs:
       - run: pnpm arch:v2:check
       - run: pnpm arch:v2:imports:changed
       - run: pnpm typecheck
+      - name: Web package typecheck
+        run: pnpm --filter @autamedica/web typecheck
       - name: Run explicit Astro check
         run: pnpm --filter @autamedica/web check
       - name: Build workspace packages
@@ -107,6 +109,8 @@ jobs:
       - name: Verify actor-scoped telemedicine status authorization
         run: node --experimental-strip-types --test supabase/functions/update-call-status/handler.test.ts
       - run: pnpm lint
+      - name: Web package lint
+        run: pnpm --filter @autamedica/web lint
       - run: pnpm hardcode:check
       - name: Verify country-scoped pharmacy pricing contract
         run: node --test scripts/ci/jordan-release-contract.test.mjs
