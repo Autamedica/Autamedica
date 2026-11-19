@@ -505,6 +505,7 @@ export function PharmacyExpressConsultation({
               </fieldset>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {formData.careCountry ? (
                 <div>
                   <label htmlFor={dniInputId} className="block text-xs font-medium text-slate-600 mb-1.5 flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5 text-slate-500" />
@@ -532,6 +533,11 @@ export function PharmacyExpressConsultation({
                     </div>
                   )}
                 </div>
+                ) : (
+                  <p className="self-center text-sm text-slate-500">
+                    {isPortuguese ? 'Selecione o país para informar o documento correto.' : 'Seleccioná el país para informar el documento correcto.'}
+                  </p>
+                )}
 
                 <div>
                   <label htmlFor={nameInputId} className="block text-xs font-medium text-slate-600 mb-1.5 flex items-center gap-1.5">
@@ -636,7 +642,7 @@ export function PharmacyExpressConsultation({
             )}
             <div className="mb-4 rounded-xl bg-slate-50 px-3 py-2.5 text-left text-xs"><p className="font-semibold text-slate-900">{copy.patient}: {formData.name}</p>{reasonSummary && <p className="mt-1 text-slate-600">{copy.reasonLabel}: {reasonSummary}</p>}</div>
             {requiresCountryPayment && requestId && accessToken && currentPricing && <div className="mb-4 w-full"><JordanPaymentWidget dispatchId={requestId} guestToken={accessToken} currency={currentPricing.currency} amountMinor={currentPricing.consultation_price_minor} countryCode={formData.careCountry as 'AR' | 'BR'} onStatusChange={(status) => setCountryPaymentApproved(status === 'approved')} /></div>}
-            {waitingSeconds >= 15 * 60 && (
+            {(!requiresCountryPayment || countryPaymentApproved) && waitingSeconds >= 15 * 60 && (
               <div className="space-y-3">
                 <p className="text-xs font-medium text-slate-600" role="status">{copy.cancelReady}</p>
                 <div className="flex items-center justify-center">

@@ -49,11 +49,13 @@ private class FakeAuthRepository(var user: User? = null) : AuthRepository {
 private class FakeProfileRepository(
     var user: User? = null,
     var snapshot: PatientProfileSnapshot? = null,
+    var careCountry: String? = null,
 ) : ProfileRepository {
     override suspend fun getProfile(): Result<User> =
         user?.let { Result.success(it) } ?: Result.failure(Exception("No profile"))
     override suspend fun getPatientProfileSnapshot(): Result<PatientProfileSnapshot?> =
         Result.success(snapshot)
+    override suspend fun getCareCountry(): Result<String?> = Result.success(careCountry)
     override suspend fun updateProfile(firstName: String, lastName: String, phone: String?): Result<User> =
         user?.let { Result.success(it) } ?: Result.failure(Exception("No profile"))
     override suspend fun persistLgpdConsent(userId: String, acceptedAt: String, version: String): Result<Unit> =
@@ -325,6 +327,46 @@ class PharmacyIntakeViewModelTest {
         testScheduler.runCurrent()
         assertThat(pharmacyRepo.lastCreatedCountry).isEqualTo("BR")
         assertThat(pharmacyRepo.lastReferralCode).isEqualTo("JORDAN")
+        vm.viewModelScope.cancel()
+    }
+
+    @Test
+    fun `explicit QR market initializes guest clinical jurisdiction independently of language`() = runTest(testDispatcher) {
+        val vm = PharmacyIntakeViewModel(
+            savedStateHandle = SavedStateHandle(mapOf("referralCode" to "JORDAN", "careCountry" to "AR")),
+            authRepository = authRepo,
+            profileRepository = profileRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
+        )
+        activeViewModels += vm
+        advanceUntilIdle()
+        assertThat(vm.uiState.value.careCountry).isEqualTo("AR")
+        vm.viewModelScope.cancel()
+    }
+
+    @Test
+    fun `saved patient jurisdiction overrides the default Jordan Brazil market`() = runTest(testDispatcher) {
+        authRepo.user = User(
+            id = "patient-jordan-ar",
+            email = "paciente.ar@example.test",
+            firstName = "Paciente",
+            lastName = "Argentina",
+            phone = "+5491122223333",
+            role = UserRole.PATIENT,
+        )
+        profileRepo.user = authRepo.user
+        profileRepo.careCountry = "AR"
+
+        val vm = PharmacyIntakeViewModel(
+            savedStateHandle = SavedStateHandle(mapOf("referralCode" to "JORDAN", "careCountry" to "BR")),
+            authRepository = authRepo,
+            profileRepository = profileRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
+        )
+        activeViewModels += vm
+        advanceUntilIdle()
+
+        assertThat(vm.uiState.value.careCountry).isEqualTo("AR")
         vm.viewModelScope.cancel()
     }
 
