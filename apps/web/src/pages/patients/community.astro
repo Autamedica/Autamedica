@@ -8,5 +8,5 @@ import CommunityPage from '@/components/patients/CommunityPage';
   description="Conectá con otros pacientes, compartí experiencias y encontrá apoyo"
   activeTab="comunidad"
 >
-  <CommunityPage client:visible />
+  <CommunityPage client:visible locale={Astro.locals.locale === 'pt' ? 'pt' : 'es'} />
 </PatientAppLayout>

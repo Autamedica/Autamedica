@@ -33,8 +33,8 @@ const role = Astro.url.searchParams.get('role') || 'patient';
 const themeClass = role === 'patient' ? 'theme-patient' : role === 'doctor' ? 'theme-doctor' : 'theme-company';
 
 const authFlowLinks = [
-  { href: '/auth/login', label: 'Iniciar sesión' },
-  { href: '/auth/register', label: 'Crear cuenta' },
+  { href: '/auth/login', label: t('auth.signIn') },
+  { href: '/auth/register', label: t('auth.createAccount') },
 ];
 const { publicSupabaseUrl, publicSupabaseAnonKey, publicSentryDsn } = resolvePublicClientEnv(
   Astro.locals.runtime?.env,
@@ -42,7 +42,7 @@ const { publicSupabaseUrl, publicSupabaseAnonKey, publicSentryDsn } = resolvePub
 ---
 
 <!doctype html>
-<html lang={locale === 'pt' ? 'pt-BR' : 'es-AR'} dir="ltr">
+<html lang={locale === 'pt' ? 'pt-BR' : 'es'} dir="ltr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
