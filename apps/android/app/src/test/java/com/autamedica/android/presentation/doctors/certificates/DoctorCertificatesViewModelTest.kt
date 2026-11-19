@@ -150,9 +150,9 @@ class DoctorCertificatesViewModelTest {
     @Test
     fun brazilCertificateRequiresVerifiedSignatureAndDownloadablePdf() = runTest {
         val brazilCertificate = sampleCertificates.first { it.id == "cert-4" }
-        assertThat(brazilCertificate.isActive).isFalse()
-        assertThat(brazilCertificate.copy(signatureVerifiedAt = "2026-09-15T12:00:00Z", signatureHash = "b".repeat(64), signatureMethod = "ac_external", signedPdfUrl = "certificates/signed/cert-4.pdf").isActive).isTrue()
-        assertThat(brazilCertificate.copy(signedPdfUrl = null, signatureVerifiedAt = "2026-09-15T12:00:00Z").isActive).isFalse()
+        assertThat(brazilCertificate.isActive).isTrue()
+        assertThat(brazilCertificate.copy(signatureHash = null).isActive).isFalse()
+        assertThat(brazilCertificate.copy(signedPdfUrl = null).isActive).isFalse()
     }
 
     @Test
