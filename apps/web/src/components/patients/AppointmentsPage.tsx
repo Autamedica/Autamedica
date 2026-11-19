@@ -725,7 +725,7 @@ export default function AppointmentsPage({
                   Monto a cargar ({currency})
                 </label>
                 <div className="relative rounded-2xl border border-neutral-200 focus-within:border-sky-500 focus-within:ring-1 focus-within:ring-sky-500 overflow-hidden bg-stone-50/50">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-semibold">{currency === 'BRL' ? 'R
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-semibold">{currency === 'BRL' ? 'R$' : '$'}</span>
                   <input
                     type="number"
                     id="topupAmount"
