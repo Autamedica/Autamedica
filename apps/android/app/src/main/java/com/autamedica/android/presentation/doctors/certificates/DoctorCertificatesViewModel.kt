@@ -420,6 +420,24 @@ class DoctorCertificatesViewModel @Inject constructor(
         }
     }
 
+    fun openCertificatePdf(
+        certificate: MedicalCertificate,
+        onReady: (String) -> Unit,
+        onFailure: () -> Unit,
+    ) {
+        viewModelScope.launch {
+            certificateRepository.getCertificatePdfDownloadUrl(certificate)
+                .onSuccess(onReady)
+                .onFailure { error ->
+                    com.autamedica.android.logging.SecureLog.error(
+                        "[Certificates] Authenticated doctor PDF download URL unavailable",
+                        error,
+                    )
+                    onFailure()
+                }
+        }
+    }
+
     fun clearCreatedCertificate() {
         _uiState.update { it.copy(createdCertificate = null) }
     }

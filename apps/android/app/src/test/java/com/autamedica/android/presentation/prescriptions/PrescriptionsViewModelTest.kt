@@ -93,7 +93,10 @@ class PrescriptionsViewModelTest {
             doctorLicense = "MN 12345",
             patientName = "Maximiliano",
             patientDni = "34567890",
-            signedPdfUrl = "https://storage.autamedica.com/cert1.pdf",
+            signedPdfUrl = "certificates/signed/cert-1.pdf",
+            signatureVerifiedAt = "2026-09-11T12:00:00Z",
+            signatureHash = "a".repeat(64),
+            signatureMethod = "ac_external",
             qrCodeContent = "https://autamedica.com/verify/AR-CERT-001",
             countryCode = "AR",
             createdAt = "2026-09-11T12:00:00Z",
@@ -217,6 +220,9 @@ private class FakeMedicalCertificateRepository(
         val item = items.find { it.id == id }
         return if (item != null) Result.success(item) else Result.failure(NoSuchElementException())
     }
+
+    override suspend fun getCertificatePdfDownloadUrl(certificate: MedicalCertificate): Result<String> =
+        Result.failure(UnsupportedOperationException("Certificate PDF download is not exercised by this test"))
 
     override suspend fun getDoctorCertificates(patientId: String?): Result<List<MedicalCertificate>> =
         Result.success(items)

@@ -1,113 +1,133 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const uploadMock = vi.fn(async () => ({ data: { path: 'archives/DOC-0123456789ABCDEF0123456789ABCDEF.pdf' }, error: null }));
-const patientLinkInsertMock = vi.fn(async () => ({ error: null }));
-const archiveInsertMock = vi.fn(() => ({
-  select: () => ({
-    single: async () => ({ data: { id: 'arch-1' }, error: null }),
-  }),
+const state = vi.hoisted(() => ({
+  auth: vi.fn(),
+  admin: null as any,
+  rpc: vi.fn(),
+  upload: vi.fn(),
+  remove: vi.fn(),
+  download: vi.fn(),
+  doctor: null as any,
+  profile: null as any,
+  patient: null as any,
 }));
-
-// Minimal valid 1x1 PNG bytes for signature & stamp assets
-const PNG_BYTES = new Uint8Array([
-  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
-  0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
-  0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-]);
 
 vi.mock('@/lib/api-auth', () => ({
-  withAuthRole: vi.fn(async () => ({ user: { id: 'user-doc-1' }, role: 'doctor' })),
-  isAuthed: () => true,
+  withAuthRole: state.auth,
+  isAuthed: (value: unknown) => !(value instanceof Response),
 }));
-
-vi.mock('@/lib/supabase', () => ({
-  createAstroAdminClient: () => ({
-    storage: {
-      from: () => ({
-        download: vi.fn(async () => ({
-          data: { arrayBuffer: async () => PNG_BYTES.buffer },
-          error: null,
-        })),
-        upload: uploadMock,
-      }),
-    },
-    from: (table: string) => {
-      if (table === 'doctors') {
-        return {
-          select: () => ({
-            eq: () => ({
-              maybeSingle: async () => ({
-                data: {
-                  id: 'doc-1',
-                  user_id: 'user-doc-1',
-                  active: true,
-                  license_type: 'CRM',
-                  license_number: '123456',
-                  enrollment_jurisdiction: null,
-                  uf_brazil: 'SP',
-                  signature_image_url: 'https://proj.supabase.co/storage/v1/object/authenticated/medical-documents/user-doc-1/signatures/doc-1/signature.png',
-                  stamp_image_url: 'https://proj.supabase.co/storage/v1/object/authenticated/medical-documents/user-doc-1/signatures/doc-1/stamp.png',
-                },
-                error: null,
-              }),
-            }),
-          }),
-        };
-      }
-      if (table === 'profiles') {
-        return {
-          select: () => ({
-            eq: () => ({
-              maybeSingle: async () => ({
-                data: { first_name: 'Ana', last_name: 'Silva', role: 'doctor', active: true, deleted_at: null },
-                error: null,
-              }),
-            }),
-          }),
-        };
-      }
-      if (table === 'medical_document_archives') {
-        return { insert: archiveInsertMock };
-      }
-      if (table === 'medical_document_archive_patient_links') {
-        return { insert: patientLinkInsertMock };
-      }
-      return { insert: vi.fn(async () => ({ error: null })) };
-    },
-  }),
+vi.mock('@/lib/api-helpers', () => {
+  const reply = (code: string, status: number) => new Response(JSON.stringify({ code }), { status });
+  return {
+    badRequest: (code: string) => reply(code, 400),
+    forbidden: (code: string) => reply(code, 403),
+    internalError: (code: string) => reply(code, 500),
+    conflict: (code: string) => reply(code, 409),
+    jsonOk: (data: unknown, status = 200) => new Response(JSON.stringify({ success: true, data }), { status }),
+  };
+});
+vi.mock('@/lib/supabase', () => ({ createAstroAdminClient: () => state.admin }));
+vi.mock('@/lib/doctors/services/certificate-electronic-assets', () => ({
+  certificateAssetPath: (_value: string, _origin: string, _user: string, doctorId: string, type: string) =>
+    doctorId + '/' + type + '.png',
+  assertCertificateImage: vi.fn(),
 }));
+vi.mock('@autamedica/shared', () => ({ logger: { error: vi.fn() } }));
 
 import { POST } from './document-archives';
 
+const doctorUserId = '00000000-0000-4000-8000-000000000101';
+const patientId = '33333333-3333-4333-8333-333333333333';
+const reference = 'DOC-0123456789ABCDEF0123456789ABCDEF';
+const patientDocument = '12345678901';
+
+function queryFor(table: string) {
+  const query: any = {
+    select: vi.fn(() => query),
+    eq: vi.fn(() => query),
+    maybeSingle: vi.fn(async () => ({
+      data: table === 'doctors' ? state.doctor
+        : table === 'profiles' ? state.profile : state.patient,
+      error: null,
+    })),
+  };
+  return query;
+}
+
+function makeRequest() {
+  const form = new FormData();
+  form.set('reference', reference);
+  form.set('document_date', '2026-11-19');
+  form.set('patient_id', patientId);
+  form.set('patient_name', 'Synthetic Patient');
+  form.set('patient_document', patientDocument);
+  form.set('document_type', 'Atestado');
+  form.set('document_description', 'Synthetic document test');
+  form.set(
+    'authorization_statement',
+    'Confirmo que emití este documento y autorizo su registro para verificación de integridad en AutaMedica.',
+  );
+  form.set('pdf', new File(['%PDF-1.7 synthetic document'], 'certificate.pdf', { type: 'application/pdf' }));
+  return new Request('https://www.autamedica.com/api/doctors/document-archives', {
+    method: 'POST',
+    headers: { Origin: 'https://www.autamedica.com' },
+    body: form,
+  });
+}
+
 describe('POST /api/doctors/document-archives integration contract', () => {
-  it('uploads the original PDF to Storage and links the archive to the patient when patient_id is provided', async () => {
-    const form = new FormData();
-    form.set('reference', 'DOC-0123456789ABCDEF0123456789ABCDEF');
-    form.set('document_date', '2026-11-19');
-    form.set('patient_id', '33333333-3333-4333-8333-333333333333');
-    form.set('patient_name', 'João Souza');
-    form.set('patient_document', '12345678901');
-    form.set('document_type', 'Atestado Médico ICP-Brasil');
-    form.set(
-      'authorization_statement',
-      'Confirmo que emití este documento y autorizo su registro para verificación de integridad en AutaMedica.',
-    );
-    form.set('pdf', new File([new TextEncoder().encode('%PDF-1.7\n%mock-icp-brasil\n')], 'atestado.pdf', { type: 'application/pdf' }));
+  beforeEach(() => {
+    vi.clearAllMocks();
+    state.auth.mockResolvedValue({ user: { id: doctorUserId } });
+    state.doctor = {
+      id: 'doctor-1', user_id: doctorUserId, active: true, care_country: 'BR',
+      license_type: 'CRM', license_number: '12345', uf_brazil: 'SP',
+      signature_image_url: 'signature', stamp_image_url: 'stamp',
+    };
+    state.profile = {
+      first_name: 'Synthetic', last_name: 'Doctor', role: 'doctor', active: true, deleted_at: null,
+    };
+    state.patient = {
+      id: patientId, care_country: 'BR', cpf: patientDocument, dni: null, active: true,
+    };
+    state.download.mockResolvedValue({ data: new Blob(['synthetic-image']), error: null });
+    state.upload.mockResolvedValue({ data: { path: 'uploaded' }, error: null });
+    state.remove.mockResolvedValue({ error: null });
+    state.rpc.mockResolvedValue({ data: 'archive-1', error: null });
+    state.admin = {
+      from: (table: string) => queryFor(table),
+      rpc: state.rpc,
+      storage: {
+        from: () => ({
+          download: state.download,
+          upload: state.upload,
+          remove: state.remove,
+        }),
+      },
+    };
+  });
 
-    const request = new Request('https://autamedica.com/api/doctors/document-archives', {
-      method: 'POST',
-      headers: { origin: 'https://autamedica.com' },
-      body: form,
-    });
-
+  it('uploads the PDF and atomically registers the archive with a verified patient link', async () => {
     const response = await POST({
-      request,
-      locals: { runtime: { env: { PUBLIC_SUPABASE_URL: 'https://proj.supabase.co' } } },
+      request: makeRequest(),
+      locals: { runtime: { env: { PUBLIC_SUPABASE_URL: 'https://qxjjrpksmwwrmubhvjew.supabase.co' } } },
     } as never);
 
     expect(response.status).toBe(201);
-    expect(archiveInsertMock).toHaveBeenCalledTimes(1);
-    expect(uploadMock).toHaveBeenCalledTimes(1);
-    expect(patientLinkInsertMock).toHaveBeenCalledTimes(1);
+    const wire = await response.json();
+    expect(wire.data.patientLinked).toBe(true);
+    expect(state.upload).toHaveBeenCalledOnce();
+    const [storagePath, bytes, options] = state.upload.mock.calls[0];
+    expect(storagePath.startsWith('document-archives/DOC-')).toBe(true);
+    expect(storagePath.endsWith('.pdf')).toBe(true);
+    expect(new TextDecoder().decode(bytes).startsWith('%PDF-')).toBe(true);
+    expect(options).toEqual({ contentType: 'application/pdf', upsert: false });
+    expect(state.rpc).toHaveBeenCalledWith('register_medical_document_archive', expect.objectContaining({
+      p_doctor_id: 'doctor-1',
+      p_patient_id: patientId,
+      p_patient_document_number: patientDocument,
+      p_reference: reference,
+    }));
+    expect(state.remove).not.toHaveBeenCalled();
   });
 });

@@ -19,6 +19,9 @@ interface MedicalCertificateRepository {
      */
     suspend fun getCertificateById(id: String): Result<MedicalCertificate>
 
+    /** Returns a short-lived HTTPS URL after the authenticated server verifies patient ownership and the issued PDF hash. */
+    suspend fun getCertificatePdfDownloadUrl(certificate: MedicalCertificate): Result<String>
+
     /**
      * Retrieves all certificates issued by the authenticated doctor.
      */

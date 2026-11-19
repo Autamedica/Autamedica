@@ -46,7 +46,10 @@ class DoctorCertificatesViewModelTest {
             doctorLicense = "MP006402",
             patientName = "Maximiliano Gutierrez",
             patientDni = "95123456",
-            signedPdfUrl = "https://storage.autamedica.com/cert-1.pdf",
+            signedPdfUrl = "certificates/signed/cert-1.pdf",
+            signatureVerifiedAt = "2026-09-12T12:00:00Z",
+            signatureHash = "a".repeat(64),
+            signatureMethod = "ac_external",
             qrCodeContent = "https://autamedica.com/verify/AR-CERT-20260912-001091",
             countryCode = "AR",
             createdAt = "2026-09-12T00:00:00Z",
@@ -86,7 +89,10 @@ class DoctorCertificatesViewModelTest {
             doctorLicense = "CRM-RS-000000",
             patientName = "Paciente de teste",
             patientDni = "00000000000",
-            signedPdfUrl = "https://storage.autamedica.com/cert-4.pdf",
+            signedPdfUrl = "certificates/signed/cert-4.pdf",
+            signatureVerifiedAt = "2026-09-15T12:00:00Z",
+            signatureHash = "b".repeat(64),
+            signatureMethod = "ac_external",
             qrCodeContent = "https://autamedica.com/verify/BR-CERT-20260915-004000",
             countryCode = "BR",
             createdAt = "2026-09-15T00:00:00Z",
@@ -136,7 +142,7 @@ class DoctorCertificatesViewModelTest {
         val state = viewModel.uiState.value
         assertThat(state.certificates).hasSize(4)
         assertThat(state.totalCount).isEqualTo(4)
-        assertThat(state.validCount).isEqualTo(1)
+        assertThat(state.validCount).isEqualTo(2)
         assertThat(state.cancelledCount).isEqualTo(1)
         assertThat(state.filteredCertificates).hasSize(4)
     }
@@ -144,15 +150,15 @@ class DoctorCertificatesViewModelTest {
     @Test
     fun brazilCertificateRequiresVerifiedSignatureAndDownloadablePdf() = runTest {
         val brazilCertificate = sampleCertificates.first { it.id == "cert-4" }
-        assertThat(brazilCertificate.isActive).isFalse()
-        assertThat(brazilCertificate.copy(signatureVerifiedAt = "2026-09-15T12:00:00Z").isActive).isTrue()
-        assertThat(brazilCertificate.copy(signedPdfUrl = null, signatureVerifiedAt = "2026-09-15T12:00:00Z").isActive).isFalse()
+        assertThat(brazilCertificate.isActive).isTrue()
+        assertThat(brazilCertificate.copy(signatureHash = null).isActive).isFalse()
+        assertThat(brazilCertificate.copy(signedPdfUrl = null).isActive).isFalse()
     }
 
     @Test
     fun filteringByStatusWorks() = runTest {
         viewModel.onSelectStatusFilter("validos")
-        assertThat(viewModel.uiState.value.filteredCertificates).hasSize(1)
+        assertThat(viewModel.uiState.value.filteredCertificates).hasSize(2)
 
         viewModel.onSelectStatusFilter("cancelados")
         assertThat(viewModel.uiState.value.filteredCertificates).hasSize(1)
@@ -272,6 +278,9 @@ private class FakeDoctorCertificateRepository(
 
     override suspend fun getCertificateById(id: String): Result<MedicalCertificate> =
         Result.success(certificates.first())
+
+    override suspend fun getCertificatePdfDownloadUrl(certificate: MedicalCertificate): Result<String> =
+        Result.failure(UnsupportedOperationException("Certificate PDF download is not exercised by this test"))
 
     override suspend fun getDoctorCertificates(patientId: String?): Result<List<MedicalCertificate>> =
         Result.success(certificates)
