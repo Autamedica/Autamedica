@@ -148,7 +148,7 @@ class LocaleAndRoleCopyTest(unittest.TestCase):
         return {item.attrib["name"]: item.text or "" for item in root.findall("string")}
 
     def test_doctor_dashboard_and_messages_copy_exists_for_all_locales(self) -> None:
-        for folder in ("values", "values-pt-rBR", "values-es-r419"):
+        for folder in ("values", "values-pt-rBR", "values-b+es+419"):
             with self.subTest(locale=folder):
                 resources = self._resources(folder)
                 self.assertTrue(resources["doctor_chat_list_empty_title"])
