@@ -106,6 +106,19 @@ describe('FarmalinkClient', () => {
     });
   });
 
+  it('does not fall back to the TEST endpoint when production base URL is missing', () => {
+    const resolved = resolveFarmalinkConfig({
+      NODE_ENV: 'production',
+      FARMALINK_ENABLED: 'true',
+      FARMALINK_OAUTH_USERNAME: 'runtime-user',
+      FARMALINK_OAUTH_PASSWORD: 'runtime-pass',
+      FARMALINK_BASIC_USER: 'basic-user',
+      FARMALINK_BASIC_PASSWORD: 'basic-pass',
+    });
+    expect(resolved.baseUrl).toBe('');
+    expect(resolved.missing).toContain('FARMALINK_BASE_URL');
+  });
+
   it('generates a token and calls altaReceta with Bearer authorization', async () => {
     const fetchMock: any = vi.fn()
       .mockResolvedValueOnce(jsonResponse({

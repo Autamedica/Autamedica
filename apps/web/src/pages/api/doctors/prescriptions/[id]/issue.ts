@@ -39,7 +39,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       'br_doctor_cpf_required',
       'br_patient_cpf_required',
       'br_special_prescription_provider_required',
-      'ar_production_homologation_required',
+      'farmalink_governance_disabled',
       'farmalink_registration_required',
       'digital_signature_required',
       'digital_signature_failed',

@@ -44,7 +44,8 @@ function readEnabled(source: RuntimeEnvRecord): boolean {
 export function resolveFarmalinkConfig(runtimeEnv?: RuntimeEnvRecord): FarmalinkResolvedConfig {
   const config = {
     enabled: readEnabled(runtimeEnv),
-    baseUrl: readEnv(runtimeEnv, 'FARMALINK_BASE_URL', 'https://test-servicios.farmalink.com.ar'),
+    baseUrl: readEnv(runtimeEnv, 'FARMALINK_BASE_URL',
+      readEnv(runtimeEnv, 'NODE_ENV') === 'production' ? '' : 'https://test-servicios.farmalink.com.ar'),
     tokenPath: readEnv(runtimeEnv, 'FARMALINK_TOKEN_PATH', '/api/oauth/token/generate'),
     recetaBasePath: readEnv(runtimeEnv, 'FARMALINK_RECETA_BASE_PATH', '/api/recetaElect/v3'),
     oauthUsername: readEnv(runtimeEnv, 'FARMALINK_OAUTH_USERNAME'),

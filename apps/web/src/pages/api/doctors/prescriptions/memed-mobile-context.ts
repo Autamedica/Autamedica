@@ -7,7 +7,7 @@ import { DOCTOR_ROLES, isAuthed, withAuthRole } from '@/lib/api-auth';
 import { badRequest, forbidden, internalError, jsonOk } from '@/lib/api-helpers';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { resolveMemedPatient } from '@/lib/prescriptions/brazil/memed-patient';
-import { isMemedEnabled, isMemedPilotDoctor } from '@/lib/prescriptions/brazil/memed-pilot';
+import { isMemedMobileEnabled, isMemedPilotDoctor } from '@/lib/prescriptions/brazil/memed-pilot';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const GET: APIRoute = async ({request, locals}) => {
@@ -15,7 +15,7 @@ export const GET: APIRoute = async ({request, locals}) => {
   if (!isAuthed(auth)) return auth;
   // Clinical issuance remains separately gated; never open the SDK on a
   // mobile route when the existing clinical pilot is disabled.
-  if (!isMemedEnabled(locals.runtime?.env as unknown as Record<string, unknown> | undefined)) {
+  if (!isMemedMobileEnabled(locals.runtime?.env as unknown as Record<string, unknown> | undefined)) {
     return forbidden('memed_mobile_not_enabled');
   }
   const params = new URL(request.url).searchParams;

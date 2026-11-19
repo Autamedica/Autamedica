@@ -212,3 +212,15 @@ La edición de los PDFs no generó una nueva alta, no realizó una baja, no afec
 producción y no envió correos. Cambios de prevención en el PR #655: fixture
 de droga corregido, rechazo de modo N sin nombre comercial y leyenda de firma
 neutral hasta que pueda comprobarse su validez.
+
+
+## Gobernanza de emisión (actualización 19/11/2026)
+
+El estado histórico de homologación documentado arriba describe evidencia de proveedor y no es un veto hardcodeado. La decisión operativa de emisión pertenece a AutaMedica y se controla con variables de runtime de Cloudflare Pages:
+
+- `FARMALINK_ENABLED=true`: habilita la ruta de proveedor cuando el founder la activa.
+- `FARMALINK_BASE_URL`: obligatorio y explícito en producción; el cliente ya no cae al endpoint TEST cuando `NODE_ENV=production`.
+- `FARMALINK_REQUIRE_EXTERNAL_AC=true` (predeterminado): exige certificado AC externo. `false` permite una política de firma alternativa con certificado real, no autofirmado y vigente, conservando REFEPS/SSS y la firma PAdES efectiva.
+- OAuth username/password y Basic user/password permanecen como secretos de Pages; nunca se registran ni devuelven en diagnóstico.
+
+La falta de confirmación de homologación externa sigue siendo evidencia operativa que el founder puede evaluar, no una condición codificada que impida cambiar el switch. Farmalink debe aceptar realmente `altaReceta` para que una emisión se registre como oficial.

@@ -6,9 +6,9 @@ This runbook verifies the four authenticated patient-delivery paths. The verifie
 
 | Path | Observed production state | Readiness |
 | --- | --- | --- |
-| Argentina / Farmalink | Production Pages projects `autamedica-web` and `autamedica-doctors` do not have `FARMALINK_ENABLED` or `FARMALINK_BASE_URL`; the client defaults emission to disabled. There are 24 active AR doctors, 13 with REFEPS and SSS `valid`/`exempt`, but **0** satisfy the full issuance gate with an eligible unexpired external AC PAdES certificate. No `vendor_name=farmalink` prescription rows exist. | **Blocked.** Formal production homologation/approval, live endpoint and runtime config, an eligible AC external certificate for the issuing doctor, and a real successful provider registration are required. |
+| Argentina / Farmalink | Issuance is governed by Cloudflare Pages runtime flags `FARMALINK_ENABLED` and `FARMALINK_REQUIRE_EXTERNAL_AC`; `FARMALINK_BASE_URL` plus OAuth/basic credentials are provider configuration. The application still requires REFEPS and SSS `valid`/`exempt`, a non-self-signed unexpired certificate and a successful PAdES signature. The external-AC-only requirement is policy-controlled, not hardcoded. | **Not enabled in production until the founder turns on the runtime flag and supplies the live provider configuration.** `FARMALINK_REQUIRE_EXTERNAL_AC=false` permits a valid non-self-signed signing certificate without an external-AC classification; it does not bypass REFEPS/SSS, certificate validity, cryptographic signing or Farmalink acceptance. |
 | Brazil / Memed doctor | One linked and verified Memed identity. The active BR pilot doctor has Memed birth date and matching CFM-validated CRM/UF. Web config has `MEMED_RX_ENABLED=true` and Memed secret bindings present. | **Doctor master data ready.** This is not evidence of a real prescription emission. |
-| Brazil / Memed patient | The pilot has 35 appointments; **0** patients meet all eligibility predicates together: active account, `care_country=BR`, LGPD consent and date, CPF, birth date and gender. | **Blocked.** A real patient must complete normal identity, consent and clinical-relationship flows. |
+| Brazil / Memed patient | Memed requires a valid CPF, an active patient account, `care_country=BR`, recorded LGPD consent/date and a real doctor-patient encounter. DOB and gender are optional Memed patient attributes; supplied values are validated but their absence no longer blocks. Current production sample: 7 distinct appointment-linked patient records, 2 BR; the only BR record with dated LGPD consent has no valid 11-digit CPF. | **Patient data blocker: `patients.cpf` is missing/invalid.** A current valid encounter is also required at issuance time. |
 | Brazil / Memed prescription | `memed_prescriptions` contains **0** rows, **0** provider-signature verified rows and **0** delivery confirmations. | **Blocked.** No provider-issued prescription exists to retrieve. |
 | Android / Memed mobile | `memed-mobile-preflight` is deployed with JWT verification. `MEMED_MOBILE_ENABLED` and mobile pilot settings exist as secret bindings, but their values are not readable through current configuration metadata. | **Runtime preflight still required.** A secret binding's presence does not prove that it is enabled or points to the same pilot doctor. |
 
@@ -69,3 +69,18 @@ Each JSON report records `doctor_id`, `patient_id`, `care_country`, `external_id
 - **BR Android**: hashes the file saved by the app's authenticated downloader and compares it with the same persisted Memed digest; probes cross-user denial independently.
 
 Only a case whose verifier exits 0 is passed. The four cases remain **not run / blocked** until the provider emits real prescriptions and the required patient/doctor preconditions exist.
+
+
+## Runtime governance switches
+
+Configure these as Cloudflare Pages production variables for the relevant projects (`autamedica-doctors` for doctor issuance; keep `autamedica-web` aligned where the same APIs are deployed):
+
+- `FARMALINK_ENABLED=true`: founder-controlled Argentina provider switch.
+- `FARMALINK_BASE_URL=https://<live-provider-host>`: live Farmalink endpoint; do not use the TEST host for production issuance.
+- `FARMALINK_REQUIRE_EXTERNAL_AC=true|false`: defaults to `true`; set `false` only by explicit governance decision. A real, non-self-signed, unexpired certificate and successful PAdES signing remain mandatory.
+- `MEMED_RX_ENABLED=true`: enables the Memed Web/provider flow.
+- `MEMED_MOBILE_ENABLED=true`: enables Android handoff; requires `MEMED_RX_ENABLED=true` as well.
+
+Memed additionally requires `MEMED_API_KEY`, `MEMED_SECRET_KEY`, `MEMED_API_URL=https://api.memed.com.br/v1`, `MEMED_SCRIPT_URL=https://partners.memed.com.br/integration.js`, and the configured pilot doctor ID. The admin health endpoint reports boolean flag state and configuration presence only; it never returns secret values.
+
+For the first BR patient, the exact required identity field absent in the current consented patient record is `patients.cpf` (valid 11-digit CPF checksum). DOB and gender are optional. The patient's active account, dated LGPD consent and an active/recent doctor-patient encounter remain independently required.

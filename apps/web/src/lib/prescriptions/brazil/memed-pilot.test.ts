@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { isMemedEnabled, isMemedPilotDoctor } from './memed-pilot';
+import { isMemedEnabled, isMemedMobileEnabled, isMemedPilotDoctor } from './memed-pilot';
 
 describe('Memed pilot configuration', () => {
-  it('enables issuance when either supported feature flag is active', () => {
+  it('uses RX flag for web issuance and requires both flags for Android mobile', () => {
     expect(isMemedEnabled({ MEMED_RX_ENABLED: 'true' })).toBe(true);
-    expect(isMemedEnabled({ MEMED_MOBILE_ENABLED: 'true' })).toBe(true);
-    expect(isMemedEnabled({ MEMED_RX_ENABLED: 'false', MEMED_MOBILE_ENABLED: 'false' })).toBe(false);
+    expect(isMemedEnabled({ MEMED_MOBILE_ENABLED: 'true' })).toBe(false);
+    expect(isMemedMobileEnabled({ MEMED_RX_ENABLED: 'true', MEMED_MOBILE_ENABLED: 'true' })).toBe(true);
+    expect(isMemedMobileEnabled({ MEMED_RX_ENABLED: 'false', MEMED_MOBILE_ENABLED: 'true' })).toBe(false);
+    expect(isMemedMobileEnabled({ MEMED_RX_ENABLED: 'true', MEMED_MOBILE_ENABLED: 'false' })).toBe(false);
   });
 
   it('recognizes both legacy and mobile pilot doctor ids', () => {

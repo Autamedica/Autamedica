@@ -252,7 +252,7 @@ describe('Farmalink once-only persistent issue guard', () => {
 
     for (let i = 0; i < 2; i++) {
       expect(await issuePrescription(supabase, RX, USER))
-        .toMatchObject({ ok: false, error: { code: 'ar_production_homologation_required' } });
+        .toMatchObject({ ok: false, error: { code: 'farmalink_governance_disabled' } });
     }
     expect(alta).not.toHaveBeenCalled();
     expect(pdf).not.toHaveBeenCalled();
