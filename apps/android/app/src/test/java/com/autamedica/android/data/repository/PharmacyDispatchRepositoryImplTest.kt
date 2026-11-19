@@ -78,6 +78,7 @@ class PharmacyDispatchRepositoryImplTest {
                 autoLoadFromStorage = false
                 autoSaveToStorage = false
                 alwaysAutoRefresh = false
+                enableLifecycleCallbacks = false
             }
             install(Postgrest)
         }
