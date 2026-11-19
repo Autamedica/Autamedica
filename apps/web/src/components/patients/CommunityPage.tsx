@@ -313,7 +313,7 @@ function PostDetailView({
                 onChange={(e) => setCommentText(e.target.value)}
                 placeholder={copy.commentPlaceholder}
                 rows={1}
-                className="w-full resize-none rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-900 shadow-sm outline-none transition-all placeholder:text-stone-300 focus:border-stone-400 focus:bg-white focus:ring-2 focus:ring-stone-900/5"
+                className="w-full resize-none rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-900 shadow-sm outline-none transition-all placeholder:text-stone-300 focus:border-sky-500 focus:bg-white focus:ring-2 focus:ring-sky-500/10"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -466,7 +466,7 @@ export default function CommunityPage({ locale = 'es' }: { locale?: Locale }) {
           className="w-full flex items-center justify-center gap-2 py-3.5 bg-sky-700 text-white rounded-full font-medium shadow-xl"
         >
           <Plus className="size-4" />
-          Publicar
+          {copy.publish}
         </button>
       </div>
 
@@ -606,7 +606,7 @@ export default function CommunityPage({ locale = 'es' }: { locale?: Locale }) {
               <select
                 value={composerGroupId}
                 onChange={(e) => setComposerGroupId(e.target.value)}
-                className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition-all focus:border-stone-400 focus:ring-2 focus:ring-stone-900/5"
+                className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition-all focus:border-sky-500 focus:ring-2 focus:ring-sky-500/10"
               >
                 <option value="">{copy.chooseGroup}</option>
                 {groups.map((g: CommunityGroup) => (
@@ -619,7 +619,7 @@ export default function CommunityPage({ locale = 'es' }: { locale?: Locale }) {
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
                 placeholder={copy.titlePlaceholder}
-                className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm shadow-sm outline-none transition-all placeholder:text-stone-300 focus:border-stone-400 focus:ring-2 focus:ring-stone-900/5"
+                className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm shadow-sm outline-none transition-all placeholder:text-stone-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/10"
               />
 
               <textarea
@@ -627,7 +627,7 @@ export default function CommunityPage({ locale = 'es' }: { locale?: Locale }) {
                 onChange={(e) => setNewContent(e.target.value)}
                 rows={4}
                 placeholder={copy.experiencePlaceholder}
-                className="w-full resize-none rounded-xl border border-stone-200 px-4 py-3 text-sm leading-relaxed shadow-sm outline-none transition-all placeholder:text-stone-300 focus:border-stone-400 focus:ring-2 focus:ring-stone-900/5"
+                className="w-full resize-none rounded-xl border border-stone-200 px-4 py-3 text-sm leading-relaxed shadow-sm outline-none transition-all placeholder:text-stone-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/10"
               />
 
               <label className="flex items-center gap-2 text-sm text-stone-500">
@@ -637,7 +637,7 @@ export default function CommunityPage({ locale = 'es' }: { locale?: Locale }) {
                   onChange={(e) => setIsAnonymous(e.target.checked)}
                   className="rounded border-stone-300"
                 />
-                {copy.publish} anonimamente
+                {copy.publishAnonymously}
               </label>
             </div>
 
@@ -646,7 +646,7 @@ export default function CommunityPage({ locale = 'es' }: { locale?: Locale }) {
                 type="button"
                 onClick={handleSubmitPost}
                 disabled={!composerGroupId || !newContent.trim() || submitting}
-                className="inline-flex items-center gap-2 rounded-xl bg-stone-900 px-6 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-sky-800 active:scale-[0.97] disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl bg-sky-700 px-6 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-sky-800 active:scale-[0.97] disabled:opacity-50"
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 {copy.publish}
