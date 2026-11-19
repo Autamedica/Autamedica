@@ -60,6 +60,7 @@ jobs:
           text = text.replace(r"\${#TOKEN}", "${#TOKEN}")
           installer.write_text(text)
           PY
+          rm -f apps/android-companion/.source-import.zip
           git add -A .editorconfig .gitignore .github/workflows/android-companion.yml apps/android-companion
           git rm -f .github/workflows/import-android-companion-source.yml
           git diff --cached --check
