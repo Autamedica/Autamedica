@@ -467,7 +467,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                       <div className="flex flex-col gap-2">
                         <a
                           href="/patients/reserva-saude"
-                          className="w-full inline-flex items-center justify-center gap-1.5 rounded-2xl bg-stone-950 py-3 text-xs font-bold text-white transition hover:bg-stone-800"
+                          className="w-full inline-flex items-center justify-center gap-1.5 rounded-2xl bg-sky-700 py-3 text-xs font-bold text-white transition hover:bg-sky-800"
                         >
                           <Coins className="h-3.5 w-3.5" />
                           {dict.patientPortal.wallet.reserveSaudeBtn}
@@ -993,7 +993,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   viewport={{ once: true }}
                   transition={{ delay: 0.4 }}
                 >
-                  <div className="size-32 rounded-full bg-emerald-100 flex items-center justify-center">
+                  <div className="size-32 rounded-full bg-sky-100 flex items-center justify-center">
                     <Calendar className="size-16 text-sky-600" />
                   </div>
                 </motion.div>
@@ -1023,18 +1023,18 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   <motion.a
                     key={item.id}
                     href={item.link}
-                    className="group flex items-center gap-4 p-6 border border-neutral-200 rounded-2xl hover:border-neutral-900 transition-all"
+                    className="group flex items-center gap-4 p-6 border border-neutral-200 rounded-2xl hover:border-sky-500 transition-all"
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ delay: i * 0.08 }}
                     whileHover={{ y: -4 }}
                   >
-                    <div className="size-6 rounded-full border-2 border-neutral-300 group-hover:border-neutral-900 flex items-center justify-center shrink-0 transition-colors" />
+                    <div className="size-6 rounded-full border-2 border-neutral-300 group-hover:border-sky-500 flex items-center justify-center shrink-0 transition-colors" />
                     <span className="flex-1 text-neutral-900 transition-colors">
                       {item.label}
                     </span>
-                    <ArrowRight className="size-5 text-neutral-400 group-hover:text-neutral-900 group-hover:translate-x-1 transition-all" />
+                    <ArrowRight className="size-5 text-neutral-400 group-hover:text-sky-700 group-hover:translate-x-1 transition-all" />
                   </motion.a>
                 ))}
               </div>
@@ -1069,7 +1069,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                       window.location.href = "/patients/appointments?type=telemedicine"
                     }
                   }}
-                  className="group relative flex flex-col justify-between p-7 text-left border border-slate-200/90 rounded-3xl hover:border-slate-800 bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden min-h-[220px]"
+                  className="group relative flex flex-col justify-between p-7 text-left border border-slate-200/90 rounded-3xl hover:border-sky-500 bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden min-h-[220px]"
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -1105,7 +1105,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                           <action.icon className="size-7 text-sky-600" strokeWidth={1.8} />
                         </div>
                       )}
-                      <div className="size-8 rounded-full bg-white/80 backdrop-blur-sm border border-slate-200/60 flex items-center justify-center text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all shadow-xs">
+                      <div className="size-8 rounded-full bg-white/80 backdrop-blur-sm border border-slate-200/60 flex items-center justify-center text-slate-400 group-hover:text-sky-700 group-hover:translate-x-0.5 transition-all shadow-xs">
                         <ArrowRight className="size-4" />
                       </div>
                     </div>
@@ -1211,7 +1211,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 <button
                   type="submit"
                   disabled={topupLoading}
-                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-stone-950 py-3 text-sm font-semibold text-white hover:bg-stone-800 disabled:opacity-70 active:scale-[0.98] transition-all shadow-sm"
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-sky-700 py-3 text-sm font-semibold text-white hover:bg-sky-800 disabled:opacity-70 active:scale-[0.98] transition-all shadow-sm"
                 >
                   {topupLoading ? (
                     <>
