@@ -106,7 +106,9 @@ function getStatusBadge(status: MedicalOrderStatus) {
 export function DoctorsMedicalOrdersPage() {
   const { user } = useAuthenticatedUser();
   const { doctor } = useCurrentDoctor(user?.id);
-  const dateLocale = doctor?.care_country === "BR" ? "pt-BR" : "es-AR";
+  const doctorCountry = (doctor as (NonNullable<typeof doctor> & { care_country?: string }) | null)
+    ?.care_country;
+  const dateLocale = doctorCountry === "BR" ? "pt-BR" : "es-AR";
   const { patients, loading: patientsLoading } = useRealPatients();
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [patientSearch, setPatientSearch] = useState("");

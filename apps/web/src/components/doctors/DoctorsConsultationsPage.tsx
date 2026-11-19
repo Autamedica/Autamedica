@@ -554,7 +554,8 @@ export function DoctorsConsultationsPage({
                           row.createdAt ??
                           row.consultation_date ??
                           row.created_at,
-                      , dateLocale);
+                        dateLocale,
+                      );
                       const summary = medicalRecordSummary(row);
                       return (
                         <article
