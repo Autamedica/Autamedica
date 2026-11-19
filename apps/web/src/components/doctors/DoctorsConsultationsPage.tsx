@@ -40,11 +40,11 @@ function displayValue(value: unknown, fallback = "No informado"): string {
   return fallback;
 }
 
-function formatDate(value: unknown): string {
+function formatDate(value: unknown, locale: string): string {
   if (typeof value !== "string" || !value.trim()) return "No informada";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString("es-AR", {
+  return date.toLocaleDateString(locale, {
     day: "2-digit",
     month: "long",
     year: "numeric",
@@ -193,6 +193,7 @@ export function DoctorsConsultationsPage({
   const isBrazilianDoctor =
     (doctor as (NonNullable<typeof doctor> & { care_country?: string }) | null)?.care_country ===
     "BR";
+  const dateLocale = isBrazilianDoctor ? "pt-BR" : "es-AR";
 
   if (selectedPatientId && (selectedPatient || patientsLoading)) {
     if (patientsLoading && !selectedPatient) {
@@ -277,7 +278,7 @@ export function DoctorsConsultationsPage({
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-am-primary-50 text-[#0284C7] ring-2 ring-emerald-500/40">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-am-primary-50 text-[#0284C7] ring-2 ring-sky-500/40">
                 <UserRound className="h-6 w-6" />
               </div>
               <div className="min-w-0 flex-1">
@@ -297,7 +298,7 @@ export function DoctorsConsultationsPage({
                 className={
                   "inline-flex min-h-10 items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold text-white " +
                   (profile.phone
-                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    ? "bg-sky-600 hover:bg-sky-700"
                     : "pointer-events-none bg-slate-300")
                 }
               >
@@ -362,7 +363,7 @@ export function DoctorsConsultationsPage({
                   />
                   <InfoCard
                     label={isBrazilianDoctor ? "Nascimento" : "Fecha de nacimiento"}
-                    value={formatDate(selectedPatient.birth_date)}
+                    value={formatDate(selectedPatient.birth_date, dateLocale)}
                     icon={Calendar}
                   />
                   <InfoCard
@@ -553,7 +554,7 @@ export function DoctorsConsultationsPage({
                           row.createdAt ??
                           row.consultation_date ??
                           row.created_at,
-                      );
+                      , dateLocale);
                       const summary = medicalRecordSummary(row);
                       return (
                         <article
@@ -617,7 +618,7 @@ export function DoctorsConsultationsPage({
                       >
                         <div className="flex items-center gap-2">
                           {appointment.type === "telemedicine" ? (
-                            <Video className="h-4 w-4 text-emerald-600" />
+                            <Video className="h-4 w-4 text-sky-600" />
                           ) : (
                             <Calendar className="h-4 w-4 text-am-primary-600" />
                           )}
@@ -628,7 +629,7 @@ export function DoctorsConsultationsPage({
                                 : "Consulta presencial"}
                             </p>
                             <p className="text-[10px] text-slate-500">
-                              {formatDate(appointment.start_time)} ·{" "}
+                              {formatDate(appointment.start_time, dateLocale)} ·{" "}
                               {new Date(appointment.start_time).toLocaleTimeString(
                                 isBrazilianDoctor ? "pt-BR" : "es-AR",
                                 { hour: "2-digit", minute: "2-digit" },
@@ -694,7 +695,7 @@ export function DoctorsConsultationsPage({
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
             <Video className="h-5 w-5" />
           </div>
           <h2 className="text-base font-bold text-[#0F2537]">Teleconsulta</h2>
@@ -710,7 +711,7 @@ export function DoctorsConsultationsPage({
             </a>
             <a
               href="/doctors/call/index"
-              className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#0F2537] px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#17364D]"
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#0284C7] px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-sky-700"
             >
               Ir a llamadas
             </a>

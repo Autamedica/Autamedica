@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DoctorsPortalFrame } from "@/components/doctors/DoctorsPortalFrame";
+import { useAuthenticatedUser } from "@/hooks/doctors/useAuthenticatedUser";
+import { useCurrentDoctor } from "@/hooks/doctors/useRealDoctors";
 import { PrescriptionCreateModal } from "@/components/doctors/medical/PrescriptionCreateModal";
 import {
   CertificateCreateModal,
@@ -106,8 +108,8 @@ interface PrescriptionDisplayData {
   notes: string;
 }
 
-function formatDateTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleString("es-AR", {
+function formatDateTime(dateStr: string, locale: string): string {
+  return new Date(dateStr).toLocaleString(locale, {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -245,6 +247,10 @@ const CERT_TYPE_LABELS: Record<string, string> = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function DoctorsPrescriptionsPage() {
+  const { user } = useAuthenticatedUser();
+  const { doctor } = useCurrentDoctor(user?.id);
+  const dateLocale = doctor?.care_country === "BR" ? "pt-BR" : "es-AR";
+
   // Patient selection
   const { patients, loading: patientsLoading } = useRealPatients();
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
@@ -957,7 +963,7 @@ export function DoctorsPrescriptionsPage() {
                                   )}
                                   <div className="mt-2 flex items-center gap-2 text-[11px] text-neutral-400">
                                     <Clock className="h-3 w-3" />
-                                    <span>{formatDateTime(createdAt)}</span>
+                                    <span>{formatDateTime(createdAt, dateLocale)}</span>
                                     {cuir && (
                                       <span className="font-mono text-[10px] text-am-primary-500">
                                         {cuir}
@@ -1139,7 +1145,7 @@ export function DoctorsPrescriptionsPage() {
 
                               <div className="mt-2 flex items-center gap-2 text-[11px] text-neutral-400">
                                 <Clock className="h-3 w-3" />
-                                <span>{formatDateTime(cert.created_at)}</span>
+                                <span>{formatDateTime(cert.created_at, dateLocale)}</span>
                                 {cert.status === "signed" && cert.cuir && (
                                   <span className="font-mono text-[10px] text-am-primary-600 font-semibold bg-am-primary-50 px-2 py-0.5 rounded border border-am-primary-100">
                                     Ref.: {cert.cuir}
@@ -1431,7 +1437,7 @@ function PrescriptionDetailPanel({
           {createdAt && (
             <div>
               <p className="text-[10px] font-semibold uppercase text-neutral-500">Creada</p>
-              <p className="text-sm text-neutral-600">{formatDateTime(createdAt)}</p>
+              <p className="text-sm text-neutral-600">{formatDateTime(createdAt, dateLocale)}</p>
             </div>
           )}
           {signedPdfUrl && (

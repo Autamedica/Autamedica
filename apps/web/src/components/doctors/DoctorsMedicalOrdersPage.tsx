@@ -16,6 +16,8 @@ import {
 import { DoctorsPortalFrame } from "@/components/doctors/DoctorsPortalFrame";
 import { MedicalOrderCreateModal } from "@/components/doctors/medical/MedicalOrderCreateModal";
 import { useRealPatients } from "@/hooks/doctors/useRealPatients";
+import { useAuthenticatedUser } from "@/hooks/doctors/useAuthenticatedUser";
+import { useCurrentDoctor } from "@/hooks/doctors/useRealDoctors";
 import { medicalOrderService } from "@/lib/doctors/services/medical-order.service";
 import type { MedicalOrder, MedicalOrderStatus, UUID } from "@/types/medical";
 import type { PatientWithProfile } from "@autamedica/types";
@@ -79,8 +81,8 @@ function matchesPatientSearch(patient: PatientWithProfile, query: string): boole
     .includes(normalizedQuery);
 }
 
-function formatDateTime(date: string): string {
-  return new Date(date).toLocaleString("es-AR", {
+function formatDateTime(date: string, locale: string): string {
+  return new Date(date).toLocaleString(locale, {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -102,6 +104,9 @@ function getStatusBadge(status: MedicalOrderStatus) {
 }
 
 export function DoctorsMedicalOrdersPage() {
+  const { user } = useAuthenticatedUser();
+  const { doctor } = useCurrentDoctor(user?.id);
+  const dateLocale = doctor?.care_country === "BR" ? "pt-BR" : "es-AR";
   const { patients, loading: patientsLoading } = useRealPatients();
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [patientSearch, setPatientSearch] = useState("");
@@ -297,7 +302,7 @@ export function DoctorsMedicalOrdersPage() {
                     )}
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-neutral-400">
                       <Clock className="h-3 w-3" />
-                      <span>{formatDateTime(order.created_at)}</span>
+                      <span>{formatDateTime(order.created_at, dateLocale)}</span>
                       {order.cuir && <span className="font-mono text-[10px] text-am-primary-500">{order.cuir}</span>}
                     </div>
                   </div>
