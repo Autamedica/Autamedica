@@ -503,7 +503,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             <button
               type="button"
               onClick={() => void refreshCallSession()}
-              className="rounded-2xl bg-[#0D9488] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#0F766E]"
+              className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-sky-600"
             >
               {isBrazilianDoctor ? 'Tentar novamente' : 'Reintentar'}
             </button>
@@ -557,7 +557,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             <button
               type="button"
               onClick={() => void refreshCallSession()}
-              className="rounded-2xl bg-[#0D9488] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#0F766E]"
+              className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-sky-600"
             >
               {isBrazilianDoctor ? 'Tentar novamente' : 'Reintentar'}
             </button>
@@ -667,7 +667,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                   <button
                     type="button"
                     onClick={() => { window.location.href = '/doctors' }}
-                    className="inline-flex items-center justify-center rounded-2xl bg-[#0D9488] px-5 py-3 text-sm font-semibold text-white hover:bg-[#0F766E] transition-colors"
+                    className="inline-flex items-center justify-center rounded-2xl bg-sky-500 px-5 py-3 text-sm font-semibold text-white hover:bg-sky-600 transition-colors"
                   >
                     {isBrazilianDoctor ? 'Voltar ao portal' : 'Volver al portal'}
                   </button>

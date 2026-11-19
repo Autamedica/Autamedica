@@ -143,7 +143,7 @@ export function CallEndedScreen({
                     <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
                   </div>
                   <div className="mt-3 flex gap-2">
-                    <a href={href} target="_blank" rel="noreferrer" className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl bg-[#10B981] px-3 text-xs font-semibold text-white hover:bg-[#0D9488]">{language === 'pt' ? 'Abrir documento' : 'Abrir documento'}</a>
+                    <a href={href} target="_blank" rel="noreferrer" className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl bg-sky-500 px-3 text-xs font-semibold text-white hover:bg-sky-600">{language === 'pt' ? 'Abrir documento' : 'Abrir documento'}</a>
                     <a href={share} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700">{language === 'pt' ? 'Compartilhar' : 'Compartir'}</a>
                   </div>
                 </article>
@@ -161,7 +161,7 @@ export function CallEndedScreen({
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="relative group w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 overflow-hidden rounded-full bg-[#10B981] hover:bg-[#0D9488] text-white font-semibold px-6 py-3 text-sm shadow-xl shadow-emerald-100 transition-all active:scale-[0.99]"
+              className="relative group w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 overflow-hidden rounded-full bg-sky-500 hover:bg-sky-600 text-white font-semibold px-6 py-3 text-sm shadow-xl shadow-sky-100 transition-all active:scale-[0.99]"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:animate-[am-shimmer_2s_infinite]" />
               <MessageCircle className="w-4 h-4 fill-current" />
@@ -199,7 +199,7 @@ function LoadingScreen({ language }: { language: 'pt' | 'es' }) {
   return (
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-slate-50 p-6 text-slate-900">
       <div className="text-center">
-        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-[#10B981]" />
+        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500" />
         <p className="mt-4 text-sm text-slate-600">{language === 'pt' ? 'Preparando a videochamada...' : 'Preparando la videollamada...'}</p>
       </div>
     </div>

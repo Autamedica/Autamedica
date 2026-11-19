@@ -27,14 +27,14 @@ const autamedicaPreset = {
           900: '#0C4A6E',
         },
         "am-doctor": {
-          50: '#ECFEFF',
-          100: '#CFFAFE',
-          200: '#A5F3FC',
-          300: '#67E8F9',
-          400: '#22D3EE',
-          500: '#0891B2',
-          600: '#0E7490',
-          700: '#155E75',
+          50: '#F0F9FF',
+          100: '#E0F2FE',
+          200: '#BAE6FD',
+          300: '#7DD3FC',
+          400: '#38BDF8',
+          500: '#0EA5E9',
+          600: '#0284C7',
+          700: '#0369A1',
         },
         "am-patient": {
           50: '#F0F9FF',
@@ -49,7 +49,7 @@ const autamedicaPreset = {
         // Warm neutrals (stone-based, not cold slate)
         "am-surface": {
           white: '#FFFFFF',
-          50: '#FAFAF9',
+          50: '#F8FBFF',
           100: '#F5F5F4',
           200: '#E7E5E4',
           300: '#D6D3D1',
@@ -63,7 +63,7 @@ const autamedicaPreset = {
         "am-success": { light: '#D1FAE5', DEFAULT: '#10B981', dark: '#065F46' },
         "am-warning": { light: '#FEF3C7', DEFAULT: '#F59E0B', dark: '#92400E' },
         "am-danger": { light: '#FEE2E2', DEFAULT: '#EF4444', dark: '#991B1B' },
-        "am-info": { light: '#DBEAFE', DEFAULT: '#3B82F6', dark: '#1E40AF' },
+        "am-info": { light: '#E0F2FE', DEFAULT: '#0EA5E9', dark: '#0369A1' },
 
         // Legacy brand colors (backward compat)
         "autamedica-ivory": "var(--ivory)",

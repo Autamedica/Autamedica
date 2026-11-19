@@ -68,7 +68,7 @@ function ChangePasswordSection({ isPortuguese }: { isPortuguese: boolean }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6">
       <div className="mb-4 flex items-center gap-2">
-        <KeyRound className="h-5 w-5 text-emerald-600" />
+        <KeyRound className="h-5 w-5 text-sky-600" />
         <h2 className="text-lg font-semibold text-slate-900">
           {isPortuguese ? 'Alterar senha' : 'Cambiar contraseña'}
         </h2>
@@ -219,7 +219,7 @@ function NotificationsSection({ isPortuguese }: { isPortuguese: boolean }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6">
       <div className="mb-4 flex items-center gap-2">
-        <Bell className="h-5 w-5 text-emerald-600" />
+        <Bell className="h-5 w-5 text-sky-600" />
         <h2 className="text-lg font-semibold text-slate-900">{isPortuguese ? 'Notificações' : 'Notificaciones'}</h2>
       </div>
       <div className="max-w-md space-y-4">
@@ -352,7 +352,7 @@ export default function PatientSettingsPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Hero */}
-      <section className="bg-[#0F2537] px-6 lg:px-12 pt-10 pb-16">
+      <section className="bg-[#0284C7] px-6 lg:px-12 pt-10 pb-16">
         <div className="max-w-7xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 text-white/80 rounded-full text-xs font-medium mb-6">
             <Shield className="w-3.5 h-3.5" />
