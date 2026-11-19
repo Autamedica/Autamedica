@@ -791,7 +791,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             <div>
               <motion.div
                 className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium mb-6 ${
-                  !anamnesisCompleted ? 'bg-emerald-50 text-emerald-700' : 'bg-emerald-50 text-emerald-700'
+                  !anamnesisCompleted ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'
                 }`}
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
