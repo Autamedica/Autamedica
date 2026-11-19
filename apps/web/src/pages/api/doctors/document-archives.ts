@@ -106,7 +106,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     ]);
 
     const registeredAt = new Date().toISOString();
-    const { error: insertError } = await db.from('medical_document_archives').insert({
+    const patientIdRaw = clean(form.get('patient_id'), 36);
+    const patientId = /^[0-9a-f-]{36}$/i.test(patientIdRaw) ? patientIdRaw : null;
+
+    const { data: insertedArchive, error: insertError } = await db.from('medical_document_archives').insert({
       reference,
       doctor_id: doctor.id,
       document_date: documentDate,
@@ -129,10 +132,29 @@ export const POST: APIRoute = async ({ request, locals }) => {
       },
       signature_image_sha256: signatureImageSha256,
       stamp_image_sha256: stampImageSha256,
-    });
+    }).select('id').single();
     if (insertError) {
       if (insertError.code === '23505') return conflict('document_reference_or_pdf_already_registered');
       throw insertError;
+    }
+
+    const storagePath = `archives/${reference}.pdf`;
+    const { error: uploadError } = await admin.storage
+      .from('medical-documents')
+      .upload(storagePath, pdfBytes, { contentType: 'application/pdf', upsert: false });
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    if (patientId && insertedArchive?.id) {
+      const { error: linkError } = await db.from('medical_document_archive_patient_links').insert({
+        archive_id: insertedArchive.id,
+        patient_id: patientId,
+        link_method: 'administrative_review',
+      });
+      if (linkError) {
+        throw linkError;
+      }
     }
 
     const verificationUrl = `/verify/documentos/${reference}`;
