@@ -290,7 +290,7 @@ function PostDetailView({
                               {copy.doctor}{comment.doctor_specialty ? ` · ${comment.doctor_specialty}` : ''}
                             </span>
                           )}
-                          <span className="text-xs text-stone-300">{timeAgo(comment.created_at)}</span>
+                          <span className="text-xs text-stone-300">{timeAgo(comment.created_at, copy)}</span>
                         </div>
                       </div>
                     </div>
