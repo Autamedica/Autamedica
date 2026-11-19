@@ -193,7 +193,7 @@ fun DoctorCockpitHeader(
                                     .fillMaxSize()
                                     .background(
                                         Brush.linearGradient(
-                                            listOf(Color(0xFFEBF1FF), Color(0xFFF0FDF4))
+                                            listOf(Color(0xFFE0F2FE), Color(0xFFF0F9FF))
                                         )
                                     ),
                                 contentAlignment = Alignment.Center,
@@ -267,7 +267,7 @@ fun DoctorCockpitHeader(
             if (credentialLabel != null && guardApproved == true) {
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFFEBF1FF),
+                    color = Color(0xFFE0F2FE),
                     border = BorderStroke(0.5.dp, PortalDoctors.copy(alpha = 0.25f)),
                 ) {
                     Row(
