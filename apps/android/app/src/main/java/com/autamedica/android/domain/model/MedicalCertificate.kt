@@ -39,7 +39,15 @@ data class MedicalCertificate(
         )
 
     val effectivePdfUrl: String?
-        get() = if (!isActive) null else signedPdfUrl?.takeIf { it.isNotBlank() }
+        get() {
+            if (!isActive) return null
+            val raw = signedPdfUrl?.trim()?.takeIf { it.isNotBlank() } ?: return null
+            return if (raw.startsWith("https://", ignoreCase = true)) {
+                raw
+            } else {
+                "https://autamedica.com/api/doctors/certificates/$id/pdf"
+            }
+        }
 
     val displayDaysOfRest: String
         get() = when {

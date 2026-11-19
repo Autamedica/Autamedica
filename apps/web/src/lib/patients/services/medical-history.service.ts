@@ -12,6 +12,7 @@ import {
   buildStrictPrescriptionArtifactWarning,
   requiresStrictPrescriptionValidation,
 } from "@/lib/prescriptions/strict-validation";
+import { isMedicalCertificatePubliclyVerifiable } from "@/lib/doctors/services/medical-certificate-verification";
 
 type Db = SupabaseClient<Database>;
 type CorePrescriptionRow = Pick<
@@ -285,7 +286,7 @@ async function listPatientCertificatesAndOrders(
   const loose = supabase as unknown as SupabaseClient;
   const [certificatesResult, ordersResult] = await Promise.all([
     loose.from("medical_certificates")
-      .select("id,doctor_id,patient_id,cuir,status,certificate_type,days_of_rest,start_date,end_date,diagnosis,observations,qr_code_content,signed_pdf_url,country_code,created_at,updated_at,signature_hash,signature_method")
+      .select("id,doctor_id,patient_id,cuir,status,certificate_type,days_of_rest,start_date,end_date,diagnosis,observations,qr_code_content,signed_pdf_url,country_code,created_at,updated_at,signature_hash,signature_method,signature_verified_at")
       .eq("patient_id", patientId).order("created_at", { ascending: false }),
     loose.from("medical_orders")
       .select("id,doctor_id,patient_id,appointment_id,study_type,practices,diagnosis,notes,status,cuir,qr_code_content,signed_pdf_url,created_at,updated_at")
@@ -293,8 +294,11 @@ async function listPatientCertificatesAndOrders(
   ]);
   if (certificatesResult.error) logger.warn("[medicalHistoryService] certificates query failed", { code: certificatesResult.error.code });
   if (ordersResult.error) logger.warn("[medicalHistoryService] orders query failed", { code: ordersResult.error.code });
+  const verifiableCertificates = ((certificatesResult.data ?? []) as Array<Record<string, unknown>>).filter(
+    (cert) => isMedicalCertificatePubliclyVerifiable(cert as unknown as Parameters<typeof isMedicalCertificatePubliclyVerifiable>[0]),
+  );
   return {
-    certificates: (certificatesResult.data ?? []) as Array<Record<string, unknown>>,
+    certificates: verifiableCertificates,
     orders: (ordersResult.data ?? []) as Array<Record<string, unknown>>,
   };
 }
