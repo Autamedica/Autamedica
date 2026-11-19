@@ -64,6 +64,8 @@ type TableChain = {
   select: ReturnType<typeof vi.fn>
   eq: ReturnType<typeof vi.fn>
   gt: ReturnType<typeof vi.fn>
+  order: ReturnType<typeof vi.fn>
+  limit: ReturnType<typeof vi.fn>
   is: ReturnType<typeof vi.fn>
   maybeSingle: ReturnType<typeof vi.fn>
   single: ReturnType<typeof vi.fn>
@@ -78,6 +80,8 @@ function buildTableChain(data: unknown, error: unknown = null): TableChain {
     select: vi.fn(),
     eq: vi.fn(),
     gt: vi.fn(),
+    order: vi.fn(),
+    limit: vi.fn(),
     is: vi.fn(),
     maybeSingle: vi.fn(),
     single: vi.fn(),
@@ -86,6 +90,8 @@ function buildTableChain(data: unknown, error: unknown = null): TableChain {
   chain.select.mockReturnValue(chain)
   chain.eq.mockReturnValue(chain)
   chain.gt.mockReturnValue(chain)
+  chain.order.mockReturnValue(chain)
+  chain.limit.mockReturnValue(chain)
   chain.is.mockReturnValue(chain)
   chain.maybeSingle.mockReturnValue(chain)
   chain.single.mockReturnValue(chain)
@@ -162,6 +168,30 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
     supabaseMock.from.mockImplementation(() => call++ === 0 ? lookup : update)
     const response = await DELETE(makeContext({ method: 'DELETE' }))
     expect(response.status).toBe(409)
+  })
+
+  it('mantiene HTTP 409 si falla la consulta diagnóstica del pago', async () => {
+    patientContextMock.resolve.mockResolvedValue({
+      careCountry: 'AR',
+      patientId: 'patient-row-1',
+      userId: 'patient-user-1',
+    })
+    const lookup = buildTableChain(REQUEST_RECORD)
+    const update = buildTableChain(null)
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_requests') {
+        return supabaseMock.from.mock.calls.length === 1 ? lookup : update
+      }
+      if (table === 'pharmacy_dispatch_payments') {
+        throw new Error('diagnostic_table_unavailable')
+      }
+      return buildTableChain(null)
+    })
+
+    const response = await DELETE(makeContext({ method: 'DELETE' }))
+
+    expect(response.status).toBe(409)
+    expect(supabaseMock.from).toHaveBeenCalledWith('pharmacy_dispatch_payments')
   })
 
   it('permite cancelar a un invitado sin sesión con credencial ligada a requestId y roomId', async () => {
