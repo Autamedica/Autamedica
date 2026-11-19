@@ -273,6 +273,9 @@ private class FakeDoctorCertificateRepository(
     override suspend fun getCertificateById(id: String): Result<MedicalCertificate> =
         Result.success(certificates.first())
 
+    override suspend fun getCertificatePdfDownloadUrl(certificate: MedicalCertificate): Result<String> =
+        Result.failure(UnsupportedOperationException("Certificate PDF download is not exercised by this test"))
+
     override suspend fun getDoctorCertificates(patientId: String?): Result<List<MedicalCertificate>> =
         Result.success(certificates)
 

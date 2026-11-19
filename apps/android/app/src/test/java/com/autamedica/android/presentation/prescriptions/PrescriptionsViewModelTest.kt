@@ -218,6 +218,9 @@ private class FakeMedicalCertificateRepository(
         return if (item != null) Result.success(item) else Result.failure(NoSuchElementException())
     }
 
+    override suspend fun getCertificatePdfDownloadUrl(certificate: MedicalCertificate): Result<String> =
+        Result.failure(UnsupportedOperationException("Certificate PDF download is not exercised by this test"))
+
     override suspend fun getDoctorCertificates(patientId: String?): Result<List<MedicalCertificate>> =
         Result.success(items)
 
