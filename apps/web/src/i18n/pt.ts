@@ -671,6 +671,11 @@ export const pt: DeepPartial<Widen<TranslationDict>> = {
         continueWithoutSpeaking: 'Continuar sem conversar',
         reviewAll: 'Revisar tudo desde o início',
         prioritize: 'Com base no motivo da consulta, vamos priorizar',
+        step: 'Etapa',
+        of: 'de',
+        completedSections: 'Seções concluídas',
+        updateQuestion: 'O que você deseja atualizar?',
+        patient: 'Paciente',
       },
       shortSections: {
         edad: 'Idade',
