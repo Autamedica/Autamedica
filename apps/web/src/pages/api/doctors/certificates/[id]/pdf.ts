@@ -13,12 +13,12 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
   const id = params.id;
   if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return badRequest('invalid_certificate_id');
   const auth = await withAuth(request, locals);
-  let authenticatedUserId = isAuthed(auth) ? authenticatedUserId : null;
+  let authenticatedUserId = isAuthed(auth) ? auth.user.id : null;
 
   // Native clients send their Supabase session as a bearer token; SSR cookie
   // authentication remains the first choice for browser requests.
   if (!authenticatedUserId) {
-    const bearerToken = /^Bearer\\s+(\\S+)$/i.exec(request.headers.get('authorization') ?? '')?.[1];
+    const bearerToken = /^Bearer\s+(\S+)$/i.exec(request.headers.get('authorization') ?? '')?.[1];
     if (bearerToken) {
       try {
         const authAdmin = createAstroAdminClient(locals.runtime?.env);
