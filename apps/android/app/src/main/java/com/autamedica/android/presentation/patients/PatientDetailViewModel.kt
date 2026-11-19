@@ -1,6 +1,13 @@
 package com.autamedica.android.presentation.patients
 
 import androidx.lifecycle.SavedStateHandle
+import com.autamedica.android.R
+import com.autamedica.android.domain.model.InvalidPatientReferenceException
+import com.autamedica.android.domain.model.PatientNotAssignedException
+import com.autamedica.android.domain.model.PatientNotFoundOrUnauthorizedException
+import java.io.IOException
+import java.net.UnknownHostException
+import kotlinx.coroutines.Job
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autamedica.android.domain.model.Appointment
@@ -22,7 +29,7 @@ data class PatientDetailUiState(
     val patient: PatientDetail? = null,
     val joinableAppointmentIds: Set<String> = emptySet(),
     val isLoading: Boolean = true,
-    val error: String? = null,
+    val errorMessageRes: Int? = null,
     val telemedicineError: String? = null,
     val userId: String = "",
     val userName: String = "",
@@ -45,50 +52,84 @@ class PatientDetailViewModel @Inject constructor(
         loadPatientDetail()
     }
 
+    private var loadJob: Job? = null
+
     fun refresh() {
         loadPatientDetail()
     }
 
     private fun loadPatientDetail() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    patient = null,
+                    joinableAppointmentIds = emptySet(),
+                    isLoading = true,
+                    errorMessageRes = null,
+                    telemedicineError = null,
+                )
+            }
+
+            if (patientId.isBlank()) {
+                _uiState.update {
+                    it.copy(isLoading = false, errorMessageRes = R.string.patient_detail_error_invalid_reference)
+                }
+                return@launch
+            }
 
             val user = authRepository.getCurrentUser()
             if (user == null) {
-                _uiState.update { it.copy(isLoading = false, error = "Error de autenticacion") }
+                _uiState.update {
+                    it.copy(isLoading = false, errorMessageRes = R.string.patient_detail_error_auth)
+                }
                 return@launch
             }
             _uiState.update { it.copy(userId = user.id) }
 
-            doctorRepository.getDoctorProfile(user.id).onSuccess { profile ->
-                doctorRepository.getPatientDetail(
-                    doctorId = profile.id,
-                    patientId = patientId,
-                ).onSuccess { detail ->
-                    val (joinableIds, telemedicineError) = resolveJoinableAppointmentIds(detail.appointmentHistory)
-                    _uiState.update {
-                        it.copy(
-                            patient = detail,
-                            joinableAppointmentIds = joinableIds,
-                            isLoading = false,
-                            telemedicineError = telemedicineError,
-                            userName = "${detail.firstName} ${detail.lastName}".trim(),
-                        )
-                    }
-                }.onFailure { error ->
-                    SecureLog.error("[PatientDetail] Failed fetching patient detail", error)
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            error = "No se pudo cargar la informacion del paciente",
-                        )
-                    }
-                }
-            }.onFailure { error ->
-                SecureLog.error("[PatientDetail] Failed fetching doctor profile", error)
+            val doctorProfile = doctorRepository.getDoctorProfile(user.id).getOrElse {
                 _uiState.update {
-                    it.copy(isLoading = false, error = "Error de autenticacion")
+                    it.copy(isLoading = false, errorMessageRes = R.string.patient_detail_error_auth)
                 }
+                return@launch
+            }
+
+            val detail = doctorRepository.getPatientDetail(
+                doctorId = doctorProfile.id,
+                patientId = patientId,
+            ).getOrElse { error ->
+                SecureLog.warn("[PatientDetail] Patient detail request failed")
+                _uiState.update {
+                    it.copy(isLoading = false, errorMessageRes = errorMessageResource(error))
+                }
+                return@launch
+            }
+
+            val (joinableIds, telemedicineError) = resolveJoinableAppointmentIds(detail.appointmentHistory)
+            _uiState.update {
+                it.copy(
+                    patient = detail,
+                    joinableAppointmentIds = joinableIds,
+                    isLoading = false,
+                    errorMessageRes = null,
+                    telemedicineError = telemedicineError,
+                    userName = "${detail.firstName} ${detail.lastName}".trim(),
+                )
+            }
+        }
+    }
+
+    private fun errorMessageResource(error: Throwable): Int = when (error) {
+        is InvalidPatientReferenceException -> R.string.patient_detail_error_invalid_reference
+        is PatientNotAssignedException, is PatientNotFoundOrUnauthorizedException ->
+            R.string.patient_detail_error_not_assigned
+        is UnknownHostException, is IOException -> R.string.patient_detail_error_network
+        else -> {
+            val message = error.message.orEmpty().lowercase()
+            if ("timeout" in message || "network" in message || "connection" in message) {
+                R.string.patient_detail_error_network
+            } else {
+                R.string.patient_detail_error_generic
             }
         }
     }
