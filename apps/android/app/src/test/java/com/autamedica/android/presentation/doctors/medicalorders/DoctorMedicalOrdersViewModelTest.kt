@@ -240,4 +240,6 @@ private class FakePrescriptionRepository(
     override suspend fun getPrescriptionById(id: String): Result<Prescription> = Result.failure(NotImplementedError())
     override suspend fun createPrescription(request: CreatePrescriptionRequest): Result<Prescription> = Result.failure(NotImplementedError())
     override suspend fun cancelPrescription(prescriptionId: String, reason: String): Result<Unit> = Result.success(Unit)
+    override suspend fun downloadPatientPrescriptionPdf(prescriptionId: String): Result<com.autamedica.android.domain.model.DownloadedPrescriptionPdf> =
+        Result.failure(UnsupportedOperationException("PDF download is not exercised by this test"))
 }
