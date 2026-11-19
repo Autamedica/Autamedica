@@ -16,21 +16,11 @@ CREATE POLICY "profiles_select_assigned_patient"
 -- patient row readable through the exact same approved/legacy relationship,
 -- without granting access to unrelated patient records.
 DROP POLICY IF EXISTS "patients_select_doctor_patient_link" ON public.patients;
-CREATE POLICY "patients_select_doctor_patient_link"
+DROP POLICY IF EXISTS "patients_select_assigned_patient" ON public.patients;
+CREATE POLICY "patients_select_assigned_patient"
   ON public.patients
   FOR SELECT
   TO authenticated
-  USING (
-    public.is_clinically_authorized_doctor_read_for_patient(id)
-    AND EXISTS (
-      SELECT 1
-      FROM public.doctors d
-      JOIN public.doctor_patient dp
-        ON dp.doctor_id = d.id
-       AND dp.patient_id = patients.id
-      WHERE d.user_id = (SELECT auth.uid())
-        AND d.active IS TRUE
-    )
-  );
+  USING (public.doctor_has_patient_read_access(user_id));
 
 COMMIT;
