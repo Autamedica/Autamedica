@@ -6,6 +6,7 @@ import com.autamedica.android.domain.model.PharmacyConsultationRequest
 import com.autamedica.android.domain.model.PharmacyConsultationStatus
 import com.autamedica.android.domain.model.RequestStatusResponse
 import com.autamedica.android.domain.repository.AuthRepository
+import com.autamedica.android.data.remote.currentAuthenticatedUserIdOrNull
 import com.autamedica.android.domain.repository.PharmacyOnDemandRepository
 import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
@@ -14,6 +15,7 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -25,6 +27,8 @@ import kotlinx.serialization.json.put
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
+import io.github.jan.supabase.realtime.realtime
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -149,24 +153,32 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
         if (isRealtimeSubscribed) return
         isRealtimeSubscribed = true
         scope.launch {
-            runCatching {
+            authRepository.observeSession().collectLatest { user ->
+                val sessionUserId = supabaseClient.currentAuthenticatedUserIdOrNull()
+                if (user == null || user.id != sessionUserId) {
+                    _onDutyFlow.value = DoctorOnDutyPharmacyState()
+                    cachedDoctorId = null
+                    return@collectLatest
+                }
                 val channel = supabaseClient.channel("pharmacy-dispatch-search-queue-legacy")
-                val changeFlow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
-                    table = "pharmacy_dispatch_requests"
-                }
-                channel.subscribe()
-                changeFlow.collect {
-                    val currentStatus = getOnDutyStatus().getOrNull()
-                    if (currentStatus != null && currentStatus.isOnDuty) {
-                        val pending = getPendingQueue().getOrDefault(emptyList())
-                        _onDutyFlow.value = currentStatus.copy(
-                            waitingQueueCount = pending.size,
-                            pendingRequests = pending
-                        )
+                try {
+                    val changeFlow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
+                        table = "pharmacy_dispatch_requests"
                     }
+                    channel.subscribe()
+                    getOnDutyStatus().onSuccess { state -> _onDutyFlow.value = state }
+                    changeFlow.collect {
+                        if (supabaseClient.currentAuthenticatedUserIdOrNull() == sessionUserId) {
+                            getOnDutyStatus().onSuccess { state -> _onDutyFlow.value = state }
+                        }
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    SecureLog.error("[PharmacyOnDemandRepo] Realtime subscription error", error)
+                } finally {
+                    runCatching { supabaseClient.realtime.removeChannel(channel) }
                 }
-            }.onFailure {
-                SecureLog.error("[PharmacyOnDemandRepo] Realtime subscription error", it)
             }
         }
     }
@@ -174,7 +186,9 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
     override fun observeOnDutyState(): Flow<DoctorOnDutyPharmacyState> = _onDutyFlow.asStateFlow()
 
     override suspend fun getOnDutyStatus(): Result<DoctorOnDutyPharmacyState> = runCatching {
-        val user = authRepository.getCurrentUser() ?: throw IllegalStateException("Not authenticated")
+        val sessionUserId = supabaseClient.currentAuthenticatedUserIdOrNull()
+        val user = authRepository.getCurrentUser()?.takeIf { it.id == sessionUserId }
+            ?: throw IllegalStateException("Not authenticated")
         val doc = supabaseClient.postgrest
             .from("doctors")
             .select(Columns.list("id", "on_duty_pharmacy", "on_duty_since")) {
@@ -220,7 +234,9 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
     }
 
     override suspend fun toggleOnDuty(onDuty: Boolean): Result<DoctorOnDutyPharmacyState> = runCatching {
-        val user = authRepository.getCurrentUser() ?: throw IllegalStateException("Not authenticated")
+        val sessionUserId = supabaseClient.currentAuthenticatedUserIdOrNull()
+        val user = authRepository.getCurrentUser()?.takeIf { it.id == sessionUserId }
+            ?: throw IllegalStateException("Not authenticated")
         val doc = supabaseClient.postgrest
             .from("doctors")
             .select(Columns.list("id")) {
@@ -257,6 +273,9 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getPendingQueue(): Result<List<PharmacyConsultationRequest>> = runCatching {
+        check(supabaseClient.currentAuthenticatedUserIdOrNull() != null) {
+            "Authenticated physician session required for pending dispatch offers"
+        }
         // Do NOT expose the global patient queue or Gen 1 fallback.
         // The server returns only pending, unexpired offers to the
         // authenticated and ADMIN-APPROVED physician in this country.
@@ -269,7 +288,9 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
     }
 
     override suspend fun claimRequest(requestId: String): Result<PharmacyClaimResult> = runCatching {
-        val user = authRepository.getCurrentUser() ?: throw IllegalStateException("Not authenticated")
+        val sessionUserId = supabaseClient.currentAuthenticatedUserIdOrNull()
+        val user = authRepository.getCurrentUser()?.takeIf { it.id == sessionUserId }
+            ?: throw IllegalStateException("Not authenticated")
         val effectiveDoctorId = cachedDoctorId ?: run {
             val d = supabaseClient.postgrest
                 .from("doctors")
