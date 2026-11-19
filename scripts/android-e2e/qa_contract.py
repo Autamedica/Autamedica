@@ -55,20 +55,28 @@ def assert_no_visible_error(screen_text: str) -> None:
 
 
 def evaluate_patient_detail(screen_text: str, patient_data_rendered: bool) -> CaseResult:
+    evidence = redact_text(screen_text)
     try:
         assert_no_visible_error(screen_text)
     except VisibleUiError as error:
-        return CaseResult("TC04B_Patient_Detail_2x", CaseStatus.FAIL, str(error))
+        return CaseResult(
+            "TC04B_Patient_Detail_2x",
+            CaseStatus.FAIL,
+            str(error),
+            evidence=evidence,
+        )
     if not patient_data_rendered:
         return CaseResult(
             "TC04B_Patient_Detail_2x",
             CaseStatus.WARN,
             "No visible error, but authorized patient data was not verified.",
+            evidence=evidence,
         )
     return CaseResult(
         "TC04B_Patient_Detail_2x",
         CaseStatus.PASS,
         "Patient detail rendered and no visible UI error was found.",
+        evidence=evidence,
     )
 
 
