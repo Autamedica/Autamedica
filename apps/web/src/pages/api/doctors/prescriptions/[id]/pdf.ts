@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { badRequest, forbidden, internalError, notFound, jsonOk } from '@/lib/api-helpers';
 import { isAuthed, withAuth } from '@/lib/api-auth';
+import { resolvePatientContext } from '@/lib/patients/api/patient-context';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { logger } from '@autamedica/shared';
 
@@ -8,8 +9,17 @@ import { logger } from '@autamedica/shared';
 export const GET: APIRoute = async ({ request, params, locals }) => {
   const id = params.id;
   if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return badRequest('invalid_prescription_id');
-  const auth = await withAuth(request, locals);
-  if (!isAuthed(auth)) return auth;
+  // Patient mobile clients authenticate with a Supabase Bearer token; the
+  // patient resolver validates it with Auth and binds it to the real patient row.
+  const patientContext = await resolvePatientContext(request, locals);
+  let authenticatedUserId = patientContext?.userId ?? null;
+
+  // Issuing doctors may continue using their existing authenticated web session.
+  if (!authenticatedUserId) {
+    const auth = await withAuth(request, locals);
+    if (!isAuthed(auth)) return auth;
+    authenticatedUserId = auth.user.id;
+  }
 
   try {
     const admin = createAstroAdminClient(locals.runtime?.env);
@@ -25,8 +35,10 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
       admin.from('patients').select('user_id').eq('id', rx.patient_id).maybeSingle(),
     ]);
     if (doctorError || patientError) throw doctorError || patientError;
-    const isDoctor = doctor?.user_id === auth.user.id && doctor.active === true;
-    const isPatient = patient?.user_id === auth.user.id;
+    const isDoctor = doctor?.user_id === authenticatedUserId && doctor.active === true;
+    const isPatient = patientContext?.userId === authenticatedUserId
+      && patientContext.patientId === rx.patient_id
+      && patient?.user_id === authenticatedUserId;
     if (!isDoctor && !isPatient) return forbidden('prescription_access_denied');
 
     const [{ data: signatureEvent, error: signatureError }, { data: issueEvent, error: issueError }] = await Promise.all([
