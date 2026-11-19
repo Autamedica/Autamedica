@@ -111,8 +111,8 @@ describe('certificate PDF download bearer session', () => {
     const response = await invoke();
     expect(response.status).toBe(200);
     expect(state.getUser).toHaveBeenCalledWith('native-patient-jwt');
-    expect(state.storageDownload).toHaveBeenCalledWith('certificates/signed/document.pdf');
-    expect(state.createSignedUrl).toHaveBeenCalledWith('certificates/signed/document.pdf', 120);
+    expect(state.storageDownload).toHaveBeenCalledWith(`certificates/signed/${certificateId}.pdf`);
+    expect(state.createSignedUrl).toHaveBeenCalledWith(`certificates/signed/${certificateId}.pdf`, 120);
     expect(await response.json()).toEqual({ success: true, data: { url: signedUrl } });
   });
 
