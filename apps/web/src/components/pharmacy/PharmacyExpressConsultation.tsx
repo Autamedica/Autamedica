@@ -642,7 +642,7 @@ export function PharmacyExpressConsultation({
             )}
             <div className="mb-4 rounded-xl bg-slate-50 px-3 py-2.5 text-left text-xs"><p className="font-semibold text-slate-900">{copy.patient}: {formData.name}</p>{reasonSummary && <p className="mt-1 text-slate-600">{copy.reasonLabel}: {reasonSummary}</p>}</div>
             {requiresCountryPayment && requestId && accessToken && currentPricing && <div className="mb-4 w-full"><JordanPaymentWidget dispatchId={requestId} guestToken={accessToken} currency={currentPricing.currency} amountMinor={currentPricing.consultation_price_minor} countryCode={formData.careCountry as 'AR' | 'BR'} onStatusChange={(status) => setCountryPaymentApproved(status === 'approved')} /></div>}
-            {waitingSeconds >= 15 * 60 && (
+            {(!requiresCountryPayment || countryPaymentApproved) && waitingSeconds >= 15 * 60 && (
               <div className="space-y-3">
                 <p className="text-xs font-medium text-slate-600" role="status">{copy.cancelReady}</p>
                 <div className="flex items-center justify-center">
