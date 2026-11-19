@@ -14,10 +14,11 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
   try {
     const admin = createAstroAdminClient(locals.runtime?.env);
     const { data: rx, error } = await admin.from('prescriptions')
-      .select('id,doctor_id,patient_id,status,cuir,signed_pdf_url,signature_method')
+      .select('id,doctor_id,patient_id,status,cuir,signed_pdf_url,signature_method,pdf_sha256,pdf_byte_length,pdf_storage_path')
       .eq('id', id).maybeSingle();
     if (error) throw error;
-    if (rx?.status !== 'active' || !rx?.cuir || rx?.signature_method !== 'ac_external') return notFound();
+    if (rx?.status !== 'active') return notFound();
+    if (!rx.cuir || rx.signature_method !== 'ac_external') return notFound();
 
     const [{ data: doctor, error: doctorError }, { data: patient, error: patientError }] = await Promise.all([
       admin.from('doctors').select('user_id,active').eq('id', rx.doctor_id).maybeSingle(),
@@ -26,7 +27,7 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
     if (doctorError || patientError) throw doctorError || patientError;
     const isDoctor = doctor?.user_id === auth.user.id && doctor.active === true;
     const isPatient = patient?.user_id === auth.user.id;
-    if (!isDoctor && !isPatient) return notFound();
+    if (!isDoctor && !isPatient) return forbidden('prescription_access_denied');
 
     const [{ data: signatureEvent, error: signatureError }, { data: issueEvent, error: issueError }] = await Promise.all([
       admin.from('prescription_audit_events').select('signature_hash,metadata')
@@ -39,12 +40,14 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
     if (signatureError || issueError) throw signatureError || issueError;
     const signatureMeta = signatureEvent?.metadata as Record<string, unknown> | null;
     const issueMeta = issueEvent?.metadata as Record<string, unknown> | null;
-    const hash = signatureEvent?.signature_hash;
+    const auditHash = signatureEvent?.signature_hash;
     const path = String(issueMeta?.pdfPath ?? '');
-    if (!hash || issueMeta?.signature_hash !== hash ||
+    if (!auditHash || issueMeta?.signature_hash !== auditHash ||
         signatureMeta?.method !== 'PAdES_AC_EXTERNAL' ||
-        signatureMeta?.document_hash !== hash ||
-        !path.startsWith(`prescriptions/${rx.cuir}/`) || !path.endsWith('.pdf')) {
+        signatureMeta?.document_hash !== auditHash ||
+        !path.startsWith(`prescriptions/${rx.cuir}/`) || !path.endsWith('.pdf') ||
+        (rx.pdf_sha256 && rx.pdf_sha256 !== auditHash) ||
+        (rx.pdf_storage_path && rx.pdf_storage_path !== path)) {
       return forbidden('prescription_signature_evidence_invalid');
     }
 
@@ -52,13 +55,21 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
     if (downloadError || !pdf) return notFound('signed_pdf_missing');
     const pdfBytes = new Uint8Array(await pdf.arrayBuffer());
     const digest = await crypto.subtle.digest('SHA-256', pdfBytes);
-    const actualHash = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
-    if (actualHash !== hash) return forbidden('prescription_pdf_integrity_mismatch');
+    const actualHash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+    if (actualHash !== auditHash ||
+        (rx.pdf_sha256 && actualHash !== rx.pdf_sha256) ||
+        (rx.pdf_byte_length !== null && rx.pdf_byte_length !== undefined && Number(rx.pdf_byte_length) !== pdfBytes.byteLength)) {
+      return forbidden('prescription_pdf_integrity_mismatch');
+    }
 
     if (new URL(request.url).searchParams.get('downloadUrl') === 'true') {
       const { data: signed, error: signedError } = await admin.storage.from('medical-documents').createSignedUrl(path, 120);
       if (signedError || !signed) throw signedError;
-      const response = jsonOk({ url: signed.signedUrl });
+      const response = jsonOk({
+        url: signed.signedUrl,
+        sha256: actualHash,
+        byteLength: pdfBytes.byteLength,
+      });
       response.headers.set('Cache-Control', 'private, no-store');
       return response;
     }
@@ -69,6 +80,9 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
         'Content-Disposition': `attachment; filename="autamedica-${id}-signed.pdf"`,
         'Cache-Control': 'private, no-store, max-age=0',
         'X-Content-Type-Options': 'nosniff',
+        'X-Content-SHA256': actualHash,
+        'X-Content-Length': String(pdfBytes.byteLength),
+        'X-PDF-Integrity': 'verified',
       },
     });
   } catch {
