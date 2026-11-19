@@ -14,7 +14,7 @@ BEGIN
       ('medical_records','medical_records_select_scoped'),
       ('medical_records','medical_records_soft_delete'),
       ('medical_records','medical_records_update_authorized'),
-      ('profiles','Doctors global patient search'),
+      ('profiles','profiles_select_assigned_patient'),
       ('profiles','profiles_delete_admin'),
       ('profiles','profiles_select_self_or_admin')
     ) expected(relation_name,policy_name) JOIN pg_policies actual ON actual.schemaname='public' AND actual.tablename=expected.relation_name AND actual.policyname=expected.policy_name) <> 13 THEN
