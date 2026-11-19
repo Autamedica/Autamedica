@@ -505,6 +505,7 @@ export function PharmacyExpressConsultation({
               </fieldset>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {formData.careCountry ? (
                 <div>
                   <label htmlFor={dniInputId} className="block text-xs font-medium text-slate-600 mb-1.5 flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5 text-slate-500" />
@@ -532,6 +533,11 @@ export function PharmacyExpressConsultation({
                     </div>
                   )}
                 </div>
+                ) : (
+                  <p className="self-center text-sm text-slate-500">
+                    {isPortuguese ? 'Selecione o país para informar o documento correto.' : 'Seleccioná el país para informar el documento correcto.'}
+                  </p>
+                )}
 
                 <div>
                   <label htmlFor={nameInputId} className="block text-xs font-medium text-slate-600 mb-1.5 flex items-center gap-1.5">

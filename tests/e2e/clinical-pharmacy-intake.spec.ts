@@ -79,18 +79,27 @@ test.describe('Pharmacy intake AR/BR clinical country', () => {
     })
   }
 
-  test('Jordan referral preserves explicit Argentine clinical jurisdiction', async ({ page }) => {
+  test('Jordan QR defaults the clinical market to Brazil while keeping the Spanish UI locale', async ({ page }) => {
+    await page.setExtraHTTPHeaders({ 'Accept-Language': 'es-AR,es;q=0.9' })
     await page.goto('/farmacia/solicitar?ref=JORDAN')
     await waitForPharmacyHydration(page)
-    await expect(page.getByRole('radio', { name: 'Argentina' })).toBeVisible()
-    await page.getByText('Argentina', { exact: true }).click()
-    await expect(page.getByRole('radio', { name: 'Argentina' })).toBeChecked()
+
+    await expect(page.getByRole('heading', { name: 'Consulta médica' })).toBeVisible()
+    await expect(page.getByRole('textbox', { name: 'CPF' })).toBeVisible()
+    await expect(page.getByRole('textbox', { name: 'DNI' })).toHaveCount(0)
+    await expect(page.getByText('País de atención')).toHaveCount(0)
+  })
+
+  test('explicit Argentine QR market keeps DNI despite Jordan commercial attribution', async ({ page }) => {
+    await page.goto('/farmacia/solicitar?ref=JORDAN&careCountry=AR')
+    await waitForPharmacyHydration(page)
+
     await expect(page.getByRole('textbox', { name: 'DNI' })).toBeVisible()
     await expect(page.getByLabel('Sexo según DNI')).toBeVisible()
     await expect(page.getByRole('textbox', { name: 'CPF' })).toHaveCount(0)
   })
 
-  test('blocks request until country is selected without calling any backend', async ({ page }) => {
+  test('does not display a national document field until clinical country is selected', async ({ page }) => {
     let postCount = 0
     await page.route('**/api/pharmacy/dispatch/request', async (route) => {
       postCount++
@@ -99,7 +108,8 @@ test.describe('Pharmacy intake AR/BR clinical country', () => {
     await page.goto('/farmacia/solicitar')
     await waitForPharmacyHydration(page)
     await expect(page.getByRole('heading', { name: /Consulta médica/ })).toBeVisible()
-    await page.getByLabel('DNI').fill('38123456')
+    await expect(page.getByRole('textbox', { name: 'DNI' })).toHaveCount(0)
+    await expect(page.getByRole('textbox', { name: 'CPF' })).toHaveCount(0)
     await page.getByLabel('Nombre y apellido').fill('PACIENTE SINTETICO TEST')
     await page.getByLabel('WhatsApp').fill('+5491122223333')
     await page.getByRole('button', { name: 'Dolor / malestar' }).click()

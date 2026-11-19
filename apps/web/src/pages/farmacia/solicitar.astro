@@ -17,7 +17,9 @@ const patientContext = await resolvePatientContext(Astro.request, Astro.locals).
 // The patient's persisted jurisdiction wins; an explicit QR parameter is the
 // fallback for guests. A referral partner never selects the country of care.
 const initialCareCountry = patientContext?.careCountry
-  ?? (requestedCareCountry === 'AR' || requestedCareCountry === 'BR' ? requestedCareCountry : null);
+  ?? (requestedCareCountry === 'AR' || requestedCareCountry === 'BR'
+    ? requestedCareCountry
+    : requestedReferral === 'JORDAN' ? 'BR' : null);
 let referralCode: string | null = null;
 let referralPartnerName: string | null = null;
 if (requestedReferral && /^[A-Z0-9_-]{3,32}$/.test(requestedReferral)) {

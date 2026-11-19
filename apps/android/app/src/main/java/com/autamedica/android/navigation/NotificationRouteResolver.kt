@@ -146,7 +146,11 @@ object NotificationRouteResolver {
         // Handles https://autamedica.com/farmacia/*, https://www.autamedica.com/farmacia/*, autamedica://farmacia/*
         if (segments.any { it.equals("farmacia", ignoreCase = true) }) {
             val pharmacyId = extractPharmacyId(normalized)
-            return Route.PharmacyIntake(pharmacyId, extractReferralCode(normalized))
+            return Route.PharmacyIntake(
+                pharmacyId = pharmacyId,
+                referralCode = extractReferralCode(normalized),
+                careCountry = extractCareCountry(normalized),
+            )
         }
 
         // On-demand doctor duty / dispatch:
@@ -190,6 +194,23 @@ object NotificationRouteResolver {
         if (matches.size != 1) return ""
         val normalized = matches.single().trim().uppercase(java.util.Locale.ROOT)
         return normalized.takeIf { it.matches(Regex("^[A-Z0-9_-]{3,32}$")) } ?: ""
+    }
+
+    fun extractCareCountry(raw: String): String {
+        val query = raw.substringAfter('?', "").substringBefore('#')
+        val matches = query.split('&').mapNotNull { pair ->
+            val key = pair.substringBefore('=').trim()
+            if (!key.equals("careCountry", ignoreCase = true) &&
+                !key.equals("care_country", ignoreCase = true)
+            ) null
+            else if ('=' !in pair) null
+            else runCatching {
+                java.net.URLDecoder.decode(pair.substringAfter('='), "UTF-8")
+            }.getOrNull()
+        }
+        if (matches.size != 1) return ""
+        return matches.single().trim().uppercase(java.util.Locale.ROOT)
+            .takeIf { it == "AR" || it == "BR" } ?: ""
     }
 
     fun extractPharmacyId(raw: String): String {
