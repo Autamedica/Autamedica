@@ -14,8 +14,12 @@ import io.github.jan.supabase.auth.MemorySessionManager
 import io.github.jan.supabase.auth.MemoryCodeVerifierCache
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.Postgrest
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -392,7 +396,14 @@ class PharmacyDispatchRepositoryImplTest {
         assertThat(rpc!!.path).isEqualTo("/rest/v1/rpc/get_my_pending_dispatch_offers")
         assertThat(rpc.getHeader("Authorization"))
             .isEqualTo("Bearer synthetic-authenticated-doctor-jwt")
-        assertThat(authenticatedOffers.value.map { it.id })
+        val receivedOffers = withContext(Dispatchers.Default) {
+            withTimeout(5_000L) {
+                authenticatedOffers.first { offers ->
+                    offers.any { it.id == "offer-request-123" }
+                }
+            }
+        }
+        assertThat(receivedOffers.map { it.id })
             .containsExactly("offer-request-123")
 
         mockWebServer.enqueue(MockResponse().setResponseCode(204))
