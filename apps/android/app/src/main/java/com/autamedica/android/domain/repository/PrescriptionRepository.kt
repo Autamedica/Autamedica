@@ -2,6 +2,7 @@ package com.autamedica.android.domain.repository
 
 import com.autamedica.android.domain.model.CreatePrescriptionRequest
 import com.autamedica.android.domain.model.DoctorEligibility
+import com.autamedica.android.domain.model.DownloadedPrescriptionPdf
 import com.autamedica.android.domain.model.Prescription
 import com.autamedica.android.domain.model.PrescriptionPatientItem
 
@@ -44,4 +45,7 @@ interface PrescriptionRepository {
      * Verifies the doctor's professional license under the applicable jurisdiction registry (SISA/REFEPS for AR, CFM/CRM for BR).
      */
     suspend fun getDoctorEligibility(): Result<DoctorEligibility>
+
+    /** Downloads the patient-owned provider PDF and verifies its persisted SHA-256. */
+    suspend fun downloadPatientPrescriptionPdf(prescriptionId: String): Result<DownloadedPrescriptionPdf>
 }

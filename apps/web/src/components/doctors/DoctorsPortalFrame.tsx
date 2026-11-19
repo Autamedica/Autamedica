@@ -532,7 +532,7 @@ export function DoctorsPortalFrame({
           <div className="flex w-full max-w-sm flex-col items-center rounded-2xl border border-neutral-200 bg-white px-8 py-10 text-center shadow-sm">
             {/* Avatar with Golden Badge */}
             <div className="relative mb-5 flex-shrink-0">
-              <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-[#0F2537] text-base font-semibold text-white ring-2 ring-[#0284C7]/70 shadow-inner">
+              <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-[#0284C7] text-base font-semibold text-white ring-2 ring-[#0284C7]/70 shadow-inner">
                 {cachedProfile.avatarUrl ? (
                   <img
                     src={cachedProfile.avatarUrl}
@@ -679,7 +679,7 @@ export function DoctorsPortalFrame({
             </button>
 
             <div className="flex min-w-0 items-center gap-2">
-              <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-[#0F2537] text-xs font-semibold text-white ring-2 ring-emerald-500/70">
+              <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-[#0284C7] text-xs font-semibold text-white ring-2 ring-emerald-500/70">
                 {avatarUrl ? (
                   <img src={avatarUrl} alt={doctorName} className="h-full w-full object-cover" />
                 ) : (
@@ -734,7 +734,7 @@ export function DoctorsPortalFrame({
               >
                 <div className="relative flex-shrink-0">
                   <label
-                    className="group/avatar relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#0F2537] text-[13px] font-semibold text-white ring-2 ring-[#0284C7]/70 transition hover:ring-neutral-400"
+                    className="group/avatar relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#0284C7] text-[13px] font-semibold text-white ring-2 ring-[#0284C7]/70 transition hover:ring-neutral-400"
                     title={avatarUrl ? "Editar foto profesional" : "Subir foto profesional"}
                   >
                     {avatarUrl ? (

@@ -63,7 +63,7 @@ export function DoctorFAQPage() {
       <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
         
         {/* Banner de cabecera */}
-        <div className="relative overflow-hidden rounded-xl bg-am-surface-900 px-6 py-12 shadow-xl sm:px-12 text-white">
+        <div className="relative overflow-hidden rounded-xl bg-[#0284C7] px-6 py-12 shadow-xl sm:px-12 text-white">
           <div className="relative z-10 max-w-2xl space-y-4">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-am-doctor-500/10 px-3 py-1 text-xs font-bold text-am-doctor-400 border border-am-doctor-500/20">
               <Activity className="h-3.5 w-3.5" strokeWidth={1.5} />
@@ -114,7 +114,7 @@ export function DoctorFAQPage() {
                 }}
                 className={`flex items-center gap-2 rounded-xl py-3 px-4 text-xs font-bold transition-all shadow-sm ${
                   isActive
-                    ? "bg-am-surface-900 text-am-doctor-400 border border-am-surface-800 shadow-inner"
+                    ? "bg-sky-600 text-white border border-sky-700 shadow-inner"
                     : "bg-white border border-am-border text-am-text-secondary hover:border-am-border-hover hover:text-am-text-primary"
                 }`}
               >

@@ -64,7 +64,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.core.content.FileProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -91,6 +93,7 @@ import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
 import com.autamedica.android.presentation.theme.PortalPatients
+import java.io.File
 import java.time.Instant
 import java.time.LocalDate
 import java.time.OffsetDateTime
@@ -109,6 +112,18 @@ fun PrescriptionsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val openPrescriptionPdf: (Prescription, String) -> Unit = { prescription, fallbackUrl ->
+        if (!prescription.signedPdfUrl.isNullOrBlank()) {
+            viewModel.downloadPrescriptionPdf(prescription)
+        } else {
+            runCatching {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(fallbackUrl)))
+            }.onFailure {
+                Toast.makeText(context, context.getString(R.string.prescriptions_toast_pdf_error), Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     val onOpenCertificatePdf: (MedicalCertificate) -> Unit = { certificate ->
         viewModel.openCertificatePdf(
             certificate = certificate,
@@ -129,6 +144,33 @@ fun PrescriptionsScreen(
                 Toast.makeText(context, context.getString(R.string.prescriptions_toast_cert_pdf_error), Toast.LENGTH_SHORT).show()
             },
         )
+    }
+
+    LaunchedEffect(uiState.downloadedPdf?.localPath) {
+        val downloadedPdf = uiState.downloadedPdf ?: return@LaunchedEffect
+        runCatching {
+            val file = File(downloadedPdf.localPath)
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file,
+            )
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/pdf")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+        }.onFailure {
+            Toast.makeText(context, context.getString(R.string.prescriptions_toast_pdf_error), Toast.LENGTH_SHORT).show()
+        }
+        viewModel.clearDownloadedPdf()
+    }
+
+    LaunchedEffect(uiState.pdfDownloadFailed) {
+        if (uiState.pdfDownloadFailed) {
+            Toast.makeText(context, context.getString(R.string.prescriptions_toast_pdf_error), Toast.LENGTH_SHORT).show()
+            viewModel.clearPdfDownloadFailure()
+        }
     }
 
     Scaffold(
@@ -308,16 +350,7 @@ fun PrescriptionsScreen(
                                     PrescriptionCard(
                                         prescription = prescription,
                                         onClick = { viewModel.selectPrescription(prescription) },
-                                        onOpenPdf = { pdfUrl ->
-                                            runCatching {
-                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(pdfUrl)).apply {
-                                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                                }
-                                                context.startActivity(intent)
-                                            }.onFailure {
-                                                Toast.makeText(context, context.getString(R.string.prescriptions_toast_pdf_error), Toast.LENGTH_SHORT).show()
-                                            }
-                                        },
+                                        onOpenPdf = { pdfUrl -> openPrescriptionPdf(prescription, pdfUrl) },
                                         onCopyCuir = { cuir ->
                                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                             val clip = ClipData.newPlainText("CUIR", cuir)
@@ -353,16 +386,7 @@ fun PrescriptionsScreen(
         PrescriptionDetailBottomSheet(
             prescription = selected,
             onDismiss = viewModel::clearSelectedPrescription,
-            onOpenPdf = { pdfUrl ->
-                runCatching {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(pdfUrl)).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    context.startActivity(intent)
-                }.onFailure {
-                    Toast.makeText(context, context.getString(R.string.prescriptions_toast_pdf_error), Toast.LENGTH_SHORT).show()
-                }
-            },
+            onOpenPdf = { pdfUrl -> openPrescriptionPdf(selected, pdfUrl) },
             onCopyCuir = { cuir ->
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 val clip = ClipData.newPlainText("CUIR", cuir)

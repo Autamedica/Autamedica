@@ -344,6 +344,9 @@ private class FakeDoctorPrescriptionRepository(
     override suspend fun getEligiblePatients(): Result<List<PrescriptionPatientItem>> =
         Result.success(patients)
 
+    override suspend fun downloadPatientPrescriptionPdf(prescriptionId: String): Result<com.autamedica.android.domain.model.DownloadedPrescriptionPdf> =
+        Result.failure(UnsupportedOperationException("PDF download is not exercised by this test"))
+
     override suspend fun getDoctorEligibility(): Result<DoctorEligibility> =
         Result.success(DoctorEligibility(isEligible = true, doctorLicense = "MN 12345", validationStatus = "valid"))
 }

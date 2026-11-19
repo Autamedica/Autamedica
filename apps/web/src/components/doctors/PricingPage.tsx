@@ -18,10 +18,12 @@ const PLAN_ICONS: Record<string, typeof Shield> = {
   premium: Crown,
 };
 
-function formatPrice(cents: number): string {
-  return new Intl.NumberFormat("es-AR", {
+function formatPrice(cents: number, currencyCode: string): string {
+  const currency = currencyCode === "BRL" ? "BRL" : "ARS";
+  const locale = currency === "BRL" ? "pt-BR" : "es-AR";
+  return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: "ARS",
+    currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(cents / 100);
@@ -116,7 +118,7 @@ export function PricingPage() {
                     <h2 className="text-xl font-semibold text-neutral-900">{plan.name}</h2>
                     <div className="mt-3 flex items-baseline gap-1">
                       <span className="text-4xl font-light tracking-tight text-neutral-900">
-                        {formatPrice(plan.priceCents)}
+                        {formatPrice(plan.priceCents, plan.currency)}
                       </span>
                       <span className="text-[13px] text-neutral-400">
                         /{plan.interval === "monthly" ? "mes" : "ano"}
