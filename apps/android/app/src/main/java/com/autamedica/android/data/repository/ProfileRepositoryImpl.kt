@@ -7,6 +7,7 @@ import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.serialization.json.JsonObject
@@ -39,35 +40,94 @@ class ProfileRepositoryImpl @Inject constructor(
         SecureLog.error("[Profile] Failed fetching profile", it)
     }
 
+    private suspend fun authenticatedPatientUserId(): String {
+        val sessionUserId = supabaseClient.auth.currentSessionOrNull()?.user?.id
+            ?: throw IllegalStateException("invalid_mobile_session")
+        val storedUserId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
+            ?: throw IllegalStateException("invalid_mobile_session")
+        check(sessionUserId == storedUserId) { "invalid_mobile_session" }
+        return sessionUserId
+    }
+
     override suspend fun getCareCountry(): Result<String?> = runCatching {
-        val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
-            ?: throw IllegalStateException("No user ID found")
+        val userId = authenticatedPatientUserId()
         val row = supabaseClient.postgrest
             .from("patients")
             .select(Columns.list("care_country")) {
-                filter { eq("user_id", userId) }
+                filter {
+                    eq("user_id", userId)
+                    eq("active", true)
+                }
             }
             .decodeList<PatientCareCountryDto>()
             .firstOrNull()
         row?.careCountry?.takeIf { it == "AR" || it == "BR" }
     }.onFailure {
-        SecureLog.error("[Profile] Failed fetching patient care country", it)
+        SecureLog.error("[Profile] Failed fetching active patient care country", it)
+    }
+
+    override suspend fun persistCareCountry(country: String): Result<String> = runCatching {
+        require(country == "AR" || country == "BR") { "care_country_required" }
+        val userId = authenticatedPatientUserId()
+        val activePatient = supabaseClient.postgrest
+            .from("patients")
+            .select(Columns.list("id", "care_country")) {
+                filter {
+                    eq("user_id", userId)
+                    eq("active", true)
+                }
+            }
+            .decodeList<PatientCareCountryDto>()
+            .firstOrNull()
+            ?: throw IllegalStateException("care_country_or_patient_profile_required")
+        val activePatientId = activePatient.id
+            ?: throw IllegalStateException("care_country_or_patient_profile_required")
+
+        val existingCountry = activePatient.careCountry
+        if (existingCountry != null) {
+            check(existingCountry == country) { "care_country_dispatch_mismatch" }
+            return@runCatching existingCountry
+        }
+
+        // RLS and the existing patient-country trigger authorize this one-row update.
+        val updatedCountry = supabaseClient.postgrest
+            .from("patients")
+            .update({
+                set("care_country", country)
+            }) {
+                filter {
+                    eq("id", activePatientId)
+                    eq("user_id", userId)
+                    eq("active", true)
+                }
+                select(Columns.list("care_country"))
+            }
+            .decodeList<PatientCareCountryDto>()
+            .firstOrNull()
+            ?.careCountry
+            ?: throw IllegalStateException("care_country_persist_confirmation_failed")
+
+        check(updatedCountry == country) { "care_country_persist_confirmation_failed" }
+        updatedCountry
+    }.onFailure {
+        SecureLog.error("[Profile] Failed persisting active patient care country", it)
     }
 
     override suspend fun getPatientProfileSnapshot(): Result<PatientProfileSnapshot?> = runCatching {
-        val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
-            ?: throw IllegalStateException("No user ID found")
-
+        val userId = authenticatedPatientUserId()
         supabaseClient.postgrest
             .from("patients")
             .select(Columns.ALL) {
-                filter { eq("user_id", userId) }
+                filter {
+                    eq("user_id", userId)
+                    eq("active", true)
+                }
             }
             .decodeList<PatientProfileDto>()
             .firstOrNull()
             ?.toDomain()
     }.onFailure {
-        SecureLog.error("[Profile] Failed fetching patient snapshot", it)
+        SecureLog.error("[Profile] Failed fetching active patient snapshot", it)
     }
 
     override suspend fun persistLgpdConsent(
@@ -82,7 +142,10 @@ class ProfileRepositoryImpl @Inject constructor(
                 set("lgpd_consent_date", acceptedAt)
                 set("lgpd_consent_version", version)
             }) {
-                filter { eq("user_id", userId) }
+                filter {
+                    eq("user_id", userId)
+                    eq("active", true)
+                }
                 select(Columns.list("lgpd_consent", "lgpd_consent_date", "lgpd_consent_version"))
             }
             .decodeSingleOrNull<PatientLgpdConsentDto>()
@@ -156,6 +219,7 @@ private data class ProfileDto(
 
 @Serializable
 private data class PatientCareCountryDto(
+    val id: String? = null,
     @SerialName("care_country") val careCountry: String? = null,
 )
 
