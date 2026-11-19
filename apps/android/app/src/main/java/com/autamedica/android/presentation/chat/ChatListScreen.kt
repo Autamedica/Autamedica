@@ -40,6 +40,7 @@ import com.autamedica.android.presentation.theme.AuTextTertiary
 @Composable
 fun ChatListScreen(
     onNavigateToConversation: (chatId: String) -> Unit,
+    isDoctor: Boolean = false,
     modifier: Modifier = Modifier,
     viewModel: ChatListViewModel = hiltViewModel(),
 ) {
@@ -70,7 +71,7 @@ fun ChatListScreen(
             }
 
             uiState.chats.isEmpty() -> {
-                EmptyChatsState(modifier = Modifier.fillMaxSize())
+                EmptyChatsState(modifier = Modifier.fillMaxSize(), isDoctor = isDoctor)
             }
 
             else -> {
@@ -91,7 +92,7 @@ fun ChatListScreen(
 }
 
 @Composable
-private fun EmptyChatsState(modifier: Modifier = Modifier) {
+private fun EmptyChatsState(modifier: Modifier = Modifier, isDoctor: Boolean) {
     Column(
         modifier = modifier.padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -105,14 +106,14 @@ private fun EmptyChatsState(modifier: Modifier = Modifier) {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = stringResource(R.string.chat_list_empty_title),
+            text = stringResource(if (isDoctor) R.string.doctor_chat_list_empty_title else R.string.chat_list_empty_title),
             color = AuTextSecondary,
             fontSize = 18.sp,
             fontWeight = FontWeight.Medium,
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = stringResource(R.string.chat_list_empty_subtitle),
+            text = stringResource(if (isDoctor) R.string.doctor_chat_list_empty_subtitle else R.string.chat_list_empty_subtitle),
             color = AuTextTertiary,
             fontSize = 14.sp,
             textAlign = TextAlign.Center,

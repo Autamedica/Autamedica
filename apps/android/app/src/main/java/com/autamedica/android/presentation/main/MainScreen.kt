@@ -331,6 +331,7 @@ fun MainScreen(
                     )
                     1 -> com.autamedica.android.presentation.chat.ChatListScreen(
                         onNavigateToConversation = onNavigateToChatConversation,
+                        isDoctor = true,
                     )
                     2 -> AppointmentsScreen(
                         onNavigateToVideoCall = onNavigateToVideoCall,

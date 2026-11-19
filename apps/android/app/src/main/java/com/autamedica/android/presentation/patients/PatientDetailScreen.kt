@@ -96,7 +96,7 @@ fun PatientDetailScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = uiState.patient?.displayName ?: stringResource(R.string.patient_detail_title_fallback),
+                        text = uiState.patient?.displayName?.takeIf { it.isNotBlank() } ?: stringResource(R.string.patient_detail_title_fallback),
                         style = MaterialTheme.typography.titleMedium,
                         color = AuTextPrimary,
                         fontWeight = FontWeight.SemiBold,
@@ -133,7 +133,7 @@ fun PatientDetailScreen(
                 }
             }
 
-            uiState.error != null -> {
+            uiState.errorMessageRes != null -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -158,11 +158,21 @@ fun PatientDetailScreen(
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = uiState.error ?: stringResource(R.string.patients_error_generic),
+                            text = stringResource(uiState.errorMessageRes ?: R.string.patient_detail_error_generic),
                             color = AuDanger,
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium,
                         )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = viewModel::refresh,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PortalDoctors,
+                                contentColor = Color.White,
+                            ),
+                        ) {
+                            Text(stringResource(R.string.patient_detail_retry))
+                        }
                     }
                 }
             }
@@ -295,7 +305,7 @@ private fun PatientHeaderCard(patient: PatientDetail) {
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = patient.displayName,
+                        text = patient.displayName.ifBlank { stringResource(R.string.patients_anonymous) },
                         style = MaterialTheme.typography.titleLarge,
                         color = AuTextPrimary,
                         fontWeight = FontWeight.Bold,

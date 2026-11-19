@@ -169,14 +169,14 @@ fun ThirtyDayWaffleCalendar(
 
                     val (bgColor, textColor, borderColor) = when {
                         day.isToday -> Triple(
-                            Color(0xFF7C3AED), // purple-600
+                            Color(0xFF0284C7), // AutaMedica sky-600
                             Color.White,
-                            Color(0xFF6D28D9), // purple-700
+                            Color(0xFF0369A1), // AutaMedica sky-700
                         )
                         day.appointmentsCount > 0 -> Triple(
-                            Color(0xFF3B82F6), // blue-500
+                            Color(0xFF38BDF8), // AutaMedica sky-400
                             Color.White,
-                            Color(0xFF2563EB), // blue-600
+                            Color(0xFF0284C7), // AutaMedica sky-600
                         )
                         isSelected -> Triple(
                             Color(0xFFE0F2FE),
@@ -265,7 +265,7 @@ fun ThirtyDayWaffleCalendar(
                     Icon(
                         imageVector = Icons.Outlined.Group,
                         contentDescription = null,
-                        tint = if (activeDay.appointmentsCount > 0) Color(0xFF3B82F6) else AuTextTertiary,
+                        tint = if (activeDay.appointmentsCount > 0) Color(0xFF38BDF8) else AuTextTertiary,
                         modifier = Modifier.size(16.dp),
                     )
                     Text(
@@ -278,7 +278,7 @@ fun ThirtyDayWaffleCalendar(
                         },
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = if (activeDay.appointmentsCount > 0) Color(0xFF1D4ED8) else AuTextTertiary,
+                        color = if (activeDay.appointmentsCount > 0) Color(0xFF0369A1) else AuTextTertiary,
                     )
                 }
             }
@@ -291,12 +291,12 @@ fun ThirtyDayWaffleCalendar(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Surface(modifier = Modifier.size(8.dp), shape = CircleShape, color = Color(0xFF7C3AED)) {}
+                    Surface(modifier = Modifier.size(8.dp), shape = CircleShape, color = Color(0xFF0284C7)) {}
                     Text(stringResource(R.string.doctor_agenda_waffle_legend_today), style = MaterialTheme.typography.labelSmall, color = AuTextTertiary, fontSize = 10.sp)
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Surface(modifier = Modifier.size(8.dp), shape = CircleShape, color = Color(0xFF3B82F6)) {}
+                    Surface(modifier = Modifier.size(8.dp), shape = CircleShape, color = Color(0xFF38BDF8)) {}
                     Text(stringResource(R.string.doctor_agenda_waffle_legend_consultations), style = MaterialTheme.typography.labelSmall, color = AuTextTertiary, fontSize = 10.sp)
                 }
                 Spacer(modifier = Modifier.width(16.dp))

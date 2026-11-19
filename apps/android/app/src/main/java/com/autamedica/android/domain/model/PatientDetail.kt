@@ -22,7 +22,7 @@ data class PatientDetail(
     val nextAppointment: String? = null,
 ) {
     val displayName: String
-        get() = "$firstName $lastName".trim().ifBlank { "Paciente" }
+        get() = "$firstName $lastName".trim()
 
     val age: Int?
         get() = birthDate?.let {
@@ -34,3 +34,13 @@ data class PatientDetail(
             }
         }
 }
+
+
+/** Invalid or missing patient/doctor route identifiers. */
+class InvalidPatientReferenceException : IllegalArgumentException()
+
+/** The requested patient is not linked to the current doctor. */
+class PatientNotAssignedException : SecurityException()
+
+/** RLS hid the patient row, or the row no longer exists. */
+class PatientNotFoundOrUnauthorizedException : NoSuchElementException()

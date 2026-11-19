@@ -9,6 +9,9 @@ import com.autamedica.android.domain.model.InCallDocumentPolicy
 import com.autamedica.android.domain.model.DoctorStats
 import com.autamedica.android.domain.model.PatientClinicalContext
 import com.autamedica.android.domain.model.PatientDetail
+import com.autamedica.android.domain.model.InvalidPatientReferenceException
+import com.autamedica.android.domain.model.PatientNotAssignedException
+import com.autamedica.android.domain.model.PatientNotFoundOrUnauthorizedException
 import com.autamedica.android.domain.model.PatientSummary
 import com.autamedica.android.domain.repository.DoctorRepository
 import com.autamedica.android.logging.SecureLog
@@ -247,38 +250,46 @@ class DoctorRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getPatientDetail(doctorId: String, patientId: String): Result<PatientDetail> = runCatching {
-        // Get patient basic data
+        if (doctorId.isBlank() || patientId.isBlank()) {
+            throw InvalidPatientReferenceException()
+        }
+
+        // Require the exact doctor-patient relationship before reading clinical identity.
+        // This mirrors the patient list and prevents a route ID from widening access.
+        val relationship = supabaseClient.postgrest
+            .from("doctor_patient")
+            .select(Columns.list("patient_id")) {
+                filter {
+                    eq("doctor_id", doctorId)
+                    eq("patient_id", patientId)
+                }
+            }
+            .decodeList<PatientIdDto>()
+            .firstOrNull() ?: throw PatientNotAssignedException()
+
+        // RLS remains the authority. Decode a list so an RLS-filtered/missing row
+        // is classified as not found or unauthorized rather than a decoder crash.
         val patient = supabaseClient.postgrest
             .from("patients")
             .select(Columns.ALL) {
-                filter { eq("id", patientId) }
+                filter { eq("id", relationship.patientId) }
             }
-            .decodeSingle<PatientFullDto>()
+            .decodeList<PatientFullDto>()
+            .firstOrNull() ?: throw PatientNotFoundOrUnauthorizedException()
 
-        // Get profile info
+        // A linked patient can still have an incomplete profile. Treat that as
+        // optional identity data, not as a fatal failure of the clinical record.
         val profile = patient.userId?.let { uid ->
             supabaseClient.postgrest
                 .from("profiles")
-                .select(Columns.list("user_id", "first_name", "last_name", "avatar_url", "phone")) {
+                .select(Columns.list("user_id", "first_name", "last_name", "avatar_url", "phone", "email")) {
                     filter { eq("user_id", uid) }
                 }
-                .decodeSingle<PatientProfileFullDto>()
+                .decodeList<PatientProfileFullDto>()
+                .firstOrNull()
         }
 
-        // Get email from auth (from profiles table which has it)
-        val email = patient.userId?.let { uid ->
-            try {
-                supabaseClient.postgrest
-                    .from("profiles")
-                    .select(Columns.list("email")) {
-                        filter { eq("user_id", uid) }
-                    }
-                    .decodeSingle<EmailDto>()
-                    .email
-            } catch (_: Exception) { null }
-        }
-
-        // Get appointment history for this patient with this doctor
+        // Keep history scoped to this doctor-patient pair.
         val appointments = supabaseClient.postgrest
             .from("appointments")
             .select(Columns.list(
@@ -308,10 +319,10 @@ class DoctorRepositoryImpl @Inject constructor(
         PatientDetail(
             id = patient.id,
             userId = patient.userId ?: "",
-            firstName = profile?.firstName ?: "",
-            lastName = profile?.lastName ?: "",
+            firstName = profile?.firstName.orEmpty(),
+            lastName = profile?.lastName.orEmpty(),
             avatarUrl = profile?.avatarUrl,
-            email = email,
+            email = profile?.email,
             phone = profile?.phone,
             birthDate = patient.birthDate,
             gender = patient.gender,
@@ -323,7 +334,7 @@ class DoctorRepositoryImpl @Inject constructor(
             nextAppointment = futureAppointments.lastOrNull()?.startTime,
         )
     }.onFailure {
-        SecureLog.error("[DoctorRepo] Failed fetching patient detail", it)
+        SecureLog.warn("[DoctorRepo] Patient detail load failed")
     }
 
     override suspend fun getDoctorAvailability(doctorId: String): Result<List<DoctorAvailabilitySlot>> = runCatching {
@@ -625,10 +636,6 @@ private data class PatientProfileFullDto(
     @SerialName("last_name") val lastName: String? = null,
     @SerialName("avatar_url") val avatarUrl: String? = null,
     val phone: String? = null,
-)
-
-@Serializable
-private data class EmailDto(
     val email: String? = null,
 )
 
