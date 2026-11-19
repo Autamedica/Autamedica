@@ -113,6 +113,31 @@ BEGIN
      OR to_regclass('app_private.clinical_legacy_read_grants') IS NULL THEN
     RAISE EXCEPTION 'Read-only legacy bridge is incomplete';
   END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname='public' AND tablename='profiles'
+      AND policyname='Doctors global patient search'
+  ) THEN
+    RAISE EXCEPTION 'Unscoped global doctor profile policy remains installed';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname='public' AND tablename='profiles'
+      AND policyname='profiles_select_assigned_patient'
+      AND qual ILIKE '%doctor_has_patient_read_access(user_id)%'
+  ) THEN
+    RAISE EXCEPTION 'Assigned-doctor profile policy is missing or not relationship-scoped';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname='public' AND tablename='patients'
+      AND policyname='patients_select_doctor_patient_link'
+      AND qual ILIKE '%is_clinically_authorized_doctor_read_for_patient%'
+      AND qual ILIKE '%doctor_patient%'
+  ) THEN
+    RAISE EXCEPTION 'Doctor-patient row policy is not scoped to approved relationships';
+  END IF;
   IF has_table_privilege('anon','app_private.clinical_legacy_read_grants','SELECT')
      OR has_table_privilege('authenticated','app_private.clinical_legacy_read_grants','SELECT')
      OR has_table_privilege('service_role','app_private.clinical_legacy_read_grants','SELECT') THEN
