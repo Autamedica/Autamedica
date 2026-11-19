@@ -90,8 +90,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
           ? String(linkedPatient.dni ?? '')
           : '';
       const normalizeDocument = (value: string) => value.replace(/[^0-9]/g, '');
-      if (!linkedPatient || linkedPatient.active !== true ||
-          linkedPatient.care_country !== doctor.care_country ||
+      if (linkedPatient?.active !== true ||
+          linkedPatient?.care_country !== doctor.care_country ||
           !normalizeDocument(storedDocument) ||
           normalizeDocument(storedDocument) !== normalizeDocument(patientDocument)) {
         return forbidden('document_archive_patient_identity_mismatch');
@@ -137,7 +137,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
       upsert: false,
     });
     if (uploadError) {
-      if (uploadError.code === 'Duplicate') return conflict('document_reference_or_pdf_already_registered');
+      const message = uploadError.message.toLowerCase();
+      if (message.includes('already exists') || message.includes('duplicate')) {
+        return conflict('document_reference_or_pdf_already_registered');
+      }
       throw uploadError;
     }
 

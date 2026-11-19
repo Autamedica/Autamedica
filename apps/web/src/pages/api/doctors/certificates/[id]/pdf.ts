@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { badRequest, forbidden, internalError, notFound, jsonOk } from '@/lib/api-helpers';
+import { badRequest, forbidden, internalError, notFound, unauthorized, jsonOk } from '@/lib/api-helpers';
 import { isAuthed, withAuth } from '@/lib/api-auth';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { loadMedicalCertificateForDoctor } from '@/lib/doctors/services/medical-certificate-pdf-context.service';
@@ -29,7 +29,7 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
       }
     }
   }
-  if (!authenticatedUserId) return auth;
+  if (!authenticatedUserId) return auth instanceof Response ? auth : unauthorized();
 
   try {
     const admin = createAstroAdminClient(locals.runtime?.env);
