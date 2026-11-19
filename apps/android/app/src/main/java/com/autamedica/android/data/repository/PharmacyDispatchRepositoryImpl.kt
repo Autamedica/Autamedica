@@ -772,6 +772,13 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 
     private suspend fun loadSearchingRequests() {
         runCatching {
+            // This RPC requires an authenticated doctor JWT. The observer can start
+            // before sign-in, so skip the request instead of polling PostgREST as anon.
+            if (supabaseClient.auth.currentSessionOrNull()?.accessToken.isNullOrBlank()) {
+                _searchingRequests.value = emptyList()
+                return@runCatching
+            }
+
             // Server resolves doctor from the verified JWT and restricts results
             // to unexpired offers in the same clinical jurisdiction.
             val dtos = supabaseClient.postgrest
