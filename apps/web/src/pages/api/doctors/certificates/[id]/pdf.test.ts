@@ -86,7 +86,7 @@ describe('certificate PDF download bearer session', () => {
       doctor_id: 'doctor-1',
       patient_id: 'patient-1',
       status: 'signed',
-      signed_pdf_url: 'certificates/signed/document.pdf',
+      signed_pdf_url: `certificates/signed/${certificateId}.pdf`,
       signature_verified_at: '2026-11-19T12:00:00.000Z',
       signature_hash: 'a'.repeat(64),
       signature_method: 'ac_external',
