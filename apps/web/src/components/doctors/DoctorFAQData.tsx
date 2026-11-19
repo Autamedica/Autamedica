@@ -158,7 +158,6 @@ export const faqItems: FAQItem[] = [
             <p className="mt-2 text-xs leading-relaxed text-am-surface-600">Lei 13.787/2018 sobre prontuário do paciente, em conjunto com a LGPD (Lei 13.709/2018) para o tratamento de dados pessoais.</p>
           </div>
         </div>
-        </p>
         <div className="rounded-xl bg-am-surface-50 border border-am-surface-200 p-4 flex gap-3 items-start">
           <Info className="h-5 w-5 text-am-surface-400 shrink-0 mt-0.5" strokeWidth={1.5} />
           <div>
