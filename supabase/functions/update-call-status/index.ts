@@ -1,8 +1,9 @@
+import { withEdgeSentry } from '../_shared/sentry.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.78.0'
 import { corsHeaders } from '../_shared/cors.ts'
 import { handleUpdateCallStatus } from './handler.ts'
 
-Deno.serve((req: Request) => handleUpdateCallStatus(req, {
+Deno.serve(withEdgeSentry('update-call-status', (req: Request) => handleUpdateCallStatus(req, {
   corsHeaders,
   createUserClient: (authorization) => createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
@@ -12,4 +13,4 @@ Deno.serve((req: Request) => handleUpdateCallStatus(req, {
       auth: { persistSession: false, autoRefreshToken: false },
     },
   ),
-}))
+})))

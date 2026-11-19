@@ -1,7 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { updatePassword } from '../../lib/auth/service';
+import {
+  initializePasswordRecoverySession,
+  updatePassword,
+  verifyPasswordRecoveryToken,
+} from '../../lib/auth/service';
+import {
+  getPasswordRecoveryTokenHash,
+  hasPasswordRecoveryCallback,
+} from '../../lib/auth/password-recovery';
+import { meetsPasswordMinimum, MIN_PASSWORD_LENGTH } from '../../lib/auth/password-policy';
 import { AuthLogo } from './AuthLogo';
 import { AuthButton } from './AuthButton';
 import { AuthAlert } from './AuthAlert';
@@ -14,27 +23,96 @@ export function ResetPasswordForm({ locale = 'es' }: { locale?: Locale }) {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isValidLink, setIsValidLink] = useState(true);
+  const [linkStatus, setLinkStatus] = useState<'checking' | 'awaiting_confirmation' | 'valid' | 'invalid'>('checking');
+  const [recoveryTokenHash, setRecoveryTokenHash] = useState<string | null>(null);
+  const [isVerifyingRecovery, setIsVerifyingRecovery] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const { t } = getClientI18n(locale);
 
   useEffect(() => {
-    // Supabase handles the token exchange automatically via detectSessionInUrl
-    // when the user clicks the reset link. The URL contains a hash fragment
-    // with the access_token and refresh_token which the client picks up.
-    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    const queryParams = new URLSearchParams(window.location.search);
+    let isMounted = true;
+    const callbackUrl = new URL(window.location.href);
 
-    const hasHashToken = hashParams.has('access_token');
-    const hasQueryToken = queryParams.has('access_token');
-
-    if (!hasHashToken && !hasQueryToken) {
-      setIsValidLink(false);
-      setError(t('auth.invalidLink'));
+    const tokenHash = getPasswordRecoveryTokenHash(callbackUrl);
+    if (tokenHash) {
+      // Do not redeem the single-use token on page load: email security
+      // scanners may prefetch this URL. Verify only after the user taps.
+      setRecoveryTokenHash(tokenHash);
+      setLinkStatus('awaiting_confirmation');
+      return () => {
+        isMounted = false;
+      };
     }
+
+    if (!hasPasswordRecoveryCallback(callbackUrl)) {
+      setLinkStatus('invalid');
+      setError(t('auth.invalidLink'));
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    // This call creates the browser client immediately. With detectSessionInUrl
+    // enabled, Supabase exchanges the PKCE code before getSession() resolves.
+    // The service only accepts the PASSWORD_RECOVERY event, not an old login
+    // session, so a stale or unrelated session cannot unlock this form.
+    void initializePasswordRecoverySession()
+      .then((result) => {
+        if (!isMounted) return;
+
+        if (!result.ok) {
+          setLinkStatus('invalid');
+          setError(t('auth.invalidLink'));
+          return;
+        }
+
+        setLinkStatus('valid');
+        setError(null);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setLinkStatus('invalid');
+        setError(t('auth.invalidLink'));
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  const handleConfirmRecoveryLink = async () => {
+    if (!recoveryTokenHash || isVerifyingRecovery) return;
+
+    setIsVerifyingRecovery(true);
+    setError(null);
+
+    try {
+      const result = await verifyPasswordRecoveryToken(recoveryTokenHash);
+      if (!result.ok) {
+        setLinkStatus('invalid');
+        setError(t('auth.invalidLink'));
+        return;
+      }
+
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('token_hash');
+      cleanUrl.searchParams.delete('type');
+      window.history.replaceState(
+        {},
+        document.title,
+        `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`,
+      );
+      setRecoveryTokenHash(null);
+      setLinkStatus('valid');
+    } catch {
+      setLinkStatus('invalid');
+      setError(t('auth.invalidLink'));
+    } finally {
+      setIsVerifyingRecovery(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,8 +126,8 @@ export function ResetPasswordForm({ locale = 'es' }: { locale?: Locale }) {
       return;
     }
 
-    if (password.length < 6) {
-      setError(t('auth.minPasswordLength'));
+    if (!meetsPasswordMinimum(password)) {
+      setError(t('auth.resetPasswordMinLength'));
       setIsLoading(false);
       return;
     }
@@ -87,6 +165,35 @@ export function ResetPasswordForm({ locale = 'es' }: { locale?: Locale }) {
         </p>
       </div>
 
+      {linkStatus === 'checking' && (
+        <div
+          role="status"
+          aria-label={t('auth.newPasswordSubtitle')}
+          className="flex justify-center py-4"
+        >
+          <svg className="h-6 w-6 animate-spin text-[var(--au-accent)]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+        </div>
+      )}
+
+      {linkStatus === 'awaiting_confirmation' && (
+        <div className="space-y-4">
+          <p className="text-sm text-center text-[var(--au-text-secondary)]">
+            {t('auth.recoveryLinkReady')}
+          </p>
+          <AuthButton
+            onClick={handleConfirmRecoveryLink}
+            loading={isVerifyingRecovery}
+            disabled={isVerifyingRecovery}
+            fullWidth
+          >
+            {isVerifyingRecovery ? t('auth.verifyingRecoveryLink') : t('auth.confirmRecoveryLink')}
+          </AuthButton>
+        </div>
+      )}
+
       {/* Error Alert */}
       {error && <AuthAlert tone="error">{error}</AuthAlert>}
 
@@ -94,7 +201,7 @@ export function ResetPasswordForm({ locale = 'es' }: { locale?: Locale }) {
       {message && <AuthAlert tone="success">{message}</AuthAlert>}
 
       {/* Reset Form */}
-      {isValidLink && !message && (
+      {linkStatus === 'valid' && !message && (
         <form onSubmit={handleSubmit} className="space-y-4" aria-busy={isLoading}>
           <div>
             <label htmlFor="new-password" className="block text-sm font-medium text-[var(--au-text-secondary)] mb-2">
@@ -107,12 +214,12 @@ export function ResetPasswordForm({ locale = 'es' }: { locale?: Locale }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={MIN_PASSWORD_LENGTH}
                 autoComplete="new-password"
                 disabled={isLoading}
-                aria-invalid={password.length > 0 && password.length < 6}
+                aria-invalid={password.length > 0 && !meetsPasswordMinimum(password)}
                 className="w-full px-4 py-3 pr-12 bg-[var(--au-hover)] border-2 border-[var(--au-border)] rounded-xl text-[var(--au-text-primary)] placeholder:text-[var(--au-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--au-accent)] focus:border-transparent transition-all disabled:opacity-50"
-                placeholder={t('auth.passwordMinHint')}
+                placeholder={t('auth.resetPasswordMinHint')}
               />
               <button
                 type="button"
@@ -134,12 +241,12 @@ export function ResetPasswordForm({ locale = 'es' }: { locale?: Locale }) {
                 )}
               </button>
             </div>
-            {password.length > 0 && password.length < 6 && (
+            {password.length > 0 && !meetsPasswordMinimum(password) && (
               <p className="mt-2 text-xs text-yellow-400 flex items-center">
                 <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
-                {t('auth.needMinPassword')}
+                {t('auth.resetPasswordNeedMin')}
               </p>
             )}
           </div>
@@ -155,7 +262,7 @@ export function ResetPasswordForm({ locale = 'es' }: { locale?: Locale }) {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={MIN_PASSWORD_LENGTH}
                 autoComplete="new-password"
                 disabled={isLoading}
                 aria-invalid={confirmPassword.length > 0 && password !== confirmPassword}
@@ -193,7 +300,7 @@ export function ResetPasswordForm({ locale = 'es' }: { locale?: Locale }) {
           </div>
 
           <AuthButton
-            disabled={isLoading || password.length < 6 || password !== confirmPassword}
+            disabled={isLoading || !meetsPasswordMinimum(password) || password !== confirmPassword}
             loading={isLoading}
             variant="primary"
             fullWidth
@@ -205,7 +312,7 @@ export function ResetPasswordForm({ locale = 'es' }: { locale?: Locale }) {
       )}
 
       {/* Request new link if invalid */}
-      {!isValidLink && (
+      {linkStatus === 'invalid' && (
         <a
           href="/auth/forgot-password"
           className="inline-flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-[var(--au-text-secondary)] hover:text-[var(--au-text-primary)] bg-[var(--au-hover)] hover:bg-[var(--au-hover-border)] border-2 border-[var(--au-border)] hover:border-[var(--au-accent)] rounded-xl transition-all duration-200"

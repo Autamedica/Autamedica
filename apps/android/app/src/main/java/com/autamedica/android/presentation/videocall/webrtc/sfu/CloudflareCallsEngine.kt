@@ -57,6 +57,8 @@ class CloudflareCallsEngine(
     private val supabaseClient: SupabaseClient,
     private val scope: CoroutineScope,
     private val json: Json = Json { ignoreUnknownKeys = true },
+    private val guestTokenProvider: suspend (String) -> String? = { null },
+    private val onAuthorizationError: (CloudflareCallsApiException) -> Unit = {},
 ) {
     data class Config(
         val iceServers: List<PeerConnection.IceServer> = emptyList(),
@@ -541,7 +543,9 @@ class CloudflareCallsEngine(
     private fun launchSfuSession() {
         val roomId = activeRoomId ?: return
         session = CloudflareCallsSession(
-            api = SupabaseCloudflareCallsApi(supabaseClient, json, roomId),
+            api = SupabaseCloudflareCallsApi(supabaseClient, json, roomId) {
+                guestTokenProvider(roomId)
+            },
             factory = peerConnectionFactory,
             scope = scope,
             iceServers = currentIceServers,
@@ -562,7 +566,10 @@ class CloudflareCallsEngine(
                     else -> {}
                 }
             },
-            onError = { err -> SecureLog.warn("[SFU] Session error", err) },
+            onError = { err ->
+                SecureLog.warn("[SFU] Session error", err)
+                (err as? CloudflareCallsApiException)?.let(onAuthorizationError)
+            },
         )
 
         scope.launch {
@@ -598,6 +605,7 @@ class CloudflareCallsEngine(
             } catch (err: Throwable) {
                 Timber.w(err, "[SFU] Session connect failed (stack trace follows)")
                 SecureLog.warn("[SFU] Session connect failed", err)
+                (err as? CloudflareCallsApiException)?.let(onAuthorizationError)
                 setConnectionState(ConnectionState.FAILED)
             }
         }

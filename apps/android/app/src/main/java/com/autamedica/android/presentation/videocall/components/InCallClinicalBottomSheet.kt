@@ -33,6 +33,7 @@ import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,10 +58,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.autamedica.android.domain.model.CertificateType
+import com.autamedica.android.domain.model.InCallDocumentPolicy
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
 import com.autamedica.android.presentation.theme.AuBorderHover
@@ -86,9 +90,14 @@ fun InCallClinicalBottomSheet(
     countryCode: String? = null,
     patientCareCountryCode: String? = null,
     patientLinked: Boolean = false,
+    memedEncounterAvailable: Boolean = patientLinked,
     isSubmitting: Boolean,
+    onOpenMemed: (() -> Unit)? = null,
+    memedLaunchError: String? = null,
+    memedLaunchNotice: String? = null,
+    isVerifyingMemedPrescription: Boolean = false,
     onIssuePrescription: (medicationName: String, dosage: String, instructions: String, diagnosis: String, onResult: (Boolean, String?) -> Unit) -> Unit,
-    onIssueCertificate: (type: CertificateType, daysOfRest: Int, diagnosis: String, onResult: (Boolean, String?) -> Unit) -> Unit,
+    onIssueCertificate: (type: CertificateType, daysOfRest: Int, diagnosis: String, hideDiagnosis: Boolean, onResult: (Boolean, String?) -> Unit) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -105,11 +114,15 @@ fun InCallClinicalBottomSheet(
     var selectedCertType by remember { mutableStateOf(CertificateType.REPOSO_LABORAL) }
     var daysOfRest by remember { mutableIntStateOf(2) }
     var diagnosis by remember { mutableStateOf(chiefComplaint.orEmpty()) }
+    var hideDiagnosis by remember(countryCode) { mutableStateOf(countryCode == "BR") }
 
     // Feedback state
     var successCuir by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    val countriesMatch = countryCode in setOf("AR", "BR") && countryCode == patientCareCountryCode
+    val validationMedicationDiagnosisMessage = stringResource(R.string.in_call_validation_medication_diagnosis)
+    val prescriptionIssueErrorMessage = stringResource(R.string.in_call_prescription_error)
+    val certificateIssueErrorMessage = stringResource(R.string.in_call_certificate_error)
+    val countriesMatch = InCallDocumentPolicy.countriesMatchForDocumentIssuance(countryCode, patientCareCountryCode)
 
     ModalBottomSheet(
         onDismissRequest = {
@@ -160,7 +173,7 @@ fun InCallClinicalBottomSheet(
                     }
                     Column {
                         Text(
-                            text = "Utilidad Clínica In-Call",
+                            text = stringResource(R.string.in_call_clinical_ops_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
@@ -175,7 +188,7 @@ fun InCallClinicalBottomSheet(
                                     .background(AuSuccess, CircleShape)
                             )
                             Text(
-                                text = "Llamada activa • Documentos sujetos a verificación",
+                                text = stringResource(R.string.in_call_clinical_ops_status),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AuTextTertiary,
                             )
@@ -189,7 +202,7 @@ fun InCallClinicalBottomSheet(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Cerrar",
+                        contentDescription = stringResource(R.string.in_call_close),
                         tint = AuTextTertiary,
                     )
                 }
@@ -217,14 +230,14 @@ fun InCallClinicalBottomSheet(
                     )
                     Column {
                         Text(
-                            text = patientName.ifBlank { "Paciente en consulta" },
+                            text = patientName.ifBlank { stringResource(R.string.in_call_patient_fallback) },
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = AuTextPrimary,
                         )
                         if (!chiefComplaint.isNullOrBlank()) {
                             Text(
-                                text = "Motivo: $chiefComplaint",
+                                text = stringResource(R.string.in_call_complaint_prefix, chiefComplaint),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AuTextSecondary,
                                 maxLines = 1,
@@ -242,7 +255,7 @@ fun InCallClinicalBottomSheet(
                     border = BorderStroke(1.dp, AuDanger.copy(alpha = 0.25f)),
                 ) {
                     Text(
-                        "Paciente sin ficha clínica vinculada. Se puede continuar la videoconsulta, pero no preparar documentos hasta verificar el vínculo asistencial.",
+                        stringResource(R.string.in_call_patient_link_required),
                         modifier = Modifier.padding(12.dp),
                         style = MaterialTheme.typography.bodySmall,
                         color = AuDanger,
@@ -258,7 +271,7 @@ fun InCallClinicalBottomSheet(
                     border = BorderStroke(1.dp, AuDanger.copy(alpha = 0.25f)),
                 ) {
                     Text(
-                        "País de atención del paciente sin confirmar o diferente del país de matrícula del médico. El paciente debe registrar su país de atención en su perfil antes de preparar documentos.",
+                        stringResource(R.string.in_call_country_mismatch),
                         modifier = Modifier.padding(12.dp),
                         style = MaterialTheme.typography.bodySmall,
                         color = AuDanger,
@@ -296,7 +309,7 @@ fun InCallClinicalBottomSheet(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             Icon(Icons.Outlined.Medication, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Text("Receta Digital", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            Text(stringResource(R.string.in_call_tab_prescription), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                         }
                     },
                     selectedContentColor = PortalDoctor,
@@ -315,7 +328,7 @@ fun InCallClinicalBottomSheet(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             Icon(Icons.Outlined.Description, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Text("Certificado Médico", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            Text(stringResource(R.string.in_call_tab_certificate), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                         }
                     },
                     selectedContentColor = PortalDoctor,
@@ -346,20 +359,20 @@ fun InCallClinicalBottomSheet(
                                 modifier = Modifier.size(22.dp),
                             )
                             Text(
-                                text = if (currentMode == InCallClinicalMode.CERTIFICATE) "Borrador guardado" else "Receta registrada",
+                                text = if (currentMode == InCallClinicalMode.CERTIFICATE) stringResource(R.string.in_call_certificate_draft_saved) else stringResource(R.string.in_call_prescription_issued),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = AuSuccess,
                             )
                         }
                         Text(
-                            text = "Referencia interna: $successCuir",
+                            text = stringResource(R.string.in_call_document_reference, successCuir.orEmpty()),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = AuTextPrimary,
                         )
                         Text(
-                            text = "Registro enviado al chat de la consulta. No constituye constancia de firma digital ni de homologación del proveedor.",
+                            text = stringResource(R.string.in_call_chat_recorded),
                             style = MaterialTheme.typography.bodySmall,
                             color = AuTextSecondary,
                         )
@@ -376,7 +389,7 @@ fun InCallClinicalBottomSheet(
                                     contentColor = Color.White,
                                 ),
                             ) {
-                                Text("Volver a la llamada")
+                                Text(stringResource(R.string.in_call_back_to_call))
                             }
                             OutlinedButton(
                                 onClick = {
@@ -389,7 +402,7 @@ fun InCallClinicalBottomSheet(
                                 shape = RoundedCornerShape(10.dp),
                                 border = BorderStroke(1.dp, AuBorder),
                             ) {
-                                Text("Preparar otro", color = AuTextPrimary)
+                                Text(stringResource(R.string.in_call_prepare_another), color = AuTextPrimary)
                             }
                         }
                     }
@@ -429,12 +442,60 @@ fun InCallClinicalBottomSheet(
             if (successCuir == null) {
                 when (currentMode) {
                     InCallClinicalMode.PRESCRIPTION -> {
+                        if (countryCode == "BR") {
+                            Text(
+                                text = "Receita brasileira pelo módulo oficial Memed. A assinatura e a entrega são feitas pelo médico no ambiente autorizado.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = AuTextPrimary,
+                            )
+                            if (memedLaunchError != null) {
+                                Text(
+                                    text = memedLaunchError,
+                                    color = AuDanger,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                            if (memedLaunchNotice != null) {
+                                Text(
+                                    text = memedLaunchNotice,
+                                    color = AuTextSecondary,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                            Text(
+                                text = "Ao abrir o navegador, entre com a conta médica e retorne à chamada após a prescrição.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = AuTextSecondary,
+                            )
+                            Button(
+                                onClick = { onOpenMemed?.invoke() },
+                                enabled = onOpenMemed != null && !isSubmitting && patientLinked && memedEncounterAvailable && countriesMatch,
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                shape = RoundedCornerShape(12.dp),
+                            ) {
+                                if (isSubmitting) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp,
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+                                Text(
+                                    when {
+                                        isVerifyingMemedPrescription -> "Confirmando receita..."
+                                        isSubmitting -> "Autorizando Memed..."
+                                        else -> "Abrir receita BR no Memed"
+                                    },
+                                )
+                            }
+                        } else {
                         // Medicamento
                         OutlinedTextField(
                             value = medicationName,
                             onValueChange = { medicationName = it },
-                            label = { Text("Medicamento *") },
-                            placeholder = { Text("Ej: Amoxicilina 500mg, Paracetamol 1g") },
+                            label = { Text(stringResource(R.string.in_call_medication_label)) },
+                            placeholder = { Text(stringResource(R.string.in_call_medication_placeholder)) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             enabled = !isSubmitting,
@@ -452,8 +513,8 @@ fun InCallClinicalBottomSheet(
                         OutlinedTextField(
                             value = dosage,
                             onValueChange = { dosage = it },
-                            label = { Text("Posología y Frecuencia") },
-                            placeholder = { Text("Ej: 1 comprimido cada 8 horas") },
+                            label = { Text(stringResource(R.string.in_call_dosage_label)) },
+                            placeholder = { Text(stringResource(R.string.in_call_dosage_placeholder)) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             enabled = !isSubmitting,
@@ -471,8 +532,8 @@ fun InCallClinicalBottomSheet(
                         OutlinedTextField(
                             value = prescriptionDiagnosis,
                             onValueChange = { prescriptionDiagnosis = it },
-                            label = { Text("Diagnóstico clínico *") },
-                            placeholder = { Text("Ingrese el diagnóstico evaluado durante la consulta") },
+                            label = { Text(stringResource(R.string.in_call_diagnosis_required)) },
+                            placeholder = { Text(stringResource(R.string.in_call_diagnosis_placeholder)) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             enabled = !isSubmitting,
@@ -483,8 +544,8 @@ fun InCallClinicalBottomSheet(
                         OutlinedTextField(
                             value = instructions,
                             onValueChange = { instructions = it },
-                            label = { Text("Indicaciones clínicas") },
-                            placeholder = { Text("Ej: Tomar con las comidas por 7 días. Hidratación abundante.") },
+                            label = { Text(stringResource(R.string.in_call_instructions_label)) },
+                            placeholder = { Text(stringResource(R.string.in_call_instructions_placeholder)) },
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 3,
                             maxLines = 5,
@@ -499,11 +560,10 @@ fun InCallClinicalBottomSheet(
                             shape = RoundedCornerShape(10.dp),
                         )
 
-                        if (countryCode != "AR") {
+                        if (countryCode !in setOf("AR", "BR")) {
                             Text(
-                                text = if (countryCode == "BR")
-                                    "Recetas brasileñas: usar Memed desde el portal médico hasta validar la integración Android."
-                                else "País y matrícula médica sin validar. No es posible registrar una receta.",
+                                text = if (countryCode == "BR") stringResource(R.string.in_call_country_unavailable)
+                                else stringResource(R.string.in_call_country_unavailable),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AuDanger,
                             )
@@ -513,7 +573,7 @@ fun InCallClinicalBottomSheet(
                         Button(
                             onClick = {
                                 if (medicationName.isBlank() || prescriptionDiagnosis.isBlank()) {
-                                    errorMessage = "Indique medicamento y diagnóstico clínico"
+                                    errorMessage = validationMedicationDiagnosisMessage
                                     return@Button
                                 }
                                 errorMessage = null
@@ -521,12 +581,12 @@ fun InCallClinicalBottomSheet(
                                     if (ok) {
                                         successCuir = result
                                     } else {
-                                        errorMessage = result ?: "Error al emitir la receta"
+                                        errorMessage = result ?: prescriptionIssueErrorMessage
                                     }
                                 }
                             },
                             enabled = !isSubmitting && medicationName.isNotBlank() &&
-                                prescriptionDiagnosis.isNotBlank() && countryCode == "AR" && patientLinked && countriesMatch,
+                                prescriptionDiagnosis.isNotBlank() && countryCode in setOf("AR", "BR") && patientLinked && countriesMatch,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp),
@@ -543,19 +603,20 @@ fun InCallClinicalBottomSheet(
                                     strokeWidth = 2.dp,
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Registrando receta...", fontSize = 14.sp)
+                                Text(stringResource(R.string.in_call_prescription_issuing), fontSize = 14.sp)
                             } else {
                                 Icon(Icons.Outlined.Medication, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Registrar receta AR", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text(stringResource(R.string.in_call_prescription_submit), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
+                        }
                         }
                     }
 
                     InCallClinicalMode.CERTIFICATE -> {
                         // Tipo de certificado (Chips)
                         Text(
-                            text = "Tipo de Certificado",
+                            text = stringResource(R.string.in_call_certificate_type),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = AuTextPrimary,
@@ -598,7 +659,16 @@ fun InCallClinicalBottomSheet(
                                             )
                                         }
                                         Text(
-                                            text = type.displayName,
+                                            text = stringResource(
+                                                when (type) {
+                                                    CertificateType.REPOSO_LABORAL -> R.string.cert_type_reposo_laboral
+                                                    CertificateType.REPOSO_ESCOLAR -> R.string.cert_type_reposo_escolar
+                                                    CertificateType.APTITUD_FISICA -> R.string.cert_type_aptitud_fisica
+                                                    CertificateType.CONSTANCIA_ATENCION -> R.string.cert_type_constancia_atencion
+                                                    CertificateType.TRATAMIENTO -> R.string.cert_type_tratamiento
+                                                    CertificateType.OTRO -> R.string.cert_type_otro
+                                                },
+                                            ),
                                             style = MaterialTheme.typography.bodySmall,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                             color = if (isSelected) PortalDoctor else AuTextPrimary,
@@ -610,7 +680,7 @@ fun InCallClinicalBottomSheet(
 
                         // Días de reposo (Chips rápidos)
                         Text(
-                            text = "Días de reposo sugeridos",
+                            text = stringResource(R.string.in_call_rest_days),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = AuTextPrimary,
@@ -622,7 +692,8 @@ fun InCallClinicalBottomSheet(
                         ) {
                             listOf(0, 1, 2, 3, 5, 7, 10, 14).forEach { days ->
                                 val isSelected = daysOfRest == days
-                                val label = if (days == 0) "Sin reposo" else "$days d"
+                                val label = if (days == 0) stringResource(R.string.cert_no_rest)
+                                else stringResource(R.string.cert_rest_days_format, days)
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
                                     color = if (isSelected) PortalDoctor else AuBackground,
@@ -642,12 +713,30 @@ fun InCallClinicalBottomSheet(
                             }
                         }
 
+                        if (countryCode == "BR") {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Checkbox(
+                                    checked = hideDiagnosis,
+                                    onCheckedChange = { hideDiagnosis = it },
+                                    enabled = !isSubmitting,
+                                )
+                                Text(
+                                    text = stringResource(R.string.in_call_hide_diagnosis),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = AuTextPrimary,
+                                )
+                            }
+                        }
+
                         // Diagnóstico
                         OutlinedTextField(
                             value = diagnosis,
                             onValueChange = { diagnosis = it },
-                            label = { Text("Diagnóstico / Motivo clínico") },
-                            placeholder = { Text("Ej: Gastroenteritis aguda / Cefalea tensional") },
+                            label = { Text(stringResource(R.string.in_call_certificate_diagnosis)) },
+                            placeholder = { Text(stringResource(R.string.in_call_certificate_diagnosis_placeholder)) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             enabled = !isSubmitting,
@@ -665,11 +754,11 @@ fun InCallClinicalBottomSheet(
                         Button(
                             onClick = {
                                 errorMessage = null
-                                onIssueCertificate(selectedCertType, daysOfRest, diagnosis) { ok, result ->
+                                onIssueCertificate(selectedCertType, daysOfRest, diagnosis, hideDiagnosis) { ok, result ->
                                     if (ok) {
                                         successCuir = result
                                     } else {
-                                        errorMessage = result ?: "Error al emitir el certificado"
+                                        errorMessage = result ?: certificateIssueErrorMessage
                                     }
                                 }
                             },
@@ -690,11 +779,11 @@ fun InCallClinicalBottomSheet(
                                     strokeWidth = 2.dp,
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Guardando borrador...", fontSize = 14.sp)
+                                Text(stringResource(R.string.in_call_certificate_saving), fontSize = 14.sp)
                             } else {
                                 Icon(Icons.Outlined.Description, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Guardar borrador para firma", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text(stringResource(R.string.in_call_certificate_submit), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
                         }
                     }

@@ -10,7 +10,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
   if (!context) return unauthorized()
 
   try {
-    const data = await medicalHistoryService.getFullHistory(createAstroAdminClient(locals.runtime?.env), context.patientId)
+    const admin = createAstroAdminClient(locals.runtime?.env)
+    const data = await medicalHistoryService.getFullHistory(admin, context.patientId, locals.supabase ?? admin)
     const response = jsonOk(data)
     response.headers.set('Cache-Control', 'no-store, max-age=0')
     return response

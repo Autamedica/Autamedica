@@ -1,12 +1,13 @@
 import type { APIRoute } from 'astro'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { handleCloudflareCallsProxy } from '@autamedica/telemedicine/server'
+import { handleRoomBoundCloudflareProxy } from '@/lib/calls/sfu-room-binding'
 import { unauthorized, internalError } from '@/lib/api-helpers'
 import { verifyGuestToken } from '@/lib/calls/lib/guest-token'
 import { resolveGuestSecret, resolveCloudflareCallsEnv } from '@/lib/runtime-env'
 import { logger } from '@autamedica/shared'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { checkJordanMediaAccess } from '@/lib/pharmacy/payments/jordan-media-access'
+import { verifyGuestDispatchAccess } from '@/lib/calls/lib/guest-dispatch-access'
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const url = new URL(request.url)
@@ -31,57 +32,39 @@ export const POST: APIRoute = async ({ request, locals }) => {
     })
   }
 
-  // Every SFU operation rechecks room ownership and the persisted payment.
+  // Every SFU operation rechecks room ownership and persisted payment.
+  let admin: SupabaseClient
   try {
-    const admin = createAstroAdminClient(locals.runtime?.env)
-    const { data: dispatch, error: dispatchError } = await admin
-      .from('pharmacy_dispatch_requests')
-      .select('id,status')
-      .eq('cloudflare_room_id', guest.roomId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-    if (dispatchError) throw dispatchError
-
-    if (dispatch) {
-      if (dispatch.id !== guest.callId ||
-          ['completed','cancelled','canceled','expired'].includes(dispatch.status)) {
-        return new Response(JSON.stringify({ error: 'call_access_denied' }), {
-          status: 403, headers: { 'Content-Type': 'application/json' },
-        })
-      }
-    } else {
-      const { data: call, error: callError } = await admin
-        .from('calls')
-        .select('id,status')
-        .eq('room_id', guest.roomId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-      if (callError) throw callError
-      if (!call || call.id !== guest.callId ||
-          ['ended','declined','canceled','cancelled'].includes(call.status)) {
-        return new Response(JSON.stringify({ error: 'call_access_denied' }), {
-          status: 403, headers: { 'Content-Type': 'application/json' },
-        })
-      }
+    admin = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient
+    const dispatchAccess = await verifyGuestDispatchAccess(admin, guest)
+    if (dispatchAccess.kind === 'forbidden') {
+      return new Response(JSON.stringify({ error: 'call_access_denied' }), {
+        status: 403, headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    if (dispatchAccess.kind === 'conflict') {
+      return new Response(JSON.stringify({ error: dispatchAccess.message }), {
+        status: 409, headers: { 'Content-Type': 'application/json' },
+      })
     }
     if (await checkJordanMediaAccess(admin as unknown as SupabaseClient, guest.roomId) !== 'allowed') {
-      return new Response(JSON.stringify({ error: 'jordan_payment_required' }), {
+      return new Response(JSON.stringify({ error: 'brazil_pharmacy_payment_required' }), {
         status: 402,
         headers: { 'Content-Type': 'application/json' },
       })
     }
   } catch (error) {
-    logger.error('[guest/cloudflare-calls] Could not authorize Jordan media', error)
+    logger.error('[guest/cloudflare-calls] Could not authorize Brazil pharmacy media', error)
     return internalError('jordan_media_gate_unavailable')
   }
 
   const { appId, appSecret } = resolveCloudflareCallsEnv(locals.runtime?.env)
-  const result = await handleCloudflareCallsProxy(request, {
-    appId,
-    appSecret,
-  })
+  const enabled = (locals.runtime?.env?.SFU_SESSION_BINDINGS_ENABLED as string | undefined)
+    ?? import.meta.env.SFU_SESSION_BINDINGS_ENABLED
+  const result = await handleRoomBoundCloudflareProxy(
+    request, admin, guest.roomId, `guest:${guest.callId}`,
+    { appId, appSecret, bindingsEnabled: enabled === 'true' },
+  )
 
   return new Response(JSON.stringify(result.body), {
     status: result.status,

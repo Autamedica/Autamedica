@@ -2,11 +2,17 @@ name: Migration Replay - Disposable Database Audit
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'supabase/migrations/**'
+      - 'supabase/tests/**'
       - 'supabase/config.toml'
       - '.github/workflows/migration-replay-audit.yml'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ (github.actor == 'coderabbitai[bot]' || github.actor == 'circleci-app[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.draft)) && 'ignored' || 'active' }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -14,6 +20,8 @@ permissions:
 
 jobs:
   fresh-schema-replay:
+    if: >-
+      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     name: Replay migrations in disposable local Supabase
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -51,6 +59,7 @@ jobs:
           # Ephemeral local database only; no Supabase remote project credentials.
           export PGHOST=127.0.0.1 PGPORT=54322 PGUSER=postgres PGPASSWORD=postgres PGDATABASE=postgres
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/role_authority_guard_smoke.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/secure_dispatch_push_smoke.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/clinical_view_acl_smoke.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/kiosk_dispatch_acl_smoke.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/untrusted_table_privileges_smoke.sql
@@ -66,4 +75,6 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/memed_provider_integrity_smoke.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/persistent_pharmacy_queue_behavior.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/clinical_admin_approval_authority.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/clinical_approval_rls_contract.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/doctor_duty_heartbeat_is_not_queue_eligibility.sql
 

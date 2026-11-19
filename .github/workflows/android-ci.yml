@@ -2,29 +2,40 @@ name: Android CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches: [main]
     paths:
       - 'apps/android/**'
+      - 'supabase/functions/_shared/memed-mobile-policy.ts'
+      - 'supabase/functions/memed-mobile-preflight/**'
+      - 'apps/web/src/pages/api/doctors/prescriptions/memed-mobile-context.ts'
+      - '.github/workflows/deploy-production.yml'
       - '.github/workflows/android-ci.yml'
   push:
     branches: [main]
     paths:
       - 'apps/android/**'
+      - 'supabase/functions/_shared/memed-mobile-policy.ts'
+      - 'supabase/functions/memed-mobile-preflight/**'
+      - 'apps/web/src/pages/api/doctors/prescriptions/memed-mobile-context.ts'
+      - '.github/workflows/deploy-production.yml'
       - '.github/workflows/android-ci.yml'
   workflow_dispatch:
 
 concurrency:
-  group: android-ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ (github.actor == 'coderabbitai[bot]' || github.actor == 'circleci-app[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.draft)) && 'ignored' || 'active' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
 
 jobs:
   build-and-test:
+    if: >-
+      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     name: Build & Test Android
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
     
     steps:
       - name: Checkout repository
@@ -73,9 +84,16 @@ jobs:
       - name: Compile and Run JVM Unit Tests
         run: |
           cd apps/android
-          ./gradlew testDebugUnitTest -PfirebasePerformanceInstrumentationEnabled=false
+          ./gradlew testDebugUnitTest -PfirebasePerformanceInstrumentationEnabled=false --console=plain
 
       - name: Compile Instrumented Tests
         run: |
           cd apps/android
           ./gradlew compileDebugAndroidTestSources -PfirebasePerformanceInstrumentationEnabled=false
+
+      - name: Build unsigned release AAB (no Crashlytics mapping upload)
+        run: |
+          cd apps/android
+          ./gradlew bundleRelease -x :app:uploadCrashlyticsMappingFileRelease -PfirebasePerformanceInstrumentationEnabled=false
+          test -s app/build/outputs/bundle/release/app-release.aab
+          echo 'UNSIGNED AAB BUILT — not uploaded to Google Play'

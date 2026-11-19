@@ -155,6 +155,24 @@ describe('Farmalink branded PDF contract', () => {
   });
 });
 
+describe('prescription jurisdiction routing', () => {
+  it('keeps Farmalink registration exclusive to Argentina', () => {
+    expect(__testables.shouldRegisterFarmalink('AR')).toBe(true);
+    expect(__testables.shouldRegisterFarmalink('BR')).toBe(false);
+    expect(__testables.farmalinkRegistrationRequired('BR', undefined)).toBe(false);
+    expect(__testables.farmalinkRegistrationRequired('AR', undefined)).toBe(true);
+    expect(__testables.farmalinkRegistrationRequired('AR', {
+      vendorName: 'farmalink',
+      vendorId: '12345',
+      affiliateCuil: '27-30123456-8',
+      affiliateCredential: { pan: '20123456786', plan: 'NO POSEE', codEntidad: 7110 },
+      externalPrescription: undefined,
+      genericMode: 'S',
+      result: {} as never,
+    })).toBe(false);
+  });
+});
+
 describe('issuePrescription prescriber validation gate', () => {
   it('allows nationally validated and explicitly exempt prescribers', () => {
     expect(__testables.canIssueWithPrescriberValidationStatus('valid')).toBe(true);

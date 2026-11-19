@@ -17,7 +17,28 @@ interface CaptureMeta {
 const BLOCKED_FIELD_NAMES = new Set([
   'authorization',
   'cpf',
+  'cuil',
+  'patient_id',
+  'patientid',
+  'doctor_id',
+  'doctorid',
+  'user_id',
+  'userid',
+  'prescription_id',
+  'prescriptionid',
+  'dispatch_id',
+  'dispatchid',
+  'order_id',
+  'orderid',
   'token',
+  'token_hash',
+  'access_token',
+  'refresh_token',
+  'id_token',
+  'otp',
+  'otp_hash',
+  'recovery_token',
+  'password',
   'api-key',
   'secret-key',
   'data_nascimento',
@@ -75,20 +96,52 @@ function getSentryDsn(runtimeEnv?: RuntimeEnvRecord): string | undefined {
   )
 }
 
-function redactMemedText(value: string): string {
-  return value.replace(/https?:\/\/(?:[a-z0-9-]+\.)*memed\.com\.br[^\s"'<>]*/gi, '[Memed URL redacted]')
-    .replace(/((?:api-key|secret-key|token)=)[^&\s]+/gi, '$1[Redacted]');
+const SENSITIVE_AUTH_QUERY_KEY = /^(?:code|token|token_hash|access_token|refresh_token|id_token|otp|otp_hash|recovery_token|password|secret|api[_-]?key|cpf|dni|cuil|(?:patient|doctor|user|prescription|dispatch|order)[_-]?id)$/i;
+const SENSITIVE_AUTH_PATH = /\/auth\/reset-password\/?$/i;
+
+function redactSensitiveUrl(value: string): string {
+  try {
+    const url = new URL(value);
+    url.pathname = url.pathname.split('/').map((segment) => {
+      const identifierSegment = /^(?:\d{3,15}|\d{3}\.\d{3}\.\d{3}-\d{2}|[a-f\d]{8}-(?:[a-f\d]{4}-){3}[a-f\d]{12})$/i;
+      return identifierSegment.test(segment) ? '[Redacted]' : segment;
+    }).join('/');
+
+    if (SENSITIVE_AUTH_PATH.test(url.pathname)) {
+      // Reset links may contain single-use OTP hashes or PKCE codes.
+      // Keep only the origin and path in telemetry.
+      return url.origin + url.pathname;
+    }
+
+    for (const key of Array.from(url.searchParams.keys())) {
+      if (SENSITIVE_AUTH_QUERY_KEY.test(key) || /(?:token|secret|password)/i.test(key)) {
+        url.searchParams.set(key, '[Redacted]');
+      }
+    }
+
+    const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
+    if (Array.from(hashParams.keys()).some((key) =>
+      SENSITIVE_AUTH_QUERY_KEY.test(key) || /(?:token|secret|password)/i.test(key),
+    )) {
+      url.hash = '';
+    }
+
+    return url.toString();
+  } catch {
+    return value.replace(/([?&#](?:code|token(?:_hash)?|access_token|refresh_token|id_token|otp(?:_hash)?|recovery_token|password|secret|api[_-]?key)=)[^&#\s"'<>]*/gi, '$1[Redacted]');
+  }
 }
 
+function redactMemedText(value: string): string {
+  return value
+    .replace(/https?:\/\/(?:[a-z0-9-]+\.)*memed\.com\.br[^\s"'<>]*/gi, '[Memed URL redacted]')
+    .replace(/(Bearer\s+)[A-Za-z0-9._~+/-]+=*/gi, '$1[Redacted]')
+    .replace(/((?:[?&#]|^)(?:api[-_]?key|secret[-_]?key|token|token_hash|access_token|refresh_token|id_token|code|otp|otp_hash|recovery_token|password|secret)=)[^&#\s"'<>]*/gi, '$1[Redacted]')
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[Email redacted]')
+    .replace(/(?<!\d)(?:\d{3}\.?\d{3}\.?\d{3}-?\d{2}|\d{7,15})(?!\d)/g, '[Identifier redacted]');
+}
 function redactTelemetry(value: unknown): unknown {
-  if (typeof value === 'string') return redactMemedText(value);
-  if (Array.isArray(value)) return value.map((item) => redactTelemetry(item));
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key,
-      ['cpf', 'api-key', 'secret-key', 'token', 'data_nascimento'].includes(key.toLowerCase())
-        ? (typeof item === 'number' ? 0 : '[Redacted]') : redactTelemetry(item)]));
-  }
-  return value;
+  return sanitizeValue(value)
 }
 
 function truncate(value: string, max = 240): string {
@@ -100,7 +153,7 @@ function truncate(value: string, max = 240): string {
 }
 
 function sanitizeValue(value: unknown, depth = 0): unknown {
-  if (depth > 3) {
+  if (depth > 8) {
     return '[TruncatedDepth]'
   }
 
@@ -149,7 +202,7 @@ function sanitizeEvent<T>(event: T): T {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Sentry event structure requires dynamic property access for sanitization
   const mutableEvent = event as Record<string, any>
 
-  if (typeof mutableEvent.request?.url === 'string') mutableEvent.request.url = redactMemedText(mutableEvent.request.url);
+  if (typeof mutableEvent.request?.url === 'string') mutableEvent.request.url = redactSensitiveUrl(mutableEvent.request.url);
   if (Array.isArray(mutableEvent.spans)) {
     mutableEvent.spans = mutableEvent.spans.map((span: Record<string, unknown>) => redactTelemetry(span));
   }
@@ -164,6 +217,9 @@ function sanitizeEvent<T>(event: T): T {
       delete mutableEvent.request.headers.cookie
       delete mutableEvent.request.headers['Set-Cookie']
       delete mutableEvent.request.headers['set-cookie']
+      for (const key of Object.keys(mutableEvent.request.headers)) {
+        if (/^(?:x-api-key|api-key|apikey|x-auth-token)$/i.test(key)) delete mutableEvent.request.headers[key]
+      }
     }
   }
 
@@ -171,7 +227,14 @@ function sanitizeEvent<T>(event: T): T {
     delete mutableEvent.user.email
     delete mutableEvent.user.username
     delete mutableEvent.user.ip_address
+    delete mutableEvent.user.id
+    delete mutableEvent.user.name
   }
+
+  if (typeof mutableEvent.message === 'string') mutableEvent.message = redactMemedText(mutableEvent.message)
+  if (typeof mutableEvent.transaction === 'string') mutableEvent.transaction = redactMemedText(mutableEvent.transaction)
+  if (mutableEvent.tags) mutableEvent.tags = sanitizeValue(mutableEvent.tags)
+  if (mutableEvent.logentry) mutableEvent.logentry = sanitizeValue(mutableEvent.logentry)
 
   if (mutableEvent.extra) {
     mutableEvent.extra = sanitizeValue(mutableEvent.extra)
@@ -245,8 +308,10 @@ function setScopeMetadata(
 
   if (meta.tags) {
     for (const [key, value] of Object.entries(meta.tags)) {
-      if (value !== null && typeof value !== 'undefined') {
-        scope.setTag(key, String(value))
+      const normalizedKey = key.toLowerCase().replace(/[-_.]/g, '')
+      if (value !== null && typeof value !== 'undefined' &&
+        !BLOCKED_FIELD_NAMES.has(key.toLowerCase()) && !BLOCKED_FIELD_NAMES.has(normalizedKey)) {
+        scope.setTag(key, redactMemedText(String(value)).slice(0, 120))
       }
     }
   }

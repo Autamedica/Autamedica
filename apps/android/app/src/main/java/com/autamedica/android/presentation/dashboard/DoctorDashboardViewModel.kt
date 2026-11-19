@@ -1,5 +1,11 @@
 package com.autamedica.android.presentation.dashboard
 
+import android.content.Context
+import com.autamedica.android.domain.repository.NotificationRepository
+import com.autamedica.android.service.DoctorDutyHeartbeatService
+import com.google.firebase.messaging.FirebaseMessaging
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.tasks.await
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autamedica.android.domain.model.Appointment
@@ -78,6 +84,8 @@ class DoctorDashboardViewModel @Inject constructor(
     private val pharmacyDispatchRepository: PharmacyDispatchRepository,
     private val connectivityObserver: com.autamedica.android.util.ConnectivityObserver,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    @ApplicationContext private val applicationContext: Context? = null,
+    private val notificationRepository: NotificationRepository? = null,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DoctorDashboardUiState())
@@ -118,6 +126,18 @@ class DoctorDashboardViewModel @Inject constructor(
                         .joinToString(" ")
                         .ifBlank { user.email },
                 )
+            }
+
+            // Register a fresh FCM destination as soon as the doctor signs in.
+            // Guard activation refreshes and confirms the same token again before
+            // the backend marks the device reachable/on duty.
+            if (applicationContext != null && notificationRepository != null) {
+                viewModelScope.launch {
+                    runCatching { registerGuardFcmToken() }
+                        .onFailure { error ->
+                            SecureLog.warn("[DoctorDashboard] Login FCM token registration failed: ${error.message}")
+                        }
+                }
             }
 
             // Load doctor profile to get doctor record ID
@@ -196,6 +216,7 @@ class DoctorDashboardViewModel @Inject constructor(
     private var dispatchEngineJob: Job? = null
     private var heartbeatJob: Job? = null
     private var networkObservationJob: Job? = null
+    private var fcmRegistrationJob: Job? = null
     private val heartbeatTrigger = kotlinx.coroutines.channels.Channel<Unit>(kotlinx.coroutines.channels.Channel.CONFLATED)
 
     private fun startHeartbeat(doctorIdParam: String? = null) {
@@ -254,6 +275,57 @@ class DoctorDashboardViewModel @Inject constructor(
         heartbeatJob = null
         networkObservationJob?.cancel()
         networkObservationJob = null
+    }
+
+    private suspend fun registerGuardFcmToken() {
+        // Tests without an Android application context keep the existing pure-VM path.
+        applicationContext ?: return
+        val notifications = notificationRepository
+            ?: error("NotificationRepository unavailable for guard activation")
+        val token = kotlinx.coroutines.withTimeout(10_000L) {
+            FirebaseMessaging.getInstance().token.await()
+        }.takeIf { it.isNotBlank() }
+            ?: error("Firebase did not return a usable registration token")
+        notifications.registerFcmToken(token).getOrThrow()
+        SecureLog.info("[DoctorDashboard] Guard FCM destination registered")
+    }
+
+    /** FCM is optional for activation; retry transient failures while the foreground service maintains heartbeat. */
+    private fun scheduleGuardFcmRegistration() {
+        if (applicationContext == null || notificationRepository == null) return
+        fcmRegistrationJob?.cancel()
+        fcmRegistrationJob = viewModelScope.launch(ioDispatcher) {
+            var attempt = 0
+            while (isActive && _isOnDuty.value) {
+                runCatching { registerGuardFcmToken() }
+                    .onSuccess {
+                        SecureLog.info("[DoctorDashboard] Background guard FCM registration succeeded")
+                        return@launch
+                    }
+                    .onFailure { error ->
+                        attempt++
+                        val waitMs = (3_000L * (1L shl (attempt - 1).coerceAtMost(3)))
+                            .coerceAtMost(15_000L)
+                        SecureLog.warn("[DoctorDashboard] Guard remains active; FCM retry #$attempt in ${waitMs}ms: ${error.message}")
+                        delay(waitMs)
+                    }
+            }
+        }
+    }
+
+    private fun stopGuardFcmRegistration() {
+        fcmRegistrationJob?.cancel()
+        fcmRegistrationJob = null
+    }
+
+    private fun startPersistentGuardHeartbeat(doctorId: String) {
+        applicationContext?.let { context ->
+            DoctorDutyHeartbeatService.start(context, doctorId).getOrThrow()
+        }
+    }
+
+    private fun stopPersistentGuardHeartbeat() {
+        applicationContext?.let { context -> DoctorDutyHeartbeatService.stop(context) }
     }
 
     private fun observeIncomingOffers() {
@@ -318,28 +390,58 @@ class DoctorDashboardViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(pharmacyOnDutyState = it.pharmacyOnDutyState.copy(isLoading = true)) }
-            if (onDuty) {
-                val approval = pharmacyDispatchRepository.getMyGuardApproval().getOrNull()
-                if (approval?.approved != true) {
-                    stopHeartbeat()
-                    _isOnDuty.value = false
-                    _uiState.update { state ->
-                        state.copy(
-                            guardApproved = false,
-                            guardVerificationStatus = approval?.verificationStatus ?: "pending",
-                            pharmacyOnDutyState = state.pharmacyOnDutyState.copy(isOnDuty = false, isLoading = false),
-                            error = "La guardia necesita aprobación administrativa de la matrícula.",
+            try {
+                if (onDuty) {
+                    val approval = pharmacyDispatchRepository.getMyGuardApproval().getOrNull()
+                    if (approval?.approved != true) {
+                        stopHeartbeat()
+                        stopPersistentGuardHeartbeat()
+                        _isOnDuty.value = false
+                        _uiState.update { state ->
+                            state.copy(
+                                guardApproved = false,
+                                guardVerificationStatus = approval?.verificationStatus ?: "pending",
+                                pharmacyOnDutyState = state.pharmacyOnDutyState.copy(
+                                    isOnDuty = false,
+                                    isLoading = false,
+                                ),
+                                error = "La guardia necesita aprobación administrativa de la matrícula.",
+                            )
+                        }
+                        return@launch
+                    }
+                    _uiState.update {
+                        it.copy(
+                            guardApproved = true,
+                            guardVerificationStatus = approval.verificationStatus,
                         )
                     }
-                    return@launch
+
                 }
-                _uiState.update { it.copy(guardApproved=true,guardVerificationStatus=approval.verificationStatus) }
-            }
-            pharmacyDispatchRepository.setDoctorDutyStatus(
-                doctorId = doctorId,
-                isOnDuty = onDuty,
-                activeTiers = listOf("general"),
-            ).onSuccess {
+
+                pharmacyDispatchRepository.setDoctorDutyStatus(
+                    doctorId = doctorId,
+                    isOnDuty = onDuty,
+                    activeTiers = listOf("general"),
+                ).getOrThrow()
+
+                if (onDuty) {
+                    // Activate first. The foreground service maintains the 30s heartbeat
+                    // independently while FCM registration retries in the background.
+                    startPersistentGuardHeartbeat(doctorId)
+                    startHeartbeat(doctorId)
+                    _isOnDuty.value = true
+                    runCatching { pharmacyDispatchRepository.sendDoctorHeartbeat(doctorId) }
+                        .onFailure { error ->
+                            SecureLog.warn("[DoctorDashboard] Initial heartbeat delegated to foreground service: ${error.message}")
+                        }
+                    scheduleGuardFcmRegistration()
+                } else {
+                    stopGuardFcmRegistration()
+                    stopHeartbeat()
+                    stopPersistentGuardHeartbeat()
+                }
+
                 _isOnDuty.value = onDuty
                 _uiState.update { state ->
                     state.copy(
@@ -347,25 +449,39 @@ class DoctorDashboardViewModel @Inject constructor(
                             isOnDuty = onDuty,
                             isLoading = false,
                         ),
+                        error = null,
                     )
                 }
-                if (onDuty) {
-                    startHeartbeat(doctorId)
-                } else {
-                    stopHeartbeat()
-                }
-            }.onFailure { error ->
+            } catch (error: Exception) {
                 SecureLog.error("[DoctorDashboard] Error toggling pharmacy duty", error)
-                // Keep the previously confirmed server state. Never start a false heartbeat.
+                if (onDuty) {
+                    // Only failure to persist/start guard rolls it back. FCM is retried separately.
+                    stopGuardFcmRegistration()
+                    runCatching {
+                        pharmacyDispatchRepository.setDoctorDutyStatus(
+                            doctorId = doctorId,
+                            isOnDuty = false,
+                            activeTiers = listOf("general"),
+                        )
+                    }
+                    stopHeartbeat()
+                    stopPersistentGuardHeartbeat()
+                    _isOnDuty.value = false
+                }
                 _uiState.update { state ->
                     state.copy(
                         pharmacyOnDutyState = state.pharmacyOnDutyState.copy(
+                            isOnDuty = if (onDuty) false else state.pharmacyOnDutyState.isOnDuty,
                             isLoading = false,
                         ),
-                        error = "No se pudo actualizar el estado de guardia.",
+                        error = if (onDuty) {
+                            "No se pudo activar la guardia. Volvé a intentar."
+                        } else {
+                            "No se pudo actualizar el estado de guardia."
+                        },
                     )
                 }
-                loadPharmacyDuty(doctorId)
+                if (!onDuty) loadPharmacyDuty(doctorId)
             }
         }
     }
@@ -475,23 +591,58 @@ class DoctorDashboardViewModel @Inject constructor(
             }
             pharmacyDispatchRepository.getDoctorDutyStatus(doctorId)
                 .onSuccess { duty ->
-                    _isOnDuty.value = duty.isOnDuty && authorized
+                    val active = duty.isOnDuty && authorized
+                    if (active && applicationContext != null) {
+                        try {
+                            startPersistentGuardHeartbeat(doctorId)
+                            startHeartbeat(doctorId)
+                            _isOnDuty.value = true
+                            runCatching { pharmacyDispatchRepository.sendDoctorHeartbeat(doctorId) }
+                                .onFailure { error ->
+                                    SecureLog.warn("[DoctorDashboard] Restored guard heartbeat delegated to foreground service: ${error.message}")
+                                }
+                            scheduleGuardFcmRegistration()
+                        } catch (error: Exception) {
+                            SecureLog.error("[DoctorDashboard] Could not restore persistent guard heartbeat", error)
+                            stopHeartbeat()
+                            stopPersistentGuardHeartbeat()
+                            _isOnDuty.value = false
+                            _uiState.update { state ->
+                                state.copy(
+                                    pharmacyOnDutyState = state.pharmacyOnDutyState.copy(
+                                        isOnDuty = false,
+                                        isLoading = false,
+                                    ),
+                                    error = "No se pudo restaurar la guardia activa.",
+                                )
+                            }
+                            return@onSuccess
+                        }
+                    } else if (active) {
+                        startHeartbeat(doctorId)
+                    } else {
+                        stopGuardFcmRegistration()
+                        stopHeartbeat()
+                        stopPersistentGuardHeartbeat()
+                    }
+
+                    _isOnDuty.value = active
                     _uiState.update { state ->
                         state.copy(
                             pharmacyOnDutyState = state.pharmacyOnDutyState.copy(
-                                isOnDuty = duty.isOnDuty && authorized,
+                                isOnDuty = active,
                                 isLoading = false,
                             ),
                         )
                     }
-                    if (duty.isOnDuty && authorized) {
-                        startHeartbeat(doctorId)
-                    } else {
-                        stopHeartbeat()
-                    }
                 }
                 .onFailure { error ->
                     SecureLog.warn("[DoctorDashboard] Failed loading pharmacy duty status: ${error.message}")
+                    _uiState.update { state ->
+                        state.copy(
+                            pharmacyOnDutyState = state.pharmacyOnDutyState.copy(isLoading = false),
+                        )
+                    }
                 }
         }
     }

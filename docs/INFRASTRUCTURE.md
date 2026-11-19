@@ -100,6 +100,7 @@ ingest-patient-observation: 204 No Content
 
 ```
 https://www.autamedica.com/**
+https://autamedica.com/**
 https://autamedica-web.pages.dev/**
 https://autamedica-patients.pages.dev/**
 https://autamedica-doctors.pages.dev/**

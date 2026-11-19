@@ -1430,6 +1430,8 @@ async function sendViaResend(env: Env, subject: string, html: string): Promise<S
     await logPublish(env, { channel: "email_resend", status: "error", error_message: `create broadcast ${createRes.status}: ${body}`, payload: { subject } });
     throw new Error(`Resend Create Fail: ${createRes.status}: ${body}`);
   }
+  const stillEnabled = await checkKillswitch(env, KILLSWITCH_CHANNEL);
+  if (!stillEnabled) throw new Error("Interruptor operativo de email deshabilitado antes del envío");
   const { id } = (await createRes.json()) as { id: string };
   const sendRes = await fetch(`https://api.resend.com/broadcasts/${id}/send`, { method: "POST", headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, "content-type": "application/json" }, body: JSON.stringify({}) });
   if (!sendRes.ok) {
@@ -1442,6 +1444,8 @@ async function sendViaResend(env: Env, subject: string, html: string): Promise<S
 }
 
 async function sendViaBrevo(env: Env, subject: string, html: string): Promise<SendResult> {
+  const enabled = await checkKillswitch(env, "email_brevo");
+  if (!enabled) throw new Error("Interruptor operativo de email deshabilitado");
   if (!env.BREVO_API_KEY) throw new Error("BREVO_API_KEY no configurada");
   const listIds = parseNumberList(env.BREVO_LIST_IDS);
   if (listIds.length > 0) {
@@ -1481,6 +1485,8 @@ async function sendBrevoCampaign(env: Env, subject: string, html: string, listId
     await logPublish(env, { channel: "email_brevo", status: "error", error_message: `create campaign ${createRes.status}: ${createBody}`, payload: { subject, listIds } });
     throw new Error(`Brevo Campaign Create Fail: ${createRes.status}: ${createBody}`);
   }
+  const stillEnabled = await checkKillswitch(env, "email_brevo");
+  if (!stillEnabled) throw new Error("Interruptor operativo de email deshabilitado antes del envío");
   const campaign = JSON.parse(createBody) as { id: number };
   const sendRes = await fetch(`https://api.brevo.com/v3/emailCampaigns/${campaign.id}/sendNow`, {
     method: "POST",
@@ -1497,6 +1503,8 @@ async function sendBrevoCampaign(env: Env, subject: string, html: string, listId
 }
 
 async function sendBrevoSmtp(env: Env, subject: string, html: string, recipient: { email: string; name?: string }): Promise<string> {
+  const enabled = await checkKillswitch(env, "email_brevo");
+  if (!enabled) throw new Error("Interruptor operativo de email deshabilitado antes del envío");
   const templateId = Number.parseInt(env.BREVO_DEFAULT_TEMPLATE_ID || String(AUTAMEDICA_BREVO_DEFAULT_TEMPLATE_ID), 10);
   const res = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
@@ -1587,12 +1595,15 @@ function parseRecipients(value: string): Array<{ email: string; name?: string }>
 
 async function checkKillswitch(env: Env, channel: string): Promise<boolean> {
   try {
-    const res = await fetch(`${env.SUPABASE_URL}/rest/v1/killswitch_state?channel=eq.${channel}&select=enabled`, {
-      headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`, "accept-profile": "growth_os" },
+    const res = await fetch(`${env.SUPABASE_URL}/rest/v1/platform_operational_switches?id=eq.global&select=whatsapp_send_enabled,email_send_enabled,dry_run_enabled`, {
+      headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` },
     });
-    const rows = await res.json() as Array<{ enabled?: boolean }>;
-    return rows.length === 0 || rows[0].enabled === true;
-  } catch { return true; }
+    if (!res.ok) return false;
+    const rows = await res.json() as Array<{ whatsapp_send_enabled?: boolean; email_send_enabled?: boolean; dry_run_enabled?: boolean }>;
+    if (rows.length !== 1 || rows[0].dry_run_enabled !== false) return false;
+    const emailChannel = channel.startsWith("email_");
+    return emailChannel ? rows[0].email_send_enabled === true : rows[0].whatsapp_send_enabled === true;
+  } catch { return false; }
 }
 
 async function logPublish(env: Env, entry: PublishLogEntry): Promise<void> {

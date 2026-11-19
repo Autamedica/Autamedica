@@ -321,6 +321,86 @@ export async function resetPasswordForEmail(
 }
 
 /**
+ * Verifica un enlace de recuperación token_hash después de una acción explícita
+ * del usuario. El GET inicial del correo no consume el OTP (anti-prefetch).
+ */
+export async function verifyPasswordRecoveryToken(tokenHash: string): Promise<SignInResult> {
+  const normalizedTokenHash = tokenHash.trim()
+  if (!normalizedTokenHash) {
+    return { ok: false, errorMessage: 'Recovery token is missing' }
+  }
+
+  resetAuthCircuitBreaker()
+  const supabase = createBrowserClient()
+  const { data, error } = await supabase.auth.verifyOtp({
+    token_hash: normalizedTokenHash,
+    type: 'recovery',
+  })
+
+  if (error) {
+    logger.warn('[AuthService] Password recovery token verification failed', {
+      errorMessage: error.message,
+    })
+    return { ok: false, errorMessage: error.message }
+  }
+
+  if (!data.session) {
+    logger.warn('[AuthService] Password recovery token verification returned no session')
+    return { ok: false, errorMessage: 'Password recovery session could not be established' }
+  }
+
+  return { ok: true, errorMessage: null }
+}
+
+/**
+ * Inicializa la sesión del flujo de recuperación.
+ *
+ * En PKCE, Supabase devuelve un `code` en la URL. La inicialización del
+ * cliente (detectSessionInUrl) lo intercambia por una sesión y emite
+ * PASSWORD_RECOVERY. No basta con encontrar un token en la URL: exigimos
+ * ese evento y una sesión válida antes de permitir cambiar la contraseña.
+ */
+export async function initializePasswordRecoverySession(): Promise<SignInResult> {
+  resetAuthCircuitBreaker()
+  const supabase = createBrowserClient()
+  let passwordRecoveryEventReceived = false
+
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY' && session) {
+      passwordRecoveryEventReceived = true
+    }
+  })
+
+  try {
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession()
+
+    if (error) {
+      logger.warn('[AuthService] Password recovery session initialization failed', {
+        errorMessage: error.message,
+      })
+      return { ok: false, errorMessage: error.message }
+    }
+
+    if (!session || !passwordRecoveryEventReceived) {
+      logger.warn('[AuthService] Password recovery callback did not establish a recovery session', {
+        hasSession: Boolean(session),
+        passwordRecoveryEventReceived,
+      })
+      return { ok: false, errorMessage: 'Password recovery session could not be established' }
+    }
+
+    return { ok: true, errorMessage: null }
+  } finally {
+    subscription.unsubscribe()
+  }
+}
+
+/**
  * Actualiza la contraseña del usuario autenticado.
  */
 export async function updatePassword(newPassword: string): Promise<SignInResult> {

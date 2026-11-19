@@ -64,6 +64,8 @@ export default {
         const headers = new Headers();
         headers.set("Content-Length", object.size.toString());
         headers.set("ETag", object.httpEtag);
+        const artifactTag = object.customMetadata?.artifactTag;
+        if (artifactTag) headers.set("x-artifact-tag", artifactTag);
         return new Response(null, { headers });
       }
 
@@ -81,6 +83,8 @@ export default {
         object.writeHttpMetadata(headers);
         headers.set("etag", object.httpEtag);
         headers.set("Content-Type", "application/octet-stream");
+        const artifactTag = object.customMetadata?.artifactTag;
+        if (artifactTag) headers.set("x-artifact-tag", artifactTag);
 
         return new Response(object.body, { headers });
       }
@@ -94,11 +98,13 @@ export default {
           });
         }
 
-        // Subir de forma directa el stream de bytes al bucket R2
+        // Persist the Turborepo HMAC tag with the artifact so signed downloads can be verified.
+        const artifactTag = request.headers.get("x-artifact-tag");
         await env.R2_BUCKET.put(artifactId, request.body, {
           httpMetadata: {
             contentType: "application/octet-stream"
-          }
+          },
+          ...(artifactTag ? { customMetadata: { artifactTag } } : {})
         });
 
         return new Response(JSON.stringify({ status: "success", id: artifactId }), {

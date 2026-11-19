@@ -1,4 +1,4 @@
-import { captureEdgeException, initEdgeSentry } from '../_shared/sentry.ts';
+import {captureEdgeException, initEdgeSentry, withEdgeSentry } from '../_shared/sentry.ts';
 import { getCorsHeaders, jsonResponse, requireAuth } from '../_shared/auth-helpers.ts';
 
 const SSS_RESOURCE_ID = '7964780d-13f0-4732-8164-603a397962fa';
@@ -89,7 +89,7 @@ async function fetchSssRecords(dni: string): Promise<SssLicenseRecord[]> {
   }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withEdgeSentry('verify-doctor-license', async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get('Origin'));
 
   if (req.method === 'OPTIONS') {
@@ -240,7 +240,7 @@ Deno.serve(async (req) => {
       return error;
     }
 
-    captureEdgeException(error, {
+    await captureEdgeException(error, {
       layer: 'data-platform',
       surface: 'verify-doctor-license:unexpected',
       owner: 'Medical Board',
@@ -258,4 +258,4 @@ Deno.serve(async (req) => {
       corsHeaders,
     );
   }
-});
+}));

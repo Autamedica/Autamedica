@@ -1,3 +1,4 @@
+import { withEdgeSentry } from '../_shared/sentry.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
 function requireEnv(name: string): string {
@@ -18,7 +19,7 @@ interface ClarificationRequest {
   question_category: string;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withEdgeSentry('request-dispensation-clarification', async (req) => {
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -199,4 +200,4 @@ Deno.serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
     });
   }
-});
+}));

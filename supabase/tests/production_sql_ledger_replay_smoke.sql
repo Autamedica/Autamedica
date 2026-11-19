@@ -9,7 +9,6 @@ BEGIN
   FOREACH v_sig IN ARRAY ARRAY[
     'public.drain_notification_queue(integer)',
     'public.fn_cleanup_old_audit_logs(integer)',
-    'public.cancel_pharmacy_consultation_request(uuid,text)',
     'public.redeem_reserve_benefit(uuid,uuid,integer,text)',
     'public.create_patient_alert(uuid,text,uuid,text,text,text,jsonb,uuid)',
     'public.enqueue_notification(uuid,text,text,text,text,jsonb,text,timestamp with time zone)',
@@ -33,6 +32,21 @@ BEGIN
       END IF;
     END IF;
   END LOOP;
+
+  -- Guest cancellation is intentionally public: the unguessable request UUID
+  -- is its capability, and the function only transitions pending requests.
+  v_fn := to_regprocedure('public.cancel_pharmacy_consultation_request(uuid,text)');
+  IF v_fn IS NULL THEN
+    RAISE EXCEPTION 'Public guest cancellation RPC is missing';
+  END IF;
+  IF NOT has_function_privilege('anon', v_fn, 'EXECUTE')
+     OR NOT has_function_privilege('authenticated', v_fn, 'EXECUTE')
+     OR NOT has_function_privilege('service_role', v_fn, 'EXECUTE')
+     OR position('p_request_id' IN pg_get_functiondef(v_fn)) = 0
+     OR position('status=''pending''' IN pg_get_functiondef(v_fn)) = 0
+  THEN
+    RAISE EXCEPTION 'Public guest cancellation contract regressed';
+  END IF;
 
   IF has_function_privilege('anon','public.claim_dispatch_offer(uuid)','EXECUTE')
      OR NOT has_function_privilege('authenticated','public.claim_dispatch_offer(uuid)','EXECUTE')

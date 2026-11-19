@@ -1,0 +1,25 @@
+name: Edge Push Authorization
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/functions/send-push-notification/**'
+      - 'supabase/functions/tests/send-push-notification-auth.test.ts'
+      - '.github/workflows/push-security-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  authorization-tests:
+    name: Push token authorization tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Reject anonymous and forged push requests
+        run: deno test supabase/functions/tests/send-push-notification-auth.test.ts

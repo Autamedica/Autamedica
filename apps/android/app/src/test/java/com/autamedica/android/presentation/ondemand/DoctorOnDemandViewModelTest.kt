@@ -114,6 +114,7 @@ private class FakePharmacyDispatchRepo : PharmacyDispatchRepository {
         symptomSummary: String?,
         patientCpf: String?,
         careCountry: String?,
+        referralCode: String?,
     ): Result<PharmacyDispatchRequest> = Result.failure(NotImplementedError())
 
     override fun observePatientRequest(requestId: String): Flow<PharmacyDispatchRequest> = flowOf()

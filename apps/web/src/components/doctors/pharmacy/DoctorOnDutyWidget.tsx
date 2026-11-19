@@ -1,8 +1,6 @@
-import { useState } from 'react'
 import {
   Activity,
   AlertCircle,
-  Building2,
   Clock,
   FileText,
   Loader2,
@@ -11,111 +9,114 @@ import {
   RefreshCw,
   User,
   Video,
-} from 'lucide-react'
-import { useDoctorOnDuty } from '@/hooks/doctors/useDoctorOnDuty'
+} from "lucide-react";
+import { useDoctorOnDuty } from "@/hooks/doctors/useDoctorOnDuty";
 
 interface DoctorOnDutyWidgetProps {
-  className?: string
-  compact?: boolean
+  className?: string;
+  compact?: boolean;
+  careCountry?: "AR" | "BR";
 }
 
-export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOnDutyWidgetProps) {
+export function DoctorOnDutyWidget({
+  className = "",
+  compact = false,
+  careCountry: providedCareCountry,
+}: DoctorOnDutyWidgetProps) {
   const {
     onDuty,
+    careCountry: queueCareCountry,
     since,
     loading,
     toggling,
     claimingId,
+    decliningId,
+    declinePatient,
     queue,
     queueCount,
     error,
     toggleDuty,
     claimPatient,
     refreshQueue,
-  } = useDoctorOnDuty()
+  } = useDoctorOnDuty(providedCareCountry);
 
-  const [expanded, setExpanded] = useState(true)
+  const careCountry = providedCareCountry ?? queueCareCountry;
+  const sinceLabel = since
+    ? new Date(since).toLocaleTimeString(careCountry === "BR" ? "pt-BR" : "es-AR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
 
   const handleClaim = async (requestId: string) => {
-    const result = await claimPatient(requestId)
+    const result = await claimPatient(requestId);
     const targetUrl =
       result?.doctorRoomUrl ||
-      (result?.roomId ? `/doctors/call/${encodeURIComponent(result.roomId)}` : null)
+      (result?.roomId ? `/doctors/call/${encodeURIComponent(result.roomId)}` : null);
     if (targetUrl) {
-      // Direct navigation to doctor videocall room
-      window.location.href = targetUrl
+      window.location.href = targetUrl;
     }
-  }
+  };
 
   if (loading) {
     return (
-      <div className={`p-4 rounded-2xl bg-am-surface-800/80 border border-am-surface-700/60 animate-pulse flex items-center justify-between ${className}`}>
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-am-surface-700/60" />
+      <div
+        className={`flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3 animate-pulse ${className}`}
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-lg bg-slate-100" />
           <div>
-            <div className="w-32 h-3.5 bg-am-surface-700/60 rounded mb-1" />
-            <div className="w-20 h-2.5 bg-am-surface-700/40 rounded" />
+            <div className="mb-1 h-3 w-32 rounded bg-slate-100" />
+            <div className="h-2 w-20 rounded bg-slate-50" />
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div
-      className={`rounded-2xl border transition-all duration-300 ${
-        onDuty
-          ? 'bg-gradient-to-br from-am-surface-800/95 via-am-surface-800 to-emerald-950/20 border-emerald-500/40 shadow-xl shadow-emerald-950/20'
-          : 'bg-am-surface-800/80 border-am-surface-700/60 shadow-md'
-      } p-4 sm:p-5 ${className}`}
+    <section
+      aria-label={careCountry === "BR" ? "Plantão de Farmácia" : "Guardia de farmacia"}
+      className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm ${className}`}
     >
-      {/* Header & Toggle */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div
-            className={`w-10 h-10 rounded-xl flex items-center justify-center transition ${
-              onDuty
-                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
-                : 'bg-am-surface-700 text-am-surface-400'
-            }`}
-          >
-            <Pill className="w-5 h-5" />
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#E8F5FD] text-[#087FB9]">
+            <Pill className="h-4 w-4" aria-hidden="true" />
           </div>
-
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold text-white">
-                Guardia Farmacia / Consultas Exprés
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h3 className="text-sm font-semibold text-[#0F2537]">
+                {careCountry === "BR" ? "Plantão de Farmácia" : "Guardia de farmacia"}
               </h3>
-              {onDuty ? (
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[10px] font-semibold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                  DISPONIBLE
-                </span>
-              ) : (
-                <span className="px-2 py-0.5 rounded-full bg-am-surface-700/60 text-am-surface-400 text-[10px] font-medium">
-                  DESCONECTADO
+              {onDuty && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700">
+                  <span className="h-1.5 w-1.5 rounded-full bg-sky-600" />
+                  {careCountry === "BR" ? "Em plantão" : "En guardia"}
+                  {sinceLabel ? <> · {sinceLabel}</> : null}
                 </span>
               )}
             </div>
-            <p className="text-xs text-am-surface-400">
-              {onDuty
-                ? `Activo para recetas y videoconsultas inmediatas en mostrador ${since ? `• desde ${new Date(since).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}`
-                : 'Activa la guardia para recibir pacientes en espera desde farmacias'}
-            </p>
+            {!onDuty && (
+              <p className="mt-0.5 text-[10px] text-slate-500">
+                {careCountry === "BR"
+                  ? "Ative o plantão para receber solicitações"
+                  : "Activá la guardia para recibir solicitudes"}
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Action Toggle Switch */}
         <div className="flex items-center gap-2 self-end sm:self-center">
           {onDuty && (
             <button
               type="button"
               onClick={() => void refreshQueue()}
-              title="Actualizar cola"
-              className="p-2 rounded-xl bg-am-surface-700/50 hover:bg-am-surface-700 text-am-surface-300 transition"
+              title={careCountry === "BR" ? "Atualizar" : "Actualizar"}
+              aria-label={careCountry === "BR" ? "Atualizar" : "Actualizar"}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
           )}
 
@@ -123,131 +124,129 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
             type="button"
             disabled={toggling}
             onClick={() => void toggleDuty(!onDuty)}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow-md ${
+            className={`inline-flex min-h-8 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition disabled:opacity-50 ${
               onDuty
-                ? 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40'
-                : 'bg-gradient-to-r from-am-primary-600 to-emerald-600 hover:from-am-primary-500 hover:to-emerald-500 text-white shadow-emerald-950/40'
-            } disabled:opacity-50`}
+                ? "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                : "bg-[#087FB9] text-white hover:bg-[#066FA5]"
+            }`}
           >
             {toggling ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
             ) : (
-              <Power className="w-3.5 h-3.5" />
+              <Power className="h-3.5 w-3.5" aria-hidden="true" />
             )}
-            <span>{onDuty ? 'Pausar Guardia' : 'Iniciar Guardia'}</span>
+            <span>
+              {onDuty
+                ? careCountry === "BR"
+                  ? "Pausar plantão"
+                  : "Pausar guardia"
+                : careCountry === "BR"
+                  ? "Iniciar plantão"
+                  : "Iniciar guardia"}
+            </span>
           </button>
         </div>
-      </div>
+      </header>
 
       {error && (
-        <div className="mt-3 p-3 rounded-xl bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+        <div className="mt-2 flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-700">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Queue View when On-Duty */}
       {onDuty && !compact && (
-        <div className="mt-4 pt-4 border-t border-am-surface-700/50">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-am-surface-200">
-                Pacientes en Espera
-              </span>
-              <span
-                className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                  queueCount > 0
-                    ? 'bg-emerald-500 text-white animate-pulse'
-                    : 'bg-am-surface-700 text-am-surface-400'
-                }`}
-              >
-                {queueCount}
-              </span>
-            </div>
-
-            {queueCount > 0 && (
-              <button
-                type="button"
-                onClick={() => setExpanded(!expanded)}
-                className="text-xs text-am-primary-400 hover:text-am-primary-300 transition"
-              >
-                {expanded ? 'Ocultar' : 'Ver cola'}
-              </button>
-            )}
+        <div className="mt-3 border-t border-slate-100 pt-3" aria-live="polite">
+          <div className="mb-2 flex items-center gap-2">
+            <h4 className="text-xs font-semibold text-[#0F2537]">
+              {careCountry === "BR" ? "Solicitações" : "Solicitudes"}
+            </h4>
+            <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-slate-700">
+              {queueCount}
+            </span>
           </div>
 
           {queueCount === 0 ? (
-            <div className="py-5 px-4 rounded-xl bg-am-surface-900/60 border border-am-surface-700/40 text-center flex flex-col items-center justify-center">
-              <Activity className="w-5 h-5 text-emerald-400/60 mb-1.5 animate-pulse" />
-              <p className="text-xs text-am-surface-300 font-medium">
-                Sin pacientes esperando en este momento
-              </p>
-              <p className="text-[11px] text-am-surface-500 mt-0.5">
-                Te notificaremos con un tono sonoro en cuanto una farmacia ingrese una solicitud.
+            <div className="rounded-lg bg-slate-50 px-3 py-3 text-center">
+              <Activity className="mx-auto mb-1 h-4 w-4 text-sky-600" aria-hidden="true" />
+              <p className="text-[11px] font-medium text-slate-600">
+                {careCountry === "BR"
+                  ? "Nenhuma solicitação pendente"
+                  : "No hay solicitudes pendientes"}
               </p>
             </div>
           ) : (
-            expanded && (
-              <div className="space-y-2.5">
-                {queue.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-3.5 rounded-xl bg-am-surface-900/90 border border-am-surface-700/70 hover:border-emerald-500/50 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                          <User className="w-3.5 h-3.5 text-am-surface-400" />
-                          {item.patientName}
-                        </span>
-                        <span className="text-[11px] text-am-surface-400">
-                          (DNI {item.patientDni})
-                        </span>
-                        <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-am-surface-800 text-am-surface-300 border border-am-surface-700">
-                          <Building2 className="w-3 h-3 text-am-primary-400" />
-                          {item.pharmacyName}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-3 text-[11px] text-am-surface-300">
-                        <span className="flex items-center gap-1 text-am-primary-300 font-medium truncate max-w-[280px]">
-                          <FileText className="w-3 h-3 text-am-primary-400" />
-                          {item.reason}
-                        </span>
-                        <span className="flex items-center gap-1 text-am-surface-400">
-                          <Clock className="w-3 h-3" />
-                          Esperando hace {item.minutesWaiting} min
-                        </span>
-                      </div>
+            <div className="space-y-2">
+              {queue.map((item) => (
+                <article
+                  key={item.id}
+                  className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50/70 p-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0F2537]">
+                        <User className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
+                        {item.patientName}
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        {careCountry === "BR" ? "CPF" : "DNI"} •••• {item.patientDni.slice(-4)}
+                      </span>
                     </div>
 
-                    <div className="self-end sm:self-center">
-                      <button
-                        type="button"
-                        disabled={claimingId === item.id}
-                        onClick={() => void handleClaim(item.id)}
-                        className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 transition shadow-md shadow-emerald-950/40 flex items-center gap-1.5 active:scale-[0.98] disabled:opacity-50"
-                      >
-                        {claimingId === item.id ? (
-                          <>
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            <span>Conectando...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Video className="w-3.5 h-3.5" />
-                            <span>Atender Paciente</span>
-                          </>
-                        )}
-                      </button>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-slate-600">
+                      <span className="inline-flex min-w-0 items-center gap-1">
+                        <FileText className="h-3 w-3 shrink-0 text-slate-400" aria-hidden="true" />
+                        <span className="break-words">{item.reason}</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-slate-500">
+                        <Clock className="h-3 w-3" aria-hidden="true" />
+                        {careCountry === "BR"
+                          ? `Aguardando há ${item.minutesWaiting} min`
+                          : `Esperando hace ${item.minutesWaiting} min`}
+                      </span>
                     </div>
                   </div>
-                ))}
-              </div>
-            )
+
+                  <div className="flex shrink-0 items-center gap-2 self-end sm:self-center">
+                    <button
+                      type="button"
+                      disabled={!item.offerId || decliningId === item.id}
+                      onClick={() => void declinePatient(item.id)}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-100 disabled:opacity-50"
+                    >
+                      {decliningId === item.id
+                        ? careCountry === "BR"
+                          ? "Recusando..."
+                          : "Rechazando..."
+                        : careCountry === "BR"
+                          ? "Recusar"
+                          : "Rechazar"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={claimingId === item.id}
+                      onClick={() => void handleClaim(item.id)}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-[11px] font-semibold text-white transition hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50"
+                    >
+                      {claimingId === item.id ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                          <span>Conectando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Video className="h-3.5 w-3.5" aria-hidden="true" />
+                          <span>{careCountry === "BR" ? "Atender paciente" : "Atender paciente"}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
           )}
         </div>
       )}
-    </div>
-  )
+    </section>
+  );
 }

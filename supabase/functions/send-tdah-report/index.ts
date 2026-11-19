@@ -1,3 +1,4 @@
+import { withEdgeSentry } from '../_shared/sentry.ts';
 const BREVO_URL = "https://api.brevo.com/v3/smtp/email";
 const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY") ?? "";
 
@@ -7,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-Deno.serve(async (req) => {
+Deno.serve(withEdgeSentry('send-tdah-report', async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -82,19 +83,21 @@ Deno.serve(async (req) => {
       });
     } catch (err) {
       clearTimeout(timeoutId);
-      const isTimeout = err.name === 'AbortError';
-      return new Response(JSON.stringify({ error: isTimeout ? "Brevo request timed out" : err.message }), {
+      const error = err instanceof Error ? err : new Error(String(err));
+      const isTimeout = error.name === 'AbortError';
+      return new Response(JSON.stringify({ error: isTimeout ? "Brevo request timed out" : error.message }), {
         status: isTimeout ? 504 : 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    const error = err instanceof Error ? err : new Error(String(err));
+    return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}));
 
 function escapeHtml(text: string): string {
   return text

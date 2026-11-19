@@ -230,7 +230,7 @@ fun DoctorCockpitHeader(
                             "Dr. $doctorName"
                         }
                     } else {
-                        "Médico Especialista"
+                        stringResource(R.string.ui_doctor_name_fallback)
                     }
 
                     Text(
@@ -241,13 +241,13 @@ fun DoctorCockpitHeader(
                             letterSpacing = (-0.4).sp,
                         ),
                         color = AuTextPrimary,
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
 
                     Spacer(modifier = Modifier.height(2.dp))
 
-                    val specText = specialty?.takeIf { it.isNotBlank() } ?: "Medicina General & Telemedicina"
+                    val specText = specialty?.takeIf { it.isNotBlank() } ?: stringResource(R.string.ui_doctor_specialty_fallback)
                     Text(
                         text = specText,
                         style = MaterialTheme.typography.bodySmall.copy(
@@ -366,9 +366,9 @@ fun DoctorCockpitHeader(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     text = when {
-                                        guardApproved != true -> "GUARDIA PENDIENTE DE VALIDACIÓN"
-                                        isOnDuty -> "CONECTADO A GUARDIA"
-                                        else -> "GUARDIA DESCONECTADA"
+                                        guardApproved != true -> stringResource(R.string.ui_doctor_guard_pending)
+                                        isOnDuty -> stringResource(R.string.ui_doctor_guard_connected)
+                                        else -> stringResource(R.string.ui_doctor_guard_disconnected)
                                     },
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontSize = 15.sp,
@@ -392,9 +392,9 @@ fun DoctorCockpitHeader(
 
                             Text(
                                 text = when {
-                                    guardApproved != true -> "Esperando aprobación del administrador"
-                                    isOnDuty -> "Recibiendo derivaciones de farmacia en tiempo real"
-                                    else -> "Toca para activar disponibilidad y recibir consultas"
+                                    guardApproved != true -> stringResource(R.string.ui_doctor_guard_waiting_admin)
+                                    isOnDuty -> stringResource(R.string.ui_doctor_guard_receiving_dispatches)
+                                    else -> stringResource(R.string.ui_doctor_guard_activate_hint)
                                 },
                                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                                 color = if (isOnDuty) AuCyan else Color(0xFF64748B),

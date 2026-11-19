@@ -1,5 +1,7 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { withEdgeSentry } from '../_shared/sentry.ts';
+import { createClient } from '@supabase/supabase-js'
 import { corsHeaders } from '../_shared/cors.ts'
+import { isAuthorizedPushRequest } from './authorization.ts'
 
 console.info('Send Push Notification function started')
 
@@ -39,12 +41,15 @@ function base64UrlDecodeToBinary(input: string): Uint8Array {
   return bytes
 }
 
-function pemToBinary(pem: string): Uint8Array {
+function pemToBinary(pem: string): ArrayBuffer {
   const body = pem
     .replace(/-----BEGIN [A-Z ]+-----/g, '')
     .replace(/-----END [A-Z ]+-----/g, '')
     .replace(/\s+/g, '')
-  return base64UrlDecodeToBinary(body)
+  const bytes = base64UrlDecodeToBinary(body)
+  const buffer = new ArrayBuffer(bytes.byteLength)
+  new Uint8Array(buffer).set(bytes)
+  return buffer
 }
 
 async function signJwt(
@@ -143,33 +148,38 @@ function parseServiceAccount(raw: string | null): ServiceAccount | null {
   }
 }
 
-function isAuthorized(authHeader: string | null): boolean {
-  if (!authHeader) return false
-  const token = authHeader.replace('Bearer ', '')
-  const cronSecret = Deno.env.get('CRON_SECRET') ?? ''
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-  return Boolean(token && (token === cronSecret || token === serviceRoleKey || (anonKey && token === anonKey)))
-}
-
-Deno.serve(async (req) => {
+Deno.serve(withEdgeSentry('send-push-notification', async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  let bodyPayload: PushPayload | null = null
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  // Authorize before parsing the request body. A claimed dispatch event is NOT
+  // proof of origin: only service_role / CRON_SECRET / PUSH_DISPATCH_SECRET qualify.
+  if (!isAuthorizedPushRequest(req.headers.get('Authorization'), {
+    cronSecret: Deno.env.get('CRON_SECRET'),
+    serviceRoleKey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
+    dispatchSecret: Deno.env.get('PUSH_DISPATCH_SECRET'),
+    anonKey: Deno.env.get('SUPABASE_ANON_KEY'),
+  })) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  let bodyPayload: PushPayload | null
   try {
     bodyPayload = await req.json() as PushPayload
   } catch {
-    bodyPayload = null
-  }
-
-  const isDispatch = bodyPayload?.data?.type === 'pharmacy_dispatch_incoming' ||
-    bodyPayload?.data?.notification_type === 'pharmacy_dispatch_incoming'
-
-  if (!isDispatch && !isAuthorized(req.headers.get('Authorization'))) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
+    return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+      status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
@@ -271,4 +281,4 @@ Deno.serve(async (req) => {
     console.error('send-push-notification error:', error)
     return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
-})
+}))

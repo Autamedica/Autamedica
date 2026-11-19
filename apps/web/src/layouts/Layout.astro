@@ -8,7 +8,6 @@ import CookieBanner from '../components/CookieBanner.astro';
 import OfflineBanner from '../components/OfflineBanner.astro';
 import FadeInObserver from '../components/FadeInObserver.astro';
 import GrowthAttribution from '../components/GrowthAttribution.astro';
-import DoctorBottomNav from '../components/doctors/layout/DoctorBottomNav.astro';
 import { SentryInit } from '../components/SentryInit';
 import { getI18n } from '../i18n/index';
 import { resolvePublicClientEnv } from '../lib/runtime-env';
@@ -58,16 +57,7 @@ const isDoctorHost =
   Astro.url.pathname.startsWith('/doctors') ||
   devPortal === 'doctor';
 
-// Prioridad: Query Params > Pathname
-const section = Astro.url.searchParams.get('section');
-const activeTabDoctor = 
-  section === 'ranking' ? 'ranking' :
-  section === 'telemedicina' ? 'telemedicina' :
-  Astro.url.pathname.includes('/agenda') ? 'agenda' :
-  Astro.url.pathname.includes('/dashboard') ? 'ranking' :
-  Astro.url.pathname.includes('/call') ? 'telemedicina' :
-  Astro.url.pathname.includes('/community') ? 'comunidad' :
-  Astro.url.pathname.includes('/perfil') ? 'perfil' : 'agenda';
+
 if (isPatientHost || isDoctorHost || Astro.locals.session) {
   Astro.response.headers.set('Cache-Control', 'private, no-store');
   Astro.response.headers.append('Vary', 'Cookie, Authorization');
@@ -125,7 +115,7 @@ const needsCareCountry = Boolean(careContext && !careContext.careCountry);
 
     <link rel="preconnect" href="https://qxjjrpksmwwrmubhvjew.supabase.co" />
     <link rel="icon" href="/images/brand/logo_bioceramic.png" type="image/png" />
-    <link rel="manifest" href="/manifest.json" />
+    <!-- Android se distribuye como app Kotlin desde Google Play; no anunciar la web como PWA instalable. -->
     <StructuredData />
     <GoogleTag />
     <script is:inline>
@@ -186,7 +176,6 @@ const needsCareCountry = Boolean(careContext && !careContext.careCountry);
     <FadeInObserver />
 
     {isPatientHost && <PatientSessionSync client:load />}
-    {isDoctorHost && <DoctorBottomNav activeTab={activeTabDoctor} />}
   </body>
 </html>
 

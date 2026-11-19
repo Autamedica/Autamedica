@@ -4,59 +4,89 @@ import { PharmacyExpressConsultation } from '@/components/pharmacy/PharmacyExpre
 import { createAstroAdminClient } from '@/lib/supabase';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payment-access';
+import { getOperationalPaymentSwitches } from '@/lib/payments/operational-switches';
+import { resolvePatientContext } from '@/lib/patients/api/patient-context';
 
 export const prerender = false;
 
 const pharmacyId = Astro.url.searchParams.get('pharmacyId');
 const requestedReferral = Astro.url.searchParams.get('ref')?.trim().toUpperCase() ?? null;
+const requestedCareCountry = Astro.url.searchParams.get('careCountry')?.toUpperCase();
+const patientContext = await resolvePatientContext(Astro.request, Astro.locals).catch(() => null);
+// Commercial attribution and clinical jurisdiction are independent.
+// The patient's persisted jurisdiction wins; an explicit QR parameter is the
+// fallback for guests. A referral partner never selects the country of care.
+const initialCareCountry = patientContext?.careCountry
+  ?? (requestedCareCountry === 'AR' || requestedCareCountry === 'BR'
+    ? requestedCareCountry
+    : requestedReferral === 'JORDAN' ? 'BR' : null);
 let referralCode: string | null = null;
 let referralPartnerName: string | null = null;
-// Resolve the source against the private server-side partner registry.
-// URL text alone is never accepted as proof of a registered referral partner.
 if (requestedReferral && /^[A-Z0-9_-]{3,32}$/.test(requestedReferral)) {
   try {
-    const admin = createAstroAdminClient(Astro.locals.runtime?.env);
+    const admin = createAstroAdminClient(Astro.locals.runtime?.env) as any;
     const { data: partner } = await (admin as unknown as SupabaseClient)
-      .from('commercial_referral_partners')
-      .select('code, display_name')
-      .eq('code', requestedReferral)
-      .eq('active', true)
-      .maybeSingle();
-    if (partner) {
-      referralCode = partner.code;
-      referralPartnerName = partner.display_name;
-    }
-  } catch {
-    // No unverified attribution if partner registry is unavailable.
-  }
+      .from('commercial_referral_partners').select('code, display_name')
+      .eq('code', requestedReferral).eq('active', true).maybeSingle();
+    if (partner) { referralCode = partner.code; referralPartnerName = partner.display_name; }
+  } catch { /* No unverified attribution if partner registry is unavailable. */ }
 }
-let pharmacyName = 'Punto de Farmacia'; // Pharmacy name is shown only when verified in our database.
-
+let pharmacyName = 'Punto de Farmacia';
 if (pharmacyId) {
   try {
     const admin = createAstroAdminClient(Astro.locals.runtime?.env);
-    const { data } = await admin
-      .from('pharmacies')
-      .select('name')
-      .eq('id', pharmacyId)
-      .maybeSingle();
-
-    if (data?.name) {
-      pharmacyName = data.name;
-    }
-  } catch {
-    // Si falla mantiene el default
-  }
+    const { data } = await admin.from('pharmacies').select('name').eq('id', pharmacyId).maybeSingle();
+    if (data?.name) pharmacyName = data.name;
+  } catch { /* Keep the default pharmacy label. */ }
 }
 
-// Checkout is intentionally disabled until synthetic PSP verification succeeds.
-const jordanPaymentsEnabled = (
-  (Astro.locals.runtime?.env?.ENABLE_JORDAN_PAYMENTS as string | undefined)
-  ?? import.meta.env.ENABLE_JORDAN_PAYMENTS
-) === 'true' && hasSecureGuestPaymentSecret(Astro.locals.runtime?.env);
+let jordanPaymentsEnabled = false;
+let pharmacyPaymentsEnabled = false;
+try {
+  const switches = await getOperationalPaymentSwitches(createAstroAdminClient(Astro.locals.runtime?.env) as any);
+  pharmacyPaymentsEnabled = switches.pharmacy_express_payments_enabled;
+  jordanPaymentsEnabled = switches.jordan_qr_payments_enabled && switches.pharmacy_express_payments_enabled
+    && hasSecureGuestPaymentSecret(Astro.locals.runtime?.env);
+} catch {
+  // Fail closed when platform controls cannot be read.
+}
 
-const title = 'Consulta Exprés en Farmacia • Red AutaMedica';
-const description = 'Punto de atención de telemedicina de AutaMedica. Los documentos médicos dependen del profesional y de la habilitación correspondiente al país de atención.';
+// Playwright sets this on the Astro dev-server process. Read process.env here,
+// not Cloudflare's runtime bindings: webServer.env does not populate platform env.
+// The DEV guard makes this fixture override unavailable in production builds.
+if (import.meta.env.DEV && process.env.AUTAMEDICA_E2E_PHARMACY_DISPATCH === 'true') {
+  pharmacyPaymentsEnabled = true;
+}
+
+
+let pricingByCountry: Partial<Record<'AR' | 'BR', {
+  currency: 'ARS' | 'BRL';
+  consultation_price_minor: number;
+  doctor_fee_minor: number;
+  partner_commission_minor: number;
+  require_payment_before_dispatch: boolean;
+}>> = {};
+try {
+  const pricingAdmin = createAstroAdminClient(Astro.locals.runtime?.env) as any;
+  const { data } = await pricingAdmin.from('pharmacy_dispatch_pricing_configs')
+    .select('country_code,currency,consultation_price_minor,doctor_fee_minor,partner_commission_minor,require_payment_before_dispatch');
+  for (const row of data ?? []) {
+    if (row.country_code === 'AR' || row.country_code === 'BR') pricingByCountry[row.country_code] = row;
+  }
+} catch {
+  // The form reports an explicit pricing configuration error when a tariff is absent.
+}
+
+if (import.meta.env.DEV && process.env.AUTAMEDICA_E2E_PHARMACY_DISPATCH === 'true') {
+  pricingByCountry = {
+    AR: { currency: 'ARS', consultation_price_minor: 1500000, doctor_fee_minor: 800000, partner_commission_minor: 200000, require_payment_before_dispatch: false },
+    BR: { currency: 'BRL', consultation_price_minor: 7900, doctor_fee_minor: 4000, partner_commission_minor: 1000, require_payment_before_dispatch: false },
+  };
+}
+
+const isPortugueseUI = Astro.locals.locale === 'pt';
+const title = isPortugueseUI ? 'Consulta Expressa em Farmácia · AutaMedica' : 'Consulta Exprés en Farmacia • Red AutaMedica';
+const description = isPortugueseUI ? 'Ponto de atendimento de telemedicina da AutaMedica.' : 'Punto de atención de telemedicina de AutaMedica.';
 ---
 
 <CallLayout title={title} description={description}>
@@ -64,8 +94,12 @@ const description = 'Punto de atención de telemedicina de AutaMedica. Los docum
     client:load
     pharmacyId={pharmacyId}
     pharmacyName={pharmacyName}
+    initialCareCountry={initialCareCountry}
+    uiLocale={Astro.locals.locale}
     referralCode={referralCode}
     referralPartnerName={referralPartnerName}
     jordanPaymentsEnabled={jordanPaymentsEnabled}
+    pharmacyPaymentsEnabled={pharmacyPaymentsEnabled}
+    pricingByCountry={pricingByCountry}
   />
 </CallLayout>

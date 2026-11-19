@@ -47,5 +47,5 @@ export interface BrazilPrescriptionInput {
   notes?: string;
   issuedAt: string;
   expiresAt: string;
-  itiValidationUrl?: string;
+  verificationUrl?: string;
 }

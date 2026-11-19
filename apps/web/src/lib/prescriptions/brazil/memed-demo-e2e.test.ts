@@ -45,6 +45,7 @@ const state = {
   doctorProfile: {} as Row,
   patientProfile: {} as Row,
   license: {} as Row,
+  clinicalStatus: 'ready' as 'ready' | 'pending_issuance',
   careLink: true,
   providerDoctorCpf: fakeDoctorCpf,
   providerPatientCpf: fakePatientCpf,
@@ -53,17 +54,18 @@ const state = {
   providerDoctorExists: true,
   privateCpf: fakeDoctorCpf as string | null,
   rows: [] as Row[],
+  memedRows: [] as Row[],
   requests: [] as string[],
 };
 
 function resetState() {
   state.doctor = {
     id: doctorId, user_id: doctorUserId, active: true, license_type: 'CRM',
-    license_number: fakeCrm, uf_brazil: 'RS', cpf: null,
+    license_number: fakeCrm, uf_brazil: 'RS', cpf: fakeDoctorCpf,
   };
   state.doctorProfile = {
     user_id: doctorUserId, first_name: 'Medico', last_name: 'Demonstração',
-    email: 'medico-demo@example.invalid', phone: null, cpf: null,
+    email: 'medico-demo@example.invalid', phone: null, cpf: fakeDoctorCpf,
   };
   state.patient = {
     id: patientId, user_id: patientUserId, active: true, care_country: 'BR',
@@ -73,7 +75,13 @@ function resetState() {
   state.license = {
     doctor_id: doctorId, license_number: fakeCrm, license_type: 'CRM',
     uf_brazil: 'RS', status: 'active', cfm_validation_status: 'valid',
+    cfm_evidence_path: 'demo/license/cfm-proof.pdf',
+    cfm_review_notes: 'Consulta CFM ficticia para pruebas automatizadas.',
+    cfm_reviewed_by: 'demo-reviewer',
+    cfm_reviewed_at: '2026-11-12T18:00:00.000Z',
+    cfm_last_checked_at: '2026-11-12T18:00:00.000Z',
   };
+  state.clinicalStatus = 'ready';
   state.careLink = true;
   state.providerDoctorCpf = fakeDoctorCpf;
   state.providerPatientCpf = fakePatientCpf;
@@ -82,15 +90,19 @@ function resetState() {
   state.providerDoctorExists = true;
   state.privateCpf = fakeDoctorCpf;
   state.rows = [];
+  state.memedRows = [];
   state.requests = [];
 }
 
 function readTable(table: string, filters: Map<string, unknown>): Row | Row[] | null {
   switch (table) {
+    case 'platform_operational_domains':
+      return filters.get('scope_key') === 'BR'
+        ? { scope_key: 'BR', clinical_status: state.clinicalStatus } : null;
     case 'doctors':
       return filters.get('user_id') === doctorUserId ? state.doctor : null;
     case 'doctor_licenses':
-      return state.license && state.license.doctor_id === filters.get('doctor_id') ? [state.license] : [];
+      return state.license?.doctor_id === filters.get('doctor_id') ? [state.license] : [];
     case 'profiles':
       return filters.get('user_id') === doctorUserId ? state.doctorProfile
         : filters.get('user_id') === patientUserId ? state.patientProfile : null;
@@ -102,8 +114,12 @@ function readTable(table: string, filters: Map<string, unknown>): Row | Row[] | 
         && filters.get('patient_id') === patientId ? { id: 'demo-care-link' } : null;
     case 'appointments':
       return null;
+    case 'pharmacy_dispatch_requests':
+      return null;
     case 'patients':
       return filters.get('id') === patientId ? state.patient : null;
+    case 'memed_prescriptions':
+      return state.memedRows.find(row => row.memed_id === filters.get('memed_id')) ?? null;
     case 'prescriptions':
       return state.rows.find(row => row.doctor_id === filters.get('doctor_id')
         && row.patient_id === filters.get('patient_id')
@@ -118,19 +134,30 @@ function db() {
   return {
     from(table: string) {
       const filters = new Map<string, unknown>();
+      let pendingUpdate: Row | null = null;
       const query = {
         select(_columns: string) { return query; },
         eq(key: string, value: unknown) { filters.set(key, value); return query; },
         is(_key: string, _value: unknown) { return query; },
         or(_expression: string) { return query; },
+        in(_key: string, _values: unknown[]) { return query; },
+        gte(_key: string, _value: unknown) { return query; },
         limit(_n: number) { return query; },
         maybeSingle: async () => ({ data: Array.isArray(readTable(table, filters))
           ? (readTable(table, filters) as Row[])[0] ?? null : readTable(table, filters), error: null }),
-        then: (accept: (value: unknown) => unknown, reject?: (error: unknown) => unknown) =>
-          Promise.resolve({ data: readTable(table, filters), error: null }).then(accept, reject),
+        then: (accept: (value: unknown) => unknown, reject?: (error: unknown) => unknown) => {
+          if (pendingUpdate) {
+            const target = table === 'memed_prescriptions' ? state.memedRows : state.rows;
+            const index = target.findIndex(row => Object.entries(Object.fromEntries(filters)).every(([key, value]) => row[key] === value));
+            if (index >= 0) target[index] = { ...target[index], ...pendingUpdate };
+          }
+          return Promise.resolve({ data: readTable(table, filters), error: null }).then(accept, reject);
+        },
+        update(row: Row) { pendingUpdate = row; return query; },
         insert: async (row: Row) => {
-          if (table !== 'prescriptions') throw new Error('Unexpected DEMO insert');
-          state.rows.push(row);
+          if (table === 'prescriptions') state.rows.push(row);
+          else if (table === 'memed_prescriptions') state.memedRows.push(row);
+          else throw new Error('Unexpected DEMO insert');
           return { error: null };
         },
         upsert: async (row: Row) => {
@@ -181,6 +208,19 @@ function mockedMemedFetch(input: RequestInfo | URL, options?: RequestInit): Prom
       token: 'token-para-teste-apenas', external_id: doctorId,
       nome: 'Medico', sobrenome: 'Demonstração',
       cpf: state.providerDoctorCpf, crm: fakeCrm, uf: 'RS',
+    } } }));
+  }
+  if (url.pathname === `/v1/prescricoes/${fakeRx}/get-digital-prescription-link`) {
+    expect(url.searchParams.get('token')).toBe('token-para-teste-apenas');
+    return Promise.resolve(json({ data: { attributes: {
+      link: 'https://receita.memed.com.br/DEMO-RX-001',
+      password: 'DEMO-UNLOCK-ONLY',
+    } } }));
+  }
+  if (url.pathname === `/v1/prescricoes/${fakeRx}/url-document/full`) {
+    expect(url.searchParams.get('token')).toBe('token-para-teste-apenas');
+    return Promise.resolve(json({ data: { attributes: {
+      url: 'https://documentos.memed.com.br/DEMO-RX-001.pdf',
     } } }));
   }
   if (url.pathname === `/v1/prescricoes/${fakeRx}`) {
@@ -246,7 +286,7 @@ describe('Memed DEMO flow: synthetic doctor + synthetic patient, no real provide
 
   it('accepts DEMO doctor + authorized BR patient, verifies mocked provider and records pending signature', async () => {
     const token = await callToken();
-    expect(token.status).toBe(200);
+    expect(token.status, JSON.stringify(token.error)).toBe(200);
     expect(token.data.patient).toMatchObject({
       idExterno: `autamedica-${patientId}`, nome: 'Paciente Demonstração',
       cpf: fakePatientCpf, sexo: 'Feminino', data_nascimento: '29/02/2000',
@@ -259,23 +299,60 @@ describe('Memed DEMO flow: synthetic doctor + synthetic patient, no real provide
       status: 'recorded_pending_signature_and_delivery', prescriptionId: fakeRx,
     });
     expect(state.rows).toHaveLength(1);
+    expect(state.memedRows).toHaveLength(1);
+    expect(state.memedRows[0]).toMatchObject({
+      doctor_id: doctorId, patient_id: patientId, memed_id: fakeRx,
+      status: 'verified_at_provider', pdf_signature_verified: false, patient_delivery_confirmed: false,
+    });
     expect(state.rows[0]).toMatchObject({
       doctor_id: doctorId, patient_id: patientId, country_code: 'BR',
       status: 'draft', vendor_name: 'memed', vendor_id: fakeRx,
       clinical_data: {
         emission_status: 'provider_verified', signature_status: 'provider_reported_signed',
-        signature_verified: false, delivery_status: 'pending', delivery_verified: false,
+        signature_verified: false, delivery_status: 'provider_link_available', delivery_verified: false,
+      },
+    });
+    expect(state.rows[0]).toMatchObject({
+      physical_pdf_url: 'https://documentos.memed.com.br/DEMO-RX-001.pdf',
+      clinical_data: {
+        dispatch_request_id: null,
+        memed_digital_prescription: {
+          url: 'https://receita.memed.com.br/DEMO-RX-001',
+          unlock_code: 'DEMO-UNLOCK-ONLY',
+        },
+        memed_full_pdf_url: 'https://documentos.memed.com.br/DEMO-RX-001.pdf',
+        signature_verified: false,
+        delivery_status: 'provider_link_available',
       },
     });
     expect(state.requests).toEqual([
       `GET /v1/sinapse-prescricao/usuarios/${fakeDoctorCpf}`,
       `GET /v1/sinapse-prescricao/usuarios/${fakeDoctorCpf}`,
       `GET /v1/prescricoes/${fakeRx}`,
+      `GET /v1/prescricoes/${fakeRx}/get-digital-prescription-link`,
+      `GET /v1/prescricoes/${fakeRx}/url-document/full`,
     ]);
     const duplicate = await callEvent();
     expect(duplicate.status).toBe(200);
     expect(duplicate.data).toMatchObject({ duplicate: true, status: 'draft' });
     expect(state.rows).toHaveLength(1);
+  });
+
+  it.each(['ready', 'pending_issuance'] as const)('allows Memed initialization while Brazil clinical governance is %s', async (clinicalStatus) => {
+    state.clinicalStatus = clinicalStatus;
+    const token = await callToken();
+    expect(token.status).toBe(200);
+    expect(token.data.patient).toHaveProperty('cpf', fakePatientCpf);
+    expect(state.requests).toContain(`GET /v1/sinapse-prescricao/usuarios/${fakeDoctorCpf}`);
+    expect(state.rows).toHaveLength(0);
+  });
+
+  it('blocks both Memed routes when a legacy valid CRM has no manual review evidence', async () => {
+    state.license.cfm_evidence_path = null;
+    expect((await callToken()).status).toBe(403);
+    expect((await callEvent()).status).toBe(403);
+    expect(state.requests).toEqual([]);
+    expect(state.rows).toHaveLength(0);
   });
 
   it('onboards a first-time DEMO doctor with DOB + CPF, then verifies a DEMO prescription event', async () => {
@@ -297,6 +374,8 @@ describe('Memed DEMO flow: synthetic doctor + synthetic patient, no real provide
       clinical_data: { signature_verified: false, delivery_verified: false },
     });
     expect(state.requests).toContain(`GET /v1/prescricoes/${fakeRx}`);
+    expect(state.requests).toContain(`GET /v1/prescricoes/${fakeRx}/get-digital-prescription-link`);
+    expect(state.requests).toContain(`GET /v1/prescricoes/${fakeRx}/url-document/full`);
   });
 
   it('denies demo patient from Argentina before contacting Memed', async () => {

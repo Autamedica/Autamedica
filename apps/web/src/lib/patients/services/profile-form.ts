@@ -12,6 +12,15 @@ export interface PatientProfileFormState {
   dni: string;
   birthDate: string;
   gender: FormGender;
+  identityStatus: 'unverified' | 'pending' | 'verified_renaper' | 'mismatch' | 'not_applicable';
+  officialFullName: string;
+  officialFirstName: string;
+  officialLastName: string;
+  officialCuil: string;
+  officialBirthDate: string;
+  officialGender: string;
+  pucoCoverageName: string;
+  pucoCoverageCode: string;
   bloodType: FormBloodType;
   heightCm: string;
   weightKg: string;
@@ -38,6 +47,15 @@ export const EMPTY_FORM: PatientProfileFormState = {
   dni: '',
   birthDate: '',
   gender: '',
+  identityStatus: 'unverified',
+  officialFullName: '',
+  officialFirstName: '',
+  officialLastName: '',
+  officialCuil: '',
+  officialBirthDate: '',
+  officialGender: '',
+  pucoCoverageName: '',
+  pucoCoverageCode: '',
   bloodType: '',
   heightCm: '',
   weightKg: '',
@@ -96,6 +114,15 @@ export function buildFormState(input: {
     dni?: string | null;
     birthDate?: string | null;
     gender?: string | null;
+    identityStatus?: PatientProfileFormState['identityStatus'] | null;
+    officialFullName?: string | null;
+    officialFirstName?: string | null;
+    officialLastName?: string | null;
+    officialCuil?: string | null;
+    officialBirthDate?: string | null;
+    officialGender?: string | null;
+    pucoCoverageName?: string | null;
+    pucoCoverageCode?: string | null;
     bloodType?: string | null;
     heightCm?: number | null;
     weightKg?: number | null;
@@ -110,43 +137,34 @@ export function buildFormState(input: {
     } | null;
   } | null;
 }): PatientProfileFormState {
-  const insurance = input.patient?.insuranceInfo && typeof input.patient.insuranceInfo === 'object'
-    ? input.patient.insuranceInfo as Record<string, unknown>
-    : null;
-
-  const official = insurance?.official_data
-    ? insurance.official_data as {
-        dni?: string | null;
-        firstName?: string | null;
-        lastName?: string | null;
-        birthDate?: string | null;
-        gender?: string | null;
-        cuil?: string | null;
-        address?: string | null;
-      }
-    : null;
-
+  const verified = input.patient?.identityStatus === 'verified_renaper';
   const emergency = input.patient?.emergencyContact ?? null;
   const derivedName = splitFullName(input.accountFullName);
-  const firstName = official?.firstName ?? (asText(input.profile?.firstName) || derivedName.firstName);
-  const lastName = official?.lastName ?? (asText(input.profile?.lastName) || derivedName.lastName);
-  const birthDate = official?.birthDate ?? (asText(input.patient?.birthDate) || asText(input.anamnesisBirthDate));
-  const rawGender = official?.gender ?? input.patient?.gender;
+  const firstName = verified && input.patient?.officialFirstName ? input.patient.officialFirstName : (asText(input.profile?.firstName) || derivedName.firstName);
+  const lastName = verified && input.patient?.officialLastName ? input.patient.officialLastName : (asText(input.profile?.lastName) || derivedName.lastName);
+  const birthDate = verified ? (asText(input.patient?.officialBirthDate) || asText(input.patient?.birthDate)) : (asText(input.patient?.birthDate) || asText(input.anamnesisBirthDate));
+  const rawGender = verified ? input.patient?.officialGender : input.patient?.gender;
+  const formGender = rawGender === 'F' || rawGender?.toLowerCase() === 'female' ? 'female'
+    : rawGender === 'M' || rawGender?.toLowerCase() === 'male' ? 'male'
+      : rawGender === 'X' || rawGender === 'other' ? 'other' : rawGender;
 
   return {
     firstName,
     lastName,
     email: asText(input.email ?? input.profile?.email),
     phone: asText(input.profile?.phone),
-    dni: official?.dni ?? asText(input.patient?.dni),
+    dni: asText(input.patient?.dni),
     birthDate,
-    gender:
-      rawGender === 'male' ||
-      rawGender === 'female' ||
-      rawGender === 'other' ||
-      rawGender === 'prefer_not_to_say'
-        ? rawGender
-        : '',
+    gender: formGender === 'male' || formGender === 'female' || formGender === 'other' || formGender === 'prefer_not_to_say' ? formGender : '',
+    identityStatus: input.patient?.identityStatus ?? 'unverified',
+    officialFullName: asText(input.patient?.officialFullName),
+    officialFirstName: asText(input.patient?.officialFirstName),
+    officialLastName: asText(input.patient?.officialLastName),
+    officialCuil: asText(input.patient?.officialCuil),
+    officialBirthDate: asText(input.patient?.officialBirthDate),
+    officialGender: asText(input.patient?.officialGender),
+    pucoCoverageName: asText(input.patient?.pucoCoverageName),
+    pucoCoverageCode: asText(input.patient?.pucoCoverageCode),
     bloodType:
       input.patient?.bloodType === 'A+' ||
       input.patient?.bloodType === 'A-' ||
@@ -160,8 +178,8 @@ export function buildFormState(input: {
         : '',
     heightCm: asMetric(input.patient?.heightCm),
     weightKg: asMetric(input.patient?.weightKg),
-    cuil: official?.cuil ?? asText(input.patient?.cuil),
-    address: official?.address ?? asText(input.patient?.address),
+    cuil: verified ? asText(input.patient?.officialCuil) : asText(input.patient?.cuil),
+    address: asText(input.patient?.address),
     insuranceInfo: input.patient?.insuranceInfo ?? null,
     emergencyContactName: asText(emergency?.name),
     emergencyContactRelationship: asText(emergency?.relationship),
@@ -219,11 +237,9 @@ export function getGenderLabel(value: PatientProfileFormState['gender']): string
 }
 
 function hasOfficialIdentityData(form: PatientProfileFormState): boolean {
-  const insurance = form.insuranceInfo && typeof form.insuranceInfo === 'object'
-    ? form.insuranceInfo as Record<string, unknown>
-    : null;
-
-  return !!insurance?.official_data;
+  return form.identityStatus === 'verified_renaper'
+    && form.officialFullName.trim().length > 0
+    && form.officialCuil.replace(/\D/g, '').length === 11;
 }
 
 export function buildMissingFields(form: PatientProfileFormState): MissingProfileField[] {
@@ -297,8 +313,8 @@ export function buildPayload(form: PatientProfileFormState): {
 } {
   return {
     profile: {
-      firstName: toNullableString(form.firstName),
-      lastName: toNullableString(form.lastName),
+      firstName: hasOfficialIdentityData(form) ? form.officialFirstName : toNullableString(form.firstName),
+      lastName: hasOfficialIdentityData(form) ? form.officialLastName : toNullableString(form.lastName),
       phone: toNullableString(form.phone),
     },
     patient: {
@@ -308,7 +324,7 @@ export function buildPayload(form: PatientProfileFormState): {
       bloodType: form.bloodType || null,
       heightCm: toNullableNumber(form.heightCm),
       weightKg: toNullableNumber(form.weightKg),
-      cuil: toNullableString(form.cuil),
+      cuil: hasOfficialIdentityData(form) ? form.officialCuil : toNullableString(form.cuil),
       address: toNullableString(form.address),
       insuranceInfo: form.insuranceInfo ?? undefined,
       emergencyContact: {

@@ -37,8 +37,22 @@ BEGIN
        OR polrelid='public.clinical_case_states'::regclass AND polname='patients_update_own_clinical_states')
       AND polwithcheck IS NOT NULL
   ) THEN RAISE EXCEPTION 'Implicit UPDATE WITH CHECK changed'; END IF;
-  IF (SELECT pg_get_expr(polwithcheck,polrelid) FROM pg_policy WHERE polrelid='public.medical_records'::regclass AND polname='medical_records_soft_delete') IS DISTINCT FROM '(deleted_at IS NOT NULL)' THEN
-    RAISE EXCEPTION 'Soft-delete guard changed';
+  IF COALESCE(
+       (SELECT pg_get_expr(polwithcheck,polrelid)
+        FROM pg_policy
+        WHERE polrelid='public.medical_records'::regclass
+          AND polname='medical_records_soft_delete'),
+       ''
+     ) NOT LIKE '%deleted_at IS NOT NULL%'
+     OR COALESCE(
+       (SELECT pg_get_expr(polwithcheck,polrelid)
+        FROM pg_policy
+        WHERE polrelid='public.medical_records'::regclass
+          AND polname='medical_records_soft_delete'),
+       ''
+     ) NOT LIKE '%is_clinically_approved_doctor%'
+  THEN
+    RAISE EXCEPTION 'Soft-delete guard or clinical approval gate changed';
   END IF;
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='medical_records'
@@ -70,7 +84,12 @@ BEGIN
       RAISE EXCEPTION 'Role check is not statement-scoped on %',relation_name;
     END IF;
   END LOOP;
-  SELECT count(*) INTO n FROM public.clinical_case_states;
+  BEGIN
+    SELECT count(*) INTO n FROM public.clinical_case_states;
+  EXCEPTION WHEN insufficient_privilege THEN
+    -- No table-level SELECT is a valid denial for an unprivileged subject.
+    n := 0;
+  END;
   IF n<>0 THEN RAISE EXCEPTION 'Nonexistent subject sees clinical states'; END IF;
 END;
 $plans$;
@@ -80,8 +99,16 @@ SELECT set_config('request.jwt.claims','{"role":"anon"}',true),
        set_config('request.jwt.claim.role','anon',true);
 SET LOCAL ROLE anon;
 DO $anonymous$
+DECLARE visible_rows boolean := false;
 BEGIN
-  IF EXISTS(SELECT 1 FROM public.clinical_case_states) OR EXISTS(SELECT 1 FROM public.medical_records) THEN
+  BEGIN
+    SELECT EXISTS(SELECT 1 FROM public.clinical_case_states)
+      OR EXISTS(SELECT 1 FROM public.medical_records) INTO visible_rows;
+  EXCEPTION WHEN insufficient_privilege THEN
+    -- A denied read proves these clinical relations are not exposed to anon.
+    visible_rows := false;
+  END;
+  IF visible_rows THEN
     RAISE EXCEPTION 'Anonymous clinical read became visible';
   END IF;
 END;

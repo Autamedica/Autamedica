@@ -47,7 +47,7 @@ export async function handleCloudflareCallsProxy(
       !((path === 'sessions/new' || path.endsWith('/tracks/new'))
         ? normalizedMethod === 'POST'
         : normalizedMethod === 'PUT')) {
-    return { status: 400, body: { error: 'Invalid Cloudflare Calls operation' } }
+    return { status: 403, body: { error: 'Invalid Cloudflare Calls operation' } }
   }
 
   const url = `${CF_API_BASE}/${appId}/${path}`

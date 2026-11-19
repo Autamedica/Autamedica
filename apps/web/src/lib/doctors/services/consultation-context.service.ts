@@ -40,7 +40,7 @@ interface ExtractionCacheRecord {
 
 export interface ConsultationContextResult {
   hasAnamnesis: boolean
-  patient: { id?: string | null; name: string; dateOfBirth: string | null; gender: string | null } | null
+  patient: { id?: string | null; name: string; dateOfBirth: string | null; gender: string | null; identityStatus?: 'verified_renaper' | 'unverified' | 'mismatch'; officialFullName?: string | null; dni?: string | null; cuil?: string | null; pucoCoverage?: string | null } | null
   anamnesisStatus?: string
   completionPercentage?: number | null
   summary: ReturnType<typeof buildAnamnesisSummary> | null
@@ -51,9 +51,18 @@ export interface ConsultationContextResult {
   reason?: string
   /** Only present for on-demand pharmacy kiosk patients */
   dispatchTriage?: {
+    patientId: string | null
     patientDni: string | null
+    patientCpf: string | null
+    patientName: string | null
+    patientPhone: string | null
+    careCountry: string | null
     symptomSummary: string | null
     dispatchRequestId: string
+    identityStatus: 'verified_renaper' | 'unverified' | 'mismatch' | null
+    officialFullName: string | null; officialCuil: string | null; officialBirthDate: string | null
+    officialGender: string | null; pucoCoverageName: string | null; pucoCoverageCode: string | null
+    patientGenderCode: 'F' | 'M' | 'X' | null
   }
 }
 
@@ -148,9 +157,12 @@ export const consultationContextService = {
         hasAnamnesis: false,
         patient: {
           id: isClinicalPatientId(patientId) ? patientId : null,
-          name: triage.patientName || 'Paciente Kiosco',
-          dateOfBirth: null,
-          gender: null,
+          name: triage.identityStatus === 'verified_renaper' && triage.officialFullName ? triage.officialFullName : triage.patientName || 'Paciente Kiosco',
+          dateOfBirth: triage.officialBirthDate,
+          gender: triage.officialGender,
+          identityStatus: triage.identityStatus === 'verified_renaper' ? 'verified_renaper' : triage.identityStatus === 'mismatch' ? 'mismatch' : 'unverified',
+          officialFullName: triage.officialFullName, dni: triage.patientDni, cuil: triage.officialCuil,
+          pucoCoverage: triage.pucoCoverageName,
         },
         summary: null,
         extraction: null,
@@ -158,9 +170,18 @@ export const consultationContextService = {
         suggestedQuestions: [],
         reason: 'kiosk_dispatch',
         dispatchTriage: {
+          patientId: triage.patientId,
           patientDni: triage.patientDni,
+          patientCpf: triage.patientCpf,
+          patientName: triage.patientName,
+          patientPhone: triage.patientPhone,
+          careCountry: triage.careCountry,
           symptomSummary: triage.symptomSummary,
           dispatchRequestId: triage.dispatchRequestId,
+          identityStatus: triage.identityStatus, officialFullName: triage.officialFullName, officialCuil: triage.officialCuil,
+          officialBirthDate: triage.officialBirthDate, officialGender: triage.officialGender,
+          pucoCoverageName: triage.pucoCoverageName, pucoCoverageCode: triage.pucoCoverageCode,
+          patientGenderCode: triage.patientGenderCode,
         },
       }
     }

@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 /**
  * Read-only production credential smoke test for Memed.
  * Restricted to authenticated platform administrators. Does not create
@@ -39,6 +40,14 @@ export const GET: APIRoute = async ({ request, locals }) => {
       && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(env.MEMED_PILOT_DOCTOR_ID)
       ? env.MEMED_PILOT_DOCTOR_ID : null;
     const admin = createAstroAdminClient(locals.runtime?.env);
+    const { data: clinicalScope, error: clinicalScopeError } = await (admin as unknown as SupabaseClient)
+      .from('platform_operational_domains')
+      .select('clinical_status')
+      .eq('scope_key', 'BR')
+      .maybeSingle();
+    if (clinicalScopeError) return serviceUnavailable('brazil_clinical_status_unavailable');
+    const clinicalStatus = clinicalScope?.clinical_status?.toLowerCase() ?? null;
+    const issuanceGovernanceEnabled = clinicalStatus !== 'disabled' && clinicalStatus !== 'suspended';
     const doctorResult = pilotId
       ? await admin.from('doctors')
         .select('id, user_id, active, license_type, license_number, uf_brazil, cpf')
@@ -52,7 +61,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     if (doctor) {
       const [licensesResult, profileResult, privateCpf] = await Promise.all([
         admin.from('doctor_licenses')
-          .select('license_number, uf_brazil, license_type, status, cfm_validation_status')
+          .select('license_number, uf_brazil, license_type, status, cfm_validation_status, cfm_evidence_path, cfm_review_notes, cfm_reviewed_by, cfm_reviewed_at, cfm_last_checked_at')
           .eq('doctor_id', doctor.id).eq('license_type', 'CRM').limit(20),
         admin.from('profiles').select('first_name, last_name, cpf')
           .eq('user_id', doctor.user_id).maybeSingle(),
@@ -82,10 +91,13 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const health = jsonOk({ provider: 'memed', environment: 'production',
       credentialsAccepted: accepted, providerStatus: response.status,
       issuanceEnabled: env?.MEMED_RX_ENABLED === 'true',
+      clinicalStatus,
+      issuanceGovernanceEnabled,
       pilotConfigured: pilotId !== null,
       pilotReadiness: readiness,
       scriptConfigured: env?.MEMED_SCRIPT_URL === 'https://partners.memed.com.br/integration.js',
-      readyForControlledPilot: accepted && readiness.readyForPilot
+      readyForControlledPilot: accepted && issuanceGovernanceEnabled && readiness.readyForPilot
+        && env?.MEMED_RX_ENABLED === 'true'
         && env?.MEMED_SCRIPT_URL === 'https://partners.memed.com.br/integration.js',
       // A production clinical release additionally requires a clinician-led
       // signed-PDF and patient-delivery verification; preflight is not issuance.

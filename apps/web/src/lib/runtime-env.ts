@@ -112,7 +112,10 @@ export function resolvePublicSentryDsn(runtimeEnv?: RuntimeEnvRecord): string | 
     readCached(['PUBLIC_SENTRY_DSN', 'NEXT_PUBLIC_SENTRY_DSN']) ??
     import.meta.env.PUBLIC_SENTRY_DSN ??
     import.meta.env.NEXT_PUBLIC_SENTRY_DSN ??
-    readProcess(['PUBLIC_SENTRY_DSN', 'NEXT_PUBLIC_SENTRY_DSN'])
+    readProcess(['PUBLIC_SENTRY_DSN', 'NEXT_PUBLIC_SENTRY_DSN']) ??
+    // Keep runtime capture aligned with apps/web/sentry.shared.config.js.
+    // The DSN is public by design; secrets and auth tokens are never included.
+    'https://485f1dbb686db51681cf8159012dcdf1@o4511195725168640.ingest.us.sentry.io/4511195726741504'
   );
 }
 
@@ -162,16 +165,25 @@ export function resolveCloudflareCallsEnv(runtimeEnv?: RuntimeEnvRecord): {
   return { appId, appSecret, turnKeyId, turnToken };
 }
 
+/** Never sign clinical guest tokens with a predictable fallback. Missing secret fails closed. */
+export function isWellFormedGuestSigningSecret(value: unknown): value is string {
+  return typeof value === 'string' && /^(?:[0-9a-f]{2}){32,64}$/i.test(value);
+}
+
 export function resolveGuestSecret(runtimeEnv?: RuntimeEnvRecord): string | undefined {
   primeRuntimeEnv(runtimeEnv);
 
-  return (
+  // Explicit encrypted binding only. A compile-time or hardcoded fallback
+  // would let attackers mint tokens for confidential medical video rooms.
+  const configured =
     readFirst(runtimeEnv, ['GUEST_TOKEN_SECRET']) ??
     readCached(['GUEST_TOKEN_SECRET']) ??
     import.meta.env.GUEST_TOKEN_SECRET ??
-    readProcess(['GUEST_TOKEN_SECRET']) ??
-    'am-guest-default-fallback-secret-2026'
-  );
+    readProcess(['GUEST_TOKEN_SECRET']);
+
+  // Documented provisioning: openssl rand -hex 32 (256 bits).
+  // Missing, placeholder or low-entropy-looking secrets fail closed.
+  return isWellFormedGuestSigningSecret(configured) ? configured : undefined;
 }
 
 export function resolvePublicClientEnv(runtimeEnv?: RuntimeEnvRecord): {

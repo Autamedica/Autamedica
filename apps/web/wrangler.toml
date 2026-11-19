@@ -5,6 +5,10 @@ compatibility_flags = ["nodejs_compat_v2", "global_fetch_strictly_public"]
 # Astro build output
 pages_build_output_dir = "dist"
 
+# MEMED_MOBILE_ENABLED and MEMED_MOBILE_PILOT_DOCTOR_ID are intentionally
+# managed as Cloudflare Pages secrets by deploy-production.yml. Do not declare
+# them in Wrangler vars: both sources share the same runtime binding namespace.
+
 [vars]
 NODE_ENV = "production"
 MEMED_RX_ENABLED = "false"
@@ -18,7 +22,7 @@ NODE_ENV = "production"
 MEMED_RX_ENABLED = "true"
 MEMED_API_URL = "https://api.memed.com.br/v1"
 MEMED_SCRIPT_URL = "https://partners.memed.com.br/integration.js"
-MEMED_PILOT_DOCTOR_ID = "7d3a8088-32a6-44ba-810b-e3b28a26608e"
+MEMED_PILOT_DOCTOR_ID = "080fb7ae-92b4-44d4-8941-a6db65004b9f"
 
 # Dominios personalizados (configurar en el dashboard de Cloudflare Pages)
 # custom_domains = ["www.autamedica.com", "autamedica.com"]

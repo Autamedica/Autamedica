@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.videocall
 
+import com.autamedica.android.R
+
 import android.content.Context
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
@@ -27,6 +29,9 @@ import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.DoctorRepository
 import com.autamedica.android.domain.repository.MedicalCertificateRepository
 import com.autamedica.android.domain.repository.PrescriptionRepository
+import com.autamedica.android.data.repository.MemedMobileBridgeRepository
+import com.autamedica.android.data.repository.MemedEncounterTargetResolver
+import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.logging.SecureLog
 import com.autamedica.android.telemetry.CallTelemetry
@@ -36,6 +41,7 @@ import com.autamedica.android.presentation.common.UiErrorMapper
 import com.autamedica.android.presentation.dashboard.cleanPatientName
 import com.autamedica.android.presentation.videocall.webrtc.TurnManager
 import com.autamedica.android.presentation.videocall.webrtc.sfu.CloudflareCallsEngine
+import com.autamedica.android.presentation.videocall.webrtc.sfu.cloudflareAuthorizationMessage
 import com.autamedica.android.service.CallNotificationService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -52,6 +58,7 @@ import org.webrtc.VideoTrack
 import com.autamedica.android.domain.repository.IceServerInfo
 import com.autamedica.android.presentation.videocall.components.SoapEvolutionData
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.serialization.SerialName
@@ -79,6 +86,7 @@ data class VideoCallUiState(
     val isWaitingRoom: Boolean = true,
     val isPreviewOnlyMode: Boolean = false,
     val sessionStatusMessage: String? = "Esperando al médico...",
+    val isAuthorizationBlocked: Boolean = false,
     val isDoctor: Boolean = false,
     val appointmentNotes: String? = null,
     val consultationNotes: String = "",
@@ -109,6 +117,11 @@ data class VideoCallUiState(
     val isPreconsultationSaved: Boolean = false,
     val isAutoDegradedToAudio: Boolean = false,
     val isIssuingPrescription: Boolean = false,
+    val isOpeningMemed: Boolean = false,
+    val isVerifyingMemedPrescription: Boolean = false,
+    val memedLaunchUrl: String? = null,
+    val memedLaunchError: String? = null,
+    val memedLaunchNotice: String? = null,
     val isIssuingCertificate: Boolean = false,
     val lastIssuedDocumentCuir: String? = null,
     val inCallClinicalError: String? = null,
@@ -150,8 +163,17 @@ class VideoCallViewModel @Inject constructor(
     private val videoCallStateHolder: VideoCallStateHolder,
     private val supabaseClient: SupabaseClient,
     private val prescriptionRepository: PrescriptionRepository,
+    private val memedMobileBridgeRepository: MemedMobileBridgeRepository,
     private val medicalCertificateRepository: MedicalCertificateRepository,
+    private val pharmacyDispatchRepository: PharmacyDispatchRepository,
 ) : ViewModel() {
+
+    fun memedSessionTokens(): Pair<String, String>? {
+        val session = supabaseClient.auth.currentSessionOrNull() ?: return null
+        val access = session.accessToken.takeIf { it.isNotBlank() } ?: return null
+        val refresh = session.refreshToken.takeIf { it.isNotBlank() } ?: return null
+        return access to refresh
+    }
 
     val appointmentId: String = savedStateHandle["appointmentId"] ?: ""
     /** roomId real de la call (room_XXXX). Si está vacío, se usa appointmentId como fallback. */
@@ -167,6 +189,24 @@ class VideoCallViewModel @Inject constructor(
         supabaseClient = supabaseClient,
         scope = viewModelScope,
         json = json,
+        guestTokenProvider = { roomId ->
+            pharmacyDispatchRepository.getGuestAccessTokenForRoom(roomId)
+        },
+        onAuthorizationError = { error ->
+            val message = cloudflareAuthorizationMessage(error.httpStatus)
+            if (message != null) {
+                _uiState.update {
+                    it.copy(
+                        connectionState = ConnectionState.FAILED,
+                        isWaitingRoom = true,
+                        isAuthorizationBlocked = true,
+                        sessionStatusMessage = message,
+                    )
+                }
+                videoCallStateHolder.setInVideoCall(false)
+                CallNotificationService.stop(context)
+            }
+        },
     )
 
     private val turnManager = TurnManager(
@@ -195,6 +235,7 @@ class VideoCallViewModel @Inject constructor(
     private var callUserName: String = ""
     private var explicitRoomId: String = ""
     private var activePharmacyDispatchId: String? = null
+    private var lastMemedConfirmedDispatchId: String? = null
     private var consultationMonitorJob: kotlinx.coroutines.Job? = null
 
     init {
@@ -230,6 +271,7 @@ class VideoCallViewModel @Inject constructor(
             it.copy(
                 connectionState = if (it.isDoctor || isIncomingCall) ConnectionState.CONNECTING else ConnectionState.DISCONNECTED,
                 isWaitingRoom = !it.isDoctor,
+                isAuthorizationBlocked = false,
                 sessionStatusMessage = when {
                     it.isDoctor -> "Conectando consultorio..."
                     isIncomingCall -> "Conectando con tu consulta..."
@@ -292,7 +334,7 @@ class VideoCallViewModel @Inject constructor(
                     it.copy(
                         connectionState = ConnectionState.FAILED,
                         isWaitingRoom = false,
-                        sessionStatusMessage = "No se pudo activar la camara.",
+                        sessionStatusMessage = UiErrorMapper.map(error, "No se pudo iniciar la videollamada"),
                     )
                 }
                 CallNotificationService.stop(context)
@@ -791,6 +833,7 @@ class VideoCallViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 connectionState = ConnectionState.CONNECTING,
+                isAuthorizationBlocked = false,
                 sessionStatusMessage = "Llamando al médico...",
             )
         }
@@ -1058,7 +1101,7 @@ class VideoCallViewModel @Inject constructor(
         } else {
             val systemMessage = ChatMessage(
                 id = "system-${System.currentTimeMillis()}",
-                text = "No se pudo enviar. Verifica la conexion del chat.",
+                text = context.getString(R.string.in_call_chat_send_error),
                 senderId = "system",
                 senderType = "system",
                 senderName = "Sistema",
@@ -1264,6 +1307,7 @@ class VideoCallViewModel @Inject constructor(
         _uiState.update { current ->
             current.copy(
                 connectionState = ConnectionState.CONNECTING,
+                isAuthorizationBlocked = false,
                 isPreviewOnlyMode = false,
                 isWaitingRoom = !current.isDoctor && !isPharmacyRoom,
                 sessionStatusMessage = if (!current.isDoctor) {
@@ -1470,11 +1514,178 @@ class VideoCallViewModel @Inject constructor(
         return builder.createIceServer()
     }
 
+
+    /**
+     * Brazil-only handoff to the official Memed browser module.
+     * The server performs the authoritative doctor, patient, consent and encounter checks.
+     */
+    val hasMemedEncounter: Boolean
+        get() = MemedEncounterTargetResolver.resolve(
+            appointmentId,
+            activePharmacyDispatchId,
+        ) != null
+
+    fun openMemedForBrazil() {
+        val state = _uiState.value
+        val target = MemedEncounterTargetResolver.resolve(
+            appointmentId,
+            activePharmacyDispatchId,
+        )
+        if (!state.isDoctor || previewOnlyMode || target == null ||
+            state.doctorCountryCode != "BR" || state.patientCareCountryCode != "BR" ||
+            state.patientId.isBlank()
+        ) {
+            _uiState.update {
+                it.copy(memedLaunchError = "Consulta brasileira não autorizada para Memed")
+            }
+            return
+        }
+        if (state.isOpeningMemed || state.isVerifyingMemedPrescription) return
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(isOpeningMemed = true, memedLaunchError = null, memedLaunchNotice = null, memedLaunchUrl = null)
+            }
+            val launch = if (target.queryKey == "requestId") {
+                memedMobileBridgeRepository.createLaunchForDispatch(target.encounterId)
+            } else {
+                memedMobileBridgeRepository.createLaunch(target.encounterId)
+            }
+            launch.onSuccess { url ->
+                    _uiState.update { it.copy(isOpeningMemed = false, memedLaunchUrl = url) }
+                }
+                .onFailure {
+                    _uiState.update {
+                        it.copy(
+                            isOpeningMemed = false,
+                            memedLaunchError = "Memed indisponível. Verifique a habilitação e os dados da consulta.",
+                        )
+                    }
+                }
+        }
+    }
+
+    /** Consume the URL before launching the in-call WebView to avoid duplicate overlays on recreation. */
+    fun consumeMemedLaunchUrl() {
+        _uiState.update { it.copy(memedLaunchUrl = null) }
+    }
+
+    fun reportMemedBrowserError() {
+        _uiState.update {
+            it.copy(memedLaunchError = "Navegador compatível não encontrado para abrir Memed.", memedLaunchNotice = null)
+        }
+    }
+
+    /**
+     * Reconcile the browser return with the server-owned prescription record.
+     * A browser close or callback alone never counts as a successful issuance.
+     */
+    fun verifyMemedDispatchPrescriptionOnReturn() {
+        val requestId = activePharmacyDispatchId?.takeIf { it.isNotBlank() } ?: return
+        val state = _uiState.value
+        val patientId = state.patientId.takeIf { it.isNotBlank() } ?: return
+        if (!state.isDoctor || state.doctorCountryCode != "BR" ||
+            state.patientCareCountryCode != "BR" || state.isVerifyingMemedPrescription
+        ) return
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(isVerifyingMemedPrescription = true, memedLaunchError = null, memedLaunchNotice = null)
+            }
+            try {
+                val userId = callUserId.ifBlank {
+                    authRepository.getCurrentUser()?.id.orEmpty()
+                }
+                require(userId.isNotBlank()) { "Sesión médica no disponible" }
+                val doctorId = supabaseClient.postgrest
+                    .from("doctors")
+                    .select(Columns.list("id")) {
+                        filter { eq("user_id", userId) }
+                    }
+                    .decodeSingleOrNull<DoctorRecordIdDto>()?.id
+                    ?: throw IllegalStateException("Perfil médico no encontrado")
+
+                var confirmation: com.autamedica.android.data.repository.MemedDispatchPrescriptionConfirmation? = null
+                for (attempt in 0 until 10) {
+                    confirmation = memedMobileBridgeRepository.findVerifiedDispatchPrescription(
+                        requestId = requestId,
+                        patientId = patientId,
+                        doctorId = doctorId,
+                    ).getOrThrow()
+                    if (confirmation != null) break
+                    kotlinx.coroutines.delay(1_200L)
+                }
+
+                val confirmed = confirmation
+                if (confirmed == null) {
+                    _uiState.update {
+                        it.copy(
+                            isVerifyingMemedPrescription = false,
+                            memedLaunchError = "Memed no confirmó una receta nueva para esta consulta. Reabra el módulo y finalice la emisión.",
+                            memedLaunchNotice = null,
+                        )
+                    }
+                    return@launch
+                }
+
+                var notice = "Receita confirmada pela Memed."
+                if (lastMemedConfirmedDispatchId != requestId) {
+                    val message = "A Memed confirmou o registro da receita nesta consulta. Identificador: ${confirmed.providerPrescriptionId}."
+                    val notificationQueued = engine.sendChatMessage(message)
+                    if (notificationQueued) {
+                        val localMessage = ChatMessage(
+                            id = "local-memed-rx-${System.currentTimeMillis()}",
+                            text = message,
+                            senderId = callUserId,
+                            senderType = callUserType,
+                            senderName = callUserName,
+                            timestamp = System.currentTimeMillis(),
+                        )
+                        _uiState.update { current ->
+                            current.copy(chatMessages = current.chatMessages + localMessage)
+                        }
+                        lastMemedConfirmedDispatchId = requestId
+                        notice = "Receita confirmada pela Memed. Notificação enviada ao chat da consulta."
+                    } else {
+                        SecureLog.warn(
+                            "[Telemedicine] Memed prescription verified; consultation chat is not ready for notification",
+                        )
+                        notice = "Receita confirmada pela Memed. O chat não confirmou o envio da notificação ao paciente."
+                    }
+                }
+                _uiState.update {
+                    it.copy(
+                        isVerifyingMemedPrescription = false,
+                        memedLaunchError = null,
+                        memedLaunchNotice = notice,
+                    )
+                }
+            } catch (error: Exception) {
+                SecureLog.error("[Telemedicine] Failed reconciling Memed dispatch issuance", error)
+                _uiState.update {
+                    it.copy(
+                        isVerifyingMemedPrescription = false,
+                        memedLaunchError = "No fue posible confirmar el registro de la receta Memed.",
+                        memedLaunchNotice = null,
+                    )
+                }
+            }
+        }
+    }
+
     fun issueInCallPrescription(
         medicationName: String,
         dosage: String,
         instructions: String,
         diagnosis: String,
+        validationMessage: String,
+        fallbackErrorMessage: String,
+        patientMissingMessage: String,
+        nativeIssuerUnavailableMessage: String,
+        defaultDosage: String,
+        defaultFrequency: String,
+        defaultDuration: String,
+        defaultInstructions: String,
+        prescriptionNotes: String,
         onResult: (Boolean, String?) -> Unit,
     ) {
         val trimmedMed = medicationName.trim()
@@ -1483,7 +1694,7 @@ class VideoCallViewModel @Inject constructor(
         val trimmedDiagnosis = diagnosis.trim()
 
         if (trimmedMed.isEmpty() || trimmedDiagnosis.isEmpty()) {
-            onResult(false, "Medicamento y diagnóstico clínico son obligatorios")
+            onResult(false, validationMessage)
             return
         }
 
@@ -1492,7 +1703,7 @@ class VideoCallViewModel @Inject constructor(
             runCatching {
                 val country = InCallDocumentPolicy.requireCountry(_uiState.value.doctorCountryCode)
                 if (!InCallDocumentPolicy.canUseNativePrescriptionIssuer(country)) {
-                    throw IllegalStateException("Recetas de Brasil: emitir mediante Memed desde el portal médico. El emisor Android aún no está homologado.")
+                    throw IllegalStateException(nativeIssuerUnavailableMessage)
                 }
                 var targetPatientId = _uiState.value.patientId.takeIf { it.isNotBlank() }
                 if (targetPatientId == null && appointmentId.isNotBlank() && !previewOnlyMode) {
@@ -1503,30 +1714,30 @@ class VideoCallViewModel @Inject constructor(
                     }
                 }
                 if (targetPatientId.isNullOrBlank()) {
-                    throw IllegalStateException("No se pudo identificar al paciente de la llamada")
+                    throw IllegalStateException(patientMissingMessage)
                 }
 
                 val item = PrescriptionItem(
                     medicationName = trimmedMed,
                     genericName = trimmedMed,
-                    dosage = trimmedDosage.ifBlank { "Según indicación médica" },
-                    frequency = "Según indicación",
-                    duration = "Tratamiento ambulatorio",
-                    instructions = trimmedInstructions.ifBlank { "Tomar según indicaciones clínicas durante la videoconsulta." },
+                    dosage = trimmedDosage.ifBlank { defaultDosage },
+                    frequency = defaultFrequency,
+                    duration = defaultDuration,
+                    instructions = trimmedInstructions.ifBlank { defaultInstructions },
                 )
 
                 val request = CreatePrescriptionRequest(
                     patientId = targetPatientId,
                     items = listOf(item),
                     diagnosis = trimmedDiagnosis,
-                    notes = "Registro durante videollamada AutaMedica; firma externa pendiente de verificación",
+                    notes = prescriptionNotes,
                     countryCode = country,
                 )
 
                 prescriptionRepository.createPrescription(request).getOrThrow()
             }.onSuccess { prescription ->
                 val cuir = prescription.cuir ?: prescription.id.take(8)
-                val chatMsg = "📋 Receta registrada en AutaMedica (verificación de firma pendiente). Referencia: $cuir"
+                val chatMsg = if ((_uiState.value.patientCareCountryCode ?: _uiState.value.doctorCountryCode) == "BR") "📋 Receita emitida na AutaMedica. Código de validação: $cuir. PDF: ${prescription.signedPdfUrl.orEmpty()}" else "📋 Receta emitida en AutaMedica. Código de verificación: $cuir. PDF: ${prescription.signedPdfUrl.orEmpty()}"
                 engine.sendChatMessage(chatMsg)
                 val localMsg = ChatMessage(
                     id = "local-rx-${System.currentTimeMillis()}",
@@ -1545,7 +1756,7 @@ class VideoCallViewModel @Inject constructor(
                 }
                 onResult(true, cuir)
             }.onFailure { err ->
-                val errorMsg = UiErrorMapper.map(err, "Error al emitir la receta")
+                val errorMsg = UiErrorMapper.map(err, fallbackErrorMessage)
                 SecureLog.error("[Telemedicine] Failed issuing prescription in-call", err)
                 _uiState.update { state ->
                     state.copy(
@@ -1562,6 +1773,12 @@ class VideoCallViewModel @Inject constructor(
         type: CertificateType,
         daysOfRest: Int,
         diagnosis: String,
+        hideDiagnosis: Boolean,
+        invalidDaysMessage: String,
+        diagnosisRequiredMessage: String,
+        draftObservations: String,
+        fallbackErrorMessage: String,
+        patientMissingMessage: String,
         onResult: (Boolean, String?) -> Unit,
     ) {
         val trimmedDiagnosis = diagnosis.trim()
@@ -1571,9 +1788,9 @@ class VideoCallViewModel @Inject constructor(
             _uiState.update { it.copy(isIssuingCertificate = true, inCallClinicalError = null) }
             runCatching {
                 val country = InCallDocumentPolicy.requireCountry(_uiState.value.doctorCountryCode)
-                require(effectiveRest in 0..365) { "Los días de reposo deben estar entre 0 y 365" }
+                require(effectiveRest in 0..365) { invalidDaysMessage }
                 require(effectiveRest == 0 || trimmedDiagnosis.isNotBlank()) {
-                    "El médico debe indicar el diagnóstico para justificar el reposo"
+                    diagnosisRequiredMessage
                 }
                 var targetPatientId = _uiState.value.patientId.takeIf { it.isNotBlank() }
                 if (targetPatientId == null && appointmentId.isNotBlank() && !previewOnlyMode) {
@@ -1584,7 +1801,7 @@ class VideoCallViewModel @Inject constructor(
                     }
                 }
                 if (targetPatientId.isNullOrBlank()) {
-                    throw IllegalStateException("No se pudo identificar al paciente de la llamada")
+                    throw IllegalStateException(patientMissingMessage)
                 }
 
                 val zoneId = if (country == "BR") ZoneId.of("America/Sao_Paulo")
@@ -1600,8 +1817,8 @@ class VideoCallViewModel @Inject constructor(
                     startDate = startDateStr,
                     endDate = endDateStr,
                     diagnosis = trimmedDiagnosis.takeIf { it.isNotBlank() },
-                    hideDiagnosis = country == "BR",
-                    observations = "Borrador preparado durante videoconsulta AutaMedica; pendiente de firma",
+                    hideDiagnosis = hideDiagnosis || country == "BR",
+                    observations = draftObservations,
                     countryCode = country,
                 )
 
@@ -1609,7 +1826,7 @@ class VideoCallViewModel @Inject constructor(
             }.onSuccess { certificate ->
                 val cuir = certificate.cuir.ifBlank { certificate.id.take(8) }
                 val restText = if (effectiveRest > 0) "$effectiveRest días de reposo" else "Sin reposo"
-                val chatMsg = "📋 Borrador de certificado preparado: ${type.displayName} ($restText). Referencia: $cuir. Pendiente de firma médica."
+                val chatMsg = if ((_uiState.value.patientCareCountryCode ?: _uiState.value.doctorCountryCode) == "BR") "📋 Rascunho de atestado médico preparado. Código de validação: $cuir. Assinatura médica pendente." else "📋 Borrador de atestado preparado: ${type.displayName} ($restText). Código de verificación: $cuir. Firma médica pendiente."
                 engine.sendChatMessage(chatMsg)
                 val localMsg = ChatMessage(
                     id = "local-cert-${System.currentTimeMillis()}",
@@ -1628,7 +1845,7 @@ class VideoCallViewModel @Inject constructor(
                 }
                 onResult(true, cuir)
             }.onFailure { err ->
-                val errorMsg = UiErrorMapper.map(err, "Error al emitir el certificado")
+                val errorMsg = UiErrorMapper.map(err, fallbackErrorMessage)
                 SecureLog.error("[Telemedicine] Failed issuing certificate in-call", err)
                 _uiState.update { state ->
                     state.copy(

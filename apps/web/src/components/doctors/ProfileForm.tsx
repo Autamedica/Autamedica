@@ -242,11 +242,11 @@ export function ProfileForm() {
         } else if (errorCode === 'AUTH_REQUIRED' || errorCode === 'AUTH_INVALID') {
           setError('La sesión venció. Volvé a iniciar sesión antes de verificar tu matrícula.')
         } else if (errorCode === 'SSS_TIMEOUT') {
-          setError('El registro nacional no respondió a tiempo. Intentá nuevamente más tarde.')
+          setVerificationMessage('El registro nacional no respondió a tiempo. Podés guardar tu perfil ahora; la verificación queda pendiente para reintentarla después.')
         } else {
           logger.error('[ProfileForm] license verification failed', { errorCode, invokeError })
-          setError('No se pudo completar la verificación por un problema de conexión o del servicio. ' +
-            'Todavía no se confirmó una revisión manual. Intentá nuevamente más tarde.')
+          setVerificationMessage('No se pudo completar la verificación por un problema de conexión o del servicio. ' +
+            'No se confirmó una revisión manual. Podés guardar tu perfil igualmente y reintentar la verificación más tarde.')
         }
         return
       }
@@ -262,8 +262,8 @@ export function ProfileForm() {
         setError('El servicio no confirmó la validación. Intentá nuevamente más tarde.')
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al validar la matrícula')
       logger.error('[ProfileForm] license verification error', err)
+      setVerificationMessage('No se pudo conectar con el registro nacional. Podés guardar tu perfil igualmente y reintentar la verificación más tarde.')
     } finally {
       setIsVerifyingLicense(false)
     }

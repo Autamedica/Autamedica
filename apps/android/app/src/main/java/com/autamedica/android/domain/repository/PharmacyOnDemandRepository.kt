@@ -25,6 +25,4 @@ interface PharmacyOnDemandRepository {
     suspend fun getRequestStatus(requestId: String): Result<RequestStatusResponse>
 
     suspend fun cancelRequest(requestId: String): Result<Unit>
-
-    suspend fun cancelActiveRequestsForPatient(patientDni: String, patientPhone: String): Result<Unit>
 }

@@ -2,14 +2,37 @@ name: CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches: [main]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'worker/**'
+      - 'supabase/**'
+      - 'scripts/**'
+      - '.github/workflows/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
   push:
     branches: [main]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'worker/**'
+      - 'supabase/**'
+      - 'scripts/**'
+      - '.github/workflows/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
   workflow_dispatch:
 
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ (github.actor == 'coderabbitai[bot]' || github.actor == 'circleci-app[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.draft)) && 'ignored' || 'active' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -22,9 +45,11 @@ env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
   TURBO_API: ${{ vars.TURBO_API }}
+  TURBO_REMOTE_CACHE_SIGNATURE_KEY: ${{ secrets.TURBO_REMOTE_CACHE_SIGNATURE_KEY }}
 
 jobs:
   build-gate:
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]'
     name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -34,10 +59,14 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
+          cache-actions: "true"
+          build-core: "false"
           cache-turbo: "true"
       - run: pnpm arch:v2:check
       - run: pnpm arch:v2:imports:changed
       - run: pnpm typecheck
+      - name: Run explicit Astro check
+        run: pnpm --filter @autamedica/web check
       - name: Build workspace packages
         run: pnpm build:packages:core
       - name: Build web
@@ -54,6 +83,7 @@ jobs:
           RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}
 
   lint-gate:
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]'
     name: Lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -63,6 +93,9 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
+          cache-actions: "true"
+      - name: Test operational governance independence and audit guards
+        run: node --test scripts/ci/operational-governance-contract.test.mjs
       - name: Test newsletter audience reconciliation safeguards
         run: node --test apps/newsletter-worker/scripts/sync-newsletter-audience.test.mjs
       - name: Test Memed deployment configuration safeguards
@@ -75,6 +108,8 @@ jobs:
         run: node --experimental-strip-types --test supabase/functions/update-call-status/handler.test.ts
       - run: pnpm lint
       - run: pnpm hardcode:check
+      - name: Verify country-scoped pharmacy pricing contract
+        run: node --test scripts/ci/jordan-release-contract.test.mjs
       - name: Detect hardcoded secrets
         run: |
           FOUND=0
@@ -83,6 +118,7 @@ jobs:
           if grep -rnE "eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|sbp_[A-Za-z0-9]{20,}|SUPABASE_SERVICE_ROLE_KEY[[:space:]]*[:=][[:space:]]*['\"]|SUPABASE_ACCESS_TOKEN[[:space:]]*[:=][[:space:]]*['\"]" --include="*.ts" --include="*.js" --include="*.mjs" --include="*.sh" --include="*.yml" --include="*.yaml" --exclude="*.test.ts" --exclude="*.spec.ts" . --exclude-dir=".github" --exclude-dir="node_modules" | grep -vE "process\.env|import\.meta\.env|secrets\.|<token>|placeholder|REPLACE_WITH"; then FOUND=1; fi
           if [ "$FOUND" = "1" ]; then echo "::error::Hardcoded secrets detected"; exit 1; fi
   unit-tests:
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]'
     name: Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -93,11 +129,13 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
+          cache-actions: "true"
       - run: pnpm test:unit
         env:
           RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}
 
   clinical-edge-prescription:
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]'
     name: Clinical Edge RX (Deno)
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -107,15 +145,23 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
+          cache-actions: "true"
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      - name: Install Edge dependencies
+        run: deno install --config supabase/functions/deno.json --no-lock
+      - name: Check pharmacy Cloudflare Calls dispatch authorization
+        run: deno check --config supabase/functions/deno.json --no-lock supabase/functions/cloudflare-calls/index.ts
+      - name: Test pharmacy guest dispatch-to-call identity binding
+        run: deno test --config supabase/functions/deno.json --no-lock supabase/functions/tests/guest-dispatch-access.test.ts
       - name: Check legacy mobile prescription endpoint
-        run: deno check --no-lock supabase/functions/issue-prescription/index.ts
+        run: deno check --config supabase/functions/deno.json --no-lock supabase/functions/issue-prescription/index.ts
       - name: Prove AR/BR endpoint rejects unverified official issuance without writes
-        run: deno test --no-lock --allow-env --allow-net supabase/functions/tests/issue-prescription.test.ts
+        run: deno test --config supabase/functions/deno.json --no-lock --allow-env --allow-net supabase/functions/tests/issue-prescription.test.ts supabase/functions/tests/patient-identity-renaper.test.ts
 
   database-tests:
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]'
     name: Database & RLS
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -142,6 +188,7 @@ jobs:
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/ar_electronic_certificate_demo_smoke.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/pharmacy_guest_identity_isolation.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/pharmacy_referral_commission_isolated.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/jordan_br_79_40_dispatch_isolated.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls_core_tables.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/farmalink_once_only_issue.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/memed_provider_integrity_smoke.sql
@@ -149,6 +196,7 @@ jobs:
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/auth_helper_permissions.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/clinical_rls_initplans.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/native_session_cleanup.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/pharmacy_dispatch_fcm_presence.sql
       - name: Export and verify a disposable database backup
         env:
           SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
@@ -170,8 +218,8 @@ jobs:
     name: CI
     runs-on: ubuntu-latest
     timeout-minutes: 2
-    needs: [build-gate, lint-gate, unit-tests, database-tests]
-    if: always()
+    needs: [build-gate, lint-gate, unit-tests, database-tests, clinical-edge-prescription]
+    if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]' && always()
     steps:
       - name: Evaluate gates
         run: |
@@ -182,7 +230,8 @@ jobs:
           echo "| Lint | ${{ needs.lint-gate.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Database & RLS | ${{ needs.database-tests.result }} |" >> $GITHUB_STEP_SUMMARY
-          if [[ "${{ needs.build-gate.result }}" != "success" || "${{ needs.lint-gate.result }}" != "success" || "${{ needs.unit-tests.result }}" != "success" || "${{ needs.database-tests.result }}" != "success" ]]; then
+          echo "| Clinical Edge RX | ${{ needs.clinical-edge-prescription.result }} |" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ needs.build-gate.result }}" != "success" || "${{ needs.lint-gate.result }}" != "success" || "${{ needs.unit-tests.result }}" != "success" || "${{ needs.database-tests.result }}" != "success" || "${{ needs.clinical-edge-prescription.result }}" != "success" ]]; then
             exit 1
             fi
 

@@ -25,8 +25,8 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
-private class FakeAuthRepository : AuthRepository {
-    override fun observeSession(): Flow<User?> = flowOf(null)
+private class FakeAuthRepository(var currentUser: User? = null) : AuthRepository {
+    override fun observeSession(): Flow<User?> = flowOf(currentUser)
     override suspend fun login(email: String, password: String, selectedRole: UserRole?): Result<User> =
         Result.failure(Exception("No user"))
     override suspend fun loginWithGoogle(idToken: String, selectedRole: UserRole?): Result<User> =
@@ -34,7 +34,7 @@ private class FakeAuthRepository : AuthRepository {
     override suspend fun register(email: String, password: String, selectedRole: UserRole): Result<UserRegistrationResult> =
         Result.failure(Exception("No user"))
     override suspend fun logout() {}
-    override suspend fun getCurrentUser(): User? = null
+    override suspend fun getCurrentUser(): User? = currentUser
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -43,6 +43,7 @@ class PharmacyDispatchRepositoryImplTest {
     private lateinit var mockWebServer: MockWebServer
     private lateinit var supabaseClient: SupabaseClient
     private lateinit var repository: PharmacyDispatchRepositoryImpl
+    private lateinit var fakeAuthRepository: FakeAuthRepository
     private val testDispatcher = UnconfinedTestDispatcher()
     private val secureValues = mutableMapOf<String, String>()
     private val securePrefs = mockk<SecurePreferences>()
@@ -69,9 +70,10 @@ class PharmacyDispatchRepositoryImplTest {
             install(Postgrest)
         }
 
+        fakeAuthRepository = FakeAuthRepository()
         repository = PharmacyDispatchRepositoryImpl(
             supabaseClient = supabaseClient,
-            authRepository = FakeAuthRepository(),
+            authRepository = fakeAuthRepository,
             ioDispatcher = testDispatcher,
             httpClient = OkHttpClient(),
             json = Json { ignoreUnknownKeys = true },
@@ -94,7 +96,7 @@ class PharmacyDispatchRepositoryImplTest {
                       "success": true,
                       "data": {
                         "request": {
-                          "id": "guest-cancel-1",
+                          "id": "11111111-1111-4111-8111-111111111111",
                           "patient_dni": "00000000",
                           "patient_phone": "000000000",
                           "patient_name": "Synthetic Example",
@@ -121,6 +123,68 @@ class PharmacyDispatchRepositoryImplTest {
         val id = result.getOrThrow().id
         assertThat(mockWebServer.takeRequest().path).isEqualTo("/api/pharmacy/dispatch/request")
         return id
+    }
+
+
+    @Test
+    fun `guest SFU token is returned only for the matching stored room`() = runTest {
+        val requestId = createSyntheticGuestRequest()
+        assertThat(repository.getGuestAccessTokenForRoom("synthetic-room-cancel"))
+            .isEqualTo("synthetic-signed-cancel-token")
+        val requestsBeforeMismatch = mockWebServer.requestCount
+        assertThat(repository.getGuestAccessTokenForRoom("different-room")).isNull()
+        assertThat(mockWebServer.requestCount).isEqualTo(requestsBeforeMismatch)
+        assertThat(requestId).isEqualTo("11111111-1111-4111-8111-111111111111")
+    }
+
+    @Test
+    fun `Brazilian QR payment requires signed scope and does not trust pending checkout as approved`() = runTest {
+        val requestId = "12345678-1234-4234-8234-123456789012"
+        val partnerId = "22222222-2222-4222-8222-222222222222"
+        val recovery = "a".repeat(64)
+        val created = """
+            {"success":true,"data":{
+              "request":{"id":"$requestId","care_country":"BR",
+                "referral_partner_id":"$partnerId",
+                "patient_cpf":"12345678909","patient_phone":"+5551987654321",
+                "patient_name":"Synthetic Patient","tier_requested":"general",
+                "status":"searching","cloudflare_room_id":"cf-room-br-qr",
+                "created_at":"2026-11-05T12:00:00Z"},
+              "accessToken":"signed-intake-token","recoveryToken":"$recovery"
+            }}
+        """.trimIndent()
+        mockWebServer.enqueue(MockResponse().setResponseCode(200)
+            .setHeader("Content-Type","application/json").setBody(created))
+        val intake = repository.createPatientDispatchRequest(
+            patientDni="12345678909",patientPhone="+5551987654321",
+            patientName="Synthetic Patient",tierRequested="general",
+            symptomSummary="Consulta geral",patientCpf="12345678909",
+            careCountry="BR",referralCode="JORDAN",
+        ).getOrThrow()
+        assertThat(intake.referralPartnerId).isEqualTo(partnerId)
+        val request = mockWebServer.takeRequest()
+        assertThat(request.path).isEqualTo("/api/pharmacy/dispatch/request")
+        assertThat(request.body.readUtf8()).contains("\"referralCode\":\"JORDAN\"")
+
+        mockWebServer.enqueue(MockResponse().setResponseCode(200)
+            .setHeader("Content-Type","application/json")
+            .setBody("""{"success":true,"data":{"status":"pending","checkoutUrl":"https://www.mercadopago.com.br/checkout/"}}"""))
+        val checkout = repository.startDispatchCheckout(requestId).getOrThrow()
+        assertThat(checkout.status).isEqualTo("pending")
+        assertThat(checkout.checkoutUrl).startsWith("https://")
+        val post = mockWebServer.takeRequest()
+        assertThat(post.path).isEqualTo("/api/pharmacy/dispatch/payment/create")
+        assertThat(post.body.readUtf8()).contains("signed-intake-token")
+        assertThat(post.getHeader("Authorization")).isNull()
+
+        mockWebServer.enqueue(MockResponse().setResponseCode(200)
+            .setHeader("Content-Type","application/json")
+            .setBody("""{"success":true,"data":{"status":"pending","amountCents":7900,"currency":"BRL"}}"""))
+        val status = repository.getDispatchPaymentStatus(requestId).getOrThrow()
+        assertThat(status).isEqualTo("pending")
+        assertThat(mockWebServer.takeRequest().path).isEqualTo("/api/pharmacy/dispatch/payment/status")
+        // No redundant /resume HTTP roundtrip or recovery database write during polling.
+        assertThat(mockWebServer.requestCount).isEqualTo(3)
     }
 
     @Test
@@ -159,6 +223,37 @@ class PharmacyDispatchRepositoryImplTest {
         assertThat(posted.method).isEqualTo("POST")
         assertThat(posted.path).isEqualTo("/api/pharmacy/dispatch/resume")
         assertThat(posted.body.readUtf8()).contains(recoveryToken)
+    }
+
+    @Test
+    fun `doctor refusal without an authenticated session fails closed`() = runTest {
+        val result = repository.declinePharmacyOffer("44444444-4444-4444-8444-444444444444")
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(mockWebServer.requestCount).isEqualTo(0)
+    }
+
+    @Test
+    fun `doctor refusal sends exact offer id to server guarded RPC`() = runTest {
+        fakeAuthRepository.currentUser = User(
+            id = "33333333-3333-4333-8333-333333333333",
+            email = "doctor@example.invalid",
+            role = UserRole.DOCTOR,
+        )
+        val offerId = "44444444-4444-4444-8444-444444444444"
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"declined":true}"""),
+        )
+
+        assertThat(repository.declinePharmacyOffer(offerId).getOrThrow()).isTrue()
+
+        val request = mockWebServer.takeRequest()
+        assertThat(request.method).isEqualTo("POST")
+        assertThat(request.path).isEqualTo("/rest/v1/rpc/decline_my_pharmacy_dispatch_offer")
+        assertThat(request.body.readUtf8()).contains("\"p_offer_id\":\"$offerId\"")
+        assertThat(mockWebServer.requestCount).isEqualTo(1)
     }
 
     @Test
@@ -249,6 +344,13 @@ class PharmacyDispatchRepositoryImplTest {
     @Test
     fun `doctor heartbeat without an authenticated Supabase session never uses anon credentials`() = runTest {
         val result = repository.sendDoctorHeartbeat("doc-uuid-456")
+        assertThat(result.isFailure).isTrue()
+        assertThat(mockWebServer.requestCount).isEqualTo(0)
+    }
+
+    @Test
+    fun `online presence heartbeat without an authenticated Supabase session never uses anon credentials`() = runTest {
+        val result = repository.sendDoctorPresenceHeartbeat()
         assertThat(result.isFailure).isTrue()
         assertThat(mockWebServer.requestCount).isEqualTo(0)
     }

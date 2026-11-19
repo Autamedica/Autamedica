@@ -18,11 +18,19 @@ data class MedicalCertificate(
     val patientDni: String? = null,
     val signedPdfUrl: String? = null,
     val qrCodeContent: String? = null,
-    val countryCode: String = "AR",
+    val countryCode: String = "",
     val createdAt: String,
+    val signatureVerifiedAt: String? = null,
+    val restHours: Int = 0,
 ) {
     val isActive: Boolean
-        get() = status.equals("signed", ignoreCase = true) && !signedPdfUrl.isNullOrBlank()
+        get() = status.equals("signed", ignoreCase = true)
+            && !signedPdfUrl.isNullOrBlank()
+            && when (countryCode.uppercase()) {
+                "AR" -> true
+                "BR" -> !signatureVerifiedAt.isNullOrBlank()
+                else -> false
+            }
 
     val effectiveQrContent: String
         get() = if (!isActive) "" else (
@@ -35,6 +43,7 @@ data class MedicalCertificate(
 
     val displayDaysOfRest: String
         get() = when {
+            restHours > 0 -> "$restHours horas"
             daysOfRest <= 0 -> "Sin reposo requerido"
             daysOfRest == 1 -> "1 día (24 horas)"
             daysOfRest == 2 -> "2 días (48 horas)"
@@ -67,5 +76,7 @@ data class CreateCertificateRequest(
     val diagnosis: String? = null,
     val hideDiagnosis: Boolean = false,
     val observations: String? = null,
-    val countryCode: String = "AR",
+    val countryCode: String = "",
+    val cid10Code: String? = null,
+    val restHours: Int = 0,
 )

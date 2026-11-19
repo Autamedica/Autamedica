@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { logger } from '@autamedica/shared'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { badRequest, internalError, jsonOk, unauthorized } from '@/lib/api-helpers'
@@ -23,10 +24,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if (!UUID_REGEX.test(requestId)) return badRequest('invalid_request_id')
 
-    const admin = createAstroAdminClient(locals.runtime?.env)
+    // dispatch_offers is not yet represented in the generated database types.
+    const admin = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient
     const { data: existing, error: readError } = await admin
       .from('pharmacy_dispatch_requests')
-      .select('id, cloudflare_room_id, requested_by_user_id, status')
+      .select('id, cloudflare_room_id, requested_by_user_id, status, search_started_at, created_at')
       .eq('id', requestId)
       .maybeSingle()
 
@@ -43,21 +45,41 @@ export const POST: APIRoute = async ({ request, locals }) => {
       const secret = resolveGuestSecret(locals.runtime?.env)
       if (secret) {
         const payload = await verifyGuestToken(guestToken, secret)
-        guestAuthorized = payload?.callId === existing.id &&
+        guestAuthorized = existing.requested_by_user_id === null &&
+          payload?.callId === existing.id &&
           payload?.roomId === existing.cloudflare_room_id
       }
     }
 
     if (!ownerAuthorized && !guestAuthorized) return unauthorized('request_not_authorized')
 
-    // A matched or active consultation must not be disrupted by a stale kiosk.
-    if (existing.status !== 'searching') return jsonOk({ cancelled: false })
+    // A patient can cancel only after the local 15-minute search has elapsed
+    // and the current 30-second physician offer is no longer pending.
+    const searchStartedAt = new Date(existing.search_started_at ?? existing.created_at).getTime()
+    if (!['searching', 'expired'].includes(String(existing.status))
+      || !Number.isFinite(searchStartedAt)
+      || Date.now() < searchStartedAt + 15 * 60 * 1000) {
+      return jsonOk({ cancelled: false, code: 'WAIT_WINDOW_NOT_REACHED' })
+    }
+    const { data: activeOffer, error: offerError } = await admin
+      .from('dispatch_offers')
+      .select('id')
+      .eq('dispatch_request_id', requestId)
+      .eq('status', 'pending')
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle()
+    if (offerError) return internalError('cancel_failed')
+    if (activeOffer) return jsonOk({ cancelled: false, code: 'DOCTOR_OFFER_STILL_ACTIVE' })
 
-    const { data: updated, error: updateError } = await admin
+    const updateQuery = admin
       .from('pharmacy_dispatch_requests')
       .update({ status: 'cancelled' })
       .eq('id', requestId)
-      .eq('status', 'searching')
+    const scopedUpdate = ownerAuthorized
+      ? updateQuery.eq('requested_by_user_id', existing.requested_by_user_id)
+      : updateQuery.is('requested_by_user_id', null)
+    const { data: updated, error: updateError } = await scopedUpdate
+      .in('status', ['searching', 'expired'])
       .select('id')
       .maybeSingle()
 

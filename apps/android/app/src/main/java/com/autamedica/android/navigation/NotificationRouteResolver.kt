@@ -146,7 +146,11 @@ object NotificationRouteResolver {
         // Handles https://autamedica.com/farmacia/*, https://www.autamedica.com/farmacia/*, autamedica://farmacia/*
         if (segments.any { it.equals("farmacia", ignoreCase = true) }) {
             val pharmacyId = extractPharmacyId(normalized)
-            return Route.PharmacyIntake(pharmacyId)
+            return Route.PharmacyIntake(
+                pharmacyId = pharmacyId,
+                referralCode = extractReferralCode(normalized),
+                careCountry = extractCareCountry(normalized),
+            )
         }
 
         // On-demand doctor duty / dispatch:
@@ -178,6 +182,37 @@ object NotificationRouteResolver {
         }
     }
 
+    // A commercial QR source must be explicitly supplied and syntactically safe.
+    // The backend, not the deep link, decides whether the partner code is active.
+    fun extractReferralCode(raw: String): String {
+        val query = raw.substringAfter('?', "").substringBefore('#')
+        val matches = query.split('&').mapNotNull { pair ->
+            val key = pair.substringBefore('=').trim()
+            if (!key.equals("ref", ignoreCase = true) || '=' !in pair) null
+            else runCatching { java.net.URLDecoder.decode(pair.substringAfter('='), "UTF-8") }.getOrNull()
+        }
+        if (matches.size != 1) return ""
+        val normalized = matches.single().trim().uppercase(java.util.Locale.ROOT)
+        return normalized.takeIf { it.matches(Regex("^[A-Z0-9_-]{3,32}$")) } ?: ""
+    }
+
+    fun extractCareCountry(raw: String): String {
+        val query = raw.substringAfter('?', "").substringBefore('#')
+        val matches = query.split('&').mapNotNull { pair ->
+            val key = pair.substringBefore('=').trim()
+            if (!key.equals("careCountry", ignoreCase = true) &&
+                !key.equals("care_country", ignoreCase = true)
+            ) null
+            else if ('=' !in pair) null
+            else runCatching {
+                java.net.URLDecoder.decode(pair.substringAfter('='), "UTF-8")
+            }.getOrNull()
+        }
+        if (matches.size != 1) return ""
+        return matches.single().trim().uppercase(java.util.Locale.ROOT)
+            .takeIf { it == "AR" || it == "BR" } ?: ""
+    }
+
     fun extractPharmacyId(raw: String): String {
         // 1. Check query parameters
         val queryString = raw.substringAfter('?', "").substringBefore('#')
@@ -203,7 +238,8 @@ object NotificationRouteResolver {
                 .firstOrNull {
                     !it.equals("on-demand", ignoreCase = true) &&
                     !it.equals("entry", ignoreCase = true) &&
-                    !it.equals("intake", ignoreCase = true)
+                    !it.equals("intake", ignoreCase = true) &&
+                    !it.equals("solicitar", ignoreCase = true)
                 }
             if (!candidate.isNullOrBlank()) {
                 return runCatching { java.net.URLDecoder.decode(candidate.trim(), "UTF-8") }.getOrDefault(candidate.trim())

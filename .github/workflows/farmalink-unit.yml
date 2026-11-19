@@ -2,14 +2,20 @@ name: Farmalink contract + PDF regression tests (mock only)
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'apps/web/src/lib/prescriptions/**'
       - 'scripts/farmalink/**'
       - '.github/workflows/farmalink-unit.yml'
   push:
     branches:
+      - main
       - test/farmalink-oauth-smoke-20261103
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ (github.actor == 'coderabbitai[bot]' || github.actor == 'circleci-app[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.draft)) && 'ignored' || 'active' }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -19,6 +25,8 @@ env:
 
 jobs:
   farmalink-unit:
+    if: >-
+      github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     name: Farmalink Vitest + PDF smoke (offline)
     runs-on: ubuntu-latest
     timeout-minutes: 8
@@ -57,7 +65,7 @@ jobs:
             pdftoppm -f 1 -l 1 -singlefile -r 300 -png "/tmp/farmalink-autamedica-$1-test.pdf" "/tmp/farmalink-autamedica-$1"
             decoded="$(zbarimg --quiet --raw -Sdisable -Scode128.enable "/tmp/farmalink-autamedica-$1.png")"
             printf '%s\n' "$decoded" | grep -Fx "$2"
-            printf '%s\n' "$decoded" | grep -Fx '27123456780'
+            printf '%s\n' "$decoded" | grep -Fx '20123456786'
           done
 
       - name: Upload app-rendered TEST homologation PDFs (no network issuance)

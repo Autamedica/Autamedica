@@ -18,7 +18,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
 
     const { data: rx, error } = await admin
       .from('prescriptions')
-      .select('id, cuir, status, clinical_data, doctor_id, patient_id, signed_pdf_url, qr_code_content, created_at, country_code')
+      .select('id')
       .eq('cuir', cuir)
       .maybeSingle();
 
@@ -120,79 +120,124 @@ export const GET: APIRoute = async ({ params, locals }) => {
       });
     }
 
-    const clinicalData = rx.clinical_data as {
-      items?: Array<{ generic_name?: string; dosage?: string; quantity?: number }>;
-      diagnosis?: string;
-    };
-    const item = clinicalData?.items?.[0];
-
-    // Resolve names
-    let prescriberName = 'Médico';
-    let prescriberLicense = '';
-    const { data: doctor } = await admin
-      .from('doctors')
-      .select('user_id, license_number, specialty, license_type, uf_brazil')
-      .eq('id', rx.doctor_id)
+    const { data: prescription, error: prescriptionError } = await admin
+      .from('prescriptions')
+      .select('id,doctor_id,patient_id,status,country_code,cuir,signed_pdf_url,signature_method,vendor_name,vendor_id,is_controlled_substance,created_at')
+      // Verify the complete signed row resolved by the incoming CUIR.
+      .eq('id', rx.id)
       .maybeSingle();
+    if (prescriptionError) return internalError();
 
-    if (doctor) {
-      let licPrefix = 'Matrícula';
-      if (doctor.license_type === 'CRM' || doctor.uf_brazil) {
-        licPrefix = `CRM-${doctor.uf_brazil ?? 'BR'}`;
-      } else if (doctor.license_type === 'MSP') {
-        licPrefix = 'MSP (Uruguay)';
-      } else if (doctor.license_type === 'MN') {
-        licPrefix = 'MN';
-      } else if (doctor.license_type === 'MP') {
-        licPrefix = 'MP';
-      }
-
-      prescriberLicense = `${licPrefix}: ${doctor.license_number ?? 'N/D'}`;
-      if (doctor.specialty) prescriberLicense += ` | ${doctor.specialty}`;
-      const { data: dProfile } = await admin
-        .from('profiles')
-        .select('first_name, last_name')
-        .eq('user_id', doctor.user_id)
-        .maybeSingle();
-      if (dProfile) prescriberName = `Dr. ${dProfile.first_name ?? ''} ${dProfile.last_name ?? ''}`.trim();
+    // The CUIR row can disappear between the lookup and signature-evidence read.
+    if (prescription?.status !== 'active' || !prescription?.signed_pdf_url ||
+        prescription?.signature_method !== 'ac_external' || prescription?.cuir !== cuir) {
+      return jsonOk({
+        valid: false, reason: 'prescription_signature_unverified',
+        documentType: 'prescription', prescription: null, certificate: null,
+      });
+    }
+    if (prescription.country_code === 'BR' && prescription.is_controlled_substance) {
+      return jsonOk({
+        valid: false, reason: 'brazil_special_prescription_provider_required',
+        documentType: 'prescription', prescription: null, certificate: null,
+      });
+    }
+    if (prescription.country_code === 'AR' && (prescription.vendor_name !== 'farmalink' || !prescription.vendor_id)) {
+      return jsonOk({
+        valid: false, reason: 'argentine_farmalink_receipt_missing',
+        documentType: 'prescription', prescription: null, certificate: null,
+      });
     }
 
-    let patientName = 'Paciente';
-    const { data: patient } = await admin
-      .from('patients')
-      .select('user_id')
-      .eq('id', rx.patient_id)
+    const { data: signatureEvent, error: signatureError } = await admin
+      .from('prescription_audit_events')
+      .select('signature_hash,metadata,timestamp')
+      .eq('prescription_id', prescription.id)
+      .eq('event_type', 'ACT_DIGITAL_SIGNATURE')
+      .order('timestamp', { ascending: false })
+      .limit(1)
       .maybeSingle();
-    if (patient) {
-      const { data: pProfile } = await admin
-        .from('profiles')
-        .select('first_name, last_name')
-        .eq('user_id', patient.user_id)
-        .maybeSingle();
-      if (pProfile) patientName = `${pProfile.first_name ?? ''} ${pProfile.last_name ?? ''}`.trim();
+    const { data: issueEvent, error: issueError } = await admin
+      .from('prescription_audit_events')
+      .select('metadata,signature_hash')
+      .eq('prescription_id', prescription.id)
+      .eq('event_type', 'issued')
+      .order('timestamp', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (signatureError || issueError || !signatureEvent?.signature_hash || !issueEvent) {
+      return jsonOk({
+        valid: false, reason: 'prescription_signature_evidence_missing',
+        documentType: 'prescription', prescription: null, certificate: null,
+      });
+    }
+    const signatureMetadata = signatureEvent.metadata as Record<string, unknown> | null;
+    const issueMetadata = issueEvent.metadata as Record<string, unknown> | null;
+    const pdfPath = String(issueMetadata?.pdfPath ?? '');
+    if (!pdfPath.startsWith(`prescriptions/${cuir}/`) || !pdfPath.endsWith('.pdf') ||
+        signatureMetadata?.method !== 'PAdES_AC_EXTERNAL' ||
+        signatureMetadata?.document_hash !== signatureEvent.signature_hash ||
+        issueMetadata?.signature_hash !== signatureEvent.signature_hash) {
+      return jsonOk({
+        valid: false, reason: 'prescription_signature_evidence_invalid',
+        documentType: 'prescription', prescription: null, certificate: null,
+      });
+    }
+    const { data: signedPdf, error: downloadError } = await admin.storage
+      .from('medical-documents').download(pdfPath);
+    if (downloadError || !signedPdf) {
+      return jsonOk({
+        valid: false, reason: 'prescription_pdf_missing',
+        documentType: 'prescription', prescription: null, certificate: null,
+      });
+    }
+    const digest = await crypto.subtle.digest('SHA-256', await signedPdf.arrayBuffer());
+    const actualHash = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+    if (actualHash !== signatureEvent.signature_hash) {
+      return jsonOk({
+        valid: false, reason: 'prescription_pdf_integrity_mismatch',
+        documentType: 'prescription', prescription: null, certificate: null,
+      });
+    }
+
+    let prescriberName = 'Médico';
+    let prescriberLicense = '';
+    const { data: doctor } = await admin.from('doctors')
+      .select('user_id,license_number,specialty,license_type,uf_brazil')
+      .eq('id', prescription.doctor_id).maybeSingle();
+    if (doctor) {
+      const prefix = doctor.license_type === 'CRM' || doctor.uf_brazil
+        ? `CRM/${doctor.uf_brazil ?? 'BR'}`
+        : doctor.license_type === 'MP' ? 'MP' : 'MN';
+      prescriberLicense = `${prefix}: ${doctor.license_number ?? 'N/D'}`;
+      if (doctor.specialty) prescriberLicense += ` | ${doctor.specialty}`;
+      const { data: doctorProfile } = await admin.from('profiles')
+        .select('first_name,last_name').eq('user_id', doctor.user_id).maybeSingle();
+      if (doctorProfile) prescriberName = `Dr. ${doctorProfile.first_name ?? ''} ${doctorProfile.last_name ?? ''}`.trim();
     }
 
     return jsonOk({
       valid: true,
+      documentType: 'prescription',
+      verificationScope: 'AutaMedica issuer audit and stored PDF integrity',
+      signatureVerified: false,
       prescription: {
-        cuir: rx.cuir,
-        status: rx.status,
-        countryCode: (rx as { country_code?: string })?.country_code ?? 'AR',
-        medication: item?.generic_name ?? 'Sin especificar',
-        dosage: item?.dosage ?? '',
-        quantity: item?.quantity ?? 0,
-        diagnosis: clinicalData?.diagnosis ?? '',
+        cuir: prescription.cuir,
+        status: prescription.status,
+        countryCode: prescription.country_code,
         prescriberName,
         prescriberLicense,
-        patientName,
-        issuedAt: rx.created_at,
-        pdfUrl: rx.signed_pdf_url,
-        qrContent: rx.qr_code_content,
+        patientName: 'Datos reservados',
+        issuedAt: signatureEvent.timestamp,
+        signatureMethod: 'ac_external',
+        signatureLabel: 'PAdES registrada; integridad del PDF confirmada',
+        pdfUrl: `/api/doctors/prescriptions/${prescription.id}/pdf`,
+        qrContent: prescription.cuir,
       },
+      certificate: null,
     });
   } catch (err) {
     logger.error('[verify] Error', err);
     return internalError();
   }
 };
-

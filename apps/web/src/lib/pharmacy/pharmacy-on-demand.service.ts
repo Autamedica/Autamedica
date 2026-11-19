@@ -23,6 +23,7 @@ export type DispatchTierCategory =
   | 'endocrinologia'
 
 export type DispatchRequestStatus =
+  | 'pending_payment'
   | 'searching'
   | 'matched'
   | 'in_call'
@@ -156,6 +157,8 @@ export interface DispatchRequest {
   previous_doctor_id: string | null
   cloudflare_room_id: string
   created_at: string
+  search_started_at?: string | null
+  search_timeout_at?: string | null
   matched_at: string | null
   call_started_at: string | null
   call_ended_at: string | null
@@ -312,7 +315,7 @@ export async function finishPharmacyDispatchRequest(
     const supabase = getBrowserSupabaseClient()
     const { error } = await supabase
       .from('pharmacy_dispatch_requests')
-      .update({ status: 'completed' as DispatchRequestStatus, ...blob })
+      .update({ status: 'completed', ...blob })
       .eq('id', requestId)
 
     if (error) {

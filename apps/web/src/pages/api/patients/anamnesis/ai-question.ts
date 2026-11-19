@@ -118,7 +118,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       logger.warn('[ai-question] Gemini returned empty response', {
         finishReason: (geminiResult as Record<string, unknown>)?.candidates?.[0]?.finishReason,
       })
-      return json({ success: true, data: { questions: [], detectedSections: [], urgencyLevel: 'normal' } })
+      return json({ success: true, data: { questions: [], detectedSections: [], urgencyLevel: 'attention', review_status: 'unverified', requires_manual_review: true } })
     }
 
     let parsed: Record<string, unknown>
@@ -126,7 +126,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       parsed = JSON.parse(aiResponse as string)
     } catch {
       logger.warn('[ai-question] AI returned non-JSON response', { aiResponse: (aiResponse as string).slice(0, 200) })
-      return json({ success: true, data: { questions: [], detectedSections: [], urgencyLevel: 'normal' } })
+      return json({ success: true, data: { questions: [], detectedSections: [], urgencyLevel: 'attention', review_status: 'unverified', requires_manual_review: true } })
     }
     const rawQuestions = Array.isArray(parsed.questions) ? parsed.questions : []
     const questions = rawQuestions.filter((q: Record<string, unknown>) =>

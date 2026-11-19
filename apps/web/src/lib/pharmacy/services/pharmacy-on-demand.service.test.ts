@@ -5,26 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 describe('PharmacyOnDemandService', () => {
   const service = new PharmacyOnDemandService()
 
-  it('creates an on-demand request and computes queue position', async () => {
-    const mockInsert = vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        single: vi.fn().mockResolvedValue({
-          data: {
-            id: 'req-123',
-            pharmacy_id: 'ph-456',
-            pharmacy_name: 'Farmacia San Martin',
-            patient_dni: '38123456',
-            patient_name: 'Carlos Gomez',
-            patient_phone: '+5491122334455',
-            reason: 'Amoxicilina 500mg',
-            status: 'pending',
-            created_at: '2026-09-18T17:00:00.000Z',
-          },
-          error: null,
-        }),
-      }),
-    })
-
+  it('creates an on-demand request through the scoped RPC and computes queue position', async () => {
     const mockCount = vi.fn().mockReturnValue({
       eq: vi.fn().mockReturnValue({
         lte: vi.fn().mockResolvedValue({
@@ -35,12 +16,23 @@ describe('PharmacyOnDemandService', () => {
     })
 
     const mockAdmin = {
+      rpc: vi.fn().mockResolvedValue({
+        data: {
+          id: 'req-123',
+          pharmacy_id: 'ph-456',
+          pharmacy_name: 'Farmacia San Martin',
+          patient_dni: '38123456',
+          patient_name: 'Carlos Gomez',
+          patient_phone: '+5491122334455',
+          reason: 'Amoxicilina 500mg',
+          status: 'pending',
+          created_at: '2026-09-18T17:00:00.000Z',
+        },
+        error: null,
+      }),
       from: vi.fn((table: string) => {
         if (table === 'pharmacy_consultation_requests') {
-          return {
-            insert: mockInsert,
-            select: mockCount,
-          }
+          return { select: mockCount }
         }
         return {}
       }),
@@ -55,6 +47,11 @@ describe('PharmacyOnDemandService', () => {
       reason: 'Amoxicilina 500mg',
     })
 
+    expect(mockAdmin.rpc).toHaveBeenCalledWith('create_pharmacy_consultation_request', expect.objectContaining({
+      p_pharmacy_id: 'ph-456',
+      p_patient_dni: '38123456',
+      p_patient_phone: '+5491122334455',
+    }))
     expect(result.request.id).toBe('req-123')
     expect(result.request.pharmacy_name).toBe('Farmacia San Martin')
     expect(result.queuePosition).toBe(1)

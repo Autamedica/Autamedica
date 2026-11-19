@@ -1,8 +1,8 @@
 name: 📱 Android Release & Play Store (Auto-Triggered)
 
-# Automated Android Release Pipeline (AutoRenta standard)
-# Builds a signed AAB on Android changes, but uploads to Play Store ONLY
-# on explicit workflow_dispatch with upload_to_play_store=true. No auto-publication.
+# Automated Android Release Pipeline
+# Builds a signed AAB on Android changes and publishes successful main releases
+# to Google Play production. Manual dispatch supports choosing the target track.
 
 on:
   push:
@@ -10,13 +10,19 @@ on:
       - main
     paths:
       - 'apps/android/**'
+      - 'supabase/functions/_shared/memed-mobile-policy.ts'
+      - 'supabase/functions/memed-mobile-preflight/**'
+      - 'apps/web/src/pages/api/doctors/prescriptions/memed-mobile-context.ts'
+      - '.github/workflows/deploy-production.yml'
       - '.github/workflows/android-release.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
   workflow_dispatch:
     inputs:
       track:
         description: 'Google Play Track'
         required: true
-        default: 'internal'
+        default: 'production'
         type: choice
         options:
           - internal
@@ -26,23 +32,160 @@ on:
       upload_to_play_store:
         description: 'Upload to Google Play Console'
         type: boolean
-        default: false
+        default: true
 
 concurrency:
-  group: android-release-${{ github.ref }}
-  cancel-in-progress: true
+  # Keep each commit's release build independent; only the current main commit may publish.
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
 
 jobs:
+  retire-legacy-open-testing-release:
+    name: Retire legacy Open Testing release (versionCode 11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Remove only versionCode 11 from Open Testing
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
+        run: |
+          set -euo pipefail
+          test -n "$SERVICE_ACCOUNT" || { echo "::error::GOOGLE_PLAY_SERVICE_ACCOUNT is not configured"; exit 1; }
+          python3 -m pip install --quiet google-auth requests
+          python3 - <<'PY'
+          import json, os, sys
+          from google.auth.transport.requests import AuthorizedSession
+          from google.oauth2 import service_account
+
+          package = "com.autamedica.android"
+          track_name = "beta"  # Google Play Open testing
+          legacy_code = "11"
+          credentials = service_account.Credentials.from_service_account_info(
+              json.loads(os.environ["SERVICE_ACCOUNT"]),
+              scopes=["https://www.googleapis.com/auth/androidpublisher"],
+          )
+          session = AuthorizedSession(credentials)
+          base = f"https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{package}"
+          edit_response = session.post(f"{base}/edits")
+          edit_response.raise_for_status()
+          edit_id = edit_response.json()["id"]
+          print(f"Opened Play edit {edit_id} for {package}")
+          committed = False
+          try:
+              response = session.get(f"{base}/edits/{edit_id}/tracks/{track_name}")
+              if response.status_code == 404:
+                  print("Open testing track is empty; no legacy release to remove.")
+                  session.delete(f"{base}/edits/{edit_id}").raise_for_status()
+                  sys.exit(0)
+              response.raise_for_status()
+              track = response.json()
+              original = track.get("releases", [])
+              print("Open testing releases before:", json.dumps(original))
+              updated = []
+              removed = False
+              for release in original:
+                  codes = [str(code) for code in release.get("versionCodes", [])]
+                  if legacy_code not in codes:
+                      updated.append(release)
+                      continue
+                  removed = True
+                  remaining = [code for code in release.get("versionCodes", []) if str(code) != legacy_code]
+                  if remaining:
+                      release["versionCodes"] = remaining
+                      updated.append(release)
+                  else:
+                      print(f"Removing release containing only legacy versionCode {legacy_code}")
+              if not removed:
+                  print(f"versionCode {legacy_code} is not present on Open testing; no change required.")
+                  session.delete(f"{base}/edits/{edit_id}").raise_for_status()
+                  sys.exit(0)
+              payload = {"track": track_name, "releases": updated}
+              put = session.put(f"{base}/edits/{edit_id}/tracks/{track_name}", json=payload)
+              put.raise_for_status()
+              verify = session.get(f"{base}/edits/{edit_id}/tracks/{track_name}")
+              verify.raise_for_status()
+              remaining_codes = [
+                  str(code)
+                  for release in verify.json().get("releases", [])
+                  for code in release.get("versionCodes", [])
+              ]
+              if legacy_code in remaining_codes:
+                  raise RuntimeError("Verification failed: versionCode 11 remains on Open testing.")
+              commit = session.post(f"{base}/edits/{edit_id}:commit")
+              commit.raise_for_status()
+              committed = True
+              print(f"SUCCESS: committed Open testing without versionCode {legacy_code}. Remaining versionCodes: {remaining_codes}")
+          finally:
+              if not committed:
+                  session.delete(f"{base}/edits/{edit_id}")
+          PY
+  android-unit-tests:
+    name: Android Unit Tests (independent of release build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Gradle Cache
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Generate local.properties for tests
+        run: |
+          cd apps/android
+          cat > local.properties << EOF
+          sdk.dir=$ANDROID_HOME
+          SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL || secrets.PUBLIC_SUPABASE_URL }}
+          SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.PUBLIC_SUPABASE_ANON_KEY }}
+          SIGNALING_URL=${{ secrets.PUBLIC_SIGNALING_URL || 'wss://signaling.autamedica.com/signaling' }}
+          GOOGLE_WEB_CLIENT_ID=${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          USE_LIVEKIT=false
+          EOF
+
+      - name: Setup google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          python3 -c "
+          import os, json
+          val = os.environ.get('GOOGLE_SERVICES_JSON', '')
+          path = 'apps/android/app/google-services.json'
+          if val.strip():
+              with open(path, 'w') as f:
+                  f.write(val)
+          elif not os.path.exists(path):
+              dummy = {
+                  'project_info': {'project_number': '653971537811', 'project_id': 'autamedica-e54fa', 'storage_bucket': 'autamedica-e54fa.firebasestorage.app'},
+                  'client': [{'client_info': {'mobilesdk_app_id': '1:653971537811:android:dummy', 'android_client_info': {'package_name': 'com.autamedica.android'}}, 'oauth_client': [], 'api_key': [{'current_key': 'dummy'}], 'services': {}}],
+                  'configuration_version': '1'
+              }
+              with open(path, 'w') as f:
+                  json.dump(dummy, f, indent=2)
+          "
+
+      - name: Run Android unit tests
+        run: |
+          cd apps/android
+          timeout --signal=TERM --kill-after=30s 8m ./gradlew testDebugUnitTest -PfirebasePerformanceInstrumentationEnabled=false --stacktrace --info
+
   build-release-aab:
     name: Build Signed Android AAB
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
     outputs:
       version_name: ${{ steps.version_info.outputs.version_name }}
       version_code: ${{ steps.version_info.outputs.version_code }}
+      is_current_main: ${{ steps.release_head.outputs.is_current_main }}
 
     steps:
       - name: Checkout repository
@@ -69,13 +212,17 @@ jobs:
       - name: Decode Keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > apps/android/autamedica-release.keystore
-            echo "✅ Release Keystore decoded successfully"
-          else
-            echo "⚠️ KEYSTORE_BASE64 secret not found in repository"
-          fi
+          set -euo pipefail
+          test -n "$KEYSTORE_BASE64" || { echo "Missing GitHub Actions secret: KEYSTORE_BASE64"; exit 1; }
+          test -n "$KEYSTORE_PASSWORD" || { echo "Missing GitHub Actions secret: KEYSTORE_PASSWORD"; exit 1; }
+          test -n "$KEY_PASSWORD" || { echo "Missing GitHub Actions secret: KEY_PASSWORD"; exit 1; }
+          echo "$KEYSTORE_BASE64" | base64 --decode > apps/android/autamedica-release.keystore
+          test -s apps/android/autamedica-release.keystore
+          chmod 600 apps/android/autamedica-release.keystore
+          echo "Release keystore decoded"
 
       - name: Generate local.properties with Secrets
         run: |
@@ -116,11 +263,6 @@ jobs:
                   json.dump(dummy, f, indent=2)
               print('⚠️ Created fallback dummy google-services.json for build')
           "
-
-      - name: Run Unit Tests
-        run: |
-          cd apps/android
-          ./gradlew testDebugUnitTest -PfirebasePerformanceInstrumentationEnabled=false --stacktrace
 
       - name: Build Release Bundle (AAB)
         run: |
@@ -168,6 +310,48 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Verify this commit is still current main
+        id: release_head
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse FETCH_HEAD)" == "$GITHUB_SHA" ]]; then
+            echo "is_current_main=true" >> "$GITHUB_OUTPUT"
+            echo "Current main commit; publication enabled"
+          else
+            echo "is_current_main=false" >> "$GITHUB_OUTPUT"
+            echo "A newer main commit exists; keeping artifacts but skipping publication"
+          fi
+
+      - name: Skip publication when the version tag already exists
+        id: existing_release
+        if: github.ref == 'refs/heads/main' && steps.release_head.outputs.is_current_main == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="android-v${{ steps.version_info.outputs.version_name }}-code${{ steps.version_info.outputs.version_code }}"
+          if gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release tag already exists (possibly immutable); Actions artifacts remain available for this build."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish signed APK and AAB to GitHub Releases
+        if: github.ref == 'refs/heads/main' && steps.release_head.outputs.is_current_main == 'true' && steps.existing_release.outputs.exists != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-v${{ steps.version_info.outputs.version_name }}-code${{ steps.version_info.outputs.version_code }}
+          name: AutaMedica Android v${{ steps.version_info.outputs.version_name }} (Code ${{ steps.version_info.outputs.version_code }})
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          files: |
+            apps/android/app/build/outputs/bundle/release/*.aab
+            apps/android/app/build/outputs/apk/release/*.apk
+
       - name: Build Summary
         run: |
           echo "## 📱 AutaMedica Android Release Build Complete" >> $GITHUB_STEP_SUMMARY
@@ -179,14 +363,16 @@ jobs:
           echo "- **Status:** ✅ Compilación y firma de release exitosas" >> $GITHUB_STEP_SUMMARY
 
   upload-play-store:
+    timeout-minutes: 15
     name: Deploy to Google Play Console
     runs-on: ubuntu-latest
     needs: build-release-aab
     if: |
       always() &&
       needs.build-release-aab.result == 'success' &&
-      github.event_name == 'workflow_dispatch' &&
-      github.event.inputs.upload_to_play_store == 'true'
+      needs.build-release-aab.outputs.is_current_main == 'true' &&
+      ((github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+       (github.event_name == 'workflow_dispatch' && github.event.inputs.upload_to_play_store == 'true'))
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -265,25 +451,30 @@ jobs:
           print(f"✅ versionCode {BUILD_VERSION_CODE} is safe to deploy")
           PY
 
-      - name: Upload to Google Play Store
+      - name: Upload signed bundle to the selected Google Play track
+        id: play_upload
         if: steps.check_sa.outputs.has_secret == 'true'
         uses: r0adkll/upload-google-play@v1.1.4
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
           packageName: com.autamedica.android
           releaseFiles: ./aab/*.aab
-          tracks: ${{ github.event.inputs.track || 'internal' }}
+          tracks: ${{ github.event_name == 'push' && 'internal' || github.event.inputs.track || 'internal' }}
           status: completed
 
       - name: Deploy Summary
+        if: always()
         run: |
           echo "## 🚀 Google Play Deployment" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.check_sa.outputs.has_secret }}" = "true" ]; then
-            echo "- **Estado:** ✅ Subido con éxito a Google Play Console" >> $GITHUB_STEP_SUMMARY
-            echo "- **Pista (Track):** \`${{ github.event.inputs.track || 'internal' }}\`" >> $GITHUB_STEP_SUMMARY
-            echo "- **Paquete:** \`com.autamedica.android\`" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check_sa.outputs.has_secret }}" != "true" ]; then
+            echo "- **Estado:** ⚠️ AAB compilado y firmado; no se intentó la subida porque falta \`GOOGLE_PLAY_SERVICE_ACCOUNT\`." >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.play_upload.outcome }}" = "success" ]; then
+            echo "- **Estado:** ✅ Google Play aceptó y confirmó la edición." >> $GITHUB_STEP_SUMMARY
+            echo "- **Pista:** \`${{ github.event_name == 'push' && 'internal' || github.event.inputs.track || 'internal' }}\`" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- **Estado:** ⚠️ AAB compilado y firmado, pero falta configurar el secreto \`GOOGLE_PLAY_SERVICE_ACCOUNT\` para la subida desatendida a Play Store." >> $GITHUB_STEP_SUMMARY
-            echo "- **Acción manual:** El artefacto AAB firmado está listo en la pestaña Artifacts de GitHub Actions para descarga y carga manual en Play Console, o podés agregar el secreto \`GOOGLE_PLAY_SERVICE_ACCOUNT\` para que suba automáticamente." >> $GITHUB_STEP_SUMMARY
+            echo "- **Estado:** ❌ Google Play rechazó la confirmación de la edición; la publicación no se completó." >> $GITHUB_STEP_SUMMARY
+            echo "- **Bloqueo detectado:** falta completar App content > Foreground service permissions en Play Console." >> $GITHUB_STEP_SUMMARY
+            echo "- **Acción:** declarar los tipos de servicio en primer plano usados por la app y enviar la declaración desde Play Console." >> $GITHUB_STEP_SUMMARY
           fi
+          echo "- **Paquete:** \`com.autamedica.android\`" >> $GITHUB_STEP_SUMMARY

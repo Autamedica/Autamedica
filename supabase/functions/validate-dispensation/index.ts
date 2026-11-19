@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
-import { captureEdgeException, initEdgeSentry } from '../_shared/sentry.ts';
+import {captureEdgeException, initEdgeSentry, withEdgeSentry } from '../_shared/sentry.ts';
 
 function requireEnv(name: string): string {
   const value = Deno.env.get(name);
@@ -23,7 +23,7 @@ interface ValidateRequest {
 
 initEdgeSentry('validate-dispensation');
 
-Deno.serve(async (req) => {
+Deno.serve(withEdgeSentry('validate-dispensation', async (req) => {
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
       });
 
     if (validationError) {
-      captureEdgeException(validationError, {
+      await captureEdgeException(validationError, {
         layer: 'data-platform',
         surface: 'validate-dispensation:validation-insert',
         owner: 'Pharmacy Platform',
@@ -253,7 +253,7 @@ Deno.serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    captureEdgeException(error, {
+    await captureEdgeException(error, {
       layer: 'data-platform',
       surface: 'validate-dispensation:unexpected',
       owner: 'Pharmacy Platform',
@@ -264,4 +264,4 @@ Deno.serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
     });
   }
-});
+}));

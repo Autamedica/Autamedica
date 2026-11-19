@@ -28,17 +28,21 @@ describe('Farmalink PDF affiliate reconciliation', () => {
         cuil: '27-12345678-0',
         affiliateCredential: '20123456786',
         insuranceEntityCode: 7110,
-        insurancePlan: '100',
+        insurancePlan: 'NO POSEE',
       },
       prescriber: { name: 'Demo Demo', license: 'MN 11111' },
     });
     const pdf = Buffer.from(output.pdfBuffer).toString('latin1');
+    expect(pdf).toContain('Emitida: 03/11/2026');
     expect(pdf).toContain('Nro. afiliado / Credencial: 20123456786');
+    expect(pdf).toContain('Plan: NO POSEE');
     expect(pdf).toContain('Entidad: 7110');
-    expect(pdf).toContain('Plan: 100');
-    expect(pdf).toContain('CUIL: 27123456780');
-    expect(pdf).toContain('CUIL PACIENTE');
+    expect(pdf).not.toContain('CUIL: 27123456780');
+    expect(pdf).toContain('PAN / CREDENCIAL');
+    expect(pdf).toContain('PAN: 20123456786');
+    expect(pdf).not.toContain('CUIL: 27123456780');
     expect(pdf).toContain('RECETA FARMALINK');
+    expect(pdf).not.toContain('CUIL PACIENTE');
     expect(pdf).toContain('RECETA EXTERNA: 9600000421228');
     expect(pdf).not.toContain('FARMALINK TEST / MODALIDAD GENERICO=');
     vi.restoreAllMocks();
@@ -63,9 +67,10 @@ describe('Farmalink PDF affiliate reconciliation', () => {
     const pdf = Buffer.from(output.pdfBuffer).toString('latin1');
     expect(pdf).toContain('RL-2026-47574120-APN-SSVEIYES#MS');
     expect(pdf).toContain('Nro. afiliado / Credencial: 20123456786');
-    expect(pdf).toContain('CUIL PACIENTE');
+    expect(pdf).not.toContain('CUIL: 27123456780');
+    expect(pdf).not.toContain('CUIL PACIENTE');
     expect(pdf).not.toContain('MODALIDAD GENERICO=');
-    expect(output.cuir).toContain('NO ASIGNADO - TEST');
+    expect(output.cuir).toBe('');
     expect(output.qrContent).toBe('');
   });
 });

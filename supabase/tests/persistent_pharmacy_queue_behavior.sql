@@ -35,14 +35,32 @@ BEGIN
   IF (SELECT status::text FROM public.pharmacy_dispatch_requests WHERE id=v_ar) <> 'searching'
      OR (SELECT status::text FROM public.pharmacy_dispatch_requests WHERE id=v_br) <> 'searching'
      OR EXISTS (SELECT 1 FROM public.pharmacy_dispatch_requests
-                WHERE id IN (v_ar,v_br) AND search_timeout_at IS NOT NULL)
+                WHERE id IN (v_ar,v_br)
+                  AND (
+                    search_started_at IS NULL
+                    OR search_timeout_at IS NULL
+                    OR search_timeout_at < search_started_at + interval '14 minutes 59 seconds'
+                    OR search_timeout_at > search_started_at + interval '15 minutes 1 second'
+                  ))
   THEN
-    RAISE EXCEPTION 'No-doctor search must persist in its country-specific queue';
+    RAISE EXCEPTION 'No-doctor search must persist with a server-owned 15-minute window in its country-specific queue';
   END IF;
+
+  -- The production matcher enforces payment-first before looking for a
+  -- clinician. Verify that contract, then disable the gate only inside this
+  -- rollback-only fixture to exercise the persistent no-doctor queue.
+  SELECT public.match_dispatch_doctors(v_ar) INTO v_result;
+  IF v_result->>'code' <> 'COUNTRY_PAYMENT_REQUIRED' THEN
+    RAISE EXCEPTION 'Unpaid AR request bypassed payment-first dispatch: %',v_result;
+  END IF;
+
+  UPDATE public.pharmacy_dispatch_pricing_configs
+  SET require_payment_before_dispatch=false
+  WHERE country_code='AR';
 
   SELECT public.match_dispatch_doctors(v_ar) INTO v_result;
   IF v_result->>'code' <> 'WAITING_FOR_COUNTRY_DOCTOR' THEN
-    RAISE EXCEPTION 'Unexpected no-doctor result: %',v_result;
+    RAISE EXCEPTION 'Unexpected no-doctor result after test-only payment override: %',v_result;
   END IF;
 
   -- Activate one synthetic AR physician; his live heartbeat must trigger

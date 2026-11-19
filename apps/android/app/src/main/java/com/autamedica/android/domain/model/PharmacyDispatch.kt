@@ -6,6 +6,10 @@ data class PharmacyDispatchRequest(
     val offerId: String? = null,
     val offerExpiresAt: String? = null,
     val careCountry: String? = null,
+    /** Server-resolved referral provenance; never a browser-claimed partner ID. */
+    val referralPartnerId: String? = null,
+    val currency: String? = null,
+    val priceMinor: Int? = null,
     val patientDni: String,
     val patientPhone: String,
     val patientName: String? = null,
@@ -15,6 +19,7 @@ data class PharmacyDispatchRequest(
     val assignedDoctorId: String? = null,
     val cloudflareRoomId: String,
     val createdAt: String,
+    val searchStartedAt: String? = null,
 ) {
     val doctorAttendedCall: Boolean
         get() = status == "in_call"

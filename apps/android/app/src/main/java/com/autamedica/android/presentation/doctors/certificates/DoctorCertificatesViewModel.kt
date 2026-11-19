@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.ZoneId
 import javax.inject.Inject
 
 data class DoctorCertificatesUiState(
@@ -41,8 +42,10 @@ data class DoctorCertificatesUiState(
 
     val certificateType: CertificateType = CertificateType.REPOSO_LABORAL,
     val daysOfRest: Int = 2,
+    val restHours: Int = 0,
+    val restPeriodUnit: String = "days",
     val startDate: String = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE),
-    val endDate: String = LocalDate.now().plusDays(2).format(DateTimeFormatter.ISO_LOCAL_DATE),
+    val endDate: String? = LocalDate.now().plusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE),
     val diagnosis: String = "",
     val diagnosisCode: String? = null,
     val hideDiagnosis: Boolean = false,
@@ -78,7 +81,7 @@ class DoctorCertificatesViewModel @Inject constructor(
             certificateRepository.getDoctorCertificates()
                 .onSuccess { list ->
                     val total = list.size
-                    val valid = list.count { it.status == "signed" }
+                    val valid = list.count { it.isActive }
                     val cancelled = list.count { it.status == "cancelled" }
 
                     _uiState.update { current ->
@@ -135,8 +138,25 @@ class DoctorCertificatesViewModel @Inject constructor(
 
     fun initCreateCertificate(patientId: String = "") {
         viewModelScope.launch {
-            val todayStr = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-            val defaultEndStr = LocalDate.now().plusDays(2).format(DateTimeFormatter.ISO_LOCAL_DATE)
+            var eligibility = _uiState.value.doctorEligibility
+            if (eligibility == null) {
+                eligibility = prescriptionRepository.getDoctorEligibility().getOrNull()
+                _uiState.update {
+                    it.copy(
+                        doctorEligibility = eligibility,
+                        isLoadingEligibility = false,
+                    )
+                }
+            }
+            val countryCode = eligibility?.countryCode
+            val zoneId = when (countryCode) {
+                "BR" -> ZoneId.of("America/Sao_Paulo")
+                "AR" -> ZoneId.of("America/Argentina/Buenos_Aires")
+                else -> ZoneId.systemDefault()
+            }
+            val today = LocalDate.now(zoneId)
+            val todayStr = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
+            val defaultEndStr = today.plusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE)
 
             _uiState.update {
                 it.copy(
@@ -144,11 +164,13 @@ class DoctorCertificatesViewModel @Inject constructor(
                     selectedPatient = null,
                     certificateType = CertificateType.REPOSO_LABORAL,
                     daysOfRest = 2,
+                    restHours = 0,
+                    restPeriodUnit = "days",
                     startDate = todayStr,
                     endDate = defaultEndStr,
                     diagnosis = "",
                     diagnosisCode = null,
-                    hideDiagnosis = false,
+                    hideDiagnosis = countryCode == "BR",
                     observations = "",
                     createError = null,
                     createErrorRes = null,
@@ -211,7 +233,26 @@ class DoctorCertificatesViewModel @Inject constructor(
             current.copy(
                 certificateType = type,
                 daysOfRest = defaultDays,
+                restHours = 0,
+                restPeriodUnit = if (defaultDays > 0) "days" else "none",
                 endDate = calculatedEnd,
+                createError = null,
+                createErrorRes = null,
+                createErrorArg = null,
+            )
+        }
+    }
+
+    fun onRestPeriodUnitChange(unit: String) {
+        require(unit in setOf("days", "hours", "none"))
+        _uiState.update { current ->
+            val days = if (unit == "days") current.daysOfRest.takeIf { it > 0 } ?: 1 else 0
+            val hours = if (unit == "hours") current.restHours.takeIf { it > 0 } ?: 1 else 0
+            current.copy(
+                restPeriodUnit = unit,
+                daysOfRest = days,
+                restHours = hours,
+                endDate = if (days > 0) calculateEndDate(current.startDate, days) else null,
                 createError = null,
                 createErrorRes = null,
                 createErrorArg = null,
@@ -222,10 +263,27 @@ class DoctorCertificatesViewModel @Inject constructor(
     fun onDaysOfRestChange(days: Int) {
         val safeDays = days.coerceIn(0, 365)
         _uiState.update { current ->
-            val calculatedEnd = calculateEndDate(current.startDate, safeDays)
+            val calculatedEnd = if (safeDays > 0) calculateEndDate(current.startDate, safeDays) else null
             current.copy(
                 daysOfRest = safeDays,
+                restHours = 0,
+                restPeriodUnit = if (safeDays > 0) "days" else "none",
                 endDate = calculatedEnd,
+                createError = null,
+                createErrorRes = null,
+                createErrorArg = null,
+            )
+        }
+    }
+
+    fun onRestHoursChange(hours: Int) {
+        val safeHours = hours.coerceIn(1, 8760)
+        _uiState.update { current ->
+            current.copy(
+                daysOfRest = 0,
+                restHours = safeHours,
+                restPeriodUnit = "hours",
+                endDate = null,
                 createError = null,
                 createErrorRes = null,
                 createErrorArg = null,
@@ -235,7 +293,9 @@ class DoctorCertificatesViewModel @Inject constructor(
 
     fun onStartDateChange(date: String) {
         _uiState.update { current ->
-            val calculatedEnd = calculateEndDate(date, current.daysOfRest)
+            val calculatedEnd = if (current.restPeriodUnit == "days") {
+                calculateEndDate(date, current.daysOfRest)
+            } else null
             current.copy(startDate = date, endDate = calculatedEnd)
         }
     }
@@ -244,7 +304,18 @@ class DoctorCertificatesViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 diagnosis = diagnosis,
-                diagnosisCode = code,
+                diagnosisCode = code?.trim()?.takeIf { value -> value.isNotEmpty() } ?: it.diagnosisCode,
+                createError = null,
+                createErrorRes = null,
+                createErrorArg = null,
+            )
+        }
+    }
+
+    fun onDiagnosisCodeChange(code: String) {
+        _uiState.update {
+            it.copy(
+                diagnosisCode = code.trim().take(8).takeIf { value -> value.isNotEmpty() },
                 createError = null,
                 createErrorRes = null,
                 createErrorArg = null,
@@ -308,16 +379,19 @@ class DoctorCertificatesViewModel @Inject constructor(
                 )
             }
 
+            val countryCode = state.doctorEligibility?.countryCode.orEmpty()
             val request = CreateCertificateRequest(
                 patientId = state.patientId,
                 certificateType = state.certificateType,
                 daysOfRest = state.daysOfRest,
+                restHours = state.restHours,
                 startDate = state.startDate,
                 endDate = if (state.daysOfRest > 0) state.endDate else null,
                 diagnosis = state.diagnosis.trim(),
-                hideDiagnosis = state.hideDiagnosis,
+                hideDiagnosis = state.hideDiagnosis || countryCode == "BR",
                 observations = state.observations.trim().ifEmpty { null },
-                countryCode = "AR",
+                countryCode = countryCode,
+                cid10Code = state.diagnosisCode?.trim()?.takeIf { it.isNotEmpty() },
             )
 
             certificateRepository.createCertificate(request)
@@ -364,7 +438,7 @@ class DoctorCertificatesViewModel @Inject constructor(
         if (days <= 0) return startDateStr
         return runCatching {
             val start = LocalDate.parse(startDateStr)
-            start.plusDays(days.toLong()).format(DateTimeFormatter.ISO_LOCAL_DATE)
+            start.plusDays(days.toLong() - 1).format(DateTimeFormatter.ISO_LOCAL_DATE)
         }.getOrDefault(startDateStr)
     }
 
@@ -375,7 +449,7 @@ class DoctorCertificatesViewModel @Inject constructor(
     ): List<MedicalCertificate> {
         return list.filter { cert ->
             val matchesFilter = when (statusFilter) {
-                "validos" -> cert.status == "signed"
+                "validos" -> cert.isActive
                 "cancelados" -> cert.status == "cancelled"
                 else -> true
             }

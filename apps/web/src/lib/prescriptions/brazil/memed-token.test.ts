@@ -20,7 +20,7 @@ vi.mock('@/lib/prescriptions/brazil/memed-identity.repository', () => ({
 import { POST } from '@/pages/api/doctors/prescriptions/memed-token';
 
 const doctor = { id: 'doctor', active: true, license_type: 'CRM', license_number: '9236',
-  uf_brazil: 'RS', cpf: '52998224725' };
+  uf_brazil: 'RS', cpf: '52998224725', memed_birth_date: '1994-10-09' };
 let rows: Record<string, unknown>;
 function context(body: unknown = {}, enabled = 'true', origin?: string): Parameters<typeof POST>[0] {
   return { request: new Request('https://www.autamedica.com/api/doctors/prescriptions/memed-token', {
@@ -35,7 +35,8 @@ beforeEach(() => {
   mocks.patient.mockResolvedValue({ idExterno: 'authorized-patient', cpf: '52998224725' });
   mocks.token.mockResolvedValue({ token: 'synthetic-token' });
   rows = { doctors: doctor, profiles: { first_name: 'Synthetic', last_name: 'Doctor' },
-    doctor_licenses: [{ license_number: '9236', uf_brazil: 'RS' }] };
+    platform_operational_domains: { clinical_status: 'ready' },
+    doctor_licenses: [{ license_number: '9236', uf_brazil: 'RS', cfm_evidence_path: 'ci/doctor/evidence.pdf', cfm_review_notes: 'Synthetic CI review evidence', cfm_reviewed_by: '00000000-0000-4000-8000-000000000001', cfm_reviewed_at: '2026-11-12T00:00:00Z', cfm_last_checked_at: '2026-11-12T00:00:00Z' }] };
   mocks.admin.mockReturnValue({ from: (table: string) => {
     const chain = { select: vi.fn(), eq: vi.fn(), limit: vi.fn(),
       maybeSingle: vi.fn(async () => ({ data: rows[table], error: null })) };
@@ -55,6 +56,19 @@ describe('Memed token boundary', () => {
     expect((await POST(context({}, 'false'))).status).toBe(403);
     expect(mocks.token).not.toHaveBeenCalled();
   });
+  it.each(['ready', 'pending_issuance', null])('allows Memed initialization when Brazil clinical status is %s', async (clinical_status) => {
+    rows.platform_operational_domains = { clinical_status };
+    const response = await POST(context({ patientId: 'patient' }));
+    expect(response.status).toBe(200);
+    expect(mocks.token).toHaveBeenCalledTimes(1);
+  });
+  it.each(['disabled', 'suspended'])('blocks Memed initialization when Brazil clinical status is %s', async (clinical_status) => {
+    rows.platform_operational_domains = { clinical_status };
+    const response = await POST(context());
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ error: { message: 'brazil_clinical_issuance_disabled' } });
+    expect(mocks.token).not.toHaveBeenCalled();
+  });
   it('rejects cross-origin mutations', async () => {
     expect((await POST(context({}, 'true', 'https://other.example'))).status).toBe(403);
   });
@@ -64,7 +78,7 @@ describe('Memed token boundary', () => {
   });
   it.each([{ cpf: '' }, { cpf: '00000000000' }, { license_number: '' }, { uf_brazil: 'XX' }])('rejects incomplete physician identity %j', async (change) => {
     rows.doctors = { ...doctor, ...change };
-    rows.doctor_licenses = [{ license_number: change.license_number ?? '9236', uf_brazil: change.uf_brazil ?? 'RS' }];
+    rows.doctor_licenses = [{ license_number: change.license_number ?? '9236', uf_brazil: change.uf_brazil ?? 'RS', cfm_evidence_path: 'ci/doctor/evidence.pdf', cfm_review_notes: 'Synthetic CI review evidence', cfm_reviewed_by: '00000000-0000-4000-8000-000000000001', cfm_reviewed_at: '2026-11-12T00:00:00Z', cfm_last_checked_at: '2026-11-12T00:00:00Z' }];
     expect((await POST(context())).status).toBe(400);
     expect(mocks.token).not.toHaveBeenCalled();
   });
@@ -87,6 +101,29 @@ describe('Memed token boundary', () => {
     mocks.patient.mockRejectedValue(new Error('memed_patient_identity_incomplete'));
     expect((await POST(context())).status).toBe(400);
     expect(mocks.token).not.toHaveBeenCalled();
+  });
+  it('uses the persisted Memed birth date and does not require re-entry', async () => {
+    const response = await POST(context({ patientId: 'patient' }));
+    expect(response.status).toBe(200);
+    expect(mocks.token).toHaveBeenCalledWith(expect.objectContaining({
+      externalId: 'doctor', dataNascimento: '09/10/1994',
+    }));
+  });
+  it('does not allow a submitted date to override the persisted doctor identity', async () => {
+    const response = await POST(context({ birthDate: '1990-01-01' }));
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({
+      error: { message: 'memed_doctor_birth_date_mismatch' },
+    });
+    expect(mocks.token).not.toHaveBeenCalled();
+  });
+  it('preserves the legacy manual date flow when no date is persisted', async () => {
+    rows.doctors = { ...doctor, memed_birth_date: null };
+    const response = await POST(context({ birthDate: '1985-05-04' }));
+    expect(response.status).toBe(200);
+    expect(mocks.token).toHaveBeenCalledWith(expect.objectContaining({
+      dataNascimento: '04/05/1985',
+    }));
   });
   it('returns backend patient identity with no-store token response', async () => {
     const response = await POST(context({ patientId: 'patient' }));

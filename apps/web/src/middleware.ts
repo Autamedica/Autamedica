@@ -12,6 +12,7 @@ import { defineMiddleware } from "astro:middleware";
 import { detectLocale, LOCALE_COOKIE } from "./i18n/index";
 import { isProduction, validateRedirectUrl } from "./lib/auth-utils";
 import { initServerSentry } from "./lib/observability/sentry";
+import { getPasswordRecoveryRedirectUrl } from "./lib/auth/password-recovery";
 import { checkRateLimit } from "./lib/rate-limit";
 import { primeRuntimeEnv, resolvePublicSupabaseEnv } from "./lib/runtime-env";
 import {
@@ -52,9 +53,11 @@ const PUBLIC_ROUTES = [
   "/auth/forgot-password",
   "/auth/reset-password",
   "/api/health",
+  "/api/verify", // Public QR/document verification endpoints for recipients without an account.
   "/verify",
   "/doctors/pricing",
   "/reserva-saude",
+  "/j", // QR codes de socios: públicos, sin autenticación.
   "/planos",
   "/api/reserva-saude",
   "/call/join",
@@ -425,7 +428,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   // ── BOT DETECTION ──────────────────────────────────────────────────────────
   const userAgent = context.request.headers.get("user-agent");
-  if (isBlockedBot(userAgent)) {
+  // The Argentina Mercado Pago broker is a server-to-server endpoint.
+  // Its handler authenticates every request with a timestamped HMAC signature,
+  // so it must not be rejected by browser-oriented User-Agent bot detection.
+  // Keep IP abuse tracking and API rate limiting active for this route.
+  const isSignedArgentinaBrokerRequest =
+    pathname === "/api/ops/mercadopago/argentina-broker" &&
+    context.request.method === "POST";
+  if (!isSignedArgentinaBrokerRequest && isBlockedBot(userAgent)) {
     const response = new Response("Forbidden", { status: 403 });
     applySecurityHeaders(response);
     return response;
@@ -624,6 +634,16 @@ export const onRequest = defineMiddleware(async (context, next) => {
       redirected.search = requestUrl.search;
       return context.redirect(redirected.toString(), 301);
     }
+  }
+
+  // Supabase may fall back to Site URL (/) for a recovery callback.
+  // Route token_hash + type=recovery to the reset form without redeeming it.
+  const passwordRecoveryRedirect = getPasswordRecoveryRedirectUrl(requestUrl);
+  if (passwordRecoveryRedirect && pathname !== "/auth/reset-password") {
+    const response = context.redirect(passwordRecoveryRedirect, 302);
+    response.headers.set("Cache-Control", "private, no-store, max-age=0");
+    response.headers.set("Referrer-Policy", "no-referrer");
+    return response;
   }
 
   // Intercept OAuth redirects that land outside /auth/callback

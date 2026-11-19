@@ -7,7 +7,7 @@ import {
   Heart, Shield, Users,
   Check, AlertCircle, ArrowRight,
   LogOut, Settings, User,
-  Wallet, Plus, Loader2, CreditCard, Gift, Coins, Sparkles, X, Stethoscope,
+  Wallet, Plus, Loader2, CreditCard, Gift, Coins, Sparkles, X, Stethoscope, Zap, MapPin,
 } from 'lucide-react'
 import { PixCheckoutModal } from '@/components/payments/PixCheckoutModal'
 import { fetchApi } from '@/lib/api-client'
@@ -103,11 +103,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const { scrollY } = useScroll()
 
-  const heroImageY = useTransform(scrollY, [0, 600], [0, 200])
-  const heroOpacity = useTransform(scrollY, [0, 300], [1, 0])
-  const heroScale = useTransform(scrollY, [0, 300], [1, 1.1])
   const headerOpacity = useTransform(scrollY, [0, 100], [0, 1])
-  const contentY = useTransform(scrollY, [0, 300], [0, -50])
 
   useEffect(() => { setHasHydrated(true) }, [])
 
@@ -178,6 +174,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   }
 
   const firstName = getFirstName(profile, user)
+  const greeting = hasHydrated ? getGreeting(dict) : (dict.patientPortal.greetings.hello ?? 'Hola')
   const freeConsults = patient?.freeConsultationsRemaining ?? 0
   const getWalletFabText = () => {
     if (freeConsults > 0) {
@@ -241,7 +238,6 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   ], [profile, patient, anamnesisCompleted])
 
   const incompleteItems = checklistItems.filter(i => !i.completed)
-  const greeting = hasHydrated ? getGreeting(dict) : (dict.patientPortal.greetings.hello ?? 'Hola')
 
   const services = useMemo(() => [
     {
@@ -369,7 +365,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   }, [doctors, locale])
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-white">
+    <div ref={containerRef} className="min-h-screen bg-slate-50">
       {/* Fixed Minimal Header - Appears on scroll */}
       <motion.header
         className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-b border-neutral-100"
@@ -377,7 +373,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
       >
         <div className="max-w-7xl mx-auto px-6 lg:px-12 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="size-9 rounded-full bg-sky-500 flex items-center justify-center text-white text-sm font-medium">
+            <div className="size-9 rounded-full bg-[#10B981] flex items-center justify-center text-white text-sm font-medium">
               {firstName.charAt(0).toUpperCase()}
             </div>
             <div className="flex items-center gap-2">
@@ -387,7 +383,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   reserveData.subscription_tier === 'cuidado'
                     ? reserveData.subscription_status === 'past_due'
                       ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                      : 'bg-cyan-50 text-cyan-700 border border-cyan-200'
+                      : 'bg-emerald-50 text-emerald-700 border border-cyan-200'
                     : 'bg-neutral-100 text-neutral-600'
                 }`}>
                   {reserveData.subscription_tier === 'cuidado' ? (
@@ -494,7 +490,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             <button type="button" className="relative p-2 hover:bg-neutral-50 rounded-lg transition-colors">
               <Bell className="size-5 text-neutral-600" />
               {hasUpcomingAppointment && (
-                <span className="absolute top-1.5 right-1.5 size-1.5 bg-sky-500 rounded-full" />
+                <span className="absolute top-1.5 right-1.5 size-1.5 bg-[#10B981] rounded-full" />
               )}
             </button>
 
@@ -536,159 +532,96 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
         </div>
       </motion.header>
 
-      {/* Hero - Full Canvas Visual Anchor */}
-      <motion.section
-        className="relative h-[85vh] overflow-hidden"
-        style={{ opacity: heroOpacity }}
+      {/* Immediate-care hero: primary patient action, visible without scrolling */}
+      <section
+        aria-labelledby="patient-home-immediate-title"
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 pt-4 sm:pt-5 md:pt-8"
       >
-        <motion.div
-          className="absolute inset-0"
-          style={{ y: heroImageY, scale: heroScale }}
+        <div
+          className="relative isolate overflow-hidden rounded-[2rem] border bg-white shadow-sm"
+          style={{ borderColor: 'color-mix(in srgb, var(--portal-patients) 22%, transparent)' }}
         >
-          <img
-            src="https://images.unsplash.com/photo-1758274526671-ad18176acb01?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1920"
-            alt=""
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-br from-neutral-900/60 via-neutral-900/40 to-transparent" />
-        </motion.div>
-
-        <div className="relative h-full max-w-7xl mx-auto px-6 lg:px-12 flex flex-col justify-end pb-20">
-          <motion.div
-            className="max-w-2xl"
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.8 }}
-          >
-            {/* Dedicated Subscription Status Badge */}
-            {reserveData && (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="mb-4"
-              >
-                {reserveData.subscription_tier === 'cuidado' ? (
-                  reserveData.subscription_status === 'past_due' ? (
-                    <a
-                      href="/patients/reserva-saude"
-                      className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-200 text-xs font-semibold hover:bg-amber-500/30 transition-all backdrop-blur-md"
-                    >
-                      <AlertCircle className="size-3.5 text-amber-400" />
-                      <span>{dict.patientPortal.subscription.planCuidadoPastDue}</span>
-                      <ArrowRight className="size-3 text-amber-300" />
-                    </a>
-                  ) : (
-                    <a
-                      href="/patients/reserva-saude"
-                      className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/20 border border-cyan-400/30 text-cyan-200 text-xs font-semibold hover:bg-cyan-500/30 transition-all backdrop-blur-md"
-                    >
-                      <Sparkles className="size-3.5 text-cyan-400" />
-                      <span>{dict.patientPortal.subscription.planCuidadoActive}</span>
-                      {reserveData.benefit_balance > 0 && (
-                        <span className="bg-cyan-400/20 text-cyan-300 px-2 py-0.5 rounded-full text-[10px] font-mono">
-                          +{reserveData.benefit_balance} {dict.patientPortal.subscription.creditsLabel}
-                        </span>
-                      )}
-                      <ArrowRight className="size-3 text-cyan-300 opacity-60" />
-                    </a>
-                  )
-                ) : (
-                  <a
-                    href="/patients/reserva-saude"
-                    className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 text-white/90 text-xs font-medium hover:bg-white/15 transition-all backdrop-blur-md"
-                  >
-                    <Coins className="size-3.5 text-neutral-300" />
-                    <span>{dict.patientPortal.subscription.planFree}</span>
-                    <span className="text-cyan-300 text-[11px] font-semibold flex items-center gap-1">
-                      {dict.patientPortal.subscription.activatePlan} <ArrowRight className="size-3" />
-                    </span>
-                  </a>
-                )}
-              </motion.div>
-            )}
-
-            <motion.p
-              className="text-white/70 text-sm mb-3 tracking-wide uppercase"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-            >
-              {greeting}
-            </motion.p>
-
-            <motion.h1
-              className="text-white text-5xl lg:text-7xl mb-6 leading-[1.1]"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.8 }}
-            >
-              {firstName},<br />{dict.patientPortal.metrics.healthInControl}
-            </motion.h1>
-
-            <motion.p
-              className="text-white/80 text-lg lg:text-xl mb-10 max-w-lg"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
-            >
-              {dict.patientPortal.metrics.allReady}
-            </motion.p>
-
-            <div className="flex flex-wrap items-center gap-4">
-              <motion.a
-                href="/patients/appointments?type=telemedicine"
-                className="group inline-flex items-center gap-3 px-8 py-4 bg-white text-neutral-900 rounded-full text-base font-medium hover:bg-neutral-50 transition-all shadow-xl hover:shadow-2xl active:scale-[0.98]"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1 }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {dict.patientPortal.metrics.bookAppointment}
-                <ArrowRight className="size-5 group-hover:translate-x-1 transition-transform" />
-              </motion.a>
-
-              <motion.a
-                href="/farmacia/solicitar"
-                className="group inline-flex items-center gap-3 px-7 py-4 bg-emerald-500/20 backdrop-blur-md text-white border border-emerald-400/40 rounded-full text-base font-medium hover:bg-emerald-500/30 hover:border-emerald-400 transition-all shadow-lg active:scale-[0.98]"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.1 }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span>
-                </span>
-                <span>{locale === 'pt' ? 'Consulta Rápida na Farmácia' : 'Consulta Exprés en Farmacia'}</span>
-              </motion.a>
-            </div>
-          </motion.div>
-        </div>
-
-        <motion.div
-          className="absolute bottom-8 left-1/2 -translate-x-1/2"
-          animate={{ y: [0, 8, 0] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        >
-          <div className="w-6 h-10 border-2 border-white/30 rounded-full flex items-start justify-center p-2">
-            <motion.div
-              className="w-1 h-2 bg-white/70 rounded-full"
-              animate={{ y: [0, 12, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
+          <div className="relative h-20 overflow-hidden sm:h-32" aria-hidden="true">
+            <img
+              src="/images/hero_patient_bg.jpg"
+              alt=""
+              loading="eager"
+              decoding="async"
+              className="h-full w-full object-cover object-[center_35%]"
             />
+            <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/20 to-white/50" />
           </div>
-        </motion.div>
-      </motion.section>
+          <div className="relative flex flex-col gap-3 sm:gap-5 p-4 sm:p-6 lg:p-10">
+            <div className="max-w-3xl space-y-2">
+              <p className="text-xs font-bold uppercase tracking-[0.18em]" style={{ color: 'var(--portal-patients-action)' }}>
+                {greeting}
+              </p>
+              <h2 className="text-2xl font-bold leading-tight tracking-tight sm:text-3xl" style={{ color: 'var(--au-text-primary)' }}>
+                {firstName}, {dict.patientPortal.metrics.healthInControl}
+              </h2>
+              <p className="text-sm leading-6 sm:text-base" style={{ color: 'var(--au-text-secondary)' }}>
+                {dict.patientPortal.metrics.allReady}
+              </p>
+            </div>
+
+            <span className="inline-flex w-fit items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-bold tracking-wide" style={{ borderColor: 'color-mix(in srgb, var(--portal-patients) 24%, transparent)', backgroundColor: 'color-mix(in srgb, var(--portal-patients) 10%, white)', color: 'var(--portal-patients-action)' }}>
+              <Zap aria-hidden="true" className="size-3.5" />
+              {dict.patientPortal.immediateCare.tag}
+            </span>
+
+            <div className="max-w-3xl space-y-3">
+              <h1 id="patient-home-immediate-title" className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-5xl" style={{ color: "var(--au-text-primary)" }}>
+                {dict.patientPortal.immediateCare.title}
+              </h1>
+              <p className="max-w-2xl text-sm leading-6 sm:text-base sm:leading-7" style={{ color: "var(--au-text-secondary)" }}>
+                {dict.patientPortal.immediateCare.subtitle}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2" aria-label={dict.patientPortal.immediateCare.title}>
+              <span className="inline-flex items-center gap-2 rounded-full border bg-white/90 px-3 py-2 text-xs font-semibold shadow-sm sm:text-sm" style={{ borderColor: 'color-mix(in srgb, var(--portal-patients) 18%, transparent)', color: 'var(--portal-patients-action)' }}>
+                <Stethoscope aria-hidden="true" className="size-4" style={{ color: "var(--portal-patients-action)" }} />
+                {dict.patientPortal.immediateCare.chips.consultation}
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full border bg-white/90 px-3 py-2 text-xs font-semibold shadow-sm sm:text-sm" style={{ borderColor: 'color-mix(in srgb, var(--portal-patients) 18%, transparent)', color: 'var(--portal-patients-action)' }}>
+                <FileText aria-hidden="true" className="size-4" style={{ color: "var(--portal-patients-action)" }} />
+                {dict.patientPortal.immediateCare.chips.documents}
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full border bg-white/90 px-3 py-2 text-xs font-semibold shadow-sm sm:text-sm" style={{ borderColor: 'color-mix(in srgb, var(--portal-patients) 18%, transparent)', color: 'var(--portal-patients-action)' }}>
+                <MapPin aria-hidden="true" className="size-4" style={{ color: "var(--portal-patients-action)" }} />
+                {dict.patientPortal.immediateCare.chips.pharmacy}
+              </span>
+            </div>
+
+            <div className="flex w-full flex-col gap-2.5">
+              <a
+                href="/farmacia/solicitar"
+                className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl px-6 py-4 text-base font-bold text-white shadow-md transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300 active:scale-[0.99]"
+                style={{ backgroundColor: '#10B981' }}
+              >
+                {dict.patientPortal.immediateCare.cta}
+                <ArrowRight aria-hidden="true" className="size-5" />
+              </a>
+              <p className="text-center text-xs font-medium text-neutral-500 sm:text-sm">
+                {dict.patientPortal.immediateCare.hint}
+              </p>
+              <a
+                href="/patients/appointments"
+                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border bg-white px-5 py-3 text-sm font-semibold transition-colors hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-100" style={{ borderColor: '#10B981', color: '#0D9488' }}
+              >
+                <Calendar aria-hidden="true" className="size-4" />
+                {dict.patientPortal.immediateCare.scheduledCta}
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Main Content */}
       <motion.main
-        className="relative bg-white"
-        style={{ y: contentY }}
+        className="relative bg-slate-50"
       >
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-8 space-y-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-5 sm:py-8 space-y-8 sm:space-y-12">
 
           {/* ── CAROUSEL MÉDICOS DISPONIBLES (COMPACT ~13%) ── */}
           <AvailableDoctorsCarousel
@@ -706,7 +639,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, height: 0, marginBottom: 0, overflow: 'hidden' }}
                 transition={{ duration: 0.4 }}
-                className="relative overflow-hidden rounded-3xl bg-neutral-950 text-white p-6 md:p-8 shadow-2xl border border-neutral-800"
+                className="relative overflow-hidden rounded-3xl bg-[#0F2537] text-white p-5 sm:p-6 md:p-8 shadow-2xl border border-slate-700"
               >
                 {/* Botón de cerrar badge */}
                 <button
@@ -855,7 +788,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             <div>
               <motion.div
                 className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium mb-6 ${
-                  !anamnesisCompleted ? 'bg-sky-50 text-sky-700' : 'bg-cyan-50 text-cyan-700'
+                  !anamnesisCompleted ? 'bg-emerald-50 text-emerald-700' : 'bg-emerald-50 text-emerald-700'
                 }`}
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -895,7 +828,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
 
               <motion.a
                 href={!anamnesisCompleted ? '/patients/anamnesis' : '/patients/appointments?type=telemedicine'}
-                className="group inline-flex items-center gap-2 px-7 py-4 bg-neutral-900 text-white rounded-full hover:bg-neutral-800 transition-colors"
+                className="group inline-flex min-h-12 items-center gap-2 px-7 py-4 bg-[#10B981] text-white rounded-full hover:bg-[#0D9488] transition-colors"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -922,7 +855,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 </div>
                 <div className="h-1 bg-neutral-100 rounded-full overflow-hidden">
                   <motion.div
-                    className="h-full bg-sky-500 rounded-full"
+                    className="h-full bg-[#10B981] rounded-full"
                     initial={{ width: 0 }}
                     whileInView={{ width: `${anamnesisProgress}%` }}
                     viewport={{ once: true }}
@@ -964,7 +897,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 </div>
                 <div className="h-1 bg-neutral-100 rounded-full overflow-hidden">
                   <motion.div
-                    className="h-full bg-sky-500 rounded-full"
+                    className="h-full bg-[#10B981] rounded-full"
                     initial={{ width: 0 }}
                     whileInView={{ width: `${Math.min((freeConsults / 5) * 100, 100)}%` }}
                     viewport={{ once: true }}
@@ -984,7 +917,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               viewport={{ once: true, margin: "-100px" }}
             >
               <motion.div
-                className="inline-flex items-center gap-2 px-3 py-1.5 bg-neutral-900 text-white rounded-full text-xs font-medium mb-8"
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#0F2537] text-white rounded-full text-xs font-medium mb-8"
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
@@ -1035,7 +968,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                         type="button"
                         onClick={() => { clearJoinError(); void joinAppointment(upcomingTelemedicine.id) }}
                         disabled={joiningAppointmentId === upcomingTelemedicine.id}
-                        className="group inline-flex items-center gap-2 px-7 py-4 bg-neutral-900 text-white rounded-full hover:bg-neutral-800 transition-colors disabled:opacity-70"
+                        className="group inline-flex min-h-12 items-center gap-2 px-7 py-4 bg-[#10B981] text-white rounded-full hover:bg-[#0D9488] transition-colors disabled:opacity-70"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >
@@ -1057,7 +990,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   viewport={{ once: true }}
                   transition={{ delay: 0.4 }}
                 >
-                  <div className="size-32 rounded-full bg-sky-100 flex items-center justify-center">
+                  <div className="size-32 rounded-full bg-emerald-100 flex items-center justify-center">
                     <Calendar className="size-16 text-sky-600" />
                   </div>
                 </motion.div>

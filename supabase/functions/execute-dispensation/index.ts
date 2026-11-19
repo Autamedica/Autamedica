@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
-import { captureEdgeException, initEdgeSentry } from '../_shared/sentry.ts';
+import {captureEdgeException, initEdgeSentry, withEdgeSentry } from '../_shared/sentry.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? (() => { throw new Error('SUPABASE_URL is not set') })();
 const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? (() => { throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set') })();
@@ -19,7 +19,7 @@ interface ExecuteDispensationRequest {
 
 initEdgeSentry('execute-dispensation');
 
-Deno.serve(async (req) => {
+Deno.serve(withEdgeSentry('execute-dispensation', async (req) => {
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
       });
 
     if (eventError) {
-      captureEdgeException(eventError, {
+      await captureEdgeException(eventError, {
         layer: 'data-platform',
         surface: 'execute-dispensation:event-insert',
         owner: 'Pharmacy Platform',
@@ -227,7 +227,7 @@ Deno.serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    captureEdgeException(error, {
+    await captureEdgeException(error, {
       layer: 'data-platform',
       surface: 'execute-dispensation:unexpected',
       owner: 'Pharmacy Platform',
@@ -238,4 +238,4 @@ Deno.serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
     });
   }
-});
+}));

@@ -12,6 +12,7 @@ enabled = true
 site_url = "https://www.autamedica.com"
 additional_redirect_urls = [
   "https://www.autamedica.com/**",
+  "https://autamedica.com/**",
   "https://autamedica-web.pages.dev/**",
   "http://localhost:3000/**"
 ]
@@ -21,7 +22,7 @@ refresh_token_reuse_interval = 10
 enable_signup = true
 enable_manual_linking = false
 enable_anonymous_sign_ins = false
-minimum_password_length = 6
+minimum_password_length = 12
 
 [auth.email]
 enable_confirmations = true
@@ -43,4 +44,19 @@ ip_version = "IPv4"
 
 [functions]
 
+# Android Memed preflight; JWT is mandatory and the pilot remains independently gated.
+[functions.memed-mobile-preflight]
+verify_jwt = true
+
+# The handler verifies Supabase JWTs and a scoped HMAC guest token itself.
+[functions.cloudflare-calls]
+verify_jwt = false
+
+[functions.patient-identity-renaper]
+verify_jwt = true
+
 [analytics]
+
+# Mercado Pago authenticates this callback with its regional HMAC signature.
+[functions.mobile-payments-webhook]
+verify_jwt = false

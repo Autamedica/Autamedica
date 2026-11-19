@@ -6992,7 +6992,11 @@ export type Database = {
       }
       doctor_licenses: {
         Row: {
+          cfm_evidence_path: string | null
           cfm_last_checked_at: string | null
+          cfm_review_notes: string | null
+          cfm_reviewed_at: string | null
+          cfm_reviewed_by: string | null
           cfm_validation_status: string | null
           created_at: string
           doctor_id: string
@@ -7010,7 +7014,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cfm_evidence_path?: string | null
           cfm_last_checked_at?: string | null
+          cfm_review_notes?: string | null
+          cfm_reviewed_at?: string | null
+          cfm_reviewed_by?: string | null
           cfm_validation_status?: string | null
           created_at?: string
           doctor_id: string
@@ -7028,7 +7036,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cfm_evidence_path?: string | null
           cfm_last_checked_at?: string | null
+          cfm_review_notes?: string | null
+          cfm_reviewed_at?: string | null
+          cfm_reviewed_by?: string | null
           cfm_validation_status?: string | null
           created_at?: string
           doctor_id?: string
@@ -7590,6 +7602,21 @@ export type Database = {
           id: string
           languages: Json | null
           license_number: string
+          dni: string | null
+          gender: string | null
+          cuil: string | null
+          identity_status: string
+          official_full_name: string | null
+          official_first_name: string | null
+          official_last_name: string | null
+          official_cuil: string | null
+          official_birth_date: string | null
+          official_gender: string | null
+          puco_coverage_name: string | null
+          puco_coverage_code: string | null
+          identity_verified_at: string | null
+          identity_source: string | null
+          memed_birth_date: string | null
           license_type: string | null
           on_duty_pharmacy: boolean
           on_duty_since: string | null
@@ -7634,6 +7661,21 @@ export type Database = {
           id?: string
           languages?: Json | null
           license_number: string
+          dni?: string | null
+          gender?: string | null
+          cuil?: string | null
+          identity_status?: string
+          official_full_name?: string | null
+          official_first_name?: string | null
+          official_last_name?: string | null
+          official_cuil?: string | null
+          official_birth_date?: string | null
+          official_gender?: string | null
+          puco_coverage_name?: string | null
+          puco_coverage_code?: string | null
+          identity_verified_at?: string | null
+          identity_source?: string | null
+          memed_birth_date?: string | null
           license_type?: string | null
           on_duty_pharmacy?: boolean
           on_duty_since?: string | null
@@ -7678,6 +7720,21 @@ export type Database = {
           id?: string
           languages?: Json | null
           license_number?: string
+          dni?: string | null
+          gender?: string | null
+          cuil?: string | null
+          identity_status?: string
+          official_full_name?: string | null
+          official_first_name?: string | null
+          official_last_name?: string | null
+          official_cuil?: string | null
+          official_birth_date?: string | null
+          official_gender?: string | null
+          puco_coverage_name?: string | null
+          puco_coverage_code?: string | null
+          identity_verified_at?: string | null
+          identity_source?: string | null
+          memed_birth_date?: string | null
           license_type?: string | null
           on_duty_pharmacy?: boolean
           on_duty_since?: string | null
@@ -9952,6 +10009,18 @@ export type Database = {
           created_at: string | null
           cuil: string | null
           dni: string | null
+          identity_status: string
+          official_full_name: string | null
+          official_first_name: string | null
+          official_last_name: string | null
+          official_cuil: string | null
+          official_birth_date: string | null
+          official_gender: string | null
+          puco_coverage_name: string | null
+          puco_coverage_code: string | null
+          identity_verified_at: string | null
+          identity_source: string | null
+          identity_lookup_count: number
           emergency_contact: Json | null
           free_consultations_remaining: number
           gender: string | null
@@ -9982,6 +10051,18 @@ export type Database = {
           created_at?: string | null
           cuil?: string | null
           dni?: string | null
+          identity_status?: string
+          official_full_name?: string | null
+          official_first_name?: string | null
+          official_last_name?: string | null
+          official_cuil?: string | null
+          official_birth_date?: string | null
+          official_gender?: string | null
+          puco_coverage_name?: string | null
+          puco_coverage_code?: string | null
+          identity_verified_at?: string | null
+          identity_source?: string | null
+          identity_lookup_count?: number
           emergency_contact?: Json | null
           free_consultations_remaining?: number
           gender?: string | null
@@ -10012,6 +10093,18 @@ export type Database = {
           created_at?: string | null
           cuil?: string | null
           dni?: string | null
+          identity_status?: string
+          official_full_name?: string | null
+          official_first_name?: string | null
+          official_last_name?: string | null
+          official_cuil?: string | null
+          official_birth_date?: string | null
+          official_gender?: string | null
+          puco_coverage_name?: string | null
+          puco_coverage_code?: string | null
+          identity_verified_at?: string | null
+          identity_source?: string | null
+          identity_lookup_count?: number
           emergency_contact?: Json | null
           free_consultations_remaining?: number
           gender?: string | null
@@ -10429,12 +10522,28 @@ export type Database = {
           patient_cf_session_id: string | null
           patient_cpf: string | null
           patient_dni: string | null
+          patient_gender_code: string | null
+          identity_status: string
+          official_full_name: string | null
+          official_first_name: string | null
+          official_last_name: string | null
+          official_cuil: string | null
+          official_birth_date: string | null
+          official_gender: string | null
+          puco_coverage_name: string | null
+          puco_coverage_code: string | null
+          identity_verified_at: string | null
+          identity_source: string | null
+          identity_lookup_count: number
           patient_id: string | null
           patient_name: string | null
           patient_phone: string
           pharmacy_id: string | null
           previous_doctor_id: string | null
           requested_by_user_id: string | null
+          payment_started_at: string | null
+          search_started_at: string | null
+          dispatch_activation_result: Json | null
           search_timeout_at: string
           status: Database["public"]["Enums"]["dispatch_request_status"]
           symptom_summary: string | null
@@ -10453,12 +10562,28 @@ export type Database = {
           patient_cf_session_id?: string | null
           patient_cpf?: string | null
           patient_dni?: string | null
+          patient_gender_code?: string | null
+          identity_status?: string
+          official_full_name?: string | null
+          official_first_name?: string | null
+          official_last_name?: string | null
+          official_cuil?: string | null
+          official_birth_date?: string | null
+          official_gender?: string | null
+          puco_coverage_name?: string | null
+          puco_coverage_code?: string | null
+          identity_verified_at?: string | null
+          identity_source?: string | null
+          identity_lookup_count?: number
           patient_id?: string | null
           patient_name?: string | null
           patient_phone: string
           pharmacy_id?: string | null
           previous_doctor_id?: string | null
           requested_by_user_id?: string | null
+          payment_started_at?: string | null
+          search_started_at?: string | null
+          dispatch_activation_result?: Json | null
           search_timeout_at?: string
           status?: Database["public"]["Enums"]["dispatch_request_status"]
           symptom_summary?: string | null
@@ -10477,12 +10602,28 @@ export type Database = {
           patient_cf_session_id?: string | null
           patient_cpf?: string | null
           patient_dni?: string | null
+          patient_gender_code?: string | null
+          identity_status?: string
+          official_full_name?: string | null
+          official_first_name?: string | null
+          official_last_name?: string | null
+          official_cuil?: string | null
+          official_birth_date?: string | null
+          official_gender?: string | null
+          puco_coverage_name?: string | null
+          puco_coverage_code?: string | null
+          identity_verified_at?: string | null
+          identity_source?: string | null
+          identity_lookup_count?: number
           patient_id?: string | null
           patient_name?: string | null
           patient_phone?: string
           pharmacy_id?: string | null
           previous_doctor_id?: string | null
           requested_by_user_id?: string | null
+          payment_started_at?: string | null
+          search_started_at?: string | null
+          dispatch_activation_result?: Json | null
           search_timeout_at?: string
           status?: Database["public"]["Enums"]["dispatch_request_status"]
           symptom_summary?: string | null
@@ -13798,6 +13939,7 @@ export type Database = {
         | "ended"
       clinical_setting: "uti" | "guardia" | "ward" | "outpatient"
       dispatch_request_status:
+        | "pending_payment"
         | "searching"
         | "matched"
         | "in_call"

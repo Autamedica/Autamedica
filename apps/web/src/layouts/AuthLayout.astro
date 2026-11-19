@@ -7,6 +7,7 @@ import SeoMeta from '../components/seo/SeoMeta.astro';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { getI18n } from '../i18n/index';
 import { resolvePublicClientEnv } from '../lib/runtime-env';
+import { getSafeAuthNavigationSearch } from '../lib/auth/safe-auth-navigation';
 
 interface Props {
   title: string;
@@ -26,7 +27,7 @@ const testimonials = dict.landing.authLayout.testimonials;
 
 const fullTitle = title.includes('AutaMedica') ? title : `${title} | AutaMedica`;
 const currentPath = Astro.url.pathname;
-const currentSearch = Astro.url.search;
+const currentSearch = getSafeAuthNavigationSearch(Astro.url.searchParams);
 const role = Astro.url.searchParams.get('role') || 'patient';
 
 const themeClass = `theme-${role}`;
@@ -47,6 +48,7 @@ const { publicSupabaseUrl, publicSupabaseAnonKey, publicSentryDsn } = resolvePub
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
     <meta name="theme-color" content="#ffffff" />
     <meta name="format-detection" content="telephone=no" />
+    <meta name="referrer" content="no-referrer" />
     <SeoMeta
       title={fullTitle}
       description={description}

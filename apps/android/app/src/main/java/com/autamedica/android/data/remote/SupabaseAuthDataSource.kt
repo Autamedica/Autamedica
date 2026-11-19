@@ -1,6 +1,7 @@
 package com.autamedica.android.data.remote
 
 import io.github.jan.supabase.SupabaseClient
+import android.webkit.CookieManager
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.Google
@@ -11,6 +12,8 @@ import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -132,6 +135,10 @@ class SupabaseAuthDataSource @Inject constructor(
 
     suspend fun signOut() {
         auth.signOut()
+        withContext(Dispatchers.Main.immediate) {
+            CookieManager.getInstance().removeAllCookies(null)
+            CookieManager.getInstance().flush()
+        }
     }
 
     suspend fun getCurrentUser(): AuthUser? {

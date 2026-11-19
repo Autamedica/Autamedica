@@ -15,10 +15,12 @@ import androidx.compose.material3.Text
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.DoctorStats
 import com.autamedica.android.presentation.theme.PortalDoctors
 
@@ -37,7 +39,7 @@ fun NubankClinicalMetricsSection(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            text = "MÉTRICAS CLÍNICAS",
+            text = stringResource(R.string.ui_clinical_metrics_title),
             style = MaterialTheme.typography.labelSmall.copy(
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 1.sp,
@@ -51,9 +53,9 @@ fun NubankClinicalMetricsSection(
         ) {
             item {
                 ClinicalMetricCard(
-                    title = "Consultas atendidas hoy",
+                    title = stringResource(R.string.ui_clinical_completed_today),
                     value = if (statsAvailable) stats.completedToday.toString() else "—",
-                    subtext = "Citas con estado completado",
+                    subtext = stringResource(R.string.ui_clinical_completed_today_hint),
                 )
             }
             item {

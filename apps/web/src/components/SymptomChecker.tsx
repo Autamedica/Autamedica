@@ -92,9 +92,14 @@ export default function SymptomChecker({ locale = 'es' }: { locale?: Locale }) {
   const [selected, setSelected] = useState<string | null>(null);
 
   const selectedSymptom = symptoms.find((s) => s.id === selected);
+  const urgentSymptom = selected === 'chest' || selected === 'child';
 
   return (
     <div style={{ maxWidth: '720px', margin: '0 auto' }}>
+      <div style={{ textAlign: 'center', marginBottom: 'var(--space-5)' }}>
+        <h3 style={{ fontSize: 'var(--text-xl)', fontWeight: 600, margin: '0 0 var(--space-2)', color: 'var(--au-text-primary)' }}>{locale === 'pt' ? 'O que você precisa hoje?' : '¿Qué necesitás hoy?'}</h3>
+        <p style={{ margin: 0, color: 'var(--au-text-secondary)' }}>{locale === 'pt' ? 'Selecione um sintoma' : 'Seleccioná un síntoma'}</p>
+      </div>
       {/* Pills grid */}
       <div style={{
         display: 'flex',
@@ -141,6 +146,12 @@ export default function SymptomChecker({ locale = 'es' }: { locale?: Locale }) {
           textAlign: 'center',
           animation: 'fadeIn 300ms ease',
         }}>
+          {urgentSymptom && (
+            <div role="alert" style={{ padding: 'var(--space-4)', marginBottom: 'var(--space-5)', border: '1px solid #f59e0b', borderRadius: 'var(--radius-md)', background: '#fffbeb', color: '#78350f', textAlign: 'left' }}>
+              <strong>{locale === 'pt' ? 'Procure atendimento de urgência agora' : 'Buscá atención de urgencia ahora'}</strong>
+              <p style={{ margin: 'var(--space-2) 0 0', lineHeight: 1.6 }}>{locale === 'pt' ? 'Dor no peito ou febre em crianças podem exigir avaliação imediata. Vá a um pronto atendimento ou ligue para o serviço de emergência local. Não espere por uma consulta agendada.' : 'El dolor de pecho o la fiebre en niños pueden requerir evaluación inmediata. Acudí a una guardia o llamá al servicio de emergencias local. No esperes un turno programado.'}</p>
+            </div>
+          )}
           <p style={{
             fontSize: 'var(--text-xs)',
             fontWeight: 600,
@@ -149,7 +160,7 @@ export default function SymptomChecker({ locale = 'es' }: { locale?: Locale }) {
             textTransform: 'uppercase' as const,
             margin: '0 0 var(--space-3)',
           }}>
-            {locale === 'pt' ? 'Especialidade recomendada' : 'Especialidad recomendada'}
+            {locale === 'pt' ? 'Orientação de atendimento' : 'Orientación de atención'}
           </p>
           <h3 style={{
             fontSize: 'var(--text-2xl)',
@@ -172,7 +183,7 @@ export default function SymptomChecker({ locale = 'es' }: { locale?: Locale }) {
             {selectedSymptom.description}
           </p>
           <a
-            href="/auth/select-role"
+            href="/farmacia/solicitar"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -195,7 +206,7 @@ export default function SymptomChecker({ locale = 'es' }: { locale?: Locale }) {
               (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
             }}
           >
-            {locale === 'pt' ? `Agendar com ${selectedSymptom.specialty}` : `Agendar con ${selectedSymptom.specialty}`}
+            {locale === 'pt' ? `Buscar atendimento: ${selectedSymptom.specialty}` : `Consultar por ${selectedSymptom.specialty}`}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12h14M12 5l7 7-7 7" />
             </svg>

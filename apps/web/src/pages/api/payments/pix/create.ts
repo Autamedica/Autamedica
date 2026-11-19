@@ -4,6 +4,7 @@ import { badRequest, forbidden, internalError, jsonOk, unauthorized } from '@/li
 import { createAstroAdminClient } from '@/lib/supabase'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { getRuntimeEnvValue } from '@/lib/runtime-env'
+import { getOperationalPaymentSwitches } from '@/lib/payments/operational-switches'
 
 const MERCADOPAGO_API = 'https://api.mercadopago.com'
 
@@ -55,6 +56,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     const admin = createAstroAdminClient(locals.runtime?.env)
+    const switches = await getOperationalPaymentSwitches(admin).catch(() => null)
+    if (!switches?.global_pix_mp_payments_enabled) {
+      return new Response(JSON.stringify({ success: false, error: { message: 'global_pix_mp_payments_disabled' } }), { status: 503, headers: { 'Content-Type': 'application/json' } })
+    }
 
     // Obtener datos del perfil del paciente para el payer (user_id en tabla profiles)
     const { data: profile } = await admin

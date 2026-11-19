@@ -30,11 +30,11 @@ describe('proof-of-issuance clinical gate', () => {
     });
   });
 
-  it('never emits Brazilian internal PDF/CUIR instead of Memed', () => {
+  it('allows the independent Brazilian CFM path without Argentina approval', () => {
     expect(check({
       prescriptionCountry: 'BR', doctorCountry: 'BR', patientCountry: 'BR',
-      argentinaProductionApproved: true,
-    })).toEqual({ ok: false, code: 'br_requires_memed_provider' });
+      argentinaProductionApproved: false,
+    })).toEqual({ ok: true, country: 'BR' });
   });
 
   it('defaults Argentina to not approved until production homologation', () => {

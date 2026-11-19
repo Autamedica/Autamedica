@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { GET } from './[id]'
+import { DELETE, GET } from './[id]'
 import { signGuestToken } from '@/lib/calls/lib/guest-token'
 
 vi.mock('@autamedica/shared', () => {
@@ -8,15 +8,20 @@ vi.mock('@autamedica/shared', () => {
   return { logger: logMock }
 })
 
-const { supabaseMock } = vi.hoisted(() => ({
+const { supabaseMock, patientContextMock } = vi.hoisted(() => ({
   supabaseMock: { from: vi.fn(), rpc: vi.fn() } as {
     from: ReturnType<typeof vi.fn>
     rpc: ReturnType<typeof vi.fn>
   },
+  patientContextMock: { resolve: vi.fn() },
 }))
 
 vi.mock('@/lib/supabase', () => ({
   createAstroAdminClient: vi.fn(() => supabaseMock),
+}))
+
+vi.mock('@/lib/patients/api/patient-context', () => ({
+  resolvePatientContext: patientContextMock.resolve,
 }))
 
 const TEST_SECRET = 'test-guest-secret-super-secure-at-least-32-chars!'
@@ -30,6 +35,9 @@ const REQUEST_RECORD = {
   requested_by_user_id: 'patient-user-1',
   assigned_doctor_id: 'doc-row-1',
   status: 'searching',
+  search_started_at: '2026-11-17T00:00:00.000Z',
+  created_at: '2026-11-17T00:00:00.000Z',
+  patient_id: 'patient-row-1',
   cloudflare_room_id: 'cf-room-1',
   care_country: 'AR',
   patient_dni: '12345678',
@@ -57,9 +65,12 @@ type TableChain = {
   then: (resolve: (value: unknown) => void) => void
   select: ReturnType<typeof vi.fn>
   eq: ReturnType<typeof vi.fn>
+  in: ReturnType<typeof vi.fn>
   gt: ReturnType<typeof vi.fn>
+  is: ReturnType<typeof vi.fn>
   maybeSingle: ReturnType<typeof vi.fn>
   single: ReturnType<typeof vi.fn>
+  update: ReturnType<typeof vi.fn>
 }
 
 function buildTableChain(data: unknown, error: unknown = null): TableChain {
@@ -69,15 +80,21 @@ function buildTableChain(data: unknown, error: unknown = null): TableChain {
     },
     select: vi.fn(),
     eq: vi.fn(),
+    in: vi.fn(),
     gt: vi.fn(),
+    is: vi.fn(),
     maybeSingle: vi.fn(),
     single: vi.fn(),
+    update: vi.fn(),
   }
   chain.select.mockReturnValue(chain)
   chain.eq.mockReturnValue(chain)
+  chain.in.mockReturnValue(chain)
   chain.gt.mockReturnValue(chain)
+  chain.is.mockReturnValue(chain)
   chain.maybeSingle.mockReturnValue(chain)
   chain.single.mockReturnValue(chain)
+  chain.update.mockReturnValue(chain)
   return chain
 }
 
@@ -86,10 +103,11 @@ function makeContext(options?: {
   url?: string
   headers?: Record<string, string>
   session?: { user: { id: string } } | null
+  method?: string
 }): Parameters<typeof GET>[0] {
   const reqUrl = options?.url || 'http://localhost/api/pharmacy/dispatch/req-1'
   const request = new Request(reqUrl, {
-    method: 'GET',
+    method: options?.method || 'GET',
     headers: options?.headers || {},
   })
 
@@ -107,6 +125,123 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     supabaseMock.rpc.mockResolvedValue({ data: true, error: null })
+    patientContextMock.resolve.mockResolvedValue({
+      careCountry: 'AR',
+      patientId: 'patient-row-1',
+      userId: 'patient-user-1',
+    })
+  })
+
+  it('cancela solo la solicitud searching del paciente autenticado', async () => {
+    const lookup = buildTableChain(REQUEST_RECORD)
+    const activeOfferLookup = buildTableChain(null)
+    const update = buildTableChain({ id: 'req-1' })
+    let call = 0
+    supabaseMock.from.mockImplementation(() => [lookup, activeOfferLookup, update][call++])
+
+    const response = await DELETE(makeContext({ method: 'DELETE' }))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.data.cancelled).toBe(true)
+    expect(supabaseMock.from).toHaveBeenCalledTimes(3)
+    expect(update.update).toHaveBeenCalledWith({ status: 'cancelled' })
+    expect(update.eq).toHaveBeenCalledWith('id', 'req-1')
+    expect(update.eq).toHaveBeenCalledWith('patient_id', 'patient-row-1')
+    expect(update.eq).toHaveBeenCalledWith('requested_by_user_id', 'patient-user-1')
+    expect(update.eq).toHaveBeenCalledWith('care_country', 'AR')
+    expect(update.in).toHaveBeenCalledWith('status', ['searching', 'expired'])
+  })
+
+  it('bloquea la cancelación antes de completar los 15 minutos de búsqueda', async () => {
+    const recentRequest = {
+      ...REQUEST_RECORD,
+      search_started_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+    }
+    supabaseMock.from.mockReturnValue(buildTableChain(recentRequest))
+    const response = await DELETE(makeContext({ method: 'DELETE' }))
+    expect(response.status).toBe(409)
+    expect(supabaseMock.from).toHaveBeenCalledTimes(1)
+  })
+
+  it('denies a valid guest token for an authenticated patient request', async () => {
+    patientContextMock.resolve.mockResolvedValue(null)
+    supabaseMock.from.mockReturnValue(buildTableChain(REQUEST_RECORD))
+    const guestToken = await signGuestToken(
+      { callId: 'req-1', roomId: 'cf-room-1', guestName: 'Guest' },
+      TEST_SECRET,
+    )
+    const response = await DELETE(makeContext({
+      method: 'DELETE',
+      headers: { 'x-guest-token': guestToken },
+    }))
+    expect(response.status).toBe(401)
+    expect(supabaseMock.from).toHaveBeenCalledTimes(1)
+  })
+
+  it('denies cancellation while a physician offer is still active', async () => {
+    const requestLookup = buildTableChain({ ...REQUEST_RECORD, requested_by_user_id: null })
+    const offerLookup = buildTableChain({ id: 'offer-pending' })
+    let call = 0
+    supabaseMock.from.mockImplementation(() => [requestLookup, offerLookup][call++])
+    patientContextMock.resolve.mockResolvedValue(null)
+    const guestToken = await signGuestToken(
+      { callId: 'req-1', roomId: 'cf-room-1', guestName: 'Guest' },
+      TEST_SECRET,
+    )
+    const response = await DELETE(makeContext({
+      method: 'DELETE',
+      headers: { 'x-guest-token': guestToken },
+    }))
+    expect(response.status).toBe(409)
+    expect(supabaseMock.from).toHaveBeenCalledTimes(2)
+  })
+
+  it('no cancela sin sesión ni credencial de invitado válida', async () => {
+    patientContextMock.resolve.mockResolvedValue(null)
+    supabaseMock.from.mockReturnValue(buildTableChain(REQUEST_RECORD))
+    const response = await DELETE(makeContext({ method: 'DELETE' }))
+    expect(response.status).toBe(401)
+    expect(supabaseMock.from).toHaveBeenCalledTimes(1)
+  })
+
+  it('devuelve conflicto cuando la solicitud ya no está en searching', async () => {
+    const lookup = buildTableChain(REQUEST_RECORD)
+    const update = buildTableChain(null)
+    let call = 0
+    supabaseMock.from.mockImplementation(() => call++ === 0 ? lookup : update)
+    const matched = { ...REQUEST_RECORD, status: 'matched' }
+    supabaseMock.from.mockReturnValue(buildTableChain(matched))
+    const response = await DELETE(makeContext({ method: 'DELETE' }))
+    expect(response.status).toBe(409)
+  })
+
+  it('permite cancelar a un invitado sin sesión con credencial ligada a requestId y roomId', async () => {
+    patientContextMock.resolve.mockResolvedValue(null)
+    const guestRequest = { ...REQUEST_RECORD, patient_id: 'guest-patient-row', requested_by_user_id: null }
+    const lookup = buildTableChain(guestRequest)
+    const activeOfferLookup = buildTableChain(null)
+    const update = buildTableChain({ id: 'req-1' })
+    let call = 0
+    supabaseMock.from.mockImplementation(() => [lookup, activeOfferLookup, update][call++])
+    const guestToken = await signGuestToken({ callId: 'req-1', roomId: 'cf-room-1', guestName: 'Guest' }, TEST_SECRET)
+
+    const response = await DELETE(makeContext({
+      method: 'DELETE',
+      headers: { 'x-guest-token': guestToken },
+    }))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.data.cancelled).toBe(true)
+    expect(supabaseMock.from).toHaveBeenCalledTimes(3)
+    expect(update.update).toHaveBeenCalledWith({ status: 'cancelled' })
+    expect(update.eq).toHaveBeenCalledWith('id', 'req-1')
+    expect(update.is).toHaveBeenCalledWith('requested_by_user_id', null)
+    expect(update.eq).toHaveBeenCalledWith('care_country', 'AR')
+    expect(update.in).toHaveBeenCalledWith('status', ['searching', 'expired'])
+    expect(update.eq).not.toHaveBeenCalledWith('patient_id', null)
   })
 
   it('devuelve 404 si falta el id', async () => {

@@ -48,20 +48,21 @@ export function createProfileAdapter(supabase: Db): IProfileRepository {
       userId: string,
       payload: Partial<PatientUpdate>,
     ): Promise<unknown> {
-      const { data: existingPatient } = await supabase
+      const { data: existingPatient, error: identityError } = await supabase
         .from('patients')
-        .select('dni, gender')
+        .select('dni, gender, birth_date, cuil, identity_status')
         .eq('user_id', userId)
         .maybeSingle()
 
-      if (existingPatient) {
-        if (existingPatient.dni && payload.dni && payload.dni !== existingPatient.dni) {
-          throw Object.assign(new Error('El DNI no puede ser modificado una vez establecido.'), {
-            code: 'PROFILE_UPDATE_FAILED',
-          })
-        }
-        if (existingPatient.gender && payload.gender && payload.gender !== existingPatient.gender) {
-          throw Object.assign(new Error('El sexo registral no puede ser modificado una vez establecido.'), {
+      if (identityError) throw identityError
+      if (existingPatient?.identity_status === 'verified_renaper') {
+        const protectedFields: Array<keyof PatientUpdate> = ['dni', 'gender', 'birth_date', 'cuil']
+        const current = existingPatient as unknown as Record<string, unknown>
+        const proposed = payload as Record<string, unknown>
+        if (protectedFields.some((field) =>
+          proposed[field] !== undefined && proposed[field] !== current[field],
+        )) {
+          throw Object.assign(new Error('Los datos filiatorios validados por RENAPER no pueden modificarse desde el perfil.'), {
             code: 'PROFILE_UPDATE_FAILED',
           })
         }

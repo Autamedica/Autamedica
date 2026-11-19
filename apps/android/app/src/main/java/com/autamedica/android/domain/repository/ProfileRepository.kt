@@ -6,5 +6,7 @@ import com.autamedica.android.domain.model.User
 interface ProfileRepository {
     suspend fun getProfile(): Result<User>
     suspend fun getPatientProfileSnapshot(): Result<PatientProfileSnapshot?>
+    suspend fun getCareCountry(): Result<String?> = Result.success(null)
     suspend fun updateProfile(firstName: String, lastName: String, phone: String?): Result<User>
+    suspend fun persistLgpdConsent(userId: String, acceptedAt: String, version: String): Result<Unit>
 }

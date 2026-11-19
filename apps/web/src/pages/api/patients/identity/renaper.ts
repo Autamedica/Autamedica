@@ -9,6 +9,12 @@ import {
   type RenaperSexId,
 } from '@/lib/interoperability/non-fhir.service';
 import { logger } from '@autamedica/shared';
+import { isOfficialPhotoAvailable, maskOfficialAddress } from '@/lib/patients/services/renaper-display-privacy';
+import {
+  isRenaperLookupInPatientScope,
+  returnedRenaperDocumentMatches,
+} from '@/lib/patients/services/renaper-identity-scope';
+import { claimRenaperIdentityLookup, persistOfficialIdentityResult } from '@/lib/patients/services/patient-identity.service';
 
 function maskText(text: string | null | undefined, visibleCount = 1): string {
   if (!text) return '';
@@ -27,14 +33,6 @@ function maskCuil(cuilStr: string | null | undefined): string {
   const clean = cuilStr.replace(/\D/g, '');
   if (clean.length < 11) return cuilStr;
   return `${clean.slice(0, 2)}-******-${clean.slice(-1)}`;
-}
-
-function maskAddress(addressStr: string | null | undefined): string {
-  if (!addressStr) return '';
-  const parts = addressStr.split(',');
-  const maskedStreet = parts[0] ? maskText(parts[0], 4) : '';
-  const rest = parts.slice(1).map((p) => maskText(p.trim(), 2)).join(', ');
-  return [maskedStreet, rest].filter(Boolean).join(', ');
 }
 
 function normalizeDni(value: unknown): string | null {
@@ -87,28 +85,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const supabase = createAstroAdminClient(locals.runtime?.env);
   const { data: patient } = await supabase
     .from('patients')
-    .select('id, insurance_info, dni, gender')
+    .select('id, user_id, dni, gender, care_country')
     .eq('user_id', userId)
     .maybeSingle();
 
   if (!patient) {
     return badRequest('No se encontró el registro de paciente correspondiente.');
-  }
-
-  const insuranceInfo = (patient.insurance_info && typeof patient.insurance_info === 'object')
-    ? patient.insurance_info as Record<string, unknown>
-    : {};
-
-  const lookupCount = typeof insuranceInfo['identity_lookup_count'] === 'number'
-    ? insuranceInfo['identity_lookup_count'] as number
-    : 0;
-
-  if (lookupCount >= 3) {
-    return jsonFail(
-      'RATE_LIMITED',
-      'Excediste el límite de 3 consultas de identidad permitidas por cuenta.',
-      403,
-    );
   }
 
   const { data: payment } = await supabase
@@ -137,7 +119,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return badRequest('Seleccioná el sexo registral para consultar datos oficiales.');
   }
 
+  // A logged-in patient is not authorized to enumerate arbitrary DNI values.
+  // Bind the official query to the registered patient record, never client form alone.
+  // A saved DNI is still self-declared: this is not biometric identity assurance.
+  if (!isRenaperLookupInPatientScope(patient, dni, sexId)) {
+    return jsonFail(
+      'FORBIDDEN',
+      'La consulta requiere que el DNI y el sexo registral coincidan con el perfil argentino registrado.',
+      403,
+    );
+  }
+
   try {
+    await claimRenaperIdentityLookup({ supabase, patientId: patient.id, limit: 3 });
     const result = await fetchOfficialIdentity({
       dni,
       sexId,
@@ -145,40 +139,30 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
 
     const person = result.person;
+    if (!returnedRenaperDocumentMatches(dni, person.numeroDocumento)) {
+      // Never attach a different person's official record to this account.
+      return jsonFail('CONFLICT', 'La identidad oficial no coincide con el DNI registrado.', 409);
+    }
     const firstName = person.nombres ?? '';
     const lastName = person.apellido ?? '';
-    const address = buildAddress(person);
+    const { data: profileName } = await supabase.from('profiles')
+      .select('first_name, last_name').eq('user_id', patient.user_id).maybeSingle();
+    const declaredName = [profileName?.first_name, profileName?.last_name].filter(Boolean).join(' ');
+    const persistedIdentity = await persistOfficialIdentityResult({
+      supabase, result, dni, patientId: patient.id, userId: patient.user_id,
+      declaredName, syncProfileName: true,
+    });
+    // All response paths expose only a redacted address; do not send official photo bytes.
+    const maskedAddress = maskOfficialAddress(buildAddress(person));
+    const photoAvailable = isOfficialPhotoAvailable(person.foto);
     const coverage = result.coverages[0] ?? null;
-
-    const newCount = lookupCount + 1;
-    const newInsuranceInfo = {
-      ...insuranceInfo,
-      identity_lookup_count: newCount,
-      official_data: {
-        dni: person.numeroDocumento ?? dni,
-        firstName,
-        lastName,
-        birthDate: person.fechaNacimiento ?? '',
-        gender: mapSexToGender(person.sexo) ?? '',
-        cuil: person.cuil && person.cuil !== '0' ? person.cuil : '',
-        address: address ?? '',
-      }
-    };
-
-    const { error: updateErr } = await supabase
-      .from('patients')
-      .update({ insurance_info: newInsuranceInfo })
-      .eq('id', patient.id);
-
-    if (updateErr) {
-      logger.error('[renaper] failed to update insurance_info lookup count', updateErr);
-    }
 
     if (hasPaid) {
       return jsonOk({
         source: 'RENAPER',
         checkedAt: new Date().toISOString(),
         hasPaid: true,
+        identityStatus: persistedIdentity.identityStatus,
         form: {
           dni: person.numeroDocumento ?? dni,
           firstName,
@@ -186,7 +170,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
           birthDate: person.fechaNacimiento ?? '',
           gender: mapSexToGender(person.sexo) ?? '',
           cuil: person.cuil && person.cuil !== '0' ? person.cuil : '',
-          address: address ?? '',
+          address: maskedAddress,
+          photoAvailable,
         },
         coverage: coverage
           ? {
@@ -203,6 +188,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       source: 'RENAPER',
       checkedAt: new Date().toISOString(),
       hasPaid: false,
+      identityStatus: persistedIdentity.identityStatus,
       form: {
         dni: person.numeroDocumento ?? dni,
         firstName: maskText(firstName, 1),
@@ -210,7 +196,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
         birthDate: maskDate(person.fechaNacimiento ?? ''),
         gender: mapSexToGender(person.sexo) ?? '',
         cuil: maskCuil(person.cuil && person.cuil !== '0' ? person.cuil : ''),
-        address: maskAddress(address ?? ''),
+        address: maskedAddress,
+        photoAvailable,
       },
       coverage: coverage
         ? {
@@ -223,15 +210,27 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
   } catch (error) {
     const code = error instanceof Error ? (error as Error & { code?: string }).code : null;
-    if (code === 'BUS_NON_FHIR_CREDENTIALS_MISSING') {
-      logger.error('[patients/identity/renaper] missing credentials', error);
-      return serviceUnavailable('La consulta oficial todavía no está configurada.');
+    if (
+      code === 'BUS_NON_FHIR_CREDENTIALS_MISSING' ||
+      code === 'BUS_NON_FHIR_SUPABASE_CREDENTIALS_MISSING' ||
+      code === 'RENAPER_PROXY_UNAVAILABLE'
+    ) {
+      // Do not log the upstream request: it carries DNI and privileged headers.
+      logger.error('[patients/identity/renaper] server integration unavailable');
+      return serviceUnavailable('La consulta oficial no está disponible en este momento.');
+    }
+    if (code === 'RENAPER_LOOKUP_LIMIT_REACHED') {
+      return jsonFail('RATE_LIMITED', 'Alcanzaste el límite de tres consultas RENAPER para este paciente.', 429);
+    }
+    if (code === 'RENAPER_DOCUMENT_MISMATCH') {
+      return jsonFail('CONFLICT', 'La identidad oficial no coincide con el DNI registrado.', 409);
     }
     if (code === 'RENAPER_PERSON_NOT_FOUND') {
       return badRequest('No encontramos datos oficiales para ese DNI y sexo registral.');
     }
 
-    logger.error('[patients/identity/renaper] lookup failed', error);
+    // Provider and database errors can embed official PII; never log them.
+    logger.error('[patients/identity/renaper] lookup failed');
     return internalError('No pudimos consultar los datos oficiales en este momento.');
   }
 };

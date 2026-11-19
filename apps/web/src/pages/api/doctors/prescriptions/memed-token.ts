@@ -1,9 +1,11 @@
 import type { APIRoute } from 'astro';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { badRequest, forbidden, internalError, jsonOk } from '@/lib/api-helpers';
 import { DOCTOR_ROLES, isAuthed, withAuthRole } from '@/lib/api-auth';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { MemedService } from '@/lib/prescriptions/brazil/memed.service';
-import { resolveMemedPatient, validCpf } from '@/lib/prescriptions/brazil/memed-patient';
+import { assertMemedDispatchEncounter, resolveMemedPatient, validCpf } from '@/lib/prescriptions/brazil/memed-patient';
+import { isMemedEnabled, isMemedPilotDoctor } from '@/lib/prescriptions/brazil/memed-pilot';
 import { getMemedDoctorCpf, storeMemedDoctorCpf } from '@/lib/prescriptions/brazil/memed-identity.repository';
 import { logger } from '@autamedica/shared';
 
@@ -22,20 +24,31 @@ const isValidIsoDate = (value: string): boolean => {
     && date.getTime() < Date.now();
 };
 
-async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: string, providedCpf?: string, patientId?: unknown): Promise<Response> {
+async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: string, providedCpf?: string, patientId?: unknown, patientDemographics?: { birthDate: string; gender: 'male' | 'female' }, requestId?: string): Promise<Response> {
   const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
   if (!isAuthed(auth)) return auth;
-  // Clinical Memed issuance remains disabled until signature and patient
-  // delivery are validated in a controlled end-to-end production encounter.
-  if (locals.runtime?.env?.MEMED_RX_ENABLED !== 'true') {
+  // Allow Memed initialization in ready/pending_issuance; provider signing and
+  // patient delivery remain separate, explicit lifecycle validations.
+  if (!isMemedEnabled(locals.runtime?.env as unknown as Record<string, unknown> | undefined)) {
     return forbidden('memed_issuance_not_enabled');
   }
 
   try {
     const admin = createAstroAdminClient(locals?.runtime?.env);
+    const { data: clinicalScope, error: clinicalScopeError } = await (admin as unknown as SupabaseClient)
+      .from('platform_operational_domains')
+      .select('clinical_status')
+      .eq('scope_key', 'BR')
+      .maybeSingle();
+    if (clinicalScopeError) return internalError('brazil_clinical_status_unavailable');
+    const clinicalStatus = clinicalScope?.clinical_status?.toLowerCase();
+    if (clinicalStatus === 'disabled' || clinicalStatus === 'suspended') {
+      return forbidden('brazil_clinical_issuance_disabled');
+    }
+
     const { data: doctor, error: doctorError } = await admin
       .from('doctors')
-      .select('id, active, license_type, license_number, uf_brazil, cpf')
+      .select('id, active, license_type, license_number, uf_brazil, cpf, memed_birth_date')
       .eq('user_id', auth.user.id)
       .maybeSingle();
 
@@ -44,8 +57,7 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
       return internalError();
     }
     // Pilot is restricted to an explicitly configured prescriber.
-    const pilotDoctorId = locals.runtime?.env?.MEMED_PILOT_DOCTOR_ID;
-    if (typeof pilotDoctorId !== 'string' || pilotDoctorId !== doctor?.id) {
+    if (!isMemedPilotDoctor(locals.runtime?.env as unknown as Record<string, unknown> | undefined, doctor?.id)) {
       return forbidden('memed_pilot_prescriber_only');
     }
     if (!doctor?.active || doctor.license_type !== 'CRM') {
@@ -56,7 +68,7 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
     // verified and active CFM license matching the CRM and UF being sent to Memed.
     const { data: licenseRows, error: licenseError } = await admin
       .from('doctor_licenses')
-      .select('license_number, uf_brazil')
+      .select('license_number, uf_brazil, cfm_evidence_path, cfm_review_notes, cfm_reviewed_by, cfm_reviewed_at, cfm_last_checked_at')
       .eq('doctor_id', doctor.id)
       .eq('license_type', 'CRM')
       .eq('status', 'active')
@@ -69,6 +81,9 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
     const verifiedLicense = licenseRows?.some((item) =>
       crmDigits(item.license_number) === crmDigits(doctor.license_number)
       && item.uf_brazil?.toUpperCase() === doctor.uf_brazil?.toUpperCase()
+      && Boolean(item.cfm_evidence_path?.trim())
+      && (item.cfm_review_notes?.trim().length ?? 0) >= 10
+      && Boolean(item.cfm_reviewed_by && item.cfm_reviewed_at && item.cfm_last_checked_at)
     );
     if (!verifiedLicense) return forbidden('verified_brazilian_license_required');
 
@@ -88,18 +103,35 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
     const crm = crmDigits(doctor.license_number);
     const uf = (doctor.uf_brazil ?? '').toUpperCase();
     const storedCpf = await getMemedDoctorCpf(admin, doctor.id);
-    const existingCpf = cpfDigits(storedCpf || doctor.cpf || profile?.cpf);
+    // Ignore stale/invalid legacy CPF values and select the first checksum-valid
+    // identity from private Memed storage, doctor directory, or profile.
+    const existingCpf = [storedCpf, doctor.cpf, profile?.cpf]
+      .map(cpfDigits).find(candidate => validCpf(candidate)) ?? '';
     if (existingCpf && providedCpf && existingCpf !== cpfDigits(providedCpf)) {
       return forbidden('memed_doctor_cpf_mismatch');
     }
     const cpf = existingCpf || cpfDigits(providedCpf);
+    // Prefer the verified date already stored for this pilot. A browser-supplied
+    // date may support legacy records, but must never override the persisted identity.
+    const storedBirthDate = typeof doctor.memed_birth_date === 'string'
+      && isValidIsoDate(doctor.memed_birth_date) ? doctor.memed_birth_date : undefined;
+    if (storedBirthDate && birthDateIso && storedBirthDate !== birthDateIso) {
+      return forbidden('memed_doctor_birth_date_mismatch');
+    }
+    const effectiveBirthDateIso = storedBirthDate ?? birthDateIso;
 
     // Never register a medical professional using fabricated CPF, CRM or UF.
-    if (!nome || !sobrenome || !crm || !VALID_UF.test(uf) || !validCpf(cpf)) {
-      return badRequest('memed_doctor_identity_incomplete');
-    }
+    if (!nome || !sobrenome) return badRequest('memed_doctor_name_required');
+    if (!crm || !VALID_UF.test(uf)) return badRequest('memed_doctor_license_incomplete');
+    if (!validCpf(cpf)) return badRequest('memed_doctor_cpf_invalid');
 
-    const patient = await resolveMemedPatient(admin, doctor.id, patientId);
+    if (requestId) {
+      if (typeof patientId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(patientId)) {
+        return badRequest('memed_patient_required');
+      }
+      await assertMemedDispatchEncounter(admin, doctor.id, patientId, requestId);
+    }
+    const patient = await resolveMemedPatient(admin, doctor.id, patientId, patientDemographics);
 
     const envMap: Record<string, string | undefined> = {};
     if (locals.runtime?.env) {
@@ -117,8 +149,8 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
       uf,
       email: profile?.email || auth.user.email,
       telefone: profile?.phone || undefined,
-      ...(birthDateIso ? {
-        dataNascimento: birthDateIso.split('-').reverse().join('/'),
+      ...(effectiveBirthDateIso ? {
+        dataNascimento: effectiveBirthDateIso.split('-').reverse().join('/'),
       } : {}),
     });
 
@@ -127,6 +159,7 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
 
     const response = jsonOk({
       patient,
+      patientDemographicsMissing: !patient.data_nascimento || !patient.sexo,
       token: tokenData.token,
       scriptUrl: memed.getScriptUrl(),
       doctor: { id: doctor.id, userId: auth.user.id, crm, uf, nome: `${nome} ${sobrenome}` },
@@ -141,20 +174,26 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
     }
     if (err instanceof Error && err.message === 'doctor_patient_access_required') return forbidden(err.message);
     if (err instanceof Error && ['memed_patient_required', 'memed_patient_consent_required',
-      'memed_patient_identity_incomplete'].includes(err.message)) return badRequest(err.message);
+      'memed_patient_identity_incomplete', 'memed_patient_demographics_invalid'].includes(err.message)) return badRequest(err.message);
+    if (err instanceof Error && err.message === 'memed_patient_demographics_update_failed') {
+      return internalError(err.message);
+    }
     logger.error('[memed-token] token acquisition failed');
     return internalError('memed_token_unavailable');
   }
 }
 
-export const GET: APIRoute = (context) => handleMemedToken(context, undefined, undefined, new URL(context.request.url).searchParams.get('patientId'));
+export const GET: APIRoute = (context) => {
+  const params = new URL(context.request.url).searchParams;
+  return handleMemedToken(context, undefined, undefined, params.get('patientId'), undefined, params.get('requestId') ?? undefined);
+};
 
 export const POST: APIRoute = async (context) => {
   const auth = await withAuthRole(context.request, DOCTOR_ROLES, context.locals);
   if (!isAuthed(auth)) return auth;
   const origin = context.request.headers.get('origin');
   if (origin && origin !== new URL(context.request.url).origin) return forbidden('cross_origin_request');
-  // DOB is supplied by the authenticated physician only for first-time Memed registration.
+  // DOB is supplied only when a legacy doctor record has no verified persisted Memed date.
   // It is not stored in logs, query strings, client storage or AutaMedica tables.
   let body: unknown;
   try {
@@ -174,7 +213,25 @@ export const POST: APIRoute = async (context) => {
   if (birthDate !== undefined && (typeof birthDate !== 'string' || !isValidIsoDate(birthDate))) {
     return badRequest('memed_doctor_birth_date_invalid');
   }
-  return handleMemedToken(context, birthDate as string | undefined, providedCpf as string | undefined, body && typeof body === 'object' && 'patientId' in body ? body.patientId : undefined);
+  const patientBirthDate = body && typeof body === 'object' && 'patientBirthDate' in body
+    ? (body as { patientBirthDate?: unknown }).patientBirthDate : undefined;
+  const patientGender = body && typeof body === 'object' && 'patientGender' in body
+    ? (body as { patientGender?: unknown }).patientGender : undefined;
+  const requestId = body && typeof body === 'object' && 'requestId' in body
+    ? (body as { requestId?: unknown }).requestId : undefined;
+  if (requestId !== undefined && (typeof requestId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId))) {
+    return badRequest('invalid_encounter');
+  }
+  if ((patientBirthDate !== undefined || patientGender !== undefined)
+      && (typeof patientBirthDate !== 'string' || !isValidIsoDate(patientBirthDate)
+        || (patientGender !== 'male' && patientGender !== 'female'))) {
+    return badRequest('memed_patient_demographics_invalid');
+  }
+  const patientDemographics = patientBirthDate && patientGender
+    ? { birthDate: patientBirthDate as string, gender: patientGender as 'male' | 'female' } : undefined;
+  return handleMemedToken(context, birthDate as string | undefined, providedCpf as string | undefined,
+    body && typeof body === 'object' && 'patientId' in body ? body.patientId : undefined, patientDemographics,
+    requestId as string | undefined);
 };
 
 

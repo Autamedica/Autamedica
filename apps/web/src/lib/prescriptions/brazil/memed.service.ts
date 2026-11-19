@@ -193,7 +193,7 @@ export class MemedService {
           email: doctor.email,
           telefone: doctor.telefone ? doctor.telefone.replace(/\D/g, '') : undefined,
           ...(doctor.sexo ? { sexo: doctor.sexo } : {}),
-          data_nascimento: doctor.dataNascimento,
+          ...(doctor.dataNascimento ? { data_nascimento: doctor.dataNascimento } : {}),
         },
       },
     };
@@ -235,7 +235,7 @@ export class MemedService {
     if (!doctorToken) throw new Error('memed_missing_doctor_token');
     // Memed's structured-prescription endpoint requires the doctor's Bearer token.
     // Never append the doctor token or partner keys to a loggable URL.
-    const apiBase = this.config.apiUrl.replace(/\/$/, '');
+    const apiBase = this.config.apiUrl.endsWith('/') ? this.config.apiUrl.slice(0, -1) : this.config.apiUrl;
     const url = `${apiBase}/prescricoes/${encodeURIComponent(id)}?structuredDocuments=true`;
     const response = await this.request(url, {
       headers: {
@@ -248,6 +248,45 @@ export class MemedService {
       throw new Error(`memed_prescription_verification_failed:${response.status}`);
     }
     return await response.json() as Record<string, unknown>;
+  }
+
+  /** Retrieves the fixed patient-facing digital prescription link and unlock code. */
+  async getDigitalPrescriptionLink(id: string, doctorToken: string): Promise<Record<string, unknown>> {
+    if (!/^[a-zA-Z0-9-]{1,80}$/.test(id)) throw new Error('memed_invalid_prescription_id');
+    if (!doctorToken) throw new Error('memed_missing_doctor_token');
+    const url = `${this.config.apiUrl.replace(/\/$/, '')}/prescricoes/${encodeURIComponent(id)}/get-digital-prescription-link?token=${encodeURIComponent(doctorToken)}`;
+    const response = await this.request(url, {
+      method: 'GET',
+      headers: { Accept: 'application/vnd.api+json', 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) throw new Error(`memed_digital_link_failed:${response.status}`);
+    try {
+      return await response.json() as Record<string, unknown>;
+    } catch {
+      throw new Error('memed_provider_response_invalid');
+    }
+  }
+
+  /** Retrieves the provider URL for the full prescription PDF; signature status remains independently verified. */
+  async getFullPrescriptionPdfUrl(id: string, doctorToken: string): Promise<Record<string, unknown>> {
+    if (!/^[a-zA-Z0-9-]{1,80}$/.test(id)) throw new Error('memed_invalid_prescription_id');
+    if (!doctorToken) throw new Error('memed_missing_doctor_token');
+    const url = `${this.config.apiUrl.replace(/\/$/, '')}/prescricoes/${encodeURIComponent(id)}/url-document/full?token=${encodeURIComponent(doctorToken)}`;
+    const response = await this.request(url, {
+      method: 'GET',
+      headers: { Accept: 'application/vnd.api+json', 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) throw new Error(`memed_pdf_url_failed:${response.status}`);
+    try {
+      return await response.json() as Record<string, unknown>;
+    } catch {
+      throw new Error('memed_provider_response_invalid');
+    }
+  }
+
+  /** Backward-compatible alias for integrations using the descriptive method name. */
+  async getFullPrescriptionDocumentUrl(id: string, doctorToken: string): Promise<Record<string, unknown>> {
+    return this.getFullPrescriptionPdfUrl(id, doctorToken);
   }
 
   getScriptUrl(): string {

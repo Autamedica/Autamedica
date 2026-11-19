@@ -56,11 +56,15 @@ describe('generatePrescriptionPdf', () => {
     expect(artifacts.cuir).toBe('02680042020102000000000000000000000010101');
     expect(artifacts.qrContent).toBe('https://www.autamedica.com/verify/02680042020102000000000000000000000010101');
     expect(pdfText).toContain('CÓDIGO DE BARRAS');
-    expect(pdfText).toContain('VERIFICACIÓN DE FIRMA');
+    expect(pdfText).toContain('EMISOR DE LA RECETA');
+    expect(pdfText).toContain('Dr. Eduardo Marques da Rosa');
+    expect(pdfText).toContain('Matrícula: MN-123456 \\(MN\\)');
+    expect(pdfText).toContain('SELLO PROFESIONAL');
     expect(pdfText).not.toContain('Este documento ha sido firmado');
     expect(pdfText).toContain('500mg');
     expect(pdfText).toContain('Comprimidos');
-    expect(pdfText).toContain('Fecha de registro: 11/05/2026');
+    expect(pdfText).toContain('Emitida: 11/05/2026  |  Vence: 10/06/2026');
+    // Deterministic issuedAt fixture; Paracetamol uses the standard 30-day validity period.
     expect(pdfText).toContain('Identificador verificable de receta electrónica');
     expect(pdfText).toContain(
       'Esta receta fue creada por un emisor inscripto y validado en el Registro de Recetarios Electrónicos',
@@ -249,7 +253,7 @@ describe('generatePrescriptionPdf', () => {
     const rctaSpy = vi.spyOn(rctaService, 'registerPrescription');
     for (const scenario of [
       { mode: 'S' as const, number: '9600000421228', commercialName: undefined, filename: 'generica' },
-      { mode: 'N' as const, number: '9600000421242', commercialName: 'ESFUMEL blanqueadora cr. x 20 g', filename: 'marca' },
+      { mode: 'N' as const, number: '9600000421242', commercialName: 'ESFUMEL blanqueadora cr.x 20 g', filename: 'marca' },
     ]) {
       const artifacts = await generatePrescriptionPdf({
         prescriptionId: `farmalink-homologation-${scenario.mode}-${scenario.number}`,
@@ -258,49 +262,66 @@ describe('generatePrescriptionPdf', () => {
         externalPrescription: {
           provider: 'farmalink',
           number: scenario.number,
-          barcodeTitle: 'FARMALINK TEST',
-          displayLabel: 'FARMALINK',
-          legend: 'Validacion Farmalink TEST',
+          barcodeTitle: 'RECETA FARMALINK',
+          displayLabel: 'RECETA FARMALINK',
+          legend: 'Número de receta para validación en farmacia',
         },
         issuedAt: '2026-11-03',
         expiresAt: '2026-11-19',
         patient: {
           name: 'Demo Demo', dni: '12345678', cuil: '27123456780',
           dateOfBirth: '2025-01-01', sex: 'Masculino',
-          insurancePlan: '100',
+          insurancePlan: 'NO POSEE',
           affiliateCredential: '20123456786',
           insuranceEntityCode: 7110,
-          address: 'Paciente de prueba, sin domicilio real',
         },
         prescriber: {
-          name: 'Demo Demo - PROFESIONAL TEST',
+          name: 'Demo Demo',
           license: 'MN 11111', licenseJurisdiction: 'MN',
-          licenseEntity: 'TEST', refeps: '123456789012',
-          specialty: 'Medico clinico (TEST)',
-          professionalAddress: 'Consultorio DEMO - Calle 11 Nro 2300',
+          specialty: 'Medico clinico',
+          professionalAddress: 'Consultorio particular CALLE 11 Nro 2300',
         },
-        diagnosis: 'I20.9 (codigo del ejemplo DEMO, sin indicacion clinica)',
-        notes: 'Prueba tecnica sin firma clinica; no dispensar.',
+        diagnosis: 'I20.9',
         medication: {
           genericName: 'GLICOLICOAC.ASOC.',
           commercialName: scenario.commercialName,
-          dosage: 'Presentacion TEST',
-          presentation: 'Crema x 20 g (segun producto 56800)',
+          dosage: '',
+          presentation: 'Crema x 20 g',
           quantity: 1,
-          instructions: 'Sin indicaciones clinicas: solo homologacion TEST',
+          instructions: '',
         },
       });
-      expect(artifacts.cuir).toBe('NO ASIGNADO - TEST');
+      expect(artifacts.cuir).toBe('');
       expect(artifacts.qrContent).toBe('');
       const pdfText = Buffer.from(artifacts.pdfBuffer).toString('latin1');
       expect(pdfText).toContain('GLICOLICOAC.ASOC.');
       expect(pdfText).toContain(scenario.number);
-      expect(pdfText).toContain('SIN FIRMA - TEST');
       expect(pdfText).toContain('Nro. afiliado / Credencial: 20123456786');
-      expect(pdfText).toContain('CUIL PACIENTE');
+      expect(pdfText).toContain('Entidad: 7110');
+      expect(pdfText).toContain('Plan: NO POSEE');
+      expect(pdfText).toContain('DNI: 12345678');
+      expect(pdfText).toContain('Fecha de Nacimiento: 01/01/2025');
+      expect(pdfText).toContain('Cantidad: 1 unidades');
+      expect(pdfText).toContain('Matrícula: MN 11111');
+      expect(pdfText).toContain('Domicilio profesional: Consultorio particular CALLE 11 Nro 2300');
+      expect(pdfText).not.toContain('CUIL: 27123456780');
+      expect(pdfText).toContain('PAN / CREDENCIAL');
+      expect(pdfText).toContain('PAN: 20123456786');
+      expect(pdfText).not.toContain('CUIL PACIENTE');
+      expect(pdfText).toContain(`RECETA FARMALINK: ${scenario.number}`);
+      expect(Buffer.from(artifacts.pdfBuffer).subarray(0, 5).toString('ascii')).toBe('%PDF-');
+
       expect(pdfText).toContain('RL-2026-47574120-APN-SSVEIYES#MS');
+      expect(pdfText).toContain('Esta prescripción tiene validez de documento público electrónico según Ley 27.553.');
       expect(pdfText).not.toContain('MODALIDAD GENERICO=');
-      expect(pdfText).toContain('NO ASIGNADO - TEST');
+      expect(pdfText).not.toContain('Sugerido:');
+      expect(pdfText).toContain('Emitida: 03/11/2026  |  Vence: 19/11/2026');
+      expect(pdfText).toContain('CUIR: -');
+      expect(pdfText).toContain('EMISOR DE LA RECETA');
+      expect(pdfText).toContain('Demo Demo');
+      expect(pdfText).toContain('Matrícula: MN 11111 \\(MN\\)');
+      expect(pdfText).toContain('SELLO PROFESIONAL');
+      expect(pdfText).not.toMatch(/TEST|DEMO|NO ASIGNADO|NO APTA|SIN FIRMA/);
       expect(pdfText).not.toContain('PREDNISOLONA');
       expect(pdfText).not.toContain('Validador RCTA');
       if (scenario.mode === 'S') expect(pdfText).not.toContain('ESFUMEL');
@@ -309,6 +330,54 @@ describe('generatePrescriptionPdf', () => {
         new Uint8Array(artifacts.pdfBuffer));
     }
     expect(rctaSpy).not.toHaveBeenCalled();
+  });
+
+  it('preserves a supplied CUIR and QR in Farmalink homologation without registering a new one', async () => {
+    const existingCuir = '02680042020102000000000000000000000010106';
+    const registerSpy = vi.spyOn(rctaService, 'registerPrescription');
+    const artifacts = await generatePrescriptionPdf({
+      prescriptionId: 'farmalink-homologation-existing-cuir',
+      homologationTest: true,
+      homologationMode: 'S',
+      existingCuir,
+      externalPrescription: {
+        provider: 'farmalink',
+        number: '9600000421228',
+        displayLabel: 'RECETA FARMALINK',
+        legend: 'Número de receta para validación en farmacia',
+      },
+      issuedAt: '2026-11-03',
+      diagnosis: 'I20.9',
+      medication: {
+        genericName: 'GLICOLICOAC.ASOC.',
+        dosage: '',
+        instructions: '',
+        presentation: 'Crema x 20 g',
+        quantity: 1,
+      },
+      patient: {
+        name: 'Demo Demo',
+        dni: '12345678',
+        cuil: '27123456780',
+        affiliateCredential: '20123456786',
+        insuranceEntityCode: 7110,
+        insurancePlan: 'NO POSEE',
+      },
+      prescriber: {
+        name: 'Demo Demo',
+        license: 'MN 11111',
+      },
+    });
+
+    const pdfText = Buffer.from(artifacts.pdfBuffer).toString('latin1');
+    expect(registerSpy).not.toHaveBeenCalled();
+    expect(artifacts.cuir).toBe(existingCuir);
+    expect(artifacts.qrContent).toBe(`https://www.autamedica.com/verify/${existingCuir}`);
+    expect(pdfText).toContain(`CUIR: ${existingCuir}`);
+    expect(pdfText).toContain('EMISOR DE LA RECETA');
+    expect(pdfText).toContain('Demo Demo');
+    expect(pdfText).toContain('SELLO PROFESIONAL');
+    expect(pdfText).not.toContain('Sin registro RCTA ni QR verificado');
   });
 
 });

@@ -1,5 +1,8 @@
+import { withEdgeSentry } from '../_shared/sentry.ts';
 import { createClient } from '@supabase/supabase-js'
 import { corsHeaders } from '../_shared/cors.ts'
+import { resolveBillingCurrency } from '../_shared/billing-currency.ts'
+import { getMercadoPagoMarketToken } from '../_shared/mercadopago-market-token.ts'
 
 interface CreatePaymentBody {
   appointmentId?: string
@@ -10,6 +13,8 @@ interface DoctorRow {
   consultation_fee: number | string | null
   payout_cbu: string | null
   payout_alias: string | null
+  uf_brazil?: string | null
+  refeps_id?: string | null
 }
 
 interface AppointmentRow {
@@ -111,7 +116,7 @@ export async function handler(req: Request): Promise<Response> {
     // 2. Fetch patient record for this user
     const { data: patient, error: patientError } = await supabaseAdmin
       .from('patients')
-      .select('id, user_id')
+      .select('id, user_id, cpf, dni, care_country')
       .eq('user_id', user.id)
       .maybeSingle()
 
@@ -166,7 +171,9 @@ export async function handler(req: Request): Promise<Response> {
           id,
           consultation_fee,
           payout_cbu,
-          payout_alias
+          payout_alias,
+          uf_brazil,
+          refeps_id
         )
       `)
       .eq('id', appointmentId)
@@ -226,7 +233,7 @@ export async function handler(req: Request): Promise<Response> {
     if (!doctor) {
       const { data: directDoctor, error: directDoctorError } = await supabaseAdmin
         .from('doctors')
-        .select('id, consultation_fee, payout_cbu, payout_alias')
+        .select('id, consultation_fee, payout_cbu, payout_alias, uf_brazil, refeps_id')
         .eq('id', appointment.doctor_id)
         .maybeSingle()
 
@@ -246,7 +253,7 @@ export async function handler(req: Request): Promise<Response> {
     // 5. Check if appointment already has payment
     const { data: existingPayment, error: paymentLookupError } = await supabaseAdmin
       .from('appointment_payments')
-      .select('id, status, checkout_url, provider_preference_id, gross_amount')
+      .select('id, status, checkout_url, provider_preference_id, gross_amount, currency')
       .eq('appointment_id', appointmentId)
       .maybeSingle()
 
@@ -262,12 +269,27 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     if (existingPayment) {
+      const existingMarket = resolveBillingCurrency({
+        patientCpf: patient.cpf,
+        patientDni: patient.dni,
+        patientCareCountry: patient.care_country,
+        doctorBrazilUf: doctor.uf_brazil,
+        doctorArgentinaRefeps: doctor.refeps_id,
+      })
+      if (!existingMarket.ok || existingPayment.currency !== existingMarket.currency) {
+        return new Response(JSON.stringify({
+          error: existingMarket.ok ? 'billing_currency_conflict' : existingMarket.error,
+        }), {
+          status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
       if (existingPayment.status === 'approved') {
         return new Response(
           JSON.stringify({
             ok: true,
             status: 'approved',
             appointment_payment_id: existingPayment.id,
+            currency: existingPayment.currency,
           }),
           {
             status: 200,
@@ -306,21 +328,53 @@ export async function handler(req: Request): Promise<Response> {
       )
     }
 
-    // 7. Check patient wallet balance
-    const { data: walletRows, error: walletError } = await supabaseAdmin
-      .rpc('patient_wallet_get_balance', { p_patient_id: patient.id })
-
-    if (walletError) {
-      console.error('[create-appointment-payment] Wallet balance RPC error:', walletError)
+    // 7. Resolve currency before reading a balance. A missing wallet means zero funds;
+    // never create one as a side effect of a balance read.
+    const { data: walletRecord, error: walletCurrencyError } = await supabaseAdmin
+      .from('patient_wallets')
+      .select('currency')
+      .eq('patient_id', patient.id)
+      .maybeSingle()
+    if (walletCurrencyError) {
+      return new Response(JSON.stringify({ error: 'wallet_currency_lookup_failed' }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
+    const billing = resolveBillingCurrency({
+      patientCpf: patient.cpf,
+      patientDni: patient.dni,
+      patientCareCountry: patient.care_country,
+      doctorBrazilUf: doctor.uf_brazil,
+      doctorArgentinaRefeps: doctor.refeps_id,
+      walletCurrency: walletRecord?.currency,
+    })
+    if (!billing.ok) {
+      return new Response(JSON.stringify({ error: billing.error }), {
+        status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const billingCurrency = billing.currency
 
-    const walletBalance = Array.isArray(walletRows)
-      ? (walletRows[0] as WalletBalanceRow | undefined)
-      : (walletRows as WalletBalanceRow | null)
-    const availableCreditCents = Number(walletBalance?.available_credit_cents ?? 0)
+    let walletBalance: WalletBalanceRow | null = null
+    if (walletRecord) {
+      const { data: walletRows, error: walletError } = await supabaseAdmin
+        .rpc('patient_wallet_get_balance', { p_patient_id: patient.id })
+      if (walletError) {
+        console.error('[create-appointment-payment] Wallet balance RPC error:', walletError)
+        return new Response(JSON.stringify({ error: 'wallet_balance_lookup_failed' }), {
+          status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      walletBalance = Array.isArray(walletRows)
+        ? (walletRows[0] as WalletBalanceRow | undefined) ?? null
+        : (walletRows as WalletBalanceRow | null)
+    }
+    const availableCreditCents = walletRecord && walletBalance?.currency === billingCurrency
+      ? Number(walletBalance.available_credit_cents ?? 0)
+      : 0
 
-    // 8. If wallet covers the amount, pay with wallet
-    if (availableCreditCents >= amountCents) {
+    // 8. Spend only a wallet whose stored denomination matches the appointment.
+    if (walletRecord?.currency === billingCurrency && availableCreditCents >= amountCents) {
       const { data: walletPayRows, error: walletPayError } = await supabaseAdmin
         .rpc('pay_appointment_with_patient_wallet', {
           p_appointment_id: appointmentId,
@@ -375,11 +429,11 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     // 9. Wallet insufficient: create preference in MercadoPago
-    const mpAccessToken = Deno.env.get('MERCADOPAGO_ACCESS_TOKEN')
+    const mpAccessToken = getMercadoPagoMarketToken(billingCurrency)
     if (!mpAccessToken) {
-      console.error('[create-appointment-payment] MERCADOPAGO_ACCESS_TOKEN is missing')
+      console.error('[create-appointment-payment] Market-specific MercadoPago credential is missing')
       return new Response(
-        JSON.stringify({ error: 'MercadoPago access token is not configured' }),
+        JSON.stringify({ error: 'MercadoPago token for selected market is not configured' }),
         {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -393,7 +447,7 @@ export async function handler(req: Request): Promise<Response> {
           title: 'AutaMedica - Consulta medica',
           quantity: 1,
           unit_price: amountCents / 100,
-          currency_id: 'ARS',
+          currency_id: billingCurrency,
         },
       ],
       back_urls: {
@@ -404,7 +458,7 @@ export async function handler(req: Request): Promise<Response> {
       auto_return: 'approved',
       statement_descriptor: 'AUTAMEDICA',
       external_reference: appointmentId,
-      notification_url: 'https://www.autamedica.com/api/payments/mercadopago/webhook',
+      notification_url: `${supabaseUrl}/functions/v1/mobile-payments-webhook?market=${billingCurrency === 'BRL' ? 'BR' : 'AR'}`,
       metadata: {
         appointment_id: appointmentId,
         patient_id: patient.id,
@@ -447,7 +501,7 @@ export async function handler(req: Request): Promise<Response> {
           patient_id: patient.id,
           doctor_id: appointment.doctor_id,
           gross_amount: amountCents,
-          currency: 'ARS',
+          currency: billingCurrency,
           status: 'pending',
           provider: 'mercadopago',
           provider_preference_id: mpData.id,
@@ -456,6 +510,7 @@ export async function handler(req: Request): Promise<Response> {
             appointment_id: appointmentId,
             patient_id: patient.id,
             doctor_id: appointment.doctor_id,
+            currency: billingCurrency,
           },
           updated_at: new Date().toISOString(),
         },
@@ -493,6 +548,7 @@ export async function handler(req: Request): Promise<Response> {
         payment_source: 'mercadopago',
         checkout_url: mpData.init_point,
         preference_id: mpData.id,
+        currency: billingCurrency,
       }),
       {
         status: 200,
@@ -512,4 +568,4 @@ export async function handler(req: Request): Promise<Response> {
   }
 };
 
-Deno.serve(handler);
+Deno.serve(withEdgeSentry('create-appointment-payment', handler));

@@ -1,87 +1,89 @@
-# Jordan — release evidence, never a calendar gate
+# Jordan — release evidence and production gates
 
-This is a **NO-GO** checklist until every row links to a successful run on
-the exact reviewed/merged `main` SHA. Do not activate
-`ENABLE_JORDAN_PAYMENTS`, accept live Mercado Pago payments, distribute
-commercial QR codes or arrange commission transfers while any gate is open.
+## Autoridad única de interruptores operativos
 
-## Gate 1 — executed CI
+La única autoridad sobre el estado activo/inactivo de cualquier flujo es la fila global de `public.platform_operational_switches`, gobernada desde `/admin`. Ningún estado estático de este documento ni de otro Markdown representa configuración operativa vigente. Queda prohibido bloquear PRs, merges, CI o despliegues basándose en estados estáticos de documentos Markdown. Los checklists de este archivo documentan evidencia y procedimientos, no interruptores ejecutables.
 
-CircleCI (no production publishing) can be manually triggered with
-`run_jordan_gate=true`, with checkout source and config source both on
-the same `main` commit. The workflow runs:
-- `smoke` (Node privacy/config guards);
-- `jordan_sql_contract` (offline source invariants, **not** SQL replay);
-- `web` (locked dependencies, workspace package build, dispatch/payment/media
-  Vitest, Astro typecheck and build);
-- `jordan_deno` (synthetic SFU Edge Function tests);
-- `android` (Kotlin compile, JVM tests, test-source compile, unsigned bundle).
+This document records technical and clinical release evidence. Its static status is not an operational switch and must never block PRs, merges, CI or deployments. Live flow activation is governed exclusively by `public.platform_operational_switches` from `/admin`.
 
-The `web` and `jordan_deno` jobs depend on both inexpensive first checks;
-`android` runs only once web and Deno passed. This is an explicit
-Free-credit opt-in; ordinary pushes are **not** configured to create thousands
-of builds. If GitHub Actions reports `startup_failure`, this does not pass
-the gate. **Store pipeline URL, exact SHA, job list, pass/fail and logs.**
-A green static contract check is not a green DB replay.
+## Integrated changes
 
-## Gate 2 — disposable DB before existing staging
+- **#707 — Android QR and request recovery:** merged into `main`; device-level QA remains pending.
+- **#729 — SFU room/session binding:** merged into `main`; migration `20261112025805_sfu_room_session_bindings_20261112` is present in production.
+- **#726 — Brazil pricing:** merged; production enforces patient R$79 and doctor offer R$40 through the Jordan quote trigger.
+- **First-contact phone guard:** production function `sync_pharmacy_referral_commission()` now normalizes Brazilian phone numbers, serializes concurrent payment hooks, allows one provisional R$10 commission per referral/contact, and reverses refunded payments. Applied through Supabase as migration version `20261112092725` (`jordan_first_contact_commission_guard`). Guest phone is **not verified identity** and this provisional ledger is not authorization to pay a partner.
+- **#759 — Android payment recovery:** merged as `1731faf8eab8cfd32c0999b8b05fef431927e5bd`. Restored Jordan `in_call` requests now require PSP approval before navigation and independently poll payment state. Three JVM regression tests cover pending, approved, and refunded restoration. Android CI run `43192322223` is still pending final result at the time of this update.
+- **#757 — SFU HMAC rotation workflow:** rebased against `main`; branch commit `411bdf87568a50b3b2f43c0f28456ca771c4e239`. Audit check is red; PR remains open. Independently, rotation workflow run `43192563000` completed successfully: shared HMAC was rotated and verified across Cloudflare Web, Cloudflare Doctors, and Supabase Edge; `SFU_SESSION_BINDINGS_ENABLED=true` was applied; the live signed-token probe passed.
+- **#744 — BR generalist/specialist opt-in dispatch:** Ready for review. Disposable migration replay and Tests pass; Audit is red. Production still reports 0 BR doctors on duty.
+- **#728 — verified first-person commission gate:** Ready for review. Disposable migration replay and Tests pass; Audit is red. No trusted identity-provider integration is available; the design must remain fail-closed and no Jordan commission may be paid without trusted proof.
 
-Reconcile source migration history, baseline schema and staging schema drift
-**before writing to current staging**. The current staging was read-only
-verified missing `dispatch_offers`, `match_dispatch_doctors`, request
-`patient_id`, `price_brl`, `doctor_fee_brl`, and guest dispatch sessions.
-Do not backfill just the missing columns: clinical ACLs, patient allocation,
-doctor credentials, RPC signatures, triggers and migrations must match.
-Run the full reviewed migrations in a NEW disposable local DB, then SQL
-rollback tests `jordan_br_79_40_dispatch_isolated.sql`,
-`jordan_first_contact_commission_isolated.sql` and
-`pharmacy_referral_commission_isolated.sql`.
-Only afterward seek approval to reconcile existing staging; production is last.
+## Gate 1 — CI and Android recovery
 
-## Gate 3 — Brazil-only
+Require successful source smoke, SQL contracts, web tests/build, Deno tests, and Android JVM tests/build on one exact reviewed SHA. A GitHub `startup_failure` with zero jobs is not a passing test. The Android regression covers process death while a Jordan request is `in_call`: pending payment keeps the patient on checkout and polls the PSP; approved payment alone enables navigation; refunded payment never enables the call. JVM coverage does not replace physical-device QA.
 
-Verify #716 trigger and current web intake: AR / unknown + JORDAN rejected,
-BR general accepted, non-Jordan Argentina still functions. Both read-only
-presence checks and executed tests are required.
+## Gate 2 — database replay and commission identity
 
-## Gate 4 — Android
+Run the full reviewed migration chain and isolated SQL fixtures in a new disposable local database. Do not run synthetic fixtures against production. The normalized-phone first-contact guard is deployed, but #728's verified-subject migration and its tests must be accepted before verified commission accounting is considered complete. A real backend-trusted GovBR/CPF KYC integration is still required; typed CPF, phone, and guest patient IDs are not identity proof.
 
-Rebase #707 on main without reverting #725/#726/#716. Validate signed QR,
-BR locale, token-scoped queue recovery, accepted R$40 offer, R$79 checkout,
-PSP-approved vs pending/refunded, process death and real Android device.
-No assertion that JVM tests alone are instrumented device coverage.
+## Gate 3 — BR-only and dispatch capacity
 
-## Gate 5 — verified identity
+The production BR-only referral trigger and R$79/R$40 quote trigger are installed. Validate #744's matcher with its disposable SQL fixture, including explicit general-tier opt-in, license approval, BR country, guard duty, heartbeat, and no cross-country assignment. Production capacity last returned **0 doctors on duty**; operational dispatch still requires an eligible BR doctor with a fresh heartbeat.
 
-Phone, CPF typed by a guest and generated guest `patient_id` are NOT verified
-identity. Deduplicated contact-ledger accounting is provisional, not a
-first-person-conversion guarantee or a payout instruction. Add an approved
-trusted verification provenance before any partner disbursement.
+## Gate 4 — SFU/HMAC
 
-## Gates 6–7 — PSP TEST, video
+Rotation workflow `43192563000` succeeded. The same HMAC was applied to Cloudflare Pages Web, Cloudflare Pages Doctors, and Supabase Edge; `SFU_SESSION_BINDINGS_ENABLED=true` is present; secret metadata was read back; and the live signed-token probe passed. Do not rotate only one destination.
 
-Run only with Mercado Pago TEST and synthetic clinician/patient records.
-Trace request, accepted medical offer R$40, patient checkout R$79,
-provider reconciliation, pending/rejected/refunded reversal, web/Android
-join, participants vs outsiders, and SFU session/room binding.
-A return to the browser is not payment proof.
+## Gate 5 — PSP TEST and video
 
-## Gates 8–9 — production decision
+Use Mercado Pago TEST and synthetic patient/doctor records only. Trace request, accepted R$40 medical offer, R$79 patient checkout, provider reconciliation, pending/rejected/refunded states, Android process restoration, and SFU room/session binding. A browser redirect is not payment proof.
 
-Record review, sign-off, SHA, migration replay logs, both roles' video
-smokes and refunds. Verify at least one eligible on-duty BR doctor, deployed
-web commit equals reviewed commit and the feature flag is **false** before
-go/no-go. Only after explicit GO, enable the scoped flag with monitoring and
-immediate rollback ability.
+## Gate 6 — production decision
 
-| Gate | State | Evidence link / run | Owner approval |
-|---|---|---|---|
-| 1 CI | NO-GO | Missing green executed run | Pending |
-| 2 Migrations | NO-GO | Disposable replay not executed | Pending |
-| 3 Brasil-only | NO-GO | #716 merged; no executed smoke | Pending |
-| 4 Android | NO-GO | #707 draft/unverified | Pending |
-| 5 Identity | NO-GO | No verified subject available | Pending |
-| 6 PSP TEST | NO-GO | No full TEST run | Pending |
-| 7 Video | NO-GO | SFU session mapping unverified | Pending |
-| 8 Decision | NO-GO | No sign-off | Pending |
-| 9 Live enable | OFF | `ENABLE_JORDAN_PAYMENTS` unset/false | Pending |
+Before any GO decision, require green required CI, disposable migration replay, identity-proof tests, PSP TEST, end-to-end video tests, at least one eligible BR doctor on duty, verified secret parity, and a deployed web commit matching the reviewed code. Use the live `/admin` controls in `public.platform_operational_switches` for operational activation. This Markdown checklist is not an activation authority.
+
+| Gate | Current state | Evidence / outstanding work |
+|---|---|---|
+| #707 Android QR/recovery base | Integrated | Merged; device QA pending |
+| #729 SFU binding base | Integrated | Merged; binding migration present |
+| #726 tariff R$79/R$40 | Integrated | Production quote trigger installed |
+| First-contact phone guard | Applied | Production migration `20261112092725`; phone is not verified identity |
+| #759 Android payment recovery | Merged | `1731faf8`; Android CI run `43192322223` pending final result |
+| #757 HMAC rotation | Applied / PR open | Workflow `43192563000` success; Audit red on PR |
+| #744 dispatch eligibility | Ready for review | Tests + disposable replay pass; Audit red; 0 BR doctors on duty |
+| #728 verified identity | Ready for review | Tests + disposable replay pass; Audit red; trusted verifier unavailable |
+| PSP TEST + SFU E2E | NO-GO | Not executed end to end |
+| Operational activation | Admin-controlled | Read `public.platform_operational_switches`; Markdown has no authority |
+
+## Verificación operativa Jordan / Farmacia Express — 2026-11-14
+
+**Estado: PARTIAL / NO-GO para declarar el circuito integral VERIFIED.** Esta sección reemplaza cualquier interpretación de migraciones aplicadas como evidencia de E2E.
+
+### Evidencia real leída en Supabase Producción (`qxjjrpksmwwrmubhvjew`)
+
+- Las tablas `pharmacy_dispatch_requests`, `pharmacy_dispatch_payments`, `admin_approval_decisions`, `doctor_earnings` y `commercial_referral_commissions` existen.
+- `platform_operational_switches.dispatch_engine_enabled` existe y el switch global está activo; también están activos los tres switches de checkout QR / Farmacia Express / PIX-MercadoPago.
+- `expire_stale_dispatch_requests()` está instalada y crea aprobaciones `PENDING_HUMAN_APPROVAL` para pagos aprobados asociados a solicitudes vencidas, con índice único idempotente por `dispatch_request_id`.
+- El trigger `trg_record_pharmacy_dispatch_doctor_earning` está instalado sobre la transición a `completed`. La función crea earning BRL 4000 (R$40) y comisión BRL 1000 (R$10), ambas idempotentes por solicitud.
+- La base informa 683 médicos BR activos/en guardia y 1 médico BR con FCM no vacío. Esto no demuestra entrega FCM ni aceptación de una oferta.
+- El panel administrativo exponía el cuarto switch, pero el callback de decisión de aprobación tenía un parámetro inexistente. Se corrigió en `PaymentGovernancePanel.tsx` para enviar explícitamente `resolution_action=reopen|refund`.
+- La ruta `/api/admin/approvals` ya implementa reapertura con nueva ventana de 15 minutos y reejecución del matcher, y reembolso MercadoPago con idempotency key.
+- La emisión de receta ya exime a médicos brasileños/CFM de REFEPS. Se corrigió el fallback de dirección para que un invitado QR con teléfono y solicitud de farmacia use la ubicación real del mostrador, sin exigir domicilio residencial.
+
+### Etapas que NO se marcan como verificadas
+
+1. QR invitado + token: no se ejecutó una creación nueva con token real en esta corrida.
+2. Pago R$79: no se confirmó un pago real MercadoPago TEST ni su webhook.
+3. FCM + matcher + claim: no se completó una oferta real de extremo a extremo.
+4. SFU invitado: no se realizó una llamada autenticada real a `cloudflare-calls` con `x-guest-token`.
+5. Receta BR + cierre contable: el trigger y las reglas están instalados, pero no se completó una consulta de prueba real con verificación de PDF/QR y ledger.
+6. Expiración + reapertura: la función y endpoint existen, pero no se creó y resolvió una segunda solicitud pagada de prueba.
+
+**Release decision: NO-GO / E2E pendiente.** No convertir esta evidencia de esquema/código en un GO / VERIFIED. La verificación integral requiere ejecutar el flujo contra un entorno de prueba con credenciales TEST de MercadoPago, un médico BR con FCM operativo y las credenciales de Cloudflare Calls/SFU.
+
+
+### Bloqueo adicional encontrado antes de declarar GO
+
+- El matcher de producción permite seleccionar un médico BR con FCM aunque el heartbeat supere 90 segundos. El único médico BR con FCM no vacío consultado tenía heartbeat de **629 segundos**; el criterio de selección está en el SQL desplegado. No se ejecutó una oferta real ni se confirmó entrega del push.
+- La ruta central `issuePrescription()` todavía tiene un bloqueo independiente: tras generar el flujo PDF/QR BR, exige `externalRegistration` y devuelve `farmalink_registration_required` si no existe. Esa variable solo se completa en el flujo AR/Farmalink. Brasil dispone de endpoints Memed separados, pero el test DEMO existente intercepta la llamada HTTP y usa Supabase simulado. Por eso no se puede declarar emisión BR de producción probada ni cerrar la etapa 5 con la corrección de REFEPS/domicilio solamente.
+- Los runs de CI y Production Deploy disparados por el commit de código `a6a61277b8e7038b234968af3ec501c42ddc60e0` fueron observados como `pending` sin jobs publicados en la consulta inicial. El run Security del commit documental también quedó `pending`. No hay evidencia verde para este SHA en esta ejecución.
+

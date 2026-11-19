@@ -19,6 +19,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -37,7 +38,7 @@ class DoctorCertificatesViewModelTest {
             certificateType = CertificateType.REPOSO_LABORAL,
             daysOfRest = 2,
             startDate = "2026-09-12",
-            endDate = "2026-09-14",
+            endDate = "2026-09-13",
             diagnosis = "Gastroenteritis aguda",
             hideDiagnosis = false,
             observations = "Reposo 48 hs",
@@ -45,7 +46,7 @@ class DoctorCertificatesViewModelTest {
             doctorLicense = "MP006402",
             patientName = "Maximiliano Gutierrez",
             patientDni = "95123456",
-            signedPdfUrl = null,
+            signedPdfUrl = "https://storage.autamedica.com/cert-1.pdf",
             qrCodeContent = "https://autamedica.com/verify/AR-CERT-20260912-001091",
             countryCode = "AR",
             createdAt = "2026-09-12T00:00:00Z",
@@ -69,6 +70,26 @@ class DoctorCertificatesViewModelTest {
             qrCodeContent = "https://autamedica.com/verify/AR-CERT-20260910-002488",
             countryCode = "AR",
             createdAt = "2026-09-10T00:00:00Z",
+        ),
+        MedicalCertificate(
+            id = "cert-4",
+            cuir = "BR-CERT-20260915-004000",
+            status = "signed",
+            certificateType = CertificateType.REPOSO_LABORAL,
+            daysOfRest = 2,
+            startDate = "2026-09-15",
+            endDate = "2026-09-16",
+            diagnosis = null,
+            hideDiagnosis = true,
+            observations = null,
+            doctorName = "Dr. Eduardo Da Rosa",
+            doctorLicense = "CRM-RS-000000",
+            patientName = "Paciente de teste",
+            patientDni = "00000000000",
+            signedPdfUrl = "https://storage.autamedica.com/cert-4.pdf",
+            qrCodeContent = "https://autamedica.com/verify/BR-CERT-20260915-004000",
+            countryCode = "BR",
+            createdAt = "2026-09-15T00:00:00Z",
         ),
         MedicalCertificate(
             id = "cert-3",
@@ -113,17 +134,25 @@ class DoctorCertificatesViewModelTest {
     @Test
     fun initialStateLoadsCertificatesAndCounts() = runTest {
         val state = viewModel.uiState.value
-        assertThat(state.certificates).hasSize(3)
-        assertThat(state.totalCount).isEqualTo(3)
-        assertThat(state.validCount).isEqualTo(2)
+        assertThat(state.certificates).hasSize(4)
+        assertThat(state.totalCount).isEqualTo(4)
+        assertThat(state.validCount).isEqualTo(1)
         assertThat(state.cancelledCount).isEqualTo(1)
-        assertThat(state.filteredCertificates).hasSize(3)
+        assertThat(state.filteredCertificates).hasSize(4)
+    }
+
+    @Test
+    fun brazilCertificateRequiresVerifiedSignatureAndDownloadablePdf() = runTest {
+        val brazilCertificate = sampleCertificates.first { it.id == "cert-4" }
+        assertThat(brazilCertificate.isActive).isFalse()
+        assertThat(brazilCertificate.copy(signatureVerifiedAt = "2026-09-15T12:00:00Z").isActive).isTrue()
+        assertThat(brazilCertificate.copy(signedPdfUrl = null, signatureVerifiedAt = "2026-09-15T12:00:00Z").isActive).isFalse()
     }
 
     @Test
     fun filteringByStatusWorks() = runTest {
         viewModel.onSelectStatusFilter("validos")
-        assertThat(viewModel.uiState.value.filteredCertificates).hasSize(2)
+        assertThat(viewModel.uiState.value.filteredCertificates).hasSize(1)
 
         viewModel.onSelectStatusFilter("cancelados")
         assertThat(viewModel.uiState.value.filteredCertificates).hasSize(1)
@@ -150,7 +179,7 @@ class DoctorCertificatesViewModelTest {
         assertThat(state.certificateType).isEqualTo(CertificateType.REPOSO_LABORAL)
         assertThat(state.daysOfRest).isEqualTo(2)
 
-        val expectedEnd = LocalDate.now().plusDays(2).format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val expectedEnd = LocalDate.now(ZoneId.of("America/Argentina/Buenos_Aires")).plusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE)
         assertThat(state.endDate).isEqualTo(expectedEnd)
     }
 
@@ -160,8 +189,38 @@ class DoctorCertificatesViewModelTest {
         viewModel.onDaysOfRestChange(5)
         val state = viewModel.uiState.value
         assertThat(state.daysOfRest).isEqualTo(5)
-        val expectedEnd = LocalDate.now().plusDays(5).format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val expectedEnd = LocalDate.parse(state.startDate).plusDays(4).format(DateTimeFormatter.ISO_LOCAL_DATE)
         assertThat(state.endDate).isEqualTo(expectedEnd)
+    }
+
+    @Test
+    fun certificateCanBePreparedForAnHourBasedLeavePeriod() = runTest {
+        viewModel.initCreateCertificate("pat-1")
+        viewModel.onRestPeriodUnitChange("hours")
+        viewModel.onRestHoursChange(4)
+        viewModel.onDiagnosisChange("Consulta e avaliação clínica")
+
+        viewModel.onSubmitCertificate()
+
+        val state = viewModel.uiState.value
+        assertThat(state.daysOfRest).isEqualTo(0)
+        assertThat(state.restHours).isEqualTo(4)
+        assertThat(state.endDate).isNull()
+        assertThat(fakeCertRepo.lastRequest?.daysOfRest).isEqualTo(0)
+        assertThat(fakeCertRepo.lastRequest?.restHours).isEqualTo(4)
+        assertThat(state.createdCertificate?.restHours).isEqualTo(4)
+    }
+
+    @Test
+    fun optionalCid10SurvivesDiagnosisEditsAndIsIncludedInDraftRequest() = runTest {
+        viewModel.initCreateCertificate("pat-1")
+        viewModel.onDiagnosisChange("Diagnóstico inicial")
+        viewModel.onDiagnosisCodeChange("J20.9")
+        viewModel.onDiagnosisChange("Diagnóstico actualizado")
+        viewModel.onSubmitCertificate()
+
+        assertThat(fakeCertRepo.lastRequest?.diagnosis).isEqualTo("Diagnóstico actualizado")
+        assertThat(fakeCertRepo.lastRequest?.cid10Code).isEqualTo("J20.9")
     }
 
     @Test
@@ -206,6 +265,8 @@ private class FakeDoctorCertificateRepository(
     private val certificates: List<MedicalCertificate>,
     private val patients: List<PrescriptionPatientItem>,
 ) : MedicalCertificateRepository {
+    var lastRequest: CreateCertificateRequest? = null
+
     override suspend fun getPatientCertificates(): Result<List<MedicalCertificate>> =
         Result.success(certificates)
 
@@ -216,12 +277,14 @@ private class FakeDoctorCertificateRepository(
         Result.success(certificates)
 
     override suspend fun createCertificate(request: CreateCertificateRequest): Result<MedicalCertificate> {
+        lastRequest = request
         val cert = MedicalCertificate(
             id = "new-cert",
             cuir = "AR-CERT-20260912-TEST01",
             status = "draft",
             certificateType = request.certificateType,
             daysOfRest = request.daysOfRest,
+            restHours = request.restHours,
             startDate = request.startDate,
             endDate = request.endDate,
             diagnosis = if (request.hideDiagnosis) null else request.diagnosis,
@@ -253,5 +316,5 @@ private class FakeDoctorPrescriptionRepository(
     override suspend fun cancelPrescription(prescriptionId: String, reason: String): Result<Unit> = Result.success(Unit)
     override suspend fun getEligiblePatients(): Result<List<PrescriptionPatientItem>> = Result.success(patients)
     override suspend fun getDoctorEligibility(): Result<DoctorEligibility> =
-        Result.success(DoctorEligibility(true, "MP006402", "valid"))
+        Result.success(DoctorEligibility(true, "MP006402", "valid", countryCode = "AR"))
 }

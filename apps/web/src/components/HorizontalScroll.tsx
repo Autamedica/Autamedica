@@ -32,9 +32,10 @@ interface Portal {
 }
 
 const PORTAL_META = [
-  { color: 'var(--portal-patients)', href: '/auth/select-role', video: '/videos/video1.mp4' },
-  { color: 'var(--portal-doctors)', href: '/auth/select-role', video: '/videos/video2.mp4' },
-  { color: 'var(--portal-companies)', href: '/auth/select-role', video: '/videos/video3.mp4' },
+  { color: 'var(--portal-patients)', href: '/auth/login?role=patient', video: '/videos/video1.mp4' },
+  { color: 'var(--portal-doctors)', href: '/auth/login?role=doctor', video: '/videos/video2.mp4' },
+  { color: 'var(--portal-companies)', href: '/auth/login?role=company_admin', video: '/videos/video3.mp4' },
+  { color: '#0EA5E9', href: '/farmacia/solicitar', video: '/videos/video3.mp4' },
 ];
 
 const PORTAL_HEX = ['#10b981', '#0ea5e9', '#38bdf8'];
@@ -57,10 +58,11 @@ function ArrowIcon() {
 
 export default function HorizontalScroll({ locale = 'es' }: { locale?: Locale }) {
   const { dict } = getClientI18n(locale);
-  const portals: Portal[] = useMemo(
-    () => dict.landing.horizontalScroll.portals.map((p, i) => ({ ...p, ...PORTAL_META[i] })),
-    [dict],
-  );
+  const portals: Portal[] = useMemo(() => {
+    const localized: Portal[] = dict.landing.horizontalScroll.portals.map((p, i) => ({ ...p, ...PORTAL_META[i] }));
+    if (localized.length < 4) localized.push({ name: locale === 'pt' ? 'Farmácias' : 'Farmacias', color: '#0EA5E9', description: locale === 'pt' ? 'Atendimento por vídeo direto do balcão, com receita digital para seus clientes.' : 'Atención por video directo desde el mostrador, con receta digital para tus clientes.', features: locale === 'pt' ? ['Plantão Express', 'Atendimento por QR Code'] : ['Plantão Express', 'Atención por QR Code'], cta: locale === 'pt' ? 'Acessar atendimento' : 'Acceder a consultas', href: '/farmacia/solicitar', video: '/videos/video3.mp4' });
+    return localized;
+  }, [dict, locale]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);

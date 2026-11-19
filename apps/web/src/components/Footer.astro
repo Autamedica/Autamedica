@@ -39,41 +39,41 @@ const columns = [
       { text: t('landing.footer.doctors'), href: '/doctors' },
       { text: t('landing.footer.companies'), href: '/companies' },
       { text: 'Especialidades', href: '/especialidades' },
-      { text: 'Nosotros', href: '/nosotros' },
+      { text: locale === 'pt' ? 'Sobre nós' : 'Nosotros', href: '/nosotros' },
       { text: 'Blog', href: '/blog' },
     ]
   },
   {
-    title: 'Atención Médica',
+    title: locale === 'pt' ? 'Atendimento Médico' : 'Atención Médica',
     links: [
       { text: 'Consulta médica online', href: '/consulta-medica-online' },
-      { text: 'Guardia médica 24hs', href: '/guardia-medica-online' },
-      { text: 'Videoconsulta médica', href: '/videoconsulta-medica' },
-      { text: 'Consulta en farmacia', href: '/consulta-medica-en-farmacia' },
+      { text: locale === 'pt' ? 'Pronto atendimento 24h' : 'Guardia médica 24hs', href: '/guardia-medica-online' },
+      { text: locale === 'pt' ? 'Consulta por vídeo' : 'Videoconsulta médica', href: '/videoconsulta-medica' },
+      { text: locale === 'pt' ? 'Consulta na farmácia' : 'Consulta en farmacia', href: '/consulta-medica-en-farmacia' },
       { text: 'Médico online', href: '/medico-online' },
-      { text: 'Turno médico online', href: '/turno-medico-online' },
+      { text: locale === 'pt' ? 'Agendamento médico online' : 'Turno médico online', href: '/turno-medico-online' },
     ]
   },
   {
-    title: 'Trámites y Recetas',
+    title: locale === 'pt' ? 'Documentos e Receitas' : 'Trámites y Recetas',
     links: [
-      { text: 'Certificados médicos', href: '/certificados-medicos' },
-      { text: 'Certificado médico online', href: '/certificado-medico-online' },
+      { text: locale === 'pt' ? 'Atestados médicos' : 'Certificados médicos', href: '/certificados-medicos' },
+      { text: locale === 'pt' ? 'Atestado médico online' : 'Certificado médico online', href: '/certificado-medico-online' },
       { text: 'Justificativo médico', href: '/justificativo-medico' },
-      { text: 'Certificado laboral', href: '/certificado-medico-laboral' },
-      { text: 'Aptitud física', href: '/certificado-aptitud-fisica' },
-      { text: 'Receta electrónica', href: '/receta-electronica' },
+      { text: locale === 'pt' ? 'Atestado para o trabalho' : 'Certificado laboral', href: '/certificado-medico-laboral' },
+      { text: locale === 'pt' ? 'Aptidão física' : 'Aptitud física', href: '/certificado-aptitud-fisica' },
+      { text: locale === 'pt' ? 'Receita digital' : 'Receta electrónica', href: '/receta-electronica' },
     ]
   },
   {
     title: 'Especialidades',
     links: [
-      { text: 'Médico clínico online', href: '/medico-clinico-online' },
+      { text: locale === 'pt' ? 'Clínico geral online' : 'Médico clínico online', href: '/medico-clinico-online' },
       { text: 'Pediatra online', href: '/pediatra-online' },
-      { text: 'Gastroenterólogo online', href: '/gastroenterologo-online' },
-      { text: 'Neurólogo online', href: '/neurologo-online' },
+      { text: locale === 'pt' ? 'Gastroenterologista online' : 'Gastroenterólogo online', href: '/gastroenterologo-online' },
+      { text: locale === 'pt' ? 'Neurologista online' : 'Neurólogo online', href: '/neurologo-online' },
       { text: 'Psiquiatra online', href: '/psiquiatra-online' },
-      { text: 'Todas las especialidades', href: '/especialidades' },
+      { text: locale === 'pt' ? 'Todas as especialidades' : 'Todas las especialidades', href: '/especialidades' },
     ]
   },
   {
@@ -81,9 +81,9 @@ const columns = [
     links: [
       { text: t('landing.footer.privacy'), href: '/privacidad' },
       { text: t('landing.footer.terms'), href: '/terms' },
-      { text: 'Ley 26529', href: '/blog/que-dice-la-ley-26529' },
-      { text: 'Ley 27553', href: '/ley-27553-telemedicina' },
-      { text: 'Ministerio de Salud — ID 0268', href: '/receta-electronica' },
+      { text: locale === 'pt' ? 'Lei 26.529' : 'Ley 26529', href: '/blog/que-dice-la-ley-26529' },
+      { text: locale === 'pt' ? 'Lei 27.553' : 'Ley 27553', href: '/ley-27553-telemedicina' },
+      { text: locale === 'pt' ? 'Ministério da Saúde — ID 0268' : 'Ministerio de Salud — ID 0268', href: '/receta-electronica' },
     ]
   }
 ];
@@ -176,7 +176,7 @@ const columns = [
         id="au-cookie-preferences"
         class="min-h-11 rounded-lg px-3 text-sm text-[var(--au-text-primary)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-[var(--au-accent)]"
       >
-        Preferencias de cookies
+        {locale === 'pt' ? 'Preferências de cookies' : 'Preferencias de cookies'}
       </button>
 
       <div class="cert-badges flex gap-4 mt-6 md:mt-0">

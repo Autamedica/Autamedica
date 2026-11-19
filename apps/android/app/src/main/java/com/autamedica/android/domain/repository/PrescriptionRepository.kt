@@ -41,7 +41,7 @@ interface PrescriptionRepository {
     suspend fun getEligiblePatients(): Result<List<PrescriptionPatientItem>>
 
     /**
-     * Verifies the doctor's professional licensing and SISA validation status under Decreto 63.
+     * Verifies the doctor's professional license under the applicable jurisdiction registry (SISA/REFEPS for AR, CFM/CRM for BR).
      */
     suspend fun getDoctorEligibility(): Result<DoctorEligibility>
 }

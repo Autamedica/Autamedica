@@ -262,8 +262,8 @@ async function listClarificationRequests(
       type: 'doctor_prescription_clarification_requested',
       title: 'Farmacia pidio una aclaracion',
       body: `${pharmacyName} necesita respuesta sobre ${order.medication} para ${patientName}.`,
-      actionUrl: '/doctors/consultations',
-      actionLabel: 'Revisar caso',
+      actionUrl: '/doctors/clarifications',
+      actionLabel: 'Responder aclaración',
       priority: 'urgent',
       dedupeKey: `doctor:clarification:${order.id}`,
       contextData: {

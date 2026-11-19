@@ -1,4 +1,6 @@
+import java.time.Duration
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
@@ -42,14 +44,20 @@ android {
     namespace = "com.autamedica.android"
     compileSdk = 35
 
+    // Robolectric tests exercise app resources (strings, notification channels and layouts).
+    // Without this, tests fall back to framework-only resources and fail with resource IDs.
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
     defaultConfig {
         applicationId = "com.autamedica.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 32
-        versionName = "1.2.22"
+        versionCode = 35
+        versionName = "1.2.25"
 
-        resourceConfigurations += listOf("es", "pt", "pt-rBR")
+        resourceConfigurations += listOf("es", "es-rAR", "pt", "pt-rBR" )
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -67,6 +75,14 @@ android {
             "String",
             "WEB_API_URL",
             quoteForBuildConfig(optionalBuildProperty("WEB_API_URL", "https://www.autamedica.com"))
+        )
+        buildConfigField(
+            "String",
+            "SENTRY_DSN",
+            quoteForBuildConfig(optionalBuildProperty(
+                "PUBLIC_SENTRY_DSN",
+                "https://485f1dbb686db51681cf8159012dcdf1@o4511195725168640.ingest.us.sentry.io/4511195726741504"
+            ))
         )
         buildConfigField(
             "String",
@@ -132,6 +148,9 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -148,13 +167,16 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
 
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
@@ -176,6 +198,7 @@ dependencies {
     implementation(libs.core.ktx)
     implementation(libs.activity.compose)
     implementation(libs.core.splashscreen)
+    implementation(libs.androidx.browser)
 
     // Navigation
     implementation(libs.navigation.compose)
@@ -199,6 +222,9 @@ dependencies {
 
     // Ktor (required by supabase-kt)
     implementation(libs.ktor.client.okhttp)
+
+    // One-time Google Play install attribution (pinned library version)
+    implementation("com.android.installreferrer:installreferrer:2.2")
 
     // Network
     implementation(libs.okhttp)
@@ -229,6 +255,9 @@ dependencies {
     // Logging
     implementation(libs.timber)
 
+    // Error reporting (Firebase Crashlytics remains enabled as a second sink)
+    implementation(libs.sentry.android)
+
     // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
@@ -253,14 +282,20 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
     testImplementation(libs.truth)
+    testImplementation(libs.robolectric)
     testImplementation(libs.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
     androidTestImplementation(libs.compose.ui.test.junit4)
 }
 
 tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    // A broken coroutine retry/heartbeat must never pin the release runner indefinitely.
+    timeout.set(Duration.ofMinutes(3))
     testLogging {
-        events(org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED)
+        events(
+            org.gradle.api.tasks.testing.logging.TestLogEvent.STARTED,
+            org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED,
+        )
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
 }

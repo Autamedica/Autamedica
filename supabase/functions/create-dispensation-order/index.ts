@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
-import { captureEdgeException, initEdgeSentry } from '../_shared/sentry.ts';
+import {captureEdgeException, initEdgeSentry, withEdgeSentry } from '../_shared/sentry.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? (() => { throw new Error('SUPABASE_URL is not set') })();
 const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? (() => { throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set') })();
@@ -10,7 +10,7 @@ interface CreateOrderRequest {
 
 initEdgeSentry('create-dispensation-order');
 
-Deno.serve(async (req) => {
+Deno.serve(withEdgeSentry('create-dispensation-order', async (req) => {
   try {
     // Auth verification
     const authHeader = req.headers.get('Authorization');
@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (insertError) {
-      captureEdgeException(insertError, {
+      await captureEdgeException(insertError, {
         layer: 'data-platform',
         surface: 'create-dispensation-order:insert',
         owner: 'Supabase Platform',
@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    captureEdgeException(error, {
+    await captureEdgeException(error, {
       layer: 'data-platform',
       surface: 'create-dispensation-order:unexpected',
       owner: 'Supabase Platform',
@@ -214,4 +214,4 @@ Deno.serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
     });
   }
-});
+}));

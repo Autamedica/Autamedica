@@ -1,4 +1,6 @@
 import {
+  resolvePublicSupabaseEnv,
+  resolveServiceRoleKey,
   resolveBusNonFhirApplicationName,
   resolveBusNonFhirDomainCode,
   resolveBusNonFhirPassword,
@@ -130,6 +132,14 @@ function requireConfig(runtimeEnv?: RuntimeEnvRecord): {
   return { applicationName, password, domainCode };
 }
 
+function hasDirectBusConfig(runtimeEnv?: RuntimeEnvRecord): boolean {
+  return Boolean(
+    resolveBusNonFhirApplicationName(runtimeEnv) &&
+    resolveBusNonFhirPassword(runtimeEnv) &&
+    resolveBusNonFhirDomainCode(runtimeEnv)
+  );
+}
+
 async function readJsonOrNull(response: Response): Promise<unknown> {
   const text = await response.text();
   if (!text) return null;
@@ -174,6 +184,10 @@ export async function fetchOfficialIdentity(input: {
   sexId: RenaperSexId;
   runtimeEnv?: RuntimeEnvRecord;
 }): Promise<OfficialIdentityResult> {
+  if (!hasDirectBusConfig(input.runtimeEnv)) {
+    return fetchOfficialIdentityViaSupabase(input);
+  }
+
   const { token, domainCode } = await getNonFhirAccessToken(input.runtimeEnv);
   const query = `nroDocumento=${encodeURIComponent(input.dni)}&idSexo=${input.sexId}`;
   const headers = {
@@ -205,5 +219,88 @@ export async function fetchOfficialIdentity(input: {
   return {
     person: normalizePerson(personPayload),
     coverages,
+  };
+}
+
+
+/**
+ * Cloudflare Patients does not have BUS login credentials. Use the existing
+ * protected Supabase Edge Function with the service-role key ONLY on server.
+ * Never return that key to a caller or include it in a log/error payload.
+ */
+async function fetchOfficialIdentityViaSupabase(input: {
+  dni: string;
+  sexId: RenaperSexId;
+  runtimeEnv?: RuntimeEnvRecord;
+}): Promise<OfficialIdentityResult> {
+  const { publicSupabaseUrl } = resolvePublicSupabaseEnv(input.runtimeEnv);
+  const key = resolveServiceRoleKey(input.runtimeEnv);
+  const projectHost = 'qxjjrpksmwwrmubhvjew.supabase.co';
+  let target: URL;
+  try {
+    target = new URL(publicSupabaseUrl);
+  } catch {
+    throw Object.assign(new Error('invalid_supabase_proxy_configuration'), {
+      code: 'BUS_NON_FHIR_SUPABASE_CREDENTIALS_MISSING',
+    });
+  }
+
+  // Do not send privileged credentials to an unexpected project or URL.
+  if (!key || target.protocol !== 'https:' || target.hostname !== projectHost ||
+      target.username || target.password || target.pathname !== '/' ||
+      target.search || target.hash) {
+    throw Object.assign(new Error('invalid_supabase_proxy_configuration'), {
+      code: 'BUS_NON_FHIR_SUPABASE_CREDENTIALS_MISSING',
+    });
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  let response: Response;
+  try {
+    response = await fetch(
+      `${target.origin}/functions/v1/patient-identity-renaper`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${key}`,
+          apikey: key,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ dni: input.dni, sexId: input.sexId }),
+        signal: controller.signal,
+      },
+    );
+  } catch {
+    throw Object.assign(new Error('renaper_proxy_unavailable'), {
+      code: 'RENAPER_PROXY_UNAVAILABLE',
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+
+  const payload = await readJsonOrNull(response);
+  const envelope = payload && typeof payload === 'object'
+    ? payload as Record<string, unknown>
+    : {};
+  if (!response.ok || envelope.success !== true) {
+    const allowedCodes = new Set([
+      'RENAPER_PERSON_NOT_FOUND', 'BUS_NON_FHIR_CREDENTIALS_MISSING',
+      'RENAPER_LOOKUP_FAILED', 'BUS_NON_FHIR_LOGIN_FAILED',
+    ]);
+    const sourceCode = typeof envelope.code === 'string' ? envelope.code : null;
+    const code = sourceCode && allowedCodes.has(sourceCode) ? sourceCode : 'RENAPER_LOOKUP_FAILED';
+    throw Object.assign(new Error('renaper_proxy_error'), {
+      code,
+      status: response.status,
+    });
+  }
+
+  const data = envelope.data && typeof envelope.data === 'object'
+    ? envelope.data as Record<string, unknown>
+    : {};
+  return {
+    person: normalizePerson(data.person),
+    coverages: normalizeCoverages(data.coverages),
   };
 }

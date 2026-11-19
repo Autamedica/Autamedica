@@ -57,7 +57,21 @@ class InCallDocumentPolicyTest {
         }
     }
 
-    @Test fun brazilMustNotFallBackToGenericPrescriptionIssuer() {
+    @Test fun inCallDocumentsRequireMatchingExplicitDoctorAndPatientCountries() {
+        assertThat(InCallDocumentPolicy.countriesMatchForDocumentIssuance("BR", "BR")).isTrue()
+        assertThat(InCallDocumentPolicy.countriesMatchForDocumentIssuance("AR", "AR")).isTrue()
+        assertThat(InCallDocumentPolicy.countriesMatchForDocumentIssuance("BR", "AR")).isFalse()
+        assertThat(InCallDocumentPolicy.countriesMatchForDocumentIssuance("AR", null)).isFalse()
+        assertThat(InCallDocumentPolicy.countriesMatchForDocumentIssuance(null, null)).isFalse()
+        assertThat(InCallDocumentPolicy.countriesMatchForDocumentIssuance("UY", "UY")).isFalse()
+    }
+
+    @Test fun matchingBrazilCareCountryUsesTheOfficialMemedIssuer() {
+        assertThat(InCallDocumentPolicy.countriesMatchForDocumentIssuance("BR", "BR")).isTrue()
+        assertThat(InCallDocumentPolicy.canUseNativePrescriptionIssuer("BR")).isFalse()
+    }
+
+    @Test fun prescriptionIssuerIsJurisdictionSpecific() {
         assertThat(InCallDocumentPolicy.canUseNativePrescriptionIssuer("AR")).isTrue()
         assertThat(InCallDocumentPolicy.canUseNativePrescriptionIssuer("BR")).isFalse()
         assertThat(InCallDocumentPolicy.canUseNativePrescriptionIssuer("UY")).isFalse()

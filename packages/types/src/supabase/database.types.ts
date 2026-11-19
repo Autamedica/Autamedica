@@ -6992,7 +6992,11 @@ export type Database = {
       }
       doctor_licenses: {
         Row: {
+          cfm_evidence_path: string | null
           cfm_last_checked_at: string | null
+          cfm_review_notes: string | null
+          cfm_reviewed_at: string | null
+          cfm_reviewed_by: string | null
           cfm_validation_status: string | null
           created_at: string
           doctor_id: string
@@ -7010,7 +7014,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cfm_evidence_path?: string | null
           cfm_last_checked_at?: string | null
+          cfm_review_notes?: string | null
+          cfm_reviewed_at?: string | null
+          cfm_reviewed_by?: string | null
           cfm_validation_status?: string | null
           created_at?: string
           doctor_id: string
@@ -7028,7 +7036,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cfm_evidence_path?: string | null
           cfm_last_checked_at?: string | null
+          cfm_review_notes?: string | null
+          cfm_reviewed_at?: string | null
+          cfm_reviewed_by?: string | null
           cfm_validation_status?: string | null
           created_at?: string
           doctor_id?: string
@@ -7591,6 +7603,21 @@ export type Database = {
           id: string
           languages: Json | null
           license_number: string
+          dni: string | null
+          gender: string | null
+          cuil: string | null
+          identity_status: string
+          official_full_name: string | null
+          official_first_name: string | null
+          official_last_name: string | null
+          official_cuil: string | null
+          official_birth_date: string | null
+          official_gender: string | null
+          puco_coverage_name: string | null
+          puco_coverage_code: string | null
+          identity_verified_at: string | null
+          identity_source: string | null
+          memed_birth_date: string | null
           license_type: string | null
           on_duty_pharmacy: boolean
           on_duty_since: string | null
@@ -7636,6 +7663,21 @@ export type Database = {
           id?: string
           languages?: Json | null
           license_number: string
+          dni?: string | null
+          gender?: string | null
+          cuil?: string | null
+          identity_status?: string
+          official_full_name?: string | null
+          official_first_name?: string | null
+          official_last_name?: string | null
+          official_cuil?: string | null
+          official_birth_date?: string | null
+          official_gender?: string | null
+          puco_coverage_name?: string | null
+          puco_coverage_code?: string | null
+          identity_verified_at?: string | null
+          identity_source?: string | null
+          memed_birth_date?: string | null
           license_type?: string | null
           on_duty_pharmacy?: boolean
           on_duty_since?: string | null
@@ -7681,6 +7723,21 @@ export type Database = {
           id?: string
           languages?: Json | null
           license_number?: string
+          dni?: string | null
+          gender?: string | null
+          cuil?: string | null
+          identity_status?: string
+          official_full_name?: string | null
+          official_first_name?: string | null
+          official_last_name?: string | null
+          official_cuil?: string | null
+          official_birth_date?: string | null
+          official_gender?: string | null
+          puco_coverage_name?: string | null
+          puco_coverage_code?: string | null
+          identity_verified_at?: string | null
+          identity_source?: string | null
+          memed_birth_date?: string | null
           license_type?: string | null
           on_duty_pharmacy?: boolean
           on_duty_since?: string | null
@@ -8655,6 +8712,104 @@ export type Database = {
             columns: ["record_id"]
             isOneToOne: false
             referencedRelation: "medical_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_document_archive_patient_links: {
+        Row: {
+          archive_id: string
+          id: string
+          link_method: string
+          linked_at: string
+          patient_id: string
+        }
+        Insert: {
+          archive_id: string
+          id?: string
+          link_method: string
+          linked_at?: string
+          patient_id: string
+        }
+        Update: {
+          archive_id?: string
+          id?: string
+          link_method?: string
+          linked_at?: string
+          patient_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_document_archive_patient_links_archive_id_fkey"
+            columns: ["archive_id"]
+            isOneToOne: true
+            referencedRelation: "medical_document_archives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_document_archive_patient_links_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_document_archives: {
+        Row: {
+          authorization_snapshot: Json
+          clinical_snapshot: Json
+          doctor_id: string
+          document_date: string
+          id: string
+          issuer_snapshot: Json
+          patient_snapshot: Json
+          pdf_sha256: string
+          reference: string
+          registered_at: string
+          signature_image_sha256: string
+          signature_type: string
+          stamp_image_sha256: string
+          status: string
+        }
+        Insert: {
+          authorization_snapshot: Json
+          clinical_snapshot: Json
+          doctor_id: string
+          document_date: string
+          id?: string
+          issuer_snapshot: Json
+          patient_snapshot: Json
+          pdf_sha256: string
+          reference: string
+          registered_at?: string
+          signature_image_sha256: string
+          signature_type: string
+          stamp_image_sha256: string
+          status?: string
+        }
+        Update: {
+          authorization_snapshot?: Json
+          clinical_snapshot?: Json
+          doctor_id?: string
+          document_date?: string
+          id?: string
+          issuer_snapshot?: Json
+          patient_snapshot?: Json
+          pdf_sha256?: string
+          reference?: string
+          registered_at?: string
+          signature_image_sha256?: string
+          signature_type?: string
+          stamp_image_sha256?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_document_archives_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
             referencedColumns: ["id"]
           },
         ]
@@ -9956,6 +10111,18 @@ export type Database = {
           created_at: string | null
           cuil: string | null
           dni: string | null
+          identity_status: string
+          official_full_name: string | null
+          official_first_name: string | null
+          official_last_name: string | null
+          official_cuil: string | null
+          official_birth_date: string | null
+          official_gender: string | null
+          puco_coverage_name: string | null
+          puco_coverage_code: string | null
+          identity_verified_at: string | null
+          identity_source: string | null
+          identity_lookup_count: number
           emergency_contact: Json | null
           free_consultations_remaining: number
           gender: string | null
@@ -9987,6 +10154,18 @@ export type Database = {
           created_at?: string | null
           cuil?: string | null
           dni?: string | null
+          identity_status?: string
+          official_full_name?: string | null
+          official_first_name?: string | null
+          official_last_name?: string | null
+          official_cuil?: string | null
+          official_birth_date?: string | null
+          official_gender?: string | null
+          puco_coverage_name?: string | null
+          puco_coverage_code?: string | null
+          identity_verified_at?: string | null
+          identity_source?: string | null
+          identity_lookup_count?: number
           emergency_contact?: Json | null
           free_consultations_remaining?: number
           gender?: string | null
@@ -10018,6 +10197,18 @@ export type Database = {
           created_at?: string | null
           cuil?: string | null
           dni?: string | null
+          identity_status?: string
+          official_full_name?: string | null
+          official_first_name?: string | null
+          official_last_name?: string | null
+          official_cuil?: string | null
+          official_birth_date?: string | null
+          official_gender?: string | null
+          puco_coverage_name?: string | null
+          puco_coverage_code?: string | null
+          identity_verified_at?: string | null
+          identity_source?: string | null
+          identity_lookup_count?: number
           emergency_contact?: Json | null
           free_consultations_remaining?: number
           gender?: string | null
@@ -10441,13 +10632,30 @@ export type Database = {
           patient_cf_session_id: string | null
           patient_cpf: string | null
           patient_dni: string | null
+          patient_gender_code: string | null
+          identity_status: string
+          official_full_name: string | null
+          official_first_name: string | null
+          official_last_name: string | null
+          official_cuil: string | null
+          official_birth_date: string | null
+          official_gender: string | null
+          puco_coverage_name: string | null
+          puco_coverage_code: string | null
+          identity_verified_at: string | null
+          identity_source: string | null
+          identity_lookup_count: number
           patient_id: string | null
+          lgpd_consent: boolean
           patient_name: string | null
           patient_phone: string
           pharmacy_id: string | null
           previous_doctor_id: string | null
           price_brl: number | null
           requested_by_user_id: string | null
+          payment_started_at: string | null
+          search_started_at: string | null
+          dispatch_activation_result: Json | null
           search_timeout_at: string
           status: Database["public"]["Enums"]["dispatch_request_status"]
           symptom_summary: string | null
@@ -10469,13 +10677,30 @@ export type Database = {
           patient_cf_session_id?: string | null
           patient_cpf?: string | null
           patient_dni?: string | null
+          patient_gender_code?: string | null
+          identity_status?: string
+          official_full_name?: string | null
+          official_first_name?: string | null
+          official_last_name?: string | null
+          official_cuil?: string | null
+          official_birth_date?: string | null
+          official_gender?: string | null
+          puco_coverage_name?: string | null
+          puco_coverage_code?: string | null
+          identity_verified_at?: string | null
+          identity_source?: string | null
+          identity_lookup_count?: number
           patient_id?: string | null
+          lgpd_consent?: boolean
           patient_name?: string | null
           patient_phone: string
           pharmacy_id?: string | null
           previous_doctor_id?: string | null
           price_brl?: number | null
           requested_by_user_id?: string | null
+          payment_started_at?: string | null
+          search_started_at?: string | null
+          dispatch_activation_result?: Json | null
           search_timeout_at?: string
           status?: Database["public"]["Enums"]["dispatch_request_status"]
           symptom_summary?: string | null
@@ -10497,13 +10722,30 @@ export type Database = {
           patient_cf_session_id?: string | null
           patient_cpf?: string | null
           patient_dni?: string | null
+          patient_gender_code?: string | null
+          identity_status?: string
+          official_full_name?: string | null
+          official_first_name?: string | null
+          official_last_name?: string | null
+          official_cuil?: string | null
+          official_birth_date?: string | null
+          official_gender?: string | null
+          puco_coverage_name?: string | null
+          puco_coverage_code?: string | null
+          identity_verified_at?: string | null
+          identity_source?: string | null
+          identity_lookup_count?: number
           patient_id?: string | null
+          lgpd_consent?: boolean
           patient_name?: string | null
           patient_phone?: string
           pharmacy_id?: string | null
           previous_doctor_id?: string | null
           price_brl?: number | null
           requested_by_user_id?: string | null
+          payment_started_at?: string | null
+          search_started_at?: string | null
+          dispatch_activation_result?: Json | null
           search_timeout_at?: string
           status?: Database["public"]["Enums"]["dispatch_request_status"]
           symptom_summary?: string | null
@@ -12350,6 +12592,22 @@ export type Database = {
       }
     }
     Functions: {
+      admin_set_operational_domain_status: {
+        Args: { p_scope_key: string; p_domain: string; p_status: string; p_reason: string; p_actor_id: string }
+        Returns: Json
+      }
+      admin_purge_orphan_dispatch_requests: {
+        Args: { p_actor_id: string; p_reason: string }
+        Returns: Json
+      }
+      admin_review_cfm_license: {
+        Args: { p_license_id: string; p_cfm_status: string; p_license_status: string; p_reason: string; p_evidence_path: string | null; p_actor_id: string }
+        Returns: Json
+      }
+      admin_manual_approve_pharmacy_payment: {
+        Args: { p_payment_id: string; p_actor_id: string; p_reason: string; p_evidence_reference: string }
+        Returns: Json
+      }
       get_patient_doctor_directory: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -13823,6 +14081,7 @@ export type Database = {
         | "ended"
       clinical_setting: "uti" | "guardia" | "ward" | "outpatient"
       dispatch_request_status:
+        | "pending_payment"
         | "searching"
         | "matched"
         | "in_call"

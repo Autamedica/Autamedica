@@ -1,0 +1,37 @@
+name: Prescription public verification P0 (fail-closed)
+
+on:
+  push:
+    branches:
+      - fix/public-prescription-verification-main-20261106
+    paths:
+      - 'apps/web/src/pages/api/verify/**'
+      - 'apps/web/src/components/prescriptions/PrescriptionVerifyPage.tsx'
+      - '.github/workflows/prescription-verify-p0.yml'
+  pull_request:
+    paths:
+      - 'apps/web/src/pages/api/verify/**'
+      - 'apps/web/src/components/prescriptions/PrescriptionVerifyPage.tsx'
+      - '.github/workflows/prescription-verify-p0.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HUSKY: '0'
+
+jobs:
+  verify-public-qr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-pnpm
+        with:
+          node-version: '22'
+          pnpm-version: '9.15.2'
+      - name: Confirm no public PHI or unverified valid flags
+        run: pnpm --filter @autamedica/web exec vitest run 'src/pages/api/verify/[cuir].test.ts'

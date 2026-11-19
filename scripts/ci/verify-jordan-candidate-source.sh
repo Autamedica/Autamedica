@@ -10,7 +10,9 @@ for key in JORDAN_CI_CHECKOUT_SHA JORDAN_CI_CONFIG_SHA \
   [[ -n "${!key:-}" ]] || deny "Missing ${key} (GitHub App source required)"
 done
 [[ "$JORDAN_CI_CHECKOUT_REPO" == "ecucondorSA/Autamedica" ]] || deny "Wrong code repository"
-[[ "$JORDAN_CI_CONFIG_REPO" == "ecucondorSA/Autamedica" ]] || deny "Wrong configuration repository"
+# pipeline.config.repository.name returns the full owner/repo for GitHub App API triggers
+# but only the short repo name for webhook pushes. Accept both forms.
+[[ "$JORDAN_CI_CONFIG_REPO" == "ecucondorSA/Autamedica" || "$JORDAN_CI_CONFIG_REPO" == "Autamedica" ]] || deny "Wrong configuration repository"
 [[ "$JORDAN_CI_CHECKOUT_BRANCH" != "main" ]] || deny "Candidate workflow must not substitute for main release proof"
 [[ "$JORDAN_CI_CHECKOUT_BRANCH" =~ ^[A-Za-z0-9._/-]{1,200}$ ]] || deny "Invalid branch"
 [[ "$JORDAN_CI_CONFIG_REF" == "refs/heads/${JORDAN_CI_CHECKOUT_BRANCH}" ]] || deny "Config is not from the candidate branch"

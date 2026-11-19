@@ -39,6 +39,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -79,7 +80,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import com.autamedica.android.R
-import com.autamedica.android.util.CareCountryLocale
 import com.autamedica.android.presentation.common.CareCountryPicker
 import com.autamedica.android.domain.model.PharmacyConsultationStatus
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -106,6 +106,9 @@ import com.autamedica.android.presentation.theme.PortalPharmacistsSoft
 import com.autamedica.android.presentation.theme.SuccessContainer
 import com.autamedica.android.presentation.pharmacy.components.DispatchTelemetryTicker
 import com.autamedica.android.presentation.pharmacy.components.LiveMedicalPresenceRadar
+import java.text.NumberFormat
+import java.util.Currency
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -123,7 +126,8 @@ fun PharmacyIntakeScreen(
 
     // Leaving a waiting room must never cancel a clinical request silently.
     BackHandler(enabled = uiState.activeRequestId != null &&
-        uiState.status == PharmacyConsultationStatus.PENDING) {
+        uiState.status in setOf(PharmacyConsultationStatus.PENDING, PharmacyConsultationStatus.EXPIRED) &&
+        uiState.canCancelRequest) {
         showCancelConfirmation = true
     }
 
@@ -150,11 +154,17 @@ fun PharmacyIntakeScreen(
         )
     }
 
-    // Recovered requests must reopen in their own market language, too.
-    LaunchedEffect(uiState.activeRequestId, uiState.careCountry) {
-        if (uiState.activeRequestId != null && uiState.careCountry in setOf("AR", "BR")) {
-            CareCountryLocale.applyCountry(context, requireNotNull(uiState.careCountry))
+    // Browser return is not payment evidence. The backend status API alone can
+    // release the patient into the call after verifying Mercado Pago.
+    LaunchedEffect(uiState.paymentCheckoutUrl) {
+        val checkoutUrl = uiState.paymentCheckoutUrl ?: return@LaunchedEffect
+        runCatching {
+            val uri = android.net.Uri.parse(checkoutUrl)
+            require(uri.scheme == "https") { "Secure checkout URL required" }
+            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
+            context.startActivity(intent)
         }
+        viewModel.clearCheckoutUrl()
     }
 
     // Automatic navigation when the doctor attends the call and the room is ready
@@ -205,8 +215,8 @@ fun PharmacyIntakeScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        if (uiState.activeRequestId != null &&
-                            uiState.status == PharmacyConsultationStatus.PENDING) {
+                        if (uiState.activeRequestId != null && uiState.canCancelRequest &&
+                            uiState.status in setOf(PharmacyConsultationStatus.PENDING, PharmacyConsultationStatus.EXPIRED)) {
                             showCancelConfirmation = true
                         } else {
                             // Assigned consultations stay in the server, even
@@ -234,8 +244,9 @@ fun PharmacyIntakeScreen(
             PharmacyWaitingRoomView(
                 uiState = uiState,
                 onCancelRequest = viewModel::cancelActiveRequest,
+                onBeginPayment = viewModel::beginBrazilianCheckout,
                 onJoinCall = {
-                    uiState.roomId?.let(onNavigateToCall)
+                    if (uiState.readyToJoinCall) uiState.roomId?.let(onNavigateToCall)
                 },
                 modifier = Modifier
                     .fillMaxSize()
@@ -254,10 +265,8 @@ fun PharmacyIntakeScreen(
                 onPatientNameChanged = viewModel::onPatientNameChanged,
                 onPatientDniChanged = viewModel::onPatientDniChanged,
                 onPatientPhoneChanged = viewModel::onPatientPhoneChanged,
-                onCountrySelected = { country ->
-                    viewModel.onCountrySelected(country)
-                    CareCountryLocale.applyCountry(context, country)
-                },
+                onLgpdConsentChanged = viewModel::onLgpdConsentChanged,
+                onCountrySelected = viewModel::onCountrySelected,
                 onSubmit = viewModel::submitRequest,
                 modifier = Modifier
                     .fillMaxSize()
@@ -276,6 +285,7 @@ private fun PharmacyIntakeFormView(
     onPatientNameChanged: (String) -> Unit,
     onPatientDniChanged: (String) -> Unit,
     onPatientPhoneChanged: (String) -> Unit,
+    onLgpdConsentChanged: (Boolean) -> Unit,
     onCountrySelected: (String) -> Unit,
     onSubmit: () -> Unit,
     modifier: Modifier = Modifier,
@@ -288,12 +298,15 @@ private fun PharmacyIntakeFormView(
             .verticalScroll(scrollState)
             .padding(horizontal = 20.dp, vertical = 12.dp),
     ) {
-        CareCountryPicker(
-            selectedCountry = uiState.careCountry,
-            onCountrySelected = onCountrySelected,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(modifier = Modifier.height(22.dp))
+        if (uiState.careCountry == null && !uiState.isLoadingProfile && !uiState.isRestoringRequest) {
+            CareCountryPicker(
+                selectedCountry = null,
+                onCountrySelected = onCountrySelected,
+                enabled = uiState.referralCode != "JORDAN",
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(22.dp))
+        }
 
         // 1. Motivo de Consulta (Focus principal del usuario)
         Text(
@@ -453,6 +466,18 @@ private fun PharmacyIntakeFormView(
             ),
         )
 
+        if (uiState.careCountry == "BR") {
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = uiState.hasAcceptedLgpdConsent, onCheckedChange = onLgpdConsentChanged)
+                Text(
+                    text = stringResource(R.string.pharmacy_lgpd_consent),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AuTextSecondary,
+                )
+            }
+        }
+
         // Ended/cancelled legacy requests are an informational state, not a red error.
         AnimatedVisibility(
             visible = uiState.statusNotice != null,
@@ -555,6 +580,7 @@ private fun PharmacyIntakeFormView(
 private fun PharmacyWaitingRoomView(
     uiState: PharmacyIntakeUiState,
     onCancelRequest: () -> Unit = {},
+    onBeginPayment: () -> Unit = {},
     onJoinCall: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -569,6 +595,54 @@ private fun PharmacyWaitingRoomView(
             .fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        if (uiState.requiresDispatchPayment) {
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = AuSurface,
+                border = BorderStroke(1.dp, AuBorder),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    val consultationPrice = formatDispatchPrice(uiState.priceMinor, uiState.currency)
+                    Text(
+                        text = consultationPrice?.let { stringResource(R.string.pharmacy_consultation_title, it) } ?: stringResource(R.string.pharmacy_consultation_title_default),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = AuTextPrimary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    val confirmed = uiState.paymentStatus == "approved"
+                    val canStartCheckout = uiState.status == PharmacyConsultationStatus.PENDING ||
+                        uiState.status == PharmacyConsultationStatus.ASSIGNED ||
+                        uiState.status == PharmacyConsultationStatus.IN_CALL
+                    Text(
+                        text = when {
+                            confirmed -> stringResource(R.string.pharmacy_payment_confirmed)
+                            uiState.paymentStatus == "pending" -> stringResource(R.string.pharmacy_payment_pending)
+                            canStartCheckout -> stringResource(R.string.jordan_payment_start_message)
+                            else -> stringResource(R.string.pharmacy_payment_waiting_doctor)
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AuTextSecondary,
+                    )
+                    if (!confirmed && canStartCheckout) {
+                        Button(onClick = onBeginPayment, enabled = !uiState.isPaymentLoading,
+                            modifier = Modifier.fillMaxWidth()) {
+                            if (uiState.isPaymentLoading) {
+                                CircularProgressIndicator(modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp)
+                            } else Text(consultationPrice?.let { stringResource(R.string.pharmacy_payment_button, it) } ?: stringResource(R.string.pharmacy_payment_button_default))
+                        }
+                    }
+                    uiState.paymentError?.let { error ->
+                        Text(error, style = MaterialTheme.typography.bodySmall, color = AuDanger)
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(18.dp))
+        }
         if (callReady) {
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -700,10 +774,10 @@ private fun PharmacyWaitingRoomView(
             // backend rightfully refuses after assignment.
 
         } else {
-            // ── EFECTO UBER PARA TELEMEDICINA DE GUARDIA ──
-            val onlineDoctorCount = uiState.onlineDoctorsInMarket
-            // Only the jurisdiction-filtered backend aggregate is authoritative.
-            val hasOnlineDoctors = onlineDoctorCount != null && onlineDoctorCount > 0
+            // ── RADAR DE MÉDICOS HABILITADOS PARA DESPACHO ──
+            val availableDoctorCount = uiState.availableDoctorsInMarket
+            // This aggregate counts eligible dispatch capacity, not all signed-in doctors.
+            val hasDispatchCapacity = availableDoctorCount != null && availableDoctorCount > 0
             val doctorAssigned = uiState.status == PharmacyConsultationStatus.ASSIGNED
 
             val marketName = when (uiState.careCountry) {
@@ -738,13 +812,13 @@ private fun PharmacyWaitingRoomView(
             // avatars obtained for a different authenticated jurisdiction.
             LiveMedicalPresenceRadar(
                 doctors = emptyList(),
-                availableCount = uiState.onlineDoctorsInMarket,
+                availableCount = uiState.availableDoctorsInMarket,
             )
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Estado explícito si no hay médicos en línea (Cero Amarillo - Paleta Cyan / Slate)
-            if (!hasOnlineDoctors && !doctorAssigned) {
+            // Estado explícito si no hay capacidad clínica habilitada para despacho (Cero Amarillo - Paleta Cyan / Slate)
+            if (!hasDispatchCapacity && !doctorAssigned) {
                 Surface(
                     shape = RoundedCornerShape(14.dp),
                     color = AuCyanSoft,
@@ -765,7 +839,7 @@ private fun PharmacyWaitingRoomView(
                         )
                         Column {
                             Text(
-                                text = if (onlineDoctorCount == null)
+                                text = if (availableDoctorCount == null)
                                     stringResource(R.string.pharmacy_flow_checking_capacity, marketName)
                                 else
                                     stringResource(R.string.pharmacy_flow_waiting_capacity, marketName),
@@ -784,11 +858,11 @@ private fun PharmacyWaitingRoomView(
                 }
             }
 
-            if (hasOnlineDoctors && !doctorAssigned) {
+            if (hasDispatchCapacity && !doctorAssigned) {
                 Text(
                     text = stringResource(
                         R.string.pharmacy_flow_online_count,
-                        onlineDoctorCount ?: uiState.activeDoctors.count { it.isAvailable },
+                        availableDoctorCount ?: uiState.activeDoctors.count { it.isAvailable },
                         marketName,
                     ),
                     color = AuTextSecondary,
@@ -798,7 +872,7 @@ private fun PharmacyWaitingRoomView(
             }
 
             // 2. Ticker de Telemetría Dinámica (Dispatch Status Ticker)
-            DispatchTelemetryTicker(onlineDoctorCount = onlineDoctorCount)
+            DispatchTelemetryTicker(dispatchAvailableDoctorCount = availableDoctorCount)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -873,7 +947,7 @@ private fun PharmacyWaitingRoomView(
 
             // Avoid showing a doctor roster that has not been verified for this country.
             // 5. Acción de Salir de la fila (Azul AutaMedica outline)
-            if (!doctorAssigned) OutlinedButton(
+            if (!doctorAssigned && uiState.canCancelRequest) OutlinedButton(
                 onClick = onCancelRequest,
                 enabled = !uiState.isSubmitting,
                 shape = RoundedCornerShape(12.dp),
@@ -974,6 +1048,16 @@ private fun CaseDetailsCard(
 
 @Composable
 private fun localizedPharmacyMessage(message: String): String = when (message) {
+    "pharmacy_error_patient_name" -> stringResource(R.string.pharmacy_flow_error_name)
+    "pharmacy_error_country" -> stringResource(R.string.pharmacy_flow_error_country)
+    "pharmacy_error_cpf_checksum" -> stringResource(R.string.pharmacy_error_cpf_checksum)
+    "pharmacy_error_lgpd_required" -> stringResource(R.string.pharmacy_error_lgpd_required)
+    "pharmacy_error_dni" -> stringResource(R.string.pharmacy_flow_error_dni)
+    "pharmacy_error_phone" -> stringResource(R.string.pharmacy_flow_error_phone)
+    "pharmacy_error_reason" -> stringResource(R.string.pharmacy_flow_error_reason)
+    "pharmacy_error_complete" -> stringResource(R.string.pharmacy_flow_error_complete)
+    "pharmacy_error_lgpd_login" -> stringResource(R.string.pharmacy_error_lgpd_login)
+    "pharmacy_error_lgpd_persist" -> stringResource(R.string.pharmacy_error_lgpd_persist)
     "Ingresá el nombre completo del paciente" -> stringResource(R.string.pharmacy_flow_error_name)
     "Seleccioná Argentina o Brasil" -> stringResource(R.string.pharmacy_flow_error_country)
     "Ingresá un CPF de 11 dígitos" -> stringResource(R.string.pharmacy_flow_error_cpf)
@@ -981,10 +1065,27 @@ private fun localizedPharmacyMessage(message: String): String = when (message) {
     "Ingresá un teléfono de contacto válido" -> stringResource(R.string.pharmacy_flow_error_phone)
     "Indicá el motivo de consulta o medicamento solicitado" -> stringResource(R.string.pharmacy_flow_error_reason)
     "Completá los datos obligatorios" -> stringResource(R.string.pharmacy_flow_error_complete)
+    "Necesitás completar tu perfil de paciente para solicitar una consulta." -> stringResource(R.string.pharmacy_flow_error_patient_profile)
+    "El país de la consulta no coincide con tu perfil de paciente." -> stringResource(R.string.pharmacy_flow_error_country_mismatch)
+    "No pudimos validar tu sesión. Iniciá sesión nuevamente." -> stringResource(R.string.pharmacy_flow_error_session)
+    "No se pudo autorizar la solicitud. Revisá tus datos de paciente." -> stringResource(R.string.pharmacy_flow_error_authorization)
+    "El servicio de consultas no está disponible temporalmente. Intentá más tarde." -> stringResource(R.string.pharmacy_flow_error_unavailable)
+    "No pudimos registrar tu consulta. Intentá nuevamente o contactá soporte." -> stringResource(R.string.pharmacy_flow_error_generic)
     "No pudimos crear la solicitud. Verificá tu conexión e intentá nuevamente." -> stringResource(R.string.pharmacy_flow_error_create)
     "No se confirmó la cancelación. Es posible que la solicitud ya haya sido asignada; verificá su estado." -> stringResource(R.string.pharmacy_flow_error_cancel_confirm)
     "No pudimos cancelar la solicitud. Verificá tu conexión e intentá nuevamente." -> stringResource(R.string.pharmacy_flow_error_cancel)
     "Esta solicitud anterior finalizó. Podés iniciar una nueva consulta." -> stringResource(R.string.pharmacy_flow_notice_expired)
     "La solicitud fue cancelada." -> stringResource(R.string.pharmacy_flow_notice_cancelled)
     else -> message // Keep unexpected backend failures visible for diagnostics.
+}
+
+private fun formatDispatchPrice(priceMinor: Int?, currencyCode: String?): String? {
+    if (priceMinor == null || priceMinor <= 0 || currencyCode !in setOf("BRL", "ARS")) return null
+    val locale = if (currencyCode == "BRL") Locale.forLanguageTag("pt-BR")
+        else Locale.forLanguageTag("es-AR")
+    return NumberFormat.getCurrencyInstance(locale).apply {
+        currency = Currency.getInstance(currencyCode)
+        maximumFractionDigits = 2
+        minimumFractionDigits = 2
+    }.format(priceMinor / 100.0)
 }

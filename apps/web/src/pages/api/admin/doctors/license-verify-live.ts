@@ -8,6 +8,7 @@ import { logger } from '@autamedica/shared';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { resolveBusTokenSecret, resolveBusDomainUrl } from '@/lib/runtime-env';
 import { RefepsApiValidator } from '@autamedica/prescriptions';
+import { fetchOfficialIdentity } from '@/lib/interoperability/non-fhir.service';
 import { badRequest, internalError, jsonOk, jsonFail, unauthorized } from '@/lib/api-helpers';
 
 type RequestBody = {
@@ -163,7 +164,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // 1. Fetch the target doctor's details from the database
     const doctorQuery = admin
       .from('doctors')
-      .select('id, user_id, license_number, enrollment_jurisdiction, enrollment_entity, specialty, refeps_id');
+      .select('id, user_id, license_type, license_number, enrollment_jurisdiction, enrollment_entity, specialty, refeps_id, dni, gender, cuil');
 
     const targetUserId = body.userId?.trim();
     const targetDoctorId = body.doctorId?.trim();
@@ -189,13 +190,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     // Determine matrícula type (MN vs MP)
-    // If the enrollment entity or jurisdiction suggests a provincial registration, it is MP, otherwise MN
+    // Reconcile the explicitly entered prefix, stored license type, and jurisdiction.
     const requestedProvince = body.jurisdiction ?? doctor.enrollment_jurisdiction ?? undefined;
     const provinceKey = requestedProvince?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
     const province = provinceKey && ['caba', 'capital federal', 'ciudad autonoma de buenos aires'].includes(provinceKey)
       ? 'CABA' : requestedProvince;
     const isProvincial = isNonEmptyString(province) && province !== 'CABA';
-    const type: 'MN' | 'MP' = isProvincial ? 'MP' : 'MN';
+    // An explicit MN/MP prefix takes precedence over jurisdiction and legacy
+    // fields (which can disagree with the registration actually being checked).
+    const prefix = matricula.trim().toUpperCase().match(/^(MN|MP)(?=\s*[-.:/]?\s*\d)/)?.[1];
+    const recordedType = doctor.license_type === 'MN' || doctor.license_type === 'MP'
+      ? doctor.license_type : null;
+    const type: 'MN' | 'MP' = prefix === 'MN' || prefix === 'MP'
+      ? prefix : recordedType ?? (isProvincial ? 'MP' : 'MN');
 
     // 2. Resolve credentials for the Bus de Interoperabilidad
     logger.info('[license-verify-live] Running verification', {
@@ -231,6 +238,40 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const persist = body.persist !== false;
     const source = verification.source ?? 'unverified';
+    let civilIdentityStatus: 'verified_renaper' | 'mismatch' | 'unverified' = 'unverified';
+    let civilIdentityMessage: string | null = null;
+    const gender = String(doctor.gender ?? '').toUpperCase();
+    const sexId = gender === 'F' || gender === 'FEMALE' || gender === 'FEMENINO' ? 1
+      : gender === 'M' || gender === 'MALE' || gender === 'MASCULINO' ? 2
+        : gender === 'X' || gender === 'OTHER' ? 3 : null;
+    if (isNonEmptyString(doctor.dni) && sexId) {
+      try {
+        const civil = await fetchOfficialIdentity({ dni: doctor.dni.replace(/\D/g, ''), sexId: sexId as 1 | 2 | 3, runtimeEnv: locals.runtime?.env });
+        const legalName = [civil.person.nombres, civil.person.apellido].filter(Boolean).join(' ').trim();
+        const normalize = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9 ]/g, ' ').split(/\s+/).filter(Boolean).sort().join(' ');
+        const matchDni = (civil.person.numeroDocumento ?? '').replace(/\D/g, '') === doctor.dni.replace(/\D/g, '');
+        const matchName = normalize(legalName) === normalize(String(verification.fullName ?? ''));
+        const officialCuil = (civil.person.cuil ?? '').replace(/\D/g, '');
+        const matchCuil = !isNonEmptyString(doctor.cuil) || officialCuil === doctor.cuil.replace(/\D/g, '');
+        civilIdentityStatus = matchDni && matchName && matchCuil && officialCuil.length === 11 ? 'verified_renaper' : 'mismatch';
+        if (civilIdentityStatus === 'mismatch') civilIdentityMessage = 'RENAPER no coincide con DNI, titular de REFEPS o CUIL registrado.';
+        if (persist) {
+          const { error: civilError } = await admin.from('doctors').update({
+            identity_status: civilIdentityStatus, official_full_name: legalName || null,
+            official_first_name: civil.person.nombres, official_last_name: civil.person.apellido,
+            official_cuil: officialCuil || null, official_birth_date: civil.person.fechaNacimiento || null,
+            official_gender: civil.person.sexo || null, identity_verified_at: civilIdentityStatus === 'verified_renaper' ? checkedAt : null,
+            identity_source: 'msal_bus_renaper', cuil: officialCuil || doctor.cuil,
+          }).eq('id', doctor.id);
+          if (civilError) throw civilError;
+        }
+        if (civilIdentityStatus === 'mismatch') finalStatus = 'pending_review';
+      } catch (civilError) {
+        logger.warn('[license-verify-live] RENAPER civil identity unavailable', {
+          doctorId: doctor.id, code: civilError instanceof Error && 'code' in civilError ? String(civilError.code) : 'RENAPER_LOOKUP_UNAVAILABLE',
+        });
+      }
+    }
 
     // Local doctor records and offline mock data cannot establish professional
     // accreditation. Never persist a medical license decision from those sources.
@@ -252,10 +293,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
         .find((identifier) => identifier.value)?.value,
     );
 
-    // 5. Update the doctor's profile status in the database
+    // 5. Persist the official credential first. A failed license write must
+    // never leave the profile marked as validated for clinical dispatch.
     if (persist) {
-      // Persist the required license before setting SSS=valid; otherwise the
-      // clinical dispatch gate can stay closed while the admin reports success.
       const { error: licenseError } = await admin
         .from('doctor_licenses')
         .upsert(
@@ -271,11 +311,30 @@ export const POST: APIRoute = async ({ request, locals }) => {
         );
 
       if (licenseError) {
-        // Never report an official approval as persisted without its required license row.
-        logger.error('[license-verify-live] Structured license persistence failed', licenseError);
-        throw licenseError;
+        logger.error('[license-verify-live] Official license persistence failed', licenseError);
+        return jsonFail(
+          'SERVICE_UNAVAILABLE',
+          'No se pudo guardar la matrícula verificada. La habilitación anterior se conserva.',
+          503,
+          { reason: 'REFEPS_LICENSE_PERSIST_FAILED' },
+        );
       }
 
+      if (finalStatus === 'valid') {
+        const { error: doctorUpdateError } = await admin
+          .from('doctors')
+          .update({
+            license_type: type,
+            ...(practitionerId ? { refeps_id: practitionerId } : {}),
+            ...(validatedLicense ? { license_number: validatedLicense } : {}),
+            ...(province ? { enrollment_jurisdiction: province } : {}),
+          })
+          .eq('id', doctor.id);
+
+        if (doctorUpdateError) throw doctorUpdateError;
+      }
+
+      // The profile approval is the final write, after mandatory license persistence.
       const profileUpdates: Record<string, string | null> = {
         sss_validation_status: finalStatus,
         sss_last_checked_at: checkedAt,
@@ -290,20 +349,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
         .eq('user_id', doctor.user_id);
 
       if (updateError) throw updateError;
-
-      if (practitionerId) {
-        const { error: doctorUpdateError } = await admin
-          .from('doctors')
-          .update({
-            refeps_id: practitionerId,
-            ...(validatedLicense ? { license_number: validatedLicense } : {}),
-            ...(province ? { enrollment_jurisdiction: province } : {}),
-          })
-          .eq('id', doctor.id);
-
-        if (doctorUpdateError) throw doctorUpdateError;
-      }
-
 
       if (registeredSpecialty) {
         const { error: specialtyError } = await admin
@@ -342,6 +387,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       status: finalStatus,
       checkedAt,
       source,
+      civilIdentityStatus,
+      civilIdentityMessage,
       practitionerId,
       registeredSpecialty,
       registrationStatus: verification.registrationStatus,

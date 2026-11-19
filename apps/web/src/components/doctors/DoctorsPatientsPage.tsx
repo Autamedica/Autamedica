@@ -7,11 +7,9 @@ import { useCallback } from "react";
 export function DoctorsPatientsPage() {
   const handleSelectPatient = useCallback(
     (patientId: string, tab?: "patient-info" | "medical-history") => {
-      if (tab === "medical-history") {
-        window.location.href = `/doctors/consultations?patient=${patientId}`;
-      } else {
-        window.location.href = `/doctors/consultations?patient=${patientId}`;
-      }
+      const nextTab = tab ?? "patient-info";
+      window.location.href =
+        "/doctors/patients/" + encodeURIComponent(patientId) + "?tab=" + nextTab;
     },
     [],
   );

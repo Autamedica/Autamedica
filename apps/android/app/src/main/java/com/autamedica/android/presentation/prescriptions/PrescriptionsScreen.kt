@@ -96,6 +96,7 @@ import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -464,8 +465,8 @@ private fun PrescriptionCard(
                     fontWeight = FontWeight.Bold,
                     fontSize = 17.sp,
                     color = Color(0xFF0F172A), // slate-900
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 2,
+                    overflow = TextOverflow.Clip,
                     modifier = Modifier.weight(1f),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -480,8 +481,8 @@ private fun PrescriptionCard(
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = Color(0xFF334155), // slate-700
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 2,
+                    overflow = TextOverflow.Clip,
                 )
             }
 
@@ -491,8 +492,8 @@ private fun PrescriptionCard(
                 text = "$doctorText · $dateStr",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color(0xFF64748B), // slate-500
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                maxLines = 2,
+                overflow = TextOverflow.Clip,
             )
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -853,6 +854,8 @@ private fun PrescriptionDetailBottomSheet(
                                     Text(
                                         text = cuir,
                                         style = MaterialTheme.typography.titleMedium,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Clip,
                                         fontFamily = FontFamily.Monospace,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF0F172A),
@@ -1037,6 +1040,8 @@ private fun PrescriptionDetailBottomSheet(
                             Text(
                                 text = stringResource(R.string.prescriptions_license_format, license),
                                 style = MaterialTheme.typography.labelSmall,
+                                maxLines = 2,
+                                overflow = TextOverflow.Clip,
                                 color = AuTextSecondary,
                             )
                         }
@@ -1174,7 +1179,7 @@ private fun formatPrescriptionDate(dateStr: String?): String {
             }
         }
         val currentLocale = Locale.getDefault()
-        parsedDate.format(DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", currentLocale))
+        parsedDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(currentLocale))
     }.getOrElse {
         dateStr
     }
@@ -1469,8 +1474,8 @@ private fun CertificateCard(
                     fontWeight = FontWeight.Bold,
                     fontSize = 17.sp,
                     color = Color(0xFF0F172A),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 2,
+                    overflow = TextOverflow.Clip,
                     modifier = Modifier.weight(1f),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -1495,8 +1500,8 @@ private fun CertificateCard(
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = Color(0xFF334155),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                maxLines = 2,
+                overflow = TextOverflow.Clip,
             )
 
             // Fila 3: Médico
@@ -1505,8 +1510,8 @@ private fun CertificateCard(
                 text = "${certificate.doctorName ?: stringResource(R.string.prescriptions_default_doctor)}${certificate.doctorLicense?.let { " · $it" } ?: ""}",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color(0xFF64748B),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                maxLines = 2,
+                overflow = TextOverflow.Clip,
             )
 
             Spacer(modifier = Modifier.height(8.dp))

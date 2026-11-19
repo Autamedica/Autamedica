@@ -29,22 +29,23 @@ export const GET: APIRoute = async ({ request, locals }) => {
     if (approvalError) return internalError('No se pudo comprobar aprobación médica')
     if (approved !== true) return forbidden('doctor_pending_clinical_approval')
 
+    // Duty is an explicit physician decision. Heartbeat is telemetry only:
+    // an Android background delay must not hide an unexpired offer already
+    // assigned to this doctor. Offer ownership + pending status + expires_at
+    // below are the authoritative visibility gates.
     const { data: duty, error: dutyError } = await admin
       .from('doctor_duty_status')
-      .select('is_on_duty,last_heartbeat_at')
+      .select('is_on_duty')
       .eq('doctor_id', doctor.id)
       .maybeSingle()
     if (dutyError) return internalError('No se pudo comprobar guardia')
-    const heartbeatAge = duty?.last_heartbeat_at
-      ? Date.now() - new Date(duty.last_heartbeat_at).getTime()
-      : Number.POSITIVE_INFINITY
-    if (!duty?.is_on_duty || heartbeatAge < 0 || heartbeatAge > 90_000) {
-      return jsonOk({ queue: [], count: 0 })
+    if (!duty?.is_on_duty) {
+      return jsonOk({ queue: [], count: 0, careCountry: doctor.care_country })
     }
 
     const { data: offers, error: offersError } = await dispatchAdmin
       .from('dispatch_offers')
-      .select('dispatch_request_id')
+      .select('id, dispatch_request_id, expires_at')
       .eq('doctor_id', doctor.id)
       .eq('status', 'pending')
       .gt('expires_at', new Date().toISOString())
@@ -55,7 +56,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
       return internalError('No se pudo obtener las ofertas')
     }
     const offeredRequestIds = (offers || []).map(offer => offer.dispatch_request_id)
-    if (offeredRequestIds.length === 0) return jsonOk({ queue: [], count: 0 })
+    if (offeredRequestIds.length === 0) return jsonOk({ queue: [], count: 0, careCountry: doctor.care_country })
+    const offerByRequestId = new Map((offers || []).map(offer => [offer.dispatch_request_id, offer]))
 
     const { data, error } = await admin
       .from('pharmacy_dispatch_requests')
@@ -76,6 +78,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
       const diffMs = Math.max(0, now - createdTime)
       return {
         id: String(row.id),
+        offerId: offerByRequestId.get(row.id)?.id ?? null,
+        expiresAt: offerByRequestId.get(row.id)?.expires_at ?? null,
         pharmacyId: row.pharmacy_id ? String(row.pharmacy_id) : null,
         pharmacyName: 'Farmacia / Kiosco On-Demand',
         patientDni: String(row.care_country === 'BR' ? (row.patient_cpf ?? '') : (row.patient_dni ?? '')),
@@ -91,6 +95,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     return jsonOk({
       queue,
       count: queue.length,
+      careCountry: doctor.care_country,
     })
   } catch (err) {
     logger.error('[api/doctors/on-duty/queue] GET error', err)
