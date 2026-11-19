@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.doctors.medicalorders
 
+import com.autamedica.android.presentation.common.maskPatientDocument
+
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -503,7 +505,7 @@ fun MedicalOrderCard(
                     )
                     Text(
                         text = buildString {
-                            order.patientDni?.let { append("${stringResource(R.string.doctor_create_order_patient_dni_short, it)} · ") }
+                            order.patientDni?.let { append("${stringResource(R.string.doctor_create_order_patient_dni_short, maskPatientDocument(it))} · ") }
                             append(order.createdAt.take(10))
                         },
                         style = MaterialTheme.typography.bodySmall,
