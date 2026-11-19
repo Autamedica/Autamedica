@@ -71,7 +71,7 @@ fun ChatListScreen(
             }
 
             uiState.chats.isEmpty() -> {
-                EmptyChatsState(modifier = Modifier.fillMaxSize())
+                EmptyChatsState(modifier = Modifier.fillMaxSize(), isDoctor = isDoctor)
             }
 
             else -> {
@@ -92,7 +92,7 @@ fun ChatListScreen(
 }
 
 @Composable
-private fun EmptyChatsState(modifier: Modifier = Modifier) {
+private fun EmptyChatsState(modifier: Modifier = Modifier, isDoctor: Boolean) {
     Column(
         modifier = modifier.padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
