@@ -845,6 +845,8 @@ export const pt: DeepPartial<Widen<TranslationDict>> = {
         'Ej:\n- Enalapril 10mg, 1 por día, para presión\n- Metformina 850mg, para diabetes': 'Ex.:\n- Enalapril 10 mg, 1 vez ao dia, para pressão arterial\n- Metformina 850 mg, para diabetes',
         'Ej:\n- Penicilina: ronchas e hinchazón\n- Mariscos: vómitos': 'Ex.:\n- Penicilina: urticária e inchaço\n- Frutos do mar: vômitos',
         'Ej: Cáncer de mama a los 58 años': 'Ex.: Câncer de mama aos 58 anos',
+        'Enfermedades': 'Doenças',
+        'Hábitos': 'Hábitos',
       },
     },
     greetings: {
