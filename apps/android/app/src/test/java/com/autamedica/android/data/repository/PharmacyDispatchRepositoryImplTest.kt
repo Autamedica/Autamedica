@@ -9,6 +9,10 @@ import com.autamedica.android.domain.repository.UserRegistrationResult
 import com.google.common.truth.Truth.assertThat
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.auth.MemorySessionManager
+import io.github.jan.supabase.auth.MemoryCodeVerifierCache
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.Postgrest
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -24,6 +28,7 @@ import io.mockk.mockk
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import java.util.concurrent.TimeUnit
 
 private class FakeAuthRepository(var currentUser: User? = null) : AuthRepository {
     override fun observeSession(): Flow<User?> = flowOf(currentUser)
@@ -67,6 +72,13 @@ class PharmacyDispatchRepositoryImplTest {
             supabaseUrl = mockWebServer.url("/").toString(),
             supabaseKey = "test-anon-key",
         ) {
+            install(Auth) {
+                sessionManager = MemorySessionManager()
+                codeVerifierCache = MemoryCodeVerifierCache()
+                autoLoadFromStorage = false
+                autoSaveToStorage = false
+                alwaysAutoRefresh = false
+            }
             install(Postgrest)
         }
 
@@ -339,6 +351,56 @@ class PharmacyDispatchRepositoryImplTest {
         val recordedRequest = mockWebServer.takeRequest()
         assertThat(recordedRequest.path).contains("doctor_duty_status")
         assertThat(recordedRequest.path).contains("doctor_id=eq.$doctorId")
+    }
+
+    @Test
+    fun `pending offer polling skips anon then reloads after login and clears on logout`() = runTest {
+        val anonymousOffers = repository.observeSearchingRequests()
+        assertThat(anonymousOffers.value).isEmpty()
+        assertThat(mockWebServer.requestCount).isEqualTo(0)
+
+        supabaseClient.auth.importAuthToken(
+            accessToken = "synthetic-authenticated-doctor-jwt",
+            retrieveUser = false,
+            autoRefresh = false,
+        )
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """[
+                      {
+                        "id": "offer-request-123",
+                        "patient_phone": "+5491100000000",
+                        "patient_name": "Synthetic Patient",
+                        "tier_requested": "general",
+                        "status": "searching",
+                        "cloudflare_room_id": "synthetic-doctor-room",
+                        "created_at": "2026-11-19T00:00:00Z",
+                        "care_country": "AR",
+                        "offer_id": "offer-123",
+                        "offer_expires_at": "2026-11-19T00:10:00Z"
+                      }
+                    ]""".trimIndent(),
+                ),
+        )
+
+        val authenticatedOffers = repository.observeSearchingRequests()
+        val rpc = mockWebServer.takeRequest(2, TimeUnit.SECONDS)
+        assertThat(rpc).isNotNull()
+        assertThat(rpc!!.path).isEqualTo("/rest/v1/rpc/get_my_pending_dispatch_offers")
+        assertThat(rpc.getHeader("Authorization"))
+            .isEqualTo("Bearer synthetic-authenticated-doctor-jwt")
+        assertThat(authenticatedOffers.value.map { it.id })
+            .containsExactly("offer-request-123")
+
+        mockWebServer.enqueue(MockResponse().setResponseCode(204))
+        supabaseClient.auth.signOut()
+        val loggedOutOffers = repository.observeSearchingRequests()
+        val logout = mockWebServer.takeRequest(2, TimeUnit.SECONDS)
+        assertThat(logout?.path).contains("/auth/v1/logout")
+        assertThat(loggedOutOffers.value).isEmpty()
+        assertThat(mockWebServer.requestCount).isEqualTo(2)
     }
 
     @Test
