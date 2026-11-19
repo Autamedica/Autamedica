@@ -362,8 +362,8 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
       experienceYears: undefined,
       hospital: undefined,
       university: undefined,
-      availability: doc.has_availability ? 'today' : 'tomorrow',
-      verified: true,
+      availability: doc.has_availability ? 'available' : undefined,
+      verified: Boolean((doc as DoctorOption & { verified?: boolean }).verified),
     }))
   }, [doctors, locale])
 

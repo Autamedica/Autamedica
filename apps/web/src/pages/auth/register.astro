@@ -1,8 +1,9 @@
 ---
+const locale = Astro.locals.locale ?? 'es';
 import AuthLayout from '../../layouts/AuthLayout.astro';
 import { RegisterForm } from '../../components/auth/RegisterForm';
 ---
 
-<AuthLayout title="Crear Cuenta">
-  <RegisterForm locale={Astro.locals.locale ?? 'es'} client:load />
+<AuthLayout title={locale === 'pt' ? 'Criar conta' : 'Crear cuenta'}>
+  <RegisterForm locale={locale} client:load />
 </AuthLayout>

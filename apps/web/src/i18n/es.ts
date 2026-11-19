@@ -495,25 +495,7 @@ export const es = {
       allRights: 'Todos los derechos reservados.',
       tagline: 'Telemedicina sin fricciones.\nDesarrollado por profesionales de salud – UBA.',
     },
-    authLayout: {
-      testimonials: [
-        {
-          quote: '"Gestión de turnos y recetas en minutos. AutaMedica transformó mi práctica clínica por completo."',
-          name: 'Dra. Elena Rossi',
-          role: 'Cardióloga',
-        },
-        {
-          quote: '"La mejor experiencia de telemedicina que he tenido. Simple, rápida y con doctores de primer nivel."',
-          name: 'Marcos Viale',
-          role: 'Paciente',
-        },
-        {
-          quote: '"Implementamos AutaMedica en nuestra empresa y el bienestar de los empleados subió un 40%."',
-          name: 'Sofía Méndez',
-          role: 'Directora de RRHH',
-        },
-      ],
-    },
+    authLayout: { testimonials: [] },
   },
 
   portals: {

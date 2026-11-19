@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { fetchApi } from '@/lib/api-client'
-import { formatArsFromCents } from '@/lib/payments/money'
+
 import { AppointmentsTable } from '@/components/patients/appointments/AppointmentsTable'
 import { CreateAppointmentModal } from '@/components/patients/appointments/CreateAppointmentModal'
 import { ReviewModal } from '@/components/patients/appointments/ReviewModal'
@@ -20,6 +20,13 @@ import type { CreateAppointmentInput, AppointmentWithDoctor } from '@/lib/patien
 import type { AppointmentType } from '@/lib/patients/types/appointment'
 
 type AppointmentsPageMode = 'all' | 'telemedicine'
+
+function formatAppointmentMoney(amountCents: number | null | undefined, currency: string | undefined): string {
+  if (amountCents == null || amountCents <= 0) return 'Valor a confirmar'
+  const currencyCode = currency === 'BRL' ? 'BRL' : 'ARS'
+  const locale = currencyCode === 'BRL' ? 'pt-BR' : 'es-AR'
+  return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode, maximumFractionDigits: 2 }).format(amountCents / 100)
+}
 
 type PatientWalletSummary = {
   balance: {
@@ -67,6 +74,8 @@ export default function AppointmentsPage({
   const [reviewTarget, setReviewTarget] = useState<AppointmentWithDoctor | null>(null)
   const [_patientProfileId, setPatientProfileId] = useState<string | null>(null)
   const [walletSummary, setWalletSummary] = useState<PatientWalletSummary | null>(null)
+  const currency = walletSummary?.balance.currency ?? 'ARS'
+  const dateLocale = currency === 'BRL' ? 'pt-BR' : 'es-AR'
   const [paymentMessage, setPaymentMessage] = useState<string | null>(null)
   const [payingAppointmentId, setPayingAppointmentId] = useState<string | null>(null)
   const [isTopupModalOpen, setIsTopupModalOpen] = useState(false)
@@ -405,7 +414,7 @@ export default function AppointmentsPage({
                           Saldo AutaMedica
                         </p>
                         <h3 className="mt-1 text-xl font-bold tracking-tight text-neutral-900">
-                          {formatArsFromCents(walletSummary.balance.available_credit_cents)} disponibles
+                          {formatAppointmentMoney(walletSummary.balance.available_credit_cents, currency)} disponibles
                         </h3>
                         <p className="mt-1 max-w-xl text-sm leading-relaxed text-neutral-500">
                           Disponés de saldo a favor para cubrir de forma inmediata tu próxima consulta médica elegible.
@@ -535,7 +544,7 @@ export default function AppointmentsPage({
                 <div>
                   <p className="text-xs uppercase tracking-wide text-slate-500">Fecha</p>
                   <p className="mt-1 text-sm font-semibold text-stone-950">
-                    {new Intl.DateTimeFormat('es-AR', {
+                    {new Intl.DateTimeFormat(dateLocale, {
                       weekday: 'short',
                       day: 'numeric',
                       month: 'short',
@@ -545,7 +554,7 @@ export default function AppointmentsPage({
                 <div>
                   <p className="text-xs uppercase tracking-wide text-slate-500">Hora</p>
                   <p className="mt-1 text-sm font-semibold text-stone-950">
-                    {new Intl.DateTimeFormat('es-AR', {
+                    {new Intl.DateTimeFormat(dateLocale, {
                       hour: '2-digit',
                       minute: '2-digit',
                     }).format(new Date(getAppointmentStartIso(featuredTelemedicineAppointment)))}
@@ -554,7 +563,7 @@ export default function AppointmentsPage({
                 <div>
                   <p className="text-xs uppercase tracking-wide text-slate-500">Valor</p>
                   <p className="mt-1 text-sm font-semibold text-stone-950">
-                    {formatArsFromCents(featuredTelemedicineAppointment.doctor?.consultation_fee)}
+                    {formatAppointmentMoney(featuredTelemedicineAppointment.doctor?.consultation_fee, currency)}
                   </p>
                 </div>
               </div>
@@ -580,7 +589,7 @@ export default function AppointmentsPage({
                   <div className="rounded-2xl bg-white p-4 ring-1 ring-amber-100">
                     <p className="text-xs uppercase tracking-wide text-slate-500">Total</p>
                     <p className="mt-1 text-2xl font-bold text-stone-950">
-                      {formatArsFromCents(pendingPaymentTelemedicineAppointment.doctor?.consultation_fee)}
+                      {formatAppointmentMoney(pendingPaymentTelemedicineAppointment.doctor?.consultation_fee, currency)}
                     </p>
                     <p className="mt-2 text-xs text-slate-500">
                       Profesional: {pendingPaymentTelemedicineAppointment.doctor
@@ -713,10 +722,116 @@ export default function AppointmentsPage({
             <form onSubmit={handleTopup} className="space-y-4">
               <div>
                 <label htmlFor="topupAmount" className="block text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-2">
-                  Monto a cargar (ARS)
+                  Monto a cargar ({currency})
                 </label>
                 <div className="relative rounded-2xl border border-neutral-200 focus-within:border-sky-500 focus-within:ring-1 focus-within:ring-sky-500 overflow-hidden bg-stone-50/50">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-semibold">$</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-semibold">{currency === 'BRL' ? 'R
+                  <input
+                    type="number"
+                    id="topupAmount"
+                    value={topupAmount}
+                    onChange={(e) => setTopupAmount(e.target.value)}
+                    placeholder="Monto"
+                    min="1"
+                    required
+                    disabled={topupLoading}
+                    className="w-full pl-8 pr-4 py-3 bg-transparent text-stone-900 placeholder-neutral-400 focus:outline-none font-semibold text-lg"
+                  />
+                </div>
+              </div>
+
+              {topupError && (
+                <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-600">
+                  {topupError}
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsTopupModalOpen(false)}
+                  disabled={topupLoading}
+                  className="flex-1 rounded-full border border-neutral-200 py-3 text-sm font-semibold text-stone-600 hover:bg-stone-50 disabled:opacity-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={topupLoading}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-stone-950 py-3 text-sm font-semibold text-white hover:bg-stone-800 disabled:opacity-70 active:scale-[0.98] transition-all shadow-sm"
+                >
+                  {topupLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Iniciando...
+                    </>
+                  ) : (
+                    'Cargar'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+    </ErrorBoundary>
+  )
+}
+ : '
+                  <input
+                    type="number"
+                    id="topupAmount"
+                    value={topupAmount}
+                    onChange={(e) => setTopupAmount(e.target.value)}
+                    placeholder="Monto"
+                    min="1"
+                    required
+                    disabled={topupLoading}
+                    className="w-full pl-8 pr-4 py-3 bg-transparent text-stone-900 placeholder-neutral-400 focus:outline-none font-semibold text-lg"
+                  />
+                </div>
+              </div>
+
+              {topupError && (
+                <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-600">
+                  {topupError}
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsTopupModalOpen(false)}
+                  disabled={topupLoading}
+                  className="flex-1 rounded-full border border-neutral-200 py-3 text-sm font-semibold text-stone-600 hover:bg-stone-50 disabled:opacity-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={topupLoading}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-stone-950 py-3 text-sm font-semibold text-white hover:bg-stone-800 disabled:opacity-70 active:scale-[0.98] transition-all shadow-sm"
+                >
+                  {topupLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Iniciando...
+                    </>
+                  ) : (
+                    'Cargar'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+    </ErrorBoundary>
+  )
+}
+}</span>
                   <input
                     type="number"
                     id="topupAmount"

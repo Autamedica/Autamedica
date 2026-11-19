@@ -24,6 +24,7 @@ export function DoctorCard({ doctor, index, compact = false, locale = 'es' }: Do
   const [imgError, setImgError] = useState(false);
   const hasPhoto = Boolean(doctor.photoUrl && !imgError);
 
+  const isAvailable = doctor.availability === 'available';
   const isAvailableToday = doctor.availability === 'today';
   const isAvailableTomorrow = doctor.availability === 'tomorrow';
 
@@ -214,14 +215,14 @@ export function DoctorCard({ doctor, index, compact = false, locale = 'es' }: Do
         {/* Availability */}
         <div className="mb-4">
           <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
-            ${isAvailableToday ? 'bg-sky-50 text-sky-700' : 
+            ${isAvailable || isAvailableToday ? 'bg-sky-50 text-sky-700' : 
               isAvailableTomorrow ? 'bg-amber-50 text-amber-700' : 
               'bg-red-50 text-red-700'}`}>
             <span className={`w-1.5 h-1.5 rounded-full 
-              ${isAvailableToday ? 'bg-sky-500' : 
+              ${isAvailable || isAvailableToday ? 'bg-sky-500' : 
                 isAvailableTomorrow ? 'bg-amber-500' : 
                 'bg-red-500'}`}></span>
-            {isAvailableToday ? (locale === 'pt' ? 'Disponível hoje' : 'Disponible hoy') : 
+            {isAvailable ? (locale === 'pt' ? 'Disponível' : 'Disponible') : isAvailableToday ? (locale === 'pt' ? 'Disponível hoje' : 'Disponible hoy') : 
              isAvailableTomorrow ? (locale === 'pt' ? 'Amanhã' : 'Mañana') : 
              (locale === 'pt' ? 'Completo' : 'Completo')}
           </div>

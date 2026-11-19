@@ -515,25 +515,7 @@ export const pt: DeepPartial<Widen<TranslationDict>> = {
       allRights: 'Todos os direitos reservados.',
       tagline: 'Telemedicina sem atritos.\nDesenvolvido por profissionais de saúde.',
     },
-    authLayout: {
-      testimonials: [
-        {
-          quote: '"Gestão de consultas e receitas em minutos. AutaMedica transformou minha prática clínica."',
-          name: 'Dra. Elena Rossi',
-          role: 'Cardiologista',
-        },
-        {
-          quote: '"A melhor experiência de telemedicina que já tive. Simples, rápida e com médicos de alto nível."',
-          name: 'Marcos Viale',
-          role: 'Paciente',
-        },
-        {
-          quote: '"Implementamos AutaMedica na empresa e o bem-estar dos funcionários subiu 40%."',
-          name: 'Sofia Méndez',
-          role: 'Diretora de RH',
-        },
-      ],
-    },
+    authLayout: { testimonials: [] },
   },
 
   portals: {
