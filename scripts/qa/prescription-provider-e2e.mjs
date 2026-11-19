@@ -53,7 +53,7 @@ async function runCase(name) {
   const doctorId = required(`${prefix}DOCTOR_ID`);
   const patientId = required(`${prefix}PATIENT_ID`);
   const externalId = required(`${prefix}EXTERNAL_ID`);
-  const patientToken = required(`${prefix}PATIENT_TOKEN`);
+  const patientToken = platform === 'web' ? required(`${prefix}PATIENT_TOKEN`) : null;
   const baseUrl = required('AUTAMEDICA_WEB_API_URL').replace(/\/$/, '');
 
   const [doctor, patient] = await Promise.all([
