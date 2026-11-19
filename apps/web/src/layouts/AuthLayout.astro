@@ -23,7 +23,6 @@ const {
 
 const locale = Astro.locals.locale ?? 'es';
 const { t, dict } = getI18n(locale);
-const testimonials = dict.landing.authLayout.testimonials;
 
 const fullTitle = title.includes('AutaMedica') ? title : `${title} | AutaMedica`;
 const currentPath = Astro.url.pathname;
@@ -122,23 +121,6 @@ const { publicSupabaseUrl, publicSupabaseAnonKey, publicSentryDsn } = resolvePub
         <div class="auth-branding">
           <img src="/logo_bioceramic.png" alt="AutaMedica Logo" width="72" height="72" class="auth-logo-img" />
           <p class="auth-branding-tagline">{t('layout.tagline')}</p>
-        </div>
-
-        <div class="auth-testimonials">
-          {testimonials.map((testimonial) => (
-            <div class="auth-testimonial-card">
-              <p class="auth-testimonial-quote">{testimonial.quote}</p>
-              <div class="auth-testimonial-author">
-                <div class="auth-testimonial-avatar">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                </div>
-                <div>
-                  <p class="auth-testimonial-name">{testimonial.name}</p>
-                  <p class="auth-testimonial-role">{testimonial.role}</p>
-                </div>
-              </div>
-            </div>
-          ))}
         </div>
 
         <div class="auth-security-legend">
