@@ -249,7 +249,9 @@ const CERT_TYPE_LABELS: Record<string, string> = {
 export function DoctorsPrescriptionsPage() {
   const { user } = useAuthenticatedUser();
   const { doctor } = useCurrentDoctor(user?.id);
-  const dateLocale = doctor?.care_country === "BR" ? "pt-BR" : "es-AR";
+  const doctorCountry = (doctor as (NonNullable<typeof doctor> & { care_country?: string }) | null)
+    ?.care_country;
+  const dateLocale = doctorCountry === "BR" ? "pt-BR" : "es-AR";
 
   // Patient selection
   const { patients, loading: patientsLoading } = useRealPatients();

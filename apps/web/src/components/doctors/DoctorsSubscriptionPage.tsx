@@ -55,7 +55,9 @@ function formatCurrency(cents: number, currencyCode: string): string {
 export function DoctorsSubscriptionPage({ locale: _locale }: { locale?: string }) {
   const { user } = useAuthenticatedUser();
   const { doctor } = useCurrentDoctor(user?.id);
-  const dateLocale = doctor?.care_country === "BR" ? "pt-BR" : "es-AR";
+  const doctorCountry = (doctor as (NonNullable<typeof doctor> & { care_country?: string }) | null)
+    ?.care_country;
+  const dateLocale = doctorCountry === "BR" ? "pt-BR" : "es-AR";
   const { plans, subscription, loading, error, subscribe, cancel } =
     useSubscription(user?.id);
   const [cancelling, setCancelling] = useState(false);

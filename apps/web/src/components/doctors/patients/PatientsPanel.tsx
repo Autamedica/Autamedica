@@ -119,7 +119,9 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
   const [chatPatient, setChatPatient] = useState<{ id: string; name: string } | null>(null)
   const { user } = useAuthenticatedUser()
   const { doctor } = useCurrentDoctor(user?.id)
-  const dateLocale = doctor?.care_country === 'BR' ? 'pt-BR' : 'es-AR'
+  const doctorCountry = (doctor as (NonNullable<typeof doctor> & { care_country?: string }) | null)
+    ?.care_country
+  const dateLocale = doctorCountry === 'BR' ? 'pt-BR' : 'es-AR'
 
   const { patients, loading, error, refetch } = useRealPatients()
 
