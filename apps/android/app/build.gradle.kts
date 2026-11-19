@@ -12,6 +12,7 @@ plugins {
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.firebase.perf)
+    jacoco
 }
 
 val localProperties = Properties().apply {
@@ -140,6 +141,7 @@ android {
 
     buildTypes {
         debug {
+            enableUnitTestCoverage = true
             val releaseConfig = signingConfigs.findByName("release")
             if (releaseConfig?.storeFile != null) {
                 signingConfig = releaseConfig

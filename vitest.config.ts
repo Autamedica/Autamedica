@@ -27,5 +27,18 @@ export default defineConfig({
       '**/coverage/**',
       '**/integration.test.ts',
     ],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json-summary', 'lcov'],
+      reportsDirectory: './coverage',
+      include: ['apps/web/src/**/*.{ts,tsx}'],
+      exclude: [
+        '**/*.test.{ts,tsx}',
+        '**/*.spec.{ts,tsx}',
+        '**/*.d.ts',
+        '**/__tests__/**',
+        '**/types/**',
+      ],
+    },
   },
 })
