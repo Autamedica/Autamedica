@@ -37,3 +37,19 @@ test('doctor online presence is authenticated, independent of duty, and expires 
   assert.match(governanceUi,/Online AR/);
   assert.match(governanceUi,/Heartbeat guardia/);
 });
+
+
+const productionDeploy = readFileSync('.github/workflows/deploy-production.yml', 'utf8');
+
+test('production Pages deploy does not rewrite governed Memed secrets or mutate the workspace with Wrangler installation', () => {
+  assert.doesNotMatch(productionDeploy, /name: Configure Memed credentials for the doctor portal/);
+  assert.doesNotMatch(productionDeploy, /name: Configure Memed Mobile Pages secrets/);
+  assert.doesNotMatch(productionDeploy, /cloudflare\/wrangler-action/);
+  assert.match(productionDeploy, /pnpm dlx wrangler@4\.162\.0 pages deploy dist --project-name=autamedica-web/);
+  assert.match(productionDeploy, /name: Configure Memed Mobile Edge secrets[\s\S]*?needs: \[validate, deploy-db\][\s\S]*?needs\.deploy-db\.result == 'success'/);
+  const subdomains = productionDeploy.indexOf('name: Deploy (subdomains)');
+  const postDeployCheck = productionDeploy.indexOf('name: Verify clean Git tree after Pages uploads');
+  const sentry = productionDeploy.indexOf('name: Create Sentry Release');
+  assert.ok(subdomains >= 0 && postDeployCheck > subdomains && sentry > postDeployCheck);
+  assert.match(productionDeploy.slice(postDeployCheck, sentry), /git status --porcelain/);
+});

@@ -57,6 +57,15 @@ function findProviderValue(value: unknown, keyPattern: RegExp, depth = 0): strin
   return null;
 }
 
+function providerQrCodeContent(...sources: unknown[]): string | null {
+  const pattern = /^(qr_code_content|qrCodeContent|qr_code|qrCode|qrcode|qr_data|qrData|codigo_qr|conteudo_qr)$/i;
+  for (const source of sources) {
+    const value = findProviderValue(source, pattern);
+    if (value && value.length <= 65_536) return value;
+  }
+  return null;
+}
+
 function safeMemedDocumentUrl(value: unknown): string | null {
   if (typeof value !== 'string' || !value.trim()) return null;
   try {
@@ -190,7 +199,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
 
     const { data: existing, error: existingError } = await admin.from('prescriptions')
-      .select('id, status, clinical_data, physical_pdf_url')
+      .select('id, status, clinical_data, physical_pdf_url, qr_code_content')
       .eq('doctor_id', doctor.id)
       .eq('patient_id', patientId)
       .eq('country_code', 'BR')
@@ -266,10 +275,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     let digitalLinkUrl: string | null = null;
     let digitalUnlockCode: string | null = null;
     let fullDocumentUrl: string | null = null;
+    let qrCodeContent = providerQrCodeContent(rx, verified);
     const digitalLinkData: Record<string, unknown> = {};
     try {
       const linkResource = await memed.getDigitalPrescriptionLink(prescriptionId, authorizedDoctor.token);
       digitalLinkData.digital = linkResource;
+      qrCodeContent = providerQrCodeContent(linkResource) ?? qrCodeContent;
       digitalLinkUrl = safeMemedDocumentUrl(findProviderValue(
         linkResource,
         /^(url|link|digital_url|digital_link|url_receita|link_receita|prescription_url|digital_prescription_url)$/i,
@@ -299,6 +310,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       memed_prescription_id: prescriptionId,
       items,
       dispatch_request_id: typeof requestId === 'string' ? requestId : null,
+      ...(qrCodeContent ? { qr_code_content: qrCodeContent } : {}),
       ...(digitalLinkUrl ? {
         memed_digital_prescription: {
           url: digitalLinkUrl,
@@ -335,6 +347,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         ...(digitalLinkUrl ? { url: digitalLinkUrl, link: digitalLinkUrl } : {}),
         ...(fullDocumentUrl ? { pdf_url: fullDocumentUrl, document_url: fullDocumentUrl } : {}),
         ...(digitalUnlockCode ? { unlock_code: digitalUnlockCode } : {}),
+        ...(qrCodeContent ? { qr_code: qrCodeContent, qr_code_content: qrCodeContent } : {}),
       },
       pdf_signature_verified: false,
       patient_delivery_confirmed: false,
@@ -369,12 +382,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
           ? existing.clinical_data as Record<string, Json>
           : {};
       const hasPreviousDigitalLink = Boolean(previousClinicalData.memed_digital_prescription);
+      const previousQrCodeContent = typeof existing.qr_code_content === 'string' && existing.qr_code_content
+        ? existing.qr_code_content
+        : (typeof previousClinicalData.qr_code_content === 'string' ? previousClinicalData.qr_code_content : null);
+      const persistedQrCodeContent = qrCodeContent ?? previousQrCodeContent;
       const enrichedClinicalData: Json = {
         ...previousClinicalData,
         ...clinicalData,
         ...(!digitalLinkUrl && hasPreviousDigitalLink
           ? { memed_digital_prescription: previousClinicalData.memed_digital_prescription }
           : {}),
+        ...(persistedQrCodeContent ? { qr_code_content: persistedQrCodeContent } : {}),
         delivery_status: digitalLinkUrl
           ? 'provider_link_available'
           : (typeof previousClinicalData.delivery_status === 'string'
@@ -387,6 +405,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
           ...((fullDocumentUrl || existing.physical_pdf_url)
             ? { physical_pdf_url: fullDocumentUrl ?? existing.physical_pdf_url }
             : {}),
+          ...(persistedQrCodeContent ? { qr_code_content: persistedQrCodeContent } : {}),
           updated_at: new Date().toISOString(),
         })
         .eq('id', existing.id)
@@ -398,7 +417,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         prescriptionId,
         duplicate: true,
         documentAvailable: Boolean(
-          digitalLinkUrl || fullDocumentUrl || documentReferences.length
+          digitalLinkUrl || fullDocumentUrl || documentReferences.length || persistedQrCodeContent
           || hasPreviousDigitalLink || existing.physical_pdf_url
         ),
       });
@@ -414,6 +433,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       vendor_name: 'memed',
       vendor_id: String(rx.id ?? prescriptionId),
       physical_pdf_url: fullDocumentUrl,
+      qr_code_content: qrCodeContent,
       clinical_data: clinicalData,
       updated_at: new Date().toISOString(),
     };

@@ -123,8 +123,32 @@ describe('Memed event persistence boundary', () => {
       },
     });
   });
+  it('persists provider QR content in canonical and Memed read-model records without asserting signature or delivery', async () => {
+    const qrCode = 'https://receita.memed.com.br/rx-test/qr';
+    mocks.digitalLink.mockResolvedValue({
+      data: { attributes: { qr_code: qrCode } },
+    });
+
+    expect((await POST(context())).status).toBe(200);
+    expect(mocks.memedInsert).toHaveBeenCalledWith(expect.objectContaining({
+      digital_link_data: expect.objectContaining({
+        qr_code: qrCode,
+        qr_code_content: qrCode,
+      }),
+      pdf_signature_verified: false,
+      patient_delivery_confirmed: false,
+    }));
+    expect(mocks.coreInsert.mock.calls[0][0]).toMatchObject({
+      qr_code_content: qrCode,
+      clinical_data: {
+        qr_code_content: qrCode,
+        signature_verified: false,
+        delivery_verified: false,
+      },
+    });
+  });
   it('does not regress an existing prescription or discard links on duplicate callbacks', async () => {
-    existingMemed = { id: 'memed-local-id', doctor_id: doctor.id, patient_id: patientId, memed_id: 'rx-test', status: 'verified_at_provider', digital_link_data: { url: 'https://receita.memed.com.br/old', unlock_code: 'OLD-CODE', pdf_url: 'https://documentos.memed.com.br/old.pdf' } };
+    existingMemed = { id: 'memed-local-id', doctor_id: doctor.id, patient_id: patientId, memed_id: 'rx-test', status: 'verified_at_provider', digital_link_data: { url: 'https://receita.memed.com.br/old', unlock_code: 'OLD-CODE', pdf_url: 'https://documentos.memed.com.br/old.pdf', qr_code: 'https://receita.memed.com.br/old-qr', qr_code_content: 'https://receita.memed.com.br/old-qr' } };
     existing = {
       id: 'local-id',
       status: 'signed',
@@ -135,7 +159,9 @@ describe('Memed event persistence boundary', () => {
           unlock_code: 'OLD-CODE',
         },
         delivery_status: 'provider_link_available',
+        qr_code_content: 'https://receita.memed.com.br/old-qr',
       },
+      qr_code_content: 'https://receita.memed.com.br/old-qr',
     };
     const response = await POST(context());
     expect((await response.json()).data).toMatchObject({ status: 'signed', duplicate: true, documentAvailable: true });
@@ -147,9 +173,14 @@ describe('Memed event persistence boundary', () => {
         url: 'https://receita.memed.com.br/old',
         unlock_code: 'OLD-CODE',
         pdf_url: 'https://documentos.memed.com.br/old.pdf',
+        qr_code: 'https://receita.memed.com.br/old-qr',
+        qr_code_content: 'https://receita.memed.com.br/old-qr',
       }),
       pdf_signature_verified: false,
       patient_delivery_confirmed: false,
+    }));
+    expect(mocks.memedUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      qr_code_content: 'https://receita.memed.com.br/old-qr',
     }));
   });
 });
