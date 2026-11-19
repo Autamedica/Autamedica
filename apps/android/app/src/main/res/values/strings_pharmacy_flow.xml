@@ -80,4 +80,9 @@
     <string name="pharmacy_flow_notice_cancelled">La solicitud fue cancelada.</string>
     <string name="pharmacy_flow_country_save_error">No pudimos guardar el país. Intentá nuevamente.</string>
     <string name="pharmacy_flow_country_account_notice">Tu país queda guardado en tu cuenta.</string>
+    <string name="pharmacy_flow_country_saving">Guardando país clínico...</string>
+    <string name="pharmacy_flow_country_retry">Confirmar país y consultar</string>
+    <string name="pharmacy_flow_error_country_persist">No se pudo confirmar tu país clínico. Revisá tu perfil e intentá nuevamente.</string>
+    <string name="pharmacy_flow_notice_completed">La consulta fue finalizada. Podés iniciar una nueva consulta.</string>
+    <string name="pharmacy_flow_new_consultation">Nueva consulta</string>
 </resources>
