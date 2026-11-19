@@ -21,8 +21,7 @@ CREATE POLICY "patients_select_doctor_patient_link"
   FOR SELECT
   TO authenticated
   USING (
-    active IS TRUE
-    AND public.is_clinically_authorized_doctor_read_for_patient(id)
+    public.is_clinically_authorized_doctor_read_for_patient(id)
     AND EXISTS (
       SELECT 1
       FROM public.doctors d
