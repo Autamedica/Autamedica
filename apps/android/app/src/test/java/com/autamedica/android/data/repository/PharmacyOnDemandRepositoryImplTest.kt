@@ -5,6 +5,7 @@ import com.google.common.truth.Truth.assertThat
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.MemorySessionManager
+import io.github.jan.supabase.auth.MemoryCodeVerifierCache
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
@@ -49,7 +50,14 @@ class PharmacyOnDemandRepositoryImplTest {
                 supabaseUrl = server.url("/").toString(),
                 supabaseKey = "test-anon-key",
             ) {
-                install(Auth) { sessionManager = MemorySessionManager() }
+                install(Auth) {
+                    sessionManager = MemorySessionManager()
+                    codeVerifierCache = MemoryCodeVerifierCache()
+                    autoLoadFromStorage = false
+                    autoSaveToStorage = false
+                    alwaysAutoRefresh = false
+                    enableLifecycleCallbacks = false
+                }
                 install(Postgrest)
             }
             val auth = mockk<AuthRepository>(relaxed = true)
