@@ -499,7 +499,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         val recoveryOwner = securePreferences?.getString(guestRecoveryOwnerKey)
         if (recovery != null && recoveryOwner == currentUser?.id) {
             val restored = resumeGuestRequestFromEncryptedDevice(recovery.first)
-            if (restored != null && restored.status in setOf("searching", "matched", "in_call", "expired")) {
+            if (restored != null && restored.status in setOf("searching", "matched", "in_call", "expired", "completed")) {
                 return@runCatching restored
             }
         }
@@ -511,7 +511,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 .select(Columns.ALL) {
                     filter {
                         eq("requested_by_user_id", currentUser.id)
-                        isIn("status", listOf("searching", "matched", "in_call", "expired"))
+                        isIn("status", listOf("searching", "matched", "in_call", "expired", "completed"))
                     }
                     order("created_at", Order.DESCENDING)
                     limit(1)
@@ -551,6 +551,34 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         require(commercialCode != "JORDAN" || careCountry == "BR") {
             "El código de Jordan solo corresponde a Brasil"
         }
+
+        // UI state is not authorization evidence: verify the persisted active
+        // patient jurisdiction against the currently authenticated Supabase session.
+        if (currentUser != null) {
+            val sessionUserId = supabaseClient.auth.currentSessionOrNull()?.user?.id
+            check(sessionUserId == currentUser.id) { "invalid_mobile_session" }
+
+            val activePatientCountry = supabaseClient.postgrest
+                .from("patients")
+                .select(Columns.list("care_country")) {
+                    filter {
+                        eq("user_id", currentUser.id)
+                        eq("active", true)
+                    }
+                }
+                .decodeList<PatientDispatchCareCountryDto>()
+                .firstOrNull()
+                ?.careCountry
+
+            check(activePatientCountry == careCountry) {
+                if (activePatientCountry == null) {
+                    "care_country_or_patient_profile_required"
+                } else {
+                    "care_country_dispatch_mismatch"
+                }
+            }
+        }
+
         if (currentUser == null || commercialCode != null) {
             val guestPayload = buildJsonObject {
                 put("careCountry", careCountry)
@@ -780,7 +808,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     private suspend fun loadSearchingRequests() {
         runCatching {
             // This RPC requires an authenticated doctor JWT. The observer can start
-            // before sign-in, so skip the request instead of polling PostgREST as anon.
+            // before sign-in, so never poll offers with anon credentials.
             if (supabaseClient.auth.currentSessionOrNull()?.accessToken.isNullOrBlank()) {
                 _searchingRequests.value = emptyList()
                 return@runCatching
@@ -890,6 +918,11 @@ private data class DoctorDutyStatusDto(
         currentActiveRequestId = currentActiveRequestId,
     )
 }
+
+@Serializable
+private data class PatientDispatchCareCountryDto(
+    @SerialName("care_country") val careCountry: String? = null,
+)
 
 @Serializable
 private data class DispatchRequestDto(
