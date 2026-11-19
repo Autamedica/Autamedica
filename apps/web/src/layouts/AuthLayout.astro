@@ -22,7 +22,7 @@ const {
 } = Astro.props;
 
 const locale = Astro.locals.locale ?? 'es';
-const { t, dict } = getI18n(locale);
+const { t } = getI18n(locale);
 
 const fullTitle = title.includes('AutaMedica') ? title : `${title} | AutaMedica`;
 const currentPath = Astro.url.pathname;
