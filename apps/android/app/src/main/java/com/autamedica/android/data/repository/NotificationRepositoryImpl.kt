@@ -7,6 +7,8 @@ import com.autamedica.android.domain.model.NotificationType
 import com.autamedica.android.domain.model.PortalNotification
 import com.autamedica.android.domain.model.PushPayload
 import com.autamedica.android.domain.repository.NotificationRepository
+import com.autamedica.android.domain.repository.AuthRepository
+import com.autamedica.android.data.remote.currentAuthenticatedUserIdOrNull
 import com.autamedica.android.logging.SecureLog
 import com.autamedica.android.service.NotificationHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -27,7 +29,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -42,11 +47,26 @@ import javax.inject.Singleton
 class NotificationRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val supabaseClient: SupabaseClient,
+    private val authRepository: AuthRepository,
     private val securePreferences: SecurePreferences,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : NotificationRepository {
 
     private val repositoryScope = CoroutineScope(SupervisorJob() + ioDispatcher)
+    private val fcmRegistrationMutex = Mutex()
+
+    init {
+        repositoryScope.launch {
+            authRepository.observeSession().collectLatest { user ->
+                val sessionUserId = supabaseClient.currentAuthenticatedUserIdOrNull()
+                if (user == null || user.id != sessionUserId) return@collectLatest
+                val pendingToken = securePreferences.getString(KEY_PENDING_FCM_TOKEN)
+                    ?.takeIf { it.isNotBlank() }
+                    ?: return@collectLatest
+                registerFcmToken(pendingToken)
+            }
+        }
+    }
 
     private val _notifications = MutableStateFlow<List<PortalNotification>>(emptyList())
     private val _unreadCount = MutableStateFlow(0)
@@ -58,53 +78,63 @@ class NotificationRepositoryImpl @Inject constructor(
     override fun observeUnreadCount(): StateFlow<Int> = _unreadCount.asStateFlow()
 
     override suspend fun registerFcmToken(token: String): Result<Unit> = withContext(ioDispatcher) {
-        runCatching {
-            val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
-                ?: throw IllegalStateException("No user ID found — cannot register FCM token")
+        fcmRegistrationMutex.withLock {
+            runCatching {
+                require(token.isNotBlank()) { "Missing FCM token" }
+                securePreferences.putString(KEY_PENDING_FCM_TOKEN, token)
+                val userId = supabaseClient.currentAuthenticatedUserIdOrNull()
+                    ?: return@runCatching Unit
 
-            val persistedToken = supabaseClient.postgrest
-                .from("profiles")
-                .update(FcmTokenDto(fcmToken = token, platform = "android")) {
-                    filter { eq("user_id", userId) }
-                    select(Columns.list("fcm_token", "device_platform"))
+                val persistedToken = supabaseClient.postgrest
+                    .from("profiles")
+                    .update(FcmTokenDto(fcmToken = token, platform = "android")) {
+                        filter { eq("user_id", userId) }
+                        select(Columns.list("fcm_token", "device_platform"))
+                    }
+                    .decodeSingleOrNull<FcmTokenDto>()
+
+                check(persistedToken?.fcmToken == token && persistedToken.platform == "android") {
+                    "Supabase did not confirm persistence of the active FCM token"
                 }
-                .decodeSingleOrNull<FcmTokenDto>()
-
-            check(persistedToken?.fcmToken == token && persistedToken.platform == "android") {
-                "Supabase did not confirm persistence of the active FCM token"
+                securePreferences.putString(KEY_FCM_TOKEN, token)
+                securePreferences.remove(KEY_PENDING_FCM_TOKEN)
+                Timber.d("[Notifications] FCM token registered")
+                Unit
+            }.onFailure {
+                SecureLog.error("[Notifications] Failed to register FCM token", it)
             }
-            securePreferences.putString(KEY_FCM_TOKEN, token)
-            Timber.d("[Notifications] FCM token registered")
-        }.onFailure {
-            SecureLog.error("[Notifications] Failed to register FCM token", it)
         }
     }
 
     override suspend fun clearFcmToken(): Result<Unit> = withContext(ioDispatcher) {
-        runCatching {
-            val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
-            if (userId != null) {
-                supabaseClient.postgrest
-                    .from("profiles")
-                    .update(FcmTokenDto(fcmToken = null, platform = null)) {
-                        filter { eq("user_id", userId) }
-                    }
+        fcmRegistrationMutex.withLock {
+            runCatching {
+                val userId = supabaseClient.currentAuthenticatedUserIdOrNull()
+                if (userId != null) {
+                    supabaseClient.postgrest
+                        .from("profiles")
+                        .update(FcmTokenDto(fcmToken = null, platform = null)) {
+                            filter { eq("user_id", userId) }
+                        }
+                }
+                securePreferences.remove(KEY_FCM_TOKEN)
+                securePreferences.remove(KEY_PENDING_FCM_TOKEN)
+                realtimeChannel?.let {
+                    runCatching { supabaseClient.realtime.removeChannel(it) }
+                }
+                realtimeChannel = null
+                _notifications.value = emptyList()
+                _unreadCount.value = 0
+                Timber.d("[Notifications] FCM token and channels cleared")
+            }.onFailure {
+                SecureLog.error("[Notifications] Failed to clear FCM token", it)
             }
-            securePreferences.remove(KEY_FCM_TOKEN)
-            realtimeChannel?.let {
-                runCatching { supabaseClient.realtime.removeChannel(it) }
-            }
-            realtimeChannel = null
-            _notifications.value = emptyList()
-            _unreadCount.value = 0
-            Timber.d("[Notifications] FCM token and channels cleared")
-        }.onFailure {
-            SecureLog.error("[Notifications] Failed to clear FCM token", it)
         }
     }
 
     override fun getCachedToken(): String? =
-        securePreferences.getString(KEY_FCM_TOKEN)
+        securePreferences.getString(KEY_PENDING_FCM_TOKEN)
+            ?: securePreferences.getString(KEY_FCM_TOKEN)
 
     override suspend fun getNotifications(limit: Int): Result<List<PortalNotification>> = withContext(ioDispatcher) {
         runCatching {
@@ -360,6 +390,7 @@ class NotificationRepositoryImpl @Inject constructor(
 
     companion object {
         private const val KEY_FCM_TOKEN = "fcm_token"
+        private const val KEY_PENDING_FCM_TOKEN = "fcm_token_pending_registration"
     }
 }
 

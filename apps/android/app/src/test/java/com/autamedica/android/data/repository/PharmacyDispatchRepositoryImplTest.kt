@@ -366,11 +366,18 @@ class PharmacyDispatchRepositoryImplTest {
         assertThat(anonymousOffers.value).isEmpty()
         assertThat(mockWebServer.requestCount).isEqualTo(0)
 
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"id":"authenticated-user-id","aud":"authenticated","role":"authenticated","email":"patient@example.test","email_confirmed_at":"2026-01-01T00:00:00Z","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","app_metadata":{"provider":"email","providers":["email"]},"user_metadata":{},"identities":[]}"""),
+        )
         supabaseClient.auth.importAuthToken(
-            accessToken = "synthetic-authenticated-doctor-jwt",
-            retrieveUser = false,
+            accessToken = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhdXRoZW50aWNhdGVkLWRvY3Rvci1pZCIsImF1ZCI6ImF1dGhlbnRpY2F0ZWQiLCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImV4cCI6NDEwMjQ0NDgwMCwiaWF0IjoxNzAwMDAwMDAwfQ.c3ludGhldGljLXNpZ25hdHVyZQ",
+            retrieveUser = true,
             autoRefresh = false,
         )
+        val authUserRequest = mockWebServer.takeRequest(2, TimeUnit.SECONDS)
+        assertThat(authUserRequest?.path).contains("/auth/v1/user")
         mockWebServer.enqueue(
             MockResponse().setResponseCode(200)
                 .setHeader("Content-Type", "application/json")
@@ -393,11 +400,13 @@ class PharmacyDispatchRepositoryImplTest {
         )
 
         val authenticatedOffers = repository.observeSearchingRequests()
+        // Drive the session-aware worker login-resume poll in this JVM fixture.
+        testDispatcher.scheduler.advanceTimeBy(1_001L)
         val rpc = mockWebServer.takeRequest(2, TimeUnit.SECONDS)
         assertThat(rpc).isNotNull()
         assertThat(rpc!!.path).isEqualTo("/rest/v1/rpc/get_my_pending_dispatch_offers")
         assertThat(rpc.getHeader("Authorization"))
-            .isEqualTo("Bearer synthetic-authenticated-doctor-jwt")
+            .isEqualTo("Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhdXRoZW50aWNhdGVkLWRvY3Rvci1pZCIsImF1ZCI6ImF1dGhlbnRpY2F0ZWQiLCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImV4cCI6NDEwMjQ0NDgwMCwiaWF0IjoxNzAwMDAwMDAwfQ.c3ludGhldGljLXNpZ25hdHVyZQ")
         assertThat(authenticatedOffers.value.map { it.id })
             .containsExactly("offer-request-123")
 
@@ -407,7 +416,15 @@ class PharmacyDispatchRepositoryImplTest {
         val logout = mockWebServer.takeRequest(2, TimeUnit.SECONDS)
         assertThat(logout?.path).contains("/auth/v1/logout")
         assertThat(loggedOutOffers.value).isEmpty()
-        assertThat(mockWebServer.requestCount).isEqualTo(2)
+        assertThat(mockWebServer.requestCount).isEqualTo(3)
+    }
+
+    @Test
+    fun `active on duty doctors RPC is skipped without an authenticated Supabase session`() = runTest {
+        val result = repository.getActiveOnDutyDoctors()
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(mockWebServer.requestCount).isEqualTo(0)
     }
 
     @Test

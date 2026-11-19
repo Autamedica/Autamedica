@@ -51,7 +51,9 @@ class PushNotificationService : FirebaseMessagingService() {
         super.onNewToken(token)
         Timber.d("[FCM] New token received")
         serviceScope.launch {
-            notificationRepository.registerFcmToken(token)
+            notificationRepository.registerFcmToken(token).onFailure { error ->
+                Timber.w(error, "[FCM] Token registration will be retried after authentication")
+            }
         }
     }
 
