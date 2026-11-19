@@ -1,6 +1,13 @@
 package com.autamedica.companion;
 
 import android.accessibilityservice.AccessibilityService;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.os.Build;
+
+import java.util.Collections;
+import java.util.List;
 
 import org.json.JSONObject;
 
@@ -95,6 +102,7 @@ final class LocalControlServer {
                 JSONObject result = new JSONObject();
                 result.put("ok", true);
                 result.put("accessibility", true);
+                result.put("notificationListenerConnected", CompanionNotificationListenerService.isConnected());
                 result.put("bind", "127.0.0.1");
                 result.put("port", PORT);
                 result.put("cdpBind", "127.0.0.1");
@@ -104,6 +112,45 @@ final class LocalControlServer {
                 result.put("browserActivityReady", BrowserActivity.isReady());
                 result.put("cdpProxyListening", service.isCdpListening());
                 result.put("webViewDevToolsSocketAvailable", service.isWebViewSocketAvailable());
+                respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
+            } else if ("GET".equals(method) && "/v1/device".equals(path)) {
+                JSONObject result = new JSONObject();
+                result.put("manufacturer", Build.MANUFACTURER);
+                result.put("brand", Build.BRAND);
+                result.put("model", Build.MODEL);
+                result.put("device", Build.DEVICE);
+                result.put("product", Build.PRODUCT);
+                result.put("androidRelease", Build.VERSION.RELEASE);
+                result.put("sdkInt", Build.VERSION.SDK_INT);
+                result.put("accessibilityConnected", AccessibilityControlService.isConnected());
+                result.put("notificationListenerConnected", CompanionNotificationListenerService.isConnected());
+                JSONObject app = new JSONObject();
+                PackageInfo appInfo = service.getPackageManager().getPackageInfo(service.getPackageName(), 0);
+                app.put("packageName", service.getPackageName());
+                app.put("versionName", appInfo.versionName == null ? "" : appInfo.versionName);
+                app.put("versionCode", Build.VERSION.SDK_INT >= 28 ? appInfo.getLongVersionCode() : appInfo.versionCode);
+                result.put("app", app);
+                respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
+            } else if ("GET".equals(method) && "/v1/packages".equals(path)) {
+                PackageManager packageManager = service.getPackageManager();
+                List<PackageInfo> installed = packageManager.getInstalledPackages(0);
+                Collections.sort(installed, (left, right) -> left.packageName.compareToIgnoreCase(right.packageName));
+                org.json.JSONArray packages = new org.json.JSONArray();
+                for (PackageInfo info : installed) {
+                    if (info.applicationInfo == null) continue;
+                    JSONObject item = new JSONObject();
+                    CharSequence label = info.applicationInfo.loadLabel(packageManager);
+                    item.put("packageName", info.packageName);
+                    item.put("label", label == null ? info.packageName : label.toString());
+                    item.put("versionName", info.versionName == null ? "" : info.versionName);
+                    item.put("versionCode", Build.VERSION.SDK_INT >= 28 ? info.getLongVersionCode() : info.versionCode);
+                    item.put("system", (info.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0);
+                    item.put("enabled", info.applicationInfo.enabled);
+                    packages.put(item);
+                }
+                JSONObject result = new JSONObject();
+                result.put("count", packages.length());
+                result.put("packages", packages);
                 respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
             } else if ("GET".equals(method) && "/v1/ui".equals(path)) {
                 JSONObject result = service.getUiTree();

@@ -30,11 +30,14 @@ public final class MainActivity extends Activity {
         @Override public void run() {
             if (statusView != null) {
                 boolean connected = AccessibilityControlService.isConnected();
-                statusView.setText(connected
-                    ? "Accesibilidad: ACTIVA\nControl Android: 127.0.0.1:" + BuildConfig.CONTROL_PORT
-                        + "\nChromium CDP: 127.0.0.1:" + BuildConfig.CDP_PORT
-                        + "\nInternet: habilitado\nSesiones web: perfil persistente"
-                    : "Accesibilidad: pendiente de autorización\nActivá el servicio para iniciar el control local.");
+                boolean notifications = CompanionNotificationListenerService.isConnected();
+                statusView.setText((connected
+                    ? "Accesibilidad: ACTIVA"
+                    : "Accesibilidad: pendiente de autorización")
+                    + "\nControl Android: 127.0.0.1:" + BuildConfig.CONTROL_PORT
+                    + "\nChromium CDP: 127.0.0.1:" + BuildConfig.CDP_PORT
+                    + "\nNotificaciones: " + (notifications ? "ACTIVAS" : "Permiso pendiente")
+                    + "\nInternet: habilitado\nSesiones web: perfil persistente");
             }
             handler.postDelayed(this, 1500);
         }
@@ -70,6 +73,12 @@ public final class MainActivity extends Activity {
         enable.setText("Activar control de accesibilidad");
         enable.setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
         root.addView(enable, matchWrap());
+
+        Button notificationAccess = new Button(this);
+        notificationAccess.setText("Activar acceso a notificaciones");
+        notificationAccess.setOnClickListener(v ->
+            startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
+        root.addView(notificationAccess, matchWrap());
 
         Button runBackground = new Button(this);
         runBackground.setText("Mantener navegador activo con pantalla apagada");
