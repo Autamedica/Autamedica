@@ -132,11 +132,10 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
     WHERE schemaname='public' AND tablename='patients'
-      AND policyname='patients_select_doctor_patient_link'
-      AND qual ILIKE '%is_clinically_authorized_doctor_read_for_patient%'
-      AND qual ILIKE '%doctor_patient%'
+      AND policyname='patients_select_assigned_patient'
+      AND qual ILIKE '%doctor_has_patient_read_access(user_id)%'
   ) THEN
-    RAISE EXCEPTION 'Doctor-patient row policy is not scoped to approved relationships';
+    RAISE EXCEPTION 'Patient row policy is missing the SECURITY DEFINER clinical access helper';
   END IF;
   IF has_table_privilege('anon','app_private.clinical_legacy_read_grants','SELECT')
      OR has_table_privilege('authenticated','app_private.clinical_legacy_read_grants','SELECT')
