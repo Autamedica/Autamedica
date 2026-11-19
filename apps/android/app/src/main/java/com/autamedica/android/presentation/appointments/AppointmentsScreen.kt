@@ -89,6 +89,7 @@ import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
 import com.autamedica.android.domain.model.DoctorBookingInfo
 import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
+import com.autamedica.android.util.CareCountryLocale
 import com.autamedica.android.presentation.dashboard.components.AppointmentCard
 import com.autamedica.android.presentation.common.CareCountryPicker
 import com.autamedica.android.presentation.theme.AuAccent
@@ -131,6 +132,14 @@ fun AppointmentsScreen(
     val isDoctor = uiState.userRole == "doctor"
     val accentColor = if (isDoctor) PortalDoctors else PortalPatients
     val title = if (isDoctor) stringResource(R.string.appointments_title_doctor) else stringResource(R.string.appointments_title_patient)
+
+    val context = LocalContext.current
+    LaunchedEffect(uiState.careCountry, isDoctor) {
+        val country = uiState.careCountry
+        if (!isDoctor && country in setOf("AR", "BR")) {
+            CareCountryLocale.applyCareCountryDefault(context, requireNotNull(country))
+        }
+    }
 
     if (!isDoctor && uiState.needsCareCountry) {
         AlertDialog(
