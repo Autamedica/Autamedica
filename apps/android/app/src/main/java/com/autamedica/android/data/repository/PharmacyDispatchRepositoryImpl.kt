@@ -35,14 +35,22 @@ import io.github.jan.supabase.realtime.realtime
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
@@ -64,6 +72,17 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 ) : PharmacyDispatchRepository {
 
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
+
+    private data class PatientRequestSubscription(
+        val channel: RealtimeChannel,
+        val updates: MutableSharedFlow<PharmacyDispatchRequest>,
+        var subscribers: Int = 0,
+        var realtimeJob: Job? = null,
+        var pollJob: Job? = null,
+    )
+
+    private val patientRequestSubscriptionsMutex = Mutex()
+    private val patientRequestSubscriptions = mutableMapOf<String, PatientRequestSubscription>()
 
     private val _searchingRequests = MutableStateFlow<List<PharmacyDispatchRequest>>(emptyList())
     private var searchingChannel: RealtimeChannel? = null
@@ -626,59 +645,117 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             .decodeSingle<DispatchRequestDto>()
 
         dto.toDomain()
-    }.onFailure {
-        SecureLog.error("[PharmacyDispatch] Failed creating patient dispatch request", it)
+    }.onFailure { error ->
+        SecureLog.warn(
+            "[PharmacyDispatch] dispatch create stage=insert code=" + safeDispatchFailureCode(error)
+        )
     }
 
-    override fun observePatientRequest(requestId: String): kotlinx.coroutines.flow.Flow<PharmacyDispatchRequest> = kotlinx.coroutines.flow.callbackFlow {
+    override suspend fun refreshPatientRequest(
+        requestId: String,
+    ): Result<PharmacyDispatchRequest?> = runCatching { fetchPatientRequest(requestId) }
+
+    private suspend fun fetchPatientRequest(requestId: String): PharmacyDispatchRequest? {
+        val guestToken = guestAccessTokens[requestId] ?: run {
+            if (savedGuestRecovery()?.first == requestId) {
+                resumeGuestRequestFromEncryptedDevice(requestId)
+                guestAccessTokens[requestId]
+            } else null
+        }
+        return if (guestToken != null) {
+            fetchGuestRequestViaSignedApi(requestId, guestToken)
+        } else {
+            supabaseClient.postgrest
+                .from("pharmacy_dispatch_requests")
+                .select(Columns.ALL) {
+                    filter { eq("id", requestId) }
+                }
+                .decodeSingleOrNull<DispatchRequestDto>()
+                ?.toDomain()
+        }
+    }
+
+    private suspend fun emitPatientRequest(
+        requestId: String,
+        updates: MutableSharedFlow<PharmacyDispatchRequest>,
+    ) {
+        runCatching { fetchPatientRequest(requestId) }
+            .onSuccess { request -> if (request != null) updates.emit(request) }
+            .onFailure { error ->
+                SecureLog.warn(
+                    "[PharmacyDispatch] request refresh stage=realtime_refresh code=" +
+                        safeDispatchFailureCode(error)
+                )
+            }
+    }
+
+    private suspend fun acquirePatientRequestSubscription(
+        requestId: String,
+    ): PatientRequestSubscription = patientRequestSubscriptionsMutex.withLock {
+        patientRequestSubscriptions[requestId]?.let { existing ->
+            existing.subscribers += 1
+            return@withLock existing
+        }
+
         val channel = supabaseClient.channel("dispatch_request_$requestId")
-        val changeFlow = channel.postgresChangeFlow<PostgresAction>(
-            schema = "public",
-        ) {
+        val session = PatientRequestSubscription(
+            channel = channel,
+            updates = MutableSharedFlow(replay = 1, extraBufferCapacity = 1),
+            subscribers = 1,
+        )
+        val changeFlow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
             table = "pharmacy_dispatch_requests"
         }
 
-        suspend fun fetchCurrent() {
-            runCatching {
-                val guestToken = guestAccessTokens[requestId]
-                if (guestToken != null) {
-                    fetchGuestRequestViaSignedApi(requestId, guestToken)
-                } else {
-                    supabaseClient.postgrest
-                        .from("pharmacy_dispatch_requests")
-                        .select(Columns.ALL) {
-                            filter { eq("id", requestId) }
-                        }
-                        .decodeSingleOrNull<DispatchRequestDto>()
-                        ?.toDomain()
-                }
-            }.getOrNull()?.let { trySend(it) }
-        }
-
-        // Emit initial state if available
-        launch { fetchCurrent() }
-
-        // Realtime change collection
-        val realtimeJob = launch {
+        // Register the listener once before channel.subscribe(); the mutex serializes
+        // registration and awaited removal of this exact request topic.
+        session.realtimeJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
             changeFlow.collect {
-                fetchCurrent()
+                emitPatientRequest(requestId, session.updates)
             }
         }
-
-        // Polling ticker fallback (3000ms): guarantees state updates even if websocket reconnects/lags
-        val pollJob = launch {
-            while (isActive) {
-                delay(3000L)
-                fetchCurrent()
+        try {
+            channel.subscribe()
+            session.pollJob = scope.launch {
+                while (isActive) {
+                    delay(3000L)
+                    emitPatientRequest(requestId, session.updates)
+                }
             }
+            patientRequestSubscriptions[requestId] = session
+            scope.launch { emitPatientRequest(requestId, session.updates) }
+            session
+        } catch (error: Throwable) {
+            session.realtimeJob?.cancelAndJoin()
+            runCatching { supabaseClient.realtime.removeChannel(channel) }
+            throw error
         }
+    }
 
-        channel.subscribe()
+    private suspend fun releasePatientRequestSubscription(
+        requestId: String,
+        session: PatientRequestSubscription,
+    ) {
+        patientRequestSubscriptionsMutex.withLock {
+            if (patientRequestSubscriptions[requestId] !== session) return@withLock
+            session.subscribers = (session.subscribers - 1).coerceAtLeast(0)
+            if (session.subscribers > 0) return@withLock
 
-        awaitClose {
-            realtimeJob.cancel()
-            pollJob.cancel()
-            launch { supabaseClient.realtime.removeChannel(channel) }
+            // Do not permit re-registering this topic until its collectors have stopped
+            // and the server confirms channel removal.
+            session.realtimeJob?.cancelAndJoin()
+            session.pollJob?.cancelAndJoin()
+            supabaseClient.realtime.removeChannel(session.channel)
+            patientRequestSubscriptions.remove(requestId)
+        }
+    }
+
+    override fun observePatientRequest(requestId: String): Flow<PharmacyDispatchRequest> = flow {
+        val session = acquirePatientRequestSubscription(requestId)
+        try {
+            session.updates.collect { emit(it) }
+        } finally {
+            releasePatientRequestSubscription(requestId, session)
         }
     }
 
@@ -987,4 +1064,12 @@ internal data class DispatchClaimRpcDto(
         patientPhone = patientPhone,
         tierRequested = tierRequested,
     )
+}
+
+private fun safeDispatchFailureCode(error: Throwable): String {
+    val text = generateSequence(error) { it.cause }.take(8).map { it.message.orEmpty() }.joinToString(" ")
+    Regex("(?i)HTTP\\s+(\\d{3})").find(text)?.groupValues?.get(1)?.let { return "http_$it" }
+    Regex("(?i)SQLSTATE\\s*[:=]?\\s*([0-9A-Z]{5})").find(text)?.groupValues?.get(1)?.let { return it.uppercase() }
+    Regex("\\b(42501|23503|23505|22P02)\\b").find(text)?.groupValues?.get(1)?.let { return it }
+    return error::class.simpleName?.take(48) ?: "unknown"
 }

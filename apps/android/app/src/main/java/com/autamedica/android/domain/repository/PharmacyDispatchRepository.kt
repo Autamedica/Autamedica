@@ -93,6 +93,10 @@ interface PharmacyDispatchRepository {
     suspend fun cancelPatientDispatchRequest(requestId: String): Result<Boolean> =
         Result.failure(UnsupportedOperationException("Patient cancellation not implemented"))
 
+    /** REST refresh; it must not replace the request's Realtime subscription. */
+    suspend fun refreshPatientRequest(requestId: String): Result<PharmacyDispatchRequest?> =
+        Result.success(null)
+
     /** Patient side: Observe a specific on-demand request by id until matched/in_call. */
     fun observePatientRequest(requestId: String): kotlinx.coroutines.flow.Flow<PharmacyDispatchRequest>
 
