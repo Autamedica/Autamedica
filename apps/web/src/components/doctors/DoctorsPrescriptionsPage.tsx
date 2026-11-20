@@ -1213,6 +1213,7 @@ export function DoctorsPrescriptionsPage() {
       {/* ── PrescriptionCreateModal ── */}
       {showCreateModal && (certificateCountry === "AR" || certificateCountry === "BR") && (
         <PrescriptionCreateModal
+          allowEventualPatientCreation
           patientId={(selectedPatientId ?? undefined) as UUID | undefined}
           onPatientSelected={setSelectedPatientId}
           doctorCareCountry={certificateCountry ?? undefined}
