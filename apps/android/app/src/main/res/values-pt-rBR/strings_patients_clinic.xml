@@ -183,4 +183,8 @@
     <string name="patients_retry">Tentar novamente</string>
     <string name="patient_detail_empty_title">Prontuário indisponível</string>
     <string name="patient_detail_empty_desc">Não há dados do paciente para exibir. Tente carregar o prontuário novamente.</string>
+
+    <string name="community_empty_feed">Ainda não há publicações neste grupo.</string>
+    <string name="community_loading">Publicando…</string>
+
 </resources>
