@@ -682,7 +682,7 @@ export function PrescriptionCreateModal({
                   aria-pressed={quickPatientMode === "external"}
                   className={`min-h-11 rounded-xl border px-3 py-2 text-xs font-semibold transition ${quickPatientMode === "external" ? "border-sky-600 bg-sky-600 text-white" : "border-am-surface-200 bg-white text-am-surface-700 hover:border-sky-300"}`}
                 >
-                  Paciente sin cuenta
+                  Nuevo paciente
                 </button>
               </div>
 
