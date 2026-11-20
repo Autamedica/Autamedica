@@ -179,4 +179,6 @@
     <string name="patient_detail_error_network">Falha de conexão ao carregar a ficha. Verifique a rede e tente novamente.</string>
     <string name="patient_detail_error_generic">Não foi possível carregar a ficha clínica.</string>
     <string name="patient_detail_retry">Tentar novamente</string>
+    <string name="patients_name_not_registered">Nome não cadastrado</string>
+    <string name="patients_record_reference">Registro #%1$s</string>
 </resources>

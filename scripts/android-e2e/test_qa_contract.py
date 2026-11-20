@@ -167,6 +167,23 @@ class LocaleAndRoleCopyTest(unittest.TestCase):
         vm = (ROOT / "apps/android/app/src/main/java/com/autamedica/android/presentation/dashboard/DoctorDashboardViewModel.kt").read_text()
         self.assertIn("profileRepository?.getProfile()", vm)
 
+    def test_doctor_empty_inbox_cta_opens_patient_selection(self) -> None:
+        screen = (ROOT / "apps/android/app/src/main/java/com/autamedica/android/presentation/chat/ChatListScreen.kt").read_text()
+        main = (ROOT / "apps/android/app/src/main/java/com/autamedica/android/presentation/main/MainScreen.kt").read_text()
+        self.assertIn("if (isDoctor)", screen)
+        self.assertIn("doctor_chat_empty_choose_patient", screen)
+        self.assertIn("onNavigateToPatients = { selectedTab = 3 }", main)
+        for folder in ("values", "values-pt-rBR", "values-b+es+419"):
+            resources = self._resources(folder)
+            self.assertTrue(resources.get("doctor_chat_empty_choose_patient"))
+
+    def test_anonymous_patient_rows_use_stable_record_ids_without_merging(self) -> None:
+        screen = (ROOT / "apps/android/app/src/main/java/com/autamedica/android/presentation/patients/PatientsScreen.kt").read_text()
+        helper = (ROOT / "apps/android/app/src/main/java/com/autamedica/android/presentation/patients/PatientReferenceSuffix.kt").read_text()
+        self.assertIn("items(uiState.patients, key = { it.id })", screen)
+        self.assertIn("patientReferenceSuffix(patient.id)", screen)
+        self.assertIn("takeLast(4)", helper)
+
     def test_doctor_portal_primary_brand_uses_sky_palette(self) -> None:
         theme = (ROOT / "apps/android/app/src/main/java/com/autamedica/android/presentation/theme/Color.kt").read_text()
         self.assertIn("val PortalDoctors = Color(0xFF0EA5E9)", theme)

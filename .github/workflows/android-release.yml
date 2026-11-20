@@ -264,6 +264,55 @@ jobs:
               print('⚠️ Created fallback dummy google-services.json for build')
           "
 
+      - name: Generate Android lint baseline from target commit
+        env:
+          BASE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          BASE_SHA="${BASE_SHA:-${GITHUB_SHA}^}"
+          git fetch --no-tags origin "$BASE_SHA"
+          BASELINE_WORKTREE="$RUNNER_TEMP/android-lint-baseline"
+          git worktree add --detach "$BASELINE_WORKTREE" "$BASE_SHA"
+          cp apps/android/local.properties "$BASELINE_WORKTREE/apps/android/local.properties"
+          cp apps/android/app/google-services.json "$BASELINE_WORKTREE/apps/android/app/google-services.json"
+
+          python3 - "$BASELINE_WORKTREE/apps/android/app/build.gradle.kts" <<'PY'
+          from pathlib import Path
+          import sys
+
+          path = Path(sys.argv[1])
+          content = path.read_text(encoding="utf-8")
+          anchor = """    buildFeatures {
+                  compose = true
+                  buildConfig = true
+              }
+          }
+
+          kotlin {"""
+          replacement = """    buildFeatures {
+                  compose = true
+                  buildConfig = true
+              }
+
+              lint {
+                  baseline = file("lint-baseline.xml")
+              }
+          }
+
+          kotlin {"""
+          if content.count(anchor) != 1:
+              raise SystemExit("Could not identify the Android buildFeatures anchor for the baseline")
+          path.write_text(content.replace(anchor, replacement), encoding="utf-8")
+          PY
+
+          cd "$BASELINE_WORKTREE/apps/android"
+          ./gradlew updateLintBaseline -PfirebasePerformanceInstrumentationEnabled=false --console=plain
+          test -s app/lint-baseline.xml
+          cp app/lint-baseline.xml "$GITHUB_WORKSPACE/apps/android/app/lint-baseline.xml"
+          cd "$GITHUB_WORKSPACE"
+          git worktree remove "$BASELINE_WORKTREE" --force
+          echo "Generated release lint baseline from target commit $BASE_SHA"
+
       - name: Build Release Bundle (AAB)
         run: |
           cd apps/android

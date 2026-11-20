@@ -7,4 +7,6 @@
     <string name="patient_detail_error_network">No se pudo conectar para cargar la ficha. Revisa tu conexión e inténtalo de nuevo.</string>
     <string name="patient_detail_error_generic">No se pudo cargar la ficha clínica.</string>
     <string name="patient_detail_retry">Reintentar</string>
+    <string name="patients_name_not_registered">Nombre sin registrar</string>
+    <string name="patients_record_reference">Registro #%1$s</string>
 </resources>

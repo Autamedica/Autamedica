@@ -302,6 +302,15 @@ private fun PatientCard(
                             color = AuTextTertiary,
                             fontWeight = FontWeight.Medium,
                         )
+                        Text(
+                            text = stringResource(
+                                R.string.patients_record_reference,
+                                patientReferenceSuffix(patient.id),
+                            ),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = PortalDoctors,
+                            fontWeight = FontWeight.SemiBold,
+                        )
                     } else {
                         Text(
                             text = patientName,
@@ -312,12 +321,6 @@ private fun PatientCard(
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         )
                     }
-                    Text(
-                        text = patientName,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = AuTextPrimary,
-                        fontWeight = FontWeight.SemiBold,
-                    )
                     Spacer(modifier = Modifier.height(2.dp))
                     val consultationsText = if (patient.appointmentCount == 1) {
                         stringResource(R.string.patients_consultations_total_single, patient.appointmentCount)

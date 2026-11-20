@@ -115,4 +115,10 @@
     <string name="doctor_intake_anamnesis">ANAMNESE INICIAL</string>
     <string name="doctor_history_medication">ANTECEDENTES E MEDICAÇÃO HABITUAL</string>
     <string name="doctor_close_record">Entendi · Fechar ficha</string>
+    <string name="profile_doctor_signature_present">Assinatura digital configurada</string>
+    <string name="profile_doctor_signature_pending">Assinatura digital pendente</string>
+    <string name="profile_doctor_stamp_label">Status do carimbo</string>
+    <string name="profile_doctor_stamp_present">Carimbo configurado</string>
+    <string name="profile_doctor_stamp_pending">Carimbo pendente</string>
+    <string name="doctor_chat_empty_choose_patient">Selecionar paciente para conversar</string>
 </resources>

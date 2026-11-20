@@ -183,4 +183,5 @@
     <string name="patient_detail_retry">Reintentar</string>
     <string name="patient_detail_empty_title">Ficha no disponible</string>
     <string name="patient_detail_empty_desc">No hay datos del paciente para mostrar. Reintentá cargar la ficha.</string>
+    <string name="patients_record_reference">Registro #%1$s</string>
 </resources>
