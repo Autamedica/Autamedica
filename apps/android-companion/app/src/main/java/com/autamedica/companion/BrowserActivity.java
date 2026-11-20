@@ -23,6 +23,11 @@ public final class BrowserActivity extends Activity {
     private static final int FILE_CHOOSER_REQUEST = 18771;
     private android.webkit.ValueCallback<Uri[]> pendingFileChooser;
 
+    static boolean isReady() {
+        BrowserActivity activity = instance;
+        return activity != null && activity.webView != null;
+    }
+
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         instance = this;

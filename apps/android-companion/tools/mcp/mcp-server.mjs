@@ -20,19 +20,34 @@ const attachedPages = new WeakSet();
 
 const tools = [
   { name: "android_status", description: "Estado de Autamedica Companion, accesibilidad y puertos locales.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
-  { name: "android_get_ui_tree", description: "Lee el árbol de accesibilidad Android; los campos de contraseña se ocultan.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_get_ui_tree", description: "Lee el árbol de accesibilidad Android profundo (hasta 24 niveles / 1200 nodos); contraseñas ocultas.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_get_ui_compact", description: "Devuelve solo elementos semánticos útiles (ref, path, text, hint, checked, editable, bounds) podando contenedores vacíos hasta profundidad 28.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_set_text", description: "Inyecta texto directo en un nodo Android por su path (ACTION_SET_TEXT) sin abrir el teclado (~15 ms).", inputSchema: { type: "object", properties: { path: { type: "string" }, text: { type: "string" } }, required: ["path", "text"], additionalProperties: false } },
   { name: "android_screenshot", description: "Captura la pantalla completa del Xiaomi.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "android_open_app", description: "Abre una aplicación Android por package name.", inputSchema: { type: "object", properties: { package: { type: "string" } }, required: ["package"], additionalProperties: false } },
   { name: "android_tap", description: "Toca una coordenada de pantalla Android.", inputSchema: { type: "object", properties: { x: { type: "number" }, y: { type: "number" } }, required: ["x", "y"], additionalProperties: false } },
   { name: "android_click_element", description: "Pulsa un nodo Android por su path del árbol UI.", inputSchema: { type: "object", properties: { path: { type: "string" } }, required: ["path"], additionalProperties: false } },
+  { name: "android_click_text", description: "Busca y pulsa un elemento Android por texto, descripción o view_id con espera automática.", inputSchema: { type: "object", properties: { text: { type: "string" }, view_id: { type: "string" }, timeout_ms: { type: "integer", minimum: 0, maximum: 15000 } }, additionalProperties: false } },
+  { name: "android_scroll", description: "Hace scroll semántico (forward o backward) en el contenedor scrolleable activo.", inputSchema: { type: "object", properties: { direction: { type: "string", enum: ["forward", "backward"] } }, additionalProperties: false } },
+  { name: "android_get_clipboard", description: "Lee el texto actual del portapapeles de Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_set_clipboard", description: "Copia un texto al portapapeles de Android.", inputSchema: { type: "object", properties: { text: { type: "string" } }, required: ["text"], additionalProperties: false } },
+  { name: "android_paste", description: "Pega texto en el campo Android enfocado usando el portapapeles.", inputSchema: { type: "object", properties: { text: { type: "string" } }, additionalProperties: false } },
+  { name: "android_recent_notifications", description: "Devuelve las notificaciones recientes capturadas por NotificationListenerService.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "android_type", description: "Escribe en el campo Android que tenga el foco.", inputSchema: { type: "object", properties: { text: { type: "string" } }, required: ["text"], additionalProperties: false } },
   { name: "android_swipe", description: "Ejecuta un gesto Android.", inputSchema: { type: "object", properties: { x1: { type: "number" }, y1: { type: "number" }, x2: { type: "number" }, y2: { type: "number" }, duration_ms: { type: "integer", minimum: 50, maximum: 5000 } }, required: ["x1", "y1", "x2", "y2"], additionalProperties: false } },
   { name: "android_back", description: "Ejecuta Atrás en Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "android_home", description: "Vuelve al inicio de Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_recents", description: "Abre apps recientes en Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_notifications", description: "Despliega la barra de notificaciones en Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_list_packages", description: "Lista las aplicaciones instaladas y lanzables en Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_device_info", description: "Devuelve batería, carga, screen_off_timeout, stay_on_while_plugged_in y resolución de pantalla.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_batch", description: "Ejecuta múltiples acciones Android (open, tap, click, type, swipe, back, home, recents, sleep, ui) en una sola llamada HTTP.", inputSchema: { type: "object", properties: { steps: { type: "array", items: { type: "object" } } }, required: ["steps"], additionalProperties: false } },
   { name: "android_open_url", description: "Abre un enlace web o esquema de aplicación en Android.", inputSchema: { type: "object", properties: { url: { type: "string" } }, required: ["url"], additionalProperties: false } },
 
   { name: "browser_status", description: "Comprueba conexión CDP, motor Chromium/WebView, pestañas, URL y título.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "browser_navigate", description: "Abre el navegador Companion y navega a cualquier sitio HTTP/HTTPS con Internet.", inputSchema: { type: "object", properties: { url: { type: "string" }, wait_until: { type: "string", enum: ["load", "domcontentloaded", "networkidle", "commit"] } }, required: ["url"], additionalProperties: false } },
+  { name: "browser_snapshot", description: "Extrae en una sola llamada todos los controles DOM interactivos visibles (ref, selector, label, value, checked) del WebView.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "web_fetch_clean", description: "Tier 0 sin navegador: descarga una URL por HTTP y devuelve texto semántico/JSON y enlaces en milisegundos.", inputSchema: { type: "object", properties: { url: { type: "string" }, max_chars: { type: "integer", minimum: 500, maximum: 50000 } }, required: ["url"], additionalProperties: false } },
   { name: "browser_click", description: "Playwright locator(selector).click() con auto-wait y comprobación de visibilidad.", inputSchema: { type: "object", properties: { selector: { type: "string" }, timeout_ms: { type: "integer", minimum: 500, maximum: 60000 } }, required: ["selector"], additionalProperties: false } },
   { name: "browser_fill", description: "Playwright locator(selector).fill(value), con eventos input/change.", inputSchema: { type: "object", properties: { selector: { type: "string" }, value: { type: "string" }, timeout_ms: { type: "integer", minimum: 500, maximum: 60000 } }, required: ["selector", "value"], additionalProperties: false } },
   { name: "browser_get_text", description: "Obtiene el texto renderizado de la página o de un selector CSS.", inputSchema: { type: "object", properties: { selector: { type: "string" } }, additionalProperties: false } },
@@ -174,6 +189,30 @@ async function callTool(name, args) {
       return [{ type: "text", text: JSON.stringify(await (await request("/v1/health")).json()) }];
     case "android_get_ui_tree":
       return [{ type: "text", text: JSON.stringify(await (await request("/v1/ui")).json()) }];
+    case "android_get_ui_compact":
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/ui/compact")).json()) }];
+    case "android_set_text":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/set_text", args)) }];
+    case "browser_snapshot":
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/browser/snapshot")).json()) }];
+    case "web_fetch_clean": {
+      const targetUrl = requireHttpUrl(args.url);
+      const maxChars = Math.max(500, Math.min(50000, Number(args.max_chars || 16000)));
+      const resp = await fetch(targetUrl, { signal: AbortSignal.timeout(12000), headers: { "User-Agent": "Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile" } });
+      const ctype = resp.headers.get("content-type") || "";
+      const raw = await resp.text();
+      if (ctype.includes("application/json")) {
+        return [{ type: "text", text: raw.slice(0, maxChars) }];
+      }
+      const clean = raw
+        .replace(/<(script|style|noscript|svg)[^>]*>[\s\S]*?<\/\1>/gi, "\n")
+        .replace(/<\/?(p|div|li|tr|h[1-6]|br|section|article)[^>]*>/gi, "\n")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/[ \t]+/g, " ")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+      return [{ type: "text", text: JSON.stringify({ url: resp.url, status: resp.status, text: clean.slice(0, maxChars) }) }];
+    }
     case "android_screenshot": {
       const response = await request("/v1/screenshot");
       return [{ type: "image", data: Buffer.from(await response.arrayBuffer()).toString("base64"), mimeType: "image/png" }];
@@ -184,6 +223,18 @@ async function callTool(name, args) {
       return [{ type: "text", text: JSON.stringify(await post("/v1/tap", args)) }];
     case "android_click_element":
       return [{ type: "text", text: JSON.stringify(await post("/v1/click", args)) }];
+    case "android_click_text":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/click_text", args)) }];
+    case "android_scroll":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/scroll", args)) }];
+    case "android_get_clipboard":
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/clipboard")).json()) }];
+    case "android_set_clipboard":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/clipboard", args)) }];
+    case "android_paste":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/paste", args)) }];
+    case "android_recent_notifications":
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/notifications/recent")).json()) }];
     case "android_type":
       return [{ type: "text", text: JSON.stringify(await post("/v1/type", args)) }];
     case "android_swipe":
@@ -192,6 +243,16 @@ async function callTool(name, args) {
       return [{ type: "text", text: JSON.stringify(await post("/v1/back", {})) }];
     case "android_home":
       return [{ type: "text", text: JSON.stringify(await post("/v1/home", {})) }];
+    case "android_recents":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/recents", {})) }];
+    case "android_notifications":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/notifications", {})) }];
+    case "android_list_packages":
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/packages")).json()) }];
+    case "android_device_info":
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/device")).json()) }];
+    case "android_batch":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/batch", args)) }];
     case "android_open_url":
       return [{ type: "text", text: JSON.stringify(await post("/v1/url", args)) }];
     case "android_wait_for_text": {

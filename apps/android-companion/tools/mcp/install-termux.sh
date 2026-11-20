@@ -47,7 +47,7 @@ chmod -R go-rwx "$TARGET"
 printf 'Pegá el token de 256 bits que muestra Autamedica Companion: '
 IFS= read -r -s TOKEN
 printf '\n'
-if [ "\${#TOKEN}" -lt 64 ]; then
+if [ "${#TOKEN}" -lt 64 ]; then
   printf 'Token inválido.\n' >&2
   exit 1
 fi
