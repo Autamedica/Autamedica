@@ -41,9 +41,9 @@ BEGIN
     v_revoked := v_revoked + 1;
   END LOOP;
 
-  IF v_revoked = 0 THEN
-    RAISE EXCEPTION 'Expected Growth OS SECURITY DEFINER ACL drift, found no functions to harden';
-  END IF;
+  -- A clean replay may already have the service-only ACL from earlier migrations.
+  -- Zero changes is therefore a valid idempotent result.
+  RAISE NOTICE 'Growth OS SECURITY DEFINER functions hardened in this pass: %', v_revoked;
 END;
 $growth_os_acl$;
 
