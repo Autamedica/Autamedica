@@ -65,7 +65,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const { data, error } = await rpcClient.rpc('create_doctor_eventual_patient', {
     p_doctor_id: doctor.id,
     p_care_country: doctor.care_country,
-    p_full_name: String(body.fullName).trim().replace(/\\s+/g, ' '),
+    p_full_name: String(body.fullName).trim().replace(/\s+/g, ' '),
     p_document_type: documentType,
     p_document_number: documentNumber,
     p_birth_date: body.birthDate,
