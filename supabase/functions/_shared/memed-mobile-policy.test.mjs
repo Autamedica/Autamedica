@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { appointmentPermitsPrescription, buildMemedMobileLaunchUrl,
-  validMemedMobileAppointment, verifiedBrazilLicense, validBrazilPatientIdentity } from './memed-mobile-policy.ts';
+  validMemedMobileAppointment, verifiedBrazilLicense, validBrazilPatientIdentity, memedMobileFeatureEnabled } from './memed-mobile-policy.ts';
 
 const appointment = '12345678-abcd-4d91-8a1f-1234567890ab';
 test('accepts only UUID appointment identifiers, not arbitrary URLs', () => {
@@ -44,10 +44,12 @@ test('CFM license must match exact doctor CRM and UF', () => {
   assert.equal(verifiedBrazilLicense({...d,care_country:'AR'},valid),false);
 });
 
-test('patient identity requires real CPF checksum, possible DOB and a supported sex value', () => {
+test('patient identity requires valid CPF; DOB and gender are optional but validated when supplied', () => {
   const now = Date.parse('2026-11-06T13:00:00.000Z');
   // Fictional test checksum vector; no patient record or real transmission.
   assert.equal(validBrazilPatientIdentity('12345678909', '2000-01-01', 'F', now), true);
+  assert.equal(validBrazilPatientIdentity('12345678909', null, null, now), true);
+  assert.equal(validBrazilPatientIdentity('12345678909', '', '', now), true);
   assert.equal(validBrazilPatientIdentity('12345678900', '2000-01-01', 'F', now), false);
   assert.equal(validBrazilPatientIdentity('00000000000', '2000-01-01', 'F', now), false);
   assert.equal(validBrazilPatientIdentity('12345678909', '2026-02-30', 'F', now), false);
@@ -63,4 +65,11 @@ test('rejects non-telemedicine and unknown countries even with a matching CRM', 
   const license=[{license_number:'123456',uf_brazil:'RS',status:'active',cfm_validation_status:'valid'}];
   assert.equal(verifiedBrazilLicense(doctor,license),false);
   assert.equal(verifiedBrazilLicense({...doctor,care_country:'BR'},license),true);
+});
+
+test('Memed Android requires both RX and mobile governance flags', () => {
+  assert.equal(memedMobileFeatureEnabled('true', 'true'), true);
+  assert.equal(memedMobileFeatureEnabled('true', 'false'), false);
+  assert.equal(memedMobileFeatureEnabled('false', 'true'), false);
+  assert.equal(memedMobileFeatureEnabled(undefined, 'true'), false);
 });

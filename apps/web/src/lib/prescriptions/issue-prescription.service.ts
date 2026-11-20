@@ -146,7 +146,8 @@ export type IssuanceError =
   | { code: 'br_doctor_cpf_required' }
   | { code: 'br_patient_cpf_required' }
   | { code: 'br_special_prescription_provider_required' }
-  | { code: 'ar_production_homologation_required' }
+  | { code: 'farmalink_governance_disabled' }
+  | { code: 'provider_governance_unavailable' }
   | { code: 'digital_signature_required' }
   | { code: 'digital_signature_failed' }
   | { code: 'reissue_requires_verified_signature' }
@@ -450,10 +451,11 @@ async function registerFarmalinkIfEnabled(input: {
   patientName: string;
   now: string;
   expiresAt: string;
+  runtimeEnv?: Record<string, unknown>;
 }): Promise<{ ok: true; registration: FarmalinkRegistration | null } | { ok: false; error: IssuanceError }> {
   let client: FarmalinkClient | null;
   try {
-    client = FarmalinkClient.fromEnv();
+    client = FarmalinkClient.fromEnv(input.runtimeEnv);
   } catch (error) {
     logger.error('[issuePrescription] Farmalink config missing', {
       error: error instanceof Error ? error.message : String(error),
@@ -696,11 +698,13 @@ export async function issuePrescription(
       : doctor.license_type === 'MN' || doctor.license_type === 'MP' ? 'AR'
         : null;
   
+  const farmalinkEnabled = runtimeEnv?.FARMALINK_ENABLED === 'true';
+  const requireExternalAc = runtimeEnv?.FARMALINK_REQUIRE_EXTERNAL_AC !== 'false';
   const issuanceGate = checkDirectPrescriptionIssuance({
     prescriptionCountry,
     doctorCountry,
     patientCountry: patient.care_country,
-    argentinaProductionApproved: runtimeEnv?.AR_RX_PRODUCTION_APPROVED === 'true',
+    farmalinkGovernanceEnabled: prescriptionCountry !== 'AR' || farmalinkEnabled,
   });
   if ('code' in issuanceGate) return fail({ code: issuanceGate.code });
 
@@ -830,7 +834,11 @@ export async function issuePrescription(
   // Never mistake a locally self-signed certificate for a verified
   // professional signing certificate, even when its database status is active.
   if (!activeSigningCertificate ||
-      !hasEligibleProfessionalPadesCertificate(activeSigningCertificate)) {
+      !hasEligibleProfessionalPadesCertificate(
+        activeSigningCertificate,
+        Date.now(),
+        prescriptionCountry !== 'AR' || requireExternalAc,
+      )) {
     return fail({ code: 'digital_signature_required' });
   }
   try {
@@ -858,6 +866,7 @@ export async function issuePrescription(
       patientName,
       now,
       expiresAt,
+      runtimeEnv,
     });
     if (farmalinkRegistration.ok === false) return fail(farmalinkRegistration.error);
     externalRegistration = farmalinkRegistration.registration;
@@ -983,12 +992,11 @@ export async function issuePrescription(
 
   // 6b. PAdES must actually succeed. A generated PDF or an image of a
   // physician's signature is not evidence of a valid digital signature.
-  // Never emit an ACT_DIGITAL_SIGNATURE event for electronic_simple fallback.
-  let finalPdfBuffer: Uint8Array;
-  // Application classification only. Actual trust-chain/legal validation
-  // remains a separate production approval condition.
-  const signatureMethod = 'ac_external';
+  // The governance policy may permit a valid non-self-signed certificate without
+  // an external AC; the actual PAdES cryptographic signature is still generated.
+  const signatureMethod = activeSigningCertificate.signatureMethod;
   const certFingerprint = activeSigningCertificate.certFingerprint;
+  let finalPdfBuffer: Uint8Array;
   try {
     const { p12Buffer, password } = await loadSigningCredentials(
       supabase, doctor.id, certFingerprint,
@@ -1088,7 +1096,18 @@ export async function issuePrescription(
       user_id: userId,
       signature_hash: signatureHash,
       metadata: {
-        method: 'PAdES_AC_EXTERNAL',
+        method: signatureMethod === 'ac_external' ? 'PAdES_AC_EXTERNAL' : 'PAdES_GOVERNANCE_POLICY',
+        certificate_policy: prescriptionCountry === 'AR'
+          ? (requireExternalAc ? 'external_ac_required' : 'external_ac_not_required_by_governance')
+          : 'external_ac_required',
+        emission_mode: externalRegistration ? 'farmalink_provider_live' : 'autamedica_internal',
+        governance_source: 'cloudflare_pages_runtime_env',
+        governance_flags: {
+          FARMALINK_ENABLED: farmalinkEnabled,
+          FARMALINK_REQUIRE_EXTERNAL_AC: requireExternalAc,
+          MEMED_RX_ENABLED: runtimeEnv?.MEMED_RX_ENABLED === 'true',
+          MEMED_MOBILE_ENABLED: runtimeEnv?.MEMED_MOBILE_ENABLED === 'true',
+        },
         document_hash: signatureHash,
         cert_fingerprint: certFingerprint,
         version: '2.0',
@@ -1109,6 +1128,14 @@ export async function issuePrescription(
         expires_at: expiresAt,
         identity_source: identitySource,
         identity_status: identitySource === 'msal_bus_renaper' ? 'verified_renaper' : 'unverified',
+        emission_mode: externalRegistration ? 'farmalink_provider_live' : 'autamedica_internal',
+        governance_source: 'cloudflare_pages_runtime_env',
+        governance_flags: {
+          FARMALINK_ENABLED: farmalinkEnabled,
+          FARMALINK_REQUIRE_EXTERNAL_AC: requireExternalAc,
+          MEMED_RX_ENABLED: runtimeEnv?.MEMED_RX_ENABLED === 'true',
+          MEMED_MOBILE_ENABLED: runtimeEnv?.MEMED_MOBILE_ENABLED === 'true',
+        },
       },
     },
   ]);
@@ -1124,6 +1151,12 @@ export async function issuePrescription(
         response_code: externalRegistration.result.responseCode,
         response_description: externalRegistration.result.responseDescription,
         reference: externalRegistration.result.reference,
+        emission_mode: 'farmalink_provider_live',
+        governance_source: 'cloudflare_pages_runtime_env',
+        governance_flags: {
+          FARMALINK_ENABLED: farmalinkEnabled,
+          FARMALINK_REQUIRE_EXTERNAL_AC: requireExternalAc,
+        },
       },
     });
   }

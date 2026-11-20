@@ -69,9 +69,9 @@ function resetState() {
   };
   state.patient = {
     id: patientId, user_id: patientUserId, active: true, care_country: 'BR',
-    cpf: fakePatientCpf, birth_date: '2000-02-29', gender: 'female', lgpd_consent: true,
+    cpf: fakePatientCpf, birth_date: '2000-02-29', gender: 'female', lgpd_consent: true, lgpd_consent_date: '2026-11-12T18:00:00.000Z',
   };
-  state.patientProfile = { user_id: patientUserId, first_name: 'Paciente', last_name: 'Demonstração' };
+  state.patientProfile = { user_id: patientUserId, first_name: 'Paciente', last_name: 'Demonstração', active: true };
   state.license = {
     doctor_id: doctorId, license_number: fakeCrm, license_type: 'CRM',
     uf_brazil: 'RS', status: 'active', cfm_validation_status: 'valid',

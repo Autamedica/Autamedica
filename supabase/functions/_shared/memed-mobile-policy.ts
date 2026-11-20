@@ -4,7 +4,7 @@ export const MEMED_MOBILE_URL_BASE = 'https://doctor.autamedica.com/doctors/pres
 
 /** Legacy Memed RX settings remain valid while mobile-specific settings roll out. */
 export function memedMobileFeatureEnabled(mobileEnabled: string | undefined, rxEnabled: string | undefined): boolean {
-  return mobileEnabled === 'true' || rxEnabled === 'true';
+  return mobileEnabled === 'true' && rxEnabled === 'true';
 }
 
 export function resolveMemedMobilePilotDoctorId(mobilePilotId: string | undefined, legacyPilotId: string | undefined): string | null {
@@ -50,12 +50,11 @@ export function verifiedBrazilLicense(
 
 /**
  * Match the real Memed patient identity validation on the Astro server.
- * Invalid CPF checksums, impossible birth dates and unsupported gender values
- * must fail before Android opens the third-party prescription interface.
+ * Invalid CPF checksums fail before Android opens the third-party prescription
+ * interface. DOB and gender are optional Memed attributes and are validated when supplied.
  */
 export function validBrazilPatientIdentity(cpfInput: unknown, dateInput: unknown, genderInput: unknown, nowMs: number): boolean {
-  if (typeof cpfInput !== 'string' || typeof dateInput !== 'string' ||
-      typeof genderInput !== 'string') return false;
+  if (typeof cpfInput !== 'string') return false;
   const cpf = cpfInput.replace(/\D/g, '');
   if (!/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) return false;
   for (let length = 9; length <= 10; length++) {
@@ -64,9 +63,15 @@ export function validBrazilPatientIdentity(cpfInput: unknown, dateInput: unknown
     const digit = (sum * 10) % 11;
     if ((digit === 10 ? 0 : digit) !== Number(cpf[length])) return false;
   }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateInput)) return false;
-  const date = new Date(dateInput + 'T00:00:00.000Z');
-  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== dateInput ||
-      date.getUTCFullYear() < 1900 || date.getTime() >= nowMs) return false;
-  return /^(male|female|masculino|feminino|m|f)$/.test(genderInput.toLowerCase());
+  // Memed accepts DOB and gender as optional patient attributes. Validate them
+  // when supplied, but do not veto an otherwise identified, consented patient.
+  if (dateInput != null && dateInput !== '') {
+    if (typeof dateInput !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateInput)) return false;
+    const date = new Date(dateInput + 'T00:00:00.000Z');
+    if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== dateInput ||
+        date.getUTCFullYear() < 1900 || date.getTime() >= nowMs) return false;
+  }
+  if (genderInput != null && genderInput !== '' &&
+      (typeof genderInput !== 'string' || !/^(male|female|masculino|feminino|m|f)$/i.test(genderInput))) return false;
+  return true;
 }

@@ -357,7 +357,7 @@ export default function AppointmentsPage({
     <ErrorBoundary>
     <div className="min-h-screen bg-white">
       {/* Hero Header */}
-      <section className="bg-sky-700 px-6 lg:px-12 pt-16 pb-20">
+      <section className="bg-neutral-900 px-6 lg:px-12 pt-16 pb-20">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 text-white/80 rounded-full text-xs font-medium mb-6">
@@ -385,7 +385,7 @@ export default function AppointmentsPage({
 
       <div className="max-w-7xl mx-auto px-6 lg:px-12 -mt-8 pb-32">
         {paymentMessage && (
-          <section className="mb-6 rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50 via-white to-sky-50 px-5 py-4 text-sm text-slate-700 shadow-sm shadow-sky-500/5">
+          <section className="mb-6 rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50 via-white to-emerald-50 px-5 py-4 text-sm text-slate-700 shadow-sm shadow-sky-500/5">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-sky-700 ring-1 ring-sky-100">
                 <ShieldCheck className="h-4 w-4" />
@@ -403,14 +403,14 @@ export default function AppointmentsPage({
             const hasBalance = walletSummary.balance.available_credit_cents > 0;
             if (hasBalance) {
               return (
-                <section className="mb-6 overflow-hidden rounded-2xl border border-sky-100/60 bg-gradient-to-br from-white via-white to-sky-50/20 p-5 shadow-sm shadow-sky-500/[0.02]">
+                <section className="mb-6 overflow-hidden rounded-2xl border border-emerald-100/60 bg-gradient-to-br from-white via-white to-emerald-50/20 p-5 shadow-sm shadow-emerald-500/[0.02]">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-start gap-3.5">
-                      <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600 ring-1 ring-sky-100/50">
+                      <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100/50">
                         <ShieldCheck className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-sky-600">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">
                           Saldo AutaMedica
                         </p>
                         <h3 className="mt-1 text-xl font-bold tracking-tight text-neutral-900">
@@ -427,7 +427,7 @@ export default function AppointmentsPage({
                       </span>
                       <button
                         onClick={() => setIsTopupModalOpen(true)}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-sky-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-sky-800"
+                        className="inline-flex items-center gap-1.5 rounded-full bg-stone-950 px-4 py-2 text-xs font-semibold text-white transition hover:bg-stone-800"
                       >
                         <Plus className="size-3.5" />
                         Cargar más
@@ -460,7 +460,7 @@ export default function AppointmentsPage({
                   <div className="shrink-0">
                     <button
                       onClick={() => setIsTopupModalOpen(true)}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-sky-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-sky-800 shadow-sm"
+                      className="inline-flex items-center gap-1.5 rounded-full bg-stone-950 px-4 py-2 text-xs font-semibold text-white transition hover:bg-stone-800 shadow-sm"
                     >
                       <Plus className="size-3.5" />
                       Cargar Saldo
@@ -758,7 +758,7 @@ export default function AppointmentsPage({
                 <button
                   type="submit"
                   disabled={topupLoading}
-                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-sky-700 py-3 text-sm font-semibold text-white hover:bg-sky-800 disabled:opacity-70 active:scale-[0.98] transition-all shadow-sm"
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-stone-950 py-3 text-sm font-semibold text-white hover:bg-stone-800 disabled:opacity-70 active:scale-[0.98] transition-all shadow-sm"
                 >
                   {topupLoading ? (
                     <>

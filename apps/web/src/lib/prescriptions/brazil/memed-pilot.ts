@@ -1,7 +1,11 @@
 type MemedEnvironment = Record<string, unknown> | undefined;
 
 export function isMemedEnabled(env: MemedEnvironment): boolean {
-  return env?.MEMED_RX_ENABLED === 'true' || env?.MEMED_MOBILE_ENABLED === 'true';
+  return env?.MEMED_RX_ENABLED === 'true';
+}
+
+export function isMemedMobileEnabled(env: MemedEnvironment): boolean {
+  return env?.MEMED_RX_ENABLED === 'true' && env?.MEMED_MOBILE_ENABLED === 'true';
 }
 
 export function isMemedPilotDoctor(env: MemedEnvironment, doctorId: string | null | undefined): boolean {

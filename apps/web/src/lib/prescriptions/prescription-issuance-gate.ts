@@ -7,7 +7,7 @@ export type IssuanceGateCode =
   | 'prescription_country_required'
   | 'doctor_country_mismatch'
   | 'patient_country_required_or_mismatched'
-  | 'ar_production_homologation_required';
+  | 'farmalink_governance_disabled';
 
 export type IssuanceCountry = 'AR' | 'BR';
 
@@ -15,7 +15,7 @@ export function checkDirectPrescriptionIssuance(input: {
   prescriptionCountry: string | null | undefined;
   doctorCountry: string | null | undefined;
   patientCountry: string | null | undefined;
-  argentinaProductionApproved: boolean;
+  farmalinkGovernanceEnabled: boolean;
 }): { ok: true; country: IssuanceCountry } | { ok: false; code: IssuanceGateCode } {
   const country = input.prescriptionCountry;
   if (country !== 'AR' && country !== 'BR') {
@@ -29,9 +29,10 @@ export function checkDirectPrescriptionIssuance(input: {
   }
 
   // Brazil uses its independent CFM/CRM path. It never invokes RCTA or Farmalink.
-  // Argentina remains gated on its production Farmalink homologation.
-  if (country === 'AR' && !input.argentinaProductionApproved) {
-    return { ok: false, code: 'ar_production_homologation_required' };
+  // Argentina follows the runtime Farmalink governance switch; professional
+  // REFEPS/SSS validation and actual PAdES signing are checked independently.
+  if (country === 'AR' && !input.farmalinkGovernanceEnabled) {
+    return { ok: false, code: 'farmalink_governance_disabled' };
   }
   return { ok: true, country };
 }
@@ -43,10 +44,10 @@ export function hasEligibleProfessionalPadesCertificate(
     certValidUntil: string;
   } | null,
   nowMs: number = Date.now(),
+  requireExternalAc = true,
 ): boolean {
-  if (!certificate?.acProvider ||
-      certificate.acProvider === 'self_signed' ||
-      certificate.signatureMethod !== 'ac_external') return false;
+  if (!certificate?.acProvider || certificate.acProvider === 'self_signed') return false;
+  if (requireExternalAc && certificate.signatureMethod !== 'ac_external') return false;
   const expiresAt = Date.parse(certificate.certValidUntil);
   return Number.isFinite(expiresAt) && expiresAt > nowMs;
 }

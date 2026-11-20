@@ -39,10 +39,10 @@ function fakeDb(country: 'AR' | 'BR', patientCountry: 'AR' | 'BR' | null = count
 }
 
 describe('official prescription issue denies unverified issuance before any writes', () => {
-  it('AR with full patient and prescriber identities cannot issue without explicit homologation', async () => {
+  it('AR with full patient and prescriber identities follows the Farmalink runtime governance flag', async () => {
     const { client, from, writes } = fakeDb('AR');
     const result = await issuePrescription(client, 'rx-demo', 'user-doctor', {});
-    expect(result).toEqual({ ok: false, error: { code: 'ar_production_homologation_required' } });
+    expect(result).toEqual({ ok: false, error: { code: 'farmalink_governance_disabled' } });
     expect(from.mock.calls.map((x: string[]) => x[0])).toEqual([
       'doctors', 'prescriptions', 'profiles', 'patients', 'patient_private_identities',
     ]);
@@ -55,7 +55,7 @@ describe('official prescription issue denies unverified issuance before any writ
   it('BR requires a valid CFM/CRM professional CPF before PDF issuance', async () => {
     const { client, writes } = fakeDb('BR');
     const result = await issuePrescription(client, 'rx-demo', 'user-doctor',
-      { AR_RX_PRODUCTION_APPROVED: 'true' });
+      { FARMALINK_ENABLED: 'true' });
     expect(result).toEqual({ ok: false, error: { code: 'br_doctor_cpf_required' } });
     expect(writes.insert).not.toHaveBeenCalled();
     expect(writes.update).not.toHaveBeenCalled();
@@ -76,7 +76,7 @@ describe('official prescription issue denies unverified issuance before any writ
   it('mismatched patient country fails even if production flag were enabled', async () => {
     const { client, writes } = fakeDb('AR', 'BR');
     const result = await issuePrescription(client, 'rx-demo', 'user-doctor',
-      { AR_RX_PRODUCTION_APPROVED: 'true' });
+      { FARMALINK_ENABLED: 'true' });
     expect(result).toEqual({ ok: false, error: { code: 'patient_country_required_or_mismatched' } });
     expect(writes.insert).not.toHaveBeenCalled();
     expect(writes.update).not.toHaveBeenCalled();

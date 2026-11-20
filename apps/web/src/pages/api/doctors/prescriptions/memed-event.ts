@@ -314,6 +314,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const providerVerifiedAt = new Date().toISOString();
     const clinicalData: Json = {
       source: 'memed',
+      governance: {
+        emission_mode: 'memed_provider_live',
+        governance_source: 'cloudflare_pages_runtime_env',
+        flags: {
+          MEMED_RX_ENABLED: locals.runtime?.env?.MEMED_RX_ENABLED === 'true',
+          MEMED_MOBILE_ENABLED: locals.runtime?.env?.MEMED_MOBILE_ENABLED === 'true',
+          FARMALINK_ENABLED: locals.runtime?.env?.FARMALINK_ENABLED === 'true',
+        },
+        captured_at: providerVerifiedAt,
+      },
       memed_prescription_id: prescriptionId,
       items,
       dispatch_request_id: typeof requestId === 'string' ? requestId : null,
@@ -347,6 +357,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
         medications: items,
         provider_reported_signed: rx.signed === 1 || rx.signed === true,
         provider_verified_at: providerVerifiedAt,
+        emission_mode: 'memed_provider_live',
+        governance_source: 'cloudflare_pages_runtime_env',
+        governance_flags: {
+          MEMED_RX_ENABLED: locals.runtime?.env?.MEMED_RX_ENABLED === 'true',
+          MEMED_MOBILE_ENABLED: locals.runtime?.env?.MEMED_MOBILE_ENABLED === 'true',
+          FARMALINK_ENABLED: locals.runtime?.env?.FARMALINK_ENABLED === 'true',
+        },
       },
       digital_link_data: {
         ...previousDigitalLinkData,
