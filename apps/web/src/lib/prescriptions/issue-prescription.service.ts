@@ -661,8 +661,7 @@ export async function issuePrescription(
     .from('patient_private_identities')
     .select('full_name, document_type, document_number, birth_date, gender, consent_at, consent_scope')
     .eq('patient_id', rx.patient_id)
-    .order('created_at', { ascending: false })
-    .limit(1)
+    .eq('doctor_id', doctor.id)
     .maybeSingle();
 
   if (privateIdentityError) {
