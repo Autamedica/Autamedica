@@ -121,6 +121,7 @@ fun ProfileScreen(
         user?.email,
         uiState.patientSnapshot,
         user?.role,
+        doctorProfile,
     ) {
         calculateProfileCompletion(
             user = user,
@@ -128,6 +129,7 @@ fun ProfileScreen(
             lastName = uiState.lastName,
             phone = uiState.phone,
             patientSnapshot = uiState.patientSnapshot,
+            doctorProfile = doctorProfile,
         )
     }
 
@@ -819,35 +821,6 @@ private fun roleAccent(role: UserRole?): Color = when (role) {
     UserRole.DOCTOR -> PortalDoctors
     UserRole.PATIENT -> PortalPatients
     else -> AuAccent
-}
-
-private fun calculateProfileCompletion(
-    user: User?,
-    firstName: String,
-    lastName: String,
-    phone: String,
-    patientSnapshot: PatientProfileSnapshot?,
-): Int {
-    if (user == null) return 0
-
-    val checks = mutableListOf(
-        firstName.isNotBlank(),
-        lastName.isNotBlank(),
-        user.email.isNotBlank(),
-        phone.isNotBlank(),
-    )
-
-    if (user.role == UserRole.PATIENT) {
-        checks += listOf(
-            !patientSnapshot?.birthDate.isNullOrBlank(),
-            !patientSnapshot?.gender.isNullOrBlank(),
-            !patientSnapshot?.bloodType.isNullOrBlank(),
-            !patientSnapshot?.emergencyContactPhone.isNullOrBlank(),
-        )
-    }
-
-    val completed = checks.count { it }
-    return ((completed.toFloat() / checks.size.toFloat()) * 100f).toInt()
 }
 
 private fun computeAge(birthDate: String?): Int? {

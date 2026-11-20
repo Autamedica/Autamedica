@@ -55,8 +55,8 @@ android {
         applicationId = "com.autamedica.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 38
-        versionName = "1.2.28"
+        versionCode = 39
+        versionName = "1.2.29"
 
         resourceConfigurations += listOf("es", "es-rAR", "pt", "pt-rBR" )
 
@@ -173,6 +173,11 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    // CI generates this baseline from the target branch so lint blocks only new findings.
+    lint {
+        baseline = file("lint-baseline.xml")
     }
 }
 
