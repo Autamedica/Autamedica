@@ -16,14 +16,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.autamedica.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PatientCommunityScreen(
     onBack: () -> Unit,
-    viewModel: PatientCommunityViewModel = viewModel()
+    viewModel: PatientCommunityViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -73,12 +73,28 @@ fun PatientCommunityScreen(
                 }
             }
 
-            // Posts feed
+            state.error?.let { message ->
+                Text(
+                    text = message,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+            // Posts feed (loaded from Supabase and scoped by selected group)
             LazyColumn(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
+                if (state.posts.isEmpty()) {
+                    item {
+                        Text(
+                            text = stringResource(R.string.community_empty_feed),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(16.dp),
+                        )
+                    }
+                }
                 items(state.posts) { post ->
                     PostCard(post = post)
                 }
@@ -89,6 +105,7 @@ fun PatientCommunityScreen(
     if (state.showComposer) {
         ComposerDialog(
             onDismiss = { viewModel.setShowComposer(false) },
+            isSubmitting = state.isSubmitting,
             onSubmit = { title, content -> viewModel.addPost(title, content) }
         )
     }
@@ -118,6 +135,7 @@ private fun PostCard(post: CommunityPost) {
 @Composable
 private fun ComposerDialog(
     onDismiss: () -> Unit,
+    isSubmitting: Boolean,
     onSubmit: (String, String) -> Unit
 ) {
     var title by remember { mutableStateOf("") }
@@ -155,9 +173,9 @@ private fun ComposerDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = { onSubmit(title, content) },
-                        enabled = content.isNotBlank()
+                        enabled = content.isNotBlank() && !isSubmitting
                     ) {
-                        Text(stringResource(R.string.community_dialog_submit_btn))
+                        Text(if (isSubmitting) stringResource(R.string.community_loading) else stringResource(R.string.community_dialog_submit_btn))
                     }
                 }
             }
