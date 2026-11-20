@@ -75,10 +75,10 @@ export async function resolveMemedPatient(
     if (demographicsError || !updatedPatient) throw new Error('memed_patient_demographics_update_failed');
   }
   const { data: patient, error } = await admin.from('patients')
-    .select('user_id, active, cpf, birth_date, gender, lgpd_consent, lgpd_consent_date, care_country').eq('id', patientId).maybeSingle();
+    .select('user_id, active, cpf, birth_date, gender, lgpd_consent, care_country').eq('id', patientId).maybeSingle();
   if (error) throw new Error('memed_patient_lookup_failed');
   if (patient?.care_country !== 'BR') throw new Error('memed_patient_country_required');
-  if (!patient?.active || patient.lgpd_consent !== true || !patient.lgpd_consent_date) throw new Error('memed_patient_consent_required');
+  if (!patient?.active || patient.lgpd_consent !== true) throw new Error('memed_patient_consent_required');
   let firstName = '';
   let lastName = '';
   let cpf = String(patient.cpf ?? '').replace(/\D/g, '');
@@ -110,11 +110,11 @@ export async function resolveMemedPatient(
     }
   } else {
     const { data: profile, error: profileError } = await admin.from('profiles')
-      .select('first_name, last_name, active').eq('user_id', patient.user_id).maybeSingle();
+      .select('first_name, last_name').eq('user_id', patient.user_id).maybeSingle();
     if (profileError) throw new Error('memed_patient_lookup_failed');
     firstName = String(profile?.first_name ?? '').trim();
     lastName = String(profile?.last_name ?? '').trim();
-    if (profile?.active !== true || !firstName || !lastName || !validCpf(cpf)) {
+    if (!firstName || !lastName || !validCpf(cpf)) {
       throw new Error('memed_patient_identity_incomplete');
     }
   }
