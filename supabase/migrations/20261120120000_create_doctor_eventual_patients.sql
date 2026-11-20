@@ -130,7 +130,7 @@ BEGIN
     RAISE EXCEPTION 'eventual_patient_birth_date_invalid' USING ERRCODE = '22023';
   END IF;
   v_gender := NULLIF(lower(btrim(COALESCE(p_gender, ''))), '');
-  IF p_care_country = 'BR' AND v_gender NOT IN ('male', 'female') THEN
+  IF p_care_country = 'BR' AND (v_gender IS NULL OR v_gender NOT IN ('male', 'female')) THEN
     RAISE EXCEPTION 'eventual_patient_gender_required' USING ERRCODE = '22023';
   END IF;
   IF v_gender IS NOT NULL AND v_gender NOT IN ('male', 'female', 'other', 'prefer_not_to_say') THEN
