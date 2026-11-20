@@ -1193,5 +1193,6 @@ export const __testables = {
   farmalinkRegistrationRequired,
   buildFarmalinkPrescriptionMapInput,
   canIssueWithPrescriberValidationStatus,
+  resolvePrivatePatientIdentityFields,
 };
 
