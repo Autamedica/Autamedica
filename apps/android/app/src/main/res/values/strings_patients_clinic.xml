@@ -187,4 +187,10 @@
     <string name="community_empty_feed">Todavía no hay publicaciones en este grupo.</string>
     <string name="community_loading">Publicando…</string>
 
+
+    <string name="anamnesis_retry">Reintentar</string>
+    <string name="anamnesis_error_network">No se pudo conectar para iniciar la anamnesis. Revisá la conexión e intentá nuevamente.</string>
+    <string name="anamnesis_error_permission">La sesión no tiene acceso a esta ficha. Iniciá sesión nuevamente para continuar.</string>
+    <string name="anamnesis_error_generic">No se pudo iniciar la anamnesis. Intentá nuevamente.</string>
+
 </resources>
