@@ -17,6 +17,7 @@ function fakeDb(country: 'AR' | 'BR', patientCountry: 'AR' | 'BR' | null = count
   const patient = { user_id: null, care_country: patientCountry, dni: '12345678' };
   const responses: Record<string, unknown> = {
     doctors: doctor, prescriptions: prescription, profiles: profile, patients: patient,
+    patient_private_identities: null,
   };
   const writes = { insert: vi.fn(), update: vi.fn(), upload: vi.fn(), rpc: vi.fn() };
 
