@@ -49,6 +49,12 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     ].includes(code)) {
       return conflict(code);
     }
+    if (code === 'patient_identity_lookup_failed') {
+      return internalError(code);
+    }
+    if (code === 'patient_identity_consent_required') {
+      return conflict(code);
+    }
     if (code === 'farmalink_idempotency_unavailable') {
       return internalError(code);
     }
