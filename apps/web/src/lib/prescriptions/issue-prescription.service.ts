@@ -937,6 +937,7 @@ export async function issuePrescription(
   // an external AC; the actual PAdES cryptographic signature is still generated.
   const signatureMethod = activeSigningCertificate.signatureMethod;
   const certFingerprint = activeSigningCertificate.certFingerprint;
+  let finalPdfBuffer: Uint8Array;
   try {
     const { p12Buffer, password } = await loadSigningCredentials(
       supabase, doctor.id, certFingerprint,
