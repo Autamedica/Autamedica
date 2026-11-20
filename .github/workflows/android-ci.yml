@@ -104,14 +104,18 @@ jobs:
 
           path = Path(sys.argv[1])
           content = path.read_text(encoding="utf-8")
-          anchor = """    buildFeatures {
+          baseline_config = """    lint {
+                  baseline = file("lint-baseline.xml")
+              }"""
+          if baseline_config not in content:
+              anchor = """    buildFeatures {
                   compose = true
                   buildConfig = true
               }
           }
 
           kotlin {"""
-          replacement = """    buildFeatures {
+              replacement = """    buildFeatures {
                   compose = true
                   buildConfig = true
               }
@@ -122,9 +126,10 @@ jobs:
           }
 
           kotlin {"""
-          if content.count(anchor) != 1:
-              raise SystemExit("Could not identify the Android buildFeatures anchor for the baseline")
-          path.write_text(content.replace(anchor, replacement), encoding="utf-8")
+              if content.count(anchor) != 1:
+                  raise SystemExit("Could not identify the Android buildFeatures anchor for the baseline")
+              content = content.replace(anchor, replacement)
+          path.write_text(content, encoding="utf-8")
           PY
 
           cd "$BASELINE_WORKTREE/apps/android"
