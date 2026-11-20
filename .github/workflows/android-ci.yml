@@ -86,6 +86,11 @@ jobs:
           cd apps/android
           ./gradlew testDebugUnitTest -PfirebasePerformanceInstrumentationEnabled=false --console=plain
 
+      - name: Run Android lint
+        run: |
+          cd apps/android
+          ./gradlew lint -PfirebasePerformanceInstrumentationEnabled=false --console=plain
+
       - name: Compile Instrumented Tests
         run: |
           cd apps/android
