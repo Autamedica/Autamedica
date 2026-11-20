@@ -43,7 +43,7 @@ describe('official prescription issue denies unverified issuance before any writ
     const result = await issuePrescription(client, 'rx-demo', 'user-doctor', {});
     expect(result).toEqual({ ok: false, error: { code: 'ar_production_homologation_required' } });
     expect(from.mock.calls.map((x: string[]) => x[0])).toEqual([
-      'doctors', 'prescriptions', 'profiles', 'patients',
+      'doctors', 'prescriptions', 'profiles', 'patients', 'patient_private_identities',
     ]);
     expect(writes.insert).not.toHaveBeenCalled();
     expect(writes.update).not.toHaveBeenCalled();
