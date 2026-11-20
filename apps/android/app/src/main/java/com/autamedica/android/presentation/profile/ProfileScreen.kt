@@ -349,17 +349,39 @@ private fun ProfileHeroCard(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
-                                text = stringResource(R.string.profile_doctor_signature_label),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = AuTextTertiary,
-                            )
-                            Text(
-                                text = stringResource(R.string.profile_doctor_signature_check_value),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = AuTextSecondary,
-                            )
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    text = stringResource(R.string.profile_doctor_signature_label),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = AuTextTertiary,
+                                )
+                                Text(
+                                    text = stringResource(
+                                        if (doctor.hasSignature) R.string.profile_doctor_signature_present
+                                        else R.string.profile_doctor_signature_pending,
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (doctor.hasSignature) AuTextPrimary else AuTextSecondary,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    text = stringResource(R.string.profile_doctor_stamp_label),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = AuTextTertiary,
+                                )
+                                Text(
+                                    text = stringResource(
+                                        if (doctor.hasStamp) R.string.profile_doctor_stamp_present
+                                        else R.string.profile_doctor_stamp_pending,
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (doctor.hasStamp) AuTextPrimary else AuTextSecondary,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
                         }
                         TextButton(onClick = onNavigateToDoctorSignature) {
                             Text(

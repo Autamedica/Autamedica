@@ -250,7 +250,7 @@ fun DoctorDashboardScreen(
                             modifier = Modifier.padding(end = 12.dp),
                         ) {
                             Text(
-                                text = formatDoctorSpecialty(doctorProfile.specialty),
+                                text = formatDoctorSpecialty(doctorProfile.specialty, stringResource(R.string.doctor_specialty_general)),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MedicalBlue,
                                 fontWeight = FontWeight.SemiBold,
@@ -384,7 +384,9 @@ fun DoctorDashboardScreen(
                         item {
                             DoctorCockpitHeader(
                                 doctorName = uiState.userName,
-                                specialty = uiState.doctorProfile?.specialty,
+                                specialty = uiState.doctorProfile?.specialty?.let { raw ->
+                                    formatDoctorSpecialty(raw, stringResource(R.string.doctor_specialty_general))
+                                },
                                 licenseNumber = uiState.doctorProfile?.licenseNumber,
                                 licenseType = uiState.doctorProfile?.licenseType,
                                 countryCode = uiState.doctorProfile?.countryCode,
@@ -2140,19 +2142,6 @@ private fun cleanConsultationReason(notes: String?, type: AppointmentType): Stri
         AppointmentType.CHECKUP -> "Control"
         AppointmentType.TELEMEDICINE -> "Teleconsulta"
         AppointmentType.CONSULTATION -> "Consulta"
-    }
-}
-
-@Composable
-private fun formatDoctorSpecialty(specialty: String): String {
-    return if (specialty.equals("general", ignoreCase = true) ||
-        specialty.equals("medicina general", ignoreCase = true) ||
-        specialty.equals("clínica médica", ignoreCase = true) ||
-        specialty.equals("clinica medica", ignoreCase = true)
-    ) {
-        stringResource(R.string.doctor_specialty_general)
-    } else {
-        specialty.replaceFirstChar { it.uppercase() }
     }
 }
 

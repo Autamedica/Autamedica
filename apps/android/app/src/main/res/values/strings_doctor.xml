@@ -141,4 +141,10 @@
     <string name="doctor_dispatch_patient_waiting">Paciente en espera</string>
     <string name="doctor_pharmacy_duty_connected">Conectado a guardia médica · Señal activa cada 30 s</string>
     <string name="doctor_pharmacy_duty_paused">Guardia en pausa · Conectate para recibir consultas de farmacia</string>
+    <string name="profile_doctor_signature_present">Firma digital configurada</string>
+    <string name="profile_doctor_signature_pending">Firma digital pendiente</string>
+    <string name="profile_doctor_stamp_label">Estado del sello</string>
+    <string name="profile_doctor_stamp_present">Sello configurado</string>
+    <string name="profile_doctor_stamp_pending">Sello pendiente</string>
+    <string name="doctor_chat_empty_choose_patient">Elegir paciente para conversar</string>
 </resources>

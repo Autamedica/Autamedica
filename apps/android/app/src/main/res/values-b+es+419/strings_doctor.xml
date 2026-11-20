@@ -33,4 +33,11 @@
     <string name="doctor_intake_anamnesis">ANAMNESIS DE INGRESO</string>
     <string name="doctor_history_medication">ANTECEDENTES Y MEDICACIÓN HABITUAL</string>
     <string name="doctor_close_record">Entendido · Cerrar ficha</string>
+    <string name="profile_doctor_signature_label">Estado de la firma</string>
+    <string name="profile_doctor_signature_present">Firma digital configurada</string>
+    <string name="profile_doctor_signature_pending">Firma digital pendiente</string>
+    <string name="profile_doctor_stamp_label">Estado del sello</string>
+    <string name="profile_doctor_stamp_present">Sello configurado</string>
+    <string name="profile_doctor_stamp_pending">Sello pendiente</string>
+    <string name="doctor_chat_empty_choose_patient">Elegir paciente para conversar</string>
 </resources>

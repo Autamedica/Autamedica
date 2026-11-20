@@ -141,4 +141,10 @@
     <string name="doctor_dispatch_patient_waiting">Paciente aguardando</string>
     <string name="doctor_pharmacy_duty_connected">Conectado ao plantão médico · Sinal ativo a cada 30 s</string>
     <string name="doctor_pharmacy_duty_paused">Plantão pausado · Conecte-se para receber consultas da farmácia</string>
+    <string name="profile_doctor_signature_present">Assinatura digital configurada</string>
+    <string name="profile_doctor_signature_pending">Assinatura digital pendente</string>
+    <string name="profile_doctor_stamp_label">Status do carimbo</string>
+    <string name="profile_doctor_stamp_present">Carimbo configurado</string>
+    <string name="profile_doctor_stamp_pending">Carimbo pendente</string>
+    <string name="doctor_chat_empty_choose_patient">Selecionar paciente para conversar</string>
 </resources>

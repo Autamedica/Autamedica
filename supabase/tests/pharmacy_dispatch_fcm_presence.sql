@@ -28,9 +28,10 @@ BEGIN
   END IF;
 
   IF position('fcm_token' IN v_capacity)>0
-     OR position('last_heartbeat_at' IN v_capacity)>0
+     OR position('last_heartbeat_at' IN v_capacity)=0
+     OR position('interval ''90 seconds''' IN v_capacity)=0
      OR position('s.is_on_duty' IN v_capacity)=0 THEN
-    RAISE EXCEPTION 'Country capacity must reflect active guard duty, independently of heartbeat and FCM';
+    RAISE EXCEPTION 'Country capacity must require active duty and a heartbeat no older than 90 seconds; FCM is not a capacity prerequisite';
   END IF;
 
   IF position('fcm_token' IN v_trigger)>0
