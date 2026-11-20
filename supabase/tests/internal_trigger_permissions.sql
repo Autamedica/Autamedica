@@ -141,6 +141,11 @@ BEGIN
     'public.get_country_on_duty_capacity(text)'
   ] LOOP
     target := to_regprocedure(signature);
+    -- The content-mode helper is optional on installations that do not enable
+    -- the public content-mode feature; if installed, it must remain public.
+    IF target IS NULL AND signature = 'public.get_content_mode()' THEN
+      CONTINUE;
+    END IF;
     IF target IS NULL
        OR NOT has_function_privilege('anon', target, 'EXECUTE')
        OR NOT has_function_privilege('authenticated', target, 'EXECUTE')
