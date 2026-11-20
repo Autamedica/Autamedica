@@ -198,6 +198,7 @@ jobs:
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/memed_provider_integrity_smoke.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/internal_trigger_permissions.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/guest_pharmacy_and_wifi_access.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/profiles_doctors_anon_acl.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/auth_helper_permissions.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/clinical_rls_initplans.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/native_session_cleanup.sql
