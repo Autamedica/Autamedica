@@ -187,4 +187,10 @@
     <string name="community_empty_feed">Ainda não há publicações neste grupo.</string>
     <string name="community_loading">Publicando…</string>
 
+
+    <string name="anamnesis_retry">Tentar novamente</string>
+    <string name="anamnesis_error_network">Falha de conexão ao iniciar a anamnese. Verifique a rede e tente novamente.</string>
+    <string name="anamnesis_error_permission">A sessão não tem acesso ao prontuário deste paciente. Entre novamente para continuar.</string>
+    <string name="anamnesis_error_generic">Não foi possível iniciar a anamnese. Tente novamente.</string>
+
 </resources>
