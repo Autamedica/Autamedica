@@ -183,4 +183,8 @@
     <string name="patient_detail_retry">Reintentar</string>
     <string name="patient_detail_empty_title">Ficha no disponible</string>
     <string name="patient_detail_empty_desc">No hay datos del paciente para mostrar. Reintentá cargar la ficha.</string>
+
+    <string name="community_empty_feed">Todavía no hay publicaciones en este grupo.</string>
+    <string name="community_loading">Publicando…</string>
+
 </resources>
