@@ -39,6 +39,7 @@ private class FakeHealthRepository : HealthRepository {
     var completeCallCount = 0
     var submitCallCount = 0
     var preloadData: Map<String, String> = emptyMap()
+    var getOrCreateResult: Result<AnamnesisSummary>? = null
 
     override suspend fun getAnamnesisPreload(): Result<Map<String, String>> = Result.success(preloadData)
 
@@ -47,7 +48,8 @@ private class FakeHealthRepository : HealthRepository {
     override suspend fun getPreventiveProfile(): Result<com.autamedica.android.domain.model.PatientPreventiveProfile> =
         Result.success(com.autamedica.android.domain.model.PatientPreventiveProfile(patientId = "patient-1", birthDate = "1996-06-10", gender = "male"))
 
-    override suspend fun getOrCreateAnamnesis(): Result<AnamnesisSummary> = Result.success(summary)
+    override suspend fun getOrCreateAnamnesis(): Result<AnamnesisSummary> =
+        getOrCreateResult ?: Result.success(summary)
 
     override suspend fun getAnamnesisSections(anamnesisId: String): Result<List<AnamnesisSection>> =
         Result.success(sections.filter { it.anamnesisId == anamnesisId })
@@ -280,4 +282,27 @@ class AnamnesisFormViewModelTest {
         )
         else -> mapOf("notes" to "Completo")
     }
+    @Test
+    fun retryLoadRecoversAfterTemporaryNetworkFailure() = runTest(testDispatcher.scheduler) {
+        fakeRepository.getOrCreateResult = Result.failure(java.net.UnknownHostException("network unavailable"))
+        val viewModel = AnamnesisFormViewModel(fakeRepository)
+        assertThat(viewModel.uiState.value.initializationErrorType)
+            .isEqualTo(AnamnesisInitializationErrorType.NETWORK)
+
+        fakeRepository.getOrCreateResult = Result.success(fakeRepository.summary)
+        viewModel.retryLoad()
+
+        assertThat(viewModel.uiState.value.isLoading).isFalse()
+        assertThat(viewModel.uiState.value.initializationErrorType).isNull()
+        assertThat(viewModel.uiState.value.summary?.id).isEqualTo(fakeRepository.summary.id)
+    }
+
+    @Test
+    fun initializationDistinguishesPermissionFailure() = runTest(testDispatcher.scheduler) {
+        fakeRepository.getOrCreateResult = Result.failure(IllegalStateException("HTTP 403 permission denied"))
+        val viewModel = AnamnesisFormViewModel(fakeRepository)
+        assertThat(viewModel.uiState.value.initializationErrorType)
+            .isEqualTo(AnamnesisInitializationErrorType.PERMISSION)
+    }
+
 }
