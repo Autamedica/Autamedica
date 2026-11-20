@@ -20,7 +20,9 @@ const attachedPages = new WeakSet();
 
 const tools = [
   { name: "android_status", description: "Estado de Autamedica Companion, accesibilidad y puertos locales.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
-  { name: "android_get_ui_tree", description: "Lee el árbol de accesibilidad Android; los campos de contraseña se ocultan.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_get_ui_tree", description: "Lee el árbol de accesibilidad Android profundo (hasta 24 niveles / 1200 nodos); contraseñas ocultas.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_get_ui_compact", description: "Devuelve solo elementos semánticos útiles (ref, path, text, hint, checked, editable, bounds) podando contenedores vacíos hasta profundidad 28.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_set_text", description: "Inyecta texto directo en un nodo Android por su path (ACTION_SET_TEXT) sin abrir el teclado (~15 ms).", inputSchema: { type: "object", properties: { path: { type: "string" }, text: { type: "string" } }, required: ["path", "text"], additionalProperties: false } },
   { name: "android_screenshot", description: "Captura la pantalla completa del Xiaomi.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "android_open_app", description: "Abre una aplicación Android por package name.", inputSchema: { type: "object", properties: { package: { type: "string" } }, required: ["package"], additionalProperties: false } },
   { name: "android_tap", description: "Toca una coordenada de pantalla Android.", inputSchema: { type: "object", properties: { x: { type: "number" }, y: { type: "number" } }, required: ["x", "y"], additionalProperties: false } },
@@ -44,6 +46,8 @@ const tools = [
 
   { name: "browser_status", description: "Comprueba conexión CDP, motor Chromium/WebView, pestañas, URL y título.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "browser_navigate", description: "Abre el navegador Companion y navega a cualquier sitio HTTP/HTTPS con Internet.", inputSchema: { type: "object", properties: { url: { type: "string" }, wait_until: { type: "string", enum: ["load", "domcontentloaded", "networkidle", "commit"] } }, required: ["url"], additionalProperties: false } },
+  { name: "browser_snapshot", description: "Extrae en una sola llamada todos los controles DOM interactivos visibles (ref, selector, label, value, checked) del WebView.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "web_fetch_clean", description: "Tier 0 sin navegador: descarga una URL por HTTP y devuelve texto semántico/JSON y enlaces en milisegundos.", inputSchema: { type: "object", properties: { url: { type: "string" }, max_chars: { type: "integer", minimum: 500, maximum: 50000 } }, required: ["url"], additionalProperties: false } },
   { name: "browser_click", description: "Playwright locator(selector).click() con auto-wait y comprobación de visibilidad.", inputSchema: { type: "object", properties: { selector: { type: "string" }, timeout_ms: { type: "integer", minimum: 500, maximum: 60000 } }, required: ["selector"], additionalProperties: false } },
   { name: "browser_fill", description: "Playwright locator(selector).fill(value), con eventos input/change.", inputSchema: { type: "object", properties: { selector: { type: "string" }, value: { type: "string" }, timeout_ms: { type: "integer", minimum: 500, maximum: 60000 } }, required: ["selector", "value"], additionalProperties: false } },
   { name: "browser_get_text", description: "Obtiene el texto renderizado de la página o de un selector CSS.", inputSchema: { type: "object", properties: { selector: { type: "string" } }, additionalProperties: false } },
@@ -185,6 +189,30 @@ async function callTool(name, args) {
       return [{ type: "text", text: JSON.stringify(await (await request("/v1/health")).json()) }];
     case "android_get_ui_tree":
       return [{ type: "text", text: JSON.stringify(await (await request("/v1/ui")).json()) }];
+    case "android_get_ui_compact":
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/ui/compact")).json()) }];
+    case "android_set_text":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/set_text", args)) }];
+    case "browser_snapshot":
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/browser/snapshot")).json()) }];
+    case "web_fetch_clean": {
+      const targetUrl = requireHttpUrl(args.url);
+      const maxChars = Math.max(500, Math.min(50000, Number(args.max_chars || 16000)));
+      const resp = await fetch(targetUrl, { signal: AbortSignal.timeout(12000), headers: { "User-Agent": "Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile" } });
+      const ctype = resp.headers.get("content-type") || "";
+      const raw = await resp.text();
+      if (ctype.includes("application/json")) {
+        return [{ type: "text", text: raw.slice(0, maxChars) }];
+      }
+      const clean = raw
+        .replace(/<(script|style|noscript|svg)[^>]*>[\s\S]*?<\/\1>/gi, "\n")
+        .replace(/<\/?(p|div|li|tr|h[1-6]|br|section|article)[^>]*>/gi, "\n")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/[ \t]+/g, " ")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+      return [{ type: "text", text: JSON.stringify({ url: resp.url, status: resp.status, text: clean.slice(0, maxChars) }) }];
+    }
     case "android_screenshot": {
       const response = await request("/v1/screenshot");
       return [{ type: "image", data: Buffer.from(await response.arrayBuffer()).toString("base64"), mimeType: "image/png" }];
