@@ -109,6 +109,12 @@ fun ContinuityStatusScreen(
             viewModel.clearFeedbackMessage()
         }
     }
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.clearError()
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),

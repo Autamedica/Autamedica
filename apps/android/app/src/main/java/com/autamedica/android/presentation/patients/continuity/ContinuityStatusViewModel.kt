@@ -58,6 +58,7 @@ data class ContinuityStatusUiState(
     val error: String? = null,
     val feedbackMessage: String? = null,
     val isSubmittingCheckIn: Boolean = false,
+    val isRecordingDose: Boolean = false,
 )
 
 @HiltViewModel
@@ -105,7 +106,7 @@ class ContinuityStatusViewModel @Inject constructor(
                     val isWorse = targetFollowup.response?.equals("worse", ignoreCase = true) == true
                     val triage = when {
                         isWorse -> "escalated"
-                        targetFollowup.status == FollowupStatus.RESPONDED -> "resolved"
+                        targetFollowup.status == FollowupStatus.RESPONDED || targetFollowup.response != null -> "resolved"
                         targetFollowup.status == FollowupStatus.SENT -> "in_progress"
                         else -> "acknowledged"
                     }
@@ -121,10 +122,10 @@ class ContinuityStatusViewModel @Inject constructor(
                         triageStatus = triage,
                         riskOfInterruption = "moderate",
                         medication = Medication(
-                            name = targetFollowup.metadata?.get("medication_name") ?: "Tratamiento prescripto",
-                            dose = targetFollowup.metadata?.get("medication_dose") ?: "Según pauta médica",
+                            name = targetFollowup.metadata?.get("medication_name").orEmpty(),
+                            dose = targetFollowup.metadata?.get("medication_dose").orEmpty(),
                             frequency = targetFollowup.metadata?.get("medication_freq") ?: "Cada 24 horas (Mañana)",
-                            daysRemaining = 4,
+                            daysRemaining = targetFollowup.metadata?.get("medication_days_remaining")?.toIntOrNull(),
                             isTakenToday = false,
                         ),
                         assignedDoctor = AssignedDoctorInfo(
@@ -135,10 +136,10 @@ class ContinuityStatusViewModel @Inject constructor(
                         createdAt = targetFollowup.scheduledFor,
                         acknowledgedAt = targetFollowup.sentAt,
                         inProgressAt = null,
-                        resolvedAt = if (targetFollowup.status == FollowupStatus.RESPONDED) targetFollowup.sentAt else null,
-                        resolutionDeadline = "En las próximas 24 horas hábiles",
-                        adherenceScore = 88,
-                        dosesTakenInCycle = 26,
+                        resolvedAt = if (targetFollowup.response != null) targetFollowup.metadata?.get("responded_at") ?: targetFollowup.sentAt else null,
+                        resolutionDeadline = targetFollowup.metadata?.get("resolution_deadline"),
+                        adherenceScore = 0,
+                        dosesTakenInCycle = 0,
                         totalDosesInCycle = 30,
                         postConsultationCheckInState = targetFollowup.response,
                         isEscalatedAlertActive = isWorse,
@@ -147,20 +148,52 @@ class ContinuityStatusViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            status = if (targetFollowup.status == FollowupStatus.RESPONDED) "resolved" else "active",
+                            status = if (targetFollowup.response != null || targetFollowup.status == FollowupStatus.RESPONDED) "resolved" else "active",
                             request = request,
                             error = null,
                         )
                     }
+                    request.medication?.name?.takeIf(String::isNotBlank)?.let { fetchAdherence(user.id, it) }
                 } else {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            status = "none",
-                            request = null,
-                            error = null,
-                        )
-                    }
+                    followupRepository.getContinuityCase(user.id)
+                        .onSuccess { case ->
+                            if (case == null) {
+                                _uiState.update { it.copy(isLoading = false, status = "none", request = null, error = null) }
+                            } else {
+                                val medication = case.medicationName?.takeIf(String::isNotBlank)?.let { name ->
+                                    Medication(name = name, dose = case.medicationDose.orEmpty(), daysRemaining = case.medicationDaysRemaining)
+                                }
+                                val request = ContinuityRequest(
+                                    id = case.id,
+                                    intent = case.caseIntent,
+                                    triageStatus = case.triageStatus,
+                                    riskOfInterruption = case.riskOfInterruption ?: "moderate",
+                                    medication = medication,
+                                    createdAt = case.createdAt,
+                                    acknowledgedAt = case.acknowledgedAt,
+                                    resolvedAt = case.resolvedAt,
+                                    resolutionDeadline = case.resolutionDeadlineAt,
+                                    adherenceScore = 0,
+                                    dosesTakenInCycle = 0,
+                                    totalDosesInCycle = 30,
+                                )
+                                _uiState.update {
+                                    it.copy(
+                                        isLoading = false,
+                                        status = if (case.triageStatus == "resolved") "resolved" else "active",
+                                        request = request,
+                                        error = null,
+                                    )
+                                }
+                                medication?.let { fetchAdherence(user.id, it.name) }
+                            }
+                        }
+                        .onFailure { error ->
+                            SecureLog.warn("[ContinuityStatusViewModel] continuity read stage=repository")
+                            _uiState.update {
+                                it.copy(isLoading = false, error = UiErrorMapper.map(error, "No se pudo cargar el estado de continuidad"))
+                            }
+                        }
                 }
             } catch (e: Exception) {
                 SecureLog.error("[ContinuityStatusViewModel] Failed to load status", e)
@@ -173,26 +206,60 @@ class ContinuityStatusViewModel @Inject constructor(
      * Registra la toma diaria de medicación.
      * Actualiza el score de adherencia a 30 días con feedback inmediato.
      */
+    private fun fetchAdherence(patientId: String, medicationName: String) {
+        viewModelScope.launch {
+            followupRepository.getMedicationAdherence(patientId, medicationName)
+                .onSuccess { adherence ->
+                    _uiState.update { state ->
+                        val request = state.request ?: return@update state
+                        val medication = request.medication ?: return@update state
+                        if (medication.name != medicationName) return@update state
+                        state.copy(
+                            request = request.copy(
+                                medication = medication.copy(isTakenToday = adherence.isTakenToday),
+                                dosesTakenInCycle = adherence.dosesTakenInCycle,
+                                totalDosesInCycle = adherence.totalDosesInCycle,
+                                adherenceScore = adherence.score,
+                            )
+                        )
+                    }
+                }.onFailure {
+                    SecureLog.warn("[ContinuityStatusViewModel] adherence read stage=medication_logs")
+                }
+        }
+    }
+
     fun recordDoseToday() {
         val currentRequest = _uiState.value.request ?: return
         val currentMed = currentRequest.medication ?: return
-        if (currentMed.isTakenToday) return
-
-        val newDosesTaken = (currentRequest.dosesTakenInCycle + 1).coerceAtMost(currentRequest.totalDosesInCycle)
-        val newScore = ((newDosesTaken.toDouble() / currentRequest.totalDosesInCycle.toDouble()) * 100).toInt()
-
-        val updatedMed = currentMed.copy(isTakenToday = true)
-        val updatedRequest = currentRequest.copy(
-            medication = updatedMed,
-            dosesTakenInCycle = newDosesTaken,
-            adherenceScore = newScore,
-        )
-
-        _uiState.update {
-            it.copy(
-                request = updatedRequest,
-                feedbackMessage = "Toma registrada con éxito. Score de adherencia actualizado a $newScore%.",
-            )
+        if (currentMed.isTakenToday || _uiState.value.isRecordingDose) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRecordingDose = true, error = null) }
+            val user = authRepository.getCurrentUser()
+            val result = if (user == null) Result.failure(IllegalStateException("authentication_required"))
+                else followupRepository.recordMedicationDose(user.id, currentMed.name, currentMed.dose)
+            result.onSuccess {
+                _uiState.update { state ->
+                    val request = state.request ?: return@update state.copy(isRecordingDose = false)
+                    val next = (request.dosesTakenInCycle + 1).coerceAtMost(request.totalDosesInCycle)
+                    val score = ((next.toDouble() / request.totalDosesInCycle.coerceAtLeast(1)) * 100).toInt()
+                    state.copy(
+                        isRecordingDose = false,
+                        request = request.copy(
+                            medication = request.medication?.copy(isTakenToday = true),
+                            dosesTakenInCycle = next,
+                            adherenceScore = score,
+                        ),
+                        feedbackMessage = "Toma registrada. Adherencia actualizada a $score%.",
+                        error = null,
+                    )
+                }
+            }.onFailure { error ->
+                SecureLog.warn("[ContinuityStatusViewModel] dose write stage=medication_logs_insert")
+                _uiState.update {
+                    it.copy(isRecordingDose = false, error = UiErrorMapper.map(error, "No se pudo registrar la toma. Reintentá."))
+                }
+            }
         }
     }
 
@@ -203,50 +270,46 @@ class ContinuityStatusViewModel @Inject constructor(
      */
     fun submitPostConsultationCheckIn(state: String) {
         val currentRequest = _uiState.value.request ?: return
+        if (_uiState.value.isSubmittingCheckIn) return
         viewModelScope.launch {
-            _uiState.update { it.copy(isSubmittingCheckIn = true) }
-
-            val evolution = FollowupCheckInEvolution.fromValue(state)
-            val normalizedKey = evolution?.toKey() ?: state.trim().lowercase()
-            val isWorse = normalizedKey == "worse"
-
-            // 1. Optimistic UI update
-            val updatedRequest = currentRequest.copy(
-                postConsultationCheckInState = normalizedKey,
-                triageStatus = if (isWorse) "escalated" else "resolved",
-                isEscalatedAlertActive = isWorse,
-            )
-
-            val feedback = when (normalizedKey) {
-                "better" -> "¡Excelente! Tu reporte de mejoría fue guardado en tu historia clínica."
-                "stable" -> "Evolución estable registrada. Mantené tu esquema terapéutico habitual."
-                "worse" -> "Alerta clínica prioritaria activada. Tu médico tratante ha sido notificado."
-                else -> "Estado registrado correctamente."
+            _uiState.update { it.copy(isSubmittingCheckIn = true, error = null) }
+            val normalizedKey = FollowupCheckInEvolution.fromValue(state)?.toKey()
+                ?: state.trim().lowercase()
+            if (normalizedKey !in setOf("better", "stable", "worse")) {
+                _uiState.update { it.copy(isSubmittingCheckIn = false, error = "Seleccioná una evolución válida.") }
+                return@launch
             }
-
-            // 2. Persist to Supabase
-            val repoResult = followupRepository.submitCheckIn(
+            val isWorse = normalizedKey == "worse"
+            followupRepository.submitCheckIn(
                 followupId = currentRequest.id,
                 evolution = normalizedKey,
                 notes = if (isWorse) "Paciente reporta empeoramiento a las 48h" else null,
-            )
-
-            if (repoResult.isFailure) {
-                val error = repoResult.exceptionOrNull()
-                if (error != null) {
-                    SecureLog.warn("[ContinuityStatusViewModel] Failed to persist check-in to Supabase", error)
-                } else {
-                    SecureLog.warn("[ContinuityStatusViewModel] Failed to persist check-in to Supabase")
-                }
-            }
-
-            _uiState.update {
-                it.copy(
-                    isSubmittingCheckIn = false,
-                    request = updatedRequest,
-                    status = if (isWorse) "active" else "resolved",
-                    feedbackMessage = feedback,
+            ).onSuccess {
+                val updated = currentRequest.copy(
+                    postConsultationCheckInState = normalizedKey,
+                    triageStatus = if (isWorse) "escalated" else "resolved",
+                    isEscalatedAlertActive = isWorse,
+                    resolvedAt = if (isWorse) null else java.time.Instant.now().toString(),
                 )
+                val feedback = when (normalizedKey) {
+                    "better" -> "Tu reporte de mejoría quedó guardado en tu historia clínica."
+                    "stable" -> "Evolución estable registrada."
+                    else -> "Alerta clínica prioritaria registrada."
+                }
+                _uiState.update {
+                    it.copy(
+                        isSubmittingCheckIn = false,
+                        request = updated,
+                        status = if (isWorse) "active" else "resolved",
+                        feedbackMessage = feedback,
+                        error = null,
+                    )
+                }
+            }.onFailure { error ->
+                SecureLog.warn("[ContinuityStatusViewModel] check-in write stage=rpc")
+                _uiState.update {
+                    it.copy(isSubmittingCheckIn = false, error = UiErrorMapper.map(error, "No se pudo guardar tu evolución. Reintentá."))
+                }
             }
         }
     }
@@ -256,37 +319,51 @@ class ContinuityStatusViewModel @Inject constructor(
     }
 
     fun requestNewContinuity() {
+        if (_uiState.value.isLoading) return
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    status = "active",
-                    request = ContinuityRequest(
-                        id = "req_cont_${System.currentTimeMillis() % 10000}",
-                        intent = "Solicitud de seguimiento y renovación de receta",
-                        triageStatus = "pending",
-                        riskOfInterruption = "moderate",
-                        medication = Medication(
-                            name = "Tratamiento en revisión",
-                            dose = "Según indicación médica",
-                            frequency = "A determinar por profesional",
-                            daysRemaining = 3,
-                            isTakenToday = false,
-                        ),
-                        assignedDoctor = null,
-                        createdAt = "Hoy, recién",
-                        acknowledgedAt = null,
-                        resolvedAt = null,
-                        resolutionDeadline = "En las próximas 24 horas hábiles",
-                        adherenceScore = 85,
-                        dosesTakenInCycle = 25,
-                        totalDosesInCycle = 30,
-                    ),
-                    feedbackMessage = "Nueva solicitud de continuidad generada con éxito.",
+            _uiState.update { it.copy(isLoading = true, error = null, feedbackMessage = null) }
+            val user = authRepository.getCurrentUser()
+            val result = if (user == null) Result.failure(IllegalStateException("authentication_required"))
+                else followupRepository.requestContinuity(user.id)
+            result.onSuccess { case ->
+                val medication = case.medicationName?.takeIf(String::isNotBlank)?.let { name ->
+                    Medication(name = name, dose = case.medicationDose.orEmpty(), daysRemaining = case.medicationDaysRemaining)
+                }
+                val request = ContinuityRequest(
+                    id = case.id,
+                    intent = case.caseIntent,
+                    triageStatus = case.triageStatus,
+                    riskOfInterruption = case.riskOfInterruption ?: "moderate",
+                    medication = medication,
+                    createdAt = case.createdAt,
+                    acknowledgedAt = case.acknowledgedAt,
+                    resolvedAt = case.resolvedAt,
+                    resolutionDeadline = case.resolutionDeadlineAt,
+                    adherenceScore = 0,
+                    dosesTakenInCycle = 0,
+                    totalDosesInCycle = 30,
                 )
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        status = "active",
+                        request = request,
+                        feedbackMessage = "Tu solicitud de continuidad quedó registrada.",
+                        error = null,
+                    )
+                }
+                if (medication != null) fetchAdherence(user!!.id, medication.name)
+            }.onFailure { error ->
+                SecureLog.warn("[ContinuityStatusViewModel] continuity request stage=backend_update")
+                _uiState.update {
+                    it.copy(isLoading = false, error = UiErrorMapper.map(error, "No se pudo solicitar la continuidad. Reintentá."))
+                }
             }
         }
+    }
+
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
     }
 
     // ── WhatsApp & OpenClaw Bridge Helpers ──
