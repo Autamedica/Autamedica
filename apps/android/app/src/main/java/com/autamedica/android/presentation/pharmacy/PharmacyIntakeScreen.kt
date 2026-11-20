@@ -82,6 +82,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.platform.LocalContext
 import com.autamedica.android.R
 import com.autamedica.android.presentation.common.CareCountryPicker
@@ -906,8 +907,9 @@ private fun PharmacyWaitingRoomView(
 
             if (hasDispatchCapacity && !doctorAssigned) {
                 Text(
-                    text = stringResource(
-                        R.string.pharmacy_flow_online_count,
+                    text = pluralStringResource(
+                        R.plurals.pharmacy_flow_online_count,
+                        availableDoctorCount ?: uiState.activeDoctors.count { it.isAvailable },
                         availableDoctorCount ?: uiState.activeDoctors.count { it.isAvailable },
                         marketName,
                     ),
