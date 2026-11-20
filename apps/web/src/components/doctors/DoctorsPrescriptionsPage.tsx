@@ -280,6 +280,10 @@ export function DoctorsPrescriptionsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCertificateModal, setShowCertificateModal] = useState(false);
   const [showMemedWidget, setShowMemedWidget] = useState(false);
+  const [eventualPatientContact, setEventualPatientContact] = useState("");
+  const [memedDelivery, setMemedDelivery] = useState<{
+    url: string; contact: string; accessCode?: string;
+  } | null>(null);
   const [editingPrescription, setEditingPrescription] = useState<IssuedPrescription | null>(null);
   const [showDetailPanel, setShowDetailPanel] = useState(false);
   const [selectedPrescription, setSelectedPrescription] = useState<IssuedPrescription | null>(null);
@@ -514,6 +518,15 @@ export function DoctorsPrescriptionsPage() {
   const handleSaved = (): void => {
     refresh();
     setEditingPrescription(null);
+  };
+
+  const handleEventualPatientCreated = (patientId: UUID, contact: string): void => {
+    setSelectedPatientId(patientId);
+    setEventualPatientContact(contact);
+    setMemedDelivery(null);
+    setShowCreateModal(false);
+    setEditingPrescription(null);
+    setShowMemedWidget(true);
   };
 
   const handleCreateDraft = async (
@@ -1217,6 +1230,8 @@ export function DoctorsPrescriptionsPage() {
           allowEventualPatientCreation
           patientId={(selectedPatientId ?? undefined) as UUID | undefined}
           onPatientSelected={setSelectedPatientId}
+          onEventualPatientCreated={certificateCountry === "BR" && externalProviderEnabled
+            ? handleEventualPatientCreated : undefined}
           doctorCareCountry={certificateCountry ?? undefined}
           onClose={() => setShowCreateModal(false)}
           onSaved={handleSaved}
@@ -1286,6 +1301,30 @@ export function DoctorsPrescriptionsPage() {
       </AnimatePresence>
 
       {/* ── Memed Widget ── */}
+      {memedDelivery && (
+        <section className="fixed bottom-4 left-4 right-4 z-[60] mx-auto max-w-2xl rounded-xl border border-sky-200 bg-white p-4 shadow-xl" aria-live="polite">
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-sky-900">Receta Memed registrada. Compartí el documento con el paciente.</p>
+              {memedDelivery.accessCode && <p className="mt-1 text-xs text-am-surface-600">Código de acceso: <strong>{memedDelivery.accessCode}</strong></p>}
+            </div>
+            <button type="button" onClick={() => setMemedDelivery(null)} className="rounded px-2 py-1 text-xs text-am-surface-500 hover:bg-am-surface-100">Cerrar</button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <a href={memedDelivery.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center rounded-lg bg-sky-600 px-3 py-2 text-xs font-semibold text-white hover:bg-sky-700">Abrir / descargar receta</a>
+            {memedDelivery.contact && !memedDelivery.contact.includes("@") && (
+              <a href={`https://wa.me/${memedDelivery.contact.replace(/\D/g, "")}?text=${encodeURIComponent(`Tu receta digital de AutaMedica: ${memedDelivery.url}${memedDelivery.accessCode ? `\\nCódigo de acceso: ${memedDelivery.accessCode}` : ""}`)}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center rounded-lg border border-sky-300 px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-50">Enviar por WhatsApp</a>
+            )}
+            {memedDelivery.contact.includes("@") && (
+              <a href={`mailto:${encodeURIComponent(memedDelivery.contact)}?subject=${encodeURIComponent("Tu receta digital de AutaMedica")}&body=${encodeURIComponent(`Tu receta digital: ${memedDelivery.url}${memedDelivery.accessCode ? `\\nCódigo de acceso: ${memedDelivery.accessCode}` : ""}`)}`} className="inline-flex min-h-10 items-center rounded-lg border border-sky-300 px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-50">Enviar por email</a>
+            )}
+            <button type="button" onClick={() => {
+              void navigator.clipboard.writeText(memedDelivery.url).catch(() => undefined);
+            }} className="inline-flex min-h-10 items-center rounded-lg border border-sky-300 px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-50">Copiar enlace</button>
+          </div>
+        </section>
+      )}
+
       {showMemedWidget &&
         certificateCountry === "BR" &&
         externalProviderEnabled &&
@@ -1303,7 +1342,25 @@ export function DoctorsPrescriptionsPage() {
                   prescriptionId,
                 }),
               });
-              if (!response.ok) throw new Error("Falha ao registrar receita Memed.");
+              const envelope = await response.json().catch(() => null) as {
+                success?: boolean;
+                data?: {
+                  digitalLinkUrl?: string | null;
+                  fullDocumentUrl?: string | null;
+                  digitalUnlockCode?: string | null;
+                };
+              } | null;
+              if (!response.ok || envelope?.success !== true) {
+                throw new Error("Falha ao registrar receita Memed.");
+              }
+              const url = envelope.data?.fullDocumentUrl || envelope.data?.digitalLinkUrl;
+              if (url) {
+                setMemedDelivery({
+                  url,
+                  contact: eventualPatientContact,
+                  accessCode: envelope.data?.digitalUnlockCode || undefined,
+                });
+              }
               refresh();
             }}
             onPrescriptionDeleted={async (prescriptionId) => {
