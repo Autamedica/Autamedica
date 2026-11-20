@@ -22,6 +22,7 @@ BEGIN
     RAISE EXCEPTION 'Active doctor radar must show explicit guard duty independently of heartbeat';
   END IF;
   IF position('dds.last_heartbeat_at >= now() - interval ''90 seconds''' IN v_matcher) = 0
+     OR position('dds.last_heartbeat_at <= now()' IN v_matcher) = 0
      OR position('fcm_token' IN v_matcher) > 0 THEN
     RAISE EXCEPTION 'Offer eligibility must require heartbeat <=90 seconds; FCM cannot qualify a doctor';
   END IF;
