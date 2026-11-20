@@ -33,7 +33,7 @@ WHERE user_id = '00000000-0000-4000-8000-00000000a102';
 
 UPDATE public.doctors d
 SET license_number = 'DEMO-NO-HABILITANTE', license_type = 'MN',
-    specialty = 'Medicina general', active = true, care_country = 'AR',
+    specialty = 'Medicina general', active = true, uf_brazil = NULL,
     signature_image_url = 'https://invalid.example/storage/v1/object/sign/medical-documents/'
       || d.user_id::text || '/signatures/' || d.id::text || '/signature.png',
     stamp_image_url = 'https://invalid.example/storage/v1/object/sign/medical-documents/'
