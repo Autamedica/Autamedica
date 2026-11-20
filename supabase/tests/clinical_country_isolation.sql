@@ -305,10 +305,10 @@ DO $$ BEGIN
   END IF;
 END $$;
 RESET ROLE;
-SET LOCAL ROLE anon;
 DO $$ BEGIN
-  IF EXISTS(SELECT 1 FROM public.doctors) THEN RAISE EXCEPTION 'Anonymous directory country bypass'; END IF;
+  IF has_table_privilege('anon','public.doctors','SELECT') THEN
+    RAISE EXCEPTION 'Anonymous direct SELECT remains granted on public.doctors';
+  END IF;
 END $$;
-RESET ROLE;
 ROLLBACK;
 
