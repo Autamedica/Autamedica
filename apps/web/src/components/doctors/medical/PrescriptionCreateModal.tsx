@@ -18,6 +18,7 @@ interface PrescriptionCreateModalProps {
   doctorCareCountry?: 'AR' | 'BR';
   patientIdentity?: { identityStatus: 'verified_renaper' | 'unverified' | 'mismatch'; fullName?: string | null; dni?: string | null; cuil?: string | null; birthDate?: string | null; gender?: string | null; pucoCoverageName?: string | null };
   allowEventualPatientCreation?: boolean;
+  onEventualPatientCreated?: (patientId: UUID, contact: string) => void;
   onPatientSelected?: (patientId: UUID | null) => void;
   onClose: () => void;
   onSaved: () => void;
@@ -170,6 +171,7 @@ export function PrescriptionCreateModal({
   doctorCareCountry,
   patientIdentity,
   allowEventualPatientCreation = false,
+  onEventualPatientCreated,
   onPatientSelected,
   onClose,
   onSaved,
@@ -559,6 +561,14 @@ export function PrescriptionCreateModal({
         setSelectedPatientId(json.data.patientId);
         setQuickPatientMode("registered");
         onPatientSelected?.(json.data.patientId);
+        // Brazilian official prescriptions must continue through the existing Memed
+        // widget; never send this patient through the native prescription issuer.
+        if (doctorCareCountry === "BR" && onEventualPatientCreated) {
+          onEventualPatientCreated(json.data.patientId, form.patient_contact.trim());
+          onSaved();
+          onClose();
+          return;
+        }
       } catch (eventualPatientError) {
         const code = eventualPatientError instanceof Error ? eventualPatientError.message : "";
         const messages: Record<string, string> = {
