@@ -181,4 +181,6 @@
     <string name="patient_detail_error_network">No se pudo conectar para cargar la ficha. Revisa la red y reintenta.</string>
     <string name="patient_detail_error_generic">No se pudo cargar la ficha clínica.</string>
     <string name="patient_detail_retry">Reintentar</string>
+    <string name="patient_detail_empty_title">Ficha no disponible</string>
+    <string name="patient_detail_empty_desc">No hay datos del paciente para mostrar. Reintentá cargar la ficha.</string>
 </resources>

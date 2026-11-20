@@ -228,7 +228,7 @@ fun PatientDetailScreen(
                         item {
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(20.dp),
                                 color = AuSurface,
                                 border = BorderStroke(1.dp, AuBorder),
                             ) {
@@ -264,6 +264,56 @@ fun PatientDetailScreen(
                     }
                 }
             }
+
+            else -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(32.dp),
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(64.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            color = AuSurfaceHover,
+                        ) {
+                            Icon(
+                                Icons.Outlined.History,
+                                contentDescription = null,
+                                modifier = Modifier.padding(16.dp),
+                                tint = PortalDoctors,
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = stringResource(R.string.patient_detail_empty_title),
+                            color = AuTextPrimary,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = stringResource(R.string.patient_detail_empty_desc),
+                            color = AuTextTertiary,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = viewModel::refresh,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PortalDoctors,
+                                contentColor = AuTextPrimary,
+                            ),
+                        ) {
+                            Text(stringResource(R.string.patient_detail_retry))
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -272,13 +322,13 @@ fun PatientDetailScreen(
 private fun PatientHeaderCard(patient: PatientDetail) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         color = Color.Transparent,
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(20.dp))
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
