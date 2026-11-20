@@ -21,6 +21,7 @@ BEGIN
   END IF;
 
   IF position('dds.last_heartbeat_at >= now() - interval ''90 seconds''' IN v_private_matcher)=0
+     OR position('dds.last_heartbeat_at <= now()' IN v_private_matcher)=0
      OR position('fcm_token' IN v_private_matcher)>0
      OR position('dds.is_on_duty' IN v_private_matcher)=0
      OR position('is_doctor_dispatch_approved' IN v_private_matcher)=0 THEN
