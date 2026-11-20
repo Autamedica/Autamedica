@@ -38,8 +38,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
   // Memed's documented read-only key validation accepts partner keys in query
   // parameters. Only a fixed host and read-only path are allowed.
   const url = new URL('https://api.memed.com.br/v1/sinapse-prescricao/check-key');
-  url.searchParams.set('api-key', apiKey ?? '');
-  url.searchParams.set('secret-key', secretKey ?? '');
+  url.searchParams.set('api-key', typeof apiKey === 'string' ? apiKey : '');
+  url.searchParams.set('secret-key', typeof secretKey === 'string' ? secretKey : '');
 
 
   try {
