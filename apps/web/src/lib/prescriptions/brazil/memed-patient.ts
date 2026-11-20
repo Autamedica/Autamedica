@@ -83,30 +83,62 @@ export async function resolveMemedPatient(
   let lastName = '';
   let cpf = String(patient.cpf ?? '').replace(/\D/g, '');
   let telefone: string | undefined;
-  const birthDate = String(patient.birth_date ?? '');
-  const gender = String(patient.gender ?? '').toLowerCase();
+  let birthDate = String(patient.birth_date ?? '');
+  let gender = String(patient.gender ?? '').toLowerCase();
   if (!patient.user_id) {
-    const { data: guestDispatch, error: guestDispatchError } = await admin
-      .from('pharmacy_dispatch_requests')
-      .select('patient_name, patient_cpf, patient_phone, lgpd_consent')
+    // A physician-created eventual patient has a doctor-scoped private identity.
+    // Check this first; pharmacy QR guests continue through their dispatch row below.
+    const { data: eventualIdentity, error: eventualIdentityError } = await admin
+      .from('patient_private_identities')
+      .select('full_name, document_type, document_number, birth_date, gender, phone, consent_at, consent_scope')
       .eq('patient_id', patientId)
-      .eq('assigned_doctor_id', doctorId)
-      .in('status', ['in_call', 'completed'])
-      .gte('call_started_at', recent)
-      .order('call_started_at', { ascending: false })
-      .limit(1)
+      .eq('doctor_id', doctorId)
       .maybeSingle();
-    if (guestDispatchError) throw new Error('memed_patient_lookup_failed');
-    if (guestDispatch?.lgpd_consent !== true) {
-      throw new Error('memed_patient_consent_required');
-    }
-    const nameParts = String(guestDispatch.patient_name ?? '').trim().split(/\s+/);
-    firstName = nameParts.shift() ?? '';
-    lastName = nameParts.join(' ');
-    cpf = String(guestDispatch.patient_cpf ?? '').replace(/\D/g, '');
-    telefone = String(guestDispatch.patient_phone ?? '').trim().replace(/[^\d+]/g, '');
-    if (!firstName || !lastName || !/^\+?\d{6,20}$/.test(telefone) || !validCpf(cpf)) {
-      throw new Error('memed_patient_identity_incomplete');
+    if (eventualIdentityError) throw new Error('memed_patient_lookup_failed');
+
+    if (eventualIdentity) {
+      if (!eventualIdentity.consent_at
+          || eventualIdentity.consent_scope !== 'prescription_issuance_and_delivery') {
+        throw new Error('memed_patient_consent_required');
+      }
+      const nameParts = String(eventualIdentity.full_name ?? '').trim().split(/\s+/);
+      firstName = nameParts.shift() ?? '';
+      lastName = nameParts.join(' ');
+      cpf = eventualIdentity.document_type === 'CPF'
+        ? String(eventualIdentity.document_number ?? '').replace(/\D/g, '') : '';
+      telefone = String(eventualIdentity.phone ?? '').trim().replace(/[^\d+]/g, '') || undefined;
+      birthDate = String(eventualIdentity.birth_date ?? birthDate);
+      gender = String(eventualIdentity.gender ?? gender).toLowerCase();
+      if (!firstName || !lastName || !validCpf(cpf)) {
+        throw new Error('memed_patient_identity_incomplete');
+      }
+      if (telefone && !/^\+?\d{6,20}$/.test(telefone)) {
+        throw new Error('memed_patient_identity_incomplete');
+      }
+    } else {
+      // Existing pharmacy guest behavior is intentionally unchanged.
+      const { data: guestDispatch, error: guestDispatchError } = await admin
+        .from('pharmacy_dispatch_requests')
+        .select('patient_name, patient_cpf, patient_phone, lgpd_consent')
+        .eq('patient_id', patientId)
+        .eq('assigned_doctor_id', doctorId)
+        .in('status', ['in_call', 'completed'])
+        .gte('call_started_at', recent)
+        .order('call_started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (guestDispatchError) throw new Error('memed_patient_lookup_failed');
+      if (guestDispatch?.lgpd_consent !== true) {
+        throw new Error('memed_patient_consent_required');
+      }
+      const nameParts = String(guestDispatch.patient_name ?? '').trim().split(/\s+/);
+      firstName = nameParts.shift() ?? '';
+      lastName = nameParts.join(' ');
+      cpf = String(guestDispatch.patient_cpf ?? '').replace(/\D/g, '');
+      telefone = String(guestDispatch.patient_phone ?? '').trim().replace(/[^\d+]/g, '');
+      if (!firstName || !lastName || !/^\+?\d{6,20}$/.test(telefone) || !validCpf(cpf)) {
+        throw new Error('memed_patient_identity_incomplete');
+      }
     }
   } else {
     const { data: profile, error: profileError } = await admin.from('profiles')
