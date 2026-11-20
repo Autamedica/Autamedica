@@ -1313,10 +1313,10 @@ export function DoctorsPrescriptionsPage() {
           <div className="flex flex-wrap gap-2">
             <a href={memedDelivery.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center rounded-lg bg-sky-600 px-3 py-2 text-xs font-semibold text-white hover:bg-sky-700">Abrir / descargar receta</a>
             {memedDelivery.contact && !memedDelivery.contact.includes("@") && (
-              <a href={`https://wa.me/${memedDelivery.contact.replace(/\D/g, "")}?text=${encodeURIComponent(`Tu receta digital de AutaMedica: ${memedDelivery.url}${memedDelivery.accessCode ? `\\nCódigo de acceso: ${memedDelivery.accessCode}` : ""}`)}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center rounded-lg border border-sky-300 px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-50">Enviar por WhatsApp</a>
+              <a href={`https://wa.me/${memedDelivery.contact.replace(/\D/g, "")}?text=${encodeURIComponent(`Tu receta digital de AutaMedica: ${memedDelivery.url}${memedDelivery.accessCode ? `\nCódigo de acceso: ${memedDelivery.accessCode}` : ""}`)}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center rounded-lg border border-sky-300 px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-50">Enviar por WhatsApp</a>
             )}
             {memedDelivery.contact.includes("@") && (
-              <a href={`mailto:${encodeURIComponent(memedDelivery.contact)}?subject=${encodeURIComponent("Tu receta digital de AutaMedica")}&body=${encodeURIComponent(`Tu receta digital: ${memedDelivery.url}${memedDelivery.accessCode ? `\\nCódigo de acceso: ${memedDelivery.accessCode}` : ""}`)}`} className="inline-flex min-h-10 items-center rounded-lg border border-sky-300 px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-50">Enviar por email</a>
+              <a href={`mailto:${encodeURIComponent(memedDelivery.contact)}?subject=${encodeURIComponent("Tu receta digital de AutaMedica")}&body=${encodeURIComponent(`Tu receta digital: ${memedDelivery.url}${memedDelivery.accessCode ? `\nCódigo de acceso: ${memedDelivery.accessCode}` : ""}`)}`} className="inline-flex min-h-10 items-center rounded-lg border border-sky-300 px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-50">Enviar por email</a>
             )}
             <button type="button" onClick={() => {
               void navigator.clipboard.writeText(memedDelivery.url).catch(() => undefined);
