@@ -116,6 +116,8 @@ function readTable(table: string, filters: Map<string, unknown>): Row | Row[] | 
       return null;
     case 'pharmacy_dispatch_requests':
       return null;
+    case 'patient_private_identities':
+      return null; // Registered synthetic chart: no doctor-scoped eventual identity row.
     case 'patients':
       return filters.get('id') === patientId ? state.patient : null;
     case 'memed_prescriptions':
