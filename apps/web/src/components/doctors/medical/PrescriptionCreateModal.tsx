@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { X, Pill, Save, Loader2, ClipboardCheck, BookmarkPlus, Trash2 } from "lucide-react";
 import { ApiError } from "@/lib/api-client";
 import { requiresStrictPrescriptionValidation } from "@/lib/prescriptions/strict-validation";
+import { validateEventualPatientDetails } from "@/lib/prescriptions/eventual-patient";
 import { useRealPatients } from "@/hooks/doctors/useRealPatients";
 import type { Prescription, UUID } from "@/types/medical";
 
@@ -241,6 +242,7 @@ export function PrescriptionCreateModal({
   }, [patientIdentity]);
 
   const [patientCountryConfirmed, setPatientCountryConfirmed] = useState(false);
+  const [patientConsentDeclared, setPatientConsentDeclared] = useState(false);
   const [saving, setSaving] = useState(false);
   const [generatingGuide, setGeneratingGuide] = useState(false);
   const [templates, setTemplates] = useState<PrescriptionTemplate[]>([]);
@@ -277,6 +279,16 @@ export function PrescriptionCreateModal({
     (key: keyof typeof form) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
+
+  const handlePatientDocumentChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = event.target.value.replace(/\\D/g, '').slice(0, doctorCareCountry === 'BR' ? 11 : 8);
+    const formatted = doctorCareCountry === 'BR'
+      ? digits.replace(/^(\\d{3})(\\d)/, '$1.$2')
+        .replace(/^(\\d{3})\\.(\\d{3})(\\d)/, '$1.$2.$3')
+        .replace(/(\\d{3})(\\d{1,2})$/, '$1-$2')
+      : digits;
+    setForm((current) => ({ ...current, patient_document: formatted }));
+  };
 
   const loadTemplates = async () => {
     setTemplatesLoading(true);
@@ -459,24 +471,76 @@ export function PrescriptionCreateModal({
       return;
     }
     if (!activePatientId && quickPatientMode !== "external") {
-      setError("Seleccioná un paciente de tu padrón o elegí Paciente sin cuenta.");
+      setError("Seleccioná un paciente de tu padrón o elegí Nuevo paciente.");
       return;
     }
     if (!activePatientId && quickPatientMode === "external") {
       if (!doctorCareCountry || !patientCountryConfirmed) {
-        setError("Confirmá con el paciente el país donde recibirá atención antes de guardar.");
+        setError("Confirmá el país de atención declarado por el paciente.");
         return;
       }
-      if (!form.patient_name.trim()) {
-        setError("El nombre del paciente es requerido");
+      const eventualPatientError = validateEventualPatientDetails({
+        fullName: form.patient_name,
+        documentNumber: form.patient_document,
+        birthDate: form.patient_birth_date,
+        gender: form.patient_gender,
+        contact: form.patient_contact,
+        consentAccepted: patientConsentDeclared,
+      }, doctorCareCountry);
+      if (eventualPatientError) {
+        const messages: Record<string, string> = {
+          eventual_patient_name_invalid: "Ingresá el nombre y apellido completos.",
+          eventual_patient_cpf_invalid: "El CPF no es válido. Revisá sus 11 dígitos.",
+          eventual_patient_dni_invalid: "Ingresá un DNI argentino válido de 7 u 8 dígitos.",
+          eventual_patient_birth_date_invalid: "Ingresá una fecha de nacimiento válida.",
+          eventual_patient_gender_required: "Seleccioná el sexo del paciente.",
+          eventual_patient_contact_invalid: "Ingresá un email o teléfono válido.",
+          eventual_patient_consent_required: "Registrá la declaración de consentimiento informado.",
+        };
+        setError(messages[eventualPatientError] ?? "Revisá los datos del paciente.");
         return;
       }
-      if (!form.patient_document.trim()) {
-        setError("Informá DNI o CUIL del paciente");
-        return;
-      }
-      if (!form.patient_address.trim()) {
-        setError("El domicilio del paciente es requerido");
+    }
+
+    let patientIdForPrescription = activePatientId;
+    if (!isEditing && !patientIdForPrescription && quickPatientMode === "external") {
+      setSaving(true);
+      setError(null);
+      try {
+        const response = await fetch("/api/doctors/patients/eventual", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fullName: form.patient_name.trim(),
+            documentNumber: form.patient_document,
+            birthDate: form.patient_birth_date,
+            gender: form.patient_gender || undefined,
+            contact: form.patient_contact.trim() || undefined,
+            careCountryConfirmed: patientCountryConfirmed,
+            consentAccepted: patientConsentDeclared,
+          }),
+        });
+        const json = (await response.json().catch(() => null)) as ApiEnvelope<{ patientId: UUID; reused: boolean }> | null;
+        if (!response.ok || !json?.success || !json.data?.patientId) {
+          throw new Error(json?.error?.message ?? "No se pudo registrar el paciente eventual.");
+        }
+        patientIdForPrescription = json.data.patientId;
+        setSelectedPatientId(json.data.patientId);
+        setQuickPatientMode("registered");
+        onPatientSelected?.(json.data.patientId);
+      } catch (eventualPatientError) {
+        const code = eventualPatientError instanceof Error ? eventualPatientError.message : "";
+        const messages: Record<string, string> = {
+          eventual_patient_cpf_invalid: "El CPF no es válido.",
+          eventual_patient_dni_invalid: "El DNI no es válido.",
+          eventual_patient_birth_date_invalid: "La fecha de nacimiento no es válida.",
+          eventual_patient_gender_required: "Seleccioná el sexo del paciente.",
+          eventual_patient_consent_required: "Registrá el consentimiento informado.",
+          external_patient_care_country_confirmation_required: "Confirmá el país de atención declarado por el paciente.",
+        };
+        setError(messages[code] ?? code ?? "No se pudo registrar el paciente eventual.");
+        setSaving(false);
         return;
       }
     }
@@ -511,8 +575,8 @@ export function PrescriptionCreateModal({
     const payload: Omit<Prescription, "id" | "created_at" | "updated_at" | "patient_id"> & {
       patient_id?: UUID;
       external_patient?: ExternalPatientForm;
-    } = activePatientId
-      ? { ...basePayload, patient_id: activePatientId }
+    } = patientIdForPrescription
+      ? { ...basePayload, patient_id: patientIdForPrescription }
       : {
           ...basePayload,
           external_patient: {
@@ -673,26 +737,45 @@ export function PrescriptionCreateModal({
                   <div className="space-y-3">
                     <div>
                       <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">Nombre completo <span className="text-red-500">*</span></label>
-                      <input type="text" value={form.patient_name} onChange={set("patient_name")} placeholder="Nombre y apellido" autoComplete="name" className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500" />
+                      <input type="text" value={form.patient_name} onChange={set("patient_name")} placeholder="Nombre y apellido" autoComplete="name" required maxLength={200} className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" />
                     </div>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div>
-                        <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">{doctorCareCountry === "BR" ? "CPF" : "DNI o CUIL"} <span className="text-red-500">*</span></label>
-                        <input type="text" inputMode="numeric" value={form.patient_document} onChange={set("patient_document")} placeholder={doctorCareCountry === "BR" ? "CPF (11 dígitos)" : "Documento"} className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500" />
+                        <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">{doctorCareCountry === "BR" ? "CPF" : "DNI"} <span className="text-red-500">*</span></label>
+                        <input type="text" inputMode="numeric" value={form.patient_document} onChange={handlePatientDocumentChange} placeholder={doctorCareCountry === "BR" ? "000.000.000-00" : "Documento"} autoComplete="off" required aria-invalid={doctorCareCountry === "BR" && normalizedPatientDocument.length > 0 && !validateEventualPatientDetails({ fullName: form.patient_name || "Paciente Demo", documentNumber: form.patient_document, birthDate: form.patient_birth_date || "1990-01-01", gender: form.patient_gender || "female", consentAccepted: true }, "BR") && false} className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" />
+                        {doctorCareCountry === "BR" && normalizedPatientDocument.length > 0 && normalizedPatientDocument.length < 11 && (
+                          <p className="mt-1 text-[11px] text-am-surface-500">Ingresá los 11 dígitos del CPF.</p>
+                        )}
                       </div>
                       <div>
-                        <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">Contacto</label>
-                        <input type="text" value={form.patient_contact} onChange={set("patient_contact")} placeholder="Email o WhatsApp" autoComplete="email" className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500" />
+                        <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">Contacto (opcional)</label>
+                        <input type="text" value={form.patient_contact} onChange={set("patient_contact")} placeholder="Email o WhatsApp" autoComplete="off" className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" />
                       </div>
                     </div>
-                    <div>
-                      <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">Domicilio <span className="text-red-500">*</span></label>
-                      <input type="text" value={form.patient_address} onChange={set("patient_address")} placeholder="Calle, número, localidad" autoComplete="street-address" className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500" />
+                    <div className={doctorCareCountry === "BR" ? "grid grid-cols-1 gap-3 sm:grid-cols-2" : "grid grid-cols-1 gap-3"}>
+                      <div>
+                        <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">Fecha de nacimiento <span className="text-red-500">*</span></label>
+                        <input type="date" value={form.patient_birth_date} onChange={set("patient_birth_date")} max={TODAY} min="1900-01-01" required className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" />
+                      </div>
+                      {doctorCareCountry === "BR" && (
+                        <div>
+                          <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">Sexo <span className="text-red-500">*</span></label>
+                          <select value={form.patient_gender} onChange={set("patient_gender")} required className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
+                            <option value="">Seleccionar</option>
+                            <option value="male">Masculino</option>
+                            <option value="female">Femenino</option>
+                          </select>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <label className="mt-3 flex min-h-11 items-start gap-2 rounded-lg bg-white p-3 text-xs leading-relaxed text-am-surface-700">
-                    <input type="checkbox" checked={patientCountryConfirmed} onChange={(event) => setPatientCountryConfirmed(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0" required />
-                    <span>Confirmo que el paciente declaró que recibirá atención médica en{doctorCareCountry === "BR" ? " Brasil" : " Argentina"}. Esta elección define el proveedor de recetas y no su nacionalidad.</span>
+                    <input type="checkbox" checked={patientCountryConfirmed} onChange={(event) => setPatientCountryConfirmed(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-sky-500" required />
+                    <span>Confirmo que el paciente declaró que recibirá atención médica en{doctorCareCountry === "BR" ? " Brasil" : " Argentina"}.</span>
+                  </label>
+                  <label className="mt-2 flex min-h-11 items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs leading-relaxed text-am-surface-800">
+                    <input type="checkbox" checked={patientConsentDeclared} onChange={(event) => setPatientConsentDeclared(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-sky-500" required />
+                    <span>Declaro que el paciente recibió información y prestó su consentimiento para registrar su identidad clínica y emitir y entregar recetas digitales.</span>
                   </label>
                 </>
               )}
