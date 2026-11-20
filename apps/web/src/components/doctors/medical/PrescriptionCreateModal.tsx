@@ -17,6 +17,7 @@ interface PrescriptionCreateModalProps {
   patientId?: UUID;
   doctorCareCountry?: 'AR' | 'BR';
   patientIdentity?: { identityStatus: 'verified_renaper' | 'unverified' | 'mismatch'; fullName?: string | null; dni?: string | null; cuil?: string | null; birthDate?: string | null; gender?: string | null; pucoCoverageName?: string | null };
+  allowEventualPatientCreation?: boolean;
   onPatientSelected?: (patientId: UUID | null) => void;
   onClose: () => void;
   onSaved: () => void;
@@ -168,6 +169,7 @@ export function PrescriptionCreateModal({
   patientId,
   doctorCareCountry,
   patientIdentity,
+  allowEventualPatientCreation = false,
   onPatientSelected,
   onClose,
   onSaved,
@@ -184,7 +186,9 @@ export function PrescriptionCreateModal({
   const [quickPatientMode, setQuickPatientMode] = useState<"registered" | "external">(
     patientId || isEditing ? "registered" : "registered",
   );
-  const activePatientId = patientId ?? (quickPatientMode === "registered" ? selectedPatientId ?? undefined : undefined);
+  const activePatientId = quickPatientMode === "registered"
+    ? patientId ?? selectedPatientId ?? undefined
+    : undefined;
   const filteredQuickPatients = availablePatients.filter((patient) => {
     const query = patientSearch.trim().toLocaleLowerCase();
     if (!query) return true;
@@ -673,7 +677,7 @@ export function PrescriptionCreateModal({
               <p>Nacimiento: {patientIdentity.birthDate || '—'} · Sexo: {patientIdentity.gender || '—'} · Cobertura: {patientIdentity.pucoCoverageName || 'No informada'}</p>
             </div>
           )}
-          {!patientId && !isEditing && (
+          {(!patientId || allowEventualPatientCreation) && !isEditing && (
             <section className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-4" aria-labelledby="prescription-patient-title">
               <div className="mb-3">
                 <h3 id="prescription-patient-title" className="text-sm font-bold text-am-surface-900">¿Para quién es la receta?</h3>
