@@ -134,6 +134,7 @@ export type IssuanceError =
   | { code: 'already_issued' }
   | { code: 'patient_not_found' }
   | { code: 'patient_identity_lookup_failed' }
+  | { code: 'patient_identity_consent_required' }
   | { code: 'missing_patient_identification' }
   | { code: 'missing_patient_address' }
   | { code: 'no_medication' }
@@ -192,6 +193,28 @@ interface IssuePatient {
   birth_date?: string | null;
   gender?: string | null;
   insurance_info?: unknown;
+}
+
+interface PrivatePatientIdentity {
+  full_name: string;
+  document_type: 'DNI' | 'CPF' | string;
+  document_number: string;
+  birth_date: string;
+  gender: string | null;
+  consent_at: string | null;
+  consent_scope: string | null;
+}
+
+function resolvePrivatePatientIdentityFields(
+  patient: { dni?: string | null; cpf?: string | null; birth_date?: string | null; gender?: string | null },
+  identity: PrivatePatientIdentity | null,
+) {
+  return {
+    dni: identity?.document_type === 'DNI' ? identity.document_number : patient.dni,
+    cpf: identity?.document_type === 'CPF' ? identity.document_number : patient.cpf,
+    birth_date: identity?.birth_date ?? patient.birth_date,
+    gender: identity?.gender ?? patient.gender,
+  };
 }
 
 type PrescriberValidationStatus = 'pending' | 'valid' | 'pending_review' | 'rejected' | 'exempt';
@@ -653,17 +676,15 @@ export async function issuePrescription(
     !privateIdentity.consent_at
     || privateIdentity.consent_scope !== 'prescription_issuance_and_delivery'
   )) {
-    return fail({ code: 'patient_identity_lookup_failed' });
+    return fail({ code: 'patient_identity_consent_required' });
   }
 
   const patient = {
     ...patientRecord,
-    dni: privateIdentity?.document_type === 'DNI'
-      ? privateIdentity.document_number : patientRecord.dni,
-    cpf: privateIdentity?.document_type === 'CPF'
-      ? privateIdentity.document_number : patientRecord.cpf,
-    birth_date: privateIdentity?.birth_date ?? patientRecord.birth_date,
-    gender: privateIdentity?.gender ?? patientRecord.gender,
+    ...resolvePrivatePatientIdentityFields(
+      patientRecord,
+      privateIdentity as PrivatePatientIdentity | null,
+    ),
   };
   if (rx.country_code === 'BR' && !validCpf(String(patient.cpf ?? '').replace(/\D/g, ''))) {
     return fail({ code: 'br_patient_cpf_required' });
