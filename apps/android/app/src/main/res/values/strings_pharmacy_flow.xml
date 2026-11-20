@@ -34,7 +34,14 @@
     <string name="pharmacy_flow_checking_capacity">Consultando médicos en %1$s...</string>
     <string name="pharmacy_flow_waiting_capacity">Esperando un médico en %1$s.</string>
     <string name="pharmacy_flow_request_registered">Tu solicitud ya está en la fila. No necesitás enviarla de nuevo.</string>
-    <string name="pharmacy_flow_online_count">%1$d médicos disponibles en %2$s. Tu solicitud sigue en la fila.</string>
+    <plurals name="pharmacy_flow_online_count">
+        <item quantity="one">1 médico disponible en %2$s. Tu solicitud sigue en la fila.</item>
+        <item quantity="other">%1$d médicos disponibles en %2$s. Tu solicitud sigue en la fila.</item>
+    </plurals>
+    <plurals name="pharmacy_flow_ticker_available">
+        <item quantity="one">1 médico disponible</item>
+        <item quantity="other">%1$d médicos disponibles</item>
+    </plurals>
     <string name="pharmacy_flow_queue_position">Posición en fila</string>
     <string name="pharmacy_flow_estimated_time">Tiempo estimado</string>
     <string name="pharmacy_flow_cancelling">Cancelando...</string>
@@ -54,7 +61,10 @@
     <string name="pharmacy_flow_capacity_empty">No hay médicos conectados en este momento.</string>
     <string name="pharmacy_flow_capacity_empty_hint">Tu solicitud seguirá en la fila.</string>
     <string name="pharmacy_flow_ticker_checking">Consultando disponibilidad médica</string>
-    <string name="pharmacy_flow_ticker_available">%1$d médicos disponibles</string>
+    <plurals name="pharmacy_flow_ticker_available">
+        <item quantity="one">1 médico disponible</item>
+        <item quantity="other">%1$d médicos disponibles</item>
+    </plurals>
     <string name="pharmacy_flow_ticker_waiting">Esperando médico de guardia</string>
     <string name="pharmacy_flow_ticker_await_accept">Solicitud registrada; esperando aceptación</string>
     <string name="pharmacy_flow_ticker_queue">En fila hasta que haya un médico</string>
