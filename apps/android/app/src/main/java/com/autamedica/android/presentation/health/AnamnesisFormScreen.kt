@@ -183,12 +183,28 @@ fun AnamnesisFormScreen(
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        val initializationMessage = when (uiState.initializationErrorType) {
+                            AnamnesisInitializationErrorType.NETWORK ->
+                                stringResource(com.autamedica.android.R.string.anamnesis_error_network)
+                            AnamnesisInitializationErrorType.PERMISSION ->
+                                stringResource(com.autamedica.android.R.string.anamnesis_error_permission)
+                            else -> stringResource(com.autamedica.android.R.string.anamnesis_error_generic)
+                        }
                         Text(
-                            text = uiState.error ?: "Error desconocido",
+                            text = initializationMessage,
                             color = Color(0xFFB91C1C),
                             style = MaterialTheme.typography.bodyLarge,
+                            textAlign = TextAlign.Center,
                         )
                         Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = viewModel::retryLoad,
+                            enabled = !uiState.isLoading,
+                            colors = ButtonDefaults.buttonColors(containerColor = AuAccent),
+                        ) {
+                            Text(stringResource(com.autamedica.android.R.string.anamnesis_retry))
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
                         Button(onClick = onBack) { Text(stringResource(com.autamedica.android.R.string.common_back)) }
                     }
                 }
