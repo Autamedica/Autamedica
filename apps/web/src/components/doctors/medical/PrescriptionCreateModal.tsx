@@ -264,7 +264,7 @@ export function PrescriptionCreateModal({
   const normalizedPatientDocument = form.patient_document.replace(/\D/g, "");
   const eventualPatientDocumentValid = doctorCareCountry === "BR"
     ? validCpf(normalizedPatientDocument)
-    : /^\\d{7,8}$/.test(normalizedPatientDocument);
+    : /^\d{7,8}$/.test(normalizedPatientDocument);
   const externalPatientDni = doctorCareCountry === 'BR' ? ''
     : normalizedPatientDocument.length === 11 ? '' : normalizedPatientDocument || form.patient_document.trim();
   const externalPatientCuil = doctorCareCountry === 'AR' && normalizedPatientDocument.length === 11
