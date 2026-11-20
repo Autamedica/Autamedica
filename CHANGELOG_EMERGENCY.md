@@ -37,3 +37,12 @@ Durante la jornada de hoy se detectaron múltiples incidentes que afectaron la v
 - **Rama:** `main`
 - **Despliegue:** Exitoso (GitHub Actions Production Deploy ✓)
 - **Trazabilidad:** Este registro documenta la secuencia de cambios manuales realizados sobre la rama principal.
+
+
+## 2026-11-20 — Android/Supabase clinical persistence hotfix
+
+- Serialized patient dispatch Realtime subscriptions by request ID; REST refresh on activity resume no longer restarts a healthy channel.
+- Corrected anamnesis ownership joins from patients.id to patients.user_id while retaining active-patient, lock, deleted-row, and final-status restrictions.
+- Added an authenticated, patient-owned RPC for check-ins; results are stored in follow-up metadata without adding an invalid operational status.
+- Connected continuity doses to medication_logs, continuity requests to clinical_case_states, and community content to RLS-protected Supabase tables.
+- Added explicit anamnesis retry/error classification and localized pharmacy availability plurals.
