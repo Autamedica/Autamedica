@@ -210,6 +210,7 @@ BEGIN
   )
   ON CONFLICT (doctor_id, care_country, document_type, document_number)
   DO UPDATE SET
+    patient_id = EXCLUDED.patient_id,
     full_name = EXCLUDED.full_name,
     birth_date = EXCLUDED.birth_date,
     gender = EXCLUDED.gender,
