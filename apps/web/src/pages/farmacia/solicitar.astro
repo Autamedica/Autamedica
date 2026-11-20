@@ -6,11 +6,12 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payment-access';
 import { getOperationalPaymentSwitches } from '@/lib/payments/operational-switches';
 import { resolvePatientContext } from '@/lib/patients/api/patient-context';
+import { parsePharmacyQrAttribution } from '@/lib/pharmacy/qr-attribution';
 
 export const prerender = false;
 
 const pharmacyId = Astro.url.searchParams.get('pharmacyId');
-const requestedReferral = Astro.url.searchParams.get('ref')?.trim().toUpperCase() ?? null;
+const { referralCode: requestedReferral, qrSourceCode } = parsePharmacyQrAttribution(Astro.url.searchParams);
 const requestedCareCountry = Astro.url.searchParams.get('careCountry')?.toUpperCase();
 const patientContext = await resolvePatientContext(Astro.request, Astro.locals).catch(() => null);
 // Commercial attribution and clinical jurisdiction are independent.
@@ -97,6 +98,7 @@ const description = isPortugueseUI ? 'Ponto de atendimento de telemedicina da Au
     initialCareCountry={initialCareCountry}
     uiLocale={Astro.locals.locale}
     referralCode={referralCode}
+    qrSourceCode={qrSourceCode}
     referralPartnerName={referralPartnerName}
     jordanPaymentsEnabled={jordanPaymentsEnabled}
     pharmacyPaymentsEnabled={pharmacyPaymentsEnabled}

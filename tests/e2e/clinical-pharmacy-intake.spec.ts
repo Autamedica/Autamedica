@@ -51,6 +51,9 @@ test.describe('Pharmacy intake AR/BR clinical country', () => {
         })
       })
 
+      await page.route('**/rest/v1/rpc/get_country_on_duty_capacity', async (route) => {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: '1' })
+      })
       await page.goto('/farmacia/solicitar')
       await waitForPharmacyHydration(page)
       await expect(page.getByRole('heading', { name: /Consulta médica/ })).toBeVisible()
@@ -78,6 +81,54 @@ test.describe('Pharmacy intake AR/BR clinical country', () => {
       expect(body?.symptomSummary).toBe(c.reasonOption)
     })
   }
+
+  test('preserves a physical QR source from the landing URL into the dispatch request', async ({ page }) => {
+    let receivedBody: Record<string, unknown> | null = null
+    await page.route('**/rest/v1/rpc/get_country_on_duty_capacity', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: '1' })
+    })
+    await page.route('**/api/pharmacy/dispatch/request', async (route) => {
+      receivedBody = route.request().postDataJSON() as Record<string, unknown>
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            request: { id: '22222222-2222-4222-8222-222222222222', status: 'searching',
+              care_country: 'BR', cloudflare_room_id: 'cf-room-qr-source-ci' },
+            cloudflare_room_id: 'cf-room-qr-source-ci',
+            accessToken: 'synthetic-qr-source-token',
+          },
+        }),
+      })
+    })
+    await page.route('**/api/pharmacy/dispatch/22222222-2222-4222-8222-222222222222**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: { request: { status: 'searching', care_country: 'BR', cloudflare_room_id: 'cf-room-qr-source-ci' }, doctor: null },
+        }),
+      })
+    })
+
+    await page.goto('/farmacia/solicitar?careCountry=BR&qr_source=SANTANA_DO_LIVRAMENTO_01')
+    await waitForPharmacyHydration(page)
+    await page.getByRole('textbox', { name: 'CPF' }).fill('11144477735')
+    await page.getByLabel('Nome completo').fill('PACIENTE SINTETICO TEST')
+    await page.getByLabel('WhatsApp').fill('+5551999998888')
+    await page.getByRole('button', { name: 'Dor / mal-estar' }).click()
+    await page.getByRole('checkbox').check()
+    await page.getByRole('button', { name: 'Iniciar consulta' }).click()
+    await expect.poll(() => receivedBody !== null, { timeout: 10000 }).toBe(true)
+
+    expect(receivedBody).toMatchObject({
+      careCountry: 'BR',
+      qrSourceCode: 'SANTANA_DO_LIVRAMENTO_01',
+    })
+  })
 
   test('Jordan QR defaults the clinical market to Brazil while keeping the Spanish UI locale', async ({ page }) => {
     await page.setExtraHTTPHeaders({ 'Accept-Language': 'es-AR,es;q=0.9' })

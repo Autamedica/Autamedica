@@ -11433,6 +11433,7 @@ export type Database = {
           provider: string
           provider_payment_id: string | null
           provider_preference_id: string | null
+          referral_source_code: string | null
           status: string
           updated_at: string
         }
@@ -11448,6 +11449,7 @@ export type Database = {
           provider?: string
           provider_payment_id?: string | null
           provider_preference_id?: string | null
+          referral_source_code?: string | null
           status?: string
           updated_at?: string
         }
@@ -11463,6 +11465,7 @@ export type Database = {
           provider?: string
           provider_payment_id?: string | null
           provider_preference_id?: string | null
+          referral_source_code?: string | null
           status?: string
           updated_at?: string
         }
@@ -11556,6 +11559,7 @@ export type Database = {
           puco_coverage_code: string | null
           puco_coverage_name: string | null
           referral_partner_id: string | null
+          referral_source_code: string | null
           requested_by_user_id: string | null
           search_started_at: string | null
           search_timeout_at: string | null
@@ -11607,6 +11611,7 @@ export type Database = {
           puco_coverage_code?: string | null
           puco_coverage_name?: string | null
           referral_partner_id?: string | null
+          referral_source_code?: string | null
           requested_by_user_id?: string | null
           search_started_at?: string | null
           search_timeout_at?: string | null
@@ -11658,6 +11663,7 @@ export type Database = {
           puco_coverage_code?: string | null
           puco_coverage_name?: string | null
           referral_partner_id?: string | null
+          referral_source_code?: string | null
           requested_by_user_id?: string | null
           search_started_at?: string | null
           search_timeout_at?: string | null

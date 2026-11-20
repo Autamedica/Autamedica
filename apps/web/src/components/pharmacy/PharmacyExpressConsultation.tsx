@@ -26,6 +26,7 @@ interface PharmacyExpressConsultationProps {
   initialCareCountry?: 'AR' | 'BR' | null
   uiLocale?: 'es' | 'pt'
   referralCode?: string | null
+  qrSourceCode?: string | null
   referralPartnerName?: string | null
   jordanPaymentsEnabled?: boolean
   pharmacyPaymentsEnabled?: boolean
@@ -46,8 +47,34 @@ type EncounterDocument = {
 }
 
 const COPY = {
-  AR: { brand: 'Consulta médica', ready: 'Médico conectado', restart: 'Nueva consulta', country: 'País de atención', document: 'DNI', name: 'Nombre y apellido', phone: 'WhatsApp', reason: 'Motivo', nameExample: 'Ej. Juan Pérez', phoneExample: 'Ej. 11 2345-6789', reasonExample: 'Describí brevemente el motivo', submit: 'Continuar', submitting: 'Conectando...', searching: 'Buscando médico', elapsed: 'Tiempo', patient: 'Paciente', reasonLabel: 'Motivo', cancel: 'Cancelar', cancelReady: 'La búsqueda local alcanzó 15 minutos. Podés cancelar la solicitud.', ended: 'Consulta finalizada', endedHint: 'La consulta terminó.', cancelled: 'Consulta cancelada', back: 'Volver' },
-  BR: { brand: 'Consulta médica de plantão', ready: 'Médico conectado', restart: 'Nova consulta', country: 'País de atendimento', document: 'CPF', name: 'Nome completo', phone: 'WhatsApp', reason: 'Motivo', nameExample: 'Ex.: João da Silva', phoneExample: 'Ex.: (51) 99999-9999', reasonExample: 'Descreva o motivo em poucas palavras', submit: 'Iniciar consulta', submitting: 'Conectando...', searching: 'Buscando médico',  elapsed: 'Tempo', patient: 'Paciente', reasonLabel: 'Motivo', cancel: 'Cancelar', cancelReady: 'A busca local completou 15 minutos. Você pode cancelar a solicitação.', ended: 'Consulta finalizada', endedHint: 'A consulta foi concluída.', cancelled: 'Consulta cancelada', back: 'Voltar' },
+  AR: {
+    brand: 'Consulta médica', ready: 'Médico conectado', restart: 'Nueva consulta', country: 'País de atención',
+    document: 'DNI', name: 'Nombre y apellido', phone: 'WhatsApp', reason: 'Motivo',
+    nameExample: 'Ej. Juan Pérez', phoneExample: 'Ej. 11 2345-6789', reasonExample: 'Describí brevemente el motivo',
+    submit: 'Continuar', submitting: 'Conectando...', searching: 'Buscando médico', elapsed: 'Tiempo',
+    patient: 'Paciente', reasonLabel: 'Motivo', cancel: 'Cancelar',
+    cancelReady: 'La búsqueda local alcanzó 15 minutos. Podés cancelar la solicitud.',
+    ended: 'Consulta finalizada', endedHint: 'La consulta terminó.', cancelled: 'Consulta cancelada', back: 'Volver',
+    availabilityChecking: 'Comprobando médicos disponibles en Argentina…',
+    availabilityUnavailable: 'No pudimos comprobar la disponibilidad ahora. Volvé a consultar antes de iniciar.',
+    noDoctorsAvailable: 'En este momento no hay médicos disponibles en Argentina. Volvé a comprobar la disponibilidad más tarde.',
+    doctorsAvailable: (count: number) => count === 1 ? 'Hay 1 médico disponible para atenderte.' : `Hay ${count} médicos disponibles para atenderte.`,
+    retryAvailability: 'Volver a comprobar disponibilidad',
+  },
+  BR: {
+    brand: 'Consulta médica de plantão', ready: 'Médico conectado', restart: 'Nova consulta', country: 'País de atendimento',
+    document: 'CPF', name: 'Nome completo', phone: 'WhatsApp', reason: 'Motivo',
+    nameExample: 'Ex.: João da Silva', phoneExample: 'Ex.: (51) 99999-9999', reasonExample: 'Descreva o motivo em poucas palavras',
+    submit: 'Iniciar consulta', submitting: 'Conectando...', searching: 'Buscando médico', elapsed: 'Tempo',
+    patient: 'Paciente', reasonLabel: 'Motivo', cancel: 'Cancelar',
+    cancelReady: 'A busca local completou 15 minutos. Você pode cancelar a solicitação.',
+    ended: 'Consulta finalizada', endedHint: 'A consulta foi concluída.', cancelled: 'Consulta cancelada', back: 'Voltar',
+    availabilityChecking: 'Verificando médicos disponíveis no Brasil…',
+    availabilityUnavailable: 'Não foi possível confirmar a disponibilidade agora. Consulte novamente antes de iniciar.',
+    noDoctorsAvailable: 'No momento não há médicos disponíveis no Brasil. Consulte a disponibilidade novamente mais tarde.',
+    doctorsAvailable: (count: number) => count === 1 ? 'Há 1 médico disponível para atender você.' : `Há ${count} médicos disponíveis para atender você.`,
+    retryAvailability: 'Verificar disponibilidade novamente',
+  },
 } as const
 
 const QUICK_REASONS = [
@@ -63,6 +90,7 @@ export function PharmacyExpressConsultation({
   initialDni = '',
   initialCareCountry = null,
   referralCode = null,
+  qrSourceCode = null,
   jordanPaymentsEnabled = false,
   pharmacyPaymentsEnabled = false,
   pricingByCountry = {},
@@ -72,6 +100,7 @@ export function PharmacyExpressConsultation({
   const phoneInputId = useId()
   const reasonInputId = useId()
   const isJordanReferral = referralCode?.toUpperCase() === 'JORDAN'
+  const requiresAvailabilityPreflight = Boolean(qrSourceCode || referralCode || pharmacyId)
 
   const [step, setStep] = useState<Step>('FORM')
   const [formData, setFormData] = useState({
@@ -96,6 +125,9 @@ export function PharmacyExpressConsultation({
   const [callRoomId, setCallRoomId] = useState<string | null>(null)
   const [countryPaymentApproved, setCountryPaymentApproved] = useState(false)
   const [onDutyDoctorCount, setOnDutyDoctorCount] = useState<number | null>(null)
+  const [availabilityChecked, setAvailabilityChecked] = useState(false)
+  const [availabilityLoading, setAvailabilityLoading] = useState(false)
+  const [availabilityRefreshKey, setAvailabilityRefreshKey] = useState(0)
   const [documents, setDocuments] = useState<EncounterDocument[]>([])
   const recoveryInProgress = useRef(false)
   const lastRecoveryAttemptAt = useRef(0)
@@ -110,7 +142,7 @@ export function PharmacyExpressConsultation({
         const saved = JSON.parse(raw) as {
           requestId?: string; guestToken?: string; recoveryToken?: string;
           country?: 'AR' | 'BR'; careCountry?: 'AR' | 'BR';
-          referralCode?: string | null; partnerName?: string | null; savedAt?: number;
+          referralCode?: string | null; qrSourceCode?: string | null; partnerName?: string | null; savedAt?: number;
         }
         const country = saved.country ?? saved.careCountry
         if (!saved.requestId || !saved.recoveryToken || (country !== 'AR' && country !== 'BR')
@@ -165,14 +197,24 @@ export function PharmacyExpressConsultation({
         { value: 'other' as const, label: QUICK_REASONS[2] },
       ]
 
-  // Country-scoped privacy-safe availability aggregate, shared with Kotlin.
+  // Use the same country-aware capacity RPC that powers the patient and doctor portals.
+  // Verify capacity before creating a request or opening any checkout.
   useEffect(() => {
-    const active = step === 'WAITING' &&
-      (formData.careCountry === 'AR' || formData.careCountry === 'BR') &&
-      (!pricingByCountry[formData.careCountry]?.require_payment_before_dispatch || countryPaymentApproved)
-    if (!active) { setOnDutyDoctorCount(null); return }
+    const validCountry = formData.careCountry === 'AR' || formData.careCountry === 'BR'
+    const shouldCheck = requiresAvailabilityPreflight && (step === 'FORM' || (step === 'WAITING' &&
+      (!pricingByCountry[formData.careCountry as 'AR' | 'BR']?.require_payment_before_dispatch || countryPaymentApproved)))
+      && validCountry
+
+    if (!shouldCheck) {
+      setOnDutyDoctorCount(null)
+      setAvailabilityChecked(false)
+      setAvailabilityLoading(false)
+      return
+    }
+
     let current = true
     const refresh = async () => {
+      setAvailabilityLoading(true)
       try {
         const client = getBrowserSupabaseClient() as unknown as {
           rpc: (name: string, args: { p_care_country: 'AR' | 'BR' }) => Promise<{ data: unknown; error: unknown }>
@@ -181,15 +223,28 @@ export function PharmacyExpressConsultation({
           p_care_country: formData.careCountry as 'AR' | 'BR',
         })
         if (error) throw error
-        if (!current) return
         const count = typeof data === 'number' ? data : typeof data === 'string' ? Number(data) : Number.NaN
+        if (!current) return
         setOnDutyDoctorCount(Number.isSafeInteger(count) && count >= 0 ? count : null)
-      } catch { if (current) setOnDutyDoctorCount(null) }
+      } catch {
+        if (current) setOnDutyDoctorCount(null)
+      } finally {
+        if (current) {
+          setAvailabilityChecked(true)
+          setAvailabilityLoading(false)
+        }
+      }
     }
+
+    setAvailabilityChecked(false)
+    setOnDutyDoctorCount(null)
     void refresh()
     const timer = window.setInterval(() => void refresh(), 15000)
-    return () => { current = false; window.clearInterval(timer) }
-  }, [step, formData.careCountry, countryPaymentApproved, pricingByCountry])
+    return () => {
+      current = false
+      window.clearInterval(timer)
+    }
+  }, [step, formData.careCountry, countryPaymentApproved, pricingByCountry, availabilityRefreshKey, requiresAvailabilityPreflight])
 
   useEffect(() => {
     if (step !== 'WAITING' || (requiresCountryPayment && !countryPaymentApproved) || waitingStartedAt === null) {
@@ -264,7 +319,7 @@ export function PharmacyExpressConsultation({
         const saved = raw ? JSON.parse(raw) as {
           requestId?: string; recoveryToken?: string; country?: 'AR' | 'BR';
           careCountry?: 'AR' | 'BR'; referralCode?: string | null;
-          partnerName?: string | null; savedAt?: number;
+          partnerName?: string | null; qrSourceCode?: string | null; savedAt?: number;
         } : null
         if (saved?.requestId !== id) return
         const secret = saved.recoveryToken || recoveryToken
@@ -280,6 +335,7 @@ export function PharmacyExpressConsultation({
           recoveryToken: secret,
           country,
           referralCode: saved?.referralCode ?? referralCode,
+          qrSourceCode: saved?.qrSourceCode ?? qrSourceCode,
           partnerName: saved?.partnerName ?? referralPartnerName,
           savedAt: Date.now(),
         }
@@ -301,7 +357,7 @@ export function PharmacyExpressConsultation({
         recoveryInProgress.current = false
       }
     }
-  }, [callRoomId, recoveryToken, formData.careCountry, referralCode, referralPartnerName])
+  }, [callRoomId, recoveryToken, formData.careCountry, referralCode, qrSourceCode, referralPartnerName])
 
   useEffect(() => {
     if (step !== 'ENDED' || !requestId) return
@@ -335,6 +391,14 @@ export function PharmacyExpressConsultation({
     }
     if (!currentPricing) {
       setFormError(isPortuguese ? 'A tarifa deste país ainda não está configurada.' : 'La tarifa de este país todavía no está configurada.')
+      return
+    }
+    if (requiresAvailabilityPreflight && (!availabilityChecked || onDutyDoctorCount === null)) {
+      setFormError(copy.availabilityUnavailable)
+      return
+    }
+    if (requiresAvailabilityPreflight && onDutyDoctorCount !== null && onDutyDoctorCount < 1) {
+      setFormError(copy.noDoctorsAvailable)
       return
     }
     if (formData.careCountry === 'BR' && !lgpdConsent) {
@@ -387,6 +451,7 @@ export function PharmacyExpressConsultation({
           symptomSummary: reasonSummary,
           pharmacyId: pharmacyId || undefined,
           referralCode: referralCode || undefined,
+          qrSourceCode: qrSourceCode || undefined,
           tier: 'general',
         },
       })
@@ -400,12 +465,23 @@ export function PharmacyExpressConsultation({
       setRecoveryToken(res.recoveryToken ?? null)
       setCallRoomId(roomId)
       setWaitingStartedAt(res.request.search_started_at ? Date.parse(res.request.search_started_at) : null)
-      const activeSession = { requestId: reqId, guestToken: token, recoveryToken: res.recoveryToken ?? null, country: formData.careCountry, referralCode, partnerName: referralPartnerName, savedAt: Date.now() }
+      const activeSession = { requestId: reqId, guestToken: token, recoveryToken: res.recoveryToken ?? null, country: formData.careCountry, referralCode, qrSourceCode, partnerName: referralPartnerName, savedAt: Date.now() }
       window.sessionStorage.setItem('autamedica:pharmacy-express:active-session', JSON.stringify(activeSession))
       window.localStorage.setItem('autamedica:pharmacy-express:active-session', JSON.stringify(activeSession))
       setStep('WAITING')
-    } catch {
-      setFormError(isPortuguese ? 'Não foi possível iniciar a consulta. Tente novamente.' : 'No pudimos iniciar la consulta. Volvé a intentar.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : ''
+      if (message.includes('no_doctors_available_now')) {
+        setOnDutyDoctorCount(0)
+        setAvailabilityChecked(true)
+        setFormError(copy.noDoctorsAvailable)
+      } else if (message.includes('doctor_availability_unavailable')) {
+        setOnDutyDoctorCount(null)
+        setAvailabilityChecked(true)
+        setFormError(copy.availabilityUnavailable)
+      } else {
+        setFormError(isPortuguese ? 'Não foi possível iniciar a consulta. Tente novamente.' : 'No pudimos iniciar la consulta. Volvé a intentar.')
+      }
     } finally {
       setSubmitting(false)
     }
@@ -602,10 +678,29 @@ export function PharmacyExpressConsultation({
                 </label>
               )}
               {formData.careCountry && currentPricing && amountLabel && <div className="flex items-center justify-between rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-sm"><span className="font-medium text-slate-700">{isPortuguese ? 'Valor da consulta' : 'Precio de la consulta'}</span><strong className="tabular-nums text-slate-900">{amountLabel}</strong></div>}
+              {requiresAvailabilityPreflight && formData.careCountry && (
+                <div role="status" aria-live="polite" className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-3 text-sm text-sky-900">
+                  <p className="font-medium">
+                    {!availabilityChecked && availabilityLoading
+                      ? copy.availabilityChecking
+                      : onDutyDoctorCount === null
+                        ? copy.availabilityUnavailable
+                        : onDutyDoctorCount < 1
+                          ? copy.noDoctorsAvailable
+                          : copy.doctorsAvailable(onDutyDoctorCount)}
+                  </p>
+                  {(availabilityChecked && (onDutyDoctorCount === null || onDutyDoctorCount < 1)) && (
+                    <button type="button" disabled={availabilityLoading} onClick={() => setAvailabilityRefreshKey((current) => current + 1)}
+                      className="mt-2 min-h-10 rounded-lg border border-sky-300 bg-white px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-100 disabled:opacity-50">
+                      {availabilityLoading ? copy.availabilityChecking : copy.retryAvailability}
+                    </button>
+                  )}
+                </div>
+              )}
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || (requiresAvailabilityPreflight && (!availabilityChecked || onDutyDoctorCount === null || onDutyDoctorCount < 1))}
                   className="min-h-12 w-full py-3.5 px-4 rounded-xl font-semibold text-sm text-white bg-[#0EA5E9] hover:bg-[#0284C7] active:scale-[0.99] transition shadow-md shadow-sky-200 flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {submitting ? (
