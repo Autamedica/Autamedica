@@ -1224,7 +1224,7 @@ export function DoctorsPrescriptionsPage() {
             await updatePrescription(id as string, updates);
           }}
           issuePrescription={async (id: UUID) => {
-            await issuePrescription(id as string);
+            return await issuePrescription(id as string);
           }}
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           editingPrescription={editingPrescription as any}
