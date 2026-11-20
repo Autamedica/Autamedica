@@ -177,7 +177,7 @@ fun UberIncomingDispatchAlert(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    val cleanName = cleanPatientName(request.patientName).ifBlank { "Paciente en espera" }
+                    val cleanName = cleanPatientName(request.patientName).ifBlank { stringResource(R.string.doctor_dispatch_patient_waiting) }
                     val initials = getPatientInitials(request.patientName)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,

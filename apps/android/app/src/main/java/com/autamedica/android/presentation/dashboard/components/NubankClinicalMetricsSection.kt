@@ -60,22 +60,22 @@ fun NubankClinicalMetricsSection(
             }
             item {
                 ClinicalMetricCard(
-                    title = "Citas no canceladas hoy",
+                    title = stringResource(R.string.doctor_dashboard_uncancelled_appointments_title),
                     value = if (statsAvailable) stats.todayAppointments.toString() else "—",
-                    subtext = "Registros de la agenda médica",
+                    subtext = stringResource(R.string.doctor_dashboard_appointment_records_subtitle),
                 )
             }
             item {
                 ClinicalMetricCard(
-                    title = "Pacientes vinculados",
+                    title = stringResource(R.string.doctor_dashboard_linked_patients_title),
                     value = if (statsAvailable) stats.totalPatients.toString() else "—",
-                    subtext = "Vínculos registrados del médico",
+                    subtext = stringResource(R.string.doctor_dashboard_doctor_links_subtitle),
                 )
             }
         }
         if (!statsAvailable) {
             Text(
-                text = "No se pudieron cargar las métricas. Actualizá la pantalla para reintentar.",
+                text = stringResource(R.string.doctor_dashboard_metrics_error),
                 color = Color(0xFF64748B),
                 style = MaterialTheme.typography.bodySmall,
             )

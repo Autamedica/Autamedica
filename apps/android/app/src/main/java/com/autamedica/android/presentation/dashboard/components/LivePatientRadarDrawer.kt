@@ -430,7 +430,7 @@ private fun RadarPatientCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     val cleanName = cleanPatientName(patient.name)
-                    val patientDisplayName = if (patient.age > 0) "$cleanName, ${patient.age}a" else cleanName
+                    val patientDisplayName = if (patient.age > 0) stringResource(R.string.doctor_patient_name_with_age, cleanName, patient.age) else cleanName
                     Text(
                         text = patientDisplayName,
                         style = MaterialTheme.typography.titleMedium.copy(

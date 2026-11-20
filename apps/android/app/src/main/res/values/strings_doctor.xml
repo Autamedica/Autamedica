@@ -133,4 +133,12 @@
     <string name="profile_doctor_signature_label">Estado de firma</string>
     <string name="profile_doctor_signature_check_value">Consultar en el módulo de firma</string>
     <string name="profile_doctor_signature_action">Ver estado</string>
+    <string name="doctor_dashboard_uncancelled_appointments_title">Citas no canceladas hoy</string>
+    <string name="doctor_dashboard_appointment_records_subtitle">Registros de la agenda médica</string>
+    <string name="doctor_dashboard_linked_patients_title">Pacientes vinculados</string>
+    <string name="doctor_dashboard_doctor_links_subtitle">Vínculos registrados del médico</string>
+    <string name="doctor_dashboard_metrics_error">No se pudieron cargar las métricas. Actualizá la pantalla para reintentar.</string>
+    <string name="doctor_dispatch_patient_waiting">Paciente en espera</string>
+    <string name="doctor_pharmacy_duty_connected">Conectado a guardia médica · Señal activa cada 30 s</string>
+    <string name="doctor_pharmacy_duty_paused">Guardia en pausa · Conectate para recibir consultas de farmacia</string>
 </resources>

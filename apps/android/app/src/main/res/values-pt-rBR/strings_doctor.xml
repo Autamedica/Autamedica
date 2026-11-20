@@ -133,4 +133,12 @@
     <string name="profile_doctor_signature_label">Status da assinatura</string>
     <string name="profile_doctor_signature_check_value">Consulte no módulo de assinatura</string>
     <string name="profile_doctor_signature_action">Ver status</string>
+    <string name="doctor_dashboard_uncancelled_appointments_title">Consultas não canceladas hoje</string>
+    <string name="doctor_dashboard_appointment_records_subtitle">Registros da agenda médica</string>
+    <string name="doctor_dashboard_linked_patients_title">Pacientes vinculados</string>
+    <string name="doctor_dashboard_doctor_links_subtitle">Vínculos registrados do médico</string>
+    <string name="doctor_dashboard_metrics_error">Não foi possível carregar as métricas. Atualize a tela para tentar novamente.</string>
+    <string name="doctor_dispatch_patient_waiting">Paciente aguardando</string>
+    <string name="doctor_pharmacy_duty_connected">Conectado ao plantão médico · Sinal ativo a cada 30 s</string>
+    <string name="doctor_pharmacy_duty_paused">Plantão pausado · Conecte-se para receber consultas da farmácia</string>
 </resources>
