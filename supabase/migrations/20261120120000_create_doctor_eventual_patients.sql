@@ -162,6 +162,26 @@ BEGIN
     AND pi.document_number = v_document
   LIMIT 1;
 
+  -- Reuse an eventual chart created by another physician only when this doctor
+  -- already has an active care-team or appointment relationship with that chart.
+  IF v_patient_id IS NULL THEN
+    SELECT pi.patient_id INTO v_patient_id
+    FROM public.patient_private_identities pi
+    JOIN public.patients p ON p.id = pi.patient_id AND p.active IS TRUE
+    WHERE pi.care_country = p_care_country
+      AND pi.document_type = v_document_type
+      AND pi.document_number = v_document
+      AND (
+        EXISTS (SELECT 1 FROM public.patient_care_team pct
+                WHERE pct.patient_id = p.id AND pct.doctor_id = p_doctor_id AND pct.active IS TRUE)
+        OR EXISTS (SELECT 1 FROM public.appointments a
+                   WHERE a.patient_id = p.id AND a.doctor_id = p_doctor_id
+                     AND a.deleted_at IS NULL AND a.status::text IN ('scheduled','confirmed','in_progress','completed'))
+      )
+    ORDER BY pi.created_at DESC
+    LIMIT 1;
+  END IF;
+
   -- Then reuse a same-document chart that is already in this doctor's care scope.
   IF v_patient_id IS NULL THEN
     SELECT p.id INTO v_patient_id
