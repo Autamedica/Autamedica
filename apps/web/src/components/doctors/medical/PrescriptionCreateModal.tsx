@@ -1133,7 +1133,7 @@ export function PrescriptionCreateModal({
                   Copiar enlace
                 </button>
               </div>
-              <p className="text-[11px] text-sky-800">El paciente recibe el enlace sin crear una cuenta.</p>
+              <p className="text-[11px] text-sky-800">Compartí el enlace sin que el paciente cree una cuenta.</p>
             </section>
           )}
 
