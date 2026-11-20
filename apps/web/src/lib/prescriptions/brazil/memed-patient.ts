@@ -89,7 +89,8 @@ export async function resolveMemedPatient(
     .from('patient_private_identities')
     .select('full_name, document_type, document_number, birth_date, gender, phone, consent_at, consent_scope')
     .eq('patient_id', patientId)
-    .eq('doctor_id', doctorId)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
   if (privateIdentityError) throw new Error('memed_patient_lookup_failed');
 
