@@ -519,7 +519,7 @@ export function DoctorsPrescriptionsPage() {
     p: PrescriptionDraftForm,
   ): Promise<{ id: string; patient_id: string | null }> => {
     const created = await createDraft({
-      patient_id: selectedPatientId ?? undefined,
+      patient_id: p.patient_id ?? selectedPatientId ?? undefined,
       external_patient: p.external_patient,
       medication_name: p.medication_name,
       dosage: p.dosage,
