@@ -22,6 +22,12 @@ enum class AnamnesisDisplayMode {
     OVERVIEW,
 }
 
+enum class AnamnesisInitializationErrorType {
+    NETWORK,
+    PERMISSION,
+    GENERAL,
+}
+
 data class AnamnesisFormUiState(
     val isLoading: Boolean = true,
     val summary: AnamnesisSummary? = null,
@@ -32,6 +38,7 @@ data class AnamnesisFormUiState(
     val isSaving: Boolean = false,
     val isSubmitting: Boolean = false,
     val error: String? = null,
+    val initializationErrorType: AnamnesisInitializationErrorType? = null,
     val saveSuccessMessage: String? = null,
     val submitted: Boolean = false,
     val displayMode: AnamnesisDisplayMode = AnamnesisDisplayMode.WIZARD,
@@ -76,14 +83,16 @@ class AnamnesisFormViewModel @Inject constructor(
     val uiState: StateFlow<AnamnesisFormUiState> = _uiState.asStateFlow()
 
     private var autoSaveJob: Job? = null
+    private var loadJob: Job? = null
 
     init {
         loadForm()
     }
 
     private fun loadForm() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null, initializationErrorType = null) }
 
             healthRepository.getOrCreateAnamnesis()
                 .onSuccess { summary ->
@@ -118,23 +127,38 @@ class AnamnesisFormViewModel @Inject constructor(
                                     currentSectionIndex = selectedIndex,
                                     fieldValues = initialFields,
                                     fieldErrors = emptyMap(),
+                                    initializationErrorType = null,
+                                    error = null,
                                 )
                             }
                         }
                         .onFailure { e ->
-                            SecureLog.error("[Anamnesis] Failed loading sections", e)
+                            SecureLog.warn("[Anamnesis] load sections stage=anamnesis_sections code=" + anamnesisErrorCode(e))
                             _uiState.update {
-                                it.copy(isLoading = false, error = "No se pudieron cargar las secciones")
+                                it.copy(
+                                    isLoading = false,
+                                    error = "No se pudieron cargar las secciones",
+                                    initializationErrorType = classifyAnamnesisInitializationError(e),
+                                )
                             }
                         }
                 }
                 .onFailure { e ->
-                    SecureLog.error("[Anamnesis] Failed creating anamnesis", e)
+                    SecureLog.warn("[Anamnesis] initialize stage=patients_anamnesis code=" + anamnesisErrorCode(e))
                     _uiState.update {
-                        it.copy(isLoading = false, error = "No se pudo iniciar la anamnesis")
+                        it.copy(
+                            isLoading = false,
+                            error = "No se pudo iniciar la anamnesis",
+                            initializationErrorType = classifyAnamnesisInitializationError(e),
+                        )
                     }
                 }
         }
+    }
+
+    fun retryLoad() {
+        if (_uiState.value.isLoading) return
+        loadForm()
     }
 
     fun updateField(key: String, value: String) {
@@ -361,4 +385,26 @@ class AnamnesisFormViewModel @Inject constructor(
                 }
         }
     }
+}
+
+
+private fun classifyAnamnesisInitializationError(error: Throwable): AnamnesisInitializationErrorType {
+    val chain = generateSequence(error) { it.cause }.take(8).toList()
+    val text = chain.joinToString(" ") { it.message.orEmpty() }.lowercase(java.util.Locale.ROOT)
+    return when {
+        "42501" in text || "permission denied" in text || "http 401" in text ||
+            "http 403" in text || "unauthorized" in text -> AnamnesisInitializationErrorType.PERMISSION
+        chain.any { it is java.io.IOException } || "unknownhost" in text ||
+            "unable to resolve host" in text || "socket" in text || "timeout" in text ||
+            "network" in text || "connection" in text || "http 5" in text -> AnamnesisInitializationErrorType.NETWORK
+        else -> AnamnesisInitializationErrorType.GENERAL
+    }
+}
+
+private fun anamnesisErrorCode(error: Throwable): String {
+    val text = generateSequence(error) { it.cause }.take(8).map { it.message.orEmpty() }.joinToString(" ")
+    Regex("(?i)HTTP\\s+(\\d{3})").find(text)?.groupValues?.get(1)?.let { return "http_$it" }
+    Regex("(?i)SQLSTATE\\s*[:=]?\\s*([0-9A-Z]{5})").find(text)?.groupValues?.get(1)?.let { return it.uppercase() }
+    Regex("\\b(42501|23503|23505|22P02)\\b").find(text)?.groupValues?.get(1)?.let { return it }
+    return error::class.simpleName?.take(48) ?: "unknown"
 }
