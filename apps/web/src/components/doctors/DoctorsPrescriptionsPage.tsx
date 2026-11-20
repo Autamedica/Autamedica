@@ -79,6 +79,7 @@ const STATUS_CONFIG: Record<string, StatusConfig> = {
 type TabType = "all" | "draft" | "active" | "dispensed" | "cancelled";
 
 interface PrescriptionDraftForm {
+  patient_id?: UUID;
   medication_name: string;
   dosage?: string;
   frequency?: string;
