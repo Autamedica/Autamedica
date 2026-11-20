@@ -95,6 +95,29 @@ describe('Memed patient authorization', () => {
     });
   });
 
+  it('uses the doctor-scoped private identity when an authorized registered chart is reused', async () => {
+    const result = await resolveMemedPatient(database({
+      patients: { ...identity, cpf: null },
+      patient_private_identities: {
+        full_name: 'Registered Synthetic Patient',
+        document_type: 'CPF',
+        document_number: '52998224725',
+        birth_date: '1988-03-04',
+        gender: 'male',
+        phone: '+55 51 98888-3333',
+        consent_at: '2026-11-20T00:00:00.000Z',
+        consent_scope: 'prescription_issuance_and_delivery',
+      },
+    }), 'doctor', patientId);
+    expect(result).toMatchObject({
+      nome: 'Registered Synthetic Patient',
+      cpf: '52998224725',
+      telefone: '+5551988883333',
+      data_nascimento: '04/03/1988',
+      sexo: 'Masculino',
+    });
+  });
+
   it('rejects eventual identities without issuance and delivery consent', async () => {
     await expect(resolveMemedPatient(database({
       patient_care_team: { id: 'synthetic-team' },
