@@ -851,7 +851,7 @@ export function PrescriptionCreateModal({
                   </label>
                   </>
                 )
-              )}}
+              )}
             </section>
           )}
 
