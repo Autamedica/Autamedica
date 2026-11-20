@@ -53,7 +53,7 @@ class HealthRepositoryImpl @Inject constructor(
             cachedSnapshot = dto
             return@runCatching dto.anamnesis.toDomain()
         } catch (e: Exception) {
-            SecureLog.warn("[Health] Edge getAnamnesisSummary fallback to Postgrest: ${e.message}")
+            SecureLog.warn("[Health] fallback stage=anamnesis_summary code=" + safeHealthErrorCode(e))
         }
 
         val patientId = resolvePatientIdOrNull() ?: return@runCatching null
@@ -69,7 +69,7 @@ class HealthRepositoryImpl @Inject constructor(
             .firstOrNull()
             ?.toDomain()
     }.onFailure {
-        SecureLog.error("[Health] Failed fetching anamnesis summary", it)
+        SecureLog.warn("[Health] read stage=anamnesis_summary code=" + safeHealthErrorCode(it))
     }
 
     override suspend fun getPreventiveProfile(): Result<PatientPreventiveProfile> = runCatching {
@@ -86,7 +86,7 @@ class HealthRepositoryImpl @Inject constructor(
             ?.toDomain()
             ?: throw IllegalStateException("Patient details not found")
     }.onFailure {
-        SecureLog.error("[Health] Failed fetching preventive profile", it)
+        SecureLog.warn("[Health] read stage=preventive_profile code=" + safeHealthErrorCode(it))
     }
 
     override suspend fun getOrCreateAnamnesis(): Result<AnamnesisSummary> = runCatching {
@@ -97,7 +97,7 @@ class HealthRepositoryImpl @Inject constructor(
             cachedSnapshot = dto
             return@runCatching dto.anamnesis.toDomain()
         } catch (e: Exception) {
-            SecureLog.warn("[Health] Edge getOrCreateAnamnesis fallback to Postgrest: ${e.message}")
+            SecureLog.warn("[Health] fallback stage=patients_anamnesis_get code=" + safeHealthErrorCode(e))
         }
 
         val patientId = resolvePatientId()
@@ -147,7 +147,7 @@ class HealthRepositoryImpl @Inject constructor(
 
         created.toDomain()
     }.onFailure {
-        SecureLog.error("[Health] Failed creating anamnesis", it)
+        SecureLog.warn("[Health] write stage=anamnesis_create code=" + safeHealthErrorCode(it))
     }
 
     override suspend fun getAnamnesisSections(anamnesisId: String): Result<List<AnamnesisSection>> =
@@ -165,7 +165,7 @@ class HealthRepositoryImpl @Inject constructor(
                 cachedSnapshot = dto
                 return@runCatching dto.sections.map { it.toDomain() }
             } catch (e: Exception) {
-                SecureLog.warn("[Health] Edge getAnamnesisSections fallback to Postgrest: ${e.message}")
+                SecureLog.warn("[Health] fallback stage=anamnesis_sections_get code=" + safeHealthErrorCode(e))
             }
 
             supabaseClient.postgrest
@@ -184,7 +184,7 @@ class HealthRepositoryImpl @Inject constructor(
                     }
                 }
         }.onFailure {
-            SecureLog.error("[Health] Failed fetching sections", it)
+            SecureLog.warn("[Health] read stage=anamnesis_sections code=" + safeHealthErrorCode(it))
         }
 
     override suspend fun saveSection(
@@ -205,7 +205,7 @@ class HealthRepositoryImpl @Inject constructor(
             cachedSnapshot = null
             return@runCatching
         } catch (e: Exception) {
-            SecureLog.warn("[Health] Edge saveSection fallback to Postgrest: ${e.message}")
+            SecureLog.warn("[Health] fallback stage=anamnesis_section_save code=" + safeHealthErrorCode(e))
         }
 
         requireEditableAnamnesis(anamnesisId)
@@ -223,7 +223,7 @@ class HealthRepositoryImpl @Inject constructor(
             }
         Unit
     }.onFailure {
-        SecureLog.error("[Health] Failed saving section $section", it)
+        SecureLog.warn("[Health] write stage=anamnesis_section code=" + safeHealthErrorCode(it))
     }
 
     override suspend fun completeSection(
@@ -240,7 +240,7 @@ class HealthRepositoryImpl @Inject constructor(
             cachedSnapshot = null
             return@runCatching
         } catch (e: Exception) {
-            SecureLog.warn("[Health] Edge completeSection fallback to Postgrest: ${e.message}")
+            SecureLog.warn("[Health] fallback stage=anamnesis_section_complete code=" + safeHealthErrorCode(e))
         }
 
         val currentSummary = requireEditableAnamnesis(anamnesisId)
@@ -275,7 +275,7 @@ class HealthRepositoryImpl @Inject constructor(
             }
         Unit
     }.onFailure {
-        SecureLog.error("[Health] Failed completing section $section", it)
+        SecureLog.warn("[Health] write stage=anamnesis_section_complete code=" + safeHealthErrorCode(it))
     }
 
     override suspend fun submitAnamnesis(anamnesisId: String): Result<Unit> = runCatching {
@@ -287,7 +287,7 @@ class HealthRepositoryImpl @Inject constructor(
             cachedSnapshot = null
             return@runCatching
         } catch (e: Exception) {
-            SecureLog.warn("[Health] Edge submitAnamnesis fallback to Postgrest: ${e.message}")
+            SecureLog.warn("[Health] fallback stage=anamnesis_submit code=" + safeHealthErrorCode(e))
         }
 
         requireEditableAnamnesis(anamnesisId)
@@ -317,7 +317,7 @@ class HealthRepositoryImpl @Inject constructor(
             }
         Unit
     }.onFailure {
-        SecureLog.error("[Health] Failed submitting anamnesis", it)
+        SecureLog.warn("[Health] write stage=anamnesis_submit code=" + safeHealthErrorCode(it))
     }
 
     override suspend fun getAnamnesisPreload(): Result<Map<String, String>> = runCatching {
@@ -329,7 +329,7 @@ class HealthRepositoryImpl @Inject constructor(
             cachedSnapshot = dto
             return@runCatching dto.preload?.toMap() ?: emptyMap()
         } catch (e: Exception) {
-            SecureLog.warn("[Health] Edge getAnamnesisPreload failed: ${e.message}")
+            SecureLog.warn("[Health] read stage=anamnesis_preload code=" + safeHealthErrorCode(e))
             emptyMap()
         }
     }
@@ -597,4 +597,13 @@ private data class PatientPreventiveProfileDto(
             "age" to age,
         )
     }
+}
+
+
+private fun safeHealthErrorCode(error: Throwable): String {
+    val text = generateSequence(error) { it.cause }.take(8).map { it.message.orEmpty() }.joinToString(" ")
+    Regex("(?i)HTTP\\s+(\\d{3})").find(text)?.groupValues?.get(1)?.let { return "http_$it" }
+    Regex("(?i)SQLSTATE\\s*[:=]?\\s*([0-9A-Z]{5})").find(text)?.groupValues?.get(1)?.let { return it.uppercase() }
+    Regex("\\b(42501|23503|23505|22P02)\\b").find(text)?.groupValues?.get(1)?.let { return it }
+    return error::class.simpleName?.take(48) ?: "unknown"
 }
