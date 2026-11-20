@@ -18,6 +18,7 @@ type EventualPatientBody = {
   gender?: unknown;
   contact?: unknown;
   consentAccepted?: unknown;
+  careCountryConfirmed?: unknown;
 };
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -50,6 +51,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (doctor.care_country !== 'AR' && doctor.care_country !== 'BR') {
     return forbidden('eventual_patient_doctor_country_invalid');
   }
+
+  if (body.careCountryConfirmed !== true) return badRequest('external_patient_care_country_confirmation_required');
 
   const validationError = validateEventualPatientDetails(body, doctor.care_country);
   if (validationError) return badRequest(validationError);
