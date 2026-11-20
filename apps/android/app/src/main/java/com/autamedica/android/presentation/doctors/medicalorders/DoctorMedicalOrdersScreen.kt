@@ -411,14 +411,14 @@ fun MedicalOrderCard(
 
     val (studyBg, studyColor, studyLabel) = when (order.studyType) {
         StudyType.LABORATORY -> Triple(PortalPatientsSoft, PortalPatients, stringResource(R.string.doctor_orders_filter_lab))
-        StudyType.IMAGING -> Triple(Color(0x1F8B5CF6), Color(0xFF8B5CF6), stringResource(R.string.doctor_orders_filter_imaging))
-        StudyType.CARDIOLOGY -> Triple(Color(0x1FE11D48), Color(0xFFE11D48), stringResource(R.string.doctor_orders_filter_cardiology))
+        StudyType.IMAGING -> Triple(PortalDoctorsSoft, PortalDoctors, stringResource(R.string.doctor_orders_filter_imaging))
+        StudyType.CARDIOLOGY -> Triple(AuSurfaceHover, AuTextSecondary, stringResource(R.string.doctor_orders_filter_cardiology))
         StudyType.OTHER -> Triple(PortalDoctorsSoft, PortalDoctors, stringResource(R.string.doctor_orders_filter_other))
     }
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = AuSurface),
         border = BorderStroke(1.dp, AuBorder),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),

@@ -115,4 +115,22 @@
     <string name="doctor_intake_anamnesis">ANAMNESE INICIAL</string>
     <string name="doctor_history_medication">ANTECEDENTES E MEDICAÇÃO HABITUAL</string>
     <string name="doctor_close_record">Entendi · Fechar ficha</string>
+    <string name="doctor_duty_label_pending">Plantão aguardando validação</string>
+    <string name="doctor_duty_label_active">Plantão médico ativo</string>
+    <string name="doctor_duty_label_paused">Plantão pausado</string>
+    <string name="doctor_schedule_create_appointment_cd">Agendar consulta</string>
+    <string name="doctor_dashboard_patients_label">Pacientes</string>
+    <string name="doctor_dashboard_new_patients_trend">+%1$d novos</string>
+    <string name="doctor_dashboard_satisfaction_label">Satisfação</string>
+    <string name="doctor_dashboard_satisfaction_trend">+%1$d%% pts</string>
+    <string name="doctor_dashboard_average_time_label">Tempo médio</string>
+    <string name="doctor_patient_name_with_age">%1$s, %2$d anos</string>
+    <string name="doctor_agenda_retry">Tentar novamente</string>
+    <string name="profile_doctor_license_label">CRM / matrícula</string>
+    <string name="profile_doctor_license_pending">Matrícula não informada</string>
+    <string name="profile_doctor_specialty_label">Especialidade</string>
+    <string name="profile_doctor_specialty_pending">Especialidade não informada</string>
+    <string name="profile_doctor_signature_label">Status da assinatura</string>
+    <string name="profile_doctor_signature_check_value">Consulte no módulo de assinatura</string>
+    <string name="profile_doctor_signature_action">Ver status</string>
 </resources>

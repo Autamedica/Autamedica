@@ -10,6 +10,8 @@
     <string name="patients_count_single">%1$d paciente</string>
     <string name="patients_count_plural">%1$d pacientes</string>
     <string name="patients_anonymous">Paciente sin nombre registrado</string>
+    <string name="patients_name_not_registered">Nombre sin registrar</string>
+    <string name="patients_retry">Reintentar</string>
     <string name="patients_consultations_total_single">%1$d consulta en total</string>
     <string name="patients_consultations_total_plural">%1$d consultas en total</string>
     <string name="patients_last_consultation">Última consulta</string>

@@ -262,7 +262,8 @@ fun MainScreen(
                                     Text(
                                         text = stringResource(tab.labelRes),
                                         style = MaterialTheme.typography.labelSmall,
-                                        maxLines = 2,
+                                        maxLines = 1,
+                                        softWrap = false,
                                         textAlign = TextAlign.Center,
                                         overflow = TextOverflow.Ellipsis,
                                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
@@ -341,6 +342,7 @@ fun MainScreen(
                     )
                     4 -> ProfileScreen(
                         onLogout = viewModel::logout,
+                        onNavigateToDoctorSignature = onNavigateToDoctorSignature,
                     )
                 }
             } else {

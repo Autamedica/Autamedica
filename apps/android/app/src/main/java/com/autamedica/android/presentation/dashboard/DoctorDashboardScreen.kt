@@ -147,7 +147,7 @@ private const val DOCTOR_TAB_PATIENTS = 3
 // DESIGN TOKENS "AUTAMEDICA OS v2 — UBER DRIVER PARA TELEMEDICINA" (MATERIAL 3)
 // Sensación: "Hay pacientes esperando ahora mismo y yo puedo aceptarlos."
 // Apple + Uber + Nubank + Linear | M3 | Glassmorphism sutil
-// Card radius: 28 dp | Botón principal: 20 dp radius, 58 dp altura
+// Card radius: 20 dp | Botón principal: 20 dp radius, 58 dp altura
 // Switch Guardia: Muy grande (escala 1.5f) con track verde activo
 // Triaje: Rojo urgencia, Cian quirúrgico prioritario, Azul control, Verde estable
 // =============================================================================
@@ -168,7 +168,7 @@ private val Slate500 = Color(0xFF64748B)
 private val Slate700 = Color(0xFF334155)
 private val Slate800 = Color(0xFF1E293B)
 private val Slate900 = Color(0xFF0F172A)
-private val CardRadius = 28.dp
+private val CardRadius = 20.dp
 
 /**
  * Modificador de sombra ultra-suave con glow azul AutaMedica (#0EA5E9)
@@ -601,9 +601,9 @@ private fun AutaMedicaOsDutyHero(
                     Column {
                         Text(
                             text = when {
-                                guardApproved != true -> "Guardia pendiente de validación"
-                                isOnDuty -> "Guardia Médica Activa"
-                                else -> "Guardia en Pausa"
+                                guardApproved != true -> stringResource(R.string.doctor_duty_label_pending)
+                                isOnDuty -> stringResource(R.string.doctor_duty_label_active)
+                                else -> stringResource(R.string.doctor_duty_label_paused)
                             },
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontSize = 16.sp,
@@ -842,7 +842,7 @@ private fun FollowUpPatientCard(
     patient: PatientSummary,
     modifier: Modifier = Modifier,
 ) {
-    val patientName = "${patient.firstName} ${patient.lastName}".trim().ifBlank { "Paciente" }
+    val patientName = "${patient.firstName} ${patient.lastName}".trim().ifBlank { stringResource(R.string.doctor_patient_fallback_name) }
     Card(
         modifier = modifier
             .width(230.dp)
@@ -950,7 +950,11 @@ private fun UberEatsLiveAgendaSection(
         LocalDate.now(),
         ZoneId.systemDefault(),
     )
-    val countText = "${todayScheduled.size} consulta${if (todayScheduled.size == 1) "" else "s"} programada${if (todayScheduled.size == 1) "" else "s"}"
+    val countText = if (todayScheduled.size == 1) {
+        stringResource(R.string.doctor_schedule_count_single, todayScheduled.size)
+    } else {
+        stringResource(R.string.doctor_schedule_count_plural, todayScheduled.size)
+    }
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -977,7 +981,7 @@ private fun UberEatsLiveAgendaSection(
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Agendar turno",
+                    contentDescription = stringResource(R.string.doctor_schedule_create_appointment_cd),
                     tint = MedicalBlue,
                     modifier = Modifier.size(24.dp),
                 )
@@ -997,8 +1001,8 @@ private fun UberEatsLiveAgendaSection(
                 todayScheduled.forEachIndexed { index, appointment ->
                     val patient = appointment.patientId?.let { patientsMap[it] }
                     val patientName = patient?.let {
-                        "${it.firstName} ${it.lastName}".trim().ifBlank { "Paciente" }
-                    } ?: "Paciente"
+                        "${it.firstName} ${it.lastName}".trim().ifBlank { stringResource(R.string.doctor_patient_fallback_name) }
+                    } ?: stringResource(R.string.doctor_patient_fallback_name)
                     val isJoinable = appointment.id in joinableAppointmentIds
                     UberEatsLiveRowItem(
                         patientName = patientName,
@@ -1407,9 +1411,9 @@ fun StripeWeeklySummaryCard(
                 Spacer(modifier = Modifier.width(16.dp))
                 StripeKpiItem(
                     modifier = Modifier.weight(1f),
-                    title = "Pacientes",
+                    title = stringResource(R.string.doctor_dashboard_patients_label),
                     value = "16",
-                    trend = "+4 nuevos",
+                    trend = stringResource(R.string.doctor_dashboard_new_patients_trend, 4),
                     trendUp = true,
                     isCyan = false,
                 )
@@ -1421,16 +1425,16 @@ fun StripeWeeklySummaryCard(
             Row(modifier = Modifier.fillMaxWidth()) {
                 StripeKpiItem(
                     modifier = Modifier.weight(1f),
-                    title = "Satisfacción",
+                    title = stringResource(R.string.doctor_dashboard_satisfaction_label),
                     value = "94%",
-                    trend = "+2% pts",
+                    trend = stringResource(R.string.doctor_dashboard_satisfaction_trend, 2),
                     trendUp = true,
                     isCyan = true, // Cian médico para calidad y satisfacción
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 StripeKpiItem(
                     modifier = Modifier.weight(1f),
-                    title = "Tiempo medio",
+                    title = stringResource(R.string.doctor_dashboard_average_time_label),
                     value = "18 min",
                     trend = "-2 min",
                     trendUp = false, // Menor tiempo es mejor, flecha hacia abajo
@@ -1800,7 +1804,7 @@ private fun TriagePatientCard(
             ) {
                 // 1. Paciente y edad
                 val cleanName = cleanPatientName(patient.name)
-                val patientDisplayName = if (patient.age > 0) "$cleanName, ${patient.age} años" else cleanName
+                val patientDisplayName = if (patient.age > 0) stringResource(R.string.doctor_patient_name_with_age, cleanName, patient.age) else cleanName
                 Text(
                     text = patientDisplayName,
                     style = MaterialTheme.typography.titleMedium.copy(
@@ -2006,7 +2010,7 @@ private fun PreConsultationBottomSheet(
 
             // Identificación
             val cleanPreConsultName = cleanPatientName(patient.name)
-            val preConsultDisplayName = if (patient.age > 0) "$cleanPreConsultName, ${patient.age} años" else cleanPreConsultName
+            val preConsultDisplayName = if (patient.age > 0) stringResource(R.string.doctor_patient_name_with_age, cleanPreConsultName, patient.age) else cleanPreConsultName
             Column {
                 Text(
                     text = preConsultDisplayName,

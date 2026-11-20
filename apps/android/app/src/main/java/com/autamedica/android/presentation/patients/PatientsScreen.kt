@@ -22,6 +22,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -150,6 +152,15 @@ fun PatientsScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AuTextTertiary,
                             )
+                            Button(
+                                onClick = viewModel::refresh,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = PortalDoctors,
+                                    contentColor = androidx.compose.ui.graphics.Color.White,
+                                ),
+                            ) {
+                                Text(stringResource(R.string.patients_retry))
+                            }
                         }
                     }
                 }
@@ -188,6 +199,15 @@ fun PatientsScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = AuTextTertiary,
                             )
+                            Button(
+                                onClick = viewModel::refresh,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = PortalDoctors,
+                                    contentColor = androidx.compose.ui.graphics.Color.White,
+                                ),
+                            ) {
+                                Text(stringResource(R.string.patients_retry))
+                            }
                         }
                     }
                 }
@@ -232,30 +252,65 @@ private fun PatientCard(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(20.dp),
         color = AuSurface,
         border = BorderStroke(1.dp, AuBorder),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
         ) {
+            val patientName = "${patient.firstName} ${patient.lastName}".trim()
+            val patientInitials = listOf(patient.firstName, patient.lastName)
+                .map(String::trim)
+                .filter(String::isNotBlank)
+                .joinToString("") { it.take(1).uppercase(Locale.getDefault()) }
+                .take(2)
+
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
                     modifier = Modifier.size(48.dp),
                     shape = CircleShape,
                     color = AuSurfaceHover,
                 ) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = null,
-                        modifier = Modifier.padding(12.dp),
-                        tint = AuTextSecondary,
-                    )
+                    if (patientInitials.isNotBlank()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = patientInitials,
+                                color = PortalDoctors,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleSmall,
+                            )
+                        }
+                    } else {
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = null,
+                            modifier = Modifier.padding(12.dp),
+                            tint = AuTextSecondary,
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    val patientName = "${patient.firstName} ${patient.lastName}".trim().ifBlank {
-                        stringResource(R.string.patients_anonymous)
+                    if (patientName.isBlank()) {
+                        Text(
+                            text = stringResource(R.string.patients_name_not_registered),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = AuTextTertiary,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    } else {
+                        Text(
+                            text = patientName,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = AuTextPrimary,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        )
                     }
                     Text(
                         text = patientName,
