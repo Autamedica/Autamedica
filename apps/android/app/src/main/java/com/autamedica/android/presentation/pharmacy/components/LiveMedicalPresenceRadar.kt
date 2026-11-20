@@ -65,6 +65,7 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -685,7 +686,7 @@ fun DispatchTelemetryTicker(
     // the ticker; never cache strings from the previous market in remember().
     val doctorMessage = when {
         dispatchAvailableDoctorCount == null -> stringResource(R.string.pharmacy_flow_ticker_checking)
-        dispatchAvailableDoctorCount > 0 -> stringResource(R.string.pharmacy_flow_ticker_available, dispatchAvailableDoctorCount)
+        dispatchAvailableDoctorCount > 0 -> pluralStringResource(R.plurals.pharmacy_flow_ticker_available, dispatchAvailableDoctorCount, dispatchAvailableDoctorCount)
         else -> stringResource(R.string.pharmacy_flow_ticker_waiting)
     }
     val waitMessage = if (dispatchAvailableDoctorCount != null && dispatchAvailableDoctorCount > 0) {
