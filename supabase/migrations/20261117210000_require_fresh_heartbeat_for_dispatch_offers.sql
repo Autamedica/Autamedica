@@ -6,7 +6,8 @@ DO $heartbeat_guard$
 DECLARE
   v_definition text;
   v_anchor text := $anchor$    AND dds.is_on_duty=true$anchor$;
-  v_guard text := $guard$    AND dds.last_heartbeat_at >= now() - interval '90 seconds'$guard$;
+  v_guard text := $guard$    AND dds.last_heartbeat_at >= now() - interval '90 seconds'
+    AND dds.last_heartbeat_at <= now()$guard$;
 BEGIN
   SELECT pg_get_functiondef(
     'app_private.match_dispatch_doctors_without_switch(uuid)'::regprocedure
