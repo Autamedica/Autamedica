@@ -28,7 +28,7 @@ interface PrescriptionCreateModalProps {
   ) => Promise<Prescription>;
   updatePrescription: (id: UUID, updates: Partial<Prescription>) => Promise<void>;
   editingPrescription?: Prescription | null;
-  issuePrescription?: (id: UUID) => Promise<void>;
+  issuePrescription?: (id: UUID) => Promise<void | { cuir: string; signedPdfUrl: string | null }>;
   submitLabel?: string;
 }
 
@@ -244,6 +244,8 @@ export function PrescriptionCreateModal({
 
   const [patientCountryConfirmed, setPatientCountryConfirmed] = useState(false);
   const [patientConsentDeclared, setPatientConsentDeclared] = useState(false);
+  const [deliveryUrl, setDeliveryUrl] = useState<string | null>(null);
+  const [deliveryContact, setDeliveryContact] = useState("");
   const [saving, setSaving] = useState(false);
   const [generatingGuide, setGeneratingGuide] = useState(false);
   const [templates, setTemplates] = useState<PrescriptionTemplate[]>([]);
@@ -506,6 +508,7 @@ export function PrescriptionCreateModal({
       }
     }
 
+    let keepDeliveryPanelOpen = false;
     let patientIdForPrescription = activePatientId;
     if (!isEditing && !patientIdForPrescription && quickPatientMode === "external") {
       setSaving(true);
@@ -610,11 +613,20 @@ export function PrescriptionCreateModal({
             throw new Error("No se pudo emitir la receta recién creada.");
           }
           phase = "issue";
-          await issuePrescription(createdId as UUID);
+          const issuance = await issuePrescription(createdId as UUID);
+          if (quickPatientMode === "external" && issuance) {
+            const artifact = issuance.signedPdfUrl
+              || (issuance.cuir ? `/verify/${encodeURIComponent(issuance.cuir)}` : null);
+            if (artifact) {
+              setDeliveryUrl(new URL(artifact, window.location.origin).toString());
+              setDeliveryContact(form.patient_contact.trim());
+              keepDeliveryPanelOpen = true;
+            }
+          }
         }
       }
       onSaved();
-      onClose();
+      if (!keepDeliveryPanelOpen) onClose();
     } catch (err) {
       setError(prescriptionErrorMessage(err, phase));
     } finally {
@@ -1088,6 +1100,39 @@ export function PrescriptionCreateModal({
             />
           </div>
 
+          {deliveryUrl && (
+            <section className="space-y-3 rounded-xl border border-sky-200 bg-sky-50 p-4" aria-live="polite">
+              <p className="text-sm font-semibold text-sky-900">Receta emitida. Entregala ahora al paciente.</p>
+              <div className="flex flex-wrap gap-2">
+                <a href={deliveryUrl} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex min-h-10 items-center justify-center rounded-lg bg-sky-600 px-3 py-2 text-xs font-semibold text-white hover:bg-sky-700">
+                  Abrir / descargar receta
+                </a>
+                {deliveryContact && !deliveryContact.includes("@") && deliveryContact.replace(/\D/g, "").length >= 6 && (
+                  <a href={`https://wa.me/${deliveryContact.replace(/\D/g, "")}?text=${encodeURIComponent(`Tu receta digital de AutaMedica: ${deliveryUrl}`)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="inline-flex min-h-10 items-center justify-center rounded-lg border border-sky-300 bg-white px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-100">
+                    Enviar por WhatsApp
+                  </a>
+                )}
+                {deliveryContact.includes("@") && (
+                  <a href={`mailto:${encodeURIComponent(deliveryContact)}?subject=${encodeURIComponent("Tu receta digital de AutaMedica")}&body=${encodeURIComponent(`Tu receta digital: ${deliveryUrl}`)}`}
+                    className="inline-flex min-h-10 items-center justify-center rounded-lg border border-sky-300 bg-white px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-100">
+                    Enviar por email
+                  </a>
+                )}
+                <button type="button" onClick={() => {
+                  void navigator.clipboard.writeText(deliveryUrl).catch(() => {
+                    setError("No se pudo copiar el enlace. Abrí la receta y copiá su dirección.");
+                  });
+                }} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-sky-300 bg-white px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-100">
+                  Copiar enlace
+                </button>
+              </div>
+              <p className="text-[11px] text-sky-800">El paciente recibe el enlace sin crear una cuenta.</p>
+            </section>
+          )}
+
           {/* Error */}
           {error && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
 
@@ -1102,7 +1147,7 @@ export function PrescriptionCreateModal({
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || Boolean(deliveryUrl)}
               className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-am-doctor-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-am-doctor-700 disabled:opacity-60 transition"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
