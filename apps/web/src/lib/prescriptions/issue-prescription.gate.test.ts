@@ -17,6 +17,7 @@ function fakeDb(country: 'AR' | 'BR', patientCountry: 'AR' | 'BR' | null = count
   const patient = { user_id: null, care_country: patientCountry, dni: '12345678' };
   const responses: Record<string, unknown> = {
     doctors: doctor, prescriptions: prescription, profiles: profile, patients: patient,
+    patient_private_identities: null,
   };
   const writes = { insert: vi.fn(), update: vi.fn(), upload: vi.fn(), rpc: vi.fn() };
 
@@ -43,7 +44,7 @@ describe('official prescription issue denies unverified issuance before any writ
     const result = await issuePrescription(client, 'rx-demo', 'user-doctor', {});
     expect(result).toEqual({ ok: false, error: { code: 'ar_production_homologation_required' } });
     expect(from.mock.calls.map((x: string[]) => x[0])).toEqual([
-      'doctors', 'prescriptions', 'profiles', 'patients',
+      'doctors', 'prescriptions', 'profiles', 'patients', 'patient_private_identities',
     ]);
     expect(writes.insert).not.toHaveBeenCalled();
     expect(writes.update).not.toHaveBeenCalled();

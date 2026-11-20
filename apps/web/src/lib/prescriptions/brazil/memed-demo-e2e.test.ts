@@ -116,6 +116,8 @@ function readTable(table: string, filters: Map<string, unknown>): Row | Row[] | 
       return null;
     case 'pharmacy_dispatch_requests':
       return null;
+    case 'patient_private_identities':
+      return null; // Registered synthetic chart: no doctor-scoped eventual identity row.
     case 'patients':
       return filters.get('id') === patientId ? state.patient : null;
     case 'memed_prescriptions':
@@ -296,7 +298,11 @@ describe('Memed DEMO flow: synthetic doctor + synthetic patient, no real provide
     const event = await callEvent();
     expect(event.status).toBe(200);
     expect(event.data).toMatchObject({
-      status: 'recorded_pending_signature_and_delivery', prescriptionId: fakeRx,
+      status: 'recorded_pending_signature_and_delivery',
+      prescriptionId: fakeRx,
+      digitalLinkUrl: 'https://receita.memed.com.br/DEMO-RX-001',
+      fullDocumentUrl: 'https://documentos.memed.com.br/DEMO-RX-001.pdf',
+      digitalUnlockCode: 'DEMO-UNLOCK-ONLY',
     });
     expect(state.rows).toHaveLength(1);
     expect(state.memedRows).toHaveLength(1);

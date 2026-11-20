@@ -8,6 +8,8 @@ import { useEffect, useState } from "react";
 import { X, Pill, Save, Loader2, ClipboardCheck, BookmarkPlus, Trash2 } from "lucide-react";
 import { ApiError } from "@/lib/api-client";
 import { requiresStrictPrescriptionValidation } from "@/lib/prescriptions/strict-validation";
+import { validateEventualPatientDetails } from "@/lib/prescriptions/eventual-patient";
+import { validCpf } from "@/lib/prescriptions/brazil/cpf";
 import { useRealPatients } from "@/hooks/doctors/useRealPatients";
 import type { Prescription, UUID } from "@/types/medical";
 
@@ -15,6 +17,8 @@ interface PrescriptionCreateModalProps {
   patientId?: UUID;
   doctorCareCountry?: 'AR' | 'BR';
   patientIdentity?: { identityStatus: 'verified_renaper' | 'unverified' | 'mismatch'; fullName?: string | null; dni?: string | null; cuil?: string | null; birthDate?: string | null; gender?: string | null; pucoCoverageName?: string | null };
+  allowEventualPatientCreation?: boolean;
+  onEventualPatientCreated?: (patientId: UUID, contact: string) => void;
   onPatientSelected?: (patientId: UUID | null) => void;
   onClose: () => void;
   onSaved: () => void;
@@ -26,7 +30,7 @@ interface PrescriptionCreateModalProps {
   ) => Promise<Prescription>;
   updatePrescription: (id: UUID, updates: Partial<Prescription>) => Promise<void>;
   editingPrescription?: Prescription | null;
-  issuePrescription?: (id: UUID) => Promise<void>;
+  issuePrescription?: (id: UUID) => Promise<void | { cuir: string; signedPdfUrl: string | null }>;
   submitLabel?: string;
 }
 
@@ -166,6 +170,8 @@ export function PrescriptionCreateModal({
   patientId,
   doctorCareCountry,
   patientIdentity,
+  allowEventualPatientCreation = false,
+  onEventualPatientCreated,
   onPatientSelected,
   onClose,
   onSaved,
@@ -182,7 +188,9 @@ export function PrescriptionCreateModal({
   const [quickPatientMode, setQuickPatientMode] = useState<"registered" | "external">(
     patientId || isEditing ? "registered" : "registered",
   );
-  const activePatientId = patientId ?? (quickPatientMode === "registered" ? selectedPatientId ?? undefined : undefined);
+  const activePatientId = quickPatientMode === "registered"
+    ? patientId ?? selectedPatientId ?? undefined
+    : undefined;
   const filteredQuickPatients = availablePatients.filter((patient) => {
     const query = patientSearch.trim().toLocaleLowerCase();
     if (!query) return true;
@@ -241,6 +249,9 @@ export function PrescriptionCreateModal({
   }, [patientIdentity]);
 
   const [patientCountryConfirmed, setPatientCountryConfirmed] = useState(false);
+  const [patientConsentDeclared, setPatientConsentDeclared] = useState(false);
+  const [deliveryUrl, setDeliveryUrl] = useState<string | null>(null);
+  const [deliveryContact, setDeliveryContact] = useState("");
   const [saving, setSaving] = useState(false);
   const [generatingGuide, setGeneratingGuide] = useState(false);
   const [templates, setTemplates] = useState<PrescriptionTemplate[]>([]);
@@ -259,6 +270,9 @@ export function PrescriptionCreateModal({
   const [error, setError] = useState<string | null>(null);
   const requiresStrictValidation = requiresStrictPrescriptionValidation(form.medication_name);
   const normalizedPatientDocument = form.patient_document.replace(/\D/g, "");
+  const eventualPatientDocumentValid = doctorCareCountry === "BR"
+    ? validCpf(normalizedPatientDocument)
+    : /^\d{7,8}$/.test(normalizedPatientDocument);
   const externalPatientDni = doctorCareCountry === 'BR' ? ''
     : normalizedPatientDocument.length === 11 ? '' : normalizedPatientDocument || form.patient_document.trim();
   const externalPatientCuil = doctorCareCountry === 'AR' && normalizedPatientDocument.length === 11
@@ -277,6 +291,16 @@ export function PrescriptionCreateModal({
     (key: keyof typeof form) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
+
+  const handlePatientDocumentChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = event.target.value.replace(/\D/g, '').slice(0, doctorCareCountry === 'BR' ? 11 : 8);
+    const formatted = doctorCareCountry === 'BR'
+      ? digits.replace(/^(\d{3})(\d)/, '$1.$2')
+        .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+        .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+      : digits;
+    setForm((current) => ({ ...current, patient_document: formatted }));
+  };
 
   const loadTemplates = async () => {
     setTemplatesLoading(true);
@@ -459,24 +483,104 @@ export function PrescriptionCreateModal({
       return;
     }
     if (!activePatientId && quickPatientMode !== "external") {
-      setError("Seleccioná un paciente de tu padrón o elegí Paciente sin cuenta.");
+      setError(`Seleccioná un paciente de tu padrón o elegí ${allowEventualPatientCreation ? "Nuevo paciente" : "Paciente sin cuenta"}.`);
       return;
     }
     if (!activePatientId && quickPatientMode === "external") {
-      if (!doctorCareCountry || !patientCountryConfirmed) {
-        setError("Confirmá con el paciente el país donde recibirá atención antes de guardar.");
-        return;
+      if (allowEventualPatientCreation) {
+        if (!doctorCareCountry || !patientCountryConfirmed) {
+          setError("Confirmá el país de atención declarado por el paciente.");
+          return;
+        }
+        const eventualPatientError = validateEventualPatientDetails({
+          fullName: form.patient_name,
+          documentNumber: form.patient_document,
+          birthDate: form.patient_birth_date,
+          gender: form.patient_gender,
+          contact: form.patient_contact,
+          consentAccepted: patientConsentDeclared,
+        }, doctorCareCountry);
+        if (eventualPatientError) {
+          const messages: Record<string, string> = {
+            eventual_patient_name_invalid: "Ingresá el nombre y apellido completos.",
+            eventual_patient_cpf_invalid: "El CPF no es válido. Revisá sus 11 dígitos.",
+            eventual_patient_dni_invalid: "Ingresá un DNI argentino válido de 7 u 8 dígitos.",
+            eventual_patient_birth_date_invalid: "Ingresá una fecha de nacimiento válida.",
+            eventual_patient_gender_required: "Seleccioná el sexo del paciente.",
+            eventual_patient_contact_invalid: "Ingresá un email o teléfono válido.",
+            eventual_patient_consent_required: "Registrá la declaración de consentimiento informado.",
+          };
+          setError(messages[eventualPatientError] ?? "Revisá los datos del paciente.");
+          return;
+        }
+      } else {
+        if (!doctorCareCountry || !patientCountryConfirmed) {
+          setError("Confirmá con el paciente el país donde recibirá atención antes de guardar.");
+          return;
+        }
+        if (!form.patient_name.trim()) {
+          setError("El nombre del paciente es requerido");
+          return;
+        }
+        if (!form.patient_document.trim()) {
+          setError("Informá DNI o CUIL del paciente");
+          return;
+        }
+        if (!form.patient_address.trim()) {
+          setError("El domicilio del paciente es requerido");
+          return;
+        }
       }
-      if (!form.patient_name.trim()) {
-        setError("El nombre del paciente es requerido");
-        return;
-      }
-      if (!form.patient_document.trim()) {
-        setError("Informá DNI o CUIL del paciente");
-        return;
-      }
-      if (!form.patient_address.trim()) {
-        setError("El domicilio del paciente es requerido");
+    }
+
+    let keepDeliveryPanelOpen = false;
+    let patientIdForPrescription = activePatientId;
+    if (allowEventualPatientCreation && !isEditing && !patientIdForPrescription && quickPatientMode === "external") {
+      setSaving(true);
+      setError(null);
+      try {
+        const response = await fetch("/api/doctors/patients/eventual", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fullName: form.patient_name.trim(),
+            documentNumber: form.patient_document,
+            birthDate: form.patient_birth_date,
+            gender: form.patient_gender || undefined,
+            contact: form.patient_contact.trim() || undefined,
+            careCountryConfirmed: patientCountryConfirmed,
+            consentAccepted: patientConsentDeclared,
+          }),
+        });
+        const json = (await response.json().catch(() => null)) as ApiEnvelope<{ patientId: UUID; reused: boolean }> | null;
+        if (!response.ok || !json?.success || !json.data?.patientId) {
+          throw new Error(json?.error?.message ?? "No se pudo registrar el paciente eventual.");
+        }
+        patientIdForPrescription = json.data.patientId;
+        setSelectedPatientId(json.data.patientId);
+        setQuickPatientMode("registered");
+        onPatientSelected?.(json.data.patientId);
+        // Brazilian official prescriptions must continue through the existing Memed
+        // widget; never send this patient through the native prescription issuer.
+        if (doctorCareCountry === "BR" && onEventualPatientCreated) {
+          onEventualPatientCreated(json.data.patientId, form.patient_contact.trim());
+          onSaved();
+          onClose();
+          return;
+        }
+      } catch (eventualPatientError) {
+        const code = eventualPatientError instanceof Error ? eventualPatientError.message : "";
+        const messages: Record<string, string> = {
+          eventual_patient_cpf_invalid: "El CPF no es válido.",
+          eventual_patient_dni_invalid: "El DNI no es válido.",
+          eventual_patient_birth_date_invalid: "La fecha de nacimiento no es válida.",
+          eventual_patient_gender_required: "Seleccioná el sexo del paciente.",
+          eventual_patient_consent_required: "Registrá el consentimiento informado.",
+          external_patient_care_country_confirmation_required: "Confirmá el país de atención declarado por el paciente.",
+        };
+        setError(messages[code] ?? code ?? "No se pudo registrar el paciente eventual.");
+        setSaving(false);
         return;
       }
     }
@@ -511,8 +615,8 @@ export function PrescriptionCreateModal({
     const payload: Omit<Prescription, "id" | "created_at" | "updated_at" | "patient_id"> & {
       patient_id?: UUID;
       external_patient?: ExternalPatientForm;
-    } = activePatientId
-      ? { ...basePayload, patient_id: activePatientId }
+    } = patientIdForPrescription
+      ? { ...basePayload, patient_id: patientIdForPrescription }
       : {
           ...basePayload,
           external_patient: {
@@ -542,11 +646,20 @@ export function PrescriptionCreateModal({
             throw new Error("No se pudo emitir la receta recién creada.");
           }
           phase = "issue";
-          await issuePrescription(createdId as UUID);
+          const issuance = await issuePrescription(createdId as UUID);
+          if (allowEventualPatientCreation && quickPatientMode === "external" && issuance) {
+            const artifact = issuance.signedPdfUrl
+              || (issuance.cuir ? `/verify/${encodeURIComponent(issuance.cuir)}` : null);
+            if (artifact) {
+              setDeliveryUrl(new URL(artifact, window.location.origin).toString());
+              setDeliveryContact(form.patient_contact.trim());
+              keepDeliveryPanelOpen = true;
+            }
+          }
         }
       }
       onSaved();
-      onClose();
+      if (!keepDeliveryPanelOpen) onClose();
     } catch (err) {
       setError(prescriptionErrorMessage(err, phase));
     } finally {
@@ -593,7 +706,7 @@ export function PrescriptionCreateModal({
               <p>Nacimiento: {patientIdentity.birthDate || '—'} · Sexo: {patientIdentity.gender || '—'} · Cobertura: {patientIdentity.pucoCoverageName || 'No informada'}</p>
             </div>
           )}
-          {!patientId && !isEditing && (
+          {(!patientId || allowEventualPatientCreation) && !isEditing && (
             <section className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-4" aria-labelledby="prescription-patient-title">
               <div className="mb-3">
                 <h3 id="prescription-patient-title" className="text-sm font-bold text-am-surface-900">¿Para quién es la receta?</h3>
@@ -614,7 +727,7 @@ export function PrescriptionCreateModal({
                   aria-pressed={quickPatientMode === "external"}
                   className={`min-h-11 rounded-xl border px-3 py-2 text-xs font-semibold transition ${quickPatientMode === "external" ? "border-sky-600 bg-sky-600 text-white" : "border-am-surface-200 bg-white text-am-surface-700 hover:border-sky-300"}`}
                 >
-                  Paciente sin cuenta
+                  {allowEventualPatientCreation ? "Nuevo paciente" : "Paciente sin cuenta"}
                 </button>
               </div>
 
@@ -669,7 +782,59 @@ export function PrescriptionCreateModal({
               )}
 
               {quickPatientMode === "external" && (
-                <>
+                allowEventualPatientCreation ? (
+                  <>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">Nombre completo <span className="text-red-500">*</span></label>
+                      <input type="text" value={form.patient_name} onChange={set("patient_name")} placeholder="Nombre y apellido" autoComplete="name" required maxLength={200} className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" />
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">{doctorCareCountry === "BR" ? "CPF" : "DNI"} <span className="text-red-500">*</span></label>
+                        <input type="text" inputMode="numeric" value={form.patient_document} onChange={handlePatientDocumentChange} placeholder={doctorCareCountry === "BR" ? "000.000.000-00" : "Documento"} autoComplete="off" required aria-invalid={normalizedPatientDocument.length > 0 && !eventualPatientDocumentValid} className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" />
+                        {doctorCareCountry === "BR" && normalizedPatientDocument.length > 0 && !eventualPatientDocumentValid && (
+                          <p className="mt-1 text-[11px] text-rose-600">El CPF debe tener 11 dígitos y dígitos verificadores válidos.</p>
+                        )}
+                        {doctorCareCountry === "AR" && normalizedPatientDocument.length > 0 && !eventualPatientDocumentValid && (
+                          <p className="mt-1 text-[11px] text-rose-600">El DNI debe tener 7 u 8 dígitos.</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">Contacto (opcional)</label>
+                        <input type="text" value={form.patient_contact} onChange={set("patient_contact")} placeholder="Email o WhatsApp" autoComplete="off" className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" />
+                      </div>
+                    </div>
+                    <div className={doctorCareCountry === "BR" ? "grid grid-cols-1 gap-3 sm:grid-cols-2" : "grid grid-cols-1 gap-3"}>
+                      <div>
+                        <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">Fecha de nacimiento <span className="text-red-500">*</span></label>
+                        <input type="date" value={form.patient_birth_date} onChange={set("patient_birth_date")} max={TODAY} min="1900-01-01" required className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" />
+                      </div>
+                      {doctorCareCountry === "BR" && (
+                        <div>
+                          <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">Sexo <span className="text-red-500">*</span></label>
+                          <select value={form.patient_gender} onChange={set("patient_gender")} required className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
+                            <option value="">Seleccionar</option>
+                            <option value="male">Masculino</option>
+                            <option value="female">Femenino</option>
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <label className="mt-3 flex min-h-11 items-start gap-2 rounded-lg bg-white p-3 text-xs leading-relaxed text-am-surface-700">
+                    <input type="checkbox" checked={patientCountryConfirmed} onChange={(event) => setPatientCountryConfirmed(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-sky-500" required />
+                    <span>Confirmo que el paciente declaró que recibirá atención médica en{doctorCareCountry === "BR" ? " Brasil" : " Argentina"}.</span>
+                  </label>
+                  <label className="mt-2 flex min-h-11 items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs leading-relaxed text-am-surface-800">
+                    <input type="checkbox" checked={patientConsentDeclared} onChange={(event) => setPatientConsentDeclared(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-sky-500" required />
+                    <span>Declaro que el paciente recibió información y prestó su consentimiento para registrar su identidad clínica y emitir y entregar recetas digitales.</span>
+                  </label>
+                  </>
+                ) : (
+                  <>
+
                   <div className="space-y-3">
                     <div>
                       <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">Nombre completo <span className="text-red-500">*</span></label>
@@ -694,7 +859,8 @@ export function PrescriptionCreateModal({
                     <input type="checkbox" checked={patientCountryConfirmed} onChange={(event) => setPatientCountryConfirmed(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0" required />
                     <span>Confirmo que el paciente declaró que recibirá atención médica en{doctorCareCountry === "BR" ? " Brasil" : " Argentina"}. Esta elección define el proveedor de recetas y no su nacionalidad.</span>
                   </label>
-                </>
+                  </>
+                )
               )}
             </section>
           )}
@@ -998,6 +1164,39 @@ export function PrescriptionCreateModal({
             />
           </div>
 
+          {deliveryUrl && (
+            <section className="space-y-3 rounded-xl border border-sky-200 bg-sky-50 p-4" aria-live="polite">
+              <p className="text-sm font-semibold text-sky-900">Receta emitida. Entregala ahora al paciente.</p>
+              <div className="flex flex-wrap gap-2">
+                <a href={deliveryUrl} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex min-h-10 items-center justify-center rounded-lg bg-sky-600 px-3 py-2 text-xs font-semibold text-white hover:bg-sky-700">
+                  Abrir / descargar receta
+                </a>
+                {deliveryContact && !deliveryContact.includes("@") && deliveryContact.replace(/\D/g, "").length >= 6 && (
+                  <a href={`https://wa.me/${deliveryContact.replace(/\D/g, "")}?text=${encodeURIComponent(`Tu receta digital de AutaMedica: ${deliveryUrl}`)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="inline-flex min-h-10 items-center justify-center rounded-lg border border-sky-300 bg-white px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-100">
+                    Enviar por WhatsApp
+                  </a>
+                )}
+                {deliveryContact.includes("@") && (
+                  <a href={`mailto:${encodeURIComponent(deliveryContact)}?subject=${encodeURIComponent("Tu receta digital de AutaMedica")}&body=${encodeURIComponent(`Tu receta digital: ${deliveryUrl}`)}`}
+                    className="inline-flex min-h-10 items-center justify-center rounded-lg border border-sky-300 bg-white px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-100">
+                    Enviar por email
+                  </a>
+                )}
+                <button type="button" onClick={() => {
+                  void navigator.clipboard.writeText(deliveryUrl).catch(() => {
+                    setError("No se pudo copiar el enlace. Abrí la receta y copiá su dirección.");
+                  });
+                }} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-sky-300 bg-white px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-100">
+                  Copiar enlace
+                </button>
+              </div>
+              <p className="text-[11px] text-sky-800">Compartí el enlace sin que el paciente cree una cuenta.</p>
+            </section>
+          )}
+
           {/* Error */}
           {error && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
 
@@ -1012,7 +1211,7 @@ export function PrescriptionCreateModal({
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || Boolean(deliveryUrl)}
               className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-am-doctor-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-am-doctor-700 disabled:opacity-60 transition"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}

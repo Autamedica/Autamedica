@@ -66,6 +66,13 @@ function providerQrCodeContent(...sources: unknown[]): string | null {
   return null;
 }
 
+function privateJsonOk<T>(data: T): Response {
+  const response = jsonOk(data);
+  response.headers.set('Cache-Control', 'no-store, private');
+  response.headers.set('Pragma', 'no-cache');
+  return response;
+}
+
 function safeMemedDocumentUrl(value: unknown): string | null {
   if (typeof value !== 'string' || !value.trim()) return null;
   try {
@@ -221,7 +228,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         .update({ status: 'cancelled', updated_at: new Date().toISOString() })
         .eq('id', existing.id);
       if (cancelError) throw cancelError;
-      return jsonOk({ status: 'cancelled' });
+      return privateJsonOk({ status: 'cancelled' });
     }
 
     const verified = await memed.getIssuedPrescription(prescriptionId, authorizedDoctor.token);
@@ -381,7 +388,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
         existing.clinical_data !== null && typeof existing.clinical_data === 'object' && !Array.isArray(existing.clinical_data)
           ? existing.clinical_data as Record<string, Json>
           : {};
-      const hasPreviousDigitalLink = Boolean(previousClinicalData.memed_digital_prescription);
+      const previousDigitalPrescription = asObject(previousClinicalData.memed_digital_prescription);
+      const previousDigitalUrl = typeof previousDigitalPrescription.url === 'string'
+        ? safeMemedDocumentUrl(previousDigitalPrescription.url) : null;
+      const previousFullPdfUrl = typeof previousClinicalData.memed_full_pdf_url === 'string'
+        ? safeMemedDocumentUrl(previousClinicalData.memed_full_pdf_url) : null;
+      const previousUnlockCode = typeof previousDigitalPrescription.unlock_code === 'string'
+        ? previousDigitalPrescription.unlock_code : null;
+      const hasPreviousDigitalLink = Boolean(previousDigitalUrl);
       const previousQrCodeContent = typeof existing.qr_code_content === 'string' && existing.qr_code_content
         ? existing.qr_code_content
         : (typeof previousClinicalData.qr_code_content === 'string' ? previousClinicalData.qr_code_content : null);
@@ -412,7 +426,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         .eq('doctor_id', doctor.id)
         .eq('patient_id', patientId);
       if (updateError) throw updateError;
-      return jsonOk({
+      return privateJsonOk({
         status: existing.status,
         prescriptionId,
         duplicate: true,
@@ -420,6 +434,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
           digitalLinkUrl || fullDocumentUrl || documentReferences.length || persistedQrCodeContent
           || hasPreviousDigitalLink || existing.physical_pdf_url
         ),
+        digitalLinkUrl: digitalLinkUrl ?? previousDigitalUrl,
+        fullDocumentUrl: fullDocumentUrl ?? previousFullPdfUrl
+          ?? (typeof existing.physical_pdf_url === 'string'
+            ? safeMemedDocumentUrl(existing.physical_pdf_url) : null),
+        digitalUnlockCode: digitalUnlockCode ?? previousUnlockCode,
       });
     }
 
@@ -446,10 +465,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (winnerError || winner?.doctor_id !== doctor.id || winner.patient_id !== patientId) {
         return forbidden('memed_prescription_ownership_conflict');
       }
-      return jsonOk({ status: winner.status, prescriptionId, duplicate: true });
+      return privateJsonOk({
+        status: winner.status, prescriptionId, duplicate: true,
+        digitalLinkUrl, fullDocumentUrl, digitalUnlockCode,
+      });
     }
     if (insertError) throw insertError;
-    return jsonOk({ status: 'recorded_pending_signature_and_delivery', prescriptionId });
+    return privateJsonOk({
+      status: 'recorded_pending_signature_and_delivery',
+      prescriptionId,
+      digitalLinkUrl,
+      fullDocumentUrl,
+      digitalUnlockCode,
+    });
   } catch (error) {
     if (error instanceof Error && ['doctor_patient_access_required',
       'memed_patient_country_required'].includes(error.message)) return forbidden(error.message);

@@ -83,9 +83,38 @@ export async function resolveMemedPatient(
   let lastName = '';
   let cpf = String(patient.cpf ?? '').replace(/\D/g, '');
   let telefone: string | undefined;
-  const birthDate = String(patient.birth_date ?? '');
-  const gender = String(patient.gender ?? '').toLowerCase();
-  if (!patient.user_id) {
+  let birthDate = String(patient.birth_date ?? '');
+  let gender = String(patient.gender ?? '').toLowerCase();
+  const { data: privateIdentity, error: privateIdentityError } = await admin
+    .from('patient_private_identities')
+    .select('full_name, document_type, document_number, birth_date, gender, phone, consent_at, consent_scope')
+    .eq('patient_id', patientId)
+    .eq('doctor_id', doctorId)
+    .maybeSingle();
+  if (privateIdentityError) throw new Error('memed_patient_lookup_failed');
+
+  if (privateIdentity) {
+    // Identity explicitly attested by this doctor in the current clinical relationship.
+    if (!privateIdentity.consent_at
+        || privateIdentity.consent_scope !== 'prescription_issuance_and_delivery') {
+      throw new Error('memed_patient_consent_required');
+    }
+    const nameParts = String(privateIdentity.full_name ?? '').trim().split(/\s+/);
+    firstName = nameParts.shift() ?? '';
+    lastName = nameParts.join(' ');
+    cpf = privateIdentity.document_type === 'CPF'
+      ? String(privateIdentity.document_number ?? '').replace(/\D/g, '') : '';
+    telefone = String(privateIdentity.phone ?? '').trim().replace(/[^\d+]/g, '') || undefined;
+    birthDate = String(privateIdentity.birth_date ?? birthDate);
+    gender = String(privateIdentity.gender ?? gender).toLowerCase();
+    if (!firstName || !lastName || !validCpf(cpf)) {
+      throw new Error('memed_patient_identity_incomplete');
+    }
+    if (telefone && !/^\+?\d{6,20}$/.test(telefone)) {
+      throw new Error('memed_patient_identity_incomplete');
+    }
+  } else if (!patient.user_id) {
+    // Existing pharmacy guest behavior is intentionally unchanged.
     const { data: guestDispatch, error: guestDispatchError } = await admin
       .from('pharmacy_dispatch_requests')
       .select('patient_name, patient_cpf, patient_phone, lgpd_consent')

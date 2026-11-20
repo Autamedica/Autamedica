@@ -133,6 +133,8 @@ export type IssuanceError =
   | { code: 'not_your_prescription' }
   | { code: 'already_issued' }
   | { code: 'patient_not_found' }
+  | { code: 'patient_identity_lookup_failed' }
+  | { code: 'patient_identity_consent_required' }
   | { code: 'missing_patient_identification' }
   | { code: 'missing_patient_address' }
   | { code: 'no_medication' }
@@ -191,6 +193,28 @@ interface IssuePatient {
   birth_date?: string | null;
   gender?: string | null;
   insurance_info?: unknown;
+}
+
+interface PrivatePatientIdentity {
+  full_name: string;
+  document_type: 'DNI' | 'CPF' | string;
+  document_number: string;
+  birth_date: string;
+  gender: string | null;
+  consent_at: string | null;
+  consent_scope: string | null;
+}
+
+function resolvePrivatePatientIdentityFields(
+  patient: { dni?: string | null; cpf?: string | null; birth_date?: string | null; gender?: string | null },
+  identity: PrivatePatientIdentity | null,
+) {
+  return {
+    dni: identity?.document_type === 'DNI' ? identity.document_number : patient.dni,
+    cpf: identity?.document_type === 'CPF' ? identity.document_number : patient.cpf,
+    birth_date: identity?.birth_date ?? patient.birth_date,
+    gender: identity?.gender ?? patient.gender,
+  };
 }
 
 type PrescriberValidationStatus = 'pending' | 'valid' | 'pending_review' | 'rejected' | 'exempt';
@@ -623,14 +647,45 @@ export async function issuePrescription(
     }
   }
 
-  // 3. Get and validate patient
-  const { data: patient } = await supabase
+  // 3. Get the clinical chart and, when this doctor declared the identity,
+  // resolve CPF/DNI and demographics from the backend-only private identity table.
+  const { data: patientRecord } = await supabase
     .from('patients')
     .select('user_id, care_country, dni, cuil, cpf, cns, address, birth_date, gender, insurance_info, identity_status, official_full_name, official_cuil, official_birth_date, official_gender, puco_coverage_name, puco_coverage_code')
     .eq('id', rx.patient_id)
     .single();
 
-  if (!patient) return fail({ code: 'patient_not_found' });
+  if (!patientRecord) return fail({ code: 'patient_not_found' });
+
+  const { data: privateIdentity, error: privateIdentityError } = await supabase
+    .from('patient_private_identities')
+    .select('full_name, document_type, document_number, birth_date, gender, consent_at, consent_scope')
+    .eq('patient_id', rx.patient_id)
+    .eq('doctor_id', doctor.id)
+    .maybeSingle();
+
+  if (privateIdentityError) {
+    logger.error('[issuePrescription] Private patient identity lookup failed', {
+      prescriptionId,
+      doctorId: doctor.id,
+    });
+    return fail({ code: 'patient_identity_lookup_failed' });
+  }
+
+  if (privateIdentity && (
+    !privateIdentity.consent_at
+    || privateIdentity.consent_scope !== 'prescription_issuance_and_delivery'
+  )) {
+    return fail({ code: 'patient_identity_consent_required' });
+  }
+
+  const patient = {
+    ...patientRecord,
+    ...resolvePrivatePatientIdentityFields(
+      patientRecord,
+      privateIdentity as PrivatePatientIdentity | null,
+    ),
+  };
   if (rx.country_code === 'BR' && !validCpf(String(patient.cpf ?? '').replace(/\D/g, ''))) {
     return fail({ code: 'br_patient_cpf_required' });
   }
@@ -685,6 +740,9 @@ export async function issuePrescription(
   }
 
   let patientAddress = patient.address || externalPatient?.address || undefined;
+  // Eventual patients have no required home-address field. Keep the document
+  // truthful instead of inventing a street address when only clinical identity is held.
+  if (!patientAddress && privateIdentity) patientAddress = 'No declarado';
   if (!patientAddress && dispatch?.patient_phone) {
     // QR guests do not necessarily have a residential address. The consultation
     // takes place at the pharmacy counter, so persist that truthful care location
@@ -722,7 +780,7 @@ export async function issuePrescription(
         const resolved = await fetchAndPersistOfficialIdentity({
           supabase, dni, sexId: sex === 'F' ? 1 : sex === 'M' ? 2 : 3, patientId: rx.patient_id,
           dispatchRequestId: dispatch?.id, userId: patient.user_id,
-          declaredName: externalPatient?.name ?? undefined, runtimeEnv, timeoutMs: 3500,
+          declaredName: privateIdentity?.full_name ?? externalPatient?.name ?? undefined, runtimeEnv, timeoutMs: 3500,
         }).catch(() => null);
         if (resolved?.identityStatus === 'verified_renaper') {
           identitySource = 'msal_bus_renaper';
@@ -732,7 +790,8 @@ export async function issuePrescription(
       }
     }
   }
-  const patientName = officialIdentity?.fullName || externalPatient?.name?.trim()
+  const patientName = officialIdentity?.fullName || privateIdentity?.full_name?.trim()
+    || externalPatient?.name?.trim()
     || (patient.user_id ? await resolveProfileName(supabase, patient.user_id, '') : 'Paciente');
   const effectivePatient = {
     ...patient, cuil: officialIdentity?.cuil ?? patient.cuil,
@@ -1134,5 +1193,6 @@ export const __testables = {
   farmalinkRegistrationRequired,
   buildFarmalinkPrescriptionMapInput,
   canIssueWithPrescriberValidationStatus,
+  resolvePrivatePatientIdentityFields,
 };
 
