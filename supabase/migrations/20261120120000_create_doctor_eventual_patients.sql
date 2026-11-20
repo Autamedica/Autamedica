@@ -194,6 +194,17 @@ BEGIN
     RETURNING id INTO v_patient_id;
   END IF;
 
+  -- The checkbox records an explicit declaration for this encounter, including
+  -- when an already-authorized chart is reused.
+  UPDATE public.patients
+  SET lgpd_consent = TRUE,
+      lgpd_consent_date = pg_catalog.now(),
+      updated_at = pg_catalog.now()
+  WHERE id = v_patient_id AND active IS TRUE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'eventual_patient_inactive' USING ERRCODE = '22023';
+  END IF;
+
   INSERT INTO public.patient_care_team (patient_id, doctor_id, role, assigned_date, active)
   VALUES (v_patient_id, p_doctor_id, 'primary', CURRENT_DATE, TRUE)
   ON CONFLICT (patient_id, doctor_id)
