@@ -14,6 +14,7 @@ import android.util.Base64;
 import android.view.Display;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.accessibility.AccessibilityWindowInfo;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -77,10 +78,52 @@ public final class AccessibilityControlService extends AccessibilityService {
         return future.get(8, TimeUnit.SECONDS);
     }
 
+    private static final int MAX_TREE_DEPTH = 24;
+    private static final int MAX_TREE_NODES = 1200;
+    private static final int MAX_COMPACT_DEPTH = 28;
+    private static final int MAX_COMPACT_SCAN = 2500;
+    private static final int MAX_COMPACT_ELEMENTS = 400;
+
+    private AccessibilityNodeInfo resolveActiveRoot() {
+        AccessibilityNodeInfo active = getRootInActiveWindow();
+        if (active != null && active.getChildCount() > 0 && !isImePackage(active.getPackageName())) {
+            return active;
+        }
+        java.util.List<AccessibilityWindowInfo> windows = getWindows();
+        AccessibilityNodeInfo best = null;
+        int bestScore = -1;
+        if (windows != null) {
+            for (AccessibilityWindowInfo win : windows) {
+                if (win == null || win.getType() != AccessibilityWindowInfo.TYPE_APPLICATION) continue;
+                AccessibilityNodeInfo root = win.getRoot();
+                if (root == null) continue;
+                int score = (win.isFocused() ? 1000 : 0) + (win.isActive() ? 500 : 0) + Math.min(root.getChildCount(), 100);
+                if (score > bestScore) {
+                    if (best != null) best.recycle();
+                    best = root;
+                    bestScore = score;
+                } else {
+                    root.recycle();
+                }
+            }
+        }
+        if (best != null) {
+            if (active != null) active.recycle();
+            return best;
+        }
+        return active;
+    }
+
+    private static boolean isImePackage(CharSequence pkg) {
+        if (pkg == null) return false;
+        String s = pkg.toString().toLowerCase(java.util.Locale.ROOT);
+        return s.contains("inputmethod") || s.contains("keyboard") || s.contains("gboard") || s.contains("swiftkey");
+    }
+
     JSONObject getUiTree() throws Exception {
         return onMain(() -> {
             JSONObject result = new JSONObject();
-            AccessibilityNodeInfo root = getRootInActiveWindow();
+            AccessibilityNodeInfo root = resolveActiveRoot();
             if (root == null) {
                 result.put("available", false);
                 result.put("nodes", new JSONArray());
@@ -96,27 +139,123 @@ public final class AccessibilityControlService extends AccessibilityService {
         });
     }
 
+    JSONObject getCompactUi() throws Exception {
+        return onMain(() -> {
+            JSONObject result = new JSONObject();
+            AccessibilityNodeInfo root = resolveActiveRoot();
+            if (root == null) {
+                result.put("available", false);
+                result.put("elements", new JSONArray());
+                return result;
+            }
+            android.graphics.Rect rootBounds = new android.graphics.Rect();
+            root.getBoundsInScreen(rootBounds);
+            JSONArray elements = new JSONArray();
+            Counter scanned = new Counter();
+            collectCompactNodes(root, "0", 0, scanned, elements);
+            result.put("available", true);
+            result.put("package", String.valueOf(root.getPackageName()));
+            result.put("bounds", new JSONArray().put(rootBounds.left).put(rootBounds.top).put(rootBounds.right).put(rootBounds.bottom));
+            result.put("scannedCount", scanned.value);
+            result.put("elementCount", elements.length());
+            result.put("elements", elements);
+            root.recycle();
+            return result;
+        });
+    }
+
+    private void collectCompactNodes(
+            AccessibilityNodeInfo node,
+            String path,
+            int depth,
+            Counter scanned,
+            JSONArray out) throws Exception {
+        if (node == null || depth > MAX_COMPACT_DEPTH || scanned.value >= MAX_COMPACT_SCAN || out.length() >= MAX_COMPACT_ELEMENTS) {
+            return;
+        }
+        scanned.value++;
+        boolean isPassword = node.isPassword();
+        String text = isPassword ? "[redacted]" : safe(node.getText()).trim();
+        String desc = isPassword ? "" : safe(node.getContentDescription()).trim();
+        String hint = isPassword ? "" : safe(node.getHintText()).trim();
+        String stateDesc = (Build.VERSION.SDK_INT >= 30 && !isPassword) ? safe(node.getStateDescription()).trim() : "";
+        boolean clickable = node.isClickable();
+        boolean editable = node.isEditable();
+        boolean checkable = node.isCheckable();
+        boolean scrollable = node.isScrollable();
+
+        boolean meaningful = !text.isEmpty() || !desc.isEmpty() || !hint.isEmpty() || !stateDesc.isEmpty()
+            || clickable || editable || checkable;
+
+        if (meaningful) {
+            JSONObject item = new JSONObject();
+            item.put("ref", "e" + (out.length() + 1));
+            item.put("path", path);
+            String cls = safe(node.getClassName());
+            int dot = cls.lastIndexOf('.');
+            item.put("class", dot >= 0 ? cls.substring(dot + 1) : cls);
+            if (!text.isEmpty()) item.put("text", text);
+            if (!desc.isEmpty()) item.put("description", desc);
+            if (!hint.isEmpty()) item.put("hint", hint);
+            if (!stateDesc.isEmpty()) item.put("stateDescription", stateDesc);
+            String viewId = safe(node.getViewIdResourceName());
+            if (!viewId.isEmpty()) item.put("viewId", viewId);
+            if (clickable) item.put("clickable", true);
+            if (editable) item.put("editable", true);
+            if (checkable) {
+                item.put("checkable", true);
+                item.put("checked", node.isChecked());
+            }
+            if (scrollable) item.put("scrollable", true);
+            if (node.isFocused()) item.put("focused", true);
+            if (node.isSelected()) item.put("selected", true);
+            if (!node.isEnabled()) item.put("enabled", false);
+            if (isPassword) item.put("password", true);
+            android.graphics.Rect bounds = new android.graphics.Rect();
+            node.getBoundsInScreen(bounds);
+            item.put("bounds", new JSONArray().put(bounds.left).put(bounds.top).put(bounds.right).put(bounds.bottom));
+            out.put(item);
+        }
+
+        if (depth < MAX_COMPACT_DEPTH) {
+            int childCount = node.getChildCount();
+            for (int i = 0; i < childCount && scanned.value < MAX_COMPACT_SCAN && out.length() < MAX_COMPACT_ELEMENTS; i++) {
+                AccessibilityNodeInfo child = node.getChild(i);
+                if (child != null) {
+                    collectCompactNodes(child, path + "." + i, depth + 1, scanned, out);
+                    child.recycle();
+                }
+            }
+        }
+    }
+
     private JSONObject serializeNode(AccessibilityNodeInfo node, String path, int depth, Counter counter) throws Exception {
         JSONObject item = new JSONObject();
         counter.value++;
+        boolean isPassword = node.isPassword();
         item.put("path", path);
         item.put("class", safe(node.getClassName()));
-        item.put("text", node.isPassword() ? "[redacted]" : safe(node.getText()));
-        item.put("description", node.isPassword() ? "" : safe(node.getContentDescription()));
+        item.put("text", isPassword ? "[redacted]" : safe(node.getText()));
+        item.put("description", isPassword ? "" : safe(node.getContentDescription()));
+        item.put("hint", isPassword ? "" : safe(node.getHintText()));
+        item.put("stateDescription", (Build.VERSION.SDK_INT >= 30 && !isPassword) ? safe(node.getStateDescription()) : "");
         item.put("viewId", safe(node.getViewIdResourceName()));
         item.put("clickable", node.isClickable());
         item.put("editable", node.isEditable());
+        item.put("checkable", node.isCheckable());
+        item.put("checked", node.isChecked());
+        item.put("scrollable", node.isScrollable());
         item.put("enabled", node.isEnabled());
         item.put("focused", node.isFocused());
         item.put("selected", node.isSelected());
-        item.put("password", node.isPassword());
+        item.put("password", isPassword);
         android.graphics.Rect bounds = new android.graphics.Rect();
         node.getBoundsInScreen(bounds);
         item.put("bounds", new JSONArray().put(bounds.left).put(bounds.top).put(bounds.right).put(bounds.bottom));
 
         JSONArray children = new JSONArray();
-        if (depth < 8 && counter.value < 300) {
-            for (int i = 0; i < node.getChildCount() && counter.value < 300; i++) {
+        if (depth < MAX_TREE_DEPTH && counter.value < MAX_TREE_NODES) {
+            for (int i = 0; i < node.getChildCount() && counter.value < MAX_TREE_NODES; i++) {
                 AccessibilityNodeInfo child = node.getChild(i);
                 if (child != null) {
                     children.put(serializeNode(child, path + "." + i, depth + 1, counter));
@@ -165,12 +304,54 @@ public final class AccessibilityControlService extends AccessibilityService {
         return result;
     }
 
+    boolean setTextAtPath(String path, String text) throws Exception {
+        return onMain(() -> {
+            AccessibilityNodeInfo node = nodeAtPath(path);
+            if (node == null) return false;
+            AccessibilityNodeInfo target = node;
+            try {
+                if (!target.isEditable()) {
+                    AccessibilityNodeInfo nested = findFirstEditableDescendant(target, 0);
+                    if (nested != null) target = nested;
+                }
+                if (target.isPassword() || !target.isEnabled()) return false;
+                Bundle args = new Bundle();
+                args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text == null ? "" : text);
+                boolean ok = target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args);
+                if (!ok) {
+                    target.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                    ok = target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args);
+                }
+                return ok;
+            } finally {
+                if (target != node && target != null) target.recycle();
+                node.recycle();
+            }
+        });
+    }
+
+    private AccessibilityNodeInfo findFirstEditableDescendant(AccessibilityNodeInfo node, int depth) {
+        if (node == null || depth > 3) return null;
+        if (node.isEditable()) return node;
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo child = node.getChild(i);
+            if (child == null) continue;
+            AccessibilityNodeInfo found = findFirstEditableDescendant(child, depth + 1);
+            if (found != null) {
+                if (found != child) child.recycle();
+                return found;
+            }
+            child.recycle();
+        }
+        return null;
+    }
+
     boolean clickText(String query, String viewId, long timeoutMs) throws Exception {
         long deadline = android.os.SystemClock.uptimeMillis() + Math.max(0, Math.min(15000, timeoutMs));
         String needle = query == null ? "" : query.toLowerCase(java.util.Locale.ROOT);
         while (true) {
             boolean clicked = onMain(() -> {
-                AccessibilityNodeInfo root = getRootInActiveWindow();
+                AccessibilityNodeInfo root = resolveActiveRoot();
                 if (root == null) return false;
                 try {
                     if (viewId != null && !viewId.isEmpty()) {
@@ -203,10 +384,11 @@ public final class AccessibilityControlService extends AccessibilityService {
     }
 
     private AccessibilityNodeInfo findFirstMatchingNode(AccessibilityNodeInfo node, String needle, int depth) {
-        if (node == null || depth > 12) return null;
+        if (node == null || depth > MAX_COMPACT_DEPTH) return null;
         String text = safe(node.getText()).toLowerCase(java.util.Locale.ROOT);
         String desc = safe(node.getContentDescription()).toLowerCase(java.util.Locale.ROOT);
-        if (text.contains(needle) || desc.contains(needle)) return node;
+        String hint = safe(node.getHintText()).toLowerCase(java.util.Locale.ROOT);
+        if (text.contains(needle) || desc.contains(needle) || hint.contains(needle)) return node;
         for (int i = 0; i < node.getChildCount(); i++) {
             AccessibilityNodeInfo child = node.getChild(i);
             if (child == null) continue;
@@ -222,7 +404,7 @@ public final class AccessibilityControlService extends AccessibilityService {
 
     boolean scroll(boolean forward) throws Exception {
         return onMain(() -> {
-            AccessibilityNodeInfo root = getRootInActiveWindow();
+            AccessibilityNodeInfo root = resolveActiveRoot();
             if (root == null) return false;
             try {
                 AccessibilityNodeInfo scrollable = findScrollableNode(root, 0);
@@ -238,7 +420,7 @@ public final class AccessibilityControlService extends AccessibilityService {
     }
 
     private AccessibilityNodeInfo findScrollableNode(AccessibilityNodeInfo node, int depth) {
-        if (node == null || depth > 10) return null;
+        if (node == null || depth > MAX_TREE_DEPTH) return null;
         if (node.isScrollable()) return node;
         for (int i = 0; i < node.getChildCount(); i++) {
             AccessibilityNodeInfo child = node.getChild(i);
@@ -276,7 +458,7 @@ public final class AccessibilityControlService extends AccessibilityService {
     boolean pasteText(String text) throws Exception {
         if (text != null) setClipboard(text);
         return onMain(() -> {
-            AccessibilityNodeInfo root = getRootInActiveWindow();
+            AccessibilityNodeInfo root = resolveActiveRoot();
             if (root == null) return false;
             AccessibilityNodeInfo target = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
             boolean result = false;
@@ -290,7 +472,7 @@ public final class AccessibilityControlService extends AccessibilityService {
     }
 
     private AccessibilityNodeInfo nodeAtPath(String path) {
-        AccessibilityNodeInfo node = getRootInActiveWindow();
+        AccessibilityNodeInfo node = resolveActiveRoot();
         if (node == null) return null;
         String[] parts = path.split("\\.");
         if (parts.length == 0 || !"0".equals(parts[0])) return null;
@@ -327,7 +509,7 @@ public final class AccessibilityControlService extends AccessibilityService {
 
     boolean typeText(String text) throws Exception {
         return onMain(() -> {
-            AccessibilityNodeInfo root = getRootInActiveWindow();
+            AccessibilityNodeInfo root = resolveActiveRoot();
             if (root == null) return false;
             AccessibilityNodeInfo target = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
             boolean result = false;

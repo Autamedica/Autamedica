@@ -55,7 +55,7 @@ final class LocalControlServer {
     private void handle(Socket socket) {
         OutputStream errorOutput = null;
         try (Socket client = socket) {
-            client.setSoTimeout(6000);
+            client.setSoTimeout(25000);
             InputStream input = client.getInputStream();
             OutputStream output = client.getOutputStream();
             errorOutput = output;
@@ -67,7 +67,9 @@ final class LocalControlServer {
                 return;
             }
             String method = parts[0].toUpperCase(Locale.ROOT);
-            String path = parts[1].split("\\?", 2)[0];
+            String[] pathAndQuery = parts[1].split("\\?", 2);
+            String path = pathAndQuery[0];
+            String queryString = pathAndQuery.length > 1 ? pathAndQuery[1] : "";
             java.util.Map<String, String> headers = new java.util.HashMap<>();
             String line;
             while ((line = readLine(input)) != null && !line.isEmpty()) {
@@ -94,6 +96,7 @@ final class LocalControlServer {
             if ("GET".equals(method) && "/v1/health".equals(path)) {
                 JSONObject result = new JSONObject();
                 result.put("ok", true);
+                result.put("apiVersion", 2);
                 result.put("accessibility", true);
                 result.put("bind", "127.0.0.1");
                 result.put("port", PORT);
@@ -105,10 +108,22 @@ final class LocalControlServer {
                 result.put("cdpProxyListening", service.isCdpListening());
                 result.put("webViewDevToolsSocketAvailable", service.isWebViewSocketAvailable());
                 result.put("notificationListenerConnected", CompanionNotificationListener.isConnected());
+                result.put("capabilities", new org.json.JSONArray()
+                    .put("ui_deep").put("ui_compact").put("set_text").put("click_text")
+                    .put("paste").put("batch").put("browser_snapshot"));
                 respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
-            } else if ("GET".equals(method) && "/v1/ui".equals(path)) {
-                JSONObject result = service.getUiTree();
+            } else if ("GET".equals(method) && ("/v1/ui".equals(path) || "/v1/ui/compact".equals(path))) {
+                boolean compact = "/v1/ui/compact".equals(path)
+                    || queryString.contains("compact=1")
+                    || queryString.contains("compact=true");
+                JSONObject result = compact ? service.getCompactUi() : service.getUiTree();
                 respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
+            } else if ("GET".equals(method) && "/v1/browser/snapshot".equals(path)) {
+                String snapScript = "(function(){const els=[...document.querySelectorAll('input,textarea,select,button,a,[role=button],[role=checkbox],[role=radio]')].slice(0,250);return JSON.stringify(els.map((e,i)=>{const r=e.getBoundingClientRect();let sel=e.id?'#'+CSS.escape(e.id):(e.name?e.tagName.toLowerCase()+'[name=\"'+e.name+'\"]':e.tagName.toLowerCase()+':nth-of-type('+(i+1)+')');const lbl=(e.labels&&e.labels[0]?e.labels[0].innerText:'')||e.getAttribute('aria-label')||e.placeholder||e.innerText||'';return {ref:'w'+(i+1),tag:e.tagName.toLowerCase(),type:e.type||'',selector:sel,label:lbl.trim().slice(0,120),value:(e.type==='password'?'[redacted]':(e.value||'')).slice(0,120),checked:Boolean(e.checked),disabled:Boolean(e.disabled),visible:r.width>0&&r.height>0};}));})()";
+                JSONObject snapshot = new JSONObject();
+                snapshot.put("ok", true);
+                snapshot.put("value", BrowserActivity.evaluate(snapScript));
+                respond(output, 200, "application/json; charset=utf-8", snapshot.toString().getBytes(StandardCharsets.UTF_8));
             } else if ("GET".equals(method) && "/v1/packages".equals(path)) {
                 JSONObject result = new JSONObject();
                 result.put("ok", true);
@@ -194,6 +209,13 @@ final class LocalControlServer {
                         if (text.length() > 32768) throw new IllegalArgumentException("text too long");
                         ok = service.typeText(text);
                         break;
+                    case "/v1/set_text": {
+                        String targetPath = args.getString("path");
+                        String setTextVal = args.optString("text", "");
+                        if (setTextVal.length() > 32768) throw new IllegalArgumentException("text too long");
+                        ok = service.setTextAtPath(targetPath, setTextVal);
+                        break;
+                    }
                     case "/v1/swipe":
                         ok = service.swipe((float) args.getDouble("x1"), (float) args.getDouble("y1"),
                             (float) args.getDouble("x2"), (float) args.getDouble("y2"),
@@ -213,7 +235,7 @@ final class LocalControlServer {
                         break;
                     case "/v1/batch": {
                         org.json.JSONArray steps = args.getJSONArray("steps");
-                        if (steps.length() > 30) throw new IllegalArgumentException("batch max 30 steps");
+                        if (steps.length() > 60) throw new IllegalArgumentException("batch max 60 steps");
                         org.json.JSONArray results = new org.json.JSONArray();
                         boolean allOk = true;
                         for (int i = 0; i < steps.length(); i++) {
@@ -250,6 +272,13 @@ final class LocalControlServer {
                                     stepOk = service.typeText(t);
                                     break;
                                 }
+                                case "set_text": {
+                                    String p = step.getString("path");
+                                    String t = step.optString("text", "");
+                                    if (t.length() > 32768) throw new IllegalArgumentException("text too long");
+                                    stepOk = service.setTextAtPath(p, t);
+                                    break;
+                                }
                                 case "swipe":
                                     stepOk = service.swipe((float) step.getDouble("x1"), (float) step.getDouble("y1"),
                                         (float) step.getDouble("x2"), (float) step.getDouble("y2"),
@@ -272,6 +301,10 @@ final class LocalControlServer {
                                 }
                                 case "ui":
                                     stepRes.put("ui", service.getUiTree());
+                                    stepOk = true;
+                                    break;
+                                case "ui_compact":
+                                    stepRes.put("ui", service.getCompactUi());
                                     stepOk = true;
                                     break;
                                 default:
