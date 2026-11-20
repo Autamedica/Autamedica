@@ -8,8 +8,8 @@ const identity = { care_country: 'BR', user_id: 'synthetic-user', active: true, 
 
 function database(overrides: Record<string, unknown> = {}): SupabaseClient {
   const rows: Record<string, unknown> = { patient_care_team: { id: 'synthetic-team' },
-    appointments: null, pharmacy_dispatch_requests: null, patients: identity,
-    profiles: { first_name: 'Synthetic', last_name: 'Patient' }, ...overrides };
+    appointments: null, pharmacy_dispatch_requests: null, patient_private_identities: null,
+    patients: identity, profiles: { first_name: 'Synthetic', last_name: 'Patient' }, ...overrides };
   return { from: vi.fn((table: string) => {
     const chain = { select: vi.fn(), update: vi.fn(), eq: vi.fn(), is: vi.fn(), or: vi.fn(), in: vi.fn(), gte: vi.fn(), order: vi.fn(), limit: vi.fn(),
       maybeSingle: vi.fn(async () => ({ data: rows[table], error: null })) };
@@ -68,6 +68,48 @@ describe('Memed patient authorization', () => {
       cpf: '52998224725',
       telefone: '+5551999991111',
     });
+  });
+
+  it('resolves a doctor-created eventual patient from private identity and consent', async () => {
+    const result = await resolveMemedPatient(database({
+      patient_care_team: { id: 'synthetic-team' },
+      patients: { ...identity, user_id: null, cpf: null },
+      patient_private_identities: {
+        full_name: 'Eventual Synthetic Patient',
+        document_type: 'CPF',
+        document_number: '52998224725',
+        birth_date: '1991-08-19',
+        gender: 'female',
+        phone: '+55 51 99999-2222',
+        consent_at: '2026-11-20T00:00:00.000Z',
+        consent_scope: 'prescription_issuance_and_delivery',
+      },
+    }), 'doctor', patientId);
+    expect(result).toEqual({
+      idExterno: `autamedica-${patientId}`,
+      nome: 'Eventual Synthetic Patient',
+      cpf: '52998224725',
+      telefone: '+5551999992222',
+      data_nascimento: '19/08/1991',
+      sexo: 'Feminino',
+    });
+  });
+
+  it('rejects eventual identities without issuance and delivery consent', async () => {
+    await expect(resolveMemedPatient(database({
+      patient_care_team: { id: 'synthetic-team' },
+      patients: { ...identity, user_id: null, cpf: null },
+      patient_private_identities: {
+        full_name: 'Eventual Synthetic Patient',
+        document_type: 'CPF',
+        document_number: '52998224725',
+        birth_date: '1991-08-19',
+        gender: 'female',
+        phone: null,
+        consent_at: null,
+        consent_scope: 'prescription_issuance_and_delivery',
+      },
+    }), 'doctor', patientId)).rejects.toThrow('memed_patient_consent_required');
   });
 
   it('rejects QR guest dispatches without recorded LGPD consent', async () => {
