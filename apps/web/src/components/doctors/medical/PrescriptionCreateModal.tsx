@@ -9,6 +9,7 @@ import { X, Pill, Save, Loader2, ClipboardCheck, BookmarkPlus, Trash2 } from "lu
 import { ApiError } from "@/lib/api-client";
 import { requiresStrictPrescriptionValidation } from "@/lib/prescriptions/strict-validation";
 import { validateEventualPatientDetails } from "@/lib/prescriptions/eventual-patient";
+import { validCpf } from "@/lib/prescriptions/brazil/cpf";
 import { useRealPatients } from "@/hooks/doctors/useRealPatients";
 import type { Prescription, UUID } from "@/types/medical";
 
@@ -261,6 +262,9 @@ export function PrescriptionCreateModal({
   const [error, setError] = useState<string | null>(null);
   const requiresStrictValidation = requiresStrictPrescriptionValidation(form.medication_name);
   const normalizedPatientDocument = form.patient_document.replace(/\D/g, "");
+  const eventualPatientDocumentValid = doctorCareCountry === "BR"
+    ? validCpf(normalizedPatientDocument)
+    : /^\\d{7,8}$/.test(normalizedPatientDocument);
   const externalPatientDni = doctorCareCountry === 'BR' ? ''
     : normalizedPatientDocument.length === 11 ? '' : normalizedPatientDocument || form.patient_document.trim();
   const externalPatientCuil = doctorCareCountry === 'AR' && normalizedPatientDocument.length === 11
@@ -281,11 +285,11 @@ export function PrescriptionCreateModal({
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
   const handlePatientDocumentChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const digits = event.target.value.replace(/\\D/g, '').slice(0, doctorCareCountry === 'BR' ? 11 : 8);
+    const digits = event.target.value.replace(/\D/g, '').slice(0, doctorCareCountry === 'BR' ? 11 : 8);
     const formatted = doctorCareCountry === 'BR'
-      ? digits.replace(/^(\\d{3})(\\d)/, '$1.$2')
-        .replace(/^(\\d{3})\\.(\\d{3})(\\d)/, '$1.$2.$3')
-        .replace(/(\\d{3})(\\d{1,2})$/, '$1-$2')
+      ? digits.replace(/^(\d{3})(\d)/, '$1.$2')
+        .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+        .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
       : digits;
     setForm((current) => ({ ...current, patient_document: formatted }));
   };
@@ -742,9 +746,12 @@ export function PrescriptionCreateModal({
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div>
                         <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">{doctorCareCountry === "BR" ? "CPF" : "DNI"} <span className="text-red-500">*</span></label>
-                        <input type="text" inputMode="numeric" value={form.patient_document} onChange={handlePatientDocumentChange} placeholder={doctorCareCountry === "BR" ? "000.000.000-00" : "Documento"} autoComplete="off" required aria-invalid={doctorCareCountry === "BR" && normalizedPatientDocument.length > 0 && !validateEventualPatientDetails({ fullName: form.patient_name || "Paciente Demo", documentNumber: form.patient_document, birthDate: form.patient_birth_date || "1990-01-01", gender: form.patient_gender || "female", consentAccepted: true }, "BR") && false} className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" />
-                        {doctorCareCountry === "BR" && normalizedPatientDocument.length > 0 && normalizedPatientDocument.length < 11 && (
-                          <p className="mt-1 text-[11px] text-am-surface-500">Ingresá los 11 dígitos del CPF.</p>
+                        <input type="text" inputMode="numeric" value={form.patient_document} onChange={handlePatientDocumentChange} placeholder={doctorCareCountry === "BR" ? "000.000.000-00" : "Documento"} autoComplete="off" required aria-invalid={normalizedPatientDocument.length > 0 && !eventualPatientDocumentValid} className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" />
+                        {doctorCareCountry === "BR" && normalizedPatientDocument.length > 0 && !eventualPatientDocumentValid && (
+                          <p className="mt-1 text-[11px] text-rose-600">El CPF debe tener 11 dígitos y dígitos verificadores válidos.</p>
+                        )}
+                        {doctorCareCountry === "AR" && normalizedPatientDocument.length > 0 && !eventualPatientDocumentValid && (
+                          <p className="mt-1 text-[11px] text-rose-600">El DNI debe tener 7 u 8 dígitos.</p>
                         )}
                       </div>
                       <div>
