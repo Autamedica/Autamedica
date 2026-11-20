@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { badRequest, forbidden, internalError, notFound, jsonOk } from '@/lib/api-helpers';
+import { badRequest, forbidden, internalError, notFound, unauthorized, jsonOk } from '@/lib/api-helpers';
 import { isAuthed, withAuth } from '@/lib/api-auth';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { loadMedicalCertificateForDoctor } from '@/lib/doctors/services/medical-certificate-pdf-context.service';
@@ -13,7 +13,24 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
   const id = params.id;
   if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return badRequest('invalid_certificate_id');
   const auth = await withAuth(request, locals);
-  if (!isAuthed(auth)) return auth;
+  let authenticatedUserId = isAuthed(auth) ? auth.user.id : null;
+
+  // Native clients send their Supabase session as a bearer token; SSR cookie
+  // authentication remains the first choice for browser requests.
+  if (!authenticatedUserId) {
+    const bearerToken = /^Bearer\s+(\S+)$/i.exec(request.headers.get('authorization') ?? '')?.[1];
+    if (bearerToken) {
+      try {
+        const authAdmin = createAstroAdminClient(locals.runtime?.env);
+        const { data: userData, error: userError } = await authAdmin.auth.getUser(bearerToken);
+        if (!userError && userData.user) authenticatedUserId = userData.user.id;
+      } catch {
+        authenticatedUserId = null;
+      }
+    }
+  }
+  if (!authenticatedUserId) return auth instanceof Response ? auth : unauthorized();
+
   try {
     const admin = createAstroAdminClient(locals.runtime?.env);
     const { data: cert, error } = await admin.from('medical_certificates').select('*').eq('id', id).maybeSingle();
@@ -24,13 +41,13 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
       admin.from('patients').select('user_id').eq('id', cert.patient_id).maybeSingle(),
     ]);
     if (doctorError || patientError) throw doctorError || patientError;
-    const isDoctor = doctor?.user_id === auth.user.id && doctor?.active === true;
-    const isPatient = patient?.user_id === auth.user.id;
+    const isDoctor = doctor?.user_id === authenticatedUserId && doctor?.active === true;
+    const isPatient = patient?.user_id === authenticatedUserId;
     if (!isDoctor && !isPatient) return notFound();
     let pdf: Uint8Array;
     if (cert.status === 'draft') {
       if (!isDoctor) return notFound();
-      const record = await loadMedicalCertificateForDoctor(admin, id, auth.user.id);
+      const record = await loadMedicalCertificateForDoctor(admin, id, authenticatedUserId);
       if (!record) return notFound();
       pdf = generateMedicalCertificatePdf(record.pdfInput, 'draft');
     } else if (cert.status === 'signed') {

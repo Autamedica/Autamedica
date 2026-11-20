@@ -84,7 +84,7 @@ class InCallDocumentPolicyTest {
             startDate = "2026-11-04", daysOfRest = 2,
             createdAt = "2026-11-04T12:00:00Z",
         )
-        assertThat(draft.effectivePdfUrl).isNull()
+        assertThat(draft.effectivePdfStoragePath).isNull()
         assertThat(draft.effectiveQrContent).isEmpty()
     }
 
