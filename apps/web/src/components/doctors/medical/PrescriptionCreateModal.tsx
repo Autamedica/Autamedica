@@ -481,40 +481,59 @@ export function PrescriptionCreateModal({
       return;
     }
     if (!activePatientId && quickPatientMode !== "external") {
-      setError("Seleccioná un paciente de tu padrón o elegí Nuevo paciente.");
+      setError(`Seleccioná un paciente de tu padrón o elegí ${allowEventualPatientCreation ? "Nuevo paciente" : "Paciente sin cuenta"}.`);
       return;
     }
     if (!activePatientId && quickPatientMode === "external") {
-      if (!doctorCareCountry || !patientCountryConfirmed) {
-        setError("Confirmá el país de atención declarado por el paciente.");
-        return;
-      }
-      const eventualPatientError = validateEventualPatientDetails({
-        fullName: form.patient_name,
-        documentNumber: form.patient_document,
-        birthDate: form.patient_birth_date,
-        gender: form.patient_gender,
-        contact: form.patient_contact,
-        consentAccepted: patientConsentDeclared,
-      }, doctorCareCountry);
-      if (eventualPatientError) {
-        const messages: Record<string, string> = {
-          eventual_patient_name_invalid: "Ingresá el nombre y apellido completos.",
-          eventual_patient_cpf_invalid: "El CPF no es válido. Revisá sus 11 dígitos.",
-          eventual_patient_dni_invalid: "Ingresá un DNI argentino válido de 7 u 8 dígitos.",
-          eventual_patient_birth_date_invalid: "Ingresá una fecha de nacimiento válida.",
-          eventual_patient_gender_required: "Seleccioná el sexo del paciente.",
-          eventual_patient_contact_invalid: "Ingresá un email o teléfono válido.",
-          eventual_patient_consent_required: "Registrá la declaración de consentimiento informado.",
-        };
-        setError(messages[eventualPatientError] ?? "Revisá los datos del paciente.");
-        return;
+      if (allowEventualPatientCreation) {
+        if (!doctorCareCountry || !patientCountryConfirmed) {
+          setError("Confirmá el país de atención declarado por el paciente.");
+          return;
+        }
+        const eventualPatientError = validateEventualPatientDetails({
+          fullName: form.patient_name,
+          documentNumber: form.patient_document,
+          birthDate: form.patient_birth_date,
+          gender: form.patient_gender,
+          contact: form.patient_contact,
+          consentAccepted: patientConsentDeclared,
+        }, doctorCareCountry);
+        if (eventualPatientError) {
+          const messages: Record<string, string> = {
+            eventual_patient_name_invalid: "Ingresá el nombre y apellido completos.",
+            eventual_patient_cpf_invalid: "El CPF no es válido. Revisá sus 11 dígitos.",
+            eventual_patient_dni_invalid: "Ingresá un DNI argentino válido de 7 u 8 dígitos.",
+            eventual_patient_birth_date_invalid: "Ingresá una fecha de nacimiento válida.",
+            eventual_patient_gender_required: "Seleccioná el sexo del paciente.",
+            eventual_patient_contact_invalid: "Ingresá un email o teléfono válido.",
+            eventual_patient_consent_required: "Registrá la declaración de consentimiento informado.",
+          };
+          setError(messages[eventualPatientError] ?? "Revisá los datos del paciente.");
+          return;
+        }
+      } else {
+        if (!doctorCareCountry || !patientCountryConfirmed) {
+          setError("Confirmá con el paciente el país donde recibirá atención antes de guardar.");
+          return;
+        }
+        if (!form.patient_name.trim()) {
+          setError("El nombre del paciente es requerido");
+          return;
+        }
+        if (!form.patient_document.trim()) {
+          setError("Informá DNI o CUIL del paciente");
+          return;
+        }
+        if (!form.patient_address.trim()) {
+          setError("El domicilio del paciente es requerido");
+          return;
+        }
       }
     }
 
     let keepDeliveryPanelOpen = false;
     let patientIdForPrescription = activePatientId;
-    if (!isEditing && !patientIdForPrescription && quickPatientMode === "external") {
+    if (allowEventualPatientCreation && !isEditing && !patientIdForPrescription && quickPatientMode === "external") {
       setSaving(true);
       setError(null);
       try {
@@ -618,7 +637,7 @@ export function PrescriptionCreateModal({
           }
           phase = "issue";
           const issuance = await issuePrescription(createdId as UUID);
-          if (quickPatientMode === "external" && issuance) {
+          if (allowEventualPatientCreation && quickPatientMode === "external" && issuance) {
             const artifact = issuance.signedPdfUrl
               || (issuance.cuir ? `/verify/${encodeURIComponent(issuance.cuir)}` : null);
             if (artifact) {
@@ -698,7 +717,7 @@ export function PrescriptionCreateModal({
                   aria-pressed={quickPatientMode === "external"}
                   className={`min-h-11 rounded-xl border px-3 py-2 text-xs font-semibold transition ${quickPatientMode === "external" ? "border-sky-600 bg-sky-600 text-white" : "border-am-surface-200 bg-white text-am-surface-700 hover:border-sky-300"}`}
                 >
-                  Nuevo paciente
+                  {allowEventualPatientCreation ? "Nuevo paciente" : "Paciente sin cuenta"}
                 </button>
               </div>
 
@@ -753,7 +772,9 @@ export function PrescriptionCreateModal({
               )}
 
               {quickPatientMode === "external" && (
-                <>
+                allowEventualPatientCreation ? (
+                  <>
+
                   <div className="space-y-3">
                     <div>
                       <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">Nombre completo <span className="text-red-500">*</span></label>
@@ -800,8 +821,37 @@ export function PrescriptionCreateModal({
                     <input type="checkbox" checked={patientConsentDeclared} onChange={(event) => setPatientConsentDeclared(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-sky-500" required />
                     <span>Declaro que el paciente recibió información y prestó su consentimiento para registrar su identidad clínica y emitir y entregar recetas digitales.</span>
                   </label>
-                </>
-              )}
+                  </>
+                ) : (
+                  <>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">Nombre completo <span className="text-red-500">*</span></label>
+                      <input type="text" value={form.patient_name} onChange={set("patient_name")} placeholder="Nombre y apellido" autoComplete="name" className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500" />
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">{doctorCareCountry === "BR" ? "CPF" : "DNI o CUIL"} <span className="text-red-500">*</span></label>
+                        <input type="text" inputMode="numeric" value={form.patient_document} onChange={set("patient_document")} placeholder={doctorCareCountry === "BR" ? "CPF (11 dígitos)" : "Documento"} className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500" />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">Contacto</label>
+                        <input type="text" value={form.patient_contact} onChange={set("patient_contact")} placeholder="Email o WhatsApp" autoComplete="email" className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold text-am-surface-700">Domicilio <span className="text-red-500">*</span></label>
+                      <input type="text" value={form.patient_address} onChange={set("patient_address")} placeholder="Calle, número, localidad" autoComplete="street-address" className="min-h-11 w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500" />
+                    </div>
+                  </div>
+                  <label className="mt-3 flex min-h-11 items-start gap-2 rounded-lg bg-white p-3 text-xs leading-relaxed text-am-surface-700">
+                    <input type="checkbox" checked={patientCountryConfirmed} onChange={(event) => setPatientCountryConfirmed(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0" required />
+                    <span>Confirmo que el paciente declaró que recibirá atención médica en{doctorCareCountry === "BR" ? " Brasil" : " Argentina"}. Esta elección define el proveedor de recetas y no su nacionalidad.</span>
+                  </label>
+                  </>
+                )
+              )}}
             </section>
           )}
 
