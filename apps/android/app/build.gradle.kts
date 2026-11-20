@@ -174,6 +174,11 @@ android {
         compose = true
         buildConfig = true
     }
+
+    // CI generates this baseline from the target branch so lint blocks only new findings.
+    lint {
+        baseline = file("lint-baseline.xml")
+    }
 }
 
 kotlin {
