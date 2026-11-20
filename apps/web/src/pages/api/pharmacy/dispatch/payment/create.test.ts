@@ -62,6 +62,8 @@ function buildChain(data: unknown, error: unknown = null) {
   return chain
 }
 
+let mainPaymentInsertChain: ReturnType<typeof buildChain> | null = null
+
 function makeContext(): Parameters<typeof POST>[0] {
   return {
     request: new Request('https://autamedica.test/api/pharmacy/dispatch/payment/create', {
@@ -92,9 +94,12 @@ describe('API: /api/pharmacy/dispatch/payment/create pay-first', () => {
       tier_requested: 'general',
       status: 'searching',
     })
+    const paymentInsert = buildChain({ id: 'payment-1' })
+    mainPaymentInsertChain = paymentInsert
     const chains = [
       buildChain({
         referral_partner_id: 'partner-jordan',
+        referral_source_code: 'SANTANA_DO_LIVRAMENTO_01',
         commercial_referral_partners: { code: 'JORDAN', active: true },
       }),
       buildChain({ country_code: 'BR', currency: 'BRL', consultation_price_minor: 7900, doctor_fee_minor: 4000, partner_commission_minor: 1000, require_payment_before_dispatch: true }),
@@ -106,7 +111,7 @@ describe('API: /api/pharmacy/dispatch/payment/create pay-first', () => {
         { scope_key: 'EXPRESS', commercial_status: 'enabled', financial_status: 'ready' },
         { scope_key: 'JORDAN', commercial_status: 'enabled', financial_status: 'ready' },
       ]),
-      buildChain({ id: 'payment-1' }),
+      paymentInsert,
       buildChain({ id: 'payment-1' }),
     ]
     supabaseMock.from.mockImplementation(() => {
@@ -141,6 +146,14 @@ describe('API: /api/pharmacy/dispatch/payment/create pay-first', () => {
       }),
     )
     expect(supabaseMock.from).toHaveBeenCalledTimes(8)
+    expect(mainPaymentInsertChain?.insert).toHaveBeenCalledWith(expect.objectContaining({
+      dispatch_request_id: 'dispatch-1',
+      referral_source_code: 'SANTANA_DO_LIVRAMENTO_01',
+      metadata: expect.objectContaining({
+        referral_source_code: 'SANTANA_DO_LIVRAMENTO_01',
+        referral_partner_code: 'JORDAN',
+      }),
+    }))
     expect(fetch).toHaveBeenCalledTimes(1)
   })
 
