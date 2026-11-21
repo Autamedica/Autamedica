@@ -3,7 +3,13 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { validCpf } from '@/lib/prescriptions/brazil/cpf';
 export { validCpf } from '@/lib/prescriptions/brazil/cpf';
 
-const CONTROL_CHARS = /[\u0000-\u001F\u007F]/;
+function hasControlChars(value: string): boolean {
+  for (let i = 0; i < value.length; i += 1) {
+    const code = value.charCodeAt(i);
+    if (code < 0x20 || code === 0x7f) return true;
+  }
+  return false;
+}
 const ADDRESS_CITY_SEPARATOR = ' — ';
 
 export function validBirthDate(value: string): boolean {
@@ -19,12 +25,12 @@ export function normalizePatientText(value: unknown): string {
 
 export function validPatientAddress(value: string): boolean {
   const normalized = normalizePatientText(value);
-  return normalized.length >= 5 && normalized.length <= 200 && !CONTROL_CHARS.test(normalized);
+  return normalized.length >= 5 && normalized.length <= 200 && !hasControlChars(normalized);
 }
 
 export function validPatientCity(value: string): boolean {
   const normalized = normalizePatientText(value);
-  return normalized.length >= 2 && normalized.length <= 100 && !CONTROL_CHARS.test(normalized);
+  return normalized.length >= 2 && normalized.length <= 100 && !hasControlChars(normalized);
 }
 
 export function formatStoredPatientAddress(address: string, city?: string): string {
@@ -35,7 +41,7 @@ export function formatStoredPatientAddress(address: string, city?: string): stri
 
 export function parseStoredPatientAddress(raw: unknown): { endereco?: string; cidade?: string } {
   const normalized = normalizePatientText(raw);
-  if (normalized.length < 5 || normalized.length > 320 || CONTROL_CHARS.test(normalized)) {
+  if (normalized.length < 5 || normalized.length > 320 || hasControlChars(normalized)) {
     return {};
   }
   const sepIndex = normalized.indexOf(ADDRESS_CITY_SEPARATOR);
