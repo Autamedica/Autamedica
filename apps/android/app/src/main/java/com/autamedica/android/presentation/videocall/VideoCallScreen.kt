@@ -40,8 +40,14 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FlashOff
+import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.IconButton
+import com.autamedica.android.presentation.videocall.webrtc.LightingAlert
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -285,7 +291,10 @@ fun VideoCallScreen(
                     videoTrack = localTrack,
                     eglContext = viewModel.eglContext,
                     modifier = Modifier.fillMaxSize(),
-                    mirror = true,
+                    mirror = uiState.isFrontCamera,
+                    currentZoomRatio = uiState.cameraZoomRatio,
+                    onTapToFocus = viewModel::focusCameraAt,
+                    onZoomChange = viewModel::setCameraZoom,
                 )
             } else {
                 Box(
@@ -373,7 +382,10 @@ fun VideoCallScreen(
                     videoTrack = localTrack,
                     eglContext = viewModel.eglContext,
                     modifier = Modifier.fillMaxSize(),
-                    mirror = true,
+                    mirror = uiState.isFrontCamera,
+                    currentZoomRatio = uiState.cameraZoomRatio,
+                    onTapToFocus = viewModel::focusCameraAt,
+                    onZoomChange = viewModel::setCameraZoom,
                 )
             } else {
                 val isOnDemandRoom = roomId.startsWith("cf-room") || uiState.activeCallId?.startsWith("cf-room") == true
@@ -428,6 +440,49 @@ fun VideoCallScreen(
                     )
                 }
 
+                if (uiState.lightingAlert != LightingAlert.NONE && uiState.isVideoEnabled) {
+                    val lightingText = when (uiState.lightingAlert) {
+                        LightingAlert.LOW_LIGHT -> "Poca luz detectada • Compensación automática activa"
+                        LightingAlert.BACKLIGHT -> "Contraluz intenso • Ubica la fuente de luz frente a ti"
+                        LightingAlert.NONE -> ""
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = Color(0xD90F172A),
+                        border = BorderStroke(1.dp, Color(0x6638BDF8)),
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .statusBarsPadding()
+                            .padding(top = 60.dp, start = 16.dp, end = 16.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                text = lightingText,
+                                color = Color(0xFFE0F2FE),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                            )
+                            if (!uiState.isFrontCamera) {
+                                TextButton(
+                                    onClick = viewModel::toggleTorch,
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                ) {
+                                    Text(
+                                        text = if (uiState.isTorchEnabled) "Apagar flash" else "Flash",
+                                        color = Color(0xFF38BDF8),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 if (uiState.isAutoDegradedToAudio) {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
@@ -462,7 +517,7 @@ fun VideoCallScreen(
                 // Local PiP: doctor sube el padding para dejar espacio a la guía clínica.
                 // No mostrar PiP duplicado si el médico ya está viendo su cámara en pantalla completa.
                 if (!isDoctorTestingCamera) {
-                    val pipBottomPadding = if (uiState.isDoctor) 320.dp else 96.dp
+                    val pipBottomPadding = if (uiState.isDoctor) 256.dp else 96.dp
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
@@ -477,7 +532,10 @@ fun VideoCallScreen(
                             videoTrack = localTrack,
                             eglContext = viewModel.eglContext,
                             modifier = Modifier.fillMaxSize(),
-                            mirror = true,
+                            mirror = uiState.isFrontCamera,
+                            currentZoomRatio = uiState.cameraZoomRatio,
+                            onTapToFocus = viewModel::focusCameraAt,
+                            onZoomChange = viewModel::setCameraZoom,
                         )
                     } else {
                         Box(
@@ -501,6 +559,47 @@ fun VideoCallScreen(
                         modifier = Modifier.fillMaxSize(),
                     ) {}
 
+                    // Top-right Quick Camera Rotate & Rear Torch buttons on PiP
+                    if (uiState.isVideoEnabled) {
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            if (!uiState.isFrontCamera) {
+                                IconButton(
+                                    onClick = viewModel::toggleTorch,
+                                    modifier = Modifier
+                                        .size(26.dp)
+                                        .clip(CircleShape)
+                                        .background(if (uiState.isTorchEnabled) Color(0xCC0284C7) else Color(0x99000000)),
+                                ) {
+                                    Icon(
+                                        imageVector = if (uiState.isTorchEnabled) Icons.Filled.FlashOn else Icons.Filled.FlashOff,
+                                        contentDescription = "Linterna",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(14.dp),
+                                    )
+                                }
+                            }
+                            IconButton(
+                                onClick = viewModel::switchCamera,
+                                modifier = Modifier
+                                    .size(26.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0x99000000)),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Refresh,
+                                    contentDescription = stringResource(R.string.videocall_switch_camera),
+                                    tint = Color.White,
+                                    modifier = Modifier.size(14.dp),
+                                )
+                            }
+                        }
+                    }
+
                     // Bottom-left "TÚ" Pill
                     Surface(
                         shape = RoundedCornerShape(6.dp),
@@ -510,7 +609,11 @@ fun VideoCallScreen(
                             .padding(6.dp),
                     ) {
                         Text(
-                            text = stringResource(R.string.video_self_label),
+                            text = if (uiState.cameraZoomRatio > 1.05f) {
+                                "${stringResource(R.string.video_self_label)} ${String.format("%.1fx", uiState.cameraZoomRatio)}"
+                            } else {
+                                stringResource(R.string.video_self_label)
+                            },
                             color = Color.White,
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
@@ -581,6 +684,8 @@ fun VideoCallScreen(
                             onEmitCertificate = {
                                 clinicalSheetMode = InCallClinicalMode.CERTIFICATE
                             },
+                            patientQuickFacts = uiState.patientQuickFacts,
+                            countryCode = uiState.patientCareCountryCode ?: uiState.doctorCountryCode,
                         )
                     }
                 }
@@ -630,6 +735,9 @@ fun VideoCallScreen(
             onToggleSpeaker = viewModel::toggleSpeaker,
             onSwitchCamera = viewModel::switchCamera,
             onDismiss = viewModel::closeActionsOverflow,
+            isFrontCamera = uiState.isFrontCamera,
+            isTorchEnabled = uiState.isTorchEnabled,
+            onToggleTorch = viewModel::toggleTorch,
         )
     }
 
