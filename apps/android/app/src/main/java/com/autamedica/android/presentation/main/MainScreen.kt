@@ -69,6 +69,7 @@ import com.autamedica.android.presentation.appointments.AppointmentsScreen
 import com.autamedica.android.presentation.consultation.PatientConsultTabScreen
 import com.autamedica.android.presentation.dashboard.DashboardScreen
 import com.autamedica.android.presentation.dashboard.DoctorDashboardScreen
+import com.autamedica.android.presentation.doctors.prescriptions.DoctorDocumentsTabScreen
 import com.autamedica.android.presentation.patients.PatientsScreen
 import com.autamedica.android.presentation.profile.PatientProfileScreen
 import com.autamedica.android.presentation.profile.ProfileScreen
@@ -102,10 +103,7 @@ import com.autamedica.android.presentation.patients.community.PatientCommunitySc
 import com.autamedica.android.presentation.prescriptions.PrescriptionsScreen
 import com.autamedica.android.presentation.health.HealthReserveDetailScreen
 
-private data class TabItem(
-    val labelRes: Int,
-    val iconRes: Int,
-)
+
 
 private data class PatientTabItem(
     val labelRes: Int,
@@ -121,13 +119,12 @@ private val patientTabs = listOf(
     PatientTabItem(R.string.nav_patient_profile, Icons.Filled.Person, Icons.Outlined.Person),
 )
 
-// Doctor tabs
+// Clean 4-tab Doctor Bottom Navigation (Inicio · Recetas · Pacientes · Perfil)
 private val doctorTabs = listOf(
-    TabItem(R.string.doctor_tab_home, R.drawable.ic_home_outline),
-    TabItem(R.string.doctor_tab_messages, R.drawable.ic_chat_outline),
-    TabItem(R.string.doctor_tab_appointments, R.drawable.ic_calendar_outline),
-    TabItem(R.string.doctor_tab_patients, R.drawable.ic_medical_cross_outline),
-    TabItem(R.string.doctor_tab_profile, R.drawable.ic_profile_outline),
+    PatientTabItem(R.string.doctor_tab_home, Icons.Filled.Home, Icons.Outlined.Home),
+    PatientTabItem(R.string.doctor_tab_prescriptions, Icons.Filled.Description, Icons.Outlined.Description),
+    PatientTabItem(R.string.doctor_tab_patients, Icons.Filled.Groups, Icons.Outlined.Groups),
+    PatientTabItem(R.string.doctor_tab_profile, Icons.Filled.Person, Icons.Outlined.Person),
 )
 
 @Composable
@@ -152,6 +149,10 @@ fun MainScreen(
     onNavigateToDoctorPrescriptions: () -> Unit = {},
     onNavigateToDoctorCertificates: () -> Unit = {},
     onNavigateToDoctorMedicalOrders: () -> Unit = {},
+    onNavigateToDoctorAgenda: () -> Unit = {},
+    onNavigateToCreatePrescription: () -> Unit = onNavigateToDoctorPrescriptions,
+    onNavigateToCreateCertificate: () -> Unit = onNavigateToDoctorCertificates,
+    onNavigateToCreateMedicalOrder: () -> Unit = onNavigateToDoctorMedicalOrders,
     onNavigateToDoctorOnDemand: () -> Unit = {},
     onNavigateToPatientProfile: () -> Unit = {},
     onNavigateToPharmacyIntake: () -> Unit = {},
@@ -161,6 +162,7 @@ fun MainScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by rememberSaveable { mutableIntStateOf(PatientBottomNavPolicy.TAB_HOME) }
     var consultSegment by rememberSaveable { mutableStateOf(PatientConsultSegment.IMMEDIATE) }
+    var doctorDocSegment by rememberSaveable { mutableStateOf(DoctorDocumentSegment.PRESCRIPTIONS) }
     var showHealthReserveDetail by rememberSaveable { mutableStateOf(false) }
     var reserveSubscriptionTier by rememberSaveable { mutableStateOf("free") }
     var reserveBalanceCredits by rememberSaveable { mutableIntStateOf(0) }
@@ -228,8 +230,10 @@ fun MainScreen(
             }
         }
     } else {
-        BackHandler(enabled = selectedTab != 0) {
-            selectedTab = 0
+        BackHandler(enabled = selectedTab != DoctorBottomNavPolicy.TAB_HOME) {
+            DoctorBottomNavPolicy.backTargetTab(selectedTab)?.let { target ->
+                selectedTab = target
+            }
         }
     }
 
@@ -255,9 +259,9 @@ fun MainScreen(
                                 onClick = { selectedTab = index },
                                 icon = {
                                     Icon(
-                                        painter = painterResource(id = tab.iconRes),
+                                        imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
                                         contentDescription = stringResource(tab.labelRes),
-                                        modifier = Modifier.size(24.dp),
+                                        modifier = Modifier.size(23.dp),
                                     )
                                 },
                                 label = {
@@ -268,7 +272,7 @@ fun MainScreen(
                                         softWrap = false,
                                         textAlign = TextAlign.Center,
                                         overflow = TextOverflow.Ellipsis,
-                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     )
                                 },
                                 colors = NavigationBarItemDefaults.colors(
@@ -326,29 +330,41 @@ fun MainScreen(
     ) { contentPadding ->
         Box(modifier = Modifier.padding(bottom = contentPadding.calculateBottomPadding())) {
             if (isDoctor) {
-                // Doctor experience
-                when (selectedTab) {
-                    0 -> DoctorDashboardScreen(
+                // Doctor experience (4 tabs: Inicio · Recetas · Pacientes · Perfil)
+                when (DoctorBottomNavPolicy.clampTab(selectedTab)) {
+                    DoctorBottomNavPolicy.TAB_HOME -> DoctorDashboardScreen(
                         onNavigateToVideoCall = onNavigateToVideoCall,
-                        onNavigateToTab = { selectedTab = it },
+                        onNavigateToTab = { target ->
+                            selectedTab = DoctorBottomNavPolicy.clampTab(target)
+                        },
                         onNavigateToDoctorSignature = onNavigateToDoctorSignature,
-                        onNavigateToDoctorPrescriptions = onNavigateToDoctorPrescriptions,
-                        onNavigateToDoctorCertificates = onNavigateToDoctorCertificates,
-                        onNavigateToDoctorMedicalOrders = onNavigateToDoctorMedicalOrders,
+                        onNavigateToDoctorPrescriptions = {
+                            doctorDocSegment = DoctorDocumentSegment.PRESCRIPTIONS
+                            selectedTab = DoctorBottomNavPolicy.TAB_PRESCRIPTIONS
+                        },
+                        onNavigateToDoctorCertificates = {
+                            doctorDocSegment = DoctorDocumentSegment.CERTIFICATES
+                            selectedTab = DoctorBottomNavPolicy.TAB_PRESCRIPTIONS
+                        },
+                        onNavigateToDoctorMedicalOrders = {
+                            doctorDocSegment = DoctorDocumentSegment.ORDERS
+                            selectedTab = DoctorBottomNavPolicy.TAB_PRESCRIPTIONS
+                        },
                         onNavigateToDoctorOnDemand = onNavigateToDoctorOnDemand,
+                        onNavigateToDoctorAgenda = onNavigateToDoctorAgenda,
+                        onNavigateToDoctorMessages = onNavigateToChatList,
                     )
-                    1 -> com.autamedica.android.presentation.chat.ChatListScreen(
-                        onNavigateToConversation = onNavigateToChatConversation,
-                        isDoctor = true,
-                        onNavigateToPatients = { selectedTab = 3 },
+                    DoctorBottomNavPolicy.TAB_PRESCRIPTIONS -> DoctorDocumentsTabScreen(
+                        selectedSegment = doctorDocSegment,
+                        onSelectSegment = { doctorDocSegment = it },
+                        onNavigateToCreatePrescription = onNavigateToCreatePrescription,
+                        onNavigateToCreateCertificate = onNavigateToCreateCertificate,
+                        onNavigateToCreateOrder = onNavigateToCreateMedicalOrder,
                     )
-                    2 -> AppointmentsScreen(
-                        onNavigateToVideoCall = onNavigateToVideoCall,
-                    )
-                    3 -> PatientsScreen(
+                    DoctorBottomNavPolicy.TAB_PATIENTS -> PatientsScreen(
                         onNavigateToPatientDetail = onNavigateToPatientDetail,
                     )
-                    4 -> ProfileScreen(
+                    DoctorBottomNavPolicy.TAB_PROFILE -> ProfileScreen(
                         onLogout = viewModel::logout,
                         onNavigateToDoctorSignature = onNavigateToDoctorSignature,
                     )

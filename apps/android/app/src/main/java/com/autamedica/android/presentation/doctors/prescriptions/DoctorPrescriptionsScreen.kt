@@ -54,6 +54,7 @@ fun DoctorPrescriptionsScreen(
     onBack: () -> Unit,
     onNavigateToCreatePrescription: () -> Unit,
     modifier: Modifier = Modifier,
+    showBackButton: Boolean = true,
     viewModel: DoctorPrescriptionsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -108,12 +109,14 @@ fun DoctorPrescriptionsScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.doctor_rx_action_back),
-                            tint = AuTextPrimary,
-                        )
+                    if (showBackButton) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.doctor_rx_action_back),
+                                tint = AuTextPrimary,
+                            )
+                        }
                     }
                 },
                 actions = {
@@ -131,7 +134,7 @@ fun DoctorPrescriptionsScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onNavigateToCreatePrescription,
-                containerColor = PortalDoctorsAction,
+                containerColor = PortalPatientsAction,
                 contentColor = Color.White,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text(stringResource(R.string.doctor_rx_action_new), fontWeight = FontWeight.SemiBold) },

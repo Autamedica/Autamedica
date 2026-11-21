@@ -53,6 +53,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Videocam
@@ -140,8 +141,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private const val DOCTOR_TAB_APPOINTMENTS = 2
-private const val DOCTOR_TAB_PATIENTS = 3
+private const val DOCTOR_TAB_PATIENTS = 2
 
 // =============================================================================
 // DESIGN TOKENS "AUTAMEDICA OS v2 — UBER DRIVER PARA TELEMEDICINA" (MATERIAL 3)
@@ -190,6 +190,8 @@ fun DoctorDashboardScreen(
     onNavigateToDoctorCertificates: () -> Unit = {},
     onNavigateToDoctorMedicalOrders: () -> Unit = {},
     onNavigateToDoctorOnDemand: () -> Unit = {},
+    onNavigateToDoctorAgenda: () -> Unit = {},
+    onNavigateToDoctorMessages: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: DoctorDashboardViewModel = hiltViewModel(),
 ) {
@@ -247,7 +249,7 @@ fun DoctorDashboardScreen(
                         Surface(
                             shape = RoundedCornerShape(10.dp),
                             color = SoftBlueBg,
-                            modifier = Modifier.padding(end = 12.dp),
+                            modifier = Modifier.padding(end = 4.dp),
                         ) {
                             Text(
                                 text = formatDoctorSpecialty(doctorProfile.specialty, stringResource(R.string.doctor_specialty_general)),
@@ -257,6 +259,20 @@ fun DoctorDashboardScreen(
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                             )
                         }
+                    }
+                    IconButton(onClick = onNavigateToDoctorAgenda) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = stringResource(R.string.doctor_header_agenda_cd),
+                            tint = com.autamedica.android.presentation.theme.PortalPatientsAction,
+                        )
+                    }
+                    IconButton(onClick = onNavigateToDoctorMessages) {
+                        Icon(
+                            imageVector = Icons.Outlined.Email,
+                            contentDescription = stringResource(R.string.doctor_header_messages_cd),
+                            tint = com.autamedica.android.presentation.theme.PortalPatientsAction,
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -456,8 +472,8 @@ fun DoctorDashboardScreen(
                                 joinableAppointmentIds = uiState.joinableAppointmentIds,
                                 patientsMap = uiState.patientsMap,
                                 onJoinCall = onNavigateToVideoCall,
-                                onViewAll = { onNavigateToTab(DOCTOR_TAB_APPOINTMENTS) },
-                                onNavigateToCreateAppointment = { onNavigateToTab(DOCTOR_TAB_APPOINTMENTS) },
+                                onViewAll = onNavigateToDoctorAgenda,
+                                onNavigateToCreateAppointment = onNavigateToDoctorAgenda,
                             )
                         }
                     }
