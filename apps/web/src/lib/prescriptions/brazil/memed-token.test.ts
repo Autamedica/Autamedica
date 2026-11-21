@@ -131,4 +131,35 @@ describe('Memed token boundary', () => {
     expect(response.headers.get('Cache-Control')).toContain('no-store');
     expect((await response.json()).data.patient.idExterno).toBe('authorized-patient');
   });
+
+  it('flags patientAddressMissing when resolved Memed patient has no address and accepts address updates', async () => {
+    const missingRes = await POST(context({ patientId: 'patient' }));
+    expect(missingRes.status).toBe(200);
+    expect((await missingRes.json()).data.patientAddressMissing).toBe(true);
+
+    mocks.patient.mockResolvedValue({
+      idExterno: 'authorized-patient',
+      cpf: '52998224725',
+      endereco: 'Av. Paulista, 1000, Bela Vista',
+      cidade: 'São Paulo - SP',
+    });
+    const res = await POST(context({
+      patientId: 'patient',
+      patientAddress: 'Av. Paulista, 1000, Bela Vista',
+      patientCity: 'São Paulo - SP',
+    }));
+    expect(res.status).toBe(200);
+    expect(mocks.patient).toHaveBeenLastCalledWith(
+      expect.anything(),
+      'doctor',
+      'patient',
+      { address: 'Av. Paulista, 1000, Bela Vista', city: 'São Paulo - SP' },
+    );
+    expect((await res.json()).data.patientAddressMissing).toBe(false);
+  });
+
+  it('rejects invalid patientAddress or city without patientAddress', async () => {
+    expect((await POST(context({ patientId: 'patient', patientAddress: '123' }))).status).toBe(400);
+    expect((await POST(context({ patientId: 'patient', patientCity: 'São Paulo - SP' }))).status).toBe(400);
+  });
 });
