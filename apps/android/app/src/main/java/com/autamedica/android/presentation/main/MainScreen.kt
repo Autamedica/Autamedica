@@ -163,6 +163,7 @@ fun MainScreen(
     var selectedTab by rememberSaveable { mutableIntStateOf(PatientBottomNavPolicy.TAB_HOME) }
     var consultSegment by rememberSaveable { mutableStateOf(PatientConsultSegment.IMMEDIATE) }
     var doctorDocSegment by rememberSaveable { mutableStateOf(DoctorDocumentSegment.PRESCRIPTIONS) }
+    var showDoctorMessages by rememberSaveable { mutableStateOf(false) }
     var showHealthReserveDetail by rememberSaveable { mutableStateOf(false) }
     var reserveSubscriptionTier by rememberSaveable { mutableStateOf("free") }
     var reserveBalanceCredits by rememberSaveable { mutableIntStateOf(0) }
@@ -230,9 +231,13 @@ fun MainScreen(
             }
         }
     } else {
-        BackHandler(enabled = selectedTab != DoctorBottomNavPolicy.TAB_HOME) {
-            DoctorBottomNavPolicy.backTargetTab(selectedTab)?.let { target ->
-                selectedTab = target
+        BackHandler(enabled = showDoctorMessages || selectedTab != DoctorBottomNavPolicy.TAB_HOME) {
+            if (showDoctorMessages) {
+                showDoctorMessages = false
+            } else {
+                DoctorBottomNavPolicy.backTargetTab(selectedTab)?.let { target ->
+                    selectedTab = target
+                }
             }
         }
     }
@@ -253,10 +258,13 @@ fun MainScreen(
                 ) {
                     if (isDoctor) {
                         doctorTabs.forEachIndexed { index, tab ->
-                            val isSelected = selectedTab == index
+                            val isSelected = !showDoctorMessages && selectedTab == index
                             NavigationBarItem(
                                 selected = isSelected,
-                                onClick = { selectedTab = index },
+                                onClick = {
+                                    showDoctorMessages = false
+                                    selectedTab = index
+                                },
                                 icon = {
                                     Icon(
                                         imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
@@ -331,43 +339,55 @@ fun MainScreen(
         Box(modifier = Modifier.padding(bottom = contentPadding.calculateBottomPadding())) {
             if (isDoctor) {
                 // Doctor experience (4 tabs: Inicio · Recetas · Pacientes · Perfil)
-                when (DoctorBottomNavPolicy.clampTab(selectedTab)) {
-                    DoctorBottomNavPolicy.TAB_HOME -> DoctorDashboardScreen(
-                        onNavigateToVideoCall = onNavigateToVideoCall,
-                        onNavigateToTab = { target ->
-                            selectedTab = DoctorBottomNavPolicy.clampTab(target)
+                if (showDoctorMessages) {
+                    // Preserve doctor-role inbox contract (onNavigateToPatients = { selectedTab = 3 } -> TAB_PATIENTS)
+                    com.autamedica.android.presentation.chat.ChatListScreen(
+                        onNavigateToConversation = onNavigateToChatConversation,
+                        isDoctor = true,
+                        onNavigateToPatients = {
+                            showDoctorMessages = false
+                            selectedTab = DoctorBottomNavPolicy.TAB_PATIENTS
                         },
-                        onNavigateToDoctorSignature = onNavigateToDoctorSignature,
-                        onNavigateToDoctorPrescriptions = {
-                            doctorDocSegment = DoctorDocumentSegment.PRESCRIPTIONS
-                            selectedTab = DoctorBottomNavPolicy.TAB_PRESCRIPTIONS
-                        },
-                        onNavigateToDoctorCertificates = {
-                            doctorDocSegment = DoctorDocumentSegment.CERTIFICATES
-                            selectedTab = DoctorBottomNavPolicy.TAB_PRESCRIPTIONS
-                        },
-                        onNavigateToDoctorMedicalOrders = {
-                            doctorDocSegment = DoctorDocumentSegment.ORDERS
-                            selectedTab = DoctorBottomNavPolicy.TAB_PRESCRIPTIONS
-                        },
-                        onNavigateToDoctorOnDemand = onNavigateToDoctorOnDemand,
-                        onNavigateToDoctorAgenda = onNavigateToDoctorAgenda,
-                        onNavigateToDoctorMessages = onNavigateToChatList,
                     )
-                    DoctorBottomNavPolicy.TAB_PRESCRIPTIONS -> DoctorDocumentsTabScreen(
-                        selectedSegment = doctorDocSegment,
-                        onSelectSegment = { doctorDocSegment = it },
-                        onNavigateToCreatePrescription = onNavigateToCreatePrescription,
-                        onNavigateToCreateCertificate = onNavigateToCreateCertificate,
-                        onNavigateToCreateOrder = onNavigateToCreateMedicalOrder,
-                    )
-                    DoctorBottomNavPolicy.TAB_PATIENTS -> PatientsScreen(
-                        onNavigateToPatientDetail = onNavigateToPatientDetail,
-                    )
-                    DoctorBottomNavPolicy.TAB_PROFILE -> ProfileScreen(
-                        onLogout = viewModel::logout,
-                        onNavigateToDoctorSignature = onNavigateToDoctorSignature,
-                    )
+                } else {
+                    when (DoctorBottomNavPolicy.clampTab(selectedTab)) {
+                        DoctorBottomNavPolicy.TAB_HOME -> DoctorDashboardScreen(
+                            onNavigateToVideoCall = onNavigateToVideoCall,
+                            onNavigateToTab = { target ->
+                                selectedTab = DoctorBottomNavPolicy.clampTab(target)
+                            },
+                            onNavigateToDoctorSignature = onNavigateToDoctorSignature,
+                            onNavigateToDoctorPrescriptions = {
+                                doctorDocSegment = DoctorDocumentSegment.PRESCRIPTIONS
+                                selectedTab = DoctorBottomNavPolicy.TAB_PRESCRIPTIONS
+                            },
+                            onNavigateToDoctorCertificates = {
+                                doctorDocSegment = DoctorDocumentSegment.CERTIFICATES
+                                selectedTab = DoctorBottomNavPolicy.TAB_PRESCRIPTIONS
+                            },
+                            onNavigateToDoctorMedicalOrders = {
+                                doctorDocSegment = DoctorDocumentSegment.ORDERS
+                                selectedTab = DoctorBottomNavPolicy.TAB_PRESCRIPTIONS
+                            },
+                            onNavigateToDoctorOnDemand = onNavigateToDoctorOnDemand,
+                            onNavigateToDoctorAgenda = onNavigateToDoctorAgenda,
+                            onNavigateToDoctorMessages = { showDoctorMessages = true },
+                        )
+                        DoctorBottomNavPolicy.TAB_PRESCRIPTIONS -> DoctorDocumentsTabScreen(
+                            selectedSegment = doctorDocSegment,
+                            onSelectSegment = { doctorDocSegment = it },
+                            onNavigateToCreatePrescription = onNavigateToCreatePrescription,
+                            onNavigateToCreateCertificate = onNavigateToCreateCertificate,
+                            onNavigateToCreateOrder = onNavigateToCreateMedicalOrder,
+                        )
+                        DoctorBottomNavPolicy.TAB_PATIENTS -> PatientsScreen(
+                            onNavigateToPatientDetail = onNavigateToPatientDetail,
+                        )
+                        DoctorBottomNavPolicy.TAB_PROFILE -> ProfileScreen(
+                            onLogout = viewModel::logout,
+                            onNavigateToDoctorSignature = onNavigateToDoctorSignature,
+                        )
+                    }
                 }
             } else {
                 // Patient experience matching Web/iOS bottom navigation
