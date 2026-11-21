@@ -767,23 +767,29 @@ class VideoCallViewModel @Inject constructor(
                     put("content", soapContent)
                 }
 
-                if (resolvedPatientId != null && resolvedDoctorId != null) {
-                    runCatching {
-                        supabaseClient.postgrest.from("patient_care_team")
-                            .upsert(buildJsonObject {
-                                put("patient_id", resolvedPatientId)
-                                put("doctor_id", resolvedDoctorId)
-                                put("role", "consultant")
-                                put("active", true)
-                            })
-                    }
-                    runCatching {
-                        supabaseClient.postgrest.from("doctor_patient")
-                            .upsert(buildJsonObject {
-                                put("patient_id", resolvedPatientId)
-                                put("doctor_id", resolvedDoctorId)
-                            })
-                    }
+                require(!resolvedPatientId.isNullOrBlank() && !resolvedDoctorId.isNullOrBlank()) {
+                    "soap_clinical_link_missing"
+                }
+
+                runCatching {
+                    supabaseClient.postgrest.from("patient_care_team")
+                        .upsert(buildJsonObject {
+                            put("patient_id", resolvedPatientId)
+                            put("doctor_id", resolvedDoctorId)
+                            put("role", "consultant")
+                            put("active", true)
+                        })
+                }.onFailure { linkErr ->
+                    SecureLog.warn("[Telemedicine] patient_care_team upsert deferred during SOAP save", linkErr)
+                }
+                runCatching {
+                    supabaseClient.postgrest.from("doctor_patient")
+                        .upsert(buildJsonObject {
+                            put("patient_id", resolvedPatientId)
+                            put("doctor_id", resolvedDoctorId)
+                        })
+                }.onFailure { linkErr ->
+                    SecureLog.warn("[Telemedicine] doctor_patient upsert deferred during SOAP save", linkErr)
                 }
 
                 val existingRecordId = if (resolvedAppointmentId != null) {
@@ -840,10 +846,19 @@ class VideoCallViewModel @Inject constructor(
                 onSuccess?.invoke()
             }.onFailure { error ->
                 SecureLog.error("[Telemedicine] Failed saving SOAP evolution", error)
+                val rawMsg = error.message.orEmpty().lowercase(java.util.Locale.ROOT)
+                val friendlyError = when {
+                    "soap_clinical_link_missing" in rawMsg ->
+                        "No se pudo identificar el vínculo clínico entre médico y paciente para registrar la evolución."
+                    "row-level security" in rawMsg || "42501" in rawMsg || "permission denied" in rawMsg ->
+                        "No se pudo autorizar el guardado de la evolución SOAP. Verificá tu habilitación clínica (CFM/SISA) y el vínculo con el paciente."
+                    else ->
+                        "Error al guardar evolución: ${UiErrorMapper.map(error, "Intente nuevamente")}"
+                }
                 _uiState.update {
                     it.copy(
                         isSavingSoap = false,
-                        soapError = "Error al guardar evolución: ${UiErrorMapper.map(error, "Intente nuevamente")}",
+                        soapError = friendlyError,
                     )
                 }
             }

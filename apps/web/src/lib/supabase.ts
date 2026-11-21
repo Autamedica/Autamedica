@@ -10,7 +10,7 @@
 
 import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import type { Database } from '@autamedica/types';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { AstroCookies, AstroCookieSetOptions } from 'astro';
 import { resolvePublicSupabaseEnv, resolveServiceRoleKey } from './runtime-env';
 
@@ -125,4 +125,36 @@ export function createAstroServerClientFromRequest(
     setAll: () => {},
   };
   return createSupabaseCookieClient(publicSupabaseUrl, publicSupabaseAnonKey, readOnlyCookies);
+}
+
+/**
+ * Crea un cliente Supabase autenticado con un Bearer JWT enviado por clientes
+ * nativos (p. ej. Android), ejecutando todas las consultas con el RLS real del
+ * usuario autenticado (nunca con privilegios administrativos).
+ */
+export function createAstroBearerClient(
+  accessToken: string,
+  runtimeEnv?: Record<string, unknown> | null,
+): SupabaseClient<Database> {
+  const { publicSupabaseUrl, publicSupabaseAnonKey } = resolvePublicSupabaseEnv(runtimeEnv);
+
+  if (!publicSupabaseUrl || !publicSupabaseAnonKey) {
+    throw new Error(
+      `[createAstroBearerClient] Missing env: PUBLIC_SUPABASE_URL=${!!publicSupabaseUrl}, ` +
+        `PUBLIC_SUPABASE_ANON_KEY=${!!publicSupabaseAnonKey}.`,
+    );
+  }
+
+  return createClient<Database>(publicSupabaseUrl, publicSupabaseAnonKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
 }
