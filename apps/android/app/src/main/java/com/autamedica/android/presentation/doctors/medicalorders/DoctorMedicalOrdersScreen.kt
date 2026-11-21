@@ -56,6 +56,7 @@ fun DoctorMedicalOrdersScreen(
     onBack: () -> Unit,
     onNavigateToCreateOrder: () -> Unit,
     modifier: Modifier = Modifier,
+    showBackButton: Boolean = true,
     viewModel: DoctorMedicalOrdersViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -121,12 +122,14 @@ fun DoctorMedicalOrdersScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.doctor_orders_action_back),
-                            tint = AuTextPrimary,
-                        )
+                    if (showBackButton) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.doctor_orders_action_back),
+                                tint = AuTextPrimary,
+                            )
+                        }
                     }
                 },
                 actions = {
@@ -144,7 +147,7 @@ fun DoctorMedicalOrdersScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onNavigateToCreateOrder,
-                containerColor = PortalDoctors,
+                containerColor = PortalPatientsAction,
                 contentColor = Color.White,
                 shape = RoundedCornerShape(16.dp),
             ) {

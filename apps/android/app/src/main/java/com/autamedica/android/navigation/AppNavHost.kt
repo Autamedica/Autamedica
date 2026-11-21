@@ -225,6 +225,18 @@ fun AppNavHost(
                 onNavigateToDoctorMedicalOrders = {
                     navController.navigate(Route.DoctorMedicalOrders)
                 },
+                onNavigateToDoctorAgenda = {
+                    navController.navigate(Route.DoctorAgenda)
+                },
+                onNavigateToCreatePrescription = {
+                    navController.navigate(Route.CreatePrescription(""))
+                },
+                onNavigateToCreateCertificate = {
+                    navController.navigate(Route.CreateCertificate(""))
+                },
+                onNavigateToCreateMedicalOrder = {
+                    navController.navigate(Route.CreateMedicalOrder(""))
+                },
                 onNavigateToDoctorOnDemand = {
                     navController.navigate(Route.DoctorOnDemand) {
                         launchSingleTop = true

@@ -43,4 +43,8 @@
     <string name="docs_study_type_imaging">Exames de imagem</string>
     <string name="docs_study_type_cardiology">Cardiologia</string>
     <string name="docs_study_type_other">Outros exames</string>
+
+    <string name="doctor_tab_prescriptions">Receitas</string>
+    <string name="doctor_header_agenda_cd">Ver agenda médica</string>
+    <string name="doctor_header_messages_cd">Ver mensagens com pacientes</string>
 </resources>

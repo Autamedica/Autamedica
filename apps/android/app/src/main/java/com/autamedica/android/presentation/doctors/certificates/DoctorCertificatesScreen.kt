@@ -66,6 +66,7 @@ fun DoctorCertificatesScreen(
     onBack: () -> Unit,
     onNavigateToCreateCertificate: () -> Unit,
     modifier: Modifier = Modifier,
+    showBackButton: Boolean = true,
     viewModel: DoctorCertificatesViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -130,12 +131,14 @@ fun DoctorCertificatesScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.clinical_ops_back),
-                            tint = AuTextPrimary,
-                        )
+                    if (showBackButton) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.clinical_ops_back),
+                                tint = AuTextPrimary,
+                            )
+                        }
                     }
                 },
                 actions = {
@@ -155,7 +158,7 @@ fun DoctorCertificatesScreen(
                 onClick = onNavigateToCreateCertificate,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text(stringResource(R.string.cert_action_new_certificate), fontWeight = FontWeight.Bold) },
-                containerColor = PortalDoctors,
+                containerColor = PortalPatientsAction,
                 contentColor = Color.White,
                 shape = RoundedCornerShape(16.dp),
             )
