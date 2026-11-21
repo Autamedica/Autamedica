@@ -41,8 +41,7 @@ import com.autamedica.android.presentation.dashboard.components.UpcomingAppointm
 import com.autamedica.android.presentation.dashboard.components.WalletTopupDialog
 import com.autamedica.android.presentation.theme.AuAccent
 
-private const val PATIENT_TAB_APPOINTMENTS = 1
-private const val PATIENT_TAB_CONSULT = 2
+private const val PATIENT_TAB_CONSULT = 1
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -165,7 +164,7 @@ fun DashboardScreen(
                                         }
                                     },
                                     onViewDetails = {
-                                        onNavigateToTab(PATIENT_TAB_APPOINTMENTS)
+                                        onNavigateToBookAppointment()
                                     },
                                     joinError = uiState.telemedicineError,
                                 )
@@ -179,7 +178,7 @@ fun DashboardScreen(
                                 subscriptionTier = uiState.subscriptionTier,
                                 benefitBalanceCredits = uiState.benefitBalanceCredits,
                                 onBookConsultation = {
-                                    onNavigateToTab(PATIENT_TAB_APPOINTMENTS)
+                                    onNavigateToBookAppointment()
                                 },
                                 onOpenReserveDetails = openHealthReserve,
                                 onPharmacyExpressClick = onNavigateToPharmacyIntake,
@@ -207,10 +206,10 @@ fun DashboardScreen(
                                 doctors = uiState.availableDoctors,
                                 isLoading = uiState.doctorsLoading,
                                 onDoctorClick = { _ ->
-                                    onNavigateToTab(PATIENT_TAB_APPOINTMENTS)
+                                    onNavigateToBookAppointment()
                                 },
                                 onViewAllClick = {
-                                    onNavigateToTab(PATIENT_TAB_APPOINTMENTS)
+                                    onNavigateToBookAppointment()
                                 },
                             )
                         }
@@ -256,6 +255,7 @@ fun DashboardScreen(
             onClinicalDocumentsClick = onNavigateToClinicalDocuments,
             onReproductiveHealthClick = onNavigateToReproductiveHealth,
             onContinuityClick = onNavigateToContinuityStatus,
+            onCommunityClick = onNavigateToCommunity,
             onHealthReserveClick = openHealthReserve,
         )
     }
@@ -299,11 +299,11 @@ fun DashboardScreen(
                 viewModel.markNotificationAsRead(notification.id)
                 viewModel.setNotificationsSheetVisible(false)
                 when (notification.category?.lowercase()) {
-                    "appointment" -> onNavigateToTab(PATIENT_TAB_APPOINTMENTS)
+                    "appointment" -> onNavigateToBookAppointment()
                     "prescription" -> onNavigateToPrescriptions()
                     "community" -> onNavigateToCommunity()
-                    "chat", "message" -> onNavigateToTab(PATIENT_TAB_APPOINTMENTS)
-                    else -> onNavigateToTab(PATIENT_TAB_APPOINTMENTS)
+                    "chat", "message" -> onNavigateToBookAppointment()
+                    else -> onNavigateToBookAppointment()
                 }
             },
             onMarkAllAsRead = viewModel::markAllNotificationsAsRead,

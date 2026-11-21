@@ -108,6 +108,7 @@ fun PrescriptionsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     initialTab: DocumentTab = DocumentTab.RECETAS,
+    showBackButton: Boolean = true,
     onRequestConsultation: () -> Unit = onBack,
     viewModel: PrescriptionsViewModel = hiltViewModel(),
 ) {
@@ -220,12 +221,14 @@ fun PrescriptionsScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.prescriptions_back),
-                            tint = AuTextPrimary,
-                        )
+                    if (showBackButton) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.prescriptions_back),
+                                tint = AuTextPrimary,
+                            )
+                        }
                     }
                 },
                 actions = {

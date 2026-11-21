@@ -23,6 +23,7 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.HealthAndSafety
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Shield
@@ -189,6 +190,7 @@ fun MoreServicesBottomSheet(
     onClinicalDocumentsClick: () -> Unit,
     onReproductiveHealthClick: () -> Unit,
     onContinuityClick: () -> Unit,
+    onCommunityClick: () -> Unit,
     onHealthReserveClick: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -247,6 +249,16 @@ fun MoreServicesBottomSheet(
                 onClick = {
                     onDismiss()
                     onContinuityClick()
+                },
+            )
+            HorizontalDivider(color = Color(0xFFF1F5F9))
+            MoreServiceRow(
+                icon = Icons.Outlined.Groups,
+                title = stringResource(R.string.patient_home_more_community_title),
+                subtitle = stringResource(R.string.patient_home_more_community_desc),
+                onClick = {
+                    onDismiss()
+                    onCommunityClick()
                 },
             )
             HorizontalDivider(color = Color(0xFFF1F5F9))
