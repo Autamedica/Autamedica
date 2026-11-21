@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { badRequest, forbidden, internalError, jsonOk } from '@/lib/api-helpers';
 import { DOCTOR_ROLES, isAuthed, withAuthRole } from '@/lib/api-auth';
 import { createAstroAdminClient } from '@/lib/supabase';
@@ -16,6 +17,27 @@ type EventualPatientRpc = {
     data: unknown;
     error: { code?: string; message?: string } | null;
   }>;
+};
+
+type PrivateIdentityRow = {
+  patient_id?: string | null;
+  full_name?: string | null;
+  document_type?: string | null;
+  document_number?: string | null;
+  birth_date?: string | null;
+  gender?: string | null;
+  phone?: string | null;
+  email?: string | null;
+};
+
+type ExistingPatientLookupRow = {
+  id?: string | null;
+  user_id?: string | null;
+  birth_date?: string | null;
+  official_full_name?: string | null;
+  official_cuil?: string | null;
+  puco_coverage_name?: string | null;
+  address?: string | null;
 };
 
 type EventualPatientBody = {
@@ -72,6 +94,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   if (!isAuthed(auth)) return auth;
 
   const admin = createAstroAdminClient(locals?.runtime?.env);
+  const untypedAdmin = admin as unknown as SupabaseClient;
   const { data: doctor } = await admin
     .from('doctors')
     .select('id, active')
@@ -82,7 +105,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     return forbidden('doctor_profile_required');
   }
 
-  const { data: rows, error } = await admin
+  const { data: rows, error } = await untypedAdmin
     .from('patient_private_identities')
     .select('patient_id, full_name, document_type, document_number, birth_date, gender, phone, email')
     .eq('doctor_id', doctor.id)
@@ -93,7 +116,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
     return internalError('eventual_patients_list_failed');
   }
 
-  const items = (rows ?? []).map((row) => ({
+  const typedRows = (rows ?? []) as PrivateIdentityRow[];
+  const items = typedRows.map((row) => ({
     patientId: row.patient_id,
     fullName: row.full_name,
     dni: row.document_number,
@@ -123,6 +147,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   const admin = createAstroAdminClient(locals?.runtime?.env);
+  const untypedAdmin = admin as unknown as SupabaseClient;
   const { data: doctor, error: doctorError } = await admin
     .from('doctors')
     .select('id, active, care_country')
@@ -152,7 +177,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   // 1. Check if this doctor already registered this eventual patient previously
   if ((!resolvedFullName || !resolvedBirthDate) && documentNumber) {
-    const { data: existingPrivate } = await admin
+    const { data: existingPrivateData } = await untypedAdmin
       .from('patient_private_identities')
       .select('full_name, birth_date')
       .eq('doctor_id', doctor.id)
@@ -161,6 +186,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .eq('document_number', documentNumber)
       .maybeSingle();
 
+    const existingPrivate = existingPrivateData as PrivateIdentityRow | null;
     if (existingPrivate) {
       if (!resolvedFullName && existingPrivate.full_name) {
         resolvedFullName = String(existingPrivate.full_name).trim();
@@ -174,7 +200,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // 2. Check if an active patient with this DNI/CPF already exists in public.patients
   if ((!resolvedFullName || !resolvedBirthDate || !resolvedPhoto) && documentNumber) {
     const docColumn = documentType === 'CPF' ? 'cpf' : 'dni';
-    const { data: existingPatient } = await admin
+    const { data: existingPatientData } = await untypedAdmin
       .from('patients')
       .select('id, user_id, birth_date, official_full_name, official_cuil, puco_coverage_name, address')
       .eq(docColumn, documentNumber)
@@ -182,6 +208,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .limit(1)
       .maybeSingle();
 
+    const existingPatient = existingPatientData as ExistingPatientLookupRow | null;
     if (existingPatient) {
       if (!resolvedFullName && existingPatient.official_full_name) {
         resolvedFullName = String(existingPatient.official_full_name).trim();
@@ -189,9 +216,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (!resolvedBirthDate && existingPatient.birth_date) {
         resolvedBirthDate = String(existingPatient.birth_date).slice(0, 10);
       }
-      resolvedCuil = resolvedCuil || (existingPatient.official_cuil as string | null) || null;
-      resolvedCoverage = resolvedCoverage || (existingPatient.puco_coverage_name as string | null) || null;
-      resolvedAddress = resolvedAddress || (existingPatient.address as string | null) || null;
+      resolvedCuil = resolvedCuil || existingPatient.official_cuil || null;
+      resolvedCoverage = resolvedCoverage || existingPatient.puco_coverage_name || null;
+      resolvedAddress = resolvedAddress || existingPatient.address || null;
 
       if (existingPatient.user_id) {
         const { data: prof } = await admin
