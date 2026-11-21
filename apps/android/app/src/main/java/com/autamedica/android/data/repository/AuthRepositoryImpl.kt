@@ -166,6 +166,7 @@ class AuthRepositoryImpl @Inject constructor(
             role = parseRole(authoritativeRole),
             firstName = displayName ?: "",
             phone = phone,
+            avatarUrl = avatarUrl,
         )
     }
 

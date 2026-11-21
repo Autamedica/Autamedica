@@ -47,4 +47,6 @@
     <string name="doctor_tab_prescriptions">Recetas</string>
     <string name="doctor_header_agenda_cd">Ver agenda médica</string>
     <string name="doctor_header_messages_cd">Ver mensajes con pacientes</string>
+
+    <string name="doctor_quick_action_issue_cta">Emitir</string>
 </resources>

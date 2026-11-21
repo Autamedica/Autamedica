@@ -300,6 +300,15 @@ fun AppNavHost(
                         launchSingleTop = true
                     }
                 },
+                onNavigateToCreatePrescription = { patientId ->
+                    navController.navigate(Route.CreatePrescription(patientId))
+                },
+                onNavigateToCreateCertificate = { patientId ->
+                    navController.navigate(Route.CreateCertificate(patientId))
+                },
+                onNavigateToCreateMedicalOrder = { patientId ->
+                    navController.navigate(Route.CreateMedicalOrder(patientId))
+                },
             )
         }
 

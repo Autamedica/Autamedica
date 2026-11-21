@@ -18,12 +18,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Assignment
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Medication
 import androidx.compose.material.icons.outlined.Verified
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -41,14 +43,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.autamedica.android.R
-import com.autamedica.android.presentation.theme.AuBorder
 import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.PortalPatientsAction
 import com.autamedica.android.presentation.theme.PrimaryContainer
 
 /**
- * 3-pillar clinical issuance bar for Doctors (Recetas · Certificados · Órdenes).
- * High-contrast AutaMedica Blue (#0369A1, 5.93:1) for effortless outdoor/rush-hour visibility.
+ * Prominent 3-pillar clinical issuance bar for Doctors (Receta · Certificado · Órdenes).
+ * High-contrast AutaMedica Blue (#0369A1, 5.93:1) — each button opens its creation form directly.
  */
 @Composable
 fun QuickClinicalActionsBar(
@@ -66,7 +67,7 @@ fun QuickClinicalActionsBar(
         Text(
             text = stringResource(R.string.ui_clinical_tools),
             style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 11.sp,
+                fontSize = 11.5.sp,
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 1.sp,
             ),
@@ -101,6 +102,7 @@ fun QuickClinicalActionsBar(
                 ClinicalActionButton(
                     label = action.label,
                     icon = action.icon,
+                    actionCta = stringResource(R.string.doctor_quick_action_issue_cta),
                     onClick = action.onClick,
                     modifier = Modifier
                         .weight(1f)
@@ -121,6 +123,7 @@ private data class ClinicalActionItem(
 private fun ClinicalActionButton(
     label: String,
     icon: ImageVector,
+    actionCta: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -132,16 +135,16 @@ private fun ClinicalActionButton(
             onClick()
         },
         modifier = modifier
-            .heightIn(min = 96.dp)
+            .heightIn(min = 122.dp)
             .shadow(
-                elevation = 2.dp,
-                shape = RoundedCornerShape(20.dp),
-                ambientColor = Color(0x06000000),
-                spotColor = Color(0x10000000),
+                elevation = 3.dp,
+                shape = RoundedCornerShape(22.dp),
+                ambientColor = Color(0x0A000000),
+                spotColor = PortalPatientsAction.copy(alpha = 0.14f),
             ),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, AuBorder),
+        border = BorderStroke(1.5.dp, PortalPatientsAction.copy(alpha = 0.25f)),
     ) {
         Column(
             modifier = Modifier
@@ -152,25 +155,25 @@ private fun ClinicalActionButton(
         ) {
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(52.dp)
                     .clip(CircleShape)
-                    .background(PrimaryContainer),
+                    .background(PortalPatientsAction),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = label,
-                    tint = PortalPatientsAction,
-                    modifier = Modifier.size(22.dp),
+                    tint = Color.White,
+                    modifier = Modifier.size(26.dp),
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontSize = 12.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    lineHeight = 16.sp,
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontSize = 13.5.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    lineHeight = 17.sp,
                 ),
                 color = AuTextPrimary,
                 maxLines = 1,
@@ -178,6 +181,34 @@ private fun ClinicalActionButton(
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
             )
+            Spacer(modifier = Modifier.height(6.dp))
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = PrimaryContainer,
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        tint = PortalPatientsAction,
+                        modifier = Modifier.size(12.dp),
+                    )
+                    Text(
+                        text = actionCta,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                        ),
+                        color = PortalPatientsAction,
+                        maxLines = 1,
+                        softWrap = false,
+                    )
+                }
+            }
         }
     }
 }

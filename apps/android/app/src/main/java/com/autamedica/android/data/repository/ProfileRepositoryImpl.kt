@@ -35,7 +35,14 @@ class ProfileRepositoryImpl @Inject constructor(
             }
             .decodeSingle<ProfileDto>()
 
-        dto.toDomain()
+        val meta = supabaseClient.auth.currentSessionOrNull()?.user?.userMetadata
+        val fallbackAvatar = (meta?.stringValue("avatar_url") ?: meta?.stringValue("picture"))
+        val domainUser = dto.toDomain()
+        if (domainUser.avatarUrl.isNullOrBlank() && !fallbackAvatar.isNullOrBlank()) {
+            domainUser.copy(avatarUrl = fallbackAvatar)
+        } else {
+            domainUser
+        }
     }.onFailure {
         SecureLog.error("[Profile] Failed fetching profile", it)
     }

@@ -155,6 +155,30 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
         }
     }
 
+    fun initCreateOrder(patientId: String = "") {
+        _uiState.update { current ->
+            val preselected = if (patientId.isNotBlank()) {
+                current.eligiblePatients.firstOrNull { it.patientId == patientId }
+            } else null
+            current.copy(
+                patientId = patientId,
+                selectedPatient = preselected,
+                studyType = StudyType.LABORATORY,
+                practices = listOf(""),
+                diagnosis = "",
+                notes = "",
+                createdOrder = null,
+                errorMessage = null,
+                errorMessageResId = null,
+                userMessage = null,
+                userMessageResId = null,
+            )
+        }
+        if (_uiState.value.eligiblePatients.isEmpty()) {
+            loadEligiblePatients()
+        }
+    }
+
     fun selectPatientById(id: String) {
         if (id.isBlank()) return
         val currentSelected = _uiState.value.selectedPatient

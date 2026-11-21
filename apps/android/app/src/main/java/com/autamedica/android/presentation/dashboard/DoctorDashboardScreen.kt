@@ -142,6 +142,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 private const val DOCTOR_TAB_PATIENTS = 2
+private const val DOCTOR_TAB_PROFILE = 3
 
 // =============================================================================
 // DESIGN TOKENS "AUTAMEDICA OS v2 — UBER DRIVER PARA TELEMEDICINA" (MATERIAL 3)
@@ -189,6 +190,9 @@ fun DoctorDashboardScreen(
     onNavigateToDoctorPrescriptions: () -> Unit = {},
     onNavigateToDoctorCertificates: () -> Unit = {},
     onNavigateToDoctorMedicalOrders: () -> Unit = {},
+    onNavigateToCreatePrescription: () -> Unit = onNavigateToDoctorPrescriptions,
+    onNavigateToCreateCertificate: () -> Unit = onNavigateToDoctorCertificates,
+    onNavigateToCreateMedicalOrder: () -> Unit = onNavigateToDoctorMedicalOrders,
     onNavigateToDoctorOnDemand: () -> Unit = {},
     onNavigateToDoctorAgenda: () -> Unit = {},
     onNavigateToDoctorMessages: () -> Unit = {},
@@ -226,40 +230,42 @@ fun DoctorDashboardScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            text = "AutaMedica",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = AuTextPrimary,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-0.6).sp,
-                        )
-                        if (uiState.doctorProfile != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(11.dp))
+                                .background(com.autamedica.android.presentation.theme.PortalPatientsAction),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.MedicalServices,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                        Column {
+                            Text(
+                                text = "AutaMedica",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = AuTextPrimary,
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = (-0.6).sp,
+                            )
                             Text(
                                 text = stringResource(R.string.doctor_portal_title),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = PortalDoctors,
-                                fontWeight = FontWeight.Medium,
+                                color = com.autamedica.android.presentation.theme.PortalPatientsAction,
+                                fontWeight = FontWeight.Bold,
                             )
                         }
                     }
                 },
                 actions = {
-                    uiState.doctorProfile?.let { doctorProfile ->
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = SoftBlueBg,
-                            modifier = Modifier.padding(end = 4.dp),
-                        ) {
-                            Text(
-                                text = formatDoctorSpecialty(doctorProfile.specialty, stringResource(R.string.doctor_specialty_general)),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MedicalBlue,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                            )
-                        }
-                    }
                     IconButton(onClick = onNavigateToDoctorAgenda) {
                         Icon(
                             imageVector = Icons.Default.CalendarMonth,
@@ -268,11 +274,22 @@ fun DoctorDashboardScreen(
                         )
                     }
                     IconButton(onClick = onNavigateToDoctorMessages) {
-                        Icon(
-                            imageVector = Icons.Outlined.Email,
-                            contentDescription = stringResource(R.string.doctor_header_messages_cd),
-                            tint = com.autamedica.android.presentation.theme.PortalPatientsAction,
-                        )
+                        Box {
+                            Icon(
+                                imageVector = Icons.Outlined.Email,
+                                contentDescription = stringResource(R.string.doctor_header_messages_cd),
+                                tint = com.autamedica.android.presentation.theme.PortalPatientsAction,
+                            )
+                            if (uiState.unreadMessagesCount > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .align(Alignment.TopEnd)
+                                        .clip(CircleShape)
+                                        .background(com.autamedica.android.presentation.theme.PortalPatientsAction),
+                                )
+                            }
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -397,6 +414,7 @@ fun DoctorDashboardScreen(
                             }
                         }
 
+                        // 1. HEADER DR. + FOTO AVATAR + SWITCH DE GUARDIA
                         item {
                             DoctorCockpitHeader(
                                 doctorName = uiState.userName,
@@ -407,15 +425,40 @@ fun DoctorDashboardScreen(
                                 licenseType = uiState.doctorProfile?.licenseType,
                                 countryCode = uiState.doctorProfile?.countryCode,
                                 ufBrazil = uiState.doctorProfile?.ufBrazil,
-                                avatarUrl = null,
+                                avatarUrl = uiState.userAvatarUrl,
                                 isOnDuty = uiState.pharmacyOnDutyState.isOnDuty,
                                 isLoading = uiState.pharmacyOnDutyState.isLoading,
                                 guardApproved = uiState.guardApproved,
                                 onToggleOnDuty = viewModel::togglePharmacyOnDuty,
+                                onOpenProfile = { onNavigateToTab(DOCTOR_TAB_PROFILE) },
                             )
                         }
 
-                        // 2. PRÓXIMO EN ESPERA / CONSULTA TELEMEDICINA DESTACADA (Prioridad #1 clínica)
+                        // 2. 3 BOTONES GRANDES DE EMISIÓN DIRECTA ARRIBA DE TODO (Receta · Certificado · Órdenes)
+                        item {
+                            QuickClinicalActionsBar(
+                                onNavigateToPrescriptions = onNavigateToCreatePrescription,
+                                onNavigateToCertificates = onNavigateToCreateCertificate,
+                                onNavigateToMedicalOrders = onNavigateToCreateMedicalOrder,
+                            )
+                        }
+
+                        // 3. RADAR DE GUARDIA (Visible SOLO cuando el switch de Guardia está ACTIVO)
+                        if (uiState.pharmacyOnDutyState.isOnDuty) {
+                            item {
+                                LivePatientRadarDrawer(
+                                    isOnDuty = true,
+                                    liveWaitingQueue = uiState.liveWaitingQueue,
+                                    activelyDispatchedPatientId = uiState.activelyDispatchedPatientId,
+                                    onViewPatientChart = { patient ->
+                                        inspectingPatient = patient
+                                    },
+                                    onNavigateToRadarDetail = onNavigateToDoctorOnDemand,
+                                )
+                            }
+                        }
+
+                        // 4. PRÓXIMO PACIENTE EN ESPERA + AGENDA DE HOY
                         if (nextInQueue != null) {
                             item {
                                 HeroNextInQueueCard(
@@ -429,43 +472,6 @@ fun DoctorDashboardScreen(
                             }
                         }
 
-                        // 3. LIVE PATIENT RADAR & WAITING DRAWER (Cockpit de guardia)
-                        item {
-                            LivePatientRadarDrawer(
-                                isOnDuty = uiState.pharmacyOnDutyState.isOnDuty,
-                                liveWaitingQueue = uiState.liveWaitingQueue,
-                                activelyDispatchedPatientId = uiState.activelyDispatchedPatientId,
-                                onViewPatientChart = { patient ->
-                                    inspectingPatient = patient
-                                },
-                                onNavigateToRadarDetail = onNavigateToDoctorOnDemand,
-                            )
-                        }
-
-                        // 4. 3 BOTONES FUNCIONALES DE EMISIÓN (Receta · Certificado · Órdenes)
-                        item {
-                            QuickClinicalActionsBar(
-                                onNavigateToPrescriptions = {
-                                    if (isBrazilianDoctor) showBrazilMemedPatientPrompt = true
-                                    else onNavigateToDoctorPrescriptions()
-                                },
-                                onNavigateToCertificates = {
-                                    if (isBrazilianDoctor) showBrazilMemedPatientPrompt = true
-                                    else onNavigateToDoctorCertificates()
-                                },
-                                onNavigateToMedicalOrders = onNavigateToDoctorMedicalOrders,
-                            )
-                        }
-
-                        // 5. NUBANK-STYLE METRICS TICKER (KPIs clínicos compactos)
-                        item {
-                            NubankClinicalMetricsSection(
-                                stats = uiState.stats,
-                                statsAvailable = uiState.statsAvailable,
-                            )
-                        }
-
-                        // 7. AGENDA DE HOY ESTILO UBER EATS (Lista Viva)
                         item {
                             UberEatsLiveAgendaSection(
                                 appointments = uiState.todayAppointments,
@@ -474,6 +480,14 @@ fun DoctorDashboardScreen(
                                 onJoinCall = onNavigateToVideoCall,
                                 onViewAll = onNavigateToDoctorAgenda,
                                 onNavigateToCreateAppointment = onNavigateToDoctorAgenda,
+                            )
+                        }
+
+                        // 5. MÉTRICAS DEL DÍA AL FINAL (Fila compacta de 3 números, oculta si están en 0)
+                        item {
+                            NubankClinicalMetricsSection(
+                                stats = uiState.stats,
+                                statsAvailable = uiState.statsAvailable,
                             )
                         }
                     }
