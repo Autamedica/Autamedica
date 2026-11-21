@@ -7390,7 +7390,11 @@ export type Database = {
       }
       doctor_licenses: {
         Row: {
+          cfm_evidence_path: string | null
           cfm_last_checked_at: string | null
+          cfm_review_notes: string | null
+          cfm_reviewed_at: string | null
+          cfm_reviewed_by: string | null
           cfm_validation_status: string | null
           created_at: string
           doctor_id: string
@@ -7409,7 +7413,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cfm_evidence_path?: string | null
           cfm_last_checked_at?: string | null
+          cfm_review_notes?: string | null
+          cfm_reviewed_at?: string | null
+          cfm_reviewed_by?: string | null
           cfm_validation_status?: string | null
           created_at?: string
           doctor_id: string
@@ -7428,7 +7436,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cfm_evidence_path?: string | null
           cfm_last_checked_at?: string | null
+          cfm_review_notes?: string | null
+          cfm_reviewed_at?: string | null
+          cfm_reviewed_by?: string | null
           cfm_validation_status?: string | null
           created_at?: string
           doctor_id?: string
@@ -11172,7 +11184,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          care_country: string | null
+          care_country?: string | null
           active?: boolean
           address?: Json
           created_at?: string
@@ -15901,4 +15913,3 @@ export const Constants = {
     },
   },
 } as const
-
