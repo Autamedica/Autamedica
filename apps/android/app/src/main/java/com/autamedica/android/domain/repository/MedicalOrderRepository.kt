@@ -9,4 +9,6 @@ interface MedicalOrderRepository {
     suspend fun getMedicalOrderById(id: String): Result<MedicalOrder>
     suspend fun createMedicalOrder(request: CreateMedicalOrderRequest): Result<MedicalOrder>
     suspend fun cancelMedicalOrder(orderId: String, reason: String): Result<Unit>
+    suspend fun getMedicalOrderPdfDownloadUrl(order: MedicalOrder): Result<String> =
+        Result.failure(UnsupportedOperationException("Medical order PDF download not implemented"))
 }
