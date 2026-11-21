@@ -543,25 +543,34 @@ FOR EACH ROW EXECUTE FUNCTION app_private.finalize_pharmacy_delivery();
 
 -- Real actor checks apply even when a privileged web/Edge caller bypasses RLS.
 ALTER POLICY dispensation_orders_select_pharmacist ON public.dispensation_orders
-USING (EXISTS (SELECT 1 FROM public.pharmacists ph WHERE ph.user_id=auth.uid()
+USING (((NOT public.is_doctor()) OR public.is_clinically_authorized_doctor_read_for_patient(dispensation_orders.patient_id))
+  AND EXISTS (SELECT 1 FROM public.pharmacists ph WHERE ph.user_id=auth.uid()
   AND ph.care_country=dispensation_orders.care_country
   AND app_private.pharmacy_actor_authorized(ph.pharmacy_id,ph.care_country)
   AND (dispensation_orders.pharmacy_id=ph.pharmacy_id OR
     (dispensation_orders.pharmacy_id IS NULL AND dispensation_orders.status='pending'))));
 ALTER POLICY dispensation_orders_update_pharmacist ON public.dispensation_orders
-USING (EXISTS (SELECT 1 FROM public.pharmacists ph WHERE ph.user_id=auth.uid()
+USING (((NOT public.is_doctor()) OR public.is_clinically_approved_doctor())
+  AND EXISTS (SELECT 1 FROM public.pharmacists ph WHERE ph.user_id=auth.uid()
   AND ph.care_country=dispensation_orders.care_country
   AND app_private.pharmacy_actor_authorized(ph.pharmacy_id,ph.care_country)
   AND (dispensation_orders.pharmacy_id=ph.pharmacy_id OR
     (dispensation_orders.pharmacy_id IS NULL AND dispensation_orders.status='pending'))))
-WITH CHECK (app_private.pharmacy_actor_authorized(pharmacy_id,care_country));
+WITH CHECK (((NOT public.is_doctor()) OR public.is_clinically_approved_doctor())
+  AND app_private.pharmacy_actor_authorized(pharmacy_id,care_country));
 CREATE POLICY pharmacy_prescriber_update ON public.dispensation_orders FOR UPDATE TO authenticated
-USING (EXISTS(SELECT 1 FROM public.doctors d JOIN public.profiles pr ON pr.user_id=d.user_id
+USING (((NOT public.is_doctor()) OR public.is_clinically_approved_doctor())
+  AND public.is_clinically_approved_doctor()
+  AND EXISTS(SELECT 1 FROM public.doctors d JOIN public.profiles pr ON pr.user_id=d.user_id
   WHERE d.id=dispensation_orders.doctor_id AND d.user_id=auth.uid() AND d.active AND pr.active AND pr.role::text='doctor'))
-WITH CHECK (EXISTS(SELECT 1 FROM public.doctors d JOIN public.profiles pr ON pr.user_id=d.user_id
+WITH CHECK (((NOT public.is_doctor()) OR public.is_clinically_approved_doctor())
+  AND public.is_clinically_approved_doctor()
+  AND EXISTS(SELECT 1 FROM public.doctors d JOIN public.profiles pr ON pr.user_id=d.user_id
   WHERE d.id=dispensation_orders.doctor_id AND d.user_id=auth.uid() AND d.active AND pr.active AND pr.role::text='doctor'));
 ALTER POLICY dispensation_clarifications_update_doctor ON public.dispensation_clarifications
-WITH CHECK (responded_by=auth.uid() AND EXISTS (
+WITH CHECK (((NOT public.is_doctor()) OR public.is_clinically_approved_doctor())
+  AND public.is_clinically_approved_doctor()
+  AND responded_by=auth.uid() AND EXISTS (
   SELECT 1 FROM public.dispensation_orders o JOIN public.doctors d ON d.id=o.doctor_id
   WHERE o.id=dispensation_clarifications.order_id AND d.user_id=auth.uid() AND d.active));
 
@@ -580,7 +589,9 @@ CREATE UNIQUE INDEX pharmacy_one_order_per_prescription ON public.dispensation_o
 
 GRANT INSERT ON public.dispensation_orders TO authenticated;
 CREATE POLICY pharmacy_prescriber_insert ON public.dispensation_orders FOR INSERT TO authenticated
-WITH CHECK(EXISTS(SELECT 1 FROM public.doctors d WHERE d.id=dispensation_orders.doctor_id AND d.user_id=auth.uid() AND d.active));
+WITH CHECK(((NOT public.is_doctor()) OR public.is_clinically_approved_doctor())
+  AND public.is_clinically_approved_doctor()
+  AND EXISTS(SELECT 1 FROM public.doctors d WHERE d.id=dispensation_orders.doctor_id AND d.user_id=auth.uid() AND d.active));
 
 ALTER TABLE public.dispensation_events ALTER COLUMN id DROP DEFAULT;
 

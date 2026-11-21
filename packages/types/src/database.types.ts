@@ -6061,9 +6061,9 @@ export type Database = {
       }
       pharmacies: {
         Row: {
+          care_country: string | null
           active: boolean
           address: Json
-          care_country: string | null
           created_at: string
           deleted_at: string | null
           email: string | null
@@ -6075,9 +6075,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          care_country?: string | null
           active?: boolean
           address?: Json
-          care_country: string | null
           created_at?: string
           deleted_at?: string | null
           email?: string | null
@@ -6089,9 +6089,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          care_country?: string | null
           active?: boolean
           address?: Json
-          care_country?: string | null
           created_at?: string
           deleted_at?: string | null
           email?: string | null
@@ -6114,8 +6114,8 @@ export type Database = {
       }
       pharmacists: {
         Row: {
-          active: boolean
           care_country: string | null
+          active: boolean
           created_at: string
           full_name: string | null
           id: string
@@ -6127,8 +6127,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          active?: boolean
           care_country?: string | null
+          active?: boolean
           created_at?: string
           full_name?: string | null
           id?: string
@@ -6140,8 +6140,8 @@ export type Database = {
           user_id: string
         }
         Update: {
-          active?: boolean
           care_country?: string | null
+          active?: boolean
           created_at?: string
           full_name?: string | null
           id?: string
@@ -9369,4 +9369,3 @@ export const Constants = {
     },
   },
 } as const
-
