@@ -147,7 +147,7 @@ export function PharmacyExpressConsultation({
         const saved = JSON.parse(raw) as {
           requestId?: string; guestToken?: string; recoveryToken?: string;
           country?: 'AR' | 'BR'; careCountry?: 'AR' | 'BR';
-          referralCode?: string | null; qrSourceCode?: string | null; partnerName?: string | null; savedAt?: number;
+          referralCode?: string | null; qrSourceCode?: string | null; partnerName?: string | null; paymentApproved?: boolean; savedAt?: number;
         }
         const country = saved.country ?? saved.careCountry
         if (!saved.requestId || !saved.recoveryToken || (country !== 'AR' && country !== 'BR')
@@ -163,7 +163,7 @@ export function PharmacyExpressConsultation({
         setRecoveryToken(saved.recoveryToken)
         setCallRoomId(restored.request.cloudflare_room_id)
         setWaitingStartedAt(restored.request.search_started_at ? Date.parse(restored.request.search_started_at) : null)
-        setCountryPaymentApproved(restored.request.status !== 'pending_payment')
+        setCountryPaymentApproved(saved.paymentApproved === true || restored.request.status !== 'pending_payment')
         if (restored.request.status === 'expired') setWaitingSeconds(15 * 60)
         setFormData((current) => ({ ...current, careCountry: country }))
         const next = { ...saved, guestToken: restored.accessToken, country, careCountry: country, savedAt: Date.now() }
@@ -300,7 +300,7 @@ export function PharmacyExpressConsultation({
           setStep('CALL')
         }
       } else if (req.status === 'pending_payment') {
-        setCountryPaymentApproved(false)
+        if (!countryPaymentApproved) setCountryPaymentApproved(false)
         setStep('WAITING')
       } else if (req.status === 'completed') {
         setStep('ENDED')
@@ -362,7 +362,7 @@ export function PharmacyExpressConsultation({
         recoveryInProgress.current = false
       }
     }
-  }, [callRoomId, recoveryToken, formData.careCountry, referralCode, qrSourceCode, referralPartnerName])
+  }, [callRoomId, recoveryToken, formData.careCountry, referralCode, qrSourceCode, referralPartnerName, countryPaymentApproved])
 
   useEffect(() => {
     if (step !== 'ENDED' || !requestId) return
@@ -416,6 +416,7 @@ export function PharmacyExpressConsultation({
         referralCode,
         qrSourceCode,
         partnerName: referralPartnerName,
+        paymentApproved: true,
         savedAt: Date.now(),
       }
       window.sessionStorage.setItem(key, JSON.stringify(activeSession))

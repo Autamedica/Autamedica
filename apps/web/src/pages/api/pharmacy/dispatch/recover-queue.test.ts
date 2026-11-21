@@ -89,6 +89,19 @@ describe('POST /api/pharmacy/dispatch/recover-queue', () => {
     expect(token?.roomId).toBe('guest-room-test')
   })
 
+  it('recovers pending_payment only when its payment row is approved', async () => {
+    setup([row({ status: 'pending_payment' })], { status: 'approved' })
+    const response = await POST(context())
+    expect(response.status).toBe(200)
+    const payload = await response.json()
+    expect(payload.data).toEqual(expect.objectContaining({
+      requestId: REQUEST_ID,
+      status: 'pending_payment',
+      guestToken: expect.any(String),
+      recoveryToken: 'a'.repeat(64),
+    }))
+  })
+
   it('returns 404 when the WhatsApp differs even if the document matches', async () => {
     setup([row()])
     const response = await POST(context('12345678909', '5551999999999'))
