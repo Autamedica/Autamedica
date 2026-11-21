@@ -1,0 +1,32 @@
+name: PR Governance
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  validate-title:
+    name: Validate PR title and priority
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce title convention
+        shell: bash
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(security|fix|feat|refactor|test|docs|chore|release)\((android|web|api|supabase|pharmacy|farmalink|memed|renaper|billing|infra|governance)\): .{5,}$'
+          if [[ ! "$PR_TITLE" =~ $pattern ]]; then
+            echo "::error title must match: tipo(área): resultado concreto"
+            echo "::error examples: fix(android): estabilizar Realtime en Guardia"
+            echo "::error examples: security(pharmacy): aislar dispensación AR y BR"
+            exit 1
+          fi
+          echo "PR title follows the repository convention."
+
+      - name: Remind about priority label
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'priority:P0') && !contains(github.event.pull_request.labels.*.name, 'priority:P1') && !contains(github.event.pull_request.labels.*.name, 'priority:P2') && !contains(github.event.pull_request.labels.*.name, 'priority:P3') }}
+        run: echo "::warning::Add one priority label: priority:P0, priority:P1, priority:P2, or priority:P3."
