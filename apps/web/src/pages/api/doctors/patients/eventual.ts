@@ -243,7 +243,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
           dni: documentNumber,
           sexId,
           runtimeEnv: locals?.runtime?.env as Record<string, unknown> | undefined,
-          timeoutMs: 4500,
         });
         const p = official.person;
         const renaperName = [p.nombres?.trim(), p.apellido?.trim()].filter(Boolean).join(' ').trim();
