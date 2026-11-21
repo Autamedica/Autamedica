@@ -107,9 +107,15 @@ import java.util.Locale
 fun PrescriptionsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    initialTab: DocumentTab = DocumentTab.RECETAS,
     onRequestConsultation: () -> Unit = onBack,
     viewModel: PrescriptionsViewModel = hiltViewModel(),
 ) {
+    LaunchedEffect(initialTab) {
+        if (initialTab != DocumentTab.RECETAS) {
+            viewModel.selectTab(initialTab)
+        }
+    }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val openPrescriptionPdf: (Prescription, String) -> Unit = { prescription, fallbackUrl ->
