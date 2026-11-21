@@ -297,3 +297,30 @@ const query = `SELECT * FROM patients WHERE id=${userId}` // SQL injection
 **🙏 Gracias por contribuir a la medicina del futuro!**
 
 **📅 Última actualización**: Septiembre 2025
+---
+
+## 🧭 Gobernanza Ligera de Pull Requests
+
+### Formato obligatorio del título de PR
+```text
+tipo(área): resultado concreto
+```
+- **Tipos permitidos:** `security`, `fix`, `feat`, `refactor`, `test`, `docs`, `chore`, `release`
+- **Áreas permitidas:** `android`, `web`, `api`, `supabase`, `pharmacy`, `farmalink`, `memed`, `renaper`, `billing`, `infra`, `governance`
+- **Ejemplos válidos:**
+  - `security(supabase): revoke anon ACL on social_agent tables`
+  - `fix(android): stop Realtime notification feedback loop`
+
+### Formato de rama
+```text
+tipo/descripcion-corta
+```
+Ejemplo: `fix/android-realtime-loop`, `security/pharmacy-country-isolation`.
+
+### Etiquetas de prioridad *(fuera del título)*
+| Etiqueta | Uso |
+|---|---|
+| `priority:P0` | Crítico, seguridad o producción |
+| `priority:P1` | Bloquea operación importante |
+| `priority:P2` | Funcionalidad o mejora |
+| `priority:P3` | Mantenimiento menor |
