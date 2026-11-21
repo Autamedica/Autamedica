@@ -120,7 +120,7 @@ class ConsultationHubViewModelTest {
     }
 
     @Test
-    fun `payAppointment marks appointment as CONFIRMED and updates state`() = runTest(testDispatcher) {
+    fun `payAppointment leaves appointment pending without verified payment provider`() = runTest(testDispatcher) {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -128,8 +128,8 @@ class ConsultationHubViewModelTest {
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
-        assertThat(state.pendingPaymentAppointment).isNull()
-        assertThat(state.paymentMessage).isNotNull()
+        assertThat(state.pendingPaymentAppointment?.id).isEqualTo("apt-pending")
+        assertThat(state.paymentMessage).contains("No se pudo iniciar el proceso de pago")
     }
 
     // ── FAKES ──
