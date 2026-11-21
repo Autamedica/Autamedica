@@ -43,4 +43,10 @@
     <string name="patient_home_more_continuity_desc">Estado de tus derivaciones y controles</string>
     <string name="patient_home_more_reserve_title">Plan y Reserva Salud</string>
     <string name="patient_home_more_reserve_desc">Beneficios, créditos acumulados y cobertura</string>
+
+    <string name="nav_patient_profile">Perfil</string>
+    <string name="patient_consult_segment_now">Ahora</string>
+    <string name="patient_consult_segment_scheduled">Mis turnos</string>
+    <string name="patient_home_more_community_title">Comunidad</string>
+    <string name="patient_home_more_community_desc">Grupos y experiencias compartidas con otros pacientes</string>
 </resources>

@@ -66,10 +66,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.R
 import com.autamedica.android.presentation.appointments.AppointmentsScreen
-import com.autamedica.android.presentation.consultation.ConsultationHubScreen
+import com.autamedica.android.presentation.consultation.PatientConsultTabScreen
 import com.autamedica.android.presentation.dashboard.DashboardScreen
 import com.autamedica.android.presentation.dashboard.DoctorDashboardScreen
 import com.autamedica.android.presentation.patients.PatientsScreen
+import com.autamedica.android.presentation.profile.PatientProfileScreen
 import com.autamedica.android.presentation.profile.ProfileScreen
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
@@ -89,7 +90,11 @@ import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.LogoObsidianBg
 import com.autamedica.android.presentation.theme.LogoRingBorder
 import com.autamedica.android.presentation.theme.PortalPatients
+import com.autamedica.android.presentation.theme.PortalPatientsAction
+import com.autamedica.android.presentation.theme.PrimaryContainer
 
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.ui.unit.sp
@@ -104,16 +109,16 @@ private data class TabItem(
 
 private data class PatientTabItem(
     val labelRes: Int,
-    val icon: ImageVector,
+    val selectedIcon: ImageVector,
+    val unselectedIcon: ImageVector,
 )
 
-// Patient tabs matching Web/iOS 1:1 (Início, Agenda, Consultar, Receitas, Comunidade)
+// Clean 4-tab Patient Bottom Navigation (Inicio · Consultar · Recetas · Perfil)
 private val patientTabs = listOf(
-    PatientTabItem(R.string.nav_patient_home, Icons.Outlined.FavoriteBorder),
-    PatientTabItem(R.string.nav_patient_agenda, Icons.Outlined.CalendarMonth),
-    PatientTabItem(R.string.nav_patient_consult, Icons.Outlined.Videocam),
-    PatientTabItem(R.string.nav_patient_prescriptions, Icons.Outlined.Description),
-    PatientTabItem(R.string.nav_patient_community, Icons.Outlined.Groups),
+    PatientTabItem(R.string.nav_patient_home, Icons.Filled.Home, Icons.Outlined.Home),
+    PatientTabItem(R.string.nav_patient_consult, Icons.Filled.Videocam, Icons.Outlined.Videocam),
+    PatientTabItem(R.string.nav_patient_prescriptions, Icons.Filled.Description, Icons.Outlined.Description),
+    PatientTabItem(R.string.nav_patient_profile, Icons.Filled.Person, Icons.Outlined.Person),
 )
 
 // Doctor tabs
@@ -152,7 +157,8 @@ fun MainScreen(
     viewModel: MainViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+    var selectedTab by rememberSaveable { mutableIntStateOf(PatientBottomNavPolicy.TAB_HOME) }
+    var consultSegment by rememberSaveable { mutableStateOf(PatientConsultSegment.IMMEDIATE) }
     var showHealthReserveDetail by rememberSaveable { mutableStateOf(false) }
     var reserveSubscriptionTier by rememberSaveable { mutableStateOf("free") }
     var reserveBalanceCredits by rememberSaveable { mutableIntStateOf(0) }
@@ -205,26 +211,19 @@ fun MainScreen(
     }
 
     // ── Phone Back Button Hierarchical Navigation ──
-    // Patient: Any screen/tab (Comunidad/Recetas/Agenda) -> Consultar (tab 2) -> Inicio (tab 0) -> Exit app
+    // Standard Android/Apple/Nubank behavior: any secondary tab returns directly to Inicio (tab 0)
     if (!isDoctor) {
-        BackHandler(enabled = selectedTab != 0) {
+        BackHandler(enabled = selectedTab != PatientBottomNavPolicy.TAB_HOME) {
             val now = System.currentTimeMillis()
             if (now - lastBackPressTime < 350L) {
                 Timber.d("[BackNav] Ignored duplicate back event (debounce)")
                 return@BackHandler
             }
             lastBackPressTime = now
-            Timber.i("[BackNav] Hardware back pressed. Current tab=%d", selectedTab)
-            if (selectedTab != 2) {
-                // 1er click en regresar: lleva a Consultar (tab 2)
-                Timber.i("[BackNav] Step 1: Navigating to Consultar (tab 2)")
-                selectedTab = 2
-            } else {
-                // 2do click en regresar: lleva a Inicio (tab 0)
-                Timber.i("[BackNav] Step 2: Navigating to Inicio (tab 0)")
-                selectedTab = 0
+            PatientBottomNavPolicy.backTargetTab(selectedTab)?.let { target ->
+                Timber.i("[BackNav] Returning to patient home tab=%d from tab=%d", target, selectedTab)
+                selectedTab = target
             }
-            // 3er click en regresar: cuando ya está en Inicio (selectedTab == 0), enabled es false y sale de la app
         }
     } else {
         BackHandler(enabled = selectedTab != 0) {
@@ -284,31 +283,36 @@ fun MainScreen(
                             val isSelected = selectedTab == index
                             NavigationBarItem(
                                 selected = isSelected,
-                                onClick = { selectedTab = index },
+                                onClick = {
+                                    if (index == PatientBottomNavPolicy.TAB_CONSULT && selectedTab != index) {
+                                        consultSegment = PatientConsultSegment.IMMEDIATE
+                                    }
+                                    selectedTab = index
+                                },
                                 icon = {
                                     Icon(
-                                        imageVector = tab.icon,
+                                        imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
                                         contentDescription = stringResource(tab.labelRes),
-                                        modifier = Modifier.size(24.dp),
+                                        modifier = Modifier.size(23.dp),
                                     )
                                 },
                                 label = {
                                     Text(
                                         text = stringResource(tab.labelRes),
                                         style = MaterialTheme.typography.labelSmall,
-                                        maxLines = 2,
-                                        softWrap = true,
+                                        maxLines = 1,
+                                        softWrap = false,
                                         textAlign = TextAlign.Center,
                                         overflow = TextOverflow.Ellipsis,
-                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     )
                                 },
                                 colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = Color(0xFF0284C7),
-                                    selectedTextColor = Color(0xFF0284C7),
+                                    selectedIconColor = PortalPatientsAction,
+                                    selectedTextColor = PortalPatientsAction,
                                     unselectedIconColor = Color(0xFF64748B),
                                     unselectedTextColor = Color(0xFF64748B),
-                                    indicatorColor = Color.Transparent,
+                                    indicatorColor = PrimaryContainer,
                                 ),
                             )
                         }
@@ -357,15 +361,27 @@ fun MainScreen(
                         onBack = { showHealthReserveDetail = false },
                     )
                 } else {
-                    when (selectedTab) {
-                        0 -> DashboardScreen(
+                    when (PatientBottomNavPolicy.clampTab(selectedTab)) {
+                        PatientBottomNavPolicy.TAB_HOME -> DashboardScreen(
                             onNavigateToVideoCall = onNavigateToVideoCall,
-                            onNavigateToTab = { selectedTab = it },
-                            onNavigateToPatientProfile = onNavigateToPatientProfile,
+                            onNavigateToTab = { target ->
+                                if (target == PatientBottomNavPolicy.TAB_CONSULT) {
+                                    consultSegment = PatientConsultSegment.IMMEDIATE
+                                }
+                                selectedTab = PatientBottomNavPolicy.clampTab(target)
+                            },
+                            onNavigateToPatientProfile = {
+                                selectedTab = PatientBottomNavPolicy.TAB_PROFILE
+                            },
                             onNavigateToAnamnesisForm = onNavigateToAnamnesisForm,
                             onNavigateToPreventiveHealth = onNavigateToPreventiveHealth,
-                            onNavigateToBookAppointment = { selectedTab = 1 },
-                            onNavigateToPrescriptions = onNavigateToPrescriptions,
+                            onNavigateToBookAppointment = {
+                                consultSegment = PatientConsultSegment.SCHEDULED
+                                selectedTab = PatientBottomNavPolicy.TAB_CONSULT
+                            },
+                            onNavigateToPrescriptions = {
+                                selectedTab = PatientBottomNavPolicy.TAB_PRESCRIPTIONS
+                            },
                             onNavigateToCertificates = onNavigateToCertificates,
                             onNavigateToClinicalDocuments = onNavigateToClinicalDocuments,
                             onNavigateToChatConversation = onNavigateToChatConversation,
@@ -382,22 +398,24 @@ fun MainScreen(
                             },
                             onNavigateToPharmacyIntake = onNavigateToPharmacyIntake,
                         )
-                        1 -> AppointmentsScreen(
+                        PatientBottomNavPolicy.TAB_CONSULT -> PatientConsultTabScreen(
+                            selectedSegment = consultSegment,
+                            onSelectSegment = { consultSegment = it },
                             onNavigateToVideoCall = onNavigateToVideoCall,
-                            onNavigateToBookAppointment = { selectedTab = 1 },
-                        )
-                        2 -> ConsultationHubScreen(
-                            onNavigateToVideoCall = onNavigateToVideoCall,
-                            onNavigateToBookAppointment = { selectedTab = 1 },
-                            // Use the real country-isolated dispatch queue instead of
-                            // booking the first directory doctor as immediately on duty.
                             onNavigateToPharmacyIntake = onNavigateToPharmacyIntake,
                         )
-                        3 -> PrescriptionsScreen(
-                            onBack = { selectedTab = 2 },
+                        PatientBottomNavPolicy.TAB_PRESCRIPTIONS -> PrescriptionsScreen(
+                            onBack = { selectedTab = PatientBottomNavPolicy.TAB_HOME },
+                            showBackButton = false,
+                            onRequestConsultation = {
+                                consultSegment = PatientConsultSegment.IMMEDIATE
+                                selectedTab = PatientBottomNavPolicy.TAB_CONSULT
+                            },
                         )
-                        4 -> PatientCommunityScreen(
-                            onBack = { selectedTab = 2 },
+                        PatientBottomNavPolicy.TAB_PROFILE -> PatientProfileScreen(
+                            onBack = { selectedTab = PatientBottomNavPolicy.TAB_HOME },
+                            onLogout = viewModel::logout,
+                            showBackButton = false,
                         )
                     }
                 }

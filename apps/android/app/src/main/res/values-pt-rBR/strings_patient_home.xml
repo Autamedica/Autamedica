@@ -43,4 +43,10 @@
     <string name="patient_home_more_continuity_desc">Status de encaminhamentos e retornos</string>
     <string name="patient_home_more_reserve_title">Plano e Reserva Saúde</string>
     <string name="patient_home_more_reserve_desc">Benefícios, créditos acumulados e cobertura</string>
+
+    <string name="nav_patient_profile">Perfil</string>
+    <string name="patient_consult_segment_now">Agora</string>
+    <string name="patient_consult_segment_scheduled">Meus horários</string>
+    <string name="patient_home_more_community_title">Comunidade</string>
+    <string name="patient_home_more_community_desc">Grupos e experiências compartilhadas com outros pacientes</string>
 </resources>

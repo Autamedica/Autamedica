@@ -30,7 +30,7 @@
     <string name="nav_patient_home">Início</string>
     <string name="nav_patient_agenda">Agenda</string>
     <string name="nav_patient_consult">Consultar</string>
-    <string name="nav_patient_prescriptions">Prescrições</string>
+    <string name="nav_patient_prescriptions">Receitas</string>
     <string name="nav_patient_community">Comunidade</string>
     <string name="notification_call_channel">Chamada em andamento</string>
     <string name="notification_call_title">Consulta médica em andamento</string>
