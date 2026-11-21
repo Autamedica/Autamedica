@@ -145,7 +145,7 @@ fun CreatePrescriptionScreen(
                             .fillMaxWidth()
                             .height(50.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PortalDoctors),
+                        colors = ButtonDefaults.buttonColors(containerColor = PortalPatientsAction, contentColor = Color.White),
                         enabled = !uiState.isSubmitting,
                     ) {
                         if (uiState.isSubmitting) {
@@ -221,7 +221,7 @@ fun CreatePrescriptionScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     border = BorderStroke(1.dp, PortalDoctors.copy(alpha = 0.5f)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PortalDoctors),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PortalPatientsAction),
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
@@ -340,7 +340,7 @@ fun CreatePrescriptionScreen(
                         onBack()
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = PortalDoctors)
+                    colors = ButtonDefaults.buttonColors(containerColor = PortalPatientsAction, contentColor = Color.White)
                 ) {
                     Text(stringResource(R.string.doctor_create_rx_success_button))
                 }
@@ -376,7 +376,7 @@ private fun DoctorRegulatoryBanner(eligibility: com.autamedica.android.domain.mo
                     text = if (isEligible) stringResource(R.string.doctor_create_rx_regulatory_eligible_title) else stringResource(R.string.doctor_create_rx_regulatory_not_eligible_title),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (isEligible) AuSuccess else Color(0xFFB45309)
+                    color = if (isEligible) AuSuccess else PortalPatientsAction
                 )
                 Text(
                     text = if (isEligible) {

@@ -399,12 +399,18 @@ fun DoctorDashboardScreen(
                             )
                         }
 
-                        // 2. NUBANK-STYLE METRICS TICKER (FinTech / Clinical KPIs)
-                        item {
-                            NubankClinicalMetricsSection(
-                                stats = uiState.stats,
-                                statsAvailable = uiState.statsAvailable,
-                            )
+                        // 2. PRÓXIMO EN ESPERA / CONSULTA TELEMEDICINA DESTACADA (Prioridad #1 clínica)
+                        if (nextInQueue != null) {
+                            item {
+                                HeroNextInQueueCard(
+                                    appointment = nextInQueue,
+                                    patientName = nextName,
+                                    avatarUrl = nextSummary?.avatarUrl,
+                                    reason = nextReason,
+                                    isJoinable = isNextJoinable,
+                                    onJoinCall = { onNavigateToVideoCall(nextInQueue.id) },
+                                )
+                            }
                         }
 
                         // 3. LIVE PATIENT RADAR & WAITING DRAWER (Cockpit de guardia)
@@ -420,7 +426,7 @@ fun DoctorDashboardScreen(
                             )
                         }
 
-                        // 4. QUICK CLINICAL ACTIONS BAR (Herramientas de 1 toque)
+                        // 4. 3 BOTONES FUNCIONALES DE EMISIÓN (Receta · Certificado · Órdenes)
                         item {
                             QuickClinicalActionsBar(
                                 onNavigateToPrescriptions = {
@@ -432,33 +438,15 @@ fun DoctorDashboardScreen(
                                     else onNavigateToDoctorCertificates()
                                 },
                                 onNavigateToMedicalOrders = onNavigateToDoctorMedicalOrders,
-                                onNavigateToDoctorOnDemand = onNavigateToDoctorOnDemand,
-                                onNavigateToCreateAppointment = { onNavigateToTab(DOCTOR_TAB_APPOINTMENTS) },
                             )
                         }
 
-                        // 5. PRÓXIMO EN ESPERA / CONSULTA TELEMEDICINA DESTACADA
-                        if (nextInQueue != null) {
-                            item {
-                                HeroNextInQueueCard(
-                                    appointment = nextInQueue,
-                                    patientName = nextName,
-                                    avatarUrl = nextSummary?.avatarUrl,
-                                    reason = nextReason,
-                                    isJoinable = isNextJoinable,
-                                    onJoinCall = { onNavigateToVideoCall(nextInQueue.id) },
-                                )
-                            }
-                        }
-
-                        // 6. CONTINUIDAD ASISTENCIAL (Seguimiento a 30 días)
-                        if (uiState.recentPatients.isNotEmpty()) {
-                            item {
-                                FollowUpStarSection(
-                                    patients = uiState.recentPatients,
-                                    onViewAll = { onNavigateToTab(DOCTOR_TAB_PATIENTS) },
-                                )
-                            }
+                        // 5. NUBANK-STYLE METRICS TICKER (KPIs clínicos compactos)
+                        item {
+                            NubankClinicalMetricsSection(
+                                stats = uiState.stats,
+                                statsAvailable = uiState.statsAvailable,
+                            )
                         }
 
                         // 7. AGENDA DE HOY ESTILO UBER EATS (Lista Viva)

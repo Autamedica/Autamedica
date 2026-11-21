@@ -17,12 +17,20 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.net.URI
 import java.time.Instant
@@ -307,13 +315,28 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
 
         supabaseClient.postgrest.from("medical_certificates").insert(insertPayload)
 
+        val issued = if (resolvedCountry == "AR") {
+            val accessToken = supabaseClient.auth.currentSessionOrNull()?.accessToken
+                ?: throw IllegalStateException("Sesión autenticada requerida para firmar y emitir el certificado")
+            withContext(Dispatchers.IO) {
+                executeElectronicCertificateIssuance(
+                    httpClient = downloadClient,
+                    baseUrl = BuildConfig.WEB_API_URL,
+                    certId = certId,
+                    accessToken = accessToken,
+                )
+            }
+        } else {
+            null
+        }
+
         val (patientNameMap, patientDniMap) = resolvePatientsInfo(listOf(request.patientId))
         val (doctorNameMap, doctorLicenseMap) = resolveDoctorsInfo(listOf(doctor.id))
 
         MedicalCertificate(
             id = certId,
-            cuir = cuir,
-            status = "draft",
+            cuir = issued?.cuir?.ifBlank { cuir } ?: cuir,
+            status = issued?.status ?: "draft",
             certificateType = request.certificateType,
             daysOfRest = request.daysOfRest,
             restHours = request.restHours,
@@ -326,8 +349,11 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             doctorLicense = doctorLicenseMap[doctor.id] ?: doctor.licenseNumber,
             patientName = patientNameMap[request.patientId],
             patientDni = patientDniMap[request.patientId],
-            signedPdfUrl = null,
-            qrCodeContent = null,
+            signedPdfUrl = issued?.signedPdfUrl,
+            signatureVerifiedAt = issued?.signatureVerifiedAt,
+            signatureHash = issued?.signatureHash,
+            signatureMethod = issued?.signatureMethod,
+            qrCodeContent = issued?.qrCodeContent,
             countryCode = resolvedCountry,
             createdAt = now,
         )
@@ -529,4 +555,141 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
         @SerialName("user_id") val userId: String? = null,
         val dni: String? = null,
     )
+}
+
+internal data class IssuedElectronicCertificate(
+    val cuir: String,
+    val status: String,
+    val signedPdfUrl: String,
+    val signatureVerifiedAt: String,
+    val signatureHash: String,
+    val signatureMethod: String,
+    val qrCodeContent: String?,
+)
+
+internal fun executeElectronicCertificateIssuance(
+    httpClient: OkHttpClient,
+    baseUrl: String,
+    certId: String,
+    accessToken: String,
+): IssuedElectronicCertificate {
+    require(accessToken.isNotBlank()) { "Sesión autenticada requerida para emitir el certificado" }
+    val endpoint = "${baseUrl.trimEnd('/')}/api/doctors/certificates/$certId/issue"
+
+    // Step 1: GET canonical snapshotHash from server
+    val getRequest = Request.Builder()
+        .url(endpoint)
+        .header("Authorization", "Bearer $accessToken")
+        .header("Accept", "application/json")
+        .header("Cache-Control", "no-store")
+        .get()
+        .build()
+
+    val snapshotHash = httpClient.newCall(getRequest).execute().use { response ->
+        val raw = response.body?.string().orEmpty()
+        if (!response.isSuccessful) {
+            throw IllegalStateException(mapCertificateIssueError(raw, response.code))
+        }
+        val root = runCatching { Json.parseToJsonElement(raw).jsonObject }.getOrNull()
+            ?: throw IllegalStateException("Respuesta inválida al preparar la firma del certificado")
+        if (root["success"]?.jsonPrimitive?.booleanOrNull != true) {
+            throw IllegalStateException(mapCertificateIssueError(raw, response.code))
+        }
+        val data = root["data"]?.let { runCatching { it.jsonObject }.getOrNull() }
+            ?: throw IllegalStateException("Faltan datos de revisión para firmar el certificado")
+        if (data["status"]?.jsonPrimitive?.contentOrNull == "signed") {
+            val existing = data["certificate"]?.let { runCatching { it.jsonObject }.getOrNull() }
+                ?: throw IllegalStateException("El servidor reportó certificado firmado sin adjuntar el registro")
+            return parseIssuedCertificateJson(existing)
+        }
+        val hash = data["snapshotHash"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+        require(hash.matches(Regex("^[a-f0-9]{64}$"))) {
+            "El servidor no devolvió un hash SHA-256 válido para confirmar el certificado"
+        }
+        hash
+    }
+
+    // Step 2: POST explicit doctor confirmation + snapshotHash to generate PDF & evidence in private bucket
+    val postBody = buildJsonObject {
+        put("confirmed", true)
+        put("snapshotHash", snapshotHash)
+    }.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+
+    val postRequest = Request.Builder()
+        .url(endpoint)
+        .header("Authorization", "Bearer $accessToken")
+        .header("Accept", "application/json")
+        .header("Cache-Control", "no-store")
+        .post(postBody)
+        .build()
+
+    return httpClient.newCall(postRequest).execute().use { response ->
+        val raw = response.body?.string().orEmpty()
+        if (!response.isSuccessful) {
+            throw IllegalStateException(mapCertificateIssueError(raw, response.code))
+        }
+        val root = runCatching { Json.parseToJsonElement(raw).jsonObject }.getOrNull()
+            ?: throw IllegalStateException("Respuesta inválida al emitir el certificado firmado")
+        if (root["success"]?.jsonPrimitive?.booleanOrNull != true) {
+            throw IllegalStateException(mapCertificateIssueError(raw, response.code))
+        }
+        val data = root["data"]?.let { runCatching { it.jsonObject }.getOrNull() }
+            ?: throw IllegalStateException("El servidor no devolvió el certificado emitido")
+        parseIssuedCertificateJson(data)
+    }
+}
+
+private fun parseIssuedCertificateJson(data: JsonObject): IssuedElectronicCertificate {
+    fun str(key: String): String = data[key]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+    val status = str("status")
+    val signedPdfUrl = str("signed_pdf_url")
+    val signatureVerifiedAt = str("signature_verified_at")
+    val signatureHash = str("signature_hash")
+    val signatureMethod = str("signature_method").ifBlank { "electronic_verified" }
+    val cuir = str("cuir")
+    val qr = str("qr_code_content").ifBlank {
+        if (cuir.isNotBlank()) "https://autamedica.com/verify/$cuir" else ""
+    }.takeIf { it.isNotBlank() }
+
+    check(
+        status == "signed" &&
+            signedPdfUrl.isNotBlank() &&
+            signatureVerifiedAt.isNotBlank() &&
+            signatureHash.matches(Regex("^[a-f0-9]{64}$")),
+    ) {
+        "El servidor no confirmó la firma electrónica ni el PDF del certificado"
+    }
+    return IssuedElectronicCertificate(
+        cuir = cuir,
+        status = status,
+        signedPdfUrl = signedPdfUrl,
+        signatureVerifiedAt = signatureVerifiedAt,
+        signatureHash = signatureHash,
+        signatureMethod = signatureMethod,
+        qrCodeContent = qr,
+    )
+}
+
+private fun mapCertificateIssueError(raw: String, httpCode: Int): String {
+    val parsedError = runCatching {
+        val obj = Json.parseToJsonElement(raw).jsonObject
+        val nested = obj["error"]?.let { elem ->
+            runCatching { elem.jsonObject["message"]?.jsonPrimitive?.contentOrNull }.getOrNull()
+                ?: runCatching { elem.jsonPrimitive.contentOrNull }.getOrNull()
+        }
+        nested?.takeIf { it.isNotBlank() }
+            ?: obj["message"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
+    }.getOrNull()
+
+    return when (parsedError) {
+        "certificate_signature_and_stamp_required" ->
+            "Cargá tu firma y sello profesional en Perfil → Firma digital antes de emitir certificados."
+        "certificate_doctor_not_validated" ->
+            "Tu matrícula profesional debe estar validada en SISA/REFEPS para emitir certificados firmados."
+        "certificate_identity_incomplete" ->
+            "El paciente debe tener nombre completo y DNI registrados para emitir el certificado."
+        "certificate_period_invalid", "certificate_period_or_diagnosis_invalid" ->
+            "Verificá el período de reposo y el diagnóstico antes de emitir."
+        else -> parsedError ?: "No se pudo firmar y emitir el certificado (HTTP $httpCode)"
+    }
 }

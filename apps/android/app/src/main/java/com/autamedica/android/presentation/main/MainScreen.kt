@@ -272,11 +272,11 @@ fun MainScreen(
                                     )
                                 },
                                 colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = accentColor,
-                                    selectedTextColor = accentColor,
+                                    selectedIconColor = PortalPatientsAction,
+                                    selectedTextColor = PortalPatientsAction,
                                     unselectedIconColor = Color(0xFF64748B),
                                     unselectedTextColor = Color(0xFF64748B),
-                                    indicatorColor = Color.Transparent,
+                                    indicatorColor = PrimaryContainer,
                                 ),
                             )
                         }
