@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -44,6 +46,7 @@ import com.autamedica.android.domain.model.SuggestedClinicalQuestion
  * Panel clínico permanente en call del médico.
  * Prioriza motivo, alertas y preguntas guía — no controles de media.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun DoctorClinicalGuidePanel(
     guidance: CallClinicalGuidance,
@@ -51,6 +54,7 @@ fun DoctorClinicalGuidePanel(
     modifier: Modifier = Modifier,
     patientName: String = "",
     patientDetail: String = "",
+    patientQuickFacts: List<String> = emptyList(),
 ) {
     var checkedQuestions by remember { mutableStateOf(setOf<Int>()) }
     var isCollapsed by remember { mutableStateOf(false) }
@@ -153,6 +157,35 @@ fun DoctorClinicalGuidePanel(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
+                        }
+                        if (patientQuickFacts.isNotEmpty()) {
+                            FlowRow(
+                                modifier = Modifier.padding(top = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                patientQuickFacts.take(4).forEach { fact ->
+                                    val isAlert = fact.startsWith("Alergia", ignoreCase = true)
+                                    Surface(
+                                        shape = RoundedCornerShape(999.dp),
+                                        color = if (isAlert) Color(0x26EF4444) else Color(0x1A38BDF8),
+                                        border = BorderStroke(
+                                            1.dp,
+                                            if (isAlert) Color(0x66EF4444) else Color(0x4038BDF8),
+                                        ),
+                                    ) {
+                                        Text(
+                                            text = fact,
+                                            color = if (isAlert) Color(0xFFFCA5A5) else Color(0xFFE0F2FE),
+                                            fontSize = 10.5.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 

@@ -39,6 +39,7 @@ import kotlinx.coroutines.Dispatchers
 import com.autamedica.android.navigation.VIDEO_PREVIEW_APPOINTMENT_ID
 import com.autamedica.android.presentation.common.UiErrorMapper
 import com.autamedica.android.presentation.dashboard.cleanPatientName
+import com.autamedica.android.presentation.videocall.webrtc.LightingAlert
 import com.autamedica.android.presentation.videocall.webrtc.TurnManager
 import com.autamedica.android.presentation.videocall.webrtc.sfu.CloudflareCallsEngine
 import com.autamedica.android.presentation.videocall.webrtc.sfu.cloudflareAuthorizationMessage
@@ -116,6 +117,10 @@ data class VideoCallUiState(
     val preconsultationEvolution: String = "",
     val isPreconsultationSaved: Boolean = false,
     val isAutoDegradedToAudio: Boolean = false,
+    val isFrontCamera: Boolean = true,
+    val isTorchEnabled: Boolean = false,
+    val cameraZoomRatio: Float = 1.0f,
+    val lightingAlert: LightingAlert = LightingAlert.NONE,
     val isIssuingPrescription: Boolean = false,
     val isOpeningMemed: Boolean = false,
     val isVerifyingMemedPrescription: Boolean = false,
@@ -147,6 +152,24 @@ data class VideoCallUiState(
 
     val isClinicalSheetExpanded: Boolean
         get() = clinicalSheetPanel != ClinicalSheetPanel.GUIDANCE
+
+    val patientQuickFacts: List<String>
+        get() = buildList {
+            patientClinicalContext?.ageYears?.takeIf { it > 0 }?.let { add("$it años") }
+            if (allergyAlerts.isNotEmpty()) {
+                add("Alergia: ${allergyAlerts.take(2).joinToString(", ")}")
+            }
+            val chronic = patientClinicalContext?.chronicDiseases.orEmpty().filter { it.isNotBlank() }
+            if (chronic.isNotEmpty()) {
+                add("Antecedente: ${chronic.take(2).joinToString(", ")}")
+            }
+            patientClinicalContext?.medications?.takeIf { it.isNotBlank() }?.let {
+                add("Medicación: $it")
+            }
+            patientClinicalContext?.anamnesisCompletion?.takeIf { it > 0 }?.let {
+                add("Anamnesis $it%")
+            }
+        }
 }
 
 @HiltViewModel
@@ -873,6 +896,18 @@ class VideoCallViewModel @Inject constructor(
         engine.switchCamera()
     }
 
+    fun toggleTorch() {
+        engine.toggleTorch()
+    }
+
+    fun setCameraZoom(ratio: Float) {
+        engine.setZoom(ratio)
+    }
+
+    fun focusCameraAt(normX: Float, normY: Float) {
+        engine.focusOnPoint(normX, normY)
+    }
+
     fun toggleClinicalSheet() {
         val next = if (_uiState.value.isClinicalSheetExpanded) {
             ClinicalSheetPanel.GUIDANCE
@@ -1117,9 +1152,28 @@ class VideoCallViewModel @Inject constructor(
         _uiState.update { it.copy(showControls = !it.showControls) }
     }
 
+    private fun hasExternalAudioHeadsetConnected(): Boolean {
+        val outputs = runCatching { audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS) }.getOrNull() ?: return false
+        return outputs.any { device ->
+            when (device.type) {
+                AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
+                AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
+                AudioDeviceInfo.TYPE_WIRED_HEADSET,
+                AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
+                AudioDeviceInfo.TYPE_USB_HEADSET -> true
+                else -> Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && (
+                    device.type == AudioDeviceInfo.TYPE_BLE_HEADSET ||
+                        device.type == AudioDeviceInfo.TYPE_BLE_SPEAKER
+                )
+            }
+        }
+    }
+
     private fun setupAudioForCall() {
         audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
-        setSpeakerEnabled(true)
+        val useBuiltinSpeaker = !hasExternalAudioHeadsetConnected()
+        setSpeakerEnabled(useBuiltinSpeaker)
+        _uiState.update { it.copy(isSpeakerOn = useBuiltinSpeaker) }
     }
 
     private fun restoreAudio() {
@@ -1236,6 +1290,30 @@ class VideoCallViewModel @Inject constructor(
         viewModelScope.launch {
             engine.isAutoDegradedToAudio.collect { autoDegraded ->
                 _uiState.update { it.copy(isAutoDegradedToAudio = autoDegraded) }
+            }
+        }
+
+        viewModelScope.launch {
+            engine.isFrontCamera.collect { isFront ->
+                _uiState.update { it.copy(isFrontCamera = isFront) }
+            }
+        }
+
+        viewModelScope.launch {
+            engine.isTorchEnabled.collect { torchOn ->
+                _uiState.update { it.copy(isTorchEnabled = torchOn) }
+            }
+        }
+
+        viewModelScope.launch {
+            engine.zoomRatio.collect { ratio ->
+                _uiState.update { it.copy(cameraZoomRatio = ratio) }
+            }
+        }
+
+        viewModelScope.launch {
+            engine.lightingAlert.collect { alert ->
+                _uiState.update { it.copy(lightingAlert = alert) }
             }
         }
     }

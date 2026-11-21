@@ -68,6 +68,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -123,6 +125,7 @@ fun ClinicalHudLayer(
     onOpenSoap: (() -> Unit)? = null,
     onEmitPrescription: (() -> Unit)? = null,
     onEmitCertificate: (() -> Unit)? = null,
+    patientQuickFacts: List<String> = emptyList(),
 ) {
     val isSheet = panel != ClinicalSheetPanel.GUIDANCE
     val sheetFullH = (LocalConfiguration.current.screenHeightDp.dp - ReservedDockDp)
@@ -189,6 +192,7 @@ fun ClinicalHudLayer(
                 onOpenFicha = { onRequestPanelChange(ClinicalSheetPanel.RESUMEN) },
                 patientName = patientName,
                 patientDetail = consultationNotes.takeIf { it.isNotBlank() } ?: clinicalContext?.presentIllness.orEmpty(),
+                patientQuickFacts = patientQuickFacts,
             )
         }
 
@@ -675,7 +679,7 @@ private fun SheetNotas(
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text(
-                        text = "MOTIVO / ANTECEDENTES REPORTADOS",
+                        text = stringResource(R.string.videocall_reason_reported),
                         color = HudSlate,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
@@ -746,7 +750,7 @@ private fun SheetNotas(
                         overflow = TextOverflow.Ellipsis,
                     )
                     DictationState.IDLE -> Text(
-                        text = "Transcripción on-device sin salir del video.",
+                        text = "${stringResource(R.string.videocall_clinical_notes_title)} • ${stringResource(R.string.videocall_clinical_notes_subtitle)}",
                         color = HudSlate,
                         fontSize = 11.sp,
                     )
@@ -762,7 +766,7 @@ private fun SheetNotas(
                 .height(160.dp),
             placeholder = {
                 Text(
-                    text = "Escriba la evolución clínica, indicaciones, diagnóstico presuntivo o plan terapéutico...",
+                    text = stringResource(R.string.videocall_notes_input_placeholder),
                     color = HudSlate,
                     fontSize = 12.sp,
                 )
@@ -785,9 +789,9 @@ private fun SheetNotas(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (isSaved) {
-                    Text("Guardado en ficha médica", color = Color(0xFF22C55E), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                    Text(stringResource(R.string.videocall_saved_in_record), color = Color(0xFF22C55E), fontSize = 11.sp, fontWeight = FontWeight.Medium)
                 } else {
-                    Text("Registro cifrado", color = HudSlate, fontSize = 11.sp)
+                    Text(stringResource(R.string.videocall_encrypted_record), color = HudSlate, fontSize = 11.sp)
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -809,7 +813,7 @@ private fun SheetNotas(
                     if (isSaving) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
                     } else {
-                        Text("Guardar evolución", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.videocall_save_evolution), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
