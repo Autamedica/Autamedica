@@ -19,52 +19,42 @@ vi.mock('@/lib/pharmacy/guest-queue-recovery', () => ({
 const REQUEST_ID = '11111111-1111-4111-8111-111111111111'
 const SECRET = 'recover-queue-test-secret-long-enough'
 const row = (overrides: Record<string, unknown> = {}) => ({
-  id: REQUEST_ID,
-  status: 'searching',
-  created_at: new Date().toISOString(),
-  patient_dni: null,
-  patient_cpf: '12345678909',
-  patient_phone: '+55 (51) 99999-8888',
-  patient_name: 'Paciente de prueba',
-  cloudflare_room_id: 'guest-room-test',
-  care_country: 'BR',
-  search_started_at: new Date().toISOString(),
-  ...overrides,
+  id: REQUEST_ID, status: 'searching', created_at: new Date().toISOString(),
+  patient_dni: null, patient_cpf: '12345678909', patient_phone: '+55 (51) 99999-8888',
+  patient_name: 'Paciente de prueba', cloudflare_room_id: 'guest-room-test',
+  care_country: 'BR', search_started_at: new Date().toISOString(), ...overrides,
 })
 
 function chain(data: unknown, error: unknown = null) {
   const result = { data, error }
-  const query: Record<string, any> = {
-    then: (resolve: (value: unknown) => unknown) => Promise.resolve(resolve(result)),
-  }
-  for (const method of ['select', 'gte', 'in', 'or', 'order', 'eq', 'update', 'maybeSingle']) {
-    query[method] = vi.fn(() => query)
-  }
+  const query: Record<string, any> = { then: (resolve: (value: unknown) => unknown) => Promise.resolve(resolve(result)) }
+  for (const method of ['select', 'gte', 'in', 'or', 'order', 'eq', 'update', 'insert', 'maybeSingle']) query[method] = vi.fn(() => query)
   return query
 }
 
-function setup(candidate: unknown, payment: unknown = { status: 'approved' }) {
+function setup(candidate: unknown, payment: unknown = { status: 'approved' }, session: unknown = { request_id: REQUEST_ID }) {
   const requests = chain(candidate)
   const payments = chain(payment)
-  const sessionRead = chain({ request_id: REQUEST_ID })
+  const sessionRead = chain(session)
   const sessionUpdate = chain(null)
+  const sessionInsert = chain(null)
   supabaseMock.from.mockImplementation((table: string) => {
     if (table === 'pharmacy_dispatch_requests') return requests
     if (table === 'pharmacy_dispatch_payments') return payments
     if (table === 'pharmacy_guest_dispatch_sessions') {
-      return sessionRead.update.mockImplementation(() => sessionUpdate), sessionRead
+      sessionRead.update.mockImplementation(() => sessionUpdate)
+      sessionRead.insert.mockImplementation(() => sessionInsert)
+      return sessionRead
     }
     return chain(null)
   })
-  return { requests, payments, sessionRead, sessionUpdate }
+  return { requests, payments, sessionRead, sessionUpdate, sessionInsert }
 }
 
 function context(document = '123.456.789-09', phone = '+55 51 99999-8888') {
   return {
     request: new Request('https://example.invalid/api/pharmacy/dispatch/recover-queue', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ document, phone }),
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ document, phone }),
     }),
     locals: { runtime: { env: { GUEST_TOKEN_SECRET: SECRET } } },
   } as unknown as Parameters<typeof POST>[0]
@@ -79,14 +69,28 @@ describe('POST /api/pharmacy/dispatch/recover-queue', () => {
     expect(response.status).toBe(200)
     const payload = await response.json()
     expect(payload.data).toEqual(expect.objectContaining({
-      requestId: REQUEST_ID,
-      status: 'searching',
-      guestToken: expect.any(String),
-      recoveryToken: 'a'.repeat(64),
+      requestId: REQUEST_ID, status: 'searching', guestToken: expect.any(String), recoveryToken: 'a'.repeat(64),
     }))
     const token = await verifyGuestToken(payload.data.guestToken, SECRET)
     expect(token?.callId).toBe(REQUEST_ID)
     expect(token?.roomId).toBe('guest-room-test')
+  })
+
+  it('creates a missing guest session for valid CPF + WhatsApp and approved searching dispatch', async () => {
+    const { sessionRead } = setup([row()], { status: 'approved' }, null)
+    const response = await POST(context())
+    expect(response.status).toBe(200)
+    const payload = await response.json()
+    expect(payload.data).toEqual(expect.objectContaining({
+      requestId: REQUEST_ID, status: 'searching', guestToken: expect.any(String), recoveryToken: 'a'.repeat(64),
+    }))
+    expect(payload.data.recoveryToken).toMatch(/^[0-9a-f]{64}$/)
+    const token = await verifyGuestToken(payload.data.guestToken, SECRET)
+    expect(token?.callId).toBe(REQUEST_ID)
+    expect(token?.roomId).toBe('guest-room-test')
+    expect(sessionRead.insert).toHaveBeenCalledWith(expect.objectContaining({
+      request_id: REQUEST_ID, token_sha256: 'b'.repeat(64), expires_at: expect.any(String), revoked_at: null,
+    }))
   })
 
   it('recovers pending_payment only when its payment row is approved', async () => {
@@ -95,10 +99,7 @@ describe('POST /api/pharmacy/dispatch/recover-queue', () => {
     expect(response.status).toBe(200)
     const payload = await response.json()
     expect(payload.data).toEqual(expect.objectContaining({
-      requestId: REQUEST_ID,
-      status: 'pending_payment',
-      guestToken: expect.any(String),
-      recoveryToken: 'a'.repeat(64),
+      requestId: REQUEST_ID, status: 'pending_payment', guestToken: expect.any(String), recoveryToken: 'a'.repeat(64),
     }))
   })
 
