@@ -400,7 +400,11 @@ class DoctorCertificatesViewModel @Inject constructor(
                         it.copy(
                             isSubmitting = false,
                             createdCertificate = certificate,
-                            userMessage = "Borrador de certificado guardado, pendiente de firma: ${certificate.cuir}",
+                            userMessage = if (certificate.isActive) {
+                                "Certificado emitido y firmado: ${certificate.cuir}"
+                            } else {
+                                "Borrador de certificado guardado, pendiente de firma: ${certificate.cuir}"
+                            },
                             userMessageRes = R.string.cert_success_issued_cuir,
                             userMessageArg = certificate.cuir,
                         )

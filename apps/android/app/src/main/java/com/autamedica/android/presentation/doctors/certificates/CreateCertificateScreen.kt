@@ -151,7 +151,7 @@ fun CreateCertificateScreen(
                             .fillMaxWidth()
                             .height(50.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PortalDoctors),
+                        colors = ButtonDefaults.buttonColors(containerColor = PortalPatientsAction, contentColor = Color.White),
                         enabled = !uiState.isSubmitting,
                     ) {
                         if (uiState.isSubmitting) {
@@ -356,7 +356,7 @@ fun CreateCertificateScreen(
                         onBack()
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = PortalDoctors)
+                    colors = ButtonDefaults.buttonColors(containerColor = PortalPatientsAction, contentColor = Color.White)
                 ) {
                     Text(stringResource(R.string.cert_success_back_to_certificates))
                 }
@@ -392,7 +392,7 @@ private fun DoctorRegulatoryBanner(eligibility: DoctorEligibility?) {
                     text = if (isEligible) stringResource(R.string.cert_reg_active_title) else stringResource(R.string.cert_reg_pending_title),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (isEligible) AuSuccess else Color(0xFFB45309),
+                    color = if (isEligible) AuSuccess else PortalPatientsAction,
                 )
                 Text(
                     text = if (isEligible) {
