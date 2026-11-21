@@ -54,6 +54,8 @@ fun DashboardScreen(
     onNavigateToBookAppointment: () -> Unit = {},
     onNavigateToPrescriptions: () -> Unit = {},
     onNavigateToCertificates: () -> Unit = onNavigateToPrescriptions,
+    onNavigateToMedicalOrders: () -> Unit = onNavigateToPrescriptions,
+    onNavigateToChatList: () -> Unit = {},
     onNavigateToClinicalDocuments: () -> Unit = {},
     onNavigateToChatConversation: (chatId: String) -> Unit = {},
     onNavigateToPsychiatry: () -> Unit = {},
@@ -298,12 +300,18 @@ fun DashboardScreen(
             onNotificationClick = { notification ->
                 viewModel.markNotificationAsRead(notification.id)
                 viewModel.setNotificationsSheetVisible(false)
-                when (notification.category?.lowercase()) {
-                    "appointment" -> onNavigateToBookAppointment()
-                    "prescription" -> onNavigateToPrescriptions()
-                    "community" -> onNavigateToCommunity()
-                    "chat", "message" -> onNavigateToBookAppointment()
-                    else -> onNavigateToBookAppointment()
+                when (val dest = PatientNotificationActionResolver.resolve(notification)) {
+                    is PatientNotificationDestination.VideoCall -> onNavigateToVideoCall(dest.appointmentId)
+                    is PatientNotificationDestination.ChatConversation -> onNavigateToChatConversation(dest.chatId)
+                    PatientNotificationDestination.ChatList -> onNavigateToChatList()
+                    PatientNotificationDestination.Prescriptions -> onNavigateToPrescriptions()
+                    PatientNotificationDestination.Certificates -> onNavigateToCertificates()
+                    PatientNotificationDestination.MedicalOrders -> onNavigateToMedicalOrders()
+                    PatientNotificationDestination.ClinicalDocuments -> onNavigateToClinicalDocuments()
+                    PatientNotificationDestination.ContinuityStatus -> onNavigateToContinuityStatus()
+                    PatientNotificationDestination.Community -> onNavigateToCommunity()
+                    PatientNotificationDestination.Profile -> onNavigateToPatientProfile()
+                    PatientNotificationDestination.Appointments -> onNavigateToBookAppointment()
                 }
             },
             onMarkAllAsRead = viewModel::markAllNotificationsAsRead,

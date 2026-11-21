@@ -199,6 +199,12 @@ fun AppNavHost(
                 onNavigateToCertificates = {
                     navController.navigate(Route.PatientCertificates)
                 },
+                onNavigateToMedicalOrders = {
+                    navController.navigate(Route.PatientOrders)
+                },
+                onNavigateToChatList = {
+                    navController.navigate(Route.ChatList)
+                },
                 onNavigateToClinicalDocuments = {
                     navController.navigate(Route.ClinicalDocuments)
                 },
@@ -492,6 +498,16 @@ fun AppNavHost(
             com.autamedica.android.presentation.prescriptions.PrescriptionsScreen(
                 onBack = { navController.popBackStack() },
                 initialTab = com.autamedica.android.presentation.prescriptions.DocumentTab.ATESTADOS,
+                onRequestConsultation = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable<Route.PatientOrders> {
+            com.autamedica.android.presentation.prescriptions.PrescriptionsScreen(
+                onBack = { navController.popBackStack() },
+                initialTab = com.autamedica.android.presentation.prescriptions.DocumentTab.ORDENES,
                 onRequestConsultation = {
                     navController.popBackStack()
                 }
