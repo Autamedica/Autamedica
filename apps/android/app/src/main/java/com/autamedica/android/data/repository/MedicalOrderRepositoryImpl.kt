@@ -1,5 +1,6 @@
 package com.autamedica.android.data.repository
 
+import com.autamedica.android.BuildConfig
 import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.model.CreateMedicalOrderRequest
 import com.autamedica.android.domain.model.MedicalOrder
@@ -8,6 +9,7 @@ import com.autamedica.android.domain.model.StudyType
 import com.autamedica.android.domain.repository.MedicalOrderRepository
 import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
@@ -26,7 +28,13 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.net.URI
 import java.time.Instant
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,6 +43,47 @@ class MedicalOrderRepositoryImpl @Inject constructor(
     private val supabaseClient: SupabaseClient,
     private val securePreferences: SecurePreferences,
 ) : MedicalOrderRepository {
+
+    // Never forward patient Bearer tokens across redirects to Storage signed URLs.
+    private val downloadClient = OkHttpClient.Builder()
+        .callTimeout(15, TimeUnit.SECONDS)
+        .followRedirects(false)
+        .followSslRedirects(false)
+        .build()
+
+    override suspend fun getMedicalOrderPdfDownloadUrl(order: MedicalOrder): Result<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            val accessToken = supabaseClient.auth.currentSessionOrNull()?.accessToken
+                ?: throw IllegalStateException("Sesión autenticada requerida para descargar la orden médica")
+
+            val endpoint = BuildConfig.WEB_API_URL.trimEnd('/') +
+                "/api/patients/medical-orders/${order.id}/pdf"
+            val request = Request.Builder()
+                .url(endpoint)
+                .header("Authorization", "Bearer $accessToken")
+                .header("Accept", "application/pdf")
+                .get()
+                .build()
+
+            downloadClient.newCall(request).execute().use { response ->
+                val location = response.header("Location").orEmpty()
+                if (response.code !in 300..399 || location.isBlank()) {
+                    throw IllegalStateException("No se pudo autorizar la descarga de la orden (HTTP ${response.code})")
+                }
+                val signedUri = runCatching { URI(location) }.getOrNull()
+                    ?: throw IllegalStateException("El servidor devolvió una URL de descarga inválida")
+                val expectedHost = URI(BuildConfig.SUPABASE_URL).host
+                require(
+                    signedUri.scheme.equals("https", ignoreCase = true) &&
+                        signedUri.host.equals(expectedHost, ignoreCase = true) &&
+                        signedUri.userInfo == null,
+                ) { "El servidor devolvió una URL de Storage no confiable" }
+                signedUri.toASCIIString()
+            }
+        }.onFailure {
+            SecureLog.error("[MedicalOrders] Failed resolving authenticated PDF download URL", it)
+        }
+    }
 
     override suspend fun getDoctorMedicalOrders(): Result<List<MedicalOrder>> = runCatching {
         val doctorId = resolveDoctorId()

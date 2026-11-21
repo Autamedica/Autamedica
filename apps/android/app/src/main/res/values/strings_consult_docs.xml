@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="consult_radar_doctors_one">1 médico disponible ahora</string>
+    <string name="consult_radar_doctors_many">%1$d médicos disponibles ahora</string>
+    <string name="consult_radar_checking">Buscando profesionales en línea</string>
+    <string name="consult_radar_title">Atención médica ahora</string>
+    <string name="consult_radar_subtitle">Consultá por video sin turno previo y recibí receta, certificado u orden de estudios al instante.</string>
+    <string name="consult_radar_cta">Buscar médico ahora</string>
+
+    <string name="consult_schedule_card_title">Agendar una consulta</string>
+    <string name="consult_schedule_card_subtitle">Elegí especialidad, profesional y el horario que mejor te quede</string>
+    <string name="consult_schedule_card_cta">Ver turnos disponibles</string>
+
+    <string name="consult_active_room_badge">Consulta confirmada · Sala lista</string>
+    <string name="consult_active_room_default_doctor">Tu médico está conectado</string>
+    <string name="consult_active_room_cta">Entrar a la videollamada</string>
+
+    <string name="consult_pending_payment_title">Pago pendiente de confirmación</string>
+    <string name="consult_pending_payment_subtitle">Completá el pago para confirmar tu consulta</string>
+    <string name="consult_pending_payment_cta">Completar pago</string>
+
+    <string name="docs_tab_prescriptions_short">Recetas</string>
+    <string name="docs_tab_certificates_short">Certificados</string>
+    <string name="docs_tab_orders_short">Exámenes</string>
+
+    <string name="docs_orders_screen_title">Órdenes de Exámenes</string>
+    <string name="docs_orders_active_count_one">%1$d orden emitida</string>
+    <string name="docs_orders_active_count_many">%1$d órdenes emitidas</string>
+    <string name="docs_orders_none_issued">Sin órdenes de exámenes emitidas</string>
+    <string name="docs_orders_error_title">No pudimos cargar tus órdenes</string>
+    <string name="docs_orders_empty_title">Todavía no tenés órdenes de exámenes</string>
+    <string name="docs_orders_empty_subtitle">Cuando un profesional solicite análisis o estudios, aparecerán acá listos para descargar en PDF.</string>
+    <string name="docs_orders_empty_cta">Solicitar consulta</string>
+    <string name="docs_order_view_detail">Ver orden médica</string>
+    <string name="docs_order_status_issued">Emitida</string>
+    <string name="docs_order_status_pending">En proceso</string>
+    <string name="docs_order_status_cancelled">Anulada</string>
+    <string name="docs_order_practices_label">Estudios solicitados</string>
+    <string name="docs_order_diagnosis_label">Diagnóstico presuntivo</string>
+    <string name="docs_order_download_pdf">Descargar PDF de la orden</string>
+
+    <string name="docs_study_type_lab">Laboratorio</string>
+    <string name="docs_study_type_imaging">Diagnóstico por imágenes</string>
+    <string name="docs_study_type_cardiology">Cardiología</string>
+    <string name="docs_study_type_other">Otros estudios</string>
+</resources>

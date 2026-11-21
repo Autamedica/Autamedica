@@ -12,13 +12,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import com.autamedica.android.domain.model.MedicalCertificate
+import com.autamedica.android.domain.model.MedicalOrder
 import com.autamedica.android.domain.model.CertificateType
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,6 +40,7 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Biotech
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Medication
 import androidx.compose.material.icons.outlined.OpenInNew
@@ -83,6 +87,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.R
 import com.autamedica.android.domain.model.Prescription
+import com.autamedica.android.presentation.prescriptions.components.MedicalOrderDetailBottomSheet
+import com.autamedica.android.presentation.prescriptions.components.MedicalOrdersContentView
 import com.autamedica.android.presentation.prescriptions.components.QrCodeView
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
@@ -93,6 +99,8 @@ import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
 import com.autamedica.android.presentation.theme.PortalPatients
+import com.autamedica.android.presentation.theme.PortalPatientsAction
+import com.autamedica.android.presentation.theme.PrimaryContainer
 import java.io.File
 import java.time.Instant
 import java.time.LocalDate
@@ -153,6 +161,26 @@ fun PrescriptionsScreen(
         )
     }
 
+    val onOpenOrderPdf: (MedicalOrder) -> Unit = { order ->
+        viewModel.openMedicalOrderPdf(
+            order = order,
+            onReady = { signedUrl ->
+                runCatching {
+                    val uri = Uri.parse(signedUrl)
+                    require(uri.scheme.equals("https", ignoreCase = true)) { "Invalid URL" }
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    )
+                }.onFailure {
+                    Toast.makeText(context, context.getString(R.string.prescriptions_toast_pdf_error), Toast.LENGTH_SHORT).show()
+                }
+            },
+            onFailure = {
+                Toast.makeText(context, context.getString(R.string.prescriptions_toast_pdf_error), Toast.LENGTH_SHORT).show()
+            },
+        )
+    }
+
     LaunchedEffect(uiState.downloadedPdf?.localPath) {
         val downloadedPdf = uiState.downloadedPdf ?: return@LaunchedEffect
         runCatching {
@@ -186,36 +214,51 @@ fun PrescriptionsScreen(
                 title = {
                     Column {
                         Text(
-                            text = if (uiState.selectedTab == DocumentTab.RECETAS) {
-                                stringResource(R.string.prescriptions_title)
-                            } else {
-                                stringResource(R.string.prescriptions_certificates_title)
+                            text = when (uiState.selectedTab) {
+                                DocumentTab.RECETAS -> stringResource(R.string.prescriptions_title)
+                                DocumentTab.ATESTADOS -> stringResource(R.string.prescriptions_certificates_title)
+                                DocumentTab.ORDENES -> stringResource(R.string.docs_orders_screen_title)
                             },
                             style = MaterialTheme.typography.titleLarge,
                             color = AuTextPrimary,
                             fontWeight = FontWeight.Bold,
                         )
-                        val subtitle = if (uiState.selectedTab == DocumentTab.RECETAS) {
-                            val active = uiState.activeCount
-                            if (active > 0) {
-                                if (active == 1) stringResource(R.string.prescriptions_active_count_one, active)
-                                else stringResource(R.string.prescriptions_active_count_many, active)
-                            } else {
-                                stringResource(R.string.prescriptions_no_pending)
+                        val (subtitle, hasConfirmedInTab) = when (uiState.selectedTab) {
+                            DocumentTab.RECETAS -> {
+                                val active = uiState.activeCount
+                                val text = if (active > 0) {
+                                    if (active == 1) stringResource(R.string.prescriptions_active_count_one, active)
+                                    else stringResource(R.string.prescriptions_active_count_many, active)
+                                } else {
+                                    stringResource(R.string.prescriptions_no_pending)
+                                }
+                                text to (active > 0)
                             }
-                        } else {
-                            val active = uiState.activeCertificatesCount
-                            if (active > 0) {
-                                if (active == 1) stringResource(R.string.prescriptions_cert_valid_count_one, active)
-                                else stringResource(R.string.prescriptions_cert_valid_count_many, active)
-                            } else {
-                                stringResource(R.string.prescriptions_cert_none_issued)
+                            DocumentTab.ATESTADOS -> {
+                                val active = uiState.activeCertificatesCount
+                                val text = if (active > 0) {
+                                    if (active == 1) stringResource(R.string.prescriptions_cert_valid_count_one, active)
+                                    else stringResource(R.string.prescriptions_cert_valid_count_many, active)
+                                } else {
+                                    stringResource(R.string.prescriptions_cert_none_issued)
+                                }
+                                text to (active > 0)
+                            }
+                            DocumentTab.ORDENES -> {
+                                val active = uiState.activeOrdersCount
+                                val text = if (active > 0) {
+                                    if (active == 1) stringResource(R.string.docs_orders_active_count_one, active)
+                                    else stringResource(R.string.docs_orders_active_count_many, active)
+                                } else {
+                                    stringResource(R.string.docs_orders_none_issued)
+                                }
+                                text to (active > 0)
                             }
                         }
                         Text(
                             text = subtitle,
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (uiState.activeCount > 0 || uiState.activeCertificatesCount > 0) Color(0xFF15803D) else AuTextSecondary,
+                            color = if (hasConfirmedInTab) Color(0xFF15803D) else AuTextSecondary,
                             fontWeight = FontWeight.Medium,
                         )
                     }
@@ -256,15 +299,17 @@ fun PrescriptionsScreen(
                 .padding(innerPadding),
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Selector de pestañas: Recetas vs Atestados
+                // Selector de 3 botones funcionales: Recetas · Certificados · Exámenes
                 DocumentTabSelector(
                     selectedTab = uiState.selectedTab,
                     prescriptionsCount = uiState.prescriptions.size,
                     certificatesCount = uiState.certificates.size,
+                    ordersCount = uiState.orders.size,
                     onSelectTab = viewModel::selectTab,
                 )
 
-                if (uiState.selectedTab == DocumentTab.RECETAS) {
+                when (uiState.selectedTab) {
+                    DocumentTab.RECETAS -> {
                     // Filtros rápidos: Todas, Activas, Dispensadas, Completadas
                     PrescriptionsFilterChips(
                         selectedFilter = uiState.selectedFilter,
@@ -281,7 +326,7 @@ fun PrescriptionsScreen(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 CircularProgressIndicator(
-                                    color = Color(0xFF171717),
+                                    color = PortalPatientsAction,
                                     strokeWidth = 3.dp,
                                 )
                             }
@@ -323,7 +368,7 @@ fun PrescriptionsScreen(
                                     Button(
                                         onClick = viewModel::loadDocuments,
                                         colors = ButtonDefaults.buttonColors(
-                                            containerColor = Color(0xFF171717),
+                                            containerColor = PortalPatientsAction,
                                             contentColor = Color.White,
                                         ),
                                         shape = CircleShape,
@@ -371,20 +416,37 @@ fun PrescriptionsScreen(
                             }
                         }
                     }
-                } else {
-                    // Contenido de Atestados
-                    CertificatesContentView(
-                        certificates = uiState.certificates,
-                        isLoading = uiState.isLoading,
-                        error = uiState.error,
-                        onSelectCertificate = viewModel::selectCertificate,
-                        onOpenPdf = onOpenCertificatePdf,
-                        onRequestConsultation = onRequestConsultation,
-                        onRetry = viewModel::loadDocuments,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                    )
+                    }
+                    DocumentTab.ATESTADOS -> {
+                        // Contenido de Certificados / Atestados
+                        CertificatesContentView(
+                            certificates = uiState.certificates,
+                            isLoading = uiState.isLoading,
+                            error = uiState.error,
+                            onSelectCertificate = viewModel::selectCertificate,
+                            onOpenPdf = onOpenCertificatePdf,
+                            onRequestConsultation = onRequestConsultation,
+                            onRetry = viewModel::loadDocuments,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                        )
+                    }
+                    DocumentTab.ORDENES -> {
+                        // Contenido de Órdenes / Exámenes solicitados
+                        MedicalOrdersContentView(
+                            orders = uiState.orders,
+                            isLoading = uiState.isLoading,
+                            error = uiState.error,
+                            onSelectOrder = viewModel::selectOrder,
+                            onOpenPdf = onOpenOrderPdf,
+                            onRequestConsultation = onRequestConsultation,
+                            onRetry = viewModel::loadDocuments,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                        )
+                    }
                 }
             }
         }
@@ -411,6 +473,21 @@ fun PrescriptionsScreen(
             certificate = selectedCert,
             onDismiss = viewModel::clearSelectedCertificate,
             onOpenPdf = onOpenCertificatePdf,
+            onCopyCuir = { cuir ->
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = ClipData.newPlainText("CUIR", cuir)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(context, context.getString(R.string.prescriptions_toast_cuir_copied), Toast.LENGTH_SHORT).show()
+            },
+        )
+    }
+
+    // Detail BottomSheet de Órdenes / Exámenes
+    uiState.selectedOrder?.let { selectedOrder ->
+        MedicalOrderDetailBottomSheet(
+            order = selectedOrder,
+            onDismiss = viewModel::clearSelectedOrder,
+            onOpenPdf = onOpenOrderPdf,
             onCopyCuir = { cuir ->
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 val clip = ClipData.newPlainText("CUIR", cuir)
@@ -449,8 +526,8 @@ private fun PrescriptionsFilterChips(
             Surface(
                 onClick = { onSelectFilter(filter) },
                 shape = CircleShape,
-                color = if (isSelected) Color(0xFF1E293B) else Color.White,
-                border = BorderStroke(1.dp, if (isSelected) Color(0xFF1E293B) else Color(0xFFCBD5E1)),
+                color = if (isSelected) PortalPatientsAction else Color.White,
+                border = BorderStroke(1.dp, if (isSelected) PortalPatientsAction else AuBorder),
             ) {
                 Text(
                     text = filter.localizedLabel(),
@@ -577,7 +654,7 @@ private fun PrescriptionCard(
                     if (downloadablePdfUrl != null) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),
-                            color = Color(0xFFFEE2E2),
+                            color = PrimaryContainer,
                             modifier = Modifier.clickable { onOpenPdf(downloadablePdfUrl) },
                         ) {
                             Row(
@@ -588,14 +665,14 @@ private fun PrescriptionCard(
                                 Icon(
                                     imageVector = Icons.Outlined.PictureAsPdf,
                                     contentDescription = stringResource(R.string.prescriptions_download_pdf_cd),
-                                    tint = Color(0xFFDC2626),
+                                    tint = PortalPatientsAction,
                                     modifier = Modifier.size(13.dp),
                                 )
                                 Text(
                                     text = stringResource(R.string.prescriptions_pdf_badge),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFDC2626),
+                                    color = PortalPatientsAction,
                                 )
                             }
                         }
@@ -682,7 +759,7 @@ private fun EmptyPrescriptionsView(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF171717),
+                color = PortalPatientsAction,
                 textAlign = TextAlign.Center,
             )
 
@@ -702,7 +779,7 @@ private fun EmptyPrescriptionsView(
                 onClick = onRequestConsultation,
                 shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF171717), // neutral-900
+                    containerColor = PortalPatientsAction, // neutral-900
                     contentColor = Color.White,
                 ),
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
@@ -1237,71 +1314,92 @@ private fun DocumentTabSelector(
     selectedTab: DocumentTab,
     prescriptionsCount: Int,
     certificatesCount: Int,
+    ordersCount: Int,
     onSelectTab: (DocumentTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
+            .height(IntrinsicSize.Min)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Surface(
-            shape = RoundedCornerShape(10.dp),
-            color = if (selectedTab == DocumentTab.RECETAS) Color(0xFF0F172A) else Color.White,
-            border = BorderStroke(1.dp, if (selectedTab == DocumentTab.RECETAS) Color(0xFF0F172A) else Color(0xFFCBD5E1)),
+        DocumentSegmentButton(
+            icon = Icons.Outlined.Medication,
+            label = stringResource(R.string.docs_tab_prescriptions_short),
+            count = prescriptionsCount,
+            selected = selectedTab == DocumentTab.RECETAS,
+            onClick = { onSelectTab(DocumentTab.RECETAS) },
             modifier = Modifier
                 .weight(1f)
-                .clickable { onSelectTab(DocumentTab.RECETAS) },
-        ) {
-            Row(
-                modifier = Modifier.padding(vertical = 9.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Medication,
-                    contentDescription = null,
-                    tint = if (selectedTab == DocumentTab.RECETAS) Color.White else Color(0xFF475569),
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = stringResource(R.string.prescriptions_tab_recipes, prescriptionsCount),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (selectedTab == DocumentTab.RECETAS) Color.White else Color(0xFF334155),
-                )
-            }
-        }
+                .fillMaxHeight(),
+        )
+        DocumentSegmentButton(
+            icon = Icons.Outlined.Description,
+            label = stringResource(R.string.docs_tab_certificates_short),
+            count = certificatesCount,
+            selected = selectedTab == DocumentTab.ATESTADOS,
+            onClick = { onSelectTab(DocumentTab.ATESTADOS) },
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+        )
+        DocumentSegmentButton(
+            icon = Icons.Outlined.Biotech,
+            label = stringResource(R.string.docs_tab_orders_short),
+            count = ordersCount,
+            selected = selectedTab == DocumentTab.ORDENES,
+            onClick = { onSelectTab(DocumentTab.ORDENES) },
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+        )
+    }
+}
 
-        Surface(
-            shape = RoundedCornerShape(10.dp),
-            color = if (selectedTab == DocumentTab.ATESTADOS) Color(0xFF0F172A) else Color.White,
-            border = BorderStroke(1.dp, if (selectedTab == DocumentTab.ATESTADOS) Color(0xFF0F172A) else Color(0xFFCBD5E1)),
+@Composable
+private fun DocumentSegmentButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    count: Int,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = if (selected) PortalPatientsAction else Color.White,
+        border = BorderStroke(1.dp, if (selected) PortalPatientsAction else AuBorder),
+        shadowElevation = if (selected) 1.dp else 0.dp,
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick),
+    ) {
+        Column(
             modifier = Modifier
-                .weight(1f)
-                .clickable { onSelectTab(DocumentTab.ATESTADOS) },
+                .fillMaxWidth()
+                .padding(horizontal = 6.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
-            Row(
-                modifier = Modifier.padding(vertical = 9.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Description,
-                    contentDescription = null,
-                    tint = if (selectedTab == DocumentTab.ATESTADOS) Color.White else Color(0xFF475569),
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = stringResource(R.string.prescriptions_tab_certificates, certificatesCount),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (selectedTab == DocumentTab.ATESTADOS) Color.White else Color(0xFF334155),
-                )
-            }
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (selected) Color.White else PortalPatientsAction,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = if (count > 0) "$label ($count)" else label,
+                style = MaterialTheme.typography.labelMedium,
+                fontSize = 11.5.sp,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                color = if (selected) Color.White else AuTextPrimary,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -1324,7 +1422,7 @@ private fun CertificatesContentView(
                 contentAlignment = Alignment.Center,
             ) {
                 CircularProgressIndicator(
-                    color = Color(0xFF171717),
+                    color = PortalPatientsAction,
                     strokeWidth = 3.dp,
                 )
             }
@@ -1363,7 +1461,7 @@ private fun CertificatesContentView(
                     Button(
                         onClick = onRetry,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF171717),
+                            containerColor = PortalPatientsAction,
                             contentColor = Color.White,
                         ),
                         shape = CircleShape,
@@ -1595,7 +1693,7 @@ private fun CertificateCard(
                     if (canDownloadPdf) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),
-                            color = Color(0xFFFEE2E2),
+                            color = PrimaryContainer,
                             modifier = Modifier.clickable { onOpenPdf(certificate) },
                         ) {
                             Row(
@@ -1606,14 +1704,14 @@ private fun CertificateCard(
                                 Icon(
                                     imageVector = Icons.Outlined.PictureAsPdf,
                                     contentDescription = stringResource(R.string.prescriptions_download_pdf_cd),
-                                    tint = Color(0xFFDC2626),
+                                    tint = PortalPatientsAction,
                                     modifier = Modifier.size(13.dp),
                                 )
                                 Text(
                                     text = stringResource(R.string.prescriptions_pdf_badge),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFDC2626),
+                                    color = PortalPatientsAction,
                                 )
                             }
                         }
