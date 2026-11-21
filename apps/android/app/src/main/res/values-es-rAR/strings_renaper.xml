@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="renaper_title">Consulta de identidad argentina — RENAPER</string>
+    <string name="renaper_notice">Solo para pacientes con DNI argentino. La consulta requiere autorización y no sustituye la validación médica ni acredita cobertura.</string>
+    <string name="renaper_sex_label">Sexo registral que figura en el DNI</string>
+    <string name="renaper_sex_female">Femenino</string>
+    <string name="renaper_sex_male">Masculino</string>
+    <string name="renaper_sex_other">X / otro</string>
+    <string name="renaper_consent">Autorizo consultar mis datos de identidad en el servicio oficial.</string>
+    <string name="renaper_action">Consultar identidad</string>
+    <string name="renaper_partial">Respuesta parcial: los datos están enmascarados según la autorización del servidor.</string>
+    <string name="renaper_name">Nombre: %1$s</string>
+    <string name="renaper_coverage">Cobertura: %1$s</string>
+    <string name="renaper_checked_at">Consulta: %1$s</string>
+    <string name="renaper_error_invalid">Ingresá un DNI válido (6 a 12 dígitos) y seleccioná el sexo registral.</string>
+    <string name="renaper_error_auth">Tu sesión o autorización no permite esta consulta.</string>
+    <string name="renaper_error_scope">El DNI y el sexo registral deben coincidir con tu perfil argentino registrado.</string>
+    <string name="renaper_error_mismatch">La identidad oficial devuelta no coincide con el DNI registrado.</string>
+    <string name="renaper_error_limit">Se alcanzó el límite de consultas de identidad.</string>
+    <string name="renaper_error_unavailable">El servicio oficial no está disponible. No se modificó tu perfil.</string>
+    <string name="renaper_error_default">No se pudo realizar la consulta. No se modificó tu perfil.</string>
+    <string name="renaper_dni_registered">DNI registrado: %1$s</string>
+    <string name="renaper_dni_missing">Registrá tu DNI argentino en el perfil para consultar datos oficiales.</string>
+    <string name="renaper_data_matched">Se encontraron datos en el registro oficial</string>
+    <string name="renaper_identity_not_verified">Consultar datos del DNI no comprueba que quien usa esta cuenta sea su titular. No equivale a verificación biométrica ni habilita recetas o certificados por sí solo.</string>
+    <string name="renaper_status_recorded_title">Consulta oficial RENAPER registrada</string>
+    <string name="renaper_status_recorded_notice">El servidor registró los datos oficiales consultados para tu perfil argentino. Esta consulta no equivale a verificación biométrica.</string>
+    <string name="renaper_status_mismatch">Los nombres declarados en tu perfil difieren del registro oficial. Revisá tus datos antes de continuar.</string>
+    <string name="renaper_address">Domicilio (protegido): %1$s</string>
+    <string name="renaper_photo_hidden">Foto oficial disponible — vista previa oculta</string>
+    <string name="renaper_photo_unavailable">Foto oficial no disponible — muestra protegida</string>
+    <string name="renaper_photo_preview_note">Esta silueta es ilustrativa; no se muestra ni se descarga la fotografía real.</string>
+</resources>
