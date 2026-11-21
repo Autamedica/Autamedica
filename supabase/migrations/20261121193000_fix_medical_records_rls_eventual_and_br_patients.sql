@@ -120,7 +120,14 @@ ALTER POLICY "medical_records_insert_doctor" ON public.medical_records
     AND (
       (
         (SELECT public.is_clinically_approved_doctor())
-        AND public.doctor_has_patient_access_by_id(medical_records.patient_id)
+        AND EXISTS (
+          SELECT 1 FROM public.patients p
+          WHERE p.id = medical_records.patient_id
+            AND (
+              public.doctor_has_patient_access(p.user_id)
+              OR (p.user_id IS NULL AND public.doctor_has_patient_access_by_id(p.id))
+            )
+        )
       )
       OR (SELECT public.is_system_admin())
     )
