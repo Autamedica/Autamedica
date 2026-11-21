@@ -6,12 +6,15 @@ export type ManualPilotPaymentCandidate = {
   request_status: string | null
 }
 
+/** Admin override eligibility is intentionally broader than provider verification. */
 export function isManualPilotApprovalEligible(payment: ManualPilotPaymentCandidate): boolean {
+  const payable = ['pending', 'pending_payment'].includes(payment.status)
+    && ['pending_payment', 'searching'].includes(payment.request_status ?? '')
+  if (!payable) return false
+  if (payment.provider === 'mercadopago') return true
   return payment.provider === 'manual'
     && payment.payment_mode === 'manual_pilot'
     && payment.manual_approval_pending === true
-    && ['pending', 'pending_payment'].includes(payment.status)
-    && ['pending_payment', 'searching'].includes(payment.request_status ?? '')
 }
 
 export function resolveManualApprovalResult<T extends {
