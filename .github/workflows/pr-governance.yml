@@ -29,4 +29,5 @@ jobs:
 
       - name: Remind about priority label
         if: ${{ !contains(github.event.pull_request.labels.*.name, 'priority:P0') && !contains(github.event.pull_request.labels.*.name, 'priority:P1') && !contains(github.event.pull_request.labels.*.name, 'priority:P2') && !contains(github.event.pull_request.labels.*.name, 'priority:P3') }}
-        run: echo "::warning::Add one priority label: priority:P0, priority:P1, priority:P2, or priority:P3."
+        run: |
+          echo "::warning::Add one priority label: priority:P0, priority:P1, priority:P2, or priority:P3."
