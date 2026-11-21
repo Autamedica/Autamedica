@@ -23,6 +23,7 @@ import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,7 +52,10 @@ class NotificationRepositoryImpl @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : NotificationRepository {
 
-    private val repositoryScope = CoroutineScope(SupervisorJob() + ioDispatcher)
+    private val scopeErrorHandler = CoroutineExceptionHandler { _, throwable ->
+        SecureLog.warn("[Notifications] Background coroutine error", throwable)
+    }
+    private val repositoryScope = CoroutineScope(SupervisorJob() + ioDispatcher + scopeErrorHandler)
     private val fcmRegistrationMutex = Mutex()
 
     init {

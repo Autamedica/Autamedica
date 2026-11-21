@@ -35,6 +35,7 @@ import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -67,7 +68,10 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     private val securePreferences: SecurePreferences? = null,
 ) : PharmacyDispatchRepository {
 
-    private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
+    private val scopeErrorHandler = CoroutineExceptionHandler { _, throwable ->
+        SecureLog.warn("[PharmacyDispatch] Background coroutine error", throwable)
+    }
+    private val scope = CoroutineScope(SupervisorJob() + ioDispatcher + scopeErrorHandler)
 
     private val _searchingRequests = MutableStateFlow<List<PharmacyDispatchRequest>>(emptyList())
     private var searchingQueueJob: Job? = null

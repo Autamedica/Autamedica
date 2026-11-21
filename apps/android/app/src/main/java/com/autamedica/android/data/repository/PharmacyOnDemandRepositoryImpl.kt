@@ -29,6 +29,7 @@ import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -139,7 +140,10 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
     private val authRepository: AuthRepository,
 ) : PharmacyOnDemandRepository {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scopeErrorHandler = CoroutineExceptionHandler { _, throwable ->
+        SecureLog.warn("[PharmacyOnDemand] Background coroutine error", throwable)
+    }
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + scopeErrorHandler)
     private val _onDutyFlow = MutableStateFlow(DoctorOnDutyPharmacyState())
     private var isRealtimeSubscribed = false
     @Volatile
