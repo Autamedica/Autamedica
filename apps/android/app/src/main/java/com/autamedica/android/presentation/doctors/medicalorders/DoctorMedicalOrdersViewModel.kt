@@ -43,6 +43,9 @@ data class DoctorMedicalOrdersUiState(
     val selectedPatient: PrescriptionPatientItem? = null,
     val eligiblePatients: List<PrescriptionPatientItem> = emptyList(),
     val isLoadingPatients: Boolean = false,
+    val isRegisteringDni: Boolean = false,
+    val dniLookupError: String? = null,
+    val needsManualName: Boolean = false,
 
     // Form fields for creation
     val patientId: String = "",
@@ -151,7 +154,53 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
                 patientId = patient?.patientId.orEmpty(),
                 errorMessage = null,
                 errorMessageResId = null,
+                dniLookupError = null,
+                needsManualName = false,
             )
+        }
+    }
+
+    fun registerEventualPatientByDni(
+        dni: String,
+        gender: String,
+        contact: String,
+        manualName: String? = null,
+    ) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRegisteringDni = true, dniLookupError = null) }
+            prescriptionRepository.registerOrLookupEventualPatient(
+                documentNumber = dni,
+                gender = gender,
+                contact = contact,
+                fullNameFallback = manualName,
+            ).onSuccess { patient ->
+                _uiState.update { current ->
+                    val updatedList = listOf(patient) + current.eligiblePatients.filterNot { it.patientId == patient.patientId }
+                    current.copy(
+                        isRegisteringDni = false,
+                        selectedPatient = patient,
+                        patientId = patient.patientId,
+                        eligiblePatients = updatedList,
+                        dniLookupError = null,
+                        needsManualName = false,
+                        errorMessage = null,
+                        errorMessageResId = null,
+                    )
+                }
+            }.onFailure { err ->
+                val isNeedName = err.message == "NEED_MANUAL_NAME"
+                _uiState.update {
+                    it.copy(
+                        isRegisteringDni = false,
+                        needsManualName = isNeedName || it.needsManualName,
+                        dniLookupError = if (isNeedName) {
+                            "Ingresá Nombre y Apellido para completar el alta rápida por DNI"
+                        } else {
+                            err.message ?: "No se pudo vincular por DNI"
+                        },
+                    )
+                }
+            }
         }
     }
 

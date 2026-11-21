@@ -49,4 +49,22 @@
     <string name="doctor_header_messages_cd">Ver mensagens com pacientes</string>
 
     <string name="doctor_quick_action_issue_cta">Emitir</string>
+
+    <string name="doctor_dni_selector_title">Destinatário do documento</string>
+    <string name="doctor_dni_selector_subtitle">Selecione um paciente ou emita por DNI/CPF + WhatsApp/E-mail</string>
+    <string name="doctor_dni_quick_add_btn">Emitir por DNI/CPF</string>
+    <string name="doctor_dni_delivery_badge">Envio: %1$s</string>
+    <string name="doctor_dni_panel_title">Cadastro rápido por DNI/CPF</string>
+    <string name="doctor_dni_panel_subtitle">Obtém nome, foto e cobertura e envia por WhatsApp/E-mail</string>
+    <string name="doctor_dni_field_document">1. DNI / CPF</string>
+    <string name="doctor_dni_field_sex">2. Sexo no documento</string>
+    <string name="doctor_dni_sex_f">Feminino (F)</string>
+    <string name="doctor_dni_sex_m">Masculino (M)</string>
+    <string name="doctor_dni_sex_x">X</string>
+    <string name="doctor_dni_field_contact">3. WhatsApp ou E-mail</string>
+    <string name="doctor_dni_field_manual_name">Nome e Sobrenome completos</string>
+    <string name="doctor_dni_searching_btn">Consultando cadastro…</string>
+    <string name="doctor_dni_submit_btn">Buscar e vincular</string>
+    <string name="doctor_dni_share_direct_btn">Enviar para %1$s (WhatsApp / E-mail)</string>
+    <string name="doctor_dni_share_generic_btn">Enviar por WhatsApp / E-mail</string>
 </resources>

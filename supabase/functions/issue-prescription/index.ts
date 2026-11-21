@@ -112,7 +112,16 @@ async function issuePrescriptionHandler(req: Request): Promise<Response> {
     if (!patient) return errorResponse('PATIENT_NOT_FOUND', 404, cors);
     if (patient.care_country !== countryCode) return errorResponse('PATIENT_COUNTRY_MISMATCH', 409, cors);
     if (countryCode === 'BR' && !validCpf(digits(patient.cpf))) {
-      return errorResponse('BR_PATIENT_CPF_REQUIRED', 422, cors);
+      const { data: privateIdentity } = await serviceClient
+        .from('patient_private_identities')
+        .select('document_number')
+        .eq('patient_id', patientId)
+        .eq('doctor_id', doctor.id)
+        .eq('document_type', 'CPF')
+        .maybeSingle();
+      if (!validCpf(digits(privateIdentity?.document_number))) {
+        return errorResponse('BR_PATIENT_CPF_REQUIRED', 422, cors);
+      }
     }
 
     const [directLink, careTeam, appointment, dispatch] = await Promise.all([

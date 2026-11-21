@@ -163,7 +163,7 @@ fun LivePatientRadarDrawer(
                         modifier = Modifier
                             .size(24.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF0F172A)),
+                            .background(Color(0xFFE0F2FE)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Canvas(modifier = Modifier.size(16.dp)) {

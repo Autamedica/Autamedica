@@ -46,6 +46,8 @@ import com.autamedica.android.domain.model.COMMON_MEDICATIONS
 import com.autamedica.android.domain.model.Cie10Item
 import com.autamedica.android.domain.model.Prescription
 import com.autamedica.android.domain.model.PrescriptionPatientItem
+import com.autamedica.android.presentation.doctors.components.EventualPatientDniSelectorCard
+import com.autamedica.android.presentation.doctors.components.ShareDocumentToPatientButton
 import com.autamedica.android.presentation.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -177,18 +179,24 @@ fun CreatePrescriptionScreen(
             // 1. SISA / REFEPS Regulatory Verification Status Banner
             DoctorRegulatoryBanner(uiState.doctorEligibility)
 
-            // 2. Patient Selector Card
-            PatientSelectorSection(
+            // 2. Patient Selector Card (Existing patients + 3-field DNI/Sex/WhatsApp eventual lookup)
+            EventualPatientDniSelectorCard(
                 selectedPatient = uiState.selectedPatient,
                 eligiblePatients = uiState.eligiblePatients,
                 isLoadingPatients = uiState.isLoadingPatients,
-                patientSearchQuery = patientSearchQuery,
+                searchQuery = patientSearchQuery,
                 onSearchQueryChange = { patientSearchQuery = it },
                 expanded = expandedPatientDropdown,
                 onExpandedChange = { expandedPatientDropdown = it },
                 onSelectPatient = {
                     viewModel.onSelectPatient(it)
                     expandedPatientDropdown = false
+                },
+                isRegisteringDni = uiState.isRegisteringDni,
+                dniLookupError = uiState.dniLookupError,
+                needsManualName = uiState.needsManualName,
+                onLookupByDni = { dni, gender, contact, manualName ->
+                    viewModel.registerEventualPatientByDni(dni, gender, contact, manualName)
                 },
             )
 
@@ -325,6 +333,13 @@ fun CreatePrescriptionScreen(
                             }
                         }
                     }
+
+                    ShareDocumentToPatientButton(
+                        patient = uiState.selectedPatient,
+                        documentTitle = "Receta Digital",
+                        cuir = created.cuir ?: created.id,
+                        context = context,
+                    )
 
                     Text(
                         text = stringResource(R.string.doctor_create_rx_success_validity),

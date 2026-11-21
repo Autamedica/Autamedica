@@ -294,14 +294,14 @@ fun DoctorCockpitHeader(
             }
         }
 
-        // Fila 2: SWITCH MAESTRO ERGONÓMICO (Cockpit Uber Driver - Thumb Friendly)
+        // Fila 2: SWITCH MAESTRO ERGONÓMICO LUMINOSO (Fondo blanco + borde Azul AutaMedica #0369A1 + badge Esmeralda)
         val cardBgColor by animateColorAsState(
-            targetValue = if (isOnDuty) Color(0xFF0F172A) else Color.White,
+            targetValue = Color.White,
             animationSpec = tween(350),
             label = "dutyCardBg"
         )
         val cardBorderColor by animateColorAsState(
-            targetValue = if (isOnDuty) AuCyan.copy(alpha = 0.6f + (pulseAlpha * 0.4f)) else AuBorder,
+            targetValue = if (isOnDuty) com.autamedica.android.presentation.theme.PortalPatientsAction else AuBorder,
             animationSpec = tween(350),
             label = "dutyCardBorder"
         )
@@ -324,7 +324,7 @@ fun DoctorCockpitHeader(
                 ),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = cardBgColor),
-            border = BorderStroke(1.dp, cardBorderColor),
+            border = BorderStroke(if (isOnDuty) 1.5.dp else 1.dp, cardBorderColor),
         ) {
             Column(
                 modifier = Modifier
@@ -375,7 +375,7 @@ fun DoctorCockpitHeader(
                                         fontWeight = FontWeight.ExtraBold,
                                         letterSpacing = 0.5.sp,
                                     ),
-                                    color = if (isOnDuty) Color.White else Color(0xFF0F172A),
+                                    color = Color(0xFF0F172A),
                                 )
                                 if (isOnDuty) {
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -397,7 +397,7 @@ fun DoctorCockpitHeader(
                                     else -> stringResource(R.string.ui_doctor_guard_activate_hint)
                                 },
                                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                                color = if (isOnDuty) AuCyan else Color(0xFF64748B),
+                                color = if (isOnDuty) com.autamedica.android.presentation.theme.PortalPatientsAction else Color(0xFF64748B),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -434,13 +434,13 @@ fun DoctorCockpitHeader(
                     }
                 }
 
-                // Fila 3: Pill de Telemetría de Presencia en tiempo real
+                // Fila 3: Pill de Telemetría de Presencia en tiempo real (Fondo claro luminoso)
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = if (isOnDuty) Color(0xFF1E293B) else Color(0xFFF8FAFC),
+                    color = if (isOnDuty) Color(0xFFECFDF5) else Color(0xFFF8FAFC),
                     border = BorderStroke(
-                        0.5.dp,
-                        if (isOnDuty) AuCyan.copy(alpha = 0.35f) else Color(0xFFE2E8F0)
+                        1.dp,
+                        if (isOnDuty) AuEmerald.copy(alpha = 0.35f) else Color(0xFFE2E8F0)
                     ),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -451,7 +451,7 @@ fun DoctorCockpitHeader(
                         Icon(
                             imageVector = Icons.Filled.Sensors,
                             contentDescription = null,
-                            tint = if (isOnDuty) AuCyan else Color(0xFF64748B),
+                            tint = if (isOnDuty) AuEmerald else Color(0xFF64748B),
                             modifier = Modifier.size(14.dp),
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -460,9 +460,9 @@ fun DoctorCockpitHeader(
                             else stringResource(R.string.ui_doctor_duty_disconnected),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = 11.sp,
-                                fontWeight = if (isOnDuty) FontWeight.SemiBold else FontWeight.Normal,
+                                fontWeight = if (isOnDuty) FontWeight.Bold else FontWeight.Normal,
                             ),
-                            color = if (isOnDuty) Color(0xFFE2E8F0) else Color(0xFF64748B),
+                            color = if (isOnDuty) Color(0xFF065F46) else Color(0xFF64748B),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )

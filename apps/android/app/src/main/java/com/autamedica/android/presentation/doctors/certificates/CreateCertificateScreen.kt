@@ -40,6 +40,8 @@ import com.autamedica.android.domain.model.CertificateType
 import com.autamedica.android.domain.model.DoctorEligibility
 import com.autamedica.android.domain.model.MedicalCertificate
 import com.autamedica.android.domain.model.PrescriptionPatientItem
+import com.autamedica.android.presentation.doctors.components.EventualPatientDniSelectorCard
+import com.autamedica.android.presentation.doctors.components.ShareDocumentToPatientButton
 import com.autamedica.android.presentation.prescriptions.components.QrCodeView
 import com.autamedica.android.presentation.theme.*
 
@@ -183,18 +185,24 @@ fun CreateCertificateScreen(
             // 1. Regulatory Verification Status Banner
             DoctorRegulatoryBanner(uiState.doctorEligibility)
 
-            // 2. Patient Selector Card
-            PatientSelectorSection(
+            // 2. Patient Selector Card (Existing patients + 3-field DNI/Sex/WhatsApp eventual lookup)
+            EventualPatientDniSelectorCard(
                 selectedPatient = uiState.selectedPatient,
                 eligiblePatients = uiState.eligiblePatients,
                 isLoadingPatients = uiState.isLoadingPatients,
-                patientSearchQuery = patientSearchQuery,
+                searchQuery = patientSearchQuery,
                 onSearchQueryChange = { patientSearchQuery = it },
                 expanded = expandedPatientDropdown,
                 onExpandedChange = { expandedPatientDropdown = it },
                 onSelectPatient = {
                     viewModel.onSelectPatient(it)
                     expandedPatientDropdown = false
+                },
+                isRegisteringDni = uiState.isRegisteringDni,
+                dniLookupError = uiState.dniLookupError,
+                needsManualName = uiState.needsManualName,
+                onLookupByDni = { dni, gender, contact, manualName ->
+                    viewModel.registerEventualPatientByDni(dni, gender, contact, manualName)
                 },
             )
 
@@ -334,6 +342,13 @@ fun CreateCertificateScreen(
                             }
                         }
                     }
+
+                    ShareDocumentToPatientButton(
+                        patient = uiState.selectedPatient,
+                        documentTitle = "Certificado Médico",
+                        cuir = created.cuir,
+                        context = context,
+                    )
 
                     // QR Preview
                     QrCodeView(
