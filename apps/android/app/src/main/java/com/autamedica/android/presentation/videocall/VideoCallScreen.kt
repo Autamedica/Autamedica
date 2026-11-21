@@ -517,7 +517,7 @@ fun VideoCallScreen(
                 // Local PiP: doctor sube el padding para dejar espacio a la guía clínica.
                 // No mostrar PiP duplicado si el médico ya está viendo su cámara en pantalla completa.
                 if (!isDoctorTestingCamera) {
-                    val pipBottomPadding = if (uiState.isDoctor) 320.dp else 96.dp
+                    val pipBottomPadding = if (uiState.isDoctor) 256.dp else 96.dp
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
@@ -685,6 +685,7 @@ fun VideoCallScreen(
                                 clinicalSheetMode = InCallClinicalMode.CERTIFICATE
                             },
                             patientQuickFacts = uiState.patientQuickFacts,
+                            countryCode = uiState.patientCareCountryCode ?: uiState.doctorCountryCode,
                         )
                     }
                 }

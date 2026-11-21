@@ -42,8 +42,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.autamedica.android.presentation.theme.AuCrimson
 
-private val DockSurface = Color(0xF20F172A)
-private val DockBorder = Color(0x33FFFFFF)
+private val DockSurface = Color(0xA80F172A)
+private val DockBorder = Color(0x4DE0F2FE)
 private val GlassButtonOn = Color(0x26FFFFFF)
 private val DangerRed = AuCrimson
 private val PrimarySky = Color(0xFF0284C7)

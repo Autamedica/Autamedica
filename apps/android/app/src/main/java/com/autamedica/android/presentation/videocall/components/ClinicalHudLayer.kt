@@ -79,18 +79,19 @@ import com.autamedica.android.domain.model.CallClinicalGuidance
 import com.autamedica.android.domain.model.PatientClinicalContext
 import com.autamedica.android.presentation.videocall.ClinicalSheetPanel
 
-private val HudBg = Color(0xF20F172A)
-private val HudBorder = Color(0x33FFFFFF)
+// Translucent Clinical Glassmorphism palette
+private val HudBg = Color(0xB80F172A)
+private val HudBorder = Color(0x4DE0F2FE)
 private val HudAccent = Color(0xFF38BDF8)
 private val HudTeal = Color(0xFF0D9488)
-private val HudAmber = Color(0xFF06B6D4) // Zero-Yellow Gate: Cyan Quirúrgico
+private val HudAmber = Color(0xFF06B6D4)
 private val HudAmberText = Color(0xFFE0F2FE)
 private val HudDanger = Color(0xFFEF4444)
-private val HudSlate = Color(0xFF94A3B8)
-private val HudSlateLight = Color(0xFFE2E8F0)
-private val HudChipBg = Color(0x14FFFFFF)
-private val HudChipBorder = Color(0x26FFFFFF)
-private val HudSurfaceAlt = Color(0xFF1E293B)
+private val HudSlate = Color(0xFFCBD5E1)
+private val HudSlateLight = Color(0xFFF1F5F9)
+private val HudChipBg = Color(0x22FFFFFF)
+private val HudChipBorder = Color(0x38E0F2FE)
+private val HudSurfaceAlt = Color(0x8C1E293B)
 
 /** Banda inferior reservada para el dock de controles (colgar siempre accesible). */
 private val ReservedDockDp = 160.dp
@@ -126,6 +127,7 @@ fun ClinicalHudLayer(
     onEmitPrescription: (() -> Unit)? = null,
     onEmitCertificate: (() -> Unit)? = null,
     patientQuickFacts: List<String> = emptyList(),
+    countryCode: String? = null,
 ) {
     val isSheet = panel != ClinicalSheetPanel.GUIDANCE
     val sheetFullH = (LocalConfiguration.current.screenHeightDp.dp - ReservedDockDp)
@@ -178,7 +180,7 @@ fun ClinicalHudLayer(
 
     val motivo = guidance.chiefComplaint?.takeIf { it.isNotBlank() }
         ?: fallbackMotivo?.takeIf { it.isNotBlank() }
-        ?: "Motivo sin cargar"
+        ?: "Consulta médica en curso"
 
     Box(modifier = modifier.fillMaxWidth()) {
         AnimatedVisibility(
@@ -193,6 +195,10 @@ fun ClinicalHudLayer(
                 patientName = patientName,
                 patientDetail = consultationNotes.takeIf { it.isNotBlank() } ?: clinicalContext?.presentIllness.orEmpty(),
                 patientQuickFacts = patientQuickFacts,
+                countryCode = countryCode,
+                onEmitPrescription = onEmitPrescription,
+                onEmitCertificate = onEmitCertificate,
+                onOpenNotes = { onRequestPanelChange(ClinicalSheetPanel.NOTAS) },
             )
         }
 
@@ -232,6 +238,7 @@ fun ClinicalHudLayer(
                     onRequestPanelChange(ClinicalSheetPanel.GUIDANCE)
                     onEmitCertificate?.invoke()
                 },
+                countryCode = countryCode,
                 headerDragModifier = headerDragModifier,
                 modifier = Modifier
                     .graphicsLayer { translationY = visualOffsetPx }
@@ -265,9 +272,11 @@ private fun SheetSurface(
     onOpenSoap: (() -> Unit)?,
     onEmitPrescription: () -> Unit,
     onEmitCertificate: () -> Unit,
+    countryCode: String?,
     headerDragModifier: Modifier,
     modifier: Modifier = Modifier,
 ) {
+    val certificateLabel = if (countryCode == "BR") "Atestado" else "Certificado"
     Surface(
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         color = HudBg,
@@ -301,6 +310,18 @@ private fun SheetSurface(
                 onSelectTab = onRequestPanelChange,
             )
 
+            // Pinned 1-Tap Clinical Action Bar always visible below tabs (no scrolling needed)
+            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                SheetActionsRow(
+                    onEmitPrescription = onEmitPrescription,
+                    onEmitCertificate = onEmitCertificate,
+                    certificateLabel = certificateLabel,
+                    onOpenNotes = if (panel != ClinicalSheetPanel.NOTAS) {
+                        { onRequestPanelChange(ClinicalSheetPanel.NOTAS) }
+                    } else null,
+                )
+            }
+
             when (panel) {
                 ClinicalSheetPanel.RESUMEN -> SheetResumen(
                     context = clinicalContext,
@@ -308,12 +329,14 @@ private fun SheetSurface(
                     scrollState = panelScroll,
                     onEmitPrescription = onEmitPrescription,
                     onEmitCertificate = onEmitCertificate,
+                    certificateLabel = certificateLabel,
                 )
                 ClinicalSheetPanel.PREGUNTAS -> SheetPreguntas(
                     guidance = guidance,
                     scrollState = panelScroll,
                     onEmitPrescription = onEmitPrescription,
                     onEmitCertificate = onEmitCertificate,
+                    certificateLabel = certificateLabel,
                 )
                 ClinicalSheetPanel.NOTAS -> SheetNotas(
                     consultationNotes = consultationNotes,
@@ -463,6 +486,7 @@ private fun SheetResumen(
     scrollState: ScrollState,
     onEmitPrescription: () -> Unit,
     onEmitCertificate: () -> Unit,
+    certificateLabel: String = "Certificado",
 ) {
     Column(
         modifier = Modifier
@@ -472,10 +496,10 @@ private fun SheetResumen(
             .padding(bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        SheetSection(title = "REPARTO DE LA ENFERMEDAD ACTUAL", accent = HudAccent, icon = Icons.Outlined.MedicalServices) {
+        SheetSection(title = "RELATO DE LA ENFERMEDAD ACTUAL", accent = HudAccent, icon = Icons.Outlined.MedicalServices) {
             val relato = context?.presentIllness?.takeIf { it.isNotBlank() }
                 ?: context?.chiefComplaint?.takeIf { it.isNotBlank() }
-                ?: motivo.takeIf { it != "Motivo sin cargar" }
+                ?: motivo.takeIf { it != "Consulta médica en curso" }
                 ?: "Sin relato de la enfermedad actual cargado"
             Text(
                 text = relato,
@@ -544,6 +568,7 @@ private fun SheetResumen(
         SheetActionsRow(
             onEmitPrescription = onEmitPrescription,
             onEmitCertificate = onEmitCertificate,
+            certificateLabel = certificateLabel,
         )
     }
 }
@@ -554,6 +579,7 @@ private fun SheetPreguntas(
     scrollState: ScrollState,
     onEmitPrescription: () -> Unit,
     onEmitCertificate: () -> Unit,
+    certificateLabel: String = "Certificado",
 ) {
     Column(
         modifier = Modifier
@@ -612,6 +638,7 @@ private fun SheetPreguntas(
         SheetActionsRow(
             onEmitPrescription = onEmitPrescription,
             onEmitCertificate = onEmitCertificate,
+            certificateLabel = certificateLabel,
         )
     }
 }
@@ -620,6 +647,8 @@ private fun SheetPreguntas(
 private fun SheetActionsRow(
     onEmitPrescription: () -> Unit,
     onEmitCertificate: () -> Unit,
+    certificateLabel: String = "Certificado",
+    onOpenNotes: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -634,9 +663,9 @@ private fun SheetActionsRow(
                 contentColor = Color.White,
             ),
         ) {
-            Icon(Icons.Outlined.Medication, contentDescription = null, modifier = Modifier.size(16.dp))
-            Spacer(modifier = Modifier.width(6.dp))
-            Text("Receta", fontSize = 13.sp)
+            Icon(Icons.Outlined.Medication, contentDescription = null, modifier = Modifier.size(15.dp))
+            Spacer(modifier = Modifier.width(5.dp))
+            Text("+ Receta", fontSize = 12.sp, fontWeight = FontWeight.Bold)
         }
         OutlinedButton(
             onClick = onEmitCertificate,
@@ -645,9 +674,22 @@ private fun SheetActionsRow(
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
             border = BorderStroke(1.dp, HudBorder),
         ) {
-            Icon(Icons.Outlined.Description, contentDescription = null, modifier = Modifier.size(16.dp))
-            Spacer(modifier = Modifier.width(6.dp))
-            Text("Atestado", fontSize = 13.sp)
+            Icon(Icons.Outlined.Description, contentDescription = null, modifier = Modifier.size(15.dp))
+            Spacer(modifier = Modifier.width(5.dp))
+            Text("+ $certificateLabel", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        }
+        if (onOpenNotes != null) {
+            OutlinedButton(
+                onClick = onOpenNotes,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFCCFBF1)),
+                border = BorderStroke(1.dp, Color(0x662DD4BF)),
+            ) {
+                Icon(Icons.Filled.Mic, contentDescription = null, modifier = Modifier.size(15.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Dictar", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            }
         }
     }
 }
