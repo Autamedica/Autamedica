@@ -75,7 +75,7 @@ function db(receipt: unknown, error: unknown = null) {
 function mockSigningSuccess() {
   vi.spyOn(certificates, 'getActiveCertificate').mockResolvedValue(validCert);
   vi.spyOn(certificates, 'loadSigningCredentials').mockResolvedValue({
-    p12Buffer: new Uint8Array([1, 2, 3]),
+    p12Buffer: Buffer.from([1, 2, 3]),
     password: 'fixture-password',
   });
   vi.spyOn(pdfSigner, 'signPdfWithP12').mockResolvedValue({

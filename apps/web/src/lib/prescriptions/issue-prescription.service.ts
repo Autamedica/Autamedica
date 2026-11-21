@@ -28,6 +28,7 @@ import type {
 } from './farmalink.types';
 import { generatePrescriptionPdf, type PrescriptionArtifacts, type PrescriptionPdfInput } from './pdf-prescription.service';
 import { generateBrazilPrescriptionPdf } from './brazil/brazil-pdf-prescription.service';
+import { rctaService } from './rcta.service';
 import { validCpf } from './brazil/memed-patient';
 // Certificate queries are Supabase-only (no node-forge dependency)
 import { getActiveCertificate, loadSigningCredentials } from '../doctors/services/certificate-query.service';
@@ -237,7 +238,7 @@ function farmalinkRegistrationRequired(
 }
 
 interface FarmalinkRegistration {
-  attemptId: string;
+  attemptId?: string;
   vendorName: 'farmalink';
   genericMode: 'S' | 'N';
   vendorId: string;
