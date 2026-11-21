@@ -1,7 +1,7 @@
 import { withEdgeSentry } from '../_shared/sentry.ts';
+import { trustedPushAuthorization } from '../_shared/push-authorization.ts';
 import { createClient } from '@supabase/supabase-js'
 import { corsHeaders } from '../_shared/cors.ts'
-import { isAuthorizedPushRequest } from './authorization.ts'
 
 console.info('Send Push Notification function started')
 
@@ -41,15 +41,12 @@ function base64UrlDecodeToBinary(input: string): Uint8Array {
   return bytes
 }
 
-function pemToBinary(pem: string): ArrayBuffer {
+function pemToBinary(pem: string): Uint8Array {
   const body = pem
     .replace(/-----BEGIN [A-Z ]+-----/g, '')
     .replace(/-----END [A-Z ]+-----/g, '')
     .replace(/\s+/g, '')
-  const bytes = base64UrlDecodeToBinary(body)
-  const buffer = new ArrayBuffer(bytes.byteLength)
-  new Uint8Array(buffer).set(bytes)
-  return buffer
+  return base64UrlDecodeToBinary(body)
 }
 
 async function signJwt(
@@ -73,7 +70,7 @@ async function signJwt(
 
   const key = await crypto.subtle.importKey(
     'pkcs8',
-    pemToBinary(privateKey),
+    pemToBinary(privateKey) as BufferSource,
     { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
     false,
     ['sign'],
@@ -154,35 +151,24 @@ Deno.serve(withEdgeSentry('send-push-notification', async (req) => {
   }
 
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return new Response(JSON.stringify({ error: 'method_not_allowed' }), { status: 405, headers: corsHeaders })
   }
-
-  // Authorize before parsing the request body. A claimed dispatch event is NOT
-  // proof of origin: only service_role / CRON_SECRET / PUSH_DISPATCH_SECRET qualify.
-  if (!isAuthorizedPushRequest(req.headers.get('Authorization'), {
+  if (!trustedPushAuthorization(req.headers.get('Authorization'), {
     cronSecret: Deno.env.get('CRON_SECRET'),
     serviceRoleKey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
-    dispatchSecret: Deno.env.get('PUSH_DISPATCH_SECRET'),
-    anonKey: Deno.env.get('SUPABASE_ANON_KEY'),
   })) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
 
-  let bodyPayload: PushPayload | null
+  let bodyPayload: PushPayload | null = null
   try {
     bodyPayload = await req.json() as PushPayload
   } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    bodyPayload = null
   }
+
 
   try {
     const supabaseAdmin = createClient(
@@ -209,7 +195,7 @@ Deno.serve(withEdgeSentry('send-push-notification', async (req) => {
       .single()
 
     if (profileError || !profile?.fcm_token) {
-      console.warn(`No FCM token found for user ${userId}`)
+      console.warn('[FCM] recipient_token_missing')
       return new Response(JSON.stringify({ success: false, error: 'no_token' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
@@ -264,9 +250,9 @@ Deno.serve(withEdgeSentry('send-push-notification', async (req) => {
     const result = await sendFcm(sa, message)
 
     if (!result.ok) {
-      console.error('[FCM] send failed', { status: result.status, body: result.body })
+      console.error('[FCM] send failed', { status: result.status })
       return new Response(
-        JSON.stringify({ success: false, error: 'fcm_send_failed', details: result.body }),
+        JSON.stringify({ success: false, error: 'fcm_send_failed' }),
         { status: result.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
@@ -277,8 +263,8 @@ Deno.serve(withEdgeSentry('send-push-notification', async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 
-  } catch (error) {
-    console.error('send-push-notification error:', error)
+  } catch {
+    console.error('send-push-notification error:', { code: 'push_delivery_failed' })
     return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 }))
