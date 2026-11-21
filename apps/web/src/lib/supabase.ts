@@ -130,7 +130,7 @@ export function createAstroServerClientFromRequest(
 /**
  * Crea un cliente Supabase autenticado con un Bearer JWT enviado por clientes
  * nativos (p. ej. Android), ejecutando todas las consultas con el RLS real del
- * usuario autenticado (nunca con service_role).
+ * usuario autenticado (nunca con privilegios administrativos).
  */
 export function createAstroBearerClient(
   accessToken: string,

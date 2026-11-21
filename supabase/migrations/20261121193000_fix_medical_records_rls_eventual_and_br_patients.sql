@@ -80,7 +80,7 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.doctor_has_patient_access_by_id(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.doctor_has_patient_access_by_id(uuid)
-  TO anon, authenticated, service_role;
+  TO authenticated, service_role;
 
 CREATE OR REPLACE FUNCTION public.doctor_has_patient_access(patient_user_id uuid)
 RETURNS boolean
@@ -112,7 +112,7 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.doctor_has_patient_access(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.doctor_has_patient_access(uuid)
-  TO anon, authenticated, service_role;
+  TO authenticated, service_role;
 
 ALTER POLICY "medical_records_insert_doctor" ON public.medical_records
   WITH CHECK (
