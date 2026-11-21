@@ -43,6 +43,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.R
+import com.autamedica.android.presentation.common.DocumentViewerSource
+import com.autamedica.android.presentation.common.InAppDocumentViewerDialog
 import com.autamedica.android.domain.model.CertificateType
 import com.autamedica.android.domain.model.MedicalCertificate
 import com.autamedica.android.presentation.prescriptions.components.QrCodeView
@@ -73,25 +75,35 @@ fun DoctorCertificatesScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
+    var activeDocumentViewer by remember { mutableStateOf<DocumentViewerSource?>(null) }
+
     val onOpenPdf: (MedicalCertificate) -> Unit = { certificate ->
+        val certTitle = context.getString(R.string.cert_screen_title)
+        val certFileName = "Certificado_${certificate.cuir ?: certificate.id.take(8)}.pdf"
         viewModel.openCertificatePdf(
             certificate = certificate,
             onReady = { signedUrl ->
-                runCatching {
-                    val uri = Uri.parse(signedUrl)
-                    require(uri.scheme.equals("https", ignoreCase = true)) {
-                        "El servidor devolvió una URL de descarga no segura"
-                    }
-                    context.startActivity(
-                        Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                val uri = Uri.parse(signedUrl)
+                if (uri.scheme.equals("https", ignoreCase = true)) {
+                    activeDocumentViewer = DocumentViewerSource.RemoteDocumentUrl(
+                        url = signedUrl,
+                        title = certTitle,
+                        fileName = certFileName,
                     )
-                }.onFailure {
+                } else {
                     Toast.makeText(context, context.getString(R.string.cert_toast_open_pdf_error), Toast.LENGTH_SHORT).show()
                 }
             },
             onFailure = {
                 Toast.makeText(context, context.getString(R.string.cert_toast_open_pdf_error), Toast.LENGTH_SHORT).show()
             },
+        )
+    }
+
+    activeDocumentViewer?.let { docSource ->
+        InAppDocumentViewerDialog(
+            source = docSource,
+            onDismiss = { activeDocumentViewer = null },
         )
     }
 

@@ -1,7 +1,8 @@
 package com.autamedica.android.presentation.documents
 
-import android.content.Intent
 import android.net.Uri
+import com.autamedica.android.presentation.common.DocumentViewerSource
+import com.autamedica.android.presentation.common.InAppDocumentViewerDialog
 import android.provider.OpenableColumns
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -114,6 +115,7 @@ fun ClinicalDocumentsScreen(
 
     var selectedFileForUpload by remember { mutableStateOf<SelectedFileInfo?>(null) }
     var showUploadModal by remember { mutableStateOf(false) }
+    var activeDocumentViewer by remember { mutableStateOf<DocumentViewerSource?>(null) }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
@@ -357,12 +359,13 @@ fun ClinicalDocumentsScreen(
                                 document = doc,
                                 onOpen = {
                                     if (doc.fileUrl.isNotBlank()) {
-                                        runCatching {
-                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(doc.fileUrl))
-                                            context.startActivity(intent)
-                                        }.onFailure {
-                                            Toast.makeText(context, context.getString(R.string.clinical_docs_toast_open_error), Toast.LENGTH_SHORT).show()
-                                        }
+                                        val ext = if (doc.isImage) "jpg" else "pdf"
+                                        activeDocumentViewer = DocumentViewerSource.RemoteDocumentUrl(
+                                            url = doc.fileUrl,
+                                            title = doc.title,
+                                            fileName = "${doc.title.ifBlank { "Estudio" }}.$ext",
+                                            isImageHint = doc.isImage,
+                                        )
                                     } else {
                                         Toast.makeText(context, context.getString(R.string.clinical_docs_toast_processing), Toast.LENGTH_SHORT).show()
                                     }
@@ -375,6 +378,13 @@ fun ClinicalDocumentsScreen(
                 }
             }
         }
+    }
+
+    activeDocumentViewer?.let { docSource ->
+        InAppDocumentViewerDialog(
+            source = docSource,
+            onDismiss = { activeDocumentViewer = null },
+        )
     }
 
     // Modal para ingresar título y tipo antes de subir

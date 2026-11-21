@@ -576,4 +576,108 @@ class PharmacyDispatchRepositoryImplTest {
         assertThat(result.isFailure).isTrue()
     }
 
+    @Test
+    fun `authenticated Brazilian intake uses signed API with Bearer token, lgpdConsent and handles pending_payment`() = runTest {
+        val patientUserId = "77777777-7777-4777-8777-777777777777"
+        val email = "paciente.br@example.invalid"
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{"id":"$patientUserId","aud":"authenticated","role":"authenticated","email":"$email","email_confirmed_at":"2026-01-01T00:00:00Z","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","app_metadata":{"provider":"email","providers":["email"]},"user_metadata":{},"identities":[]}""",
+                ),
+        )
+        supabaseClient.auth.importAuthToken(
+            accessToken = syntheticAuthenticatedJwt(patientUserId),
+            retrieveUser = true,
+            autoRefresh = false,
+        )
+        mockWebServer.takeRequest(2, TimeUnit.SECONDS)
+        fakeAuthRepository.currentUser = User(id = patientUserId, email = email, role = UserRole.PATIENT)
+
+        // 1) patients care_country verification query
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""[{"care_country":"BR"}]"""),
+        )
+        // 2) Signed API response returning pending_payment + recoveryToken
+        val requestId = "88888888-8888-4888-8888-888888888888"
+        val recovery = "b".repeat(64)
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{
+                      "success": true,
+                      "data": {
+                        "request": {
+                          "id": "$requestId",
+                          "care_country": "BR",
+                          "patient_cpf": "12345678909",
+                          "patient_phone": "+5551987654321",
+                          "patient_name": "Paciente Brasil",
+                          "tier_requested": "general",
+                          "status": "pending_payment",
+                          "currency": "BRL",
+                          "price_minor": 7900,
+                          "cloudflare_room_id": "cf-room-br-auth",
+                          "created_at": "2026-11-21T18:00:00Z"
+                        },
+                        "accessToken": "signed-br-auth-token",
+                        "recoveryToken": "$recovery"
+                      }
+                    }""".trimIndent(),
+                ),
+        )
+
+        val created = repository.createPatientDispatchRequest(
+            patientDni = "12345678909",
+            patientPhone = "+5551987654321",
+            patientName = "Paciente Brasil",
+            tierRequested = "general",
+            symptomSummary = "Renovação de receita",
+            patientCpf = "12345678909",
+            careCountry = "BR",
+            referralCode = null,
+        ).getOrThrow()
+
+        assertThat(created.id).isEqualTo(requestId)
+        assertThat(created.status).isEqualTo("pending_payment")
+        assertThat(created.priceMinor).isEqualTo(7900)
+        assertThat(created.currency).isEqualTo("BRL")
+
+        val countryCheckReq = mockWebServer.takeRequest(2, TimeUnit.SECONDS)
+        assertThat(countryCheckReq?.path).contains("/rest/v1/patients")
+
+        val dispatchReq = mockWebServer.takeRequest(2, TimeUnit.SECONDS)
+        assertThat(dispatchReq?.path).isEqualTo("/api/pharmacy/dispatch/request")
+        assertThat(dispatchReq?.getHeader("Authorization")).startsWith("Bearer ")
+        val sentBody = dispatchReq?.body?.readUtf8().orEmpty()
+        assertThat(sentBody).contains("\"careCountry\":\"BR\"")
+        assertThat(sentBody).contains("\"lgpdConsent\":true")
+        assertThat(sentBody).contains("\"patientCpf\":\"12345678909\"")
+    }
+
+    @Test
+    fun `signed API rejection surfaces allowlisted error code without leaking PHI`() = runTest {
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(409)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"success":false,"error":"no_doctors_available_now"}"""),
+        )
+        val result = repository.createPatientDispatchRequest(
+            patientDni = "12345678909",
+            patientPhone = "+5551987654321",
+            patientName = "Paciente Brasil",
+            tierRequested = "general",
+            symptomSummary = "Consulta",
+            patientCpf = "12345678909",
+            careCountry = "BR",
+        )
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()?.message).contains("no_doctors_available_now")
+        assertThat(extractSafeDispatchErrorCode("""{"error":"CPF 12345678909 leaked"}""")).isNull()
+    }
+
 }

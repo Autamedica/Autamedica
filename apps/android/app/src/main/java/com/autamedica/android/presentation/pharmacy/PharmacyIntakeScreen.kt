@@ -1105,6 +1105,8 @@ private fun localizedPharmacyMessage(message: String): String = when (message) {
     "pharmacy_error_lgpd_login" -> stringResource(R.string.pharmacy_error_lgpd_login)
     "pharmacy_error_lgpd_persist" -> stringResource(R.string.pharmacy_error_lgpd_persist)
     "pharmacy_flow_error_country_persist" -> stringResource(R.string.pharmacy_flow_error_country_persist)
+    "pharmacy_flow_error_no_doctors" -> stringResource(R.string.pharmacy_flow_error_no_doctors)
+    "pharmacy_flow_error_patient_role" -> stringResource(R.string.pharmacy_flow_error_patient_role)
     "pharmacy_flow_notice_completed" -> stringResource(R.string.pharmacy_flow_notice_completed)
     "Ingresá el nombre completo del paciente" -> stringResource(R.string.pharmacy_flow_error_name)
     "Seleccioná Argentina o Brasil" -> stringResource(R.string.pharmacy_flow_error_country)

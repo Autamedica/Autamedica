@@ -3,4 +3,7 @@
     <cache-path
         name="prescription_pdfs"
         path="prescriptions/" />
+    <cache-path
+        name="clinical_documents"
+        path="documents/" />
 </paths>

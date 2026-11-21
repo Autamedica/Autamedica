@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="doc_viewer_default_title">Documento clínico</string>
+    <string name="doc_viewer_close">Fechar visualizador</string>
+    <string name="doc_viewer_download">Baixar</string>
+    <string name="doc_viewer_share">Compartilhar</string>
+    <string name="doc_viewer_zoom_in">Aumentar zoom</string>
+    <string name="doc_viewer_zoom_out">Diminuir zoom</string>
+    <string name="doc_viewer_loading">Carregando documento seguro...</string>
+    <string name="doc_viewer_secure_badge">Documento protegido · AutaMedica</string>
+    <string name="doc_viewer_image_badge">Imagem clínica</string>
+    <string name="doc_viewer_page_indicator">Página %1$d de %2$d</string>
+    <string name="doc_viewer_page_cd">Página %1$d do documento</string>
+    <string name="doc_viewer_error_title">Não foi possível abrir o documento</string>
+    <string name="doc_viewer_error_desc">Verifique sua conexão ou tente novamente. O link pode ter expirado.</string>
+    <string name="doc_viewer_retry">Tentar novamente</string>
+    <string name="doc_viewer_saved_downloads">Documento salvo em Downloads</string>
+    <string name="doc_viewer_save_error">Não foi possível salvar o documento</string>
+    <string name="doc_viewer_share_chooser">Compartilhar documento</string>
+    <string name="doc_viewer_share_error">Não foi possível compartilhar o documento</string>
+</resources>
