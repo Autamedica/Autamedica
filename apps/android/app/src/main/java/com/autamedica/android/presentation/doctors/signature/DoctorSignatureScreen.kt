@@ -10,16 +10,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,7 +32,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.R
 
 /**
@@ -42,15 +46,25 @@ import com.autamedica.android.R
 @Composable
 fun DoctorSignatureScreen(
     onNavigateBack: () -> Unit,
-    viewModel: DoctorSignatureViewModel = viewModel(),
+    viewModel: DoctorSignatureViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     var dni by remember { mutableStateOf("") }
     var licenseNumber by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(stringResource(R.string.signature_title)) })
+            TopAppBar(
+                title = { Text(stringResource(R.string.signature_title)) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.clinical_ops_back),
+                        )
+                    }
+                },
+            )
         },
     ) { paddingValues ->
         Column(
@@ -63,7 +77,7 @@ fun DoctorSignatureScreen(
         ) {
             OutlinedTextField(
                 value = dni,
-                onValueChange = { dni = it.filter(Char::isDigit).take(9) },
+                onValueChange = { dni = it.filter(Char::isDigit).take(11) },
                 label = { Text(stringResource(R.string.signature_label_dni)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
