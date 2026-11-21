@@ -499,7 +499,7 @@ fun MedicalOrderDetailBottomSheet(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    QrCodeView(content = qr, sizeDp = 160)
+                    QrCodeView(content = qr, size = 160.dp)
                 }
             }
 
