@@ -17,7 +17,13 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -584,19 +590,19 @@ internal fun executeElectronicCertificateIssuance(
         if (!response.isSuccessful) {
             throw IllegalStateException(mapCertificateIssueError(raw, response.code))
         }
-        val root = runCatching { JSONObject(raw) }.getOrNull()
+        val root = runCatching { Json.parseToJsonElement(raw).jsonObject }.getOrNull()
             ?: throw IllegalStateException("Respuesta inválida al preparar la firma del certificado")
-        if (!root.optBoolean("success", false)) {
+        if (root["success"]?.jsonPrimitive?.booleanOrNull != true) {
             throw IllegalStateException(mapCertificateIssueError(raw, response.code))
         }
-        val data = root.optJSONObject("data")
+        val data = root["data"]?.let { runCatching { it.jsonObject }.getOrNull() }
             ?: throw IllegalStateException("Faltan datos de revisión para firmar el certificado")
-        if (data.optString("status") == "signed") {
-            val existing = data.optJSONObject("certificate")
+        if (data["status"]?.jsonPrimitive?.contentOrNull == "signed") {
+            val existing = data["certificate"]?.let { runCatching { it.jsonObject }.getOrNull() }
                 ?: throw IllegalStateException("El servidor reportó certificado firmado sin adjuntar el registro")
             return parseIssuedCertificateJson(existing)
         }
-        val hash = data.optString("snapshotHash").trim()
+        val hash = data["snapshotHash"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
         require(hash.matches(Regex("^[a-f0-9]{64}$"))) {
             "El servidor no devolvió un hash SHA-256 válido para confirmar el certificado"
         }
@@ -604,11 +610,10 @@ internal fun executeElectronicCertificateIssuance(
     }
 
     // Step 2: POST explicit doctor confirmation + snapshotHash to generate PDF & evidence in private bucket
-    val postBody = JSONObject()
-        .put("confirmed", true)
-        .put("snapshotHash", snapshotHash)
-        .toString()
-        .toRequestBody("application/json; charset=utf-8".toMediaType())
+    val postBody = buildJsonObject {
+        put("confirmed", true)
+        put("snapshotHash", snapshotHash)
+    }.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
 
     val postRequest = Request.Builder()
         .url(endpoint)
@@ -623,27 +628,29 @@ internal fun executeElectronicCertificateIssuance(
         if (!response.isSuccessful) {
             throw IllegalStateException(mapCertificateIssueError(raw, response.code))
         }
-        val root = runCatching { JSONObject(raw) }.getOrNull()
+        val root = runCatching { Json.parseToJsonElement(raw).jsonObject }.getOrNull()
             ?: throw IllegalStateException("Respuesta inválida al emitir el certificado firmado")
-        if (!root.optBoolean("success", false)) {
+        if (root["success"]?.jsonPrimitive?.booleanOrNull != true) {
             throw IllegalStateException(mapCertificateIssueError(raw, response.code))
         }
-        val data = root.optJSONObject("data")
+        val data = root["data"]?.let { runCatching { it.jsonObject }.getOrNull() }
             ?: throw IllegalStateException("El servidor no devolvió el certificado emitido")
         parseIssuedCertificateJson(data)
     }
 }
 
-private fun parseIssuedCertificateJson(data: JSONObject): IssuedElectronicCertificate {
-    val status = data.optString("status")
-    val signedPdfUrl = data.optString("signed_pdf_url").trim()
-    val signatureVerifiedAt = data.optString("signature_verified_at").trim()
-    val signatureHash = data.optString("signature_hash").trim()
-    val signatureMethod = data.optString("signature_method").trim().ifBlank { "electronic_verified" }
-    val cuir = data.optString("cuir").trim()
-    val qr = data.optString("qr_code_content").trim().ifBlank {
-        if (cuir.isNotBlank()) "https://autamedica.com/verify/$cuir" else null
-    }
+private fun parseIssuedCertificateJson(data: JsonObject): IssuedElectronicCertificate {
+    fun str(key: String): String = data[key]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+    val status = str("status")
+    val signedPdfUrl = str("signed_pdf_url")
+    val signatureVerifiedAt = str("signature_verified_at")
+    val signatureHash = str("signature_hash")
+    val signatureMethod = str("signature_method").ifBlank { "electronic_verified" }
+    val cuir = str("cuir")
+    val qr = str("qr_code_content").ifBlank {
+        if (cuir.isNotBlank()) "https://autamedica.com/verify/$cuir" else ""
+    }.takeIf { it.isNotBlank() }
+
     check(
         status == "signed" &&
             signedPdfUrl.isNotBlank() &&
@@ -665,10 +672,13 @@ private fun parseIssuedCertificateJson(data: JSONObject): IssuedElectronicCertif
 
 private fun mapCertificateIssueError(raw: String, httpCode: Int): String {
     val parsedError = runCatching {
-        val obj = JSONObject(raw)
-        obj.optJSONObject("error")?.optString("message")?.takeIf { it.isNotBlank() }
-            ?: obj.optString("error").takeIf { it.isNotBlank() }
-            ?: obj.optString("message").takeIf { it.isNotBlank() }
+        val obj = Json.parseToJsonElement(raw).jsonObject
+        val nested = obj["error"]?.let { elem ->
+            runCatching { elem.jsonObject["message"]?.jsonPrimitive?.contentOrNull }.getOrNull()
+                ?: runCatching { elem.jsonPrimitive.contentOrNull }.getOrNull()
+        }
+        nested?.takeIf { it.isNotBlank() }
+            ?: obj["message"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
     }.getOrNull()
 
     return when (parsedError) {
