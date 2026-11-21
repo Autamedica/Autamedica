@@ -17,12 +17,11 @@ MEMED_SCRIPT_URL = "https://partners.memed.com.br/integration.js"
 
 [env.production.vars]
 NODE_ENV = "production"
-# Memed production is enabled ONLY for the verified pilot doctor enforced by both API endpoints.
-# The provider event is stored as draft pending independent signature/delivery verification.
+# Memed production is enabled for active, CFM-verified Brazilian CRM doctors.
+# Set MEMED_PILOT_DOCTOR_ID optionally in Cloudflare env if an explicit allowlist is needed.
 MEMED_RX_ENABLED = "true"
 MEMED_API_URL = "https://api.memed.com.br/v1"
 MEMED_SCRIPT_URL = "https://partners.memed.com.br/integration.js"
-MEMED_PILOT_DOCTOR_ID = "080fb7ae-92b4-44d4-8941-a6db65004b9f"
 
 # Dominios personalizados (configurar en el dashboard de Cloudflare Pages)
 # custom_domains = ["www.autamedica.com", "autamedica.com"]

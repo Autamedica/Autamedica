@@ -13,6 +13,24 @@ export function resolveMemedMobilePilotDoctorId(mobilePilotId: string | undefine
   return mobileId || legacyId || null;
 }
 
+/**
+ * Pilot allowlist is strictly optional: when unset or blank, any active,
+ * CFM-verified Brazilian CRM doctor is eligible (enforced by verifiedBrazilLicense).
+ */
+export function isMemedMobilePilotDoctorAllowed(
+  doctorId: string | null | undefined,
+  mobilePilotId: string | undefined,
+  legacyPilotId: string | undefined,
+): boolean {
+  if (!doctorId) return false;
+  const configuredIds = [mobilePilotId, legacyPilotId]
+    .filter((value): value is string => typeof value === 'string')
+    .flatMap((value) => value.split(','))
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return configuredIds.length === 0 || configuredIds.includes(doctorId);
+}
+
 export function validMemedMobileAppointment(input: unknown): input is string {
   return typeof input === 'string' && MEMED_MOBILE_UUID.test(input);
 }

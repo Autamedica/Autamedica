@@ -12,7 +12,7 @@ import {
   verifiedBrazilLicense,
   validBrazilPatientIdentity,
   memedMobileFeatureEnabled,
-  resolveMemedMobilePilotDoctorId,
+  isMemedMobilePilotDoctorAllowed,
 } from '../_shared/memed-mobile-policy.ts';
 
 const NO_STORE = {'Cache-Control': 'private, no-store', 'Referrer-Policy': 'no-referrer'};
@@ -55,11 +55,15 @@ export async function handler(req: Request): Promise<Response> {
     const {data: doctor, error: doctorError} = await db.from('doctors')
       .select('id, active, license_type, license_number, uf_brazil, care_country')
       .eq('user_id', user.id).maybeSingle();
-    const pilotId = resolveMemedMobilePilotDoctorId(
-      Deno.env.get('MEMED_MOBILE_PILOT_DOCTOR_ID'),
-      Deno.env.get('MEMED_PILOT_DOCTOR_ID'),
-    );
-    if (doctorError || !doctor || !pilotId || pilotId !== doctor.id) {
+    if (
+      doctorError ||
+      !doctor ||
+      !isMemedMobilePilotDoctorAllowed(
+        doctor.id,
+        Deno.env.get('MEMED_MOBILE_PILOT_DOCTOR_ID'),
+        Deno.env.get('MEMED_PILOT_DOCTOR_ID'),
+      )
+    ) {
       return reply({code: 'PILOT_DOCTOR_REQUIRED'}, 403, cors);
     }
     const {data: licenses, error: licenseError} = await db.from('doctor_licenses')
