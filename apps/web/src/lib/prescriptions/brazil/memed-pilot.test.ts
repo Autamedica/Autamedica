@@ -10,8 +10,9 @@ describe('Memed pilot configuration', () => {
     expect(isMemedMobileEnabled({ MEMED_RX_ENABLED: 'true', MEMED_MOBILE_ENABLED: 'false' })).toBe(false);
   });
 
-  it('recognizes both legacy and mobile pilot doctor ids', () => {
+  it('treats pilot doctor allowlist as optional and supports single or comma-separated ids', () => {
     expect(isMemedPilotDoctor({ MEMED_PILOT_DOCTOR_ID: 'doctor-a' }, 'doctor-a')).toBe(true);
+    expect(isMemedPilotDoctor({ MEMED_PILOT_DOCTOR_ID: 'doctor-a, doctor-b' }, 'doctor-b')).toBe(true);
     expect(isMemedPilotDoctor({ MEMED_MOBILE_PILOT_DOCTOR_ID: 'doctor-b' }, 'doctor-b')).toBe(true);
     expect(isMemedPilotDoctor({ MEMED_MOBILE_PILOT_DOCTOR_ID: 'doctor-b' }, 'doctor-a')).toBe(false);
     expect(isMemedPilotDoctor({}, 'verified-crm-doctor')).toBe(true);

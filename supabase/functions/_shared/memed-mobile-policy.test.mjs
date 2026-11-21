@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { appointmentPermitsPrescription, buildMemedMobileLaunchUrl,
-  validMemedMobileAppointment, verifiedBrazilLicense, validBrazilPatientIdentity, memedMobileFeatureEnabled } from './memed-mobile-policy.ts';
+  validMemedMobileAppointment, verifiedBrazilLicense, validBrazilPatientIdentity, memedMobileFeatureEnabled, isMemedMobilePilotDoctorAllowed } from './memed-mobile-policy.ts';
 
 const appointment = '12345678-abcd-4d91-8a1f-1234567890ab';
 test('accepts only UUID appointment identifiers, not arbitrary URLs', () => {
@@ -72,4 +72,13 @@ test('Memed Android requires both RX and mobile governance flags', () => {
   assert.equal(memedMobileFeatureEnabled('true', 'false'), false);
   assert.equal(memedMobileFeatureEnabled('false', 'true'), false);
   assert.equal(memedMobileFeatureEnabled(undefined, 'true'), false);
+});
+
+test('mobile pilot allowlist is optional and allows any verified BR doctor when unset', () => {
+  assert.equal(isMemedMobilePilotDoctorAllowed('doc-1', undefined, undefined), true);
+  assert.equal(isMemedMobilePilotDoctorAllowed('doc-1', '  ', ''), true);
+  assert.equal(isMemedMobilePilotDoctorAllowed('doc-1', 'doc-1', undefined), true);
+  assert.equal(isMemedMobilePilotDoctorAllowed('doc-2', 'doc-1, doc-2', undefined), true);
+  assert.equal(isMemedMobilePilotDoctorAllowed('doc-3', 'doc-1', undefined), false);
+  assert.equal(isMemedMobilePilotDoctorAllowed(null, undefined, undefined), false);
 });
