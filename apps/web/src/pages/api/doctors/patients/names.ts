@@ -69,6 +69,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return acc
     }, {})
 
+    const unresolvedIds = patientIds.filter((id) => !nameMap[id] || nameMap[id] === 'Paciente')
+    if (unresolvedIds.length > 0) {
+      const { data: privateRows } = await admin
+        .from('patient_private_identities')
+        .select('patient_id, full_name')
+        .in('patient_id', unresolvedIds)
+      for (const row of privateRows ?? []) {
+        if (row.patient_id && row.full_name?.trim()) {
+          nameMap[row.patient_id] = row.full_name.trim()
+        }
+      }
+    }
+
     return jsonOk(nameMap)
   } catch (error) {
     logger.error('[api/doctors/patients/names] POST error', error)

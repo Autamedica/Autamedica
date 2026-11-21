@@ -43,6 +43,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.R
 import com.autamedica.android.domain.model.PracticeItem
 import com.autamedica.android.domain.model.PrescriptionPatientItem
+import com.autamedica.android.presentation.doctors.components.EventualPatientDniSelectorCard
 import com.autamedica.android.domain.model.StudyType
 import com.autamedica.android.presentation.theme.*
 
@@ -214,8 +215,8 @@ fun CreateMedicalOrderScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // 1. Selector de Paciente Elegible
-            PatientSelectorCard(
+            // 1. Selector de Paciente Elegible + Emisión rápida por DNI / Sexo / WhatsApp
+            EventualPatientDniSelectorCard(
                 selectedPatient = uiState.selectedPatient,
                 eligiblePatients = uiState.eligiblePatients,
                 isLoadingPatients = uiState.isLoadingPatients,
@@ -226,6 +227,12 @@ fun CreateMedicalOrderScreen(
                 onSelectPatient = {
                     viewModel.selectPatient(it)
                     expandedPatientDropdown = false
+                },
+                isRegisteringDni = uiState.isRegisteringDni,
+                dniLookupError = uiState.dniLookupError,
+                needsManualName = uiState.needsManualName,
+                onLookupByDni = { dni, gender, contact, manualName ->
+                    viewModel.registerEventualPatientByDni(dni, gender, contact, manualName)
                 },
             )
 

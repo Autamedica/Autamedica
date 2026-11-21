@@ -42,6 +42,17 @@ interface PrescriptionRepository {
     suspend fun getEligiblePatients(): Result<List<PrescriptionPatientItem>>
 
     /**
+     * Registers or looks up an external/eventual patient by 3 core inputs (DNI/CPF, sex, and WhatsApp/Email),
+     * automatically resolving official name, photo, and coverage via RENAPER/PUCO when in Argentina.
+     */
+    suspend fun registerOrLookupEventualPatient(
+        documentNumber: String,
+        gender: String,
+        contact: String,
+        fullNameFallback: String? = null,
+    ): Result<PrescriptionPatientItem> = Result.failure(UnsupportedOperationException("Not implemented"))
+
+    /**
      * Verifies the doctor's professional license under the applicable jurisdiction registry (SISA/REFEPS for AR, CFM/CRM for BR).
      */
     suspend fun getDoctorEligibility(): Result<DoctorEligibility>

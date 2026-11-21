@@ -134,6 +134,9 @@ data class PrescriptionPatientItem(
     val fullName: String,
     val dni: String? = null,
     val birthDate: String? = null,
+    val avatarUrl: String? = null,
+    val contact: String? = null,
+    val coverageName: String? = null,
 )
 
 /** Verified local copy of a prescription PDF downloaded through the authenticated API. */

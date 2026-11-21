@@ -41,12 +41,26 @@ export async function loadElectronicCertificateSource(
     .select('user_id,first_name,last_name,role,active,deleted_at,sss_validation_status')
     .eq('user_id', userId).single();
   if (profileError) throw profileError;
-  const { data: patient, error: patientError } = await admin.from('patients')
+  const { data: rawPatient, error: patientError } = await admin.from('patients')
     .select('id,user_id,dni').eq('id', certificate.patient_id).single();
-  if (patientError) throw patientError;
-  const { data: patientProfile, error: patientProfileError } = await admin.from('profiles')
-    .select('user_id,first_name,last_name').eq('user_id', patient.user_id).single();
-  if (patientProfileError) throw patientProfileError;
+  if (patientError || !rawPatient) throw patientError ?? new Error('patient_not_found');
+  let patient: Row = rawPatient;
+  let patientProfile: Row;
+  if (rawPatient.user_id) {
+    const { data: prof, error: patientProfileError } = await admin.from('profiles')
+      .select('user_id,first_name,last_name').eq('user_id', rawPatient.user_id).single();
+    if (patientProfileError || !prof) throw patientProfileError ?? new Error('patient_profile_not_found');
+    patientProfile = prof;
+  } else {
+    const { data: priv, error: privError } = await admin.from('patient_private_identities')
+      .select('full_name,document_number')
+      .eq('patient_id', certificate.patient_id)
+      .eq('doctor_id', doctor.id)
+      .maybeSingle();
+    if (privError || !priv) throw privError ?? new Error('eventual_patient_identity_not_found');
+    patient = { ...rawPatient, dni: rawPatient.dni ?? priv.document_number };
+    patientProfile = { user_id: null, first_name: priv.full_name, last_name: '' };
+  }
   const source = { certificate, doctor, profile, patient, patientProfile };
   const snapshotHash = await certificateSha256(new TextEncoder().encode(canonical(source)));
   return { ...source, snapshotHash };
