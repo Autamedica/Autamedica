@@ -141,6 +141,8 @@ fun MainScreen(
     onNavigateToBookAppointment: () -> Unit = {},
     onNavigateToPrescriptions: () -> Unit = {},
     onNavigateToCertificates: () -> Unit = onNavigateToPrescriptions,
+    onNavigateToMedicalOrders: () -> Unit = onNavigateToPrescriptions,
+    onNavigateToChatList: () -> Unit = {},
     onNavigateToClinicalDocuments: () -> Unit = {},
     onNavigateToPsychiatry: () -> Unit = {},
     onNavigateToReproductiveHealth: () -> Unit = {},
@@ -383,6 +385,8 @@ fun MainScreen(
                                 selectedTab = PatientBottomNavPolicy.TAB_PRESCRIPTIONS
                             },
                             onNavigateToCertificates = onNavigateToCertificates,
+                            onNavigateToMedicalOrders = onNavigateToMedicalOrders,
+                            onNavigateToChatList = onNavigateToChatList,
                             onNavigateToClinicalDocuments = onNavigateToClinicalDocuments,
                             onNavigateToChatConversation = onNavigateToChatConversation,
                             onNavigateToPsychiatry = onNavigateToPsychiatry,

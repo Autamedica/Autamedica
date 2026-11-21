@@ -290,4 +290,43 @@ class NotificationRouteResolverTest {
         )
         assertThat(route).isEqualTo(Route.PharmacyIntake("pharm-456"))
     }
+
+    @Test
+    fun `prescription id extra resolves to patient Prescriptions`() {
+        val route = NotificationRouteResolver.resolve(
+            prescriptionId = "rx-123",
+            notificationType = "prescription_issued",
+        )
+        assertThat(route).isEqualTo(Route.Prescriptions)
+    }
+
+    @Test
+    fun `certificate notification type resolves to PatientCertificates`() {
+        val route = NotificationRouteResolver.resolve(
+            notificationType = "certificate_issued",
+        )
+        assertThat(route).isEqualTo(Route.PatientCertificates)
+    }
+
+    @Test
+    fun `medical order notification type resolves to PatientOrders`() {
+        val route = NotificationRouteResolver.resolve(
+            notificationType = "medical_order_ready",
+        )
+        assertThat(route).isEqualTo(Route.PatientOrders)
+    }
+
+    @Test
+    fun `patient web deep links route to real patient document screens`() {
+        assertThat(NotificationRouteResolver.parseDeepLink("https://paciente.autamedica.com/patients/prescriptions"))
+            .isEqualTo(Route.Prescriptions)
+        assertThat(NotificationRouteResolver.parseDeepLink("https://www.autamedica.com/patients/certificates"))
+            .isEqualTo(Route.PatientCertificates)
+        assertThat(NotificationRouteResolver.parseDeepLink("https://www.autamedica.com/patients/medical-orders"))
+            .isEqualTo(Route.PatientOrders)
+        assertThat(NotificationRouteResolver.parseDeepLink("autamedica://atestados"))
+            .isEqualTo(Route.PatientCertificates)
+        assertThat(NotificationRouteResolver.parseDeepLink("autamedica://ordenes"))
+            .isEqualTo(Route.PatientOrders)
+    }
 }
