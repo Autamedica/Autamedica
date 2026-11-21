@@ -11,4 +11,8 @@ data class PatientProfileSnapshot(
     val emergencyContactRelationship: String? = null,
     val emergencyContactPhone: String? = null,
     val emergencyContactEmail: String? = null,
+    val careCountry: String? = null,
+    val identityStatus: String? = null,
+    val identityVerifiedAt: String? = null,
+    val pucoCoverageName: String? = null,
 )

@@ -70,6 +70,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.domain.model.PatientProfileSnapshot
 import com.autamedica.android.domain.model.User
+import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.presentation.dashboard.components.WalletTopupDialog
 import com.autamedica.android.presentation.dashboard.components.formatCents
 import com.autamedica.android.presentation.theme.AuAccent
@@ -169,6 +170,20 @@ fun PatientProfileScreen(
                         snapshot = uiState.patientSnapshot,
                     )
 
+                    // 1b. Argentina-only RENAPER identity consultation (Kotlin-native)
+                    uiState.patientSnapshot
+                        ?.takeIf { it.careCountry == "AR" && uiState.user?.role == UserRole.PATIENT }
+                        ?.let { patient ->
+                            RenaperIdentityCard(
+                                patient = patient,
+                                loading = uiState.renaperLoading,
+                                identity = uiState.renaperResult,
+                                errorStatus = uiState.renaperErrorStatus,
+                                onLookup = viewModel::lookupRenaper,
+                                onClear = viewModel::clearRenaperResponse,
+                            )
+                        }
+
                     // 2. Wallet Balance Card
                     PatientWalletCard(
                         balanceCents = uiState.walletBalanceCents,
@@ -216,6 +231,11 @@ fun PatientProfileScreen(
                 }
             }
         }
+    }
+
+    // No conservar datos de identidad obtenidos al abandonar la pantalla.
+    DisposableEffect(Unit) {
+        onDispose { viewModel.clearRenaperResponse() }
     }
 
     // Diálogo de recarga de billetera

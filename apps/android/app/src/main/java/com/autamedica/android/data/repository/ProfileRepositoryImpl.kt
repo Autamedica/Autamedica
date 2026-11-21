@@ -232,6 +232,10 @@ private data class PatientProfileDto(
     val heightCm: Double? = null,
     val weightKg: Double? = null,
     @SerialName("emergency_contact") val emergencyContact: JsonObject? = null,
+    @SerialName("care_country") val careCountry: String? = null,
+    @SerialName("identity_status") val identityStatus: String? = null,
+    @SerialName("identity_verified_at") val identityVerifiedAt: String? = null,
+    @SerialName("puco_coverage_name") val pucoCoverageName: String? = null,
 ) {
     fun toDomain() = PatientProfileSnapshot(
         dni = dni,
@@ -245,6 +249,10 @@ private data class PatientProfileDto(
             ?: emergencyContact?.stringValue("relation"),
         emergencyContactPhone = emergencyContact?.stringValue("phone"),
         emergencyContactEmail = emergencyContact?.stringValue("email"),
+        careCountry = careCountry?.takeIf { it == "AR" || it == "BR" },
+        identityStatus = identityStatus?.takeIf { it.isNotBlank() },
+        identityVerifiedAt = identityVerifiedAt?.takeIf { it.isNotBlank() },
+        pucoCoverageName = pucoCoverageName?.takeIf { it.isNotBlank() },
     )
 }
 

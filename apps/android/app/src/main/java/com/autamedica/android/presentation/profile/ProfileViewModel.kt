@@ -1,28 +1,37 @@
 package com.autamedica.android.presentation.profile
 
 import android.webkit.CookieManager
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.autamedica.android.data.repository.RenaperIdentityClient
 import com.autamedica.android.domain.model.PatientProfileSnapshot
+import com.autamedica.android.domain.model.RenaperIdentity
+import com.autamedica.android.domain.model.RenaperLookupException
+import com.autamedica.android.domain.model.RenaperLookupPolicy
+import com.autamedica.android.domain.model.RenaperSexId
 import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.domain.repository.WalletRepository
+import com.autamedica.android.presentation.common.UiErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import com.autamedica.android.presentation.common.UiErrorMapper
 import javax.inject.Inject
 
 data class ProfileUiState(
     val user: User? = null,
     val patientSnapshot: PatientProfileSnapshot? = null,
+    val renaperLoading: Boolean = false,
+    val renaperResult: RenaperIdentity? = null,
+    val renaperErrorStatus: Int? = null,
     val isLoading: Boolean = true,
     val error: String? = null,
     val isSaving: Boolean = false,
@@ -42,9 +51,11 @@ class ProfileViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val walletRepository: WalletRepository,
     private val authRepository: AuthRepository,
+    private val renaperIdentityClient: RenaperIdentityClient,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
+    private var renaperLookupJob: Job? = null
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
     init {
@@ -139,6 +150,67 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    /**
+     * The DNI and jurisdiction are read from the authenticated patient profile.
+     * A caller cannot replace the registered DNI with somebody else's number.
+     * This is defence-in-depth; the server independently repeats the ownership check.
+     */
+    fun lookupRenaper(sex: RenaperSexId) {
+        val state = _uiState.value
+        if (state.user?.role != UserRole.PATIENT || state.renaperLoading) return
+
+        val patient = state.patientSnapshot
+        val dni = RenaperLookupPolicy.registeredArgentineDni(patient)
+        if (dni == null || !RenaperLookupPolicy.sexMatchesPatient(patient, sex)) {
+            _uiState.update { it.copy(renaperErrorStatus = 400, renaperResult = null) }
+            return
+        }
+
+        _uiState.update {
+            it.copy(renaperLoading = true, renaperErrorStatus = null, renaperResult = null)
+        }
+        renaperLookupJob?.cancel()
+        renaperLookupJob = viewModelScope.launch {
+            val result = renaperIdentityClient.lookup(dni, sex)
+            if (!isActive) return@launch
+            result.fold(
+                onSuccess = { identity ->
+                    val refreshedSnapshot = profileRepository.getPatientProfileSnapshot().getOrNull()
+                    val refreshedUser = profileRepository.getProfile().getOrNull()
+                    if (!isActive) return@launch
+                    _uiState.update { previous ->
+                        previous.copy(
+                            user = refreshedUser ?: previous.user,
+                            patientSnapshot = refreshedSnapshot ?: previous.patientSnapshot,
+                            firstName = refreshedUser?.firstName ?: previous.firstName,
+                            lastName = refreshedUser?.lastName ?: previous.lastName,
+                            renaperLoading = false,
+                            renaperResult = identity,
+                            renaperErrorStatus = null,
+                        )
+                    }
+                },
+                onFailure = { failure ->
+                    _uiState.update {
+                        it.copy(
+                            renaperLoading = false,
+                            renaperResult = null,
+                            renaperErrorStatus = (failure as? RenaperLookupException)?.httpStatus ?: 500,
+                        )
+                    }
+                },
+            )
+        }
+    }
+
+    fun clearRenaperResponse() {
+        renaperLookupJob?.cancel()
+        renaperLookupJob = null
+        _uiState.update {
+            it.copy(renaperLoading = false, renaperResult = null, renaperErrorStatus = null)
+        }
+    }
+
     fun refreshWallet() {
         viewModelScope.launch {
             walletRepository.getWalletBalanceDetails().onSuccess { balance ->
@@ -177,12 +249,13 @@ class ProfileViewModel @Inject constructor(
                             error = UiErrorMapper.map(error, "Error al generar enlace de recarga"),
                         )
                     }
-                }
+                },
             )
         }
     }
 
     fun logout(onComplete: () -> Unit) {
+        clearRenaperResponse()
         viewModelScope.launch {
             authRepository.logout()
             CookieManager.getInstance().removeAllCookies {
