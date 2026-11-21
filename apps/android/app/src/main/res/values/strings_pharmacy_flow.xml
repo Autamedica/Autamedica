@@ -85,4 +85,6 @@
     <string name="pharmacy_flow_error_country_persist">No se pudo confirmar tu país clínico. Revisá tu perfil e intentá nuevamente.</string>
     <string name="pharmacy_flow_notice_completed">La consulta fue finalizada. Podés iniciar una nueva consulta.</string>
     <string name="pharmacy_flow_new_consultation">Nueva consulta</string>
+    <string name="pharmacy_flow_error_no_doctors">No hay médicos disponibles en este momento. Intentá en unos minutos.</string>
+    <string name="pharmacy_flow_error_patient_role">Ingresá con una cuenta de paciente para solicitar una consulta.</string>
 </resources>

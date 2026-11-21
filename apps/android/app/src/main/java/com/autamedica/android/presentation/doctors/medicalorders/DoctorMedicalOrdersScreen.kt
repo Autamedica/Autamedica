@@ -45,6 +45,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.R
+import com.autamedica.android.presentation.common.DocumentViewerSource
+import com.autamedica.android.presentation.common.InAppDocumentViewerDialog
 import com.autamedica.android.domain.model.MedicalOrder
 import com.autamedica.android.domain.model.StudyType
 import com.autamedica.android.presentation.prescriptions.components.QrCodeView
@@ -89,15 +91,21 @@ fun DoctorMedicalOrdersScreen(
         }
     }
 
+    var activeDocumentViewer by remember { mutableStateOf<DocumentViewerSource?>(null) }
+
     val onOpenPdf: (String) -> Unit = { pdfUrl ->
-        runCatching {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(pdfUrl)).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            context.startActivity(intent)
-        }.onFailure {
-            Toast.makeText(context, context.getString(R.string.doctor_orders_pdf_error_toast), Toast.LENGTH_SHORT).show()
-        }
+        activeDocumentViewer = DocumentViewerSource.RemoteDocumentUrl(
+            url = pdfUrl,
+            title = context.getString(R.string.doctor_orders_title),
+            fileName = "Orden_${System.currentTimeMillis()}.pdf",
+        )
+    }
+
+    activeDocumentViewer?.let { docSource ->
+        InAppDocumentViewerDialog(
+            source = docSource,
+            onDismiss = { activeDocumentViewer = null },
+        )
     }
 
     Scaffold(

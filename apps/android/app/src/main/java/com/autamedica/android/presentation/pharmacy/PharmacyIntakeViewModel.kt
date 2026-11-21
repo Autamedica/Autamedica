@@ -485,7 +485,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                         activeReferralPartnerId = request.referralPartnerId,
                         paymentStatus = "not_started",
                         paymentCheckoutUrl = null,
-                        status = PharmacyConsultationStatus.PENDING,
+                        status = mapDispatchStatus(request.status) ?: PharmacyConsultationStatus.PENDING,
                         // Queue position and wait time have not been confirmed by the backend.
                         queuePosition = 0,
                         estimatedMinutes = 0,
@@ -561,7 +561,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                             (request.careCountry == "BR" &&
                                 (_uiState.value.referralCode == "JORDAN" || request.referralPartnerId != null))
 
-                    if (request.status == "searching" || request.status == "matched") {
+                    if (request.status == "pending_payment" || request.status == "searching" || request.status == "matched") {
                         refreshCountryDoctorCount(_uiState.value.careCountry)
                     }
                     _uiState.update { state ->
@@ -684,7 +684,9 @@ class PharmacyIntakeViewModel @Inject constructor(
 
     private fun parseSearchStartedAt(request: PharmacyDispatchRequest): Instant? {
         val raw = request.searchStartedAt
-            ?: request.createdAt.takeIf { request.status == "searching" || request.status == "expired" }
+            ?: request.createdAt.takeIf {
+                request.status == "pending_payment" || request.status == "searching" || request.status == "expired"
+            }
             ?: return null
         return runCatching { Instant.parse(raw) }.getOrNull()
     }
@@ -698,7 +700,7 @@ class PharmacyIntakeViewModel @Inject constructor(
     }
 
     private fun mapDispatchStatus(dispatchStatus: String): PharmacyConsultationStatus? = when (dispatchStatus) {
-        "searching" -> PharmacyConsultationStatus.PENDING
+        "pending_payment", "searching" -> PharmacyConsultationStatus.PENDING
         "matched" -> PharmacyConsultationStatus.ASSIGNED
         "in_call" -> PharmacyConsultationStatus.IN_CALL
         "completed" -> PharmacyConsultationStatus.COMPLETED
@@ -772,19 +774,38 @@ class PharmacyIntakeViewModel @Inject constructor(
 internal fun classifyIntakeCreationFailure(error: Throwable): String {
     val message = error.message.orEmpty().lowercase(java.util.Locale.ROOT)
     return when {
+        "lgpd_consent_required" in message ->
+            "pharmacy_error_lgpd_required"
+        "pharmacy_error_cpf_checksum" in message ->
+            "pharmacy_error_cpf_checksum"
+        "no_doctors_available_now" in message ->
+            "pharmacy_flow_error_no_doctors"
+        "dispatch_patient_role_required" in message ->
+            "pharmacy_flow_error_patient_role"
         "care_country_or_patient_profile_required" in message ->
             "Necesitás completar tu perfil de paciente para solicitar una consulta."
         "care_country_dispatch_mismatch" in message ||
-            "care_country_required_or_mismatched" in message ->
+            "care_country_required_or_mismatched" in message ||
+            "patient_inactive_or_country_mismatch" in message ->
             "El país de la consulta no coincide con tu perfil de paciente."
         "invalid_mobile_session" in message || "dispatch_request_identity_denied" in message ||
+            "mobile_session_conflicts_with_cookie_session" in message ||
             "http 401" in message || "jwt expired" in message ->
             "No pudimos validar tu sesión. Iniciá sesión nuevamente."
+        "pharmacy_express_payments_disabled" in message ||
+            "global_pix_mp_payments_disabled" in message ||
+            "jordan_checkout_not_ready" in message ||
+            "pharmacy_dispatch_pricing_not_configured" in message ||
+            "pharmacy_checkout_guest_security_not_configured" in message ||
+            "patient_consent_persistence_failed" in message ||
+            "doctor_availability_unavailable" in message ||
+            "guest_token_not_configured" in message ||
+            "guest_queue_recovery_unavailable" in message ||
+            "http 503" in message || "dispatch_service_unavailable" in message ->
+            "El servicio de consultas no está disponible temporalmente. Intentá más tarde."
         "permission denied" in message || "http 403" in message ||
             "42501" in message ->
             "No se pudo autorizar la solicitud. Revisá tus datos de paciente."
-        "http 503" in message || "dispatch_service_unavailable" in message ->
-            "El servicio de consultas no está disponible temporalmente. Intentá más tarde."
         "unable to resolve host" in message || "unknownhost" in message ||
             "socket" in message || "timeout" in message ||
             "connection" in message || "network" in message ->

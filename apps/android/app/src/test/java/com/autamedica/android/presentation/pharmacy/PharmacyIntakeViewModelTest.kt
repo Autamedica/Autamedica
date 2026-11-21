@@ -221,6 +221,18 @@ class PharmacyIntakeViewModelTest {
         assertThat(classifyIntakeCreationFailure(
             IllegalStateException("Unexpected database rejection: private information")
         )).doesNotContain("private information")
+        assertThat(classifyIntakeCreationFailure(
+            IllegalStateException("Guest dispatch API rejected intake (HTTP 409) [no_doctors_available_now]")
+        )).isEqualTo("pharmacy_flow_error_no_doctors")
+        assertThat(classifyIntakeCreationFailure(
+            IllegalStateException("Guest dispatch API rejected intake (HTTP 400) [lgpd_consent_required]")
+        )).isEqualTo("pharmacy_error_lgpd_required")
+        assertThat(classifyIntakeCreationFailure(
+            IllegalStateException("Guest dispatch API rejected intake (HTTP 403) [patient_inactive_or_country_mismatch]")
+        )).contains("país")
+        assertThat(classifyIntakeCreationFailure(
+            IllegalStateException("Guest dispatch API rejected intake (HTTP 503) [pharmacy_express_payments_disabled]")
+        )).contains("temporalmente")
     }
 
     @Test

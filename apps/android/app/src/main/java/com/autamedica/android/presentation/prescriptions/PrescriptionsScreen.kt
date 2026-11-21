@@ -70,7 +70,9 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.core.content.FileProvider
+import androidx.browser.customtabs.CustomTabsIntent
+import com.autamedica.android.presentation.common.DocumentViewerSource
+import com.autamedica.android.presentation.common.InAppDocumentViewerDialog
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -127,31 +129,44 @@ fun PrescriptionsScreen(
     }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var activeDocumentViewer by remember { mutableStateOf<DocumentViewerSource?>(null) }
+    var pendingPrescriptionMeta by remember { mutableStateOf<Pair<String, String>?>(null) }
+
     val openPrescriptionPdf: (Prescription, String) -> Unit = { prescription, fallbackUrl ->
+        val rxTitle = prescription.medicationName.ifBlank { context.getString(R.string.prescriptions_title) }
+        val rxFileName = "Receta_${prescription.cuir ?: prescription.id.take(8)}.pdf"
         if (!prescription.signedPdfUrl.isNullOrBlank()) {
+            pendingPrescriptionMeta = rxTitle to rxFileName
             viewModel.downloadPrescriptionPdf(prescription)
-        } else {
+        } else if (fallbackUrl.contains("/verify/")) {
             runCatching {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(fallbackUrl)))
+                CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(fallbackUrl))
             }.onFailure {
                 Toast.makeText(context, context.getString(R.string.prescriptions_toast_pdf_error), Toast.LENGTH_SHORT).show()
             }
+        } else {
+            activeDocumentViewer = DocumentViewerSource.RemoteDocumentUrl(
+                url = fallbackUrl,
+                title = rxTitle,
+                fileName = rxFileName,
+            )
         }
     }
 
     val onOpenCertificatePdf: (MedicalCertificate) -> Unit = { certificate ->
+        val certTitle = context.getString(R.string.prescriptions_certificates_title)
+        val certFileName = "Certificado_${certificate.cuir ?: certificate.id.take(8)}.pdf"
         viewModel.openCertificatePdf(
             certificate = certificate,
             onReady = { signedUrl ->
-                runCatching {
-                    val uri = Uri.parse(signedUrl)
-                    require(uri.scheme.equals("https", ignoreCase = true)) {
-                        "El servidor devolvió una URL de descarga no segura"
-                    }
-                    context.startActivity(
-                        Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                val uri = Uri.parse(signedUrl)
+                if (uri.scheme.equals("https", ignoreCase = true)) {
+                    activeDocumentViewer = DocumentViewerSource.RemoteDocumentUrl(
+                        url = signedUrl,
+                        title = certTitle,
+                        fileName = certFileName,
                     )
-                }.onFailure {
+                } else {
                     Toast.makeText(context, context.getString(R.string.prescriptions_toast_cert_pdf_error), Toast.LENGTH_SHORT).show()
                 }
             },
@@ -162,16 +177,19 @@ fun PrescriptionsScreen(
     }
 
     val onOpenOrderPdf: (MedicalOrder) -> Unit = { order ->
+        val orderTitle = context.getString(R.string.docs_orders_screen_title)
+        val orderFileName = "Orden_${order.cuir ?: order.id.take(8)}.pdf"
         viewModel.openMedicalOrderPdf(
             order = order,
             onReady = { signedUrl ->
-                runCatching {
-                    val uri = Uri.parse(signedUrl)
-                    require(uri.scheme.equals("https", ignoreCase = true)) { "Invalid URL" }
-                    context.startActivity(
-                        Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                val uri = Uri.parse(signedUrl)
+                if (uri.scheme.equals("https", ignoreCase = true)) {
+                    activeDocumentViewer = DocumentViewerSource.RemoteDocumentUrl(
+                        url = signedUrl,
+                        title = orderTitle,
+                        fileName = orderFileName,
                     )
-                }.onFailure {
+                } else {
                     Toast.makeText(context, context.getString(R.string.prescriptions_toast_pdf_error), Toast.LENGTH_SHORT).show()
                 }
             },
@@ -183,22 +201,21 @@ fun PrescriptionsScreen(
 
     LaunchedEffect(uiState.downloadedPdf?.localPath) {
         val downloadedPdf = uiState.downloadedPdf ?: return@LaunchedEffect
-        runCatching {
-            val file = File(downloadedPdf.localPath)
-            val uri = FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                file,
-            )
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, "application/pdf")
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            context.startActivity(intent)
-        }.onFailure {
-            Toast.makeText(context, context.getString(R.string.prescriptions_toast_pdf_error), Toast.LENGTH_SHORT).show()
-        }
+        val (rxTitle, rxFileName) = pendingPrescriptionMeta
+            ?: (context.getString(R.string.prescriptions_title) to "Receta.pdf")
+        activeDocumentViewer = DocumentViewerSource.LocalPdfFile(
+            filePath = downloadedPdf.localPath,
+            title = rxTitle,
+            fileName = rxFileName,
+        )
         viewModel.clearDownloadedPdf()
+    }
+
+    activeDocumentViewer?.let { docSource ->
+        InAppDocumentViewerDialog(
+            source = docSource,
+            onDismiss = { activeDocumentViewer = null },
+        )
     }
 
     LaunchedEffect(uiState.pdfDownloadFailed) {

@@ -180,8 +180,13 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             val request = requestBuilder.build()
 
             guestClient.newCall(request).execute().use { response ->
-                check(response.isSuccessful) { "Guest dispatch API rejected intake (HTTP ${response.code})" }
-                val body = response.body?.string() ?: error("Empty guest dispatch API response")
+                val body = response.body?.string().orEmpty()
+                if (!response.isSuccessful) {
+                    val safeCode = extractSafeDispatchErrorCode(body)
+                    val suffix = if (safeCode != null) " [$safeCode]" else ""
+                    throw IllegalStateException("Guest dispatch API rejected intake (HTTP ${response.code})$suffix")
+                }
+                check(body.isNotBlank()) { "Empty guest dispatch API response" }
                 val root = json.parseToJsonElement(body).jsonObject
                 val data = root["data"]?.jsonObject ?: error("Missing signed dispatch response payload")
                 val dto = json.decodeFromJsonElement<DispatchRequestDto>(
@@ -530,7 +535,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         val recoveryOwner = securePreferences?.getString(guestRecoveryOwnerKey)
         if (recovery != null && recoveryOwner == currentUser?.id) {
             val restored = resumeGuestRequestFromEncryptedDevice(recovery.first)
-            if (restored != null && restored.status in setOf("searching", "matched", "in_call", "expired", "completed")) {
+            if (restored != null && restored.status in setOf("pending_payment", "searching", "matched", "in_call", "expired", "completed")) {
                 return@runCatching restored
             }
         }
@@ -542,7 +547,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 .select(Columns.ALL) {
                     filter {
                         eq("requested_by_user_id", currentUser.id)
-                        isIn("status", listOf("searching", "matched", "in_call", "expired", "completed"))
+                        isIn("status", listOf("pending_payment", "searching", "matched", "in_call", "expired", "completed"))
                     }
                     order("created_at", Order.DESCENDING)
                     limit(1)
@@ -610,22 +615,25 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             }
         }
 
-        if (currentUser == null || commercialCode != null) {
+        if (currentUser == null || commercialCode != null || careCountry == "BR") {
             val guestPayload = buildJsonObject {
                 put("careCountry", careCountry)
-                if (careCountry == "BR") put("patientCpf", documentDigits)
-                else put("patientDni", documentDigits)
+                if (careCountry == "BR") {
+                    put("patientCpf", documentDigits)
+                    put("lgpdConsent", true)
+                } else {
+                    put("patientDni", documentDigits)
+                }
                 put("patientPhone", patientPhone.trim())
                 if (!patientName.isNullOrBlank()) put("patientName", patientName.trim())
                 put("tier", tierRequested.ifBlank { "general" })
                 if (!symptomSummary.isNullOrBlank()) put("symptomSummary", symptomSummary.trim())
                 if (commercialCode != null) put("referralCode", commercialCode)
             }
-            // The signed server endpoint validates the commercial QR source.
-            // It also issues a room-scoped token and encrypted recovery material.
-            // Authenticated patients using a referral are handled as a locally
-            // account-bound guest until the backend supports authenticated QR binding.
-            // The server creates the request and returns a scoped guest token.
+            // The signed server endpoint validates jurisdiction, LGPD consent,
+            // commercial QR provenance, and payment-first pricing configs using
+            // service_role, and returns an account-bound recovery credential
+            // required for checkout and queue restoration.
             return@runCatching createGuestRequestViaSignedApi(guestPayload, currentUser?.id)
         }
 
@@ -634,8 +642,12 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 
         val payload = buildJsonObject {
             put("care_country", careCountry)
-            if (careCountry == "BR") put("patient_cpf", documentDigits)
-            else put("patient_dni", documentDigits)
+            if (careCountry == "BR") {
+                put("patient_cpf", documentDigits)
+                put("lgpd_consent", true)
+            } else {
+                put("patient_dni", documentDigits)
+            }
             put("patient_phone", patientPhone.trim())
             if (!patientName.isNullOrBlank()) {
                 put("patient_name", patientName.trim())
@@ -1075,3 +1087,48 @@ internal data class DispatchClaimRpcDto(
         tierRequested = tierRequested,
     )
 }
+
+internal fun extractSafeDispatchErrorCode(rawBody: String): String? {
+    if (rawBody.isBlank()) return null
+    val rawCandidate = runCatching {
+        val root = Json { ignoreUnknownKeys = true }.parseToJsonElement(rawBody).jsonObject
+        val errEl = root["error"]
+        val direct = runCatching { errEl?.jsonPrimitive?.content }.getOrNull()
+        val nestedCode = runCatching { errEl?.jsonObject?.get("code")?.jsonPrimitive?.content }.getOrNull()
+        val nestedMsg = runCatching { errEl?.jsonObject?.get("message")?.jsonPrimitive?.content }.getOrNull()
+        val topMsg = runCatching { root["message"]?.jsonPrimitive?.content }.getOrNull()
+        listOfNotNull(direct, nestedCode, nestedMsg, topMsg).firstOrNull { it.isNotBlank() }
+    }.getOrNull() ?: return null
+
+    val normalized = rawCandidate.trim().lowercase(java.util.Locale.ROOT)
+    return when {
+        normalized in SAFE_DISPATCH_ERROR_CODES -> normalized
+        "no corresponde a un paciente habilitado" in normalized -> "dispatch_patient_role_required"
+        "selecciona tu país de atención" in normalized -> "care_country_or_patient_profile_required"
+        "cpf inválido" in normalized -> "pharmacy_error_cpf_checksum"
+        else -> null
+    }
+}
+
+private val SAFE_DISPATCH_ERROR_CODES = setOf(
+    "lgpd_consent_required",
+    "patient_inactive_or_country_mismatch",
+    "care_country_required_or_mismatched",
+    "care_country_dispatch_mismatch",
+    "care_country_or_patient_profile_required",
+    "invalid_mobile_session",
+    "mobile_session_conflicts_with_cookie_session",
+    "no_doctors_available_now",
+    "pharmacy_express_payments_disabled",
+    "global_pix_mp_payments_disabled",
+    "jordan_checkout_not_ready",
+    "pharmacy_dispatch_pricing_not_configured",
+    "pharmacy_checkout_guest_security_not_configured",
+    "patient_consent_persistence_failed",
+    "doctor_availability_unavailable",
+    "guest_token_not_configured",
+    "guest_queue_recovery_unavailable",
+    "referral_code_not_found",
+    "referral_code_invalid",
+    "dispatch_request_failed",
+)
