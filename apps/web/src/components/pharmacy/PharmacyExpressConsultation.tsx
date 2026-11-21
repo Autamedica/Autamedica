@@ -117,6 +117,11 @@ export function PharmacyExpressConsultation({
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [lgpdConsent, setLgpdConsent] = useState(false)
+  const [recoveryModalOpen, setRecoveryModalOpen] = useState(false)
+  const [recoveryDocument, setRecoveryDocument] = useState('')
+  const [recoveryPhone, setRecoveryPhone] = useState('')
+  const [recoveringQueue, setRecoveringQueue] = useState(false)
+  const [recoveryError, setRecoveryError] = useState<string | null>(null)
 
   // Active request state (Gen 2: pharmacy_dispatch_requests)
   const [requestId, setRequestId] = useState<string | null>(null)
@@ -377,6 +382,61 @@ export function PharmacyExpressConsultation({
     return () => clearInterval(interval)
   }, [step, requestId, accessToken, checkStatus])
 
+  const handleRecoverQueue = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!formData.careCountry) {
+      setRecoveryError(isPortuguese ? 'Selecione o pa\u00EDs no formul\u00E1rio primeiro.' : 'Seleccion\u00E1 el pa\u00EDs en el formulario primero.')
+      return
+    }
+    setRecoveringQueue(true)
+    setRecoveryError(null)
+    try {
+      const recovered = await fetchApi<{
+        requestId: string
+        status: string
+        guestToken: string
+        recoveryToken: string
+      }>('/api/pharmacy/dispatch/recover-queue', {
+        method: 'POST',
+        body: {
+          document: recoveryDocument.replace(/\D/g, ''),
+          phone: recoveryPhone.replace(/\D/g, ''),
+        },
+      })
+      if (!recovered?.requestId || !recovered.guestToken || !recovered.recoveryToken) {
+        throw new Error('queue_recovery_not_found')
+      }
+      const key = 'autamedica:pharmacy-express:active-session'
+      const activeSession = {
+        requestId: recovered.requestId,
+        guestToken: recovered.guestToken,
+        recoveryToken: recovered.recoveryToken,
+        country: formData.careCountry,
+        careCountry: formData.careCountry,
+        referralCode,
+        qrSourceCode,
+        partnerName: referralPartnerName,
+        savedAt: Date.now(),
+      }
+      window.sessionStorage.setItem(key, JSON.stringify(activeSession))
+      window.localStorage.setItem(key, JSON.stringify(activeSession))
+      setRequestId(recovered.requestId)
+      setAccessToken(recovered.guestToken)
+      setRecoveryToken(recovered.recoveryToken)
+      setWaitingStartedAt(Date.now())
+      setCountryPaymentApproved(true)
+      setFormData((current) => ({ ...current, dni: recoveryDocument, phone: recoveryPhone }))
+      setRecoveryModalOpen(false)
+      setStep('WAITING')
+    } catch {
+      setRecoveryError(isPortuguese
+        ? 'N\u00E3o encontramos um atendimento pago ativo com esses dados'
+        : 'No encontramos una consulta paga activa con esos datos')
+    } finally {
+      setRecoveringQueue(false)
+    }
+  }
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setFormError(null)
@@ -564,6 +624,50 @@ export function PharmacyExpressConsultation({
               </div>
             )}
 
+            <div className="mb-4">
+              <button type="button" onClick={() => {
+                  if (!formData.careCountry) {
+                    setFormError(isPortuguese ? 'Selecione o pa\u00EDs no formul\u00E1rio primeiro.' : 'Seleccion\u00E1 el pa\u00EDs en el formulario primero.')
+                    return
+                  }
+                  setRecoveryError(null)
+                  setRecoveryModalOpen(true)
+                }}
+                className="min-h-11 w-full rounded-xl border border-sky-400 bg-white px-4 py-2.5 text-sm font-semibold text-sky-700 hover:bg-sky-50">
+                {isPortuguese ? 'J\u00E1 paguei \u00B7 Entrar na fila' : 'Ya pagu\u00E9 \u00B7 Entrar a la fila'}
+              </button>
+            </div>
+            {recoveryModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" role="dialog" aria-modal="true"
+                aria-label={isPortuguese ? 'Recuperar fila' : 'Recuperar fila'}>
+                <form onSubmit={handleRecoverQueue} className="w-full max-w-sm space-y-4 rounded-2xl bg-white p-5 shadow-xl">
+                  <h2 className="text-base font-semibold text-slate-900">{isPortuguese ? 'Entrar na fila' : 'Entrar a la fila'}</h2>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-slate-700">{documentLabel}</label>
+                    <input autoFocus required inputMode="numeric" value={recoveryDocument}
+                      onChange={(event) => setRecoveryDocument(event.target.value.replace(/\D/g, ''))}
+                      className="min-h-11 w-full rounded-xl border border-slate-300 px-3 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-slate-700">WhatsApp</label>
+                    <input required type="tel" inputMode="tel" value={recoveryPhone}
+                      onChange={(event) => setRecoveryPhone(event.target.value)}
+                      className="min-h-11 w-full rounded-xl border border-slate-300 px-3 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" />
+                  </div>
+                  {recoveryError && <p role="alert" className="text-xs text-sky-700">{recoveryError}</p>}
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setRecoveryModalOpen(false)}
+                      className="min-h-11 flex-1 rounded-xl border border-sky-300 px-3 text-sm font-medium text-sky-700">
+                      {isPortuguese ? 'Cancelar' : 'Cancelar'}
+                    </button>
+                    <button type="submit" disabled={recoveringQueue || !recoveryDocument || !recoveryPhone.trim()}
+                      className="min-h-11 flex-1 rounded-xl bg-sky-500 px-3 text-sm font-semibold text-white hover:bg-sky-600 disabled:opacity-50">
+                      {recoveringQueue ? (isPortuguese ? 'Entrando...' : 'Ingresando...') : (isPortuguese ? 'Entrar na fila' : 'Entrar a la fila')}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-3.5">
               {!initialCareCountry && (
               <fieldset className="grid grid-cols-2 gap-2">
