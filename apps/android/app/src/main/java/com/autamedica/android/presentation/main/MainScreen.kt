@@ -369,6 +369,9 @@ fun MainScreen(
                                 doctorDocSegment = DoctorDocumentSegment.ORDERS
                                 selectedTab = DoctorBottomNavPolicy.TAB_PRESCRIPTIONS
                             },
+                            onNavigateToCreatePrescription = onNavigateToCreatePrescription,
+                            onNavigateToCreateCertificate = onNavigateToCreateCertificate,
+                            onNavigateToCreateMedicalOrder = onNavigateToCreateMedicalOrder,
                             onNavigateToDoctorOnDemand = onNavigateToDoctorOnDemand,
                             onNavigateToDoctorAgenda = onNavigateToDoctorAgenda,
                             onNavigateToDoctorMessages = { showDoctorMessages = true },

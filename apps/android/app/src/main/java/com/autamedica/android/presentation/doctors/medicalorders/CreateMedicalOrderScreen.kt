@@ -97,9 +97,7 @@ fun CreateMedicalOrderScreen(
     var patientSearchQuery by remember { mutableStateOf("") }
 
     LaunchedEffect(patientId) {
-        if (patientId.isNotBlank()) {
-            viewModel.selectPatientById(patientId)
-        }
+        viewModel.initCreateOrder(patientId)
     }
 
     Scaffold(

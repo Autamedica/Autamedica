@@ -64,6 +64,7 @@ import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.PatientDetail
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
+import com.autamedica.android.presentation.dashboard.components.QuickClinicalActionsBar
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
 import com.autamedica.android.presentation.theme.AuDanger
@@ -86,6 +87,9 @@ import java.util.Locale
 fun PatientDetailScreen(
     onBack: () -> Unit,
     onNavigateToVideoCall: (appointmentId: String) -> Unit,
+    onNavigateToCreatePrescription: (patientId: String) -> Unit = {},
+    onNavigateToCreateCertificate: (patientId: String) -> Unit = {},
+    onNavigateToCreateMedicalOrder: (patientId: String) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: PatientDetailViewModel = hiltViewModel(),
 ) {
@@ -189,6 +193,15 @@ fun PatientDetailScreen(
                 ) {
                     // Patient header card
                     item { PatientHeaderCard(patient) }
+
+                    // Direct 3-button clinical issuance for this patient (Receta · Certificado · Órdenes)
+                    item {
+                        QuickClinicalActionsBar(
+                            onNavigateToPrescriptions = { onNavigateToCreatePrescription(patient.id) },
+                            onNavigateToCertificates = { onNavigateToCreateCertificate(patient.id) },
+                            onNavigateToMedicalOrders = { onNavigateToCreateMedicalOrder(patient.id) },
+                        )
+                    }
 
                     // Quick info pills
                     item { PatientInfoPills(patient) }

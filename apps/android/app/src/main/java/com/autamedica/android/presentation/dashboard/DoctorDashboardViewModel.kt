@@ -72,6 +72,7 @@ data class DoctorDashboardUiState(
     val telemedicineError: String? = null,
     val userId: String = "",
     val userName: String = "",
+    val userAvatarUrl: String? = null,
     val doctorId: String = "",
 )
 
@@ -126,12 +127,16 @@ class DoctorDashboardViewModel @Inject constructor(
             val canonicalProfile = profileRepository?.getProfile()?.getOrNull()
             val canonicalDoctorName = canonicalProfile
                 ?.let { listOf(it.firstName, it.lastName).filter(String::isNotBlank).joinToString(" ") }
-                .orEmpty()
+                ?.takeIf { it.isNotBlank() }
+                ?: user.displayName
+            val canonicalAvatarUrl = canonicalProfile?.avatarUrl?.takeIf { it.isNotBlank() }
+                ?: user.avatarUrl?.takeIf { it.isNotBlank() }
 
             _uiState.update { state ->
                 state.copy(
                     userId = user.id,
                     userName = canonicalDoctorName,
+                    userAvatarUrl = canonicalAvatarUrl,
                 )
             }
 
