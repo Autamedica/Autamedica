@@ -71,6 +71,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.autamedica.android.presentation.common.DocumentViewerSource
 import com.autamedica.android.presentation.common.InAppDocumentViewerDialog
 import androidx.compose.ui.Alignment
