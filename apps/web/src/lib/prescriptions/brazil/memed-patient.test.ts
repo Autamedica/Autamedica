@@ -209,5 +209,44 @@ describe('Memed patient authorization', () => {
   it('rejects manipulated patient identifiers', async () => {
     await expect(resolveMemedPatient(database(), 'doctor', '../../other')).rejects.toThrow('memed_patient_required');
   });
-});
 
+  it('forwards persisted patient address and city to Memed for controlled/B1 prescriptions', async () => {
+    const result = await resolveMemedPatient(database({
+      patients: { ...identity, address: 'Av. Paulista, 1000, Bela Vista — São Paulo - SP' },
+    }), 'doctor', patientId);
+    expect(result).toEqual({
+      idExterno: `autamedica-${patientId}`,
+      nome: 'Synthetic Patient',
+      cpf: identity.cpf,
+      data_nascimento: '29/02/2000',
+      sexo: 'Feminino',
+      endereco: 'Av. Paulista, 1000, Bela Vista',
+      cidade: 'São Paulo - SP',
+    });
+  });
+
+  it('forwards plain-text persisted patient address without fabricating city', async () => {
+    const result = await resolveMemedPatient(database({
+      patients: { ...identity, address: 'Rua das Flores, 123, Centro' },
+    }), 'doctor', patientId);
+    expect(result.endereco).toBe('Rua das Flores, 123, Centro');
+    expect(result).not.toHaveProperty('cidade');
+  });
+
+  it('persists clinician-confirmed patient address and city without requiring DOB re-entry', async () => {
+    const db = database({ patients: { ...identity, address: 'Av. Paulista, 1000 — São Paulo - SP' } });
+    const result = await resolveMemedPatient(db, 'doctor', patientId, {
+      address: 'Av. Paulista, 1000',
+      city: 'São Paulo - SP',
+    });
+    expect(result.endereco).toBe('Av. Paulista, 1000');
+    expect(result.cidade).toBe('São Paulo - SP');
+  });
+
+  it('rejects too-short or city-only address submissions', async () => {
+    await expect(resolveMemedPatient(database(), 'doctor', patientId, { address: 'abc' }))
+      .rejects.toThrow('memed_patient_demographics_invalid');
+    await expect(resolveMemedPatient(database(), 'doctor', patientId, { city: 'São Paulo - SP' }))
+      .rejects.toThrow('memed_patient_demographics_invalid');
+  });
+});

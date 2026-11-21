@@ -4,7 +4,14 @@ import { badRequest, forbidden, internalError, jsonOk } from '@/lib/api-helpers'
 import { DOCTOR_ROLES, isAuthed, withAuthRole } from '@/lib/api-auth';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { MemedService } from '@/lib/prescriptions/brazil/memed.service';
-import { assertMemedDispatchEncounter, resolveMemedPatient, validCpf } from '@/lib/prescriptions/brazil/memed-patient';
+import {
+  assertMemedDispatchEncounter,
+  type MemedPatientDemographicsInput,
+  resolveMemedPatient,
+  validCpf,
+  validPatientAddress,
+  validPatientCity,
+} from '@/lib/prescriptions/brazil/memed-patient';
 import { isMemedEnabled, isMemedPilotDoctor } from '@/lib/prescriptions/brazil/memed-pilot';
 import { getMemedDoctorCpf, storeMemedDoctorCpf } from '@/lib/prescriptions/brazil/memed-identity.repository';
 import { logger } from '@autamedica/shared';
@@ -24,7 +31,7 @@ const isValidIsoDate = (value: string): boolean => {
     && date.getTime() < Date.now();
 };
 
-async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: string, providedCpf?: string, patientId?: unknown, patientDemographics?: { birthDate: string; gender: 'male' | 'female' }, requestId?: string): Promise<Response> {
+async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: string, providedCpf?: string, patientId?: unknown, patientDemographics?: MemedPatientDemographicsInput, requestId?: string): Promise<Response> {
   const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
   if (!isAuthed(auth)) return auth;
   // Allow Memed initialization in ready/pending_issuance; provider signing and
@@ -160,6 +167,7 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
     const response = jsonOk({
       patient,
       patientDemographicsMissing: !patient.data_nascimento || !patient.sexo,
+      patientAddressMissing: !patient.endereco,
       token: tokenData.token,
       scriptUrl: memed.getScriptUrl(),
       doctor: { id: doctor.id, userId: auth.user.id, crm, uf, nome: `${nome} ${sobrenome}` },
@@ -217,6 +225,10 @@ export const POST: APIRoute = async (context) => {
     ? (body as { patientBirthDate?: unknown }).patientBirthDate : undefined;
   const patientGender = body && typeof body === 'object' && 'patientGender' in body
     ? (body as { patientGender?: unknown }).patientGender : undefined;
+  const patientAddress = body && typeof body === 'object' && 'patientAddress' in body
+    ? (body as { patientAddress?: unknown }).patientAddress : undefined;
+  const patientCity = body && typeof body === 'object' && 'patientCity' in body
+    ? (body as { patientCity?: unknown }).patientCity : undefined;
   const requestId = body && typeof body === 'object' && 'requestId' in body
     ? (body as { requestId?: unknown }).requestId : undefined;
   if (requestId !== undefined && (typeof requestId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId))) {
@@ -227,8 +239,29 @@ export const POST: APIRoute = async (context) => {
         || (patientGender !== 'male' && patientGender !== 'female'))) {
     return badRequest('memed_patient_demographics_invalid');
   }
-  const patientDemographics = patientBirthDate && patientGender
-    ? { birthDate: patientBirthDate as string, gender: patientGender as 'male' | 'female' } : undefined;
+  if (patientCity !== undefined && patientAddress === undefined) {
+    return badRequest('memed_patient_demographics_invalid');
+  }
+  if (patientAddress !== undefined && (typeof patientAddress !== 'string' || !validPatientAddress(patientAddress))) {
+    return badRequest('memed_patient_demographics_invalid');
+  }
+  if (patientCity !== undefined && (typeof patientCity !== 'string' || !validPatientCity(patientCity))) {
+    return badRequest('memed_patient_demographics_invalid');
+  }
+  const patientDemographics: MemedPatientDemographicsInput | undefined =
+    (patientBirthDate && patientGender) || patientAddress
+      ? {
+          ...(patientBirthDate && patientGender
+            ? { birthDate: patientBirthDate as string, gender: patientGender as 'male' | 'female' }
+            : {}),
+          ...(patientAddress
+            ? {
+                address: (patientAddress as string).trim(),
+                ...(patientCity ? { city: (patientCity as string).trim() } : {}),
+              }
+            : {}),
+        }
+      : undefined;
   return handleMemedToken(context, birthDate as string | undefined, providedCpf as string | undefined,
     body && typeof body === 'object' && 'patientId' in body ? body.patientId : undefined, patientDemographics,
     requestId as string | undefined);
