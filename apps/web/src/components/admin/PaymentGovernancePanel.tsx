@@ -67,9 +67,8 @@ export function PaymentGovernancePanel(){
  const manualApprove=async(paymentId:string)=>{
   const reason=window.prompt('Motivo de la excepción financiera (mínimo 10 caracteres):')?.trim()??''
   if(reason.length<10)return
-  const evidence_reference=window.prompt('Referencia verificable del comprobante externo:')?.trim()??''
-  if(evidence_reference.length<4)return
-  if(!window.confirm('¿Registrar MANUAL_OVERRIDE con esta referencia externa y liberar el despacho elegible?'))return
+  const evidence_reference=`MANUAL_OVERRIDE_${paymentId}`
+  if(!window.confirm(`¿Registrar la excepción administrativa ${evidence_reference} y liberar el despacho elegible?`))return
   const r=await fetch('/api/admin/finance/pharmacy-payments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'manual_approve',payment_id:paymentId,reason,evidence_reference})})
   const j=await r.json().catch(()=>null)
   const result=j?.data??j

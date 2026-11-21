@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro'
 import { withAuthRole, ADMIN_ROLES, isAuthed } from '@/lib/api-auth'
 import { badRequest, internalError, jsonOk } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
-import { resolveManualApprovalResult } from '@/lib/payments/manual-payment-governance'
+import { isManualPilotApprovalEligible, resolveManualApprovalResult } from '@/lib/payments/manual-payment-governance'
 
 export const prerender = false
 
@@ -79,6 +79,22 @@ export const POST: APIRoute = async ({ request, locals }) => {
    if (!payment) return badRequest('pharmacy_payment_not_pending')
    resolvedPaymentId = payment.id
   }
+  const { data: candidate, error: candidateError } = await db.from('pharmacy_dispatch_payments')
+   .select('id,dispatch_request_id,provider,status,metadata')
+   .eq('id', resolvedPaymentId).maybeSingle()
+  if (candidateError) return internalError('pharmacy_payment_lookup_failed')
+  if (!candidate) return badRequest('pharmacy_payment_not_found')
+  const { data: dispatchRequest, error: requestError } = await db.from('pharmacy_dispatch_requests')
+   .select('status').eq('id', candidate.dispatch_request_id).maybeSingle()
+  if (requestError) return internalError('pharmacy_dispatch_lookup_failed')
+  if (!isManualPilotApprovalEligible({
+   provider: candidate.provider,
+   payment_mode: typeof candidate.metadata?.payment_mode === 'string' ? candidate.metadata.payment_mode : null,
+   manual_approval_pending: candidate.metadata?.manual_approval_pending === true,
+   status: candidate.status,
+   request_status: dispatchRequest?.status ?? null,
+  })) return badRequest('pharmacy_payment_not_eligible_for_manual_approval')
+
   const { data, error } = await db.rpc('admin_manual_approve_pharmacy_payment', {
    p_payment_id: resolvedPaymentId,
    p_actor_id: auth.user.id,
