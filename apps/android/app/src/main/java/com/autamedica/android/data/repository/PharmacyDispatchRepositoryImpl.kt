@@ -239,6 +239,13 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             }
         }
 
+    override suspend fun getGuestRequestStatusForRoom(roomId: String): PharmacyDispatchRequest? =
+        withContext(ioDispatcher) {
+            val token = getGuestAccessTokenForRoom(roomId) ?: return@withContext null
+            val requestId = savedGuestRecovery()?.first ?: return@withContext null
+            fetchGuestRequestViaSignedApi(requestId, token)
+        }
+
     private suspend fun fetchGuestRequestViaSignedApi(requestId: String, token: String): PharmacyDispatchRequest? =
         withContext(ioDispatcher) {
             // Never place the signed guest token in a URL or in request logs.
@@ -674,8 +681,9 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     }
 
     override fun observePatientRequest(requestId: String): kotlinx.coroutines.flow.Flow<PharmacyDispatchRequest> = kotlinx.coroutines.flow.callbackFlow {
-        val channel = supabaseClient.channel("dispatch_request_$requestId")
-        val changeFlow = channel.postgresChangeFlow<PostgresAction>(
+        val isAuthenticated = authRepository.getCurrentUser() != null
+        val channel = if (isAuthenticated) supabaseClient.channel("dispatch_request_$requestId") else null
+        val changeFlow = channel?.postgresChangeFlow<PostgresAction>(
             schema = "public",
         ) {
             table = "pharmacy_dispatch_requests"
@@ -683,10 +691,15 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 
         suspend fun fetchCurrent() {
             runCatching {
-                val guestToken = guestAccessTokens[requestId]
+                var guestToken = guestAccessTokens[requestId]
+                if (guestToken == null && savedGuestRecovery()?.first == requestId) {
+                    val resumed = resumeGuestRequestFromEncryptedDevice(requestId)
+                    if (resumed != null) return@runCatching resumed
+                    guestToken = guestAccessTokens[requestId]
+                }
                 if (guestToken != null) {
                     fetchGuestRequestViaSignedApi(requestId, guestToken)
-                } else {
+                } else if (authRepository.getCurrentUser() != null) {
                     supabaseClient.postgrest
                         .from("pharmacy_dispatch_requests")
                         .select(Columns.ALL) {
@@ -694,6 +707,9 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                         }
                         .decodeSingleOrNull<DispatchRequestDto>()
                         ?.toDomain()
+                } else {
+                    // Never query protected pharmacy_dispatch_requests directly as anon (401).
+                    null
                 }
             }.getOrNull()?.let { trySend(it) }
         }
@@ -701,12 +717,14 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         // Emit initial state if available
         launch { fetchCurrent() }
 
-        // Realtime change collection
-        val realtimeJob = launch {
-            changeFlow.collect {
-                fetchCurrent()
+        // Realtime change collection (only for authenticated owners; guests poll signed API)
+        val realtimeJob = if (changeFlow != null) {
+            launch {
+                changeFlow.collect {
+                    fetchCurrent()
+                }
             }
-        }
+        } else null
 
         // Polling ticker fallback (3000ms): guarantees state updates even if websocket reconnects/lags
         val pollJob = launch {
@@ -716,12 +734,14 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             }
         }
 
-        channel.subscribe()
+        channel?.subscribe()
 
         awaitClose {
-            realtimeJob.cancel()
+            realtimeJob?.cancel()
             pollJob.cancel()
-            launch { supabaseClient.realtime.removeChannel(channel) }
+            if (channel != null) {
+                launch { supabaseClient.realtime.removeChannel(channel) }
+            }
         }
     }
 

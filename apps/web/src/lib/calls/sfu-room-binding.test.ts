@@ -11,13 +11,48 @@ const req = (path: string, body: unknown = {}) => new Request('https://example.i
   body: JSON.stringify({ roomId: 'jordan-room', path, method: path.endsWith('renegotiate') ? 'PUT' : 'POST', body }),
 })
 
-function makeDb(opts: { jordan?: boolean; bindings?: Binding[] }) {
+type DispatchRow = {
+  id: string
+  call_id: string | null
+  status: string
+  referral_partner_id?: string | null
+  doctor_cf_session_id: string | null
+  patient_cf_session_id: string | null
+  call_started_at: string | null
+}
+
+function makeDb(opts: { jordan?: boolean; bindings?: Binding[]; dispatch?: DispatchRow }) {
   const inserted: unknown[] = []
+  const dispatchUpdates: Array<Record<string, unknown>> = []
+  const rpcCalls: Array<{ fn: string; params: Record<string, unknown> }> = []
+  const dispatchState: DispatchRow | null = opts.dispatch
+    ? { ...opts.dispatch }
+    : opts.jordan
+      ? {
+          id: 'dispatch-jordan',
+          call_id: null,
+          status: 'matched',
+          referral_partner_id: 'partner-jordan',
+          doctor_cf_session_id: null,
+          patient_cf_session_id: null,
+          call_started_at: null,
+        }
+      : null
+
   const from = vi.fn((table: string) => {
     let targetSession: string | null = null
     let remoteIds: string[] = []
+    let pendingUpdate: Record<string, unknown> | null = null
     const chain = {
       select: () => chain,
+      update: (values: Record<string, unknown>) => {
+        pendingUpdate = values
+        if (table === 'pharmacy_dispatch_requests' && dispatchState) {
+          dispatchUpdates.push(values)
+          Object.assign(dispatchState, values)
+        }
+        return chain
+      },
       eq: (field: string, value: string) => {
         if (field === 'session_id') targetSession = value
         return chain
@@ -31,7 +66,7 @@ function makeDb(opts: { jordan?: boolean; bindings?: Binding[] }) {
       limit: () => chain,
       maybeSingle: async () => {
         if (table === 'pharmacy_dispatch_requests') return {
-          data: opts.jordan ? { referral_partner_id:'partner-jordan' } : null,
+          data: dispatchState ? { ...dispatchState } : null,
           error: null,
         }
         if (table === 'commercial_referral_partners') return {
@@ -49,6 +84,10 @@ function makeDb(opts: { jordan?: boolean; bindings?: Binding[] }) {
         return { error:null }
       },
       then(resolve: (v: unknown) => void) {
+        if (pendingUpdate) {
+          resolve({ data: dispatchState ? { ...dispatchState } : null, error: null })
+          return
+        }
         resolve({
           data: (opts.bindings ?? []).filter((b) => remoteIds.includes(b.session_id)),
           error: null,
@@ -57,7 +96,11 @@ function makeDb(opts: { jordan?: boolean; bindings?: Binding[] }) {
     }
     return chain
   })
-  return { admin: { from } as unknown as SupabaseClient, inserted }
+  const rpc = vi.fn(async (fn: string, params: Record<string, unknown>) => {
+    rpcCalls.push({ fn, params })
+    return { data: null, error: null }
+  })
+  return { admin: { from, rpc } as unknown as SupabaseClient, inserted, dispatchUpdates, rpcCalls, dispatchState }
 }
 
 describe('Cloudflare Calls room-bound session gate', () => {
@@ -164,5 +207,79 @@ describe('Cloudflare Calls room-bound session gate', () => {
       })
     expect(result.status).toBe(403)
     expect(handleCloudflareCallsProxy).not.toHaveBeenCalled()
+  })
+
+  it('persists doctor_cf_session_id and keeps call in connecting until patient session also exists', async () => {
+    const { admin, dispatchUpdates, rpcCalls, dispatchState } = makeDb({
+      jordan: false,
+      dispatch: {
+        id: 'req-br-1',
+        call_id: 'call-uuid-1',
+        status: 'matched',
+        referral_partner_id: null,
+        doctor_cf_session_id: null,
+        patient_cf_session_id: null,
+        call_started_at: null,
+      },
+    })
+    vi.mocked(handleCloudflareCallsProxy).mockResolvedValueOnce({
+      status: 201, body: { sessionId: 'cf-doctor-session-1' },
+    })
+
+    const result = await handleRoomBoundCloudflareProxy(
+      req('sessions/new'), admin, 'jordan-room', 'user:doctor-user-123', {
+        appId: 'test', appSecret: 'test', bindingsEnabled: true, participantRole: 'doctor',
+      })
+
+    expect(result.status).toBe(201)
+    expect(dispatchState?.doctor_cf_session_id).toBe('cf-doctor-session-1')
+    expect(dispatchState?.patient_cf_session_id).toBeNull()
+    expect(dispatchState?.status).toBe('matched')
+    expect(dispatchUpdates).toEqual([{ doctor_cf_session_id: 'cf-doctor-session-1' }])
+    expect(rpcCalls).toEqual([{
+      fn: 'update_call_status',
+      params: {
+        p_call_id: 'call-uuid-1',
+        p_status: 'connecting',
+        p_reason: 'doctor_cf_session_created',
+      },
+    }])
+  })
+
+  it('promotes dispatch to in_call and calls to connected only when BOTH doctor and patient CF sessions exist', async () => {
+    const { admin, rpcCalls, dispatchState } = makeDb({
+      jordan: false,
+      dispatch: {
+        id: 'req-br-2',
+        call_id: 'call-uuid-2',
+        status: 'matched',
+        referral_partner_id: null,
+        doctor_cf_session_id: 'cf-doctor-session-2',
+        patient_cf_session_id: null,
+        call_started_at: null,
+      },
+    })
+    vi.mocked(handleCloudflareCallsProxy).mockResolvedValueOnce({
+      status: 201, body: { sessionId: 'cf-patient-session-2' },
+    })
+
+    const result = await handleRoomBoundCloudflareProxy(
+      req('sessions/new'), admin, 'jordan-room', 'guest:token-hash-1234', {
+        appId: 'test', appSecret: 'test', bindingsEnabled: false, participantRole: 'guest',
+      })
+
+    expect(result.status).toBe(201)
+    expect(dispatchState?.doctor_cf_session_id).toBe('cf-doctor-session-2')
+    expect(dispatchState?.patient_cf_session_id).toBe('cf-patient-session-2')
+    expect(dispatchState?.status).toBe('in_call')
+    expect(dispatchState?.call_started_at).toBeTruthy()
+    expect(rpcCalls).toEqual([{
+      fn: 'update_call_status',
+      params: {
+        p_call_id: 'call-uuid-2',
+        p_status: 'connected',
+        p_reason: 'both_cf_sessions_established',
+      },
+    }])
   })
 })
