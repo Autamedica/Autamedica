@@ -35,13 +35,6 @@ export const GET: APIRoute = async ({ request, locals }) => {
     env?.FARMALINK_BASIC_USER, env?.FARMALINK_BASIC_PASSWORD,
   ].every((value) => typeof value === 'string' && value.length > 0);
 
-  // Memed's documented read-only key validation accepts partner keys in query
-  // parameters. Only a fixed host and read-only path are allowed.
-  const url = new URL('https://api.memed.com.br/v1/sinapse-prescricao/check-key');
-  url.searchParams.set('api-key', typeof apiKey === 'string' ? apiKey : '');
-  url.searchParams.set('secret-key', typeof secretKey === 'string' ? secretKey : '');
-
-
   try {
     // Preflight is read-only; never creates a Memed user, prescription, or patient.
     const pilotId = typeof env?.MEMED_PILOT_DOCTOR_ID === 'string'
@@ -86,19 +79,63 @@ export const GET: APIRoute = async ({ request, locals }) => {
       });
     }
 
-    const response = memedCredentialsConfigured ? await fetch(url.toString(), {
-      method: 'GET',
-      headers: { Accept: 'application/vnd.api+json', 'Cache-Control': 'no-cache' },
-      redirect: 'error',
-      signal: AbortSignal.timeout(8000),
-    }) : null;
-    const result = response ? await response.json() as { success?: Array<{ code?: unknown }> } : null;
-    const accepted = Boolean(response?.ok && Array.isArray(result?.success)
-      && result.success.some((entry) => entry.code === 'chave-valida'));
+    // Validate partner credentials via a read-only GET lookup (mirrors scripts/ops/memed-preflight.mjs).
+    // Never fail the entire governance health response if upstream Memed is unreachable;
+    // return real runtime flags alongside providerReachable=false so admins always see truth.
+    let providerReachable = false;
+    let providerStatus: number | null = null;
+    let accepted = false;
+
+    if (memedCredentialsConfigured) {
+      const probeExternalId = pilotId ?? 'autamedica-healthcheck-readonly';
+      const url = new URL(`/v1/sinapse-prescricao/usuarios/${encodeURIComponent(probeExternalId)}`, 'https://api.memed.com.br');
+      url.searchParams.set('api-key', apiKey);
+      url.searchParams.set('secret-key', secretKey);
+
+      try {
+        const response = await fetch(url.toString(), {
+          method: 'GET',
+          headers: {
+            Accept: 'application/vnd.api+json',
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            'User-Agent': 'Autamedica-Memed-Health/1.0',
+          },
+          redirect: 'error',
+          signal: AbortSignal.timeout(8000),
+        });
+        providerReachable = true;
+        providerStatus = response.status;
+        const raw = await response.text();
+        let payload: {
+          data?: { type?: unknown; attributes?: unknown };
+          errors?: Array<{ detail?: unknown }>;
+        } | null = null;
+        try {
+          payload = JSON.parse(raw) as typeof payload;
+        } catch {
+          payload = null;
+        }
+        const doctorFound = response.status === 200
+          && payload?.data?.type === 'usuarios'
+          && Boolean(payload?.data?.attributes && typeof payload.data.attributes === 'object');
+        const doctorNotRegistered = response.status === 404
+          && Array.isArray(payload?.errors)
+          && payload.errors.some((entry) => /nenhum usu[aá]rio encontrado/i.test(String(entry?.detail ?? '')));
+        accepted = Boolean(doctorFound || doctorNotRegistered);
+      } catch {
+        providerReachable = false;
+        providerStatus = null;
+        accepted = false;
+      }
+    }
+
     // Do not return any provider response body or secret to the caller.
     const health = jsonOk({ provider: 'memed', environment: 'production',
       credentialsConfigured: memedCredentialsConfigured,
-      credentialsAccepted: accepted, providerStatus: response?.status ?? null,
+      credentialsAccepted: accepted,
+      providerReachable,
+      providerStatus,
       flags: {
         MEMED_RX_ENABLED: memedRxEnabled,
         MEMED_MOBILE_ENABLED: memedMobileEnabled,

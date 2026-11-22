@@ -193,13 +193,13 @@ function checkAbuse(ip: string): "allowed" | "blocked" {
 // ── SECURITY HEADERS ──────────────────────────────────────────────────────────
 const CSP_DIRECTIVES = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://platform.linkedin.com https://badges.linkedin.com https://badges.linkedin-ei.com https://www.googletagmanager.com https://www.google-analytics.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://*.doubleclick.net https://ad.doubleclick.net https://accounts.google.com",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://static.licdn.com",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://platform.linkedin.com https://badges.linkedin.com https://badges.linkedin-ei.com https://www.googletagmanager.com https://www.google-analytics.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://*.doubleclick.net https://ad.doubleclick.net https://accounts.google.com https://*.memed.com.br",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://static.licdn.com https://*.memed.com.br",
   "img-src 'self' data: https:",
-  "font-src 'self' data: https://fonts.gstatic.com",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co wss://*.workers.dev https://*.workers.dev https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io https://www.google-analytics.com https://analytics.google.com https://google.com https://*.google.com https://www.google.com https://stats.g.doubleclick.net https://www.googleadservices.com https://googleads.g.doubleclick.net https://*.doubleclick.net https://ad.doubleclick.net https://accounts.google.com https://*.googleapis.com",
+  "font-src 'self' data: https://fonts.gstatic.com https://*.memed.com.br",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co wss://*.workers.dev https://*.workers.dev https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io https://www.google-analytics.com https://analytics.google.com https://google.com https://*.google.com https://www.google.com https://stats.g.doubleclick.net https://www.googleadservices.com https://googleads.g.doubleclick.net https://*.doubleclick.net https://ad.doubleclick.net https://accounts.google.com https://*.googleapis.com https://*.memed.com.br",
   "media-src 'self' blob:",
-  "frame-src 'self' https://www.linkedin.com https://platform.linkedin.com https://badges.linkedin.com https://badges.linkedin-ei.com https://accounts.google.com",
+  "frame-src 'self' https://www.linkedin.com https://platform.linkedin.com https://badges.linkedin.com https://badges.linkedin-ei.com https://accounts.google.com https://*.memed.com.br",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self' https://accounts.google.com https://*.supabase.co",
