@@ -187,7 +187,12 @@ class TelemedicineRepositoryImpl @Inject constructor(
             }
             if (stepResult.isFailure) {
                 rpcSucceeded = false
-                SecureLog.warn("[Telemedicine] update_call_status RPC rejected step $stepStatus for call=$resolvedCallId", stepResult.exceptionOrNull())
+                val stepError = stepResult.exceptionOrNull()
+                if (stepError != null) {
+                    SecureLog.warn("[Telemedicine] update_call_status RPC rejected step $stepStatus for call=$resolvedCallId", stepError)
+                } else {
+                    SecureLog.warn("[Telemedicine] update_call_status RPC rejected step $stepStatus for call=$resolvedCallId")
+                }
                 break
             }
         }
