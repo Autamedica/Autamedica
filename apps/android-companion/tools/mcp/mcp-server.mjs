@@ -21,14 +21,21 @@ const attachedPages = new WeakSet();
 const tools = [
   { name: "android_status", description: "Estado de Autamedica Companion, accesibilidad y puertos locales.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "android_get_ui_tree", description: "Lee el árbol de accesibilidad Android profundo (hasta 24 niveles / 1200 nodos); contraseñas ocultas.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
-  { name: "android_get_ui_compact", description: "Devuelve solo elementos semánticos útiles (ref, path, text, hint, checked, editable, bounds) podando contenedores vacíos hasta profundidad 28.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
-  { name: "android_set_text", description: "Inyecta texto directo en un nodo Android por su path (ACTION_SET_TEXT) sin abrir el teclado (~15 ms).", inputSchema: { type: "object", properties: { path: { type: "string" }, text: { type: "string" } }, required: ["path", "text"], additionalProperties: false } },
+  { name: "android_get_ui_compact", description: "Devuelve snapshot transaccional (snapshotId, generation, package) con elementos semánticos (ref, path, text, hint, checked, editable, bounds) podando contenedores vacíos hasta profundidad 28.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_set_text", description: "Inyecta texto directo en un nodo Android por path o ref+snapshot_id (ACTION_SET_TEXT) sin abrir el teclado (~15 ms), con guardia opcional expected_package.", inputSchema: { type: "object", properties: { path: { type: "string" }, ref: { type: "string" }, snapshot_id: { type: "string" }, expected_package: { type: "string" }, strict_generation: { type: "boolean" }, text: { type: "string" } }, required: ["text"], additionalProperties: false } },
   { name: "android_screenshot", description: "Captura la pantalla completa del Xiaomi.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "android_open_app", description: "Abre una aplicación Android por package name.", inputSchema: { type: "object", properties: { package: { type: "string" } }, required: ["package"], additionalProperties: false } },
-  { name: "android_tap", description: "Toca una coordenada de pantalla Android.", inputSchema: { type: "object", properties: { x: { type: "number" }, y: { type: "number" } }, required: ["x", "y"], additionalProperties: false } },
-  { name: "android_click_element", description: "Pulsa un nodo Android por su path del árbol UI.", inputSchema: { type: "object", properties: { path: { type: "string" } }, required: ["path"], additionalProperties: false } },
-  { name: "android_click_text", description: "Busca y pulsa un elemento Android por texto, descripción o view_id con espera automática.", inputSchema: { type: "object", properties: { text: { type: "string" }, view_id: { type: "string" }, timeout_ms: { type: "integer", minimum: 0, maximum: 15000 } }, additionalProperties: false } },
-  { name: "android_scroll", description: "Hace scroll semántico (forward o backward) en el contenedor scrolleable activo.", inputSchema: { type: "object", properties: { direction: { type: "string", enum: ["forward", "backward"] } }, additionalProperties: false } },
+  { name: "android_tap", description: "Toca una coordenada de pantalla Android (con guardia opcional expected_package).", inputSchema: { type: "object", properties: { x: { type: "number" }, y: { type: "number" }, expected_package: { type: "string" } }, required: ["x", "y"], additionalProperties: false } },
+  { name: "android_click_element", description: "Pulsa un nodo Android por path o por ref+snapshot_id con guardia transaccional expected_package.", inputSchema: { type: "object", properties: { path: { type: "string" }, ref: { type: "string" }, snapshot_id: { type: "string" }, expected_package: { type: "string" }, strict_generation: { type: "boolean" } }, additionalProperties: false } },
+  { name: "android_click_text", description: "Busca y pulsa un elemento Android por texto, descripción o view_id con espera reactiva y guardia expected_package.", inputSchema: { type: "object", properties: { text: { type: "string" }, view_id: { type: "string" }, expected_package: { type: "string" }, timeout_ms: { type: "integer", minimum: 0, maximum: 15000 } }, additionalProperties: false } },
+  { name: "android_scroll", description: "Hace scroll semántico (forward/backward/down/up/left/right) en un contenedor específico por path/ref o en el contenedor principal.", inputSchema: { type: "object", properties: { direction: { type: "string", enum: ["forward", "backward", "down", "up", "left", "right"] }, path: { type: "string" }, ref: { type: "string" }, snapshot_id: { type: "string" }, expected_package: { type: "string" } }, additionalProperties: false } },
+  { name: "android_scroll_until", description: "Hace scroll nativo en bucle dentro del dispositivo hasta encontrar text o view_id en una sola llamada HTTP (opcionalmente hace click atómico).", inputSchema: { type: "object", properties: { text: { type: "string" }, view_id: { type: "string" }, path: { type: "string" }, ref: { type: "string" }, snapshot_id: { type: "string" }, direction: { type: "string", enum: ["forward", "backward", "down", "up", "left", "right"] }, max_scrolls: { type: "integer", minimum: 1, maximum: 25 }, delay_ms: { type: "integer", minimum: 50, maximum: 2000 }, click: { type: "boolean" }, expected_package: { type: "string" } }, additionalProperties: false } },
+  { name: "android_ime_action", description: "Ejecuta ACTION_IME_ENTER (Enviar/Buscar/Listo) sobre el campo enfocado o un nodo por path/ref sin abrir teclado.", inputSchema: { type: "object", properties: { path: { type: "string" }, ref: { type: "string" }, snapshot_id: { type: "string" }, expected_package: { type: "string" }, strict_generation: { type: "boolean" } }, additionalProperties: false } },
+  { name: "android_long_press", description: "Ejecuta pulsación prolongada (ACTION_LONG_CLICK o gesto) sobre path/ref o coordenadas (x, y).", inputSchema: { type: "object", properties: { path: { type: "string" }, ref: { type: "string" }, snapshot_id: { type: "string" }, x: { type: "number" }, y: { type: "number" }, duration_ms: { type: "integer", minimum: 400, maximum: 3000 }, expected_package: { type: "string" } }, additionalProperties: false } },
+  { name: "android_double_tap", description: "Ejecuta doble toque sobre path/ref o coordenadas (x, y).", inputSchema: { type: "object", properties: { path: { type: "string" }, ref: { type: "string" }, snapshot_id: { type: "string" }, x: { type: "number" }, y: { type: "number" }, interval_ms: { type: "integer", minimum: 40, maximum: 250 }, expected_package: { type: "string" } }, additionalProperties: false } },
+  { name: "android_assert_package", description: "Verifica que la app en primer plano coincida con package (esperando reactivamente si timeout_ms > 0).", inputSchema: { type: "object", properties: { package: { type: "string" }, timeout_ms: { type: "integer", minimum: 0, maximum: 15000 } }, required: ["package"], additionalProperties: false } },
+  { name: "android_events_recent", description: "Lee eventos recientes del Event Bus reactivo (window_state_changed, window_content_changed, view_scrolled, toast, notification_posted).", inputSchema: { type: "object", properties: { since_seq: { type: "integer", minimum: 0 }, limit: { type: "integer", minimum: 1, maximum: 250 }, types: { type: "string" }, package: { type: "string" } }, additionalProperties: false } },
+  { name: "android_events_wait", description: "Espera reactivamente (sin polling) a que ocurra un evento de accesibilidad o notificación en el Event Bus.", inputSchema: { type: "object", properties: { since_seq: { type: "integer", minimum: 0 }, types: { type: "array", items: { type: "string" } }, package: { type: "string" }, text: { type: "string" }, timeout_ms: { type: "integer", minimum: 100, maximum: 30000 } }, additionalProperties: false } },
   { name: "android_get_clipboard", description: "Lee el texto actual del portapapeles de Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "android_set_clipboard", description: "Copia un texto al portapapeles de Android.", inputSchema: { type: "object", properties: { text: { type: "string" } }, required: ["text"], additionalProperties: false } },
   { name: "android_paste", description: "Pega texto en el campo Android enfocado usando el portapapeles.", inputSchema: { type: "object", properties: { text: { type: "string" } }, additionalProperties: false } },
@@ -41,7 +48,7 @@ const tools = [
   { name: "android_notifications", description: "Despliega la barra de notificaciones en Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "android_list_packages", description: "Lista las aplicaciones instaladas y lanzables en Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "android_device_info", description: "Devuelve batería, carga, screen_off_timeout, stay_on_while_plugged_in y resolución de pantalla.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
-  { name: "android_batch", description: "Ejecuta múltiples acciones Android (open, tap, click, type, swipe, back, home, recents, sleep, ui) en una sola llamada HTTP.", inputSchema: { type: "object", properties: { steps: { type: "array", items: { type: "object" } } }, required: ["steps"], additionalProperties: false } },
+  { name: "android_batch", description: "Ejecuta hasta 60 acciones Android en una sola llamada HTTP (open, assert_package, wait_for_text, tap, click, click_text, set_text, scroll, scroll_until, ime_action, long_press, double_tap, paste, type, swipe, back, home, recents, sleep, ui, ui_compact) con guardia transaccional expected_package y snapshot_id.", inputSchema: { type: "object", properties: { steps: { type: "array", items: { type: "object" } }, expected_package: { type: "string" }, snapshot_id: { type: "string" }, strict_generation: { type: "boolean" } }, required: ["steps"], additionalProperties: false } },
   { name: "android_open_url", description: "Abre un enlace web o esquema de aplicación en Android.", inputSchema: { type: "object", properties: { url: { type: "string" } }, required: ["url"], additionalProperties: false } },
 
   { name: "browser_status", description: "Comprueba conexión CDP, motor Chromium/WebView, pestañas, URL y título.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
@@ -65,7 +72,7 @@ const tools = [
   { name: "vault_read_secret", description: "Lee un secreto de la bóveda Android cifrada cuando la tarea lo necesita.", inputSchema: { type: "object", properties: { name: { type: "string" } }, required: ["name"], additionalProperties: false } },
   { name: "vault_delete_secret", description: "Elimina un secreto de la bóveda cifrada; el token de conexión está protegido.", inputSchema: { type: "object", properties: { name: { type: "string" } }, required: ["name"], additionalProperties: false } },
 
-  { name: "android_wait_for_text", description: "Espera texto visible en el árbol de accesibilidad Android.", inputSchema: { type: "object", properties: { text: { type: "string" }, timeout_ms: { type: "integer", minimum: 500, maximum: 15000 } }, required: ["text"], additionalProperties: false } }
+  { name: "android_wait_for_text", description: "Espera texto o view_id visible en Android usando el Event Bus reactivo (sin polling) y guardia opcional expected_package.", inputSchema: { type: "object", properties: { text: { type: "string" }, view_id: { type: "string" }, expected_package: { type: "string" }, timeout_ms: { type: "integer", minimum: 200, maximum: 20000 } }, additionalProperties: false } }
 ];
 
 async function request(path, options = {}) {
@@ -227,6 +234,27 @@ async function callTool(name, args) {
       return [{ type: "text", text: JSON.stringify(await post("/v1/click_text", args)) }];
     case "android_scroll":
       return [{ type: "text", text: JSON.stringify(await post("/v1/scroll", args)) }];
+    case "android_scroll_until":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/scroll_until", args)) }];
+    case "android_ime_action":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/ime_action", args)) }];
+    case "android_long_press":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/long_press", args)) }];
+    case "android_double_tap":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/double_tap", args)) }];
+    case "android_assert_package":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/assert_package", args)) }];
+    case "android_events_recent": {
+      const qs = new URLSearchParams();
+      if (args.since_seq !== undefined) qs.set("since_seq", String(args.since_seq));
+      if (args.limit !== undefined) qs.set("limit", String(args.limit));
+      if (args.types) qs.set("types", String(args.types));
+      if (args.package) qs.set("package", String(args.package));
+      const suffix = qs.toString() ? "?" + qs.toString() : "";
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/events/recent" + suffix)).json()) }];
+    }
+    case "android_events_wait":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/events/wait", args)) }];
     case "android_get_clipboard":
       return [{ type: "text", text: JSON.stringify(await (await request("/v1/clipboard")).json()) }];
     case "android_set_clipboard":
@@ -256,6 +284,11 @@ async function callTool(name, args) {
     case "android_open_url":
       return [{ type: "text", text: JSON.stringify(await post("/v1/url", args)) }];
     case "android_wait_for_text": {
+      try {
+        return [{ type: "text", text: JSON.stringify(await post("/v1/wait_for_text", args)) }];
+      } catch (err) {
+        if (!String(err?.message || "").includes("HTTP 404")) throw err;
+      }
       const needle = String(args.text || "").toLocaleLowerCase();
       const timeout = Math.max(500, Math.min(15000, Number(args.timeout_ms || 8000)));
       const end = Date.now() + timeout;
@@ -401,7 +434,7 @@ for await (const line of rl) {
       send({ jsonrpc: "2.0", id, result: {
         protocolVersion: PROTOCOL,
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: "autamedica-android", version: "0.2.0" }
+        serverInfo: { name: "autamedica-android", version: "0.4.0" }
       }});
     } else if (message.method === "ping") {
       send({ jsonrpc: "2.0", id, result: {} });

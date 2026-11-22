@@ -1,7 +1,9 @@
 package com.autamedica.companion;
 
 import android.accessibilityservice.AccessibilityService;
+import android.os.SystemClock;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
@@ -10,17 +12,26 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 final class LocalControlServer {
     private static final int PORT = BuildConfig.CONTROL_PORT;
     private static final int MAX_BODY = 1024 * 1024;
     private final AccessibilityControlService service;
-    private final ExecutorService clients = Executors.newCachedThreadPool();
+    private final ExecutorService clients = new ThreadPoolExecutor(
+        4, 24, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(64)
+    );
     private volatile boolean running;
     private ServerSocket serverSocket;
 
@@ -33,7 +44,7 @@ final class LocalControlServer {
         running = true;
         Thread acceptThread = new Thread(() -> {
             try {
-                serverSocket = new ServerSocket(PORT, 20, InetAddress.getByName("127.0.0.1"));
+                serverSocket = new ServerSocket(PORT, 32, InetAddress.getByName("127.0.0.1"));
                 while (running) {
                     Socket socket = serverSocket.accept();
                     clients.execute(() -> handle(socket));
@@ -55,7 +66,7 @@ final class LocalControlServer {
     private void handle(Socket socket) {
         OutputStream errorOutput = null;
         try (Socket client = socket) {
-            client.setSoTimeout(25000);
+            client.setSoTimeout(35000);
             InputStream input = client.getInputStream();
             OutputStream output = client.getOutputStream();
             errorOutput = output;
@@ -69,8 +80,8 @@ final class LocalControlServer {
             String method = parts[0].toUpperCase(Locale.ROOT);
             String[] pathAndQuery = parts[1].split("\\?", 2);
             String path = pathAndQuery[0];
-            String queryString = pathAndQuery.length > 1 ? pathAndQuery[1] : "";
-            java.util.Map<String, String> headers = new java.util.HashMap<>();
+            Map<String, String> query = parseQuery(pathAndQuery.length > 1 ? pathAndQuery[1] : "");
+            Map<String, String> headers = new HashMap<>();
             String line;
             while ((line = readLine(input)) != null && !line.isEmpty()) {
                 int separator = line.indexOf(':');
@@ -96,7 +107,8 @@ final class LocalControlServer {
             if ("GET".equals(method) && "/v1/health".equals(path)) {
                 JSONObject result = new JSONObject();
                 result.put("ok", true);
-                result.put("apiVersion", 2);
+                result.put("apiVersion", 4);
+                result.put("engine", "Companion Execution Engine 4.0");
                 result.put("accessibility", true);
                 result.put("bind", "127.0.0.1");
                 result.put("port", PORT);
@@ -108,267 +120,357 @@ final class LocalControlServer {
                 result.put("cdpProxyListening", service.isCdpListening());
                 result.put("webViewDevToolsSocketAvailable", service.isWebViewSocketAvailable());
                 result.put("notificationListenerConnected", CompanionNotificationListener.isConnected());
-                result.put("capabilities", new org.json.JSONArray()
+                result.put("eventBusSeq", service.getEventBus().getLatestSeq());
+                result.put("uiGeneration", service.getEventBus().getGeneration());
+                result.put("capabilities", new JSONArray()
                     .put("ui_deep").put("ui_compact").put("set_text").put("click_text")
-                    .put("paste").put("batch").put("browser_snapshot"));
-                respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
+                    .put("paste").put("batch").put("batch_v4").put("browser_snapshot")
+                    .put("transactional_snapshot").put("scroll_path").put("scroll_until")
+                    .put("ime_action").put("long_press").put("double_tap")
+                    .put("wait_for_text").put("assert_package").put("event_bus"));
+                respondJson(output, 200, result);
             } else if ("GET".equals(method) && ("/v1/ui".equals(path) || "/v1/ui/compact".equals(path))) {
                 boolean compact = "/v1/ui/compact".equals(path)
-                    || queryString.contains("compact=1")
-                    || queryString.contains("compact=true");
+                    || "1".equals(query.get("compact"))
+                    || "true".equalsIgnoreCase(query.get("compact"));
                 JSONObject result = compact ? service.getCompactUi() : service.getUiTree();
-                respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
+                respondJson(output, 200, result);
+            } else if ("GET".equals(method) && "/v1/events/recent".equals(path)) {
+                long sinceSeq = parseLong(query.get("since_seq"), 0L);
+                int limit = (int) parseLong(query.get("limit"), 50L);
+                Set<String> types = CompanionEventBus.parseTypes(query.get("types"));
+                String pkg = query.getOrDefault("package", "");
+                respondJson(output, 200, service.getRecentEvents(sinceSeq, limit, types, pkg));
             } else if ("GET".equals(method) && "/v1/browser/snapshot".equals(path)) {
-                String snapScript = "(function(){const els=[...document.querySelectorAll('input,textarea,select,button,a,[role=button],[role=checkbox],[role=radio]')].slice(0,250);return JSON.stringify(els.map((e,i)=>{const r=e.getBoundingClientRect();let sel=e.id?'#'+CSS.escape(e.id):(e.name?e.tagName.toLowerCase()+'[name=\"'+e.name+'\"]':e.tagName.toLowerCase()+':nth-of-type('+(i+1)+')');const lbl=(e.labels&&e.labels[0]?e.labels[0].innerText:'')||e.getAttribute('aria-label')||e.placeholder||e.innerText||'';return {ref:'w'+(i+1),tag:e.tagName.toLowerCase(),type:e.type||'',selector:sel,label:lbl.trim().slice(0,120),value:(e.type==='password'?'[redacted]':(e.value||'')).slice(0,120),checked:Boolean(e.checked),disabled:Boolean(e.disabled),visible:r.width>0&&r.height>0};}));})()";
+                String snapScript = "(function(){"
+                    + "function uniqSel(e){"
+                    + "if(e.id)return '#'+CSS.escape(e.id);"
+                    + "const tid=e.getAttribute('data-testid')||e.getAttribute('data-test');"
+                    + "if(tid)return '[data-testid=\"'+tid.replace(/\"/g,'\\\\\"')+'\"]';"
+                    + "if(e.name&&document.querySelectorAll(e.tagName.toLowerCase()+'[name=\"'+e.name.replace(/\"/g,'\\\\\"')+'\"]').length===1)"
+                    + "return e.tagName.toLowerCase()+'[name=\"'+e.name.replace(/\"/g,'\\\\\"')+'\"]';"
+                    + "const parts=[];let cur=e;"
+                    + "while(cur&&cur.nodeType===1&&parts.length<5){"
+                    + "if(cur.id){parts.unshift('#'+CSS.escape(cur.id));break;}"
+                    + "const tag=cur.tagName.toLowerCase();"
+                    + "let idx=1,sib=cur;while((sib=sib.previousElementSibling)){if(sib.tagName===cur.tagName)idx++;}"
+                    + "parts.unshift(tag+':nth-of-type('+idx+')');cur=cur.parentElement;"
+                    + "}return parts.join(' > ');}"
+                    + "const els=[...document.querySelectorAll('input,textarea,select,button,a,[role=button],[role=checkbox],[role=radio]')].slice(0,250);"
+                    + "return JSON.stringify(els.map((e,i)=>{"
+                    + "const r=e.getBoundingClientRect();"
+                    + "const lbl=(e.labels&&e.labels[0]?e.labels[0].innerText:'')||e.getAttribute('aria-label')||e.placeholder||e.innerText||'';"
+                    + "return {ref:'w'+(i+1),tag:e.tagName.toLowerCase(),type:e.type||'',selector:uniqSel(e),label:lbl.trim().slice(0,120),value:(e.type==='password'?'[redacted]':(e.value||'')).slice(0,120),checked:Boolean(e.checked),disabled:Boolean(e.disabled),visible:r.width>0&&r.height>0};"
+                    + "}));})()";
                 JSONObject snapshot = new JSONObject();
                 snapshot.put("ok", true);
                 snapshot.put("value", BrowserActivity.evaluate(snapScript));
-                respond(output, 200, "application/json; charset=utf-8", snapshot.toString().getBytes(StandardCharsets.UTF_8));
+                respondJson(output, 200, snapshot);
             } else if ("GET".equals(method) && "/v1/packages".equals(path)) {
                 JSONObject result = new JSONObject();
                 result.put("ok", true);
                 result.put("packages", service.listPackages());
-                respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
+                respondJson(output, 200, result);
             } else if ("GET".equals(method) && "/v1/device".equals(path)) {
                 JSONObject result = service.getDeviceInfo();
                 result.put("ok", true);
-                respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
+                respondJson(output, 200, result);
             } else if ("GET".equals(method) && "/v1/clipboard".equals(path)) {
                 JSONObject result = new JSONObject();
                 result.put("ok", true);
                 result.put("text", service.getClipboard());
-                respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
+                respondJson(output, 200, result);
             } else if ("GET".equals(method) && "/v1/notifications/recent".equals(path)) {
                 JSONObject result = new JSONObject();
                 result.put("ok", true);
                 result.put("connected", CompanionNotificationListener.isConnected());
                 result.put("notifications", CompanionNotificationListener.getRecent(50));
-                respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
+                respondJson(output, 200, result);
             } else if ("GET".equals(method) && "/v1/vault/names".equals(path)) {
-                org.json.JSONArray names = new org.json.JSONArray();
+                JSONArray names = new JSONArray();
                 for (String name : SecureVault.names(service)) {
                     if (!"control_token".equals(name)) names.put(name);
                 }
                 JSONObject result = new JSONObject();
                 result.put("names", names);
-                respond(output, 200, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
+                respondJson(output, 200, result);
             } else if ("GET".equals(method) && "/v1/screenshot".equals(path)) {
                 byte[] image = android.util.Base64.decode(service.screenshotBase64(), android.util.Base64.NO_WRAP);
                 respond(output, 200, "image/png", image);
             } else if ("POST".equals(method)) {
-                JSONObject args = new JSONObject(new String(body, StandardCharsets.UTF_8));
-                boolean ok;
+                String bodyStr = body.length == 0 ? "{}" : new String(body, StandardCharsets.UTF_8);
+                JSONObject args = new JSONObject(bodyStr);
                 switch (path) {
-                    case "/v1/vault/put":
+                    case "/v1/vault/put": {
                         String vaultName = args.getString("name");
                         String vaultValue = args.getString("value");
                         if ("control_token".equals(vaultName) || vaultValue.length() > 32768)
                             throw new IllegalArgumentException("Invalid or protected vault entry");
                         SecureVault.put(service, vaultName, vaultValue);
-                        ok = true;
-                        break;
-                    case "/v1/vault/get":
+                        respondJson(output, 200, new JSONObject().put("ok", true));
+                        return;
+                    }
+                    case "/v1/vault/get": {
                         String getName = args.getString("name");
                         JSONObject secret = new JSONObject();
                         secret.put("name", getName);
                         secret.put("value", SecureVault.get(service, getName, null));
-                        respond(output, 200, "application/json; charset=utf-8", secret.toString().getBytes(StandardCharsets.UTF_8));
+                        respondJson(output, 200, secret);
                         return;
-                    case "/v1/vault/delete":
+                    }
+                    case "/v1/vault/delete": {
                         String deleteName = args.getString("name");
                         if ("control_token".equals(deleteName)) throw new IllegalArgumentException("Protected vault entry");
                         SecureVault.delete(service, deleteName);
-                        ok = true;
-                        break;
-                    case "/v1/click":
-                        ok = service.clickPath(args.getString("path"));
-                        break;
-                    case "/v1/click_text":
-                        ok = service.clickText(args.optString("text", ""), args.optString("view_id", ""), args.optLong("timeout_ms", 3000));
-                        break;
-                    case "/v1/scroll":
-                        ok = service.scroll(!"backward".equalsIgnoreCase(args.optString("direction", "forward")));
-                        break;
+                        respondJson(output, 200, new JSONObject().put("ok", true));
+                        return;
+                    }
+                    case "/v1/click": {
+                        AccessibilityControlService.ActionResult r = service.clickTarget(
+                            optStr(args, "path"),
+                            optStr(args, "ref"),
+                            optStr(args, "snapshot_id"),
+                            optStr(args, "expected_package"),
+                            args.optBoolean("strict_generation", false)
+                        );
+                        respondAction(output, r);
+                        return;
+                    }
+                    case "/v1/click_text": {
+                        AccessibilityControlService.ActionResult r = service.clickText(
+                            args.optString("text", ""),
+                            args.optString("view_id", ""),
+                            args.optLong("timeout_ms", 3000),
+                            optStr(args, "expected_package")
+                        );
+                        respondAction(output, r);
+                        return;
+                    }
+                    case "/v1/wait_for_text": {
+                        AccessibilityControlService.ActionResult r = service.waitForText(
+                            args.optString("text", ""),
+                            args.optString("view_id", ""),
+                            optStr(args, "expected_package"),
+                            args.optLong("timeout_ms", 5000)
+                        );
+                        respondAction(output, r);
+                        return;
+                    }
+                    case "/v1/assert_package": {
+                        AccessibilityControlService.ActionResult r = service.assertPackage(
+                            args.optString("package", args.optString("expected_package", "")),
+                            args.optLong("timeout_ms", 0)
+                        );
+                        respondAction(output, r);
+                        return;
+                    }
+                    case "/v1/scroll": {
+                        AccessibilityControlService.ActionResult r = service.scroll(
+                            args.optString("direction", "forward"),
+                            optStr(args, "path"),
+                            optStr(args, "ref"),
+                            optStr(args, "snapshot_id"),
+                            optStr(args, "expected_package"),
+                            args.optBoolean("strict_generation", false)
+                        );
+                        respondAction(output, r);
+                        return;
+                    }
+                    case "/v1/scroll_until": {
+                        AccessibilityControlService.ActionResult r = service.scrollUntil(
+                            args.optString("text", ""),
+                            args.optString("view_id", ""),
+                            optStr(args, "path"),
+                            optStr(args, "ref"),
+                            optStr(args, "snapshot_id"),
+                            args.optString("direction", "forward"),
+                            args.optInt("max_scrolls", 8),
+                            args.optLong("delay_ms", 220),
+                            args.optBoolean("click", false),
+                            optStr(args, "expected_package")
+                        );
+                        respondAction(output, r);
+                        return;
+                    }
+                    case "/v1/ime_action": {
+                        AccessibilityControlService.ActionResult r = service.imeAction(
+                            optStr(args, "path"),
+                            optStr(args, "ref"),
+                            optStr(args, "snapshot_id"),
+                            optStr(args, "expected_package"),
+                            args.optBoolean("strict_generation", false)
+                        );
+                        respondAction(output, r);
+                        return;
+                    }
+                    case "/v1/long_press": {
+                        Double x = args.has("x") ? args.getDouble("x") : null;
+                        Double y = args.has("y") ? args.getDouble("y") : null;
+                        AccessibilityControlService.ActionResult r = service.longPress(
+                            optStr(args, "path"),
+                            optStr(args, "ref"),
+                            optStr(args, "snapshot_id"),
+                            x, y,
+                            args.optLong("duration_ms", 650),
+                            optStr(args, "expected_package"),
+                            args.optBoolean("strict_generation", false)
+                        );
+                        respondAction(output, r);
+                        return;
+                    }
+                    case "/v1/double_tap": {
+                        Double x = args.has("x") ? args.getDouble("x") : null;
+                        Double y = args.has("y") ? args.getDouble("y") : null;
+                        AccessibilityControlService.ActionResult r = service.doubleTap(
+                            optStr(args, "path"),
+                            optStr(args, "ref"),
+                            optStr(args, "snapshot_id"),
+                            x, y,
+                            args.optLong("interval_ms", 90),
+                            optStr(args, "expected_package"),
+                            args.optBoolean("strict_generation", false)
+                        );
+                        respondAction(output, r);
+                        return;
+                    }
+                    case "/v1/events/wait": {
+                        long sinceSeq = args.optLong("since_seq", service.getEventBus().getLatestSeq());
+                        Set<String> types = parseTypeSet(args);
+                        String pkg = args.optString("package", "");
+                        String text = args.optString("text", "");
+                        long timeoutMs = args.optLong("timeout_ms", 5000);
+                        JSONObject waitRes = service.waitForEvent(sinceSeq, types, pkg, text, timeoutMs);
+                        respondJson(output, waitRes.optBoolean("ok") ? 200 : 408, waitRes);
+                        return;
+                    }
                     case "/v1/clipboard": {
                         String clipText = args.optString("text", "");
                         if (clipText.length() > 32768) throw new IllegalArgumentException("clipboard text too long");
-                        ok = service.setClipboard(clipText);
-                        break;
+                        boolean ok = service.setClipboard(clipText);
+                        respondJson(output, ok ? 200 : 409, new JSONObject().put("ok", ok));
+                        return;
                     }
                     case "/v1/paste": {
                         String pasteText = args.has("text") ? args.optString("text", "") : null;
                         if (pasteText != null && pasteText.length() > 32768) throw new IllegalArgumentException("text too long");
-                        ok = service.pasteText(pasteText);
-                        break;
-                    }
-                    case "/v1/tap":
-                        ok = service.tap((float) args.getDouble("x"), (float) args.getDouble("y"));
-                        break;
-                    case "/v1/type":
-                        String text = args.optString("text", "");
-                        if (text.length() > 32768) throw new IllegalArgumentException("text too long");
-                        ok = service.typeText(text);
-                        break;
-                    case "/v1/set_text": {
-                        String targetPath = args.getString("path");
-                        String setTextVal = args.optString("text", "");
-                        if (setTextVal.length() > 32768) throw new IllegalArgumentException("text too long");
-                        ok = service.setTextAtPath(targetPath, setTextVal);
-                        break;
-                    }
-                    case "/v1/swipe":
-                        ok = service.swipe((float) args.getDouble("x1"), (float) args.getDouble("y1"),
-                            (float) args.getDouble("x2"), (float) args.getDouble("y2"),
-                            Math.max(50, Math.min(5000, args.optLong("duration_ms", 350))));
-                        break;
-                    case "/v1/back":
-                        ok = service.globalAction(AccessibilityService.GLOBAL_ACTION_BACK);
-                        break;
-                    case "/v1/home":
-                        ok = service.globalAction(AccessibilityService.GLOBAL_ACTION_HOME);
-                        break;
-                    case "/v1/recents":
-                        ok = service.globalAction(AccessibilityService.GLOBAL_ACTION_RECENTS);
-                        break;
-                    case "/v1/notifications":
-                        ok = service.globalAction(AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS);
-                        break;
-                    case "/v1/batch": {
-                        org.json.JSONArray steps = args.getJSONArray("steps");
-                        if (steps.length() > 60) throw new IllegalArgumentException("batch max 60 steps");
-                        org.json.JSONArray results = new org.json.JSONArray();
-                        boolean allOk = true;
-                        for (int i = 0; i < steps.length(); i++) {
-                            JSONObject step = steps.getJSONObject(i);
-                            String action = step.getString("action");
-                            JSONObject stepRes = new JSONObject().put("action", action);
-                            boolean stepOk = false;
-                            switch (action) {
-                                case "open": {
-                                    String pkg = step.getString("package");
-                                    if (!pkg.matches("[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+)+"))
-                                        throw new IllegalArgumentException("invalid package name");
-                                    stepOk = service.openApp(pkg);
-                                    break;
-                                }
-                                case "tap":
-                                    stepOk = service.tap((float) step.getDouble("x"), (float) step.getDouble("y"));
-                                    break;
-                                case "click":
-                                    stepOk = service.clickPath(step.getString("path"));
-                                    break;
-                                case "click_text":
-                                    stepOk = service.clickText(step.optString("text", ""), step.optString("view_id", ""), step.optLong("timeout_ms", 3000));
-                                    break;
-                                case "scroll":
-                                    stepOk = service.scroll(!"backward".equalsIgnoreCase(step.optString("direction", "forward")));
-                                    break;
-                                case "paste":
-                                    stepOk = service.pasteText(step.has("text") ? step.optString("text", "") : null);
-                                    break;
-                                case "type": {
-                                    String t = step.optString("text", "");
-                                    if (t.length() > 32768) throw new IllegalArgumentException("text too long");
-                                    stepOk = service.typeText(t);
-                                    break;
-                                }
-                                case "set_text": {
-                                    String p = step.getString("path");
-                                    String t = step.optString("text", "");
-                                    if (t.length() > 32768) throw new IllegalArgumentException("text too long");
-                                    stepOk = service.setTextAtPath(p, t);
-                                    break;
-                                }
-                                case "swipe":
-                                    stepOk = service.swipe((float) step.getDouble("x1"), (float) step.getDouble("y1"),
-                                        (float) step.getDouble("x2"), (float) step.getDouble("y2"),
-                                        Math.max(50, Math.min(5000, step.optLong("duration_ms", 350))));
-                                    break;
-                                case "back":
-                                    stepOk = service.globalAction(AccessibilityService.GLOBAL_ACTION_BACK);
-                                    break;
-                                case "home":
-                                    stepOk = service.globalAction(AccessibilityService.GLOBAL_ACTION_HOME);
-                                    break;
-                                case "recents":
-                                    stepOk = service.globalAction(AccessibilityService.GLOBAL_ACTION_RECENTS);
-                                    break;
-                                case "sleep": {
-                                    long ms = Math.max(50, Math.min(5000, step.optLong("ms", 500)));
-                                    Thread.sleep(ms);
-                                    stepOk = true;
-                                    break;
-                                }
-                                case "ui":
-                                    stepRes.put("ui", service.getUiTree());
-                                    stepOk = true;
-                                    break;
-                                case "ui_compact":
-                                    stepRes.put("ui", service.getCompactUi());
-                                    stepOk = true;
-                                    break;
-                                default:
-                                    throw new IllegalArgumentException("unknown batch action: " + action);
-                            }
-                            stepRes.put("ok", stepOk);
-                            results.put(stepRes);
-                            if (!stepOk) {
-                                allOk = false;
-                                if (step.optBoolean("stop_on_error", true)) break;
-                            }
-                        }
-                        JSONObject batchOut = new JSONObject().put("ok", allOk).put("results", results);
-                        respond(output, allOk ? 200 : 409, "application/json; charset=utf-8", batchOut.toString().getBytes(StandardCharsets.UTF_8));
+                        respondAction(output, service.pasteText(pasteText, optStr(args, "expected_package")));
                         return;
                     }
-                    case "/v1/open":
+                    case "/v1/tap": {
+                        respondAction(output, service.tapGuarded(
+                            (float) args.getDouble("x"),
+                            (float) args.getDouble("y"),
+                            optStr(args, "expected_package")
+                        ));
+                        return;
+                    }
+                    case "/v1/type": {
+                        String text = args.optString("text", "");
+                        if (text.length() > 32768) throw new IllegalArgumentException("text too long");
+                        respondAction(output, service.typeTextGuarded(text, optStr(args, "expected_package")));
+                        return;
+                    }
+                    case "/v1/set_text": {
+                        String setTextVal = args.optString("text", "");
+                        if (setTextVal.length() > 32768) throw new IllegalArgumentException("text too long");
+                        AccessibilityControlService.ActionResult r = service.setTextTarget(
+                            optStr(args, "path"),
+                            optStr(args, "ref"),
+                            optStr(args, "snapshot_id"),
+                            setTextVal,
+                            optStr(args, "expected_package"),
+                            args.optBoolean("strict_generation", false)
+                        );
+                        respondAction(output, r);
+                        return;
+                    }
+                    case "/v1/swipe": {
+                        respondAction(output, service.swipeGuarded(
+                            (float) args.getDouble("x1"), (float) args.getDouble("y1"),
+                            (float) args.getDouble("x2"), (float) args.getDouble("y2"),
+                            Math.max(50, Math.min(5000, args.optLong("duration_ms", 350))),
+                            optStr(args, "expected_package")
+                        ));
+                        return;
+                    }
+                    case "/v1/back": {
+                        boolean ok = service.globalAction(AccessibilityService.GLOBAL_ACTION_BACK);
+                        respondJson(output, ok ? 200 : 409, new JSONObject().put("ok", ok));
+                        return;
+                    }
+                    case "/v1/home": {
+                        boolean ok = service.globalAction(AccessibilityService.GLOBAL_ACTION_HOME);
+                        respondJson(output, ok ? 200 : 409, new JSONObject().put("ok", ok));
+                        return;
+                    }
+                    case "/v1/recents": {
+                        boolean ok = service.globalAction(AccessibilityService.GLOBAL_ACTION_RECENTS);
+                        respondJson(output, ok ? 200 : 409, new JSONObject().put("ok", ok));
+                        return;
+                    }
+                    case "/v1/notifications": {
+                        boolean ok = service.globalAction(AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS);
+                        respondJson(output, ok ? 200 : 409, new JSONObject().put("ok", ok));
+                        return;
+                    }
+                    case "/v1/batch": {
+                        handleBatch(output, args);
+                        return;
+                    }
+                    case "/v1/open": {
                         String packageName = args.getString("package");
                         if (!packageName.matches("[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+)+"))
                             throw new IllegalArgumentException("invalid package name");
-                        ok = service.openApp(packageName);
-                        break;
-                    case "/v1/url":
+                        boolean ok = service.openApp(packageName);
+                        respondJson(output, ok ? 200 : 409, new JSONObject().put("ok", ok));
+                        return;
+                    }
+                    case "/v1/url": {
                         String url = args.getString("url");
                         if (url.length() > 2048) throw new IllegalArgumentException("URL too long");
-                        ok = service.openUrl(url);
-                        break;
-                    case "/v1/browser/navigate":
+                        boolean ok = service.openUrl(url);
+                        respondJson(output, ok ? 200 : 409, new JSONObject().put("ok", ok));
+                        return;
+                    }
+                    case "/v1/browser/navigate": {
                         String browserUrl = args.getString("url");
                         if (!(browserUrl.startsWith("https://") || browserUrl.startsWith("http://")))
                             throw new IllegalArgumentException("Only http and https URLs are supported");
-                        ok = service.openBrowser(browserUrl);
-                        break;
-                    case "/v1/browser/evaluate":
+                        boolean ok = service.openBrowser(browserUrl);
+                        respondJson(output, ok ? 200 : 409, new JSONObject().put("ok", ok));
+                        return;
+                    }
+                    case "/v1/browser/evaluate": {
                         String script = args.getString("script");
                         if (script.length() > 1024 * 1024) throw new IllegalArgumentException("Script too long");
                         JSONObject evaluation = new JSONObject();
                         evaluation.put("value", BrowserActivity.evaluate(script));
-                        respond(output, 200, "application/json; charset=utf-8", evaluation.toString().getBytes(StandardCharsets.UTF_8));
+                        respondJson(output, 200, evaluation);
                         return;
-                    case "/v1/browser/click":
+                    }
+                    case "/v1/browser/click": {
                         String clickSelector = args.getString("selector");
                         if (clickSelector.length() > 1000) throw new IllegalArgumentException("Selector too long");
                         String clickScript = "(function(){const e=document.querySelector(" + JSONObject.quote(clickSelector) + ");if(!e)return false;e.click();return true})()";
                         JSONObject clickResult = new JSONObject();
                         clickResult.put("ok", "true".equals(BrowserActivity.evaluate(clickScript)));
-                        respond(output, 200, "application/json; charset=utf-8", clickResult.toString().getBytes(StandardCharsets.UTF_8));
+                        respondJson(output, 200, clickResult);
                         return;
-                    case "/v1/browser/fill":
+                    }
+                    case "/v1/browser/fill": {
                         String fillSelector = args.getString("selector");
                         String fillValue = args.getString("value");
                         if (fillSelector.length() > 1000 || fillValue.length() > 10000) throw new IllegalArgumentException("Input too long");
                         String fillScript = "(function(){const e=document.querySelector(" + JSONObject.quote(fillSelector) + ");if(!e)return false;const p=e instanceof HTMLTextAreaElement?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;const d=Object.getOwnPropertyDescriptor(p,'value');if(d&&d.set)d.set.call(e," + JSONObject.quote(fillValue) + ");else e.value=" + JSONObject.quote(fillValue) + ";e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));return true})()";
                         JSONObject fillResult = new JSONObject();
                         fillResult.put("ok", "true".equals(BrowserActivity.evaluate(fillScript)));
-                        respond(output, 200, "application/json; charset=utf-8", fillResult.toString().getBytes(StandardCharsets.UTF_8));
+                        respondJson(output, 200, fillResult);
                         return;
+                    }
                     default:
                         respond(output, 404, "application/json", jsonError("unknown endpoint"));
                         return;
                 }
-                JSONObject result = new JSONObject();
-                result.put("ok", ok);
-                respond(output, ok ? 200 : 409, "application/json; charset=utf-8", result.toString().getBytes(StandardCharsets.UTF_8));
             } else {
                 respond(output, 404, "application/json", jsonError("unknown endpoint"));
             }
@@ -379,11 +481,313 @@ final class LocalControlServer {
                     JSONObject body = new JSONObject()
                         .put("ok", false)
                         .put("error", error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage());
-                    respond(errorOutput, 500, "application/json; charset=utf-8",
-                        body.toString().getBytes(StandardCharsets.UTF_8));
+                    respondJson(errorOutput, 500, body);
                 } catch (Exception ignored) {}
             }
         }
+    }
+
+    private void handleBatch(OutputStream output, JSONObject args) throws Exception {
+        long batchStart = SystemClock.uptimeMillis();
+        JSONArray steps = args.getJSONArray("steps");
+        if (steps.length() > 60) throw new IllegalArgumentException("batch max 60 steps");
+
+        String batchExpectedPkg = optStr(args, "expected_package");
+        String activeSnapshotId = optStr(args, "snapshot_id");
+        boolean batchStrictGen = args.optBoolean("strict_generation", false);
+
+        if (batchExpectedPkg != null) {
+            AccessibilityControlService.ActionResult preGuard = service.checkPackageGuard(batchExpectedPkg);
+            if (preGuard != null) {
+                JSONObject out = preGuard.toJson(service.getEventBus().getGeneration());
+                out.put("results", new JSONArray());
+                out.put("executedSteps", 0);
+                out.put("totalElapsedMs", SystemClock.uptimeMillis() - batchStart);
+                respondJson(output, 409, out);
+                return;
+            }
+        }
+
+        JSONArray results = new JSONArray();
+        boolean allOk = true;
+        String failReason = "";
+
+        for (int i = 0; i < steps.length(); i++) {
+            JSONObject step = steps.getJSONObject(i);
+            String action = step.getString("action");
+            String stepPkg = step.has("expected_package") ? optStr(step, "expected_package") : batchExpectedPkg;
+            String stepSnap = step.has("snapshot_id") ? optStr(step, "snapshot_id") : activeSnapshotId;
+            boolean stepStrict = step.has("strict_generation") ? step.optBoolean("strict_generation", false) : batchStrictGen;
+
+            long stepStart = SystemClock.uptimeMillis();
+            JSONObject stepRes = new JSONObject().put("action", action);
+            AccessibilityControlService.ActionResult actionResult = null;
+            boolean stepOk = false;
+
+            switch (action) {
+                case "open": {
+                    String pkg = step.getString("package");
+                    if (!pkg.matches("[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+)+"))
+                        throw new IllegalArgumentException("invalid package name");
+                    stepOk = service.openApp(pkg);
+                    // Update batch guard if caller intentionally switched apps
+                    if (stepOk && step.optBoolean("update_expected_package", false)) {
+                        batchExpectedPkg = pkg;
+                    }
+                    break;
+                }
+                case "assert_package": {
+                    actionResult = service.assertPackage(
+                        step.optString("package", stepPkg == null ? "" : stepPkg),
+                        step.optLong("timeout_ms", 0)
+                    );
+                    break;
+                }
+                case "wait_for_text": {
+                    actionResult = service.waitForText(
+                        step.optString("text", ""),
+                        step.optString("view_id", ""),
+                        stepPkg,
+                        step.optLong("timeout_ms", 5000)
+                    );
+                    break;
+                }
+                case "tap": {
+                    actionResult = service.tapGuarded(
+                        (float) step.getDouble("x"), (float) step.getDouble("y"), stepPkg
+                    );
+                    break;
+                }
+                case "click": {
+                    actionResult = service.clickTarget(
+                        optStr(step, "path"), optStr(step, "ref"), stepSnap, stepPkg, stepStrict
+                    );
+                    break;
+                }
+                case "click_text": {
+                    actionResult = service.clickText(
+                        step.optString("text", ""),
+                        step.optString("view_id", ""),
+                        step.optLong("timeout_ms", 3000),
+                        stepPkg
+                    );
+                    break;
+                }
+                case "scroll": {
+                    actionResult = service.scroll(
+                        step.optString("direction", "forward"),
+                        optStr(step, "path"), optStr(step, "ref"), stepSnap, stepPkg, stepStrict
+                    );
+                    break;
+                }
+                case "scroll_until": {
+                    actionResult = service.scrollUntil(
+                        step.optString("text", ""),
+                        step.optString("view_id", ""),
+                        optStr(step, "path"),
+                        optStr(step, "ref"),
+                        stepSnap,
+                        step.optString("direction", "forward"),
+                        step.optInt("max_scrolls", 8),
+                        step.optLong("delay_ms", 220),
+                        step.optBoolean("click", false),
+                        stepPkg
+                    );
+                    break;
+                }
+                case "ime_action": {
+                    actionResult = service.imeAction(
+                        optStr(step, "path"), optStr(step, "ref"), stepSnap, stepPkg, stepStrict
+                    );
+                    break;
+                }
+                case "long_press": {
+                    Double x = step.has("x") ? step.getDouble("x") : null;
+                    Double y = step.has("y") ? step.getDouble("y") : null;
+                    actionResult = service.longPress(
+                        optStr(step, "path"), optStr(step, "ref"), stepSnap, x, y,
+                        step.optLong("duration_ms", 650), stepPkg, stepStrict
+                    );
+                    break;
+                }
+                case "double_tap": {
+                    Double x = step.has("x") ? step.getDouble("x") : null;
+                    Double y = step.has("y") ? step.getDouble("y") : null;
+                    actionResult = service.doubleTap(
+                        optStr(step, "path"), optStr(step, "ref"), stepSnap, x, y,
+                        step.optLong("interval_ms", 90), stepPkg, stepStrict
+                    );
+                    break;
+                }
+                case "paste": {
+                    actionResult = service.pasteText(step.has("text") ? step.optString("text", "") : null, stepPkg);
+                    break;
+                }
+                case "type": {
+                    String t = step.optString("text", "");
+                    if (t.length() > 32768) throw new IllegalArgumentException("text too long");
+                    actionResult = service.typeTextGuarded(t, stepPkg);
+                    break;
+                }
+                case "set_text": {
+                    String t = step.optString("text", "");
+                    if (t.length() > 32768) throw new IllegalArgumentException("text too long");
+                    actionResult = service.setTextTarget(
+                        optStr(step, "path"), optStr(step, "ref"), stepSnap, t, stepPkg, stepStrict
+                    );
+                    break;
+                }
+                case "swipe": {
+                    actionResult = service.swipeGuarded(
+                        (float) step.getDouble("x1"), (float) step.getDouble("y1"),
+                        (float) step.getDouble("x2"), (float) step.getDouble("y2"),
+                        Math.max(50, Math.min(5000, step.optLong("duration_ms", 350))),
+                        stepPkg
+                    );
+                    break;
+                }
+                case "back":
+                    stepOk = service.globalAction(AccessibilityService.GLOBAL_ACTION_BACK);
+                    break;
+                case "home":
+                    stepOk = service.globalAction(AccessibilityService.GLOBAL_ACTION_HOME);
+                    break;
+                case "recents":
+                    stepOk = service.globalAction(AccessibilityService.GLOBAL_ACTION_RECENTS);
+                    break;
+                case "sleep": {
+                    long ms = Math.max(50, Math.min(5000, step.optLong("ms", 500)));
+                    Thread.sleep(ms);
+                    stepOk = true;
+                    break;
+                }
+                case "ui": {
+                    AccessibilityControlService.ActionResult guard = service.checkPackageGuard(stepPkg);
+                    if (guard != null) {
+                        actionResult = guard;
+                    } else {
+                        stepRes.put("ui", service.getUiTree());
+                        stepOk = true;
+                    }
+                    break;
+                }
+                case "ui_compact": {
+                    AccessibilityControlService.ActionResult guard = service.checkPackageGuard(stepPkg);
+                    if (guard != null) {
+                        actionResult = guard;
+                    } else {
+                        JSONObject compact = service.getCompactUi();
+                        stepRes.put("ui", compact);
+                        String newSnap = compact.optString("snapshotId", "");
+                        if (!newSnap.isEmpty()) {
+                            activeSnapshotId = newSnap;
+                            stepRes.put("snapshotId", newSnap);
+                        }
+                        stepOk = compact.optBoolean("available", false);
+                    }
+                    break;
+                }
+                default:
+                    throw new IllegalArgumentException("unknown batch action: " + action);
+            }
+
+            if (actionResult != null) {
+                stepOk = actionResult.ok;
+                if (actionResult.data != null) {
+                    java.util.Iterator<String> keys = actionResult.data.keys();
+                    while (keys.hasNext()) {
+                        String k = keys.next();
+                        stepRes.put(k, actionResult.data.get(k));
+                    }
+                }
+                if (!actionResult.ok) {
+                    if (!actionResult.reason.isEmpty()) stepRes.put("reason", actionResult.reason);
+                    if (!actionResult.message.isEmpty()) stepRes.put("error", actionResult.message);
+                    if (failReason.isEmpty()) failReason = actionResult.reason;
+                }
+            }
+
+            stepRes.put("ok", stepOk);
+            stepRes.put("elapsedMs", SystemClock.uptimeMillis() - stepStart);
+            results.put(stepRes);
+
+            if (!stepOk) {
+                allOk = false;
+                if (step.optBoolean("stop_on_error", true)) break;
+            }
+        }
+
+        JSONObject batchOut = new JSONObject()
+            .put("ok", allOk)
+            .put("apiVersion", 4)
+            .put("executedSteps", results.length())
+            .put("totalElapsedMs", SystemClock.uptimeMillis() - batchStart)
+            .put("currentGeneration", service.getEventBus().getGeneration())
+            .put("results", results);
+        if (activeSnapshotId != null && !activeSnapshotId.isEmpty()) {
+            batchOut.put("snapshotId", activeSnapshotId);
+        }
+        if (!allOk && !failReason.isEmpty()) {
+            batchOut.put("reason", failReason);
+        }
+        respondJson(output, allOk ? 200 : 409, batchOut);
+    }
+
+    private void respondAction(OutputStream output, AccessibilityControlService.ActionResult result) throws Exception {
+        JSONObject json = result.toJson(service.getEventBus().getGeneration());
+        respondJson(output, result.ok ? 200 : 409, json);
+    }
+
+    private void respondJson(OutputStream output, int status, JSONObject json) throws Exception {
+        respond(output, status, "application/json; charset=utf-8", json.toString().getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static String optStr(JSONObject obj, String key) {
+        if (!obj.has(key) || obj.isNull(key)) return null;
+        String val = obj.optString(key, "");
+        return val.isEmpty() ? null : val;
+    }
+
+    private static Set<String> parseTypeSet(JSONObject args) {
+        Set<String> types = new HashSet<>();
+        if (args.has("types")) {
+            Object raw = args.opt("types");
+            if (raw instanceof JSONArray) {
+                JSONArray arr = (JSONArray) raw;
+                for (int i = 0; i < arr.length(); i++) {
+                    String s = arr.optString(i, "").trim();
+                    if (!s.isEmpty()) types.add(s);
+                }
+            } else if (raw instanceof String) {
+                types.addAll(CompanionEventBus.parseTypes((String) raw));
+            }
+        }
+        return types;
+    }
+
+    private static Map<String, String> parseQuery(String qs) {
+        Map<String, String> out = new HashMap<>();
+        if (qs == null || qs.isEmpty()) return out;
+        for (String pair : qs.split("&")) {
+            int eq = pair.indexOf('=');
+            try {
+                if (eq > 0) {
+                    out.put(
+                        URLDecoder.decode(pair.substring(0, eq), "UTF-8"),
+                        URLDecoder.decode(pair.substring(eq + 1), "UTF-8")
+                    );
+                } else if (!pair.isEmpty()) {
+                    out.put(URLDecoder.decode(pair, "UTF-8"), "1");
+                }
+            } catch (Exception ignored) {}
+        }
+        return out;
+    }
+
+    private static long parseLong(String value, long fallback) {
+        if (value == null || value.isEmpty()) return fallback;
+        try { return Long.parseLong(value); }
+        catch (NumberFormatException ignored) { return fallback; }
     }
 
     private static String readLine(InputStream input) throws Exception {
@@ -415,7 +819,8 @@ final class LocalControlServer {
 
     private static void respond(OutputStream output, int status, String type, byte[] body) throws Exception {
         String label = status == 200 ? "OK" : status == 400 ? "Bad Request" : status == 401 ? "Unauthorized" :
-            status == 404 ? "Not Found" : status == 409 ? "Action Failed" : status == 413 ? "Payload Too Large" : "Internal Server Error";
+            status == 404 ? "Not Found" : status == 408 ? "Request Timeout" :
+            status == 409 ? "Action Failed" : status == 413 ? "Payload Too Large" : "Internal Server Error";
         String headers = "HTTP/1.1 " + status + " " + label + "\r\n"
             + "Content-Type: " + type + "\r\n"
             + "Content-Length: " + body.length + "\r\n"

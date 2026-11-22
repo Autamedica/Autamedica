@@ -13,8 +13,8 @@ android {
         applicationId = "com.autamedica.companion"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 4
+        versionName = "0.4.0"
     }
 
     compileOptions {
@@ -43,4 +43,13 @@ android {
             buildConfigField("int", "CDP_PORT", "18766")
         }
     }
+}
+
+dependencies {
+    testImplementation("junit:junit:4.13.2")
+}
+
+// Run Companion Execution Engine 4.0 unit tests automatically before assembling APKs.
+tasks.matching { it.name == "assembleDebug" || it.name == "assembleRepair" }.configureEach {
+    dependsOn("testDebugUnitTest")
 }

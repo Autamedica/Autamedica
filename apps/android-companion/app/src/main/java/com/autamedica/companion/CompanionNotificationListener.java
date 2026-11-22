@@ -62,6 +62,9 @@ public final class CompanionNotificationListener extends NotificationListenerSer
                 RECENT.addFirst(item);
                 while (RECENT.size() > MAX_EVENTS) RECENT.removeLast();
             }
+            String summary = (title == null ? "" : title.toString())
+                + (text == null ? "" : (title == null ? text.toString() : ": " + text.toString()));
+            CompanionEventBus.shared().record("notification_posted", sbn.getPackageName(), summary, false);
         } catch (Exception ignored) {}
     }
 }
