@@ -29,6 +29,8 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public final class AccessibilityControlService extends AccessibilityService {
@@ -36,8 +38,46 @@ public final class AccessibilityControlService extends AccessibilityService {
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final CompanionEventBus eventBus = CompanionEventBus.shared();
     private final SnapshotRegistry snapshotRegistry = new SnapshotRegistry();
+    private final ExecutorService screenshotExecutor = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "autamedica-screenshot-enc");
+        t.setDaemon(true);
+        return t;
+    });
+    private volatile CachedScreenshot lastScreenshot;
     private LocalControlServer server;
     private LocalCdpProxy cdpProxy;
+
+    static final class ScreenshotPayload {
+        final byte[] bytes;
+        final String contentType;
+        final int width;
+        final int height;
+        final boolean cached;
+        final long generation;
+
+        ScreenshotPayload(byte[] bytes, String contentType, int width, int height, boolean cached, long generation) {
+            this.bytes = bytes;
+            this.contentType = contentType;
+            this.width = width;
+            this.height = height;
+            this.cached = cached;
+            this.generation = generation;
+        }
+    }
+
+    private static final class CachedScreenshot {
+        final String cacheKey;
+        final long generation;
+        final long capturedAtMs;
+        final ScreenshotPayload payload;
+
+        CachedScreenshot(String cacheKey, long generation, long capturedAtMs, ScreenshotPayload payload) {
+            this.cacheKey = cacheKey;
+            this.generation = generation;
+            this.capturedAtMs = capturedAtMs;
+            this.payload = payload;
+        }
+    }
 
     static final class ActionResult {
         final boolean ok;
@@ -148,6 +188,8 @@ public final class AccessibilityControlService extends AccessibilityService {
         server = null;
         if (cdpProxy != null) cdpProxy.stop();
         cdpProxy = null;
+        screenshotExecutor.shutdownNow();
+        lastScreenshot = null;
         snapshotRegistry.clear();
         if (instance == this) instance = null;
         super.onDestroy();
@@ -163,11 +205,12 @@ public final class AccessibilityControlService extends AccessibilityService {
         return future.get(8, TimeUnit.SECONDS);
     }
 
-    private static final int MAX_TREE_DEPTH = 24;
-    private static final int MAX_TREE_NODES = 1200;
-    private static final int MAX_COMPACT_DEPTH = 28;
-    private static final int MAX_COMPACT_SCAN = 2500;
+    private static final int MAX_TREE_DEPTH = 48;
+    private static final int MAX_TREE_NODES = 1600;
+    private static final int MAX_COMPACT_DEPTH = 64;
+    private static final int MAX_COMPACT_SCAN = 4000;
     private static final int MAX_COMPACT_ELEMENTS = 400;
+    private static final long SCREENSHOT_CACHE_TTL_MS = 2500L;
 
     private AccessibilityNodeInfo resolveRootForDisplay(int displayId) {
         if (displayId <= Display.DEFAULT_DISPLAY) {
@@ -342,10 +385,14 @@ public final class AccessibilityControlService extends AccessibilityService {
     }
 
     JSONObject getCompactUi() throws Exception {
-        return getCompactUi(Display.DEFAULT_DISPLAY);
+        return getCompactUi(Display.DEFAULT_DISPLAY, false);
     }
 
     JSONObject getCompactUi(int displayId) throws Exception {
+        return getCompactUi(displayId, false);
+    }
+
+    JSONObject getCompactUi(int displayId, boolean viewportOnly) throws Exception {
         return onMain(() -> {
             JSONObject result = new JSONObject();
             result.put("displayId", displayId);
@@ -363,13 +410,15 @@ public final class AccessibilityControlService extends AccessibilityService {
             JSONArray elements = new JSONArray();
             List<SnapshotRegistry.NodeEntry> entries = new ArrayList<>();
             Counter scanned = new Counter();
-            collectCompactNodes(root, "0", 0, scanned, elements, entries);
+            Rect viewport = (viewportOnly && rootBounds.width() > 0 && rootBounds.height() > 0) ? rootBounds : null;
+            collectCompactNodes(root, "0", 0, scanned, elements, entries, viewport);
             SnapshotRegistry.Snapshot snapshot = snapshotRegistry.record(pkg, generation, entries);
             result.put("available", true);
             result.put("snapshotId", snapshot.snapshotId);
             result.put("generation", snapshot.generation);
             result.put("capturedAtMs", snapshot.capturedAtMs);
             result.put("package", pkg);
+            result.put("viewportOnly", viewportOnly);
             result.put("bounds", new JSONArray().put(rootBounds.left).put(rootBounds.top).put(rootBounds.right).put(rootBounds.bottom));
             result.put("scannedCount", scanned.value);
             result.put("elementCount", elements.length());
@@ -385,7 +434,8 @@ public final class AccessibilityControlService extends AccessibilityService {
             int depth,
             Counter scanned,
             JSONArray out,
-            List<SnapshotRegistry.NodeEntry> entries) throws Exception {
+            List<SnapshotRegistry.NodeEntry> entries,
+            Rect viewport) throws Exception {
         if (node == null || depth > MAX_COMPACT_DEPTH || scanned.value >= MAX_COMPACT_SCAN || out.length() >= MAX_COMPACT_ELEMENTS) {
             return;
         }
@@ -404,40 +454,45 @@ public final class AccessibilityControlService extends AccessibilityService {
             || clickable || editable || checkable || scrollable;
 
         if (meaningful) {
-            String ref = "e" + (out.length() + 1);
-            String cls = simpleClassName(node.getClassName());
-            String viewId = safe(node.getViewIdResourceName());
             Rect bounds = new Rect();
             node.getBoundsInScreen(bounds);
+            boolean insideViewport = viewport == null
+                || (bounds.right > viewport.left && bounds.left < viewport.right
+                    && bounds.bottom > viewport.top && bounds.top < viewport.bottom);
+            if (insideViewport) {
+                String ref = "e" + (out.length() + 1);
+                String cls = simpleClassName(node.getClassName());
+                String viewId = safe(node.getViewIdResourceName());
 
-            JSONObject item = new JSONObject();
-            item.put("ref", ref);
-            item.put("path", path);
-            item.put("class", cls);
-            if (!text.isEmpty()) item.put("text", text);
-            if (!desc.isEmpty()) item.put("description", desc);
-            if (!hint.isEmpty()) item.put("hint", hint);
-            if (!stateDesc.isEmpty()) item.put("stateDescription", stateDesc);
-            if (!viewId.isEmpty()) item.put("viewId", viewId);
-            if (clickable) item.put("clickable", true);
-            if (editable) item.put("editable", true);
-            if (checkable) {
-                item.put("checkable", true);
-                item.put("checked", node.isChecked());
+                JSONObject item = new JSONObject();
+                item.put("ref", ref);
+                item.put("path", path);
+                item.put("class", cls);
+                if (!text.isEmpty()) item.put("text", text);
+                if (!desc.isEmpty()) item.put("description", desc);
+                if (!hint.isEmpty()) item.put("hint", hint);
+                if (!stateDesc.isEmpty()) item.put("stateDescription", stateDesc);
+                if (!viewId.isEmpty()) item.put("viewId", viewId);
+                if (clickable) item.put("clickable", true);
+                if (editable) item.put("editable", true);
+                if (checkable) {
+                    item.put("checkable", true);
+                    item.put("checked", node.isChecked());
+                }
+                if (scrollable) item.put("scrollable", true);
+                if (node.isFocused()) item.put("focused", true);
+                if (node.isSelected()) item.put("selected", true);
+                if (!node.isEnabled()) item.put("enabled", false);
+                if (isPassword) item.put("password", true);
+                item.put("bounds", new JSONArray().put(bounds.left).put(bounds.top).put(bounds.right).put(bounds.bottom));
+                out.put(item);
+
+                entries.add(new SnapshotRegistry.NodeEntry(
+                    ref, path, cls, viewId, text, desc, hint,
+                    new int[]{bounds.left, bounds.top, bounds.right, bounds.bottom},
+                    clickable, editable, scrollable
+                ));
             }
-            if (scrollable) item.put("scrollable", true);
-            if (node.isFocused()) item.put("focused", true);
-            if (node.isSelected()) item.put("selected", true);
-            if (!node.isEnabled()) item.put("enabled", false);
-            if (isPassword) item.put("password", true);
-            item.put("bounds", new JSONArray().put(bounds.left).put(bounds.top).put(bounds.right).put(bounds.bottom));
-            out.put(item);
-
-            entries.add(new SnapshotRegistry.NodeEntry(
-                ref, path, cls, viewId, text, desc, hint,
-                new int[]{bounds.left, bounds.top, bounds.right, bounds.bottom},
-                clickable, editable, scrollable
-            ));
         }
 
         if (depth < MAX_COMPACT_DEPTH) {
@@ -445,7 +500,7 @@ public final class AccessibilityControlService extends AccessibilityService {
             for (int i = 0; i < childCount && scanned.value < MAX_COMPACT_SCAN && out.length() < MAX_COMPACT_ELEMENTS; i++) {
                 AccessibilityNodeInfo child = node.getChild(i);
                 if (child != null) {
-                    collectCompactNodes(child, path + "." + i, depth + 1, scanned, out, entries);
+                    collectCompactNodes(child, path + "." + i, depth + 1, scanned, out, entries, viewport);
                     child.recycle();
                 }
             }
@@ -1653,31 +1708,110 @@ public final class AccessibilityControlService extends AccessibilityService {
             .put("detail", ev.detail);
     }
 
+    static float clampScreenshotScale(float raw) {
+        if (Float.isNaN(raw) || Float.isInfinite(raw) || raw <= 0f) return 1.0f;
+        return Math.max(0.25f, Math.min(1.0f, raw));
+    }
+
+    static int clampScreenshotQuality(int raw) {
+        return Math.max(30, Math.min(100, raw));
+    }
+
+    static String normalizeScreenshotFormat(String raw) {
+        if (raw == null) return "png";
+        String f = raw.trim().toLowerCase(Locale.ROOT);
+        if ("webp".equals(f)) return "webp";
+        if ("jpeg".equals(f) || "jpg".equals(f)) return "jpeg";
+        return "png";
+    }
+
     String screenshotBase64() throws Exception {
         return screenshotBase64(Display.DEFAULT_DISPLAY);
     }
 
     String screenshotBase64(int displayId) throws Exception {
+        ScreenshotPayload payload = captureScreenshot(displayId, 1.0f, "png", 100, false);
+        return Base64.encodeToString(payload.bytes, Base64.NO_WRAP);
+    }
+
+    ScreenshotPayload captureScreenshot(int displayId, float scale, String format, int quality, boolean fresh) throws Exception {
         if (Build.VERSION.SDK_INT < 30) throw new IllegalStateException("Screenshots require Android 11 or newer");
         int targetDisplay = Math.max(Display.DEFAULT_DISPLAY, displayId);
-        CompletableFuture<String> future = new CompletableFuture<>();
+        float clampedScale = clampScreenshotScale(scale);
+        String fmt = normalizeScreenshotFormat(format);
+        int q = clampScreenshotQuality(quality);
+        int scalePct = Math.round(clampedScale * 100f);
+        String cacheKey = targetDisplay + ":" + scalePct + ":" + fmt + ":" + q;
+        long gen = eventBus.getGeneration();
+        long now = SystemClock.uptimeMillis();
+
+        if (!fresh) {
+            CachedScreenshot prev = lastScreenshot;
+            if (prev != null
+                && prev.cacheKey.equals(cacheKey)
+                && prev.generation == gen
+                && (now - prev.capturedAtMs) <= SCREENSHOT_CACHE_TTL_MS) {
+                ScreenshotPayload p = prev.payload;
+                return new ScreenshotPayload(p.bytes, p.contentType, p.width, p.height, true, gen);
+            }
+        }
+
+        CompletableFuture<ScreenshotPayload> future = new CompletableFuture<>();
         onMain(() -> {
-            takeScreenshot(targetDisplay, getMainExecutor(), new TakeScreenshotCallback() {
+            takeScreenshot(targetDisplay, screenshotExecutor, new TakeScreenshotCallback() {
                 @Override public void onSuccess(ScreenshotResult result) {
                     HardwareBuffer buffer = result.getHardwareBuffer();
                     Bitmap hardwareBitmap = null;
+                    Bitmap softwareBitmap = null;
+                    Bitmap scaledBitmap = null;
                     try {
                         ColorSpace colorSpace = result.getColorSpace();
                         hardwareBitmap = Bitmap.wrapHardwareBuffer(buffer, colorSpace);
                         if (hardwareBitmap == null) throw new IllegalStateException("Screenshot bitmap unavailable");
-                        Bitmap bitmap = hardwareBitmap.copy(Bitmap.Config.ARGB_8888, false);
-                        ByteArrayOutputStream output = new ByteArrayOutputStream();
-                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, output);
-                        bitmap.recycle();
-                        future.complete(Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP));
+                        softwareBitmap = hardwareBitmap.copy(Bitmap.Config.ARGB_8888, false);
+                        if (softwareBitmap == null) throw new IllegalStateException("Screenshot software copy failed");
+
+                        Bitmap toEncode = softwareBitmap;
+                        if (scalePct < 100) {
+                            int targetW = Math.max(1, Math.round(softwareBitmap.getWidth() * clampedScale));
+                            int targetH = Math.max(1, Math.round(softwareBitmap.getHeight() * clampedScale));
+                            scaledBitmap = Bitmap.createScaledBitmap(softwareBitmap, targetW, targetH, true);
+                            toEncode = scaledBitmap;
+                        }
+
+                        Bitmap.CompressFormat compressFormat;
+                        String contentType;
+                        if ("webp".equals(fmt)) {
+                            compressFormat = Bitmap.CompressFormat.WEBP_LOSSY;
+                            contentType = "image/webp";
+                        } else if ("jpeg".equals(fmt)) {
+                            compressFormat = Bitmap.CompressFormat.JPEG;
+                            contentType = "image/jpeg";
+                        } else {
+                            compressFormat = Bitmap.CompressFormat.PNG;
+                            contentType = "image/png";
+                        }
+
+                        ByteArrayOutputStream output = new ByteArrayOutputStream(
+                            "png".equals(fmt) ? 131072 : 32768
+                        );
+                        toEncode.compress(compressFormat, "png".equals(fmt) ? 100 : q, output);
+                        long postGen = eventBus.getGeneration();
+                        ScreenshotPayload payload = new ScreenshotPayload(
+                            output.toByteArray(),
+                            contentType,
+                            toEncode.getWidth(),
+                            toEncode.getHeight(),
+                            false,
+                            postGen
+                        );
+                        lastScreenshot = new CachedScreenshot(cacheKey, postGen, SystemClock.uptimeMillis(), payload);
+                        future.complete(payload);
                     } catch (Throwable error) {
                         future.completeExceptionally(error);
                     } finally {
+                        if (scaledBitmap != null && scaledBitmap != softwareBitmap) scaledBitmap.recycle();
+                        if (softwareBitmap != null) softwareBitmap.recycle();
                         if (hardwareBitmap != null) hardwareBitmap.recycle();
                         buffer.close();
                     }

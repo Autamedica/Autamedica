@@ -49,9 +49,9 @@ const tools = [
   { name: "android_status", description: "Estado de Autamedica Companion, accesibilidad y puertos locales.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "android_displays", description: "Lista todas las pantallas Android (física 0 y pantallas virtuales secundarias) con resolución y app activa en cada una.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "android_get_ui_tree", description: "Lee el árbol de accesibilidad Android profundo (hasta 24 niveles / 1200 nodos); soporta display_id opcional para pantallas virtuales.", inputSchema: { type: "object", properties: { display_id: { type: "integer", minimum: 0 } }, additionalProperties: false } },
-  { name: "android_get_ui_compact", description: "Devuelve snapshot transaccional (snapshotId, generation, package) con elementos semánticos; soporta display_id opcional para pantallas virtuales.", inputSchema: { type: "object", properties: { display_id: { type: "integer", minimum: 0 } }, additionalProperties: false } },
+  { name: "android_get_ui_compact", description: "Devuelve snapshot transaccional (snapshotId, generation, package) con elementos semánticos; soporta display_id y viewport_only opcional para podar elementos fuera de pantalla.", inputSchema: { type: "object", properties: { display_id: { type: "integer", minimum: 0 }, viewport_only: { type: "boolean" } }, additionalProperties: false } },
   { name: "android_set_text", description: "Inyecta texto directo en un nodo Android por path o ref+snapshot_id sin abrir teclado (~15 ms), con soporte opcional display_id.", inputSchema: { type: "object", properties: { path: { type: "string" }, ref: { type: "string" }, snapshot_id: { type: "string" }, display_id: { type: "integer", minimum: 0 }, expected_package: { type: "string" }, strict_generation: { type: "boolean" }, text: { type: "string" } }, required: ["text"], additionalProperties: false } },
-  { name: "android_screenshot", description: "Captura la pantalla Android (física o display_id virtual en Android 11+).", inputSchema: { type: "object", properties: { display_id: { type: "integer", minimum: 0 } }, additionalProperties: false } },
+  { name: "android_screenshot", description: "Captura rápida de pantalla Android (por defecto WebP escalado 0.5x para baja latencia y 6x menos tokens; soporta display_id, format=webp|jpeg|png, scale=0.25..1, quality, fresh).", inputSchema: { type: "object", properties: { display_id: { type: "integer", minimum: 0 }, format: { type: "string", enum: ["webp", "jpeg", "png"] }, scale: { type: "number", minimum: 0.25, maximum: 1 }, quality: { type: "integer", minimum: 30, maximum: 100 }, fresh: { type: "boolean" } }, additionalProperties: false } },
   { name: "android_open_app", description: "Abre una aplicación Android por package name.", inputSchema: { type: "object", properties: { package: { type: "string" } }, required: ["package"], additionalProperties: false } },
   { name: "android_tap", description: "Toca una coordenada de pantalla Android (con guardia opcional expected_package).", inputSchema: { type: "object", properties: { x: { type: "number" }, y: { type: "number" }, expected_package: { type: "string" } }, required: ["x", "y"], additionalProperties: false } },
   { name: "android_click_element", description: "Pulsa un nodo Android por path o por ref+snapshot_id con soporte opcional display_id y guardia expected_package.", inputSchema: { type: "object", properties: { path: { type: "string" }, ref: { type: "string" }, snapshot_id: { type: "string" }, display_id: { type: "integer", minimum: 0 }, expected_package: { type: "string" }, strict_generation: { type: "boolean" } }, additionalProperties: false } },
@@ -274,7 +274,10 @@ async function callTool(name, args) {
       return [{ type: "text", text: JSON.stringify(await (await request("/v1/ui" + qs)).json()) }];
     }
     case "android_get_ui_compact": {
-      const qs = args.display_id ? `?display_id=${Number(args.display_id)}` : "";
+      const params = new URLSearchParams();
+      if (args.display_id) params.set("display_id", String(Number(args.display_id)));
+      if (args.viewport_only) params.set("viewport_only", "1");
+      const qs = params.toString() ? "?" + params.toString() : "";
       return [{ type: "text", text: JSON.stringify(await (await request("/v1/ui/compact" + qs)).json()) }];
     }
     case "android_set_text":
@@ -310,9 +313,15 @@ async function callTool(name, args) {
       return [{ type: "text", text: JSON.stringify({ url: resp.url, status: resp.status, text: clean.slice(0, maxChars) }) }];
     }
     case "android_screenshot": {
-      const qs = args.display_id ? `?display_id=${Number(args.display_id)}` : "";
-      const response = await request("/v1/screenshot" + qs);
-      return [{ type: "image", data: Buffer.from(await response.arrayBuffer()).toString("base64"), mimeType: "image/png" }];
+      const params = new URLSearchParams();
+      if (args.display_id) params.set("display_id", String(Number(args.display_id)));
+      params.set("format", String(args.format || "webp"));
+      params.set("scale", String(args.scale !== undefined ? Number(args.scale) : 0.5));
+      params.set("quality", String(args.quality !== undefined ? Number(args.quality) : 75));
+      if (args.fresh) params.set("fresh", "1");
+      const response = await request("/v1/screenshot?" + params.toString());
+      const ctype = (response.headers.get("content-type") || "image/png").split(";")[0].trim();
+      return [{ type: "image", data: Buffer.from(await response.arrayBuffer()).toString("base64"), mimeType: ctype }];
     }
     case "android_open_app":
       return [{ type: "text", text: JSON.stringify(await post("/v1/open", args)) }];

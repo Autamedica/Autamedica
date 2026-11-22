@@ -6,6 +6,7 @@ import android.os.SystemClock;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -28,6 +29,8 @@ import java.util.concurrent.TimeUnit;
 final class LocalControlServer {
     private static final int PORT = BuildConfig.CONTROL_PORT;
     private static final int MAX_BODY = 1024 * 1024;
+    private static final int MAX_KEEPALIVE_REQUESTS = 64;
+    private static final ThreadLocal<Boolean> CURRENT_KEEP_ALIVE = new ThreadLocal<>();
     private final AccessibilityControlService service;
     private final ExecutorService clients = new ThreadPoolExecutor(
         4, 24, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(64)
@@ -77,20 +80,37 @@ final class LocalControlServer {
     }
 
     private void handle(Socket socket) {
-        OutputStream errorOutput = null;
         try (Socket client = socket) {
-            client.setSoTimeout(35000);
-            InputStream input = client.getInputStream();
+            client.setTcpNoDelay(true);
+            client.setSoTimeout(30000);
+            InputStream input = new BufferedInputStream(client.getInputStream(), 8192);
             OutputStream output = client.getOutputStream();
-            errorOutput = output;
+            for (int reqCount = 0; reqCount < MAX_KEEPALIVE_REQUESTS && running; reqCount++) {
+                boolean keepAlive = handleSingleRequest(input, output, reqCount < MAX_KEEPALIVE_REQUESTS - 1);
+                if (!keepAlive) break;
+            }
+        } catch (java.net.SocketTimeoutException ignored) {
+            // Normal idle keep-alive close.
+        } catch (Exception error) {
+            android.util.Log.w("AutamedicaCompanion", "Local connection closed: " + error.getClass().getSimpleName());
+        } finally {
+            CURRENT_KEEP_ALIVE.remove();
+        }
+    }
+
+    private boolean handleSingleRequest(InputStream input, OutputStream output, boolean allowKeepAlive) {
+        boolean keepAlive = false;
+        try {
             String requestLine = readLine(input);
-            if (requestLine == null || requestLine.isEmpty()) return;
+            if (requestLine == null || requestLine.isEmpty()) return false;
             String[] parts = requestLine.split(" ");
             if (parts.length < 2) {
+                CURRENT_KEEP_ALIVE.set(Boolean.FALSE);
                 respond(output, 400, "application/json", jsonError("bad request"));
-                return;
+                return false;
             }
             String method = parts[0].toUpperCase(Locale.ROOT);
+            String httpVersion = parts.length >= 3 ? parts[2].toUpperCase(Locale.ROOT) : "HTTP/1.1";
             String[] pathAndQuery = parts[1].split("\\?", 2);
             String path = pathAndQuery[0];
             Map<String, String> query = parseQuery(pathAndQuery.length > 1 ? pathAndQuery[1] : "");
@@ -101,12 +121,17 @@ final class LocalControlServer {
                 if (separator > 0) headers.put(line.substring(0, separator).trim().toLowerCase(Locale.ROOT),
                     line.substring(separator + 1).trim());
             }
+            String connHeader = headers.getOrDefault("connection", "").toLowerCase(Locale.ROOT);
+            keepAlive = allowKeepAlive && shouldKeepAlive(httpVersion, connHeader);
+            CURRENT_KEEP_ALIVE.set(keepAlive);
+
             int contentLength = 0;
             try { contentLength = Integer.parseInt(headers.getOrDefault("content-length", "0")); }
             catch (NumberFormatException ignored) {}
             if (contentLength < 0 || contentLength > MAX_BODY) {
+                CURRENT_KEEP_ALIVE.set(Boolean.FALSE);
                 respond(output, 413, "application/json", jsonError("body too large"));
-                return;
+                return false;
             }
             byte[] body = readBytes(input, contentLength);
 
@@ -114,15 +139,44 @@ final class LocalControlServer {
             String supplied = headers.getOrDefault("authorization", "");
             if (expected.isEmpty() || !constantTimeEquals("Bearer " + expected, supplied)) {
                 respond(output, 401, "application/json", jsonError("unauthorized"));
-                return;
+                return keepAlive;
             }
 
+            dispatchRequest(method, path, query, body, output);
+            return keepAlive;
+        } catch (java.net.SocketTimeoutException timeout) {
+            return false;
+        } catch (Exception error) {
+            android.util.Log.w("AutamedicaCompanion", "Local request failed: " + error.getClass().getSimpleName());
+            try {
+                CURRENT_KEEP_ALIVE.set(Boolean.FALSE);
+                JSONObject errBody = new JSONObject()
+                    .put("ok", false)
+                    .put("error", error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage());
+                respondJson(output, 500, errBody);
+            } catch (Exception ignored) {}
+            return false;
+        }
+    }
+
+    static boolean shouldKeepAlive(String httpVersion, String connectionHeaderLower) {
+        if (connectionHeaderLower != null && connectionHeaderLower.contains("close")) return false;
+        if (connectionHeaderLower != null && connectionHeaderLower.contains("keep-alive")) return true;
+        return httpVersion != null && httpVersion.contains("1.1");
+    }
+
+    private void dispatchRequest(
+            String method,
+            String path,
+            Map<String, String> query,
+            byte[] body,
+            OutputStream output) throws Exception {
             if ("GET".equals(method) && "/v1/health".equals(path)) {
                 JSONObject result = new JSONObject();
                 result.put("ok", true);
-                result.put("apiVersion", 6);
+                result.put("apiVersion", 7);
                 result.put("versionName", BuildConfig.VERSION_NAME);
-                result.put("engine", "Companion Execution Engine 5.0 (Multi-Display)");
+                result.put("engine", "Companion Execution Engine 6.0 (Low-Latency)");
                 result.put("accessibility", true);
                 result.put("bind", "127.0.0.1");
                 result.put("port", PORT);
@@ -146,6 +200,9 @@ final class LocalControlServer {
                     .put("browser_state").put("browser_wait").put("browser_nav")
                     .put("runtime_control").put("screen_telemetry").put("guarded_global_actions")
                     .put("multi_display")
+                    .put("http_keepalive").put("vault_memory_cache")
+                    .put("fast_screenshot_webp").put("screenshot_cache")
+                    .put("compose_deep_walk").put("viewport_filter")
                     .put("transactional_snapshot").put("scroll_path").put("scroll_until")
                     .put("ime_action").put("long_press").put("double_tap")
                     .put("wait_for_text").put("assert_package").put("event_bus"));
@@ -160,7 +217,9 @@ final class LocalControlServer {
                     || "1".equals(query.get("compact"))
                     || "true".equalsIgnoreCase(query.get("compact"));
                 int displayId = (int) parseLong(query.get("display_id"), 0L);
-                JSONObject result = compact ? service.getCompactUi(displayId) : service.getUiTree(displayId);
+                boolean viewportOnly = "1".equals(query.get("viewport_only"))
+                    || "true".equalsIgnoreCase(query.get("viewport_only"));
+                JSONObject result = compact ? service.getCompactUi(displayId, viewportOnly) : service.getUiTree(displayId);
                 respondJson(output, 200, result);
             } else if ("GET".equals(method) && "/v1/events/recent".equals(path)) {
                 long sinceSeq = parseLong(query.get("since_seq"), 0L);
@@ -234,8 +293,17 @@ final class LocalControlServer {
                 respondJson(output, 200, result);
             } else if ("GET".equals(method) && "/v1/screenshot".equals(path)) {
                 int displayId = (int) parseLong(query.get("display_id"), 0L);
-                byte[] image = android.util.Base64.decode(service.screenshotBase64(displayId), android.util.Base64.NO_WRAP);
-                respond(output, 200, "image/png", image);
+                float scale = parseFloat(query.get("scale"), 1.0f);
+                String format = query.getOrDefault("format", "png");
+                int quality = (int) parseLong(query.get("quality"), 75L);
+                boolean fresh = "1".equals(query.get("fresh")) || "true".equalsIgnoreCase(query.get("fresh"));
+                AccessibilityControlService.ScreenshotPayload shot =
+                    service.captureScreenshot(displayId, scale, format, quality, fresh);
+                String extraHeaders = "X-Screenshot-Cached: " + (shot.cached ? "1" : "0") + "\r\n"
+                    + "X-Screenshot-Width: " + shot.width + "\r\n"
+                    + "X-Screenshot-Height: " + shot.height + "\r\n"
+                    + "X-Ui-Generation: " + shot.generation + "\r\n";
+                respondWithHeaders(output, 200, shot.contentType, extraHeaders, shot.bytes);
             } else if ("POST".equals(method)) {
                 String bodyStr = body.length == 0 ? "{}" : new String(body, StandardCharsets.UTF_8);
                 JSONObject args = new JSONObject(bodyStr);
@@ -580,17 +648,6 @@ final class LocalControlServer {
             } else {
                 respond(output, 404, "application/json", jsonError("unknown endpoint"));
             }
-        } catch (Exception error) {
-            android.util.Log.w("AutamedicaCompanion", "Local request failed: " + error.getClass().getSimpleName());
-            if (errorOutput != null) {
-                try {
-                    JSONObject body = new JSONObject()
-                        .put("ok", false)
-                        .put("error", error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage());
-                    respondJson(errorOutput, 500, body);
-                } catch (Exception ignored) {}
-            }
-        }
     }
 
     private void handleBatch(OutputStream output, JSONObject args) throws Exception {
@@ -896,6 +953,12 @@ final class LocalControlServer {
         catch (NumberFormatException ignored) { return fallback; }
     }
 
+    private static float parseFloat(String value, float fallback) {
+        if (value == null || value.isEmpty()) return fallback;
+        try { return Float.parseFloat(value); }
+        catch (NumberFormatException ignored) { return fallback; }
+    }
+
     private static String readLine(InputStream input) throws Exception {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         int previous = -1;
@@ -924,14 +987,22 @@ final class LocalControlServer {
     }
 
     private static void respond(OutputStream output, int status, String type, byte[] body) throws Exception {
+        respondWithHeaders(output, status, type, "", body);
+    }
+
+    private static void respondWithHeaders(OutputStream output, int status, String type, String extraHeaders, byte[] body) throws Exception {
         String label = status == 200 ? "OK" : status == 400 ? "Bad Request" : status == 401 ? "Unauthorized" :
             status == 404 ? "Not Found" : status == 408 ? "Request Timeout" :
             status == 409 ? "Action Failed" : status == 413 ? "Payload Too Large" : "Internal Server Error";
+        boolean keepAlive = Boolean.TRUE.equals(CURRENT_KEEP_ALIVE.get());
+        String conn = keepAlive ? "Connection: keep-alive\r\nKeep-Alive: timeout=30, max=" + MAX_KEEPALIVE_REQUESTS + "\r\n"
+            : "Connection: close\r\n";
         String headers = "HTTP/1.1 " + status + " " + label + "\r\n"
             + "Content-Type: " + type + "\r\n"
             + "Content-Length: " + body.length + "\r\n"
             + "Cache-Control: no-store\r\n"
-            + "Connection: close\r\n\r\n";
+            + (extraHeaders == null ? "" : extraHeaders)
+            + conn + "\r\n";
         output.write(headers.getBytes(StandardCharsets.US_ASCII));
         output.write(body);
         output.flush();

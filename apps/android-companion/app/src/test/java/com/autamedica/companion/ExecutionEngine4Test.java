@@ -177,4 +177,28 @@ public class ExecutionEngine4Test {
         assertFalse(sanitizedWs.contains("Connection: close\r\n"));
         assertFalse(sanitizedWs.toLowerCase().contains("authorization:"));
     }
+
+    @Test
+    public void keepAliveAndFastScreenshotParamNormalization() {
+        assertTrue(LocalControlServer.shouldKeepAlive("HTTP/1.1", ""));
+        assertTrue(LocalControlServer.shouldKeepAlive("HTTP/1.1", "keep-alive"));
+        assertFalse(LocalControlServer.shouldKeepAlive("HTTP/1.1", "close"));
+        assertFalse(LocalControlServer.shouldKeepAlive("HTTP/1.0", ""));
+        assertTrue(LocalControlServer.shouldKeepAlive("HTTP/1.0", "keep-alive"));
+
+        assertEquals(0.25f, AccessibilityControlService.clampScreenshotScale(0.1f), 0.0001f);
+        assertEquals(0.5f, AccessibilityControlService.clampScreenshotScale(0.5f), 0.0001f);
+        assertEquals(1.0f, AccessibilityControlService.clampScreenshotScale(2.5f), 0.0001f);
+        assertEquals(1.0f, AccessibilityControlService.clampScreenshotScale(Float.NaN), 0.0001f);
+
+        assertEquals(30, AccessibilityControlService.clampScreenshotQuality(5));
+        assertEquals(75, AccessibilityControlService.clampScreenshotQuality(75));
+        assertEquals(100, AccessibilityControlService.clampScreenshotQuality(140));
+
+        assertEquals("webp", AccessibilityControlService.normalizeScreenshotFormat("WEBP"));
+        assertEquals("jpeg", AccessibilityControlService.normalizeScreenshotFormat("jpg"));
+        assertEquals("jpeg", AccessibilityControlService.normalizeScreenshotFormat("jpeg"));
+        assertEquals("png", AccessibilityControlService.normalizeScreenshotFormat("unknown"));
+        assertEquals("png", AccessibilityControlService.normalizeScreenshotFormat(null));
+    }
 }
