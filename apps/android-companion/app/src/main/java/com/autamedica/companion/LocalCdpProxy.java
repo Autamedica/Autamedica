@@ -37,7 +37,9 @@ final class LocalCdpProxy {
         Thread thread = new Thread(() -> {
             while (running) {
                 try {
-                    ServerSocket candidate = new ServerSocket(PORT, 32, InetAddress.getByName("127.0.0.1"));
+                    ServerSocket candidate = new ServerSocket();
+                    candidate.setReuseAddress(true);
+                    candidate.bind(new java.net.InetSocketAddress(InetAddress.getByName("127.0.0.1"), PORT), 32);
                     listener = candidate;
                     while (running) {
                         Socket socket = candidate.accept();
@@ -173,16 +175,31 @@ final class LocalCdpProxy {
             supplied.getBytes(StandardCharsets.UTF_8));
     }
 
-    private static String sanitizeRequest(String header, boolean websocket) {
+    static String sanitizeRequest(String header, boolean websocket) {
         String[] lines = header.split("\\r\\n");
         StringBuilder out = new StringBuilder();
-        for (String line : lines) {
+        boolean sawHost = false;
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
             if (line.isEmpty()) continue;
+            if (i == 0) {
+                out.append(line).append("\r\n");
+                continue;
+            }
             String lower = line.toLowerCase(Locale.ROOT);
             if (lower.startsWith("authorization:")) continue;
             if (!websocket && lower.startsWith("connection:")) continue;
             if (lower.startsWith("accept-encoding:")) continue;
+            if (lower.startsWith("host:")) {
+                // Chromium 125+ WebView DevTools rejects non-localhost Host headers on abstract sockets.
+                out.append("Host: localhost\r\n");
+                sawHost = true;
+                continue;
+            }
             out.append(line).append("\r\n");
+        }
+        if (!sawHost) {
+            out.append("Host: localhost\r\n");
         }
         if (!websocket) {
             out.append("Accept-Encoding: identity\r\n");

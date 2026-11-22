@@ -2,10 +2,28 @@
 import readline from "node:readline";
 import { chromium } from "playwright-core";
 
-const BASE = process.env.AUTAMEDICA_ANDROID_URL || "http://127.0.0.1:18765";
-const CDP = process.env.AUTAMEDICA_CDP_URL || "http://127.0.0.1:18766";
+const DEFAULT_CANDIDATE_BASES = [
+  process.env.AUTAMEDICA_ANDROID_URL,
+  "http://127.0.0.1:18775",
+  "http://127.0.0.1:18765"
+].filter((v, i, arr) => Boolean(v) && arr.indexOf(v) === i);
+const EXPLICIT_CDP = process.env.AUTAMEDICA_CDP_URL || "";
 const TOKEN = process.env.AUTAMEDICA_ANDROID_TOKEN || "";
 const PROTOCOL = "2024-11-05";
+
+let activeBase = DEFAULT_CANDIDATE_BASES[0] || "http://127.0.0.1:18775";
+
+function pairedCdpUrl(baseUrl) {
+  if (EXPLICIT_CDP && baseUrl === process.env.AUTAMEDICA_ANDROID_URL) return EXPLICIT_CDP;
+  try {
+    const u = new URL(baseUrl);
+    const port = Number(u.port || 18765);
+    u.port = String(port + 1);
+    return u.toString().replace(/\/$/, "");
+  } catch {
+    return EXPLICIT_CDP || "http://127.0.0.1:18766";
+  }
+}
 
 if (!TOKEN || TOKEN.length < 64) {
   process.stderr.write("AUTAMEDICA_ANDROID_TOKEN (256-bit token) is required.\n");
@@ -42,10 +60,11 @@ const tools = [
   { name: "android_recent_notifications", description: "Devuelve las notificaciones recientes capturadas por NotificationListenerService.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "android_type", description: "Escribe en el campo Android que tenga el foco.", inputSchema: { type: "object", properties: { text: { type: "string" } }, required: ["text"], additionalProperties: false } },
   { name: "android_swipe", description: "Ejecuta un gesto Android.", inputSchema: { type: "object", properties: { x1: { type: "number" }, y1: { type: "number" }, x2: { type: "number" }, y2: { type: "number" }, duration_ms: { type: "integer", minimum: 50, maximum: 5000 } }, required: ["x1", "y1", "x2", "y2"], additionalProperties: false } },
-  { name: "android_back", description: "Ejecuta Atrás en Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
-  { name: "android_home", description: "Vuelve al inicio de Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
-  { name: "android_recents", description: "Abre apps recientes en Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_back", description: "Ejecuta Atrás en Android (con guardia opcional expected_package para evitar cerrar otra app o Termux).", inputSchema: { type: "object", properties: { expected_package: { type: "string" } }, additionalProperties: false } },
+  { name: "android_home", description: "Vuelve al inicio de Android (con guardia opcional expected_package).", inputSchema: { type: "object", properties: { expected_package: { type: "string" } }, additionalProperties: false } },
+  { name: "android_recents", description: "Abre apps recientes en Android.", inputSchema: { type: "object", properties: { expected_package: { type: "string" } }, additionalProperties: false } },
   { name: "android_notifications", description: "Despliega la barra de notificaciones en Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_runtime", description: "Inicia o detiene el Foreground Service de Autamedica Companion (PARTIAL_WAKE_LOCK para automatización con pantalla apagada en MIUI).", inputSchema: { type: "object", properties: { action: { type: "string", enum: ["start", "stop"] } }, required: ["action"], additionalProperties: false } },
   { name: "android_list_packages", description: "Lista las aplicaciones instaladas y lanzables en Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "android_device_info", description: "Devuelve batería, carga, screen_off_timeout, stay_on_while_plugged_in y resolución de pantalla.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "android_batch", description: "Ejecuta hasta 60 acciones Android en una sola llamada HTTP (open, assert_package, wait_for_text, tap, click, click_text, set_text, scroll, scroll_until, ime_action, long_press, double_tap, paste, type, swipe, back, home, recents, sleep, ui, ui_compact) con guardia transaccional expected_package y snapshot_id.", inputSchema: { type: "object", properties: { steps: { type: "array", items: { type: "object" } }, expected_package: { type: "string" }, snapshot_id: { type: "string" }, strict_generation: { type: "boolean" } }, required: ["steps"], additionalProperties: false } },
@@ -53,7 +72,11 @@ const tools = [
 
   { name: "browser_status", description: "Comprueba conexión CDP, motor Chromium/WebView, pestañas, URL y título.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "browser_navigate", description: "Abre el navegador Companion y navega a cualquier sitio HTTP/HTTPS con Internet.", inputSchema: { type: "object", properties: { url: { type: "string" }, wait_until: { type: "string", enum: ["load", "domcontentloaded", "networkidle", "commit"] } }, required: ["url"], additionalProperties: false } },
-  { name: "browser_snapshot", description: "Extrae en una sola llamada todos los controles DOM interactivos visibles (ref, selector, label, value, checked) del WebView.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "browser_state", description: "Devuelve estado rápido del WebView (ready, url, title, progress, canGoBack, canGoForward) vía Tier-1 HTTP sin requerir Playwright.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "browser_wait", description: "Espera en el dispositivo a que cargue el documento o aparezca un selector CSS o texto en el WebView (Tier-1 HTTP).", inputSchema: { type: "object", properties: { selector: { type: "string" }, text: { type: "string" }, timeout_ms: { type: "integer", minimum: 200, maximum: 20000 } }, additionalProperties: false } },
+  { name: "browser_back", description: "Navega hacia atrás en el historial del WebView Companion.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "browser_forward", description: "Navega hacia adelante en el historial del WebView Companion.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "browser_snapshot", description: "Extrae en una sola llamada los controles DOM interactivos visibles (ref, selector, label, value, checked) del WebView.", inputSchema: { type: "object", properties: { include_hidden: { type: "boolean" } }, additionalProperties: false } },
   { name: "web_fetch_clean", description: "Tier 0 sin navegador: descarga una URL por HTTP y devuelve texto semántico/JSON y enlaces en milisegundos.", inputSchema: { type: "object", properties: { url: { type: "string" }, max_chars: { type: "integer", minimum: 500, maximum: 50000 } }, required: ["url"], additionalProperties: false } },
   { name: "browser_click", description: "Playwright locator(selector).click() con auto-wait y comprobación de visibilidad.", inputSchema: { type: "object", properties: { selector: { type: "string" }, timeout_ms: { type: "integer", minimum: 500, maximum: 60000 } }, required: ["selector"], additionalProperties: false } },
   { name: "browser_fill", description: "Playwright locator(selector).fill(value), con eventos input/change.", inputSchema: { type: "object", properties: { selector: { type: "string" }, value: { type: "string" }, timeout_ms: { type: "integer", minimum: 500, maximum: 60000 } }, required: ["selector", "value"], additionalProperties: false } },
@@ -76,16 +99,27 @@ const tools = [
 ];
 
 async function request(path, options = {}) {
-  const response = await fetch(BASE + path, {
-    ...options,
-    headers: { Authorization: "Bearer " + TOKEN, ...(options.headers || {}) },
-    signal: AbortSignal.timeout(20000)
-  });
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error("Android Companion HTTP " + response.status + ": " + message.slice(0, 500));
+  const candidates = [activeBase, ...DEFAULT_CANDIDATE_BASES.filter(b => b !== activeBase)];
+  let lastNetworkError = null;
+  for (const base of candidates) {
+    try {
+      const response = await fetch(base + path, {
+        ...options,
+        headers: { Authorization: "Bearer " + TOKEN, ...(options.headers || {}) },
+        signal: AbortSignal.timeout(25000)
+      });
+      activeBase = base;
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error("Android Companion HTTP " + response.status + ": " + message.slice(0, 500));
+      }
+      return response;
+    } catch (err) {
+      if (String(err?.message || "").startsWith("Android Companion HTTP ")) throw err;
+      lastNetworkError = err;
+    }
   }
-  return response;
+  throw lastNetworkError || new Error("Android Companion no responde en puertos " + candidates.join(", "));
 }
 
 async function post(path, args) {
@@ -151,7 +185,8 @@ async function ensureBrowser(timeoutMs = 20000) {
     let lastError;
     while (Date.now() < deadline) {
       try {
-        browser = await chromium.connectOverCDP(CDP, {
+        const cdpEndpoint = pairedCdpUrl(activeBase);
+        browser = await chromium.connectOverCDP(cdpEndpoint, {
           headers: { Authorization: "Bearer " + TOKEN },
           timeout: Math.min(10000, Math.max(1500, deadline - Date.now()))
         });
@@ -166,7 +201,7 @@ async function ensureBrowser(timeoutMs = 20000) {
         await new Promise(resolve => setTimeout(resolve, 350));
       }
     }
-    throw new Error("CDP no disponible en " + CDP + ". Abrí Autamedica Companion y activá Accesibilidad. Último error: " + String(lastError?.message || lastError));
+    throw new Error("CDP no disponible en " + pairedCdpUrl(activeBase) + ". Abrí Autamedica Companion y activá Accesibilidad. Último error: " + String(lastError?.message || lastError));
   })();
   try { return await connecting; }
   finally { connecting = null; }
@@ -200,8 +235,18 @@ async function callTool(name, args) {
       return [{ type: "text", text: JSON.stringify(await (await request("/v1/ui/compact")).json()) }];
     case "android_set_text":
       return [{ type: "text", text: JSON.stringify(await post("/v1/set_text", args)) }];
-    case "browser_snapshot":
-      return [{ type: "text", text: JSON.stringify(await (await request("/v1/browser/snapshot")).json()) }];
+    case "browser_state":
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/browser/state")).json()) }];
+    case "browser_wait":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/browser/wait", args)) }];
+    case "browser_back":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/browser/back", {})) }];
+    case "browser_forward":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/browser/forward", {})) }];
+    case "browser_snapshot": {
+      const qs = args.include_hidden ? "?all=1" : "";
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/browser/snapshot" + qs)).json()) }];
+    }
     case "web_fetch_clean": {
       const targetUrl = requireHttpUrl(args.url);
       const maxChars = Math.max(500, Math.min(50000, Number(args.max_chars || 16000)));
@@ -268,13 +313,17 @@ async function callTool(name, args) {
     case "android_swipe":
       return [{ type: "text", text: JSON.stringify(await post("/v1/swipe", args)) }];
     case "android_back":
-      return [{ type: "text", text: JSON.stringify(await post("/v1/back", {})) }];
+      return [{ type: "text", text: JSON.stringify(await post("/v1/back", args)) }];
     case "android_home":
-      return [{ type: "text", text: JSON.stringify(await post("/v1/home", {})) }];
+      return [{ type: "text", text: JSON.stringify(await post("/v1/home", args)) }];
     case "android_recents":
-      return [{ type: "text", text: JSON.stringify(await post("/v1/recents", {})) }];
+      return [{ type: "text", text: JSON.stringify(await post("/v1/recents", args)) }];
     case "android_notifications":
       return [{ type: "text", text: JSON.stringify(await post("/v1/notifications", {})) }];
+    case "android_runtime": {
+      const endpoint = args.action === "stop" ? "/v1/runtime/stop" : "/v1/runtime/start";
+      return [{ type: "text", text: JSON.stringify(await post(endpoint, {})) }];
+    }
     case "android_list_packages":
       return [{ type: "text", text: JSON.stringify(await (await request("/v1/packages")).json()) }];
     case "android_device_info":
@@ -307,9 +356,14 @@ async function callTool(name, args) {
       if (!browser?.isConnected()) {
         await post("/v1/browser/navigate", { url });
       }
-      const page = await ensurePage();
-      await page.goto(url, { waitUntil, timeout: 60000 });
-      return [{ type: "text", text: JSON.stringify({ url: page.url(), title: await page.title(), browser: "Chromium WebView via CDP" }) }];
+      try {
+        const page = await ensurePage();
+        await page.goto(url, { waitUntil, timeout: 60000 });
+        return [{ type: "text", text: JSON.stringify({ url: page.url(), title: await page.title(), browser: "Chromium WebView via CDP" }) }];
+      } catch {
+        const state = await post("/v1/browser/wait", { timeout_ms: 10000 }).catch(() => ({ ok: true, url }));
+        return [{ type: "text", text: JSON.stringify({ ...state, browser: "Chromium WebView via Tier-1 HTTP fallback" }) }];
+      }
     }
     case "browser_status": {
       const b = await ensureBrowser(5000);
@@ -322,14 +376,26 @@ async function callTool(name, args) {
       }) }];
     }
     case "browser_click": {
-      const page = await ensurePage();
-      await page.locator(args.selector).click({ timeout: Number(args.timeout_ms || 15000) });
-      return [{ type: "text", text: JSON.stringify({ clicked: args.selector, url: page.url() }) }];
+      try {
+        const page = await ensurePage();
+        await page.locator(args.selector).click({ timeout: Number(args.timeout_ms || 15000) });
+        return [{ type: "text", text: JSON.stringify({ clicked: args.selector, url: page.url() }) }];
+      } catch (cdpErr) {
+        const fallback = await post("/v1/browser/click", { selector: args.selector });
+        if (fallback.ok) return [{ type: "text", text: JSON.stringify({ clicked: args.selector, mode: "tier1_http" }) }];
+        throw cdpErr;
+      }
     }
     case "browser_fill": {
-      const page = await ensurePage();
-      await page.locator(args.selector).fill(args.value, { timeout: Number(args.timeout_ms || 15000) });
-      return [{ type: "text", text: JSON.stringify({ filled: args.selector }) }];
+      try {
+        const page = await ensurePage();
+        await page.locator(args.selector).fill(args.value, { timeout: Number(args.timeout_ms || 15000) });
+        return [{ type: "text", text: JSON.stringify({ filled: args.selector }) }];
+      } catch (cdpErr) {
+        const fallback = await post("/v1/browser/fill", { selector: args.selector, value: args.value });
+        if (fallback.ok) return [{ type: "text", text: JSON.stringify({ filled: args.selector, mode: "tier1_http" }) }];
+        throw cdpErr;
+      }
     }
     case "browser_get_text": {
       const page = await ensurePage();
@@ -338,14 +404,24 @@ async function callTool(name, args) {
       return [{ type: "text", text: text.slice(0, 30000) }];
     }
     case "browser_get_url": {
-      const page = await ensurePage();
-      return [{ type: "text", text: JSON.stringify({ url: redactUrl(page.url()), title: await page.title() }) }];
+      try {
+        const page = await ensurePage();
+        return [{ type: "text", text: JSON.stringify({ url: redactUrl(page.url()), title: await page.title() }) }];
+      } catch {
+        const st = await (await request("/v1/browser/state")).json();
+        return [{ type: "text", text: JSON.stringify({ url: redactUrl(st.url || ""), title: st.title || "", mode: "tier1_http" }) }];
+      }
     }
     case "browser_evaluate": {
-      const page = await ensurePage();
       if (String(args.script || "").length > 12000) throw new Error("JavaScript excede 12.000 caracteres.");
-      const value = await page.evaluate(source => (0, eval)(source), args.script);
-      return [{ type: "text", text: JSON.stringify(value === undefined ? null : value).slice(0, 30000) }];
+      try {
+        const page = await ensurePage();
+        const value = await page.evaluate(source => (0, eval)(source), args.script);
+        return [{ type: "text", text: JSON.stringify(value === undefined ? null : value).slice(0, 30000) }];
+      } catch {
+        const res = await post("/v1/browser/evaluate", { script: args.script });
+        return [{ type: "text", text: String(res.value ?? "null").slice(0, 30000) }];
+      }
     }
     case "browser_screenshot": {
       const page = await ensurePage();
@@ -372,9 +448,14 @@ async function callTool(name, args) {
       return [{ type: "text", text: JSON.stringify(events) }];
     }
     case "browser_reload": {
-      const page = await ensurePage();
-      await page.reload({ waitUntil: "domcontentloaded", timeout: 60000 });
-      return [{ type: "text", text: JSON.stringify({ reloaded: true, url: redactUrl(page.url()) }) }];
+      try {
+        const page = await ensurePage();
+        await page.reload({ waitUntil: "domcontentloaded", timeout: 60000 });
+        return [{ type: "text", text: JSON.stringify({ reloaded: true, url: redactUrl(page.url()) }) }];
+      } catch {
+        const res = await post("/v1/browser/reload", {});
+        return [{ type: "text", text: JSON.stringify({ reloaded: Boolean(res.ok), mode: "tier1_http" }) }];
+      }
     }
     case "browser_cdp_send": {
       const page = await ensurePage();
@@ -434,7 +515,7 @@ for await (const line of rl) {
       send({ jsonrpc: "2.0", id, result: {
         protocolVersion: PROTOCOL,
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: "autamedica-android", version: "0.4.0" }
+        serverInfo: { name: "autamedica-android", version: "0.5.0" }
       }});
     } else if (message.method === "ping") {
       send({ jsonrpc: "2.0", id, result: {} });

@@ -1340,6 +1340,40 @@ public final class AccessibilityControlService extends AccessibilityService {
         return onMain(() -> performGlobalAction(action));
     }
 
+    ActionResult globalActionGuarded(int action, String expectedPackage) throws Exception {
+        ActionResult pkgError = checkPackageGuard(expectedPackage);
+        if (pkgError != null) return pkgError;
+        boolean ok = globalAction(action);
+        return ok ? ActionResult.success() : ActionResult.fail("action_failed", "Global action returned false");
+    }
+
+    boolean isScreenInteractive() {
+        try {
+            android.os.PowerManager pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);
+            return pm == null || pm.isInteractive();
+        } catch (Exception ignored) {
+            return true;
+        }
+    }
+
+    boolean isDeviceLocked() {
+        try {
+            android.app.KeyguardManager km = (android.app.KeyguardManager) getSystemService(KEYGUARD_SERVICE);
+            return km != null && km.isKeyguardLocked();
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    boolean isIgnoringBatteryOptimizations() {
+        try {
+            android.os.PowerManager pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);
+            return pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
     boolean openBrowser(String url) throws Exception {
         boolean requested = onMain(() -> {
             android.content.Intent intent = new android.content.Intent(this, BrowserActivity.class);
@@ -1423,6 +1457,11 @@ public final class AccessibilityControlService extends AccessibilityService {
             try {
                 info.put("stayOnWhilePluggedIn", android.provider.Settings.Global.getInt(getContentResolver(), android.provider.Settings.Global.STAY_ON_WHILE_PLUGGED_IN));
             } catch (Exception ignored) {}
+            info.put("screenInteractive", isScreenInteractive());
+            info.put("deviceLocked", isDeviceLocked());
+            info.put("ignoringBatteryOptimizations", isIgnoringBatteryOptimizations());
+            info.put("runtimeServiceRunning", CompanionRuntimeService.isRunning());
+            info.put("versionName", BuildConfig.VERSION_NAME);
             return info;
         });
     }

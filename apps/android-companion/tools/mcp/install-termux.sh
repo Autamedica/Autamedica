@@ -59,8 +59,6 @@ cat > "$TARGET/launch-mcp.sh" <<'LAUNCHER'
 set -euo pipefail
 BASE="$(cd "$(dirname "$0")" && pwd)"
 export AUTAMEDICA_ANDROID_TOKEN="$(cat "$BASE/bridge.token")"
-export AUTAMEDICA_ANDROID_URL="http://127.0.0.1:18765"
-export AUTAMEDICA_CDP_URL="http://127.0.0.1:18766"
 exec node "$BASE/mcp-server.mjs"
 LAUNCHER
 chmod 700 "$TARGET/launch-mcp.sh" "$TARGET/bridge.token"

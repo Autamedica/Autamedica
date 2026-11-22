@@ -22,6 +22,7 @@ public final class BrowserActivity extends Activity {
     private final Handler main = new Handler(Looper.getMainLooper());
     private static final int FILE_CHOOSER_REQUEST = 18771;
     private android.webkit.ValueCallback<Uri[]> pendingFileChooser;
+    private volatile int loadProgress = 0;
 
     static boolean isReady() {
         BrowserActivity activity = instance;
@@ -36,21 +37,32 @@ public final class BrowserActivity extends Activity {
         // 256-bit authenticated proxy. No public or Wi-Fi CDP listener is created.
         WebView.setWebContentsDebuggingEnabled(true);
 
-        webView = new WebView(this);
-        webView.getSettings().setJavaScriptEnabled(true);
-        webView.getSettings().setDomStorageEnabled(true);
-        webView.getSettings().setDatabaseEnabled(true);
-        webView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
-        webView.getSettings().setSupportMultipleWindows(true);
-        webView.getSettings().setAllowFileAccess(false);
-        webView.getSettings().setAllowContentAccess(true);
-        webView.getSettings().setSafeBrowsingEnabled(true);
-        webView.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, true);
+        createAndAttachWebView();
+
+        String requested = getIntent().getStringExtra("url");
+        String restored = state == null ? SecureVault.get(this, "browser.lastUrl", "https://www.google.com")
+            : state.getString("lastUrl", SecureVault.get(this, "browser.lastUrl", "https://www.google.com"));
+        webView.loadUrl(isWebUrl(requested) ? requested : restored);
+    }
+
+    private void createAndAttachWebView() {
+        loadProgress = 0;
+        WebView created = new WebView(this);
+        created.getSettings().setJavaScriptEnabled(true);
+        created.getSettings().setDomStorageEnabled(true);
+        created.getSettings().setDatabaseEnabled(true);
+        created.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
+        created.getSettings().setSupportMultipleWindows(true);
+        created.getSettings().setAllowFileAccess(false);
+        created.getSettings().setAllowContentAccess(true);
+        created.getSettings().setSafeBrowsingEnabled(true);
+        created.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, true);
         CookieManager.getInstance().setAcceptCookie(true);
-        CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
-        webView.setWebViewClient(new WebViewClient() {
+        CookieManager.getInstance().setAcceptThirdPartyCookies(created, true);
+        created.setWebViewClient(new WebViewClient() {
             @Override public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+                loadProgress = 100;
                 persistSession(url);
             }
 
@@ -61,13 +73,30 @@ public final class BrowserActivity extends Activity {
 
             @Override public boolean onRenderProcessGone(WebView view, android.webkit.RenderProcessGoneDetail detail) {
                 if (view == webView) {
+                    android.util.Log.w("AutamedicaBrowser", "WebView renderer gone (didCrash=" + detail.didCrash() + "); recreating WebView");
                     String last = SecureVault.get(BrowserActivity.this, "browser.lastUrl", "https://www.google.com");
-                    view.post(() -> view.loadUrl(last));
+                    try {
+                        if (view.getParent() instanceof ViewGroup) {
+                            ((ViewGroup) view.getParent()).removeView(view);
+                        }
+                        view.destroy();
+                    } catch (Exception ignored) {}
+                    webView = null;
+                    main.post(() -> {
+                        if (!isFinishing() && !isDestroyed()) {
+                            createAndAttachWebView();
+                            if (webView != null) webView.loadUrl(last);
+                        }
+                    });
                 }
                 return true;
             }
         });
-        webView.setWebChromeClient(new WebChromeClient() {
+        created.setWebChromeClient(new WebChromeClient() {
+            @Override public void onProgressChanged(WebView view, int newProgress) {
+                loadProgress = newProgress;
+            }
+
             @Override public boolean onShowFileChooser(WebView view,
                     android.webkit.ValueCallback<Uri[]> callback, FileChooserParams params) {
                 if (pendingFileChooser != null) pendingFileChooser.onReceiveValue(null);
@@ -93,14 +122,10 @@ public final class BrowserActivity extends Activity {
                 return false;
             }
         });
-        webView.setLayoutParams(new ViewGroup.LayoutParams(
+        created.setLayoutParams(new ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        setContentView(webView);
-
-        String requested = getIntent().getStringExtra("url");
-        String restored = state == null ? SecureVault.get(this, "browser.lastUrl", "https://www.google.com")
-            : state.getString("lastUrl", SecureVault.get(this, "browser.lastUrl", "https://www.google.com"));
-        webView.loadUrl(isWebUrl(requested) ? requested : restored);
+        webView = created;
+        setContentView(created);
     }
 
     private void persistSession(String url) {
@@ -168,6 +193,63 @@ public final class BrowserActivity extends Activity {
             return true;
         });
         return result.get(15, TimeUnit.SECONDS);
+    }
+
+    public static org.json.JSONObject getState() throws Exception {
+        org.json.JSONObject out = new org.json.JSONObject();
+        BrowserActivity a = instance;
+        if (a == null || a.webView == null) {
+            out.put("ok", true);
+            out.put("ready", false);
+            out.put("url", "");
+            out.put("title", "");
+            out.put("progress", 0);
+            out.put("canGoBack", false);
+            out.put("canGoForward", false);
+            return out;
+        }
+        return a.onMain(() -> {
+            org.json.JSONObject s = new org.json.JSONObject();
+            s.put("ok", true);
+            s.put("ready", a.webView != null);
+            s.put("url", a.webView != null && a.webView.getUrl() != null ? a.webView.getUrl() : "");
+            s.put("title", a.webView != null && a.webView.getTitle() != null ? a.webView.getTitle() : "");
+            s.put("progress", a.loadProgress);
+            s.put("canGoBack", a.webView != null && a.webView.canGoBack());
+            s.put("canGoForward", a.webView != null && a.webView.canGoForward());
+            return s;
+        });
+    }
+
+    public static boolean goBack() throws Exception {
+        BrowserActivity a = require();
+        return a.onMain(() -> {
+            if (a.webView.canGoBack()) {
+                a.webView.goBack();
+                return true;
+            }
+            return false;
+        });
+    }
+
+    public static boolean goForward() throws Exception {
+        BrowserActivity a = require();
+        return a.onMain(() -> {
+            if (a.webView.canGoForward()) {
+                a.webView.goForward();
+                return true;
+            }
+            return false;
+        });
+    }
+
+    public static boolean reloadPage() throws Exception {
+        BrowserActivity a = require();
+        return a.onMain(() -> {
+            a.loadProgress = 0;
+            a.webView.reload();
+            return true;
+        });
     }
 
     private static BrowserActivity require() {

@@ -15,7 +15,35 @@ public final class CompanionRuntimeService extends Service {
     public static final String ACTION_STOP = "com.autamedica.companion.action.STOP_BACKGROUND_BROWSER";
     private static final String CHANNEL_ID = "autamedica_browser_runtime";
     private static final int NOTIFICATION_ID = 18767;
+    private static volatile boolean running;
     private PowerManager.WakeLock wakeLock;
+
+    static boolean isRunning() {
+        return running;
+    }
+
+    static boolean start(android.content.Context context) {
+        try {
+            Intent intent = new Intent(context, CompanionRuntimeService.class).setAction(ACTION_START);
+            if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent);
+            else context.startService(intent);
+            return true;
+        } catch (Exception error) {
+            android.util.Log.w("AutamedicaCompanion", "Could not start runtime service: " + error.getClass().getSimpleName());
+            return false;
+        }
+    }
+
+    static boolean stop(android.content.Context context) {
+        try {
+            Intent intent = new Intent(context, CompanionRuntimeService.class).setAction(ACTION_STOP);
+            context.startService(intent);
+            return true;
+        } catch (Exception error) {
+            android.util.Log.w("AutamedicaCompanion", "Could not stop runtime service: " + error.getClass().getSimpleName());
+            return false;
+        }
+    }
 
     @Override public void onCreate() {
         super.onCreate();
@@ -32,6 +60,7 @@ public final class CompanionRuntimeService extends Service {
 
         startForeground(NOTIFICATION_ID, buildNotification());
         acquireCpuLock();
+        running = true;
         return START_STICKY;
     }
 
@@ -74,6 +103,7 @@ public final class CompanionRuntimeService extends Service {
     }
 
     private void stopRuntime() {
+        running = false;
         if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
         wakeLock = null;
         if (Build.VERSION.SDK_INT >= 24) stopForeground(STOP_FOREGROUND_REMOVE);

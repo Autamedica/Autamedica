@@ -43,14 +43,27 @@ final class LocalControlServer {
         if (running) return;
         running = true;
         Thread acceptThread = new Thread(() -> {
-            try {
-                serverSocket = new ServerSocket(PORT, 32, InetAddress.getByName("127.0.0.1"));
-                while (running) {
-                    Socket socket = serverSocket.accept();
-                    clients.execute(() -> handle(socket));
+            while (running) {
+                try {
+                    ServerSocket candidate = new ServerSocket();
+                    candidate.setReuseAddress(true);
+                    candidate.bind(new java.net.InetSocketAddress(InetAddress.getByName("127.0.0.1"), PORT), 32);
+                    serverSocket = candidate;
+                    while (running) {
+                        Socket socket = candidate.accept();
+                        clients.execute(() -> handle(socket));
+                    }
+                } catch (Exception error) {
+                    if (running) {
+                        android.util.Log.e("AutamedicaCompanion", "Local server listener failed; retrying", error);
+                        try { Thread.sleep(1500); }
+                        catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); break; }
+                    }
+                } finally {
+                    ServerSocket current = serverSocket;
+                    serverSocket = null;
+                    if (current != null) try { current.close(); } catch (Exception ignored) {}
                 }
-            } catch (Exception error) {
-                if (running) android.util.Log.e("AutamedicaCompanion", "Local server stopped", error);
             }
         }, "autamedica-local-accept");
         acceptThread.setDaemon(true);
@@ -107,8 +120,9 @@ final class LocalControlServer {
             if ("GET".equals(method) && "/v1/health".equals(path)) {
                 JSONObject result = new JSONObject();
                 result.put("ok", true);
-                result.put("apiVersion", 4);
-                result.put("engine", "Companion Execution Engine 4.0");
+                result.put("apiVersion", 5);
+                result.put("versionName", BuildConfig.VERSION_NAME);
+                result.put("engine", "Companion Execution Engine 4.5");
                 result.put("accessibility", true);
                 result.put("bind", "127.0.0.1");
                 result.put("port", PORT);
@@ -120,11 +134,17 @@ final class LocalControlServer {
                 result.put("cdpProxyListening", service.isCdpListening());
                 result.put("webViewDevToolsSocketAvailable", service.isWebViewSocketAvailable());
                 result.put("notificationListenerConnected", CompanionNotificationListener.isConnected());
+                result.put("screenInteractive", service.isScreenInteractive());
+                result.put("deviceLocked", service.isDeviceLocked());
+                result.put("ignoringBatteryOptimizations", service.isIgnoringBatteryOptimizations());
+                result.put("runtimeServiceRunning", CompanionRuntimeService.isRunning());
                 result.put("eventBusSeq", service.getEventBus().getLatestSeq());
                 result.put("uiGeneration", service.getEventBus().getGeneration());
                 result.put("capabilities", new JSONArray()
                     .put("ui_deep").put("ui_compact").put("set_text").put("click_text")
                     .put("paste").put("batch").put("batch_v4").put("browser_snapshot")
+                    .put("browser_state").put("browser_wait").put("browser_nav")
+                    .put("runtime_control").put("screen_telemetry").put("guarded_global_actions")
                     .put("transactional_snapshot").put("scroll_path").put("scroll_until")
                     .put("ime_action").put("long_press").put("double_tap")
                     .put("wait_for_text").put("assert_package").put("event_bus"));
@@ -141,8 +161,12 @@ final class LocalControlServer {
                 Set<String> types = CompanionEventBus.parseTypes(query.get("types"));
                 String pkg = query.getOrDefault("package", "");
                 respondJson(output, 200, service.getRecentEvents(sinceSeq, limit, types, pkg));
+            } else if ("GET".equals(method) && "/v1/browser/state".equals(path)) {
+                respondJson(output, 200, BrowserActivity.getState());
             } else if ("GET".equals(method) && "/v1/browser/snapshot".equals(path)) {
+                boolean includeHidden = "1".equals(query.get("all")) || "true".equalsIgnoreCase(query.get("all"));
                 String snapScript = "(function(){"
+                    + "const includeHidden=" + (includeHidden ? "true" : "false") + ";"
                     + "function uniqSel(e){"
                     + "if(e.id)return '#'+CSS.escape(e.id);"
                     + "const tid=e.getAttribute('data-testid')||e.getAttribute('data-test');"
@@ -156,14 +180,21 @@ final class LocalControlServer {
                     + "let idx=1,sib=cur;while((sib=sib.previousElementSibling)){if(sib.tagName===cur.tagName)idx++;}"
                     + "parts.unshift(tag+':nth-of-type('+idx+')');cur=cur.parentElement;"
                     + "}return parts.join(' > ');}"
-                    + "const els=[...document.querySelectorAll('input,textarea,select,button,a,[role=button],[role=checkbox],[role=radio]')].slice(0,250);"
-                    + "return JSON.stringify(els.map((e,i)=>{"
-                    + "const r=e.getBoundingClientRect();"
+                    + "const raw=[...document.querySelectorAll('input,textarea,select,button,a,[contenteditable=\"true\"],[role=button],[role=checkbox],[role=radio],[role=textbox],[role=combobox],[role=tab],[role=menuitem],[role=switch]')];"
+                    + "const out=[];"
+                    + "for(let i=0;i<raw.length&&out.length<250;i++){"
+                    + "const e=raw[i];const r=e.getBoundingClientRect();"
+                    + "const st=window.getComputedStyle(e);"
+                    + "const vis=r.width>0&&r.height>0&&st.visibility!=='hidden'&&st.display!=='none';"
+                    + "if(!includeHidden&&!vis)continue;"
                     + "const lbl=(e.labels&&e.labels[0]?e.labels[0].innerText:'')||e.getAttribute('aria-label')||e.placeholder||e.innerText||'';"
-                    + "return {ref:'w'+(i+1),tag:e.tagName.toLowerCase(),type:e.type||'',selector:uniqSel(e),label:lbl.trim().slice(0,120),value:(e.type==='password'?'[redacted]':(e.value||'')).slice(0,120),checked:Boolean(e.checked),disabled:Boolean(e.disabled),visible:r.width>0&&r.height>0};"
-                    + "}));})()";
+                    + "out.push({ref:'w'+(out.length+1),tag:e.tagName.toLowerCase(),type:e.type||e.getAttribute('role')||'',selector:uniqSel(e),label:lbl.trim().slice(0,120),value:(e.type==='password'?'[redacted]':(e.value||e.textContent||'')).trim().slice(0,120),checked:Boolean(e.checked||e.getAttribute('aria-checked')==='true'),disabled:Boolean(e.disabled||e.getAttribute('aria-disabled')==='true'),visible:vis});"
+                    + "}return JSON.stringify(out);})()";
+                JSONObject state = BrowserActivity.getState();
                 JSONObject snapshot = new JSONObject();
                 snapshot.put("ok", true);
+                snapshot.put("url", state.optString("url", ""));
+                snapshot.put("title", state.optString("title", ""));
                 snapshot.put("value", BrowserActivity.evaluate(snapScript));
                 respondJson(output, 200, snapshot);
             } else if ("GET".equals(method) && "/v1/packages".equals(path)) {
@@ -394,23 +425,37 @@ final class LocalControlServer {
                         return;
                     }
                     case "/v1/back": {
-                        boolean ok = service.globalAction(AccessibilityService.GLOBAL_ACTION_BACK);
-                        respondJson(output, ok ? 200 : 409, new JSONObject().put("ok", ok));
+                        respondAction(output, service.globalActionGuarded(
+                            AccessibilityService.GLOBAL_ACTION_BACK, optStr(args, "expected_package")));
                         return;
                     }
                     case "/v1/home": {
-                        boolean ok = service.globalAction(AccessibilityService.GLOBAL_ACTION_HOME);
-                        respondJson(output, ok ? 200 : 409, new JSONObject().put("ok", ok));
+                        respondAction(output, service.globalActionGuarded(
+                            AccessibilityService.GLOBAL_ACTION_HOME, optStr(args, "expected_package")));
                         return;
                     }
                     case "/v1/recents": {
-                        boolean ok = service.globalAction(AccessibilityService.GLOBAL_ACTION_RECENTS);
-                        respondJson(output, ok ? 200 : 409, new JSONObject().put("ok", ok));
+                        respondAction(output, service.globalActionGuarded(
+                            AccessibilityService.GLOBAL_ACTION_RECENTS, optStr(args, "expected_package")));
                         return;
                     }
                     case "/v1/notifications": {
                         boolean ok = service.globalAction(AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS);
                         respondJson(output, ok ? 200 : 409, new JSONObject().put("ok", ok));
+                        return;
+                    }
+                    case "/v1/runtime/start": {
+                        boolean ok = CompanionRuntimeService.start(service);
+                        respondJson(output, ok ? 200 : 409, new JSONObject()
+                            .put("ok", ok)
+                            .put("runtimeServiceRunning", CompanionRuntimeService.isRunning() || ok));
+                        return;
+                    }
+                    case "/v1/runtime/stop": {
+                        boolean ok = CompanionRuntimeService.stop(service);
+                        respondJson(output, ok ? 200 : 409, new JSONObject()
+                            .put("ok", ok)
+                            .put("runtimeServiceRunning", false));
                         return;
                     }
                     case "/v1/batch": {
@@ -465,6 +510,53 @@ final class LocalControlServer {
                         JSONObject fillResult = new JSONObject();
                         fillResult.put("ok", "true".equals(BrowserActivity.evaluate(fillScript)));
                         respondJson(output, 200, fillResult);
+                        return;
+                    }
+                    case "/v1/browser/back": {
+                        boolean ok = BrowserActivity.goBack();
+                        respondJson(output, ok ? 200 : 409, new JSONObject().put("ok", ok));
+                        return;
+                    }
+                    case "/v1/browser/forward": {
+                        boolean ok = BrowserActivity.goForward();
+                        respondJson(output, ok ? 200 : 409, new JSONObject().put("ok", ok));
+                        return;
+                    }
+                    case "/v1/browser/reload": {
+                        boolean ok = BrowserActivity.reloadPage();
+                        respondJson(output, ok ? 200 : 409, new JSONObject().put("ok", ok));
+                        return;
+                    }
+                    case "/v1/browser/wait": {
+                        String waitSelector = args.optString("selector", "").trim();
+                        String waitText = args.optString("text", "").trim();
+                        long timeoutMs = Math.max(200L, Math.min(20000L, args.optLong("timeout_ms", 8000L)));
+                        long waitStart = SystemClock.uptimeMillis();
+                        long deadline = waitStart + timeoutMs;
+                        boolean matched = false;
+                        while (SystemClock.uptimeMillis() <= deadline) {
+                            if (BrowserActivity.isReady()) {
+                                String checkScript;
+                                if (!waitSelector.isEmpty()) {
+                                    checkScript = "(function(){const e=document.querySelector(" + JSONObject.quote(waitSelector) + ");if(!e)return false;const r=e.getBoundingClientRect();const st=window.getComputedStyle(e);return r.width>0&&r.height>0&&st.visibility!=='hidden'&&st.display!=='none';})()";
+                                } else if (!waitText.isEmpty()) {
+                                    checkScript = "(function(){const b=document.body?document.body.innerText:'';return b.toLowerCase().includes(" + JSONObject.quote(waitText.toLowerCase(Locale.ROOT)) + ");})()";
+                                } else {
+                                    checkScript = "(function(){return document.readyState==='complete';})()";
+                                }
+                                if ("true".equals(BrowserActivity.evaluate(checkScript))) {
+                                    matched = true;
+                                    break;
+                                }
+                            }
+                            Thread.sleep(150L);
+                        }
+                        JSONObject state = BrowserActivity.getState();
+                        state.put("ok", matched);
+                        state.put("matched", matched);
+                        state.put("elapsedMs", SystemClock.uptimeMillis() - waitStart);
+                        if (!matched) state.put("reason", "timeout");
+                        respondJson(output, matched ? 200 : 408, state);
                         return;
                     }
                     default:
@@ -647,13 +739,13 @@ final class LocalControlServer {
                     break;
                 }
                 case "back":
-                    stepOk = service.globalAction(AccessibilityService.GLOBAL_ACTION_BACK);
+                    actionResult = service.globalActionGuarded(AccessibilityService.GLOBAL_ACTION_BACK, stepPkg);
                     break;
                 case "home":
-                    stepOk = service.globalAction(AccessibilityService.GLOBAL_ACTION_HOME);
+                    actionResult = service.globalActionGuarded(AccessibilityService.GLOBAL_ACTION_HOME, stepPkg);
                     break;
                 case "recents":
-                    stepOk = service.globalAction(AccessibilityService.GLOBAL_ACTION_RECENTS);
+                    actionResult = service.globalActionGuarded(AccessibilityService.GLOBAL_ACTION_RECENTS, stepPkg);
                     break;
                 case "sleep": {
                     long ms = Math.max(50, Math.min(5000, step.optLong("ms", 500)));

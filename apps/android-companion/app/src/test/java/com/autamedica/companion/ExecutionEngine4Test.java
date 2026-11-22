@@ -148,4 +148,33 @@ public class ExecutionEngine4Test {
         List<CompanionEventBus.Event> events = bus.recent(0L, 10, Collections.singleton("window_content_changed"), null);
         assertEquals(2, events.size());
     }
+
+    @Test
+    public void cdpProxySanitizesAuthorizationAndRewritesHostToLocalhost() {
+        String rawHttp = "GET /json/version HTTP/1.1\r\n"
+            + "Host: 127.0.0.1:18776\r\n"
+            + "Authorization: Bearer secret-token-value\r\n"
+            + "Accept-Encoding: gzip, deflate\r\n"
+            + "Connection: keep-alive\r\n\r\n";
+
+        String sanitizedHttp = LocalCdpProxy.sanitizeRequest(rawHttp, false);
+        assertTrue(sanitizedHttp.startsWith("GET /json/version HTTP/1.1\r\n"));
+        assertTrue("Host must be rewritten to localhost for Chromium 125+", sanitizedHttp.contains("Host: localhost\r\n"));
+        assertFalse("Authorization must be stripped before upstream socket", sanitizedHttp.toLowerCase().contains("authorization:"));
+        assertTrue(sanitizedHttp.contains("Accept-Encoding: identity\r\n"));
+        assertTrue(sanitizedHttp.contains("Connection: close\r\n"));
+
+        String rawWs = "GET /devtools/browser/123 HTTP/1.1\r\n"
+            + "Host: 127.0.0.1:18776\r\n"
+            + "Upgrade: websocket\r\n"
+            + "Connection: Upgrade\r\n"
+            + "Authorization: Bearer secret-token-value\r\n\r\n";
+
+        String sanitizedWs = LocalCdpProxy.sanitizeRequest(rawWs, true);
+        assertTrue(sanitizedWs.contains("Host: localhost\r\n"));
+        assertTrue(sanitizedWs.contains("Upgrade: websocket\r\n"));
+        assertTrue(sanitizedWs.contains("Connection: Upgrade\r\n"));
+        assertFalse(sanitizedWs.contains("Connection: close\r\n"));
+        assertFalse(sanitizedWs.toLowerCase().contains("authorization:"));
+    }
 }
