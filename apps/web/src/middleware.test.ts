@@ -327,3 +327,20 @@ describe('resolveLegacyRedirect', () => {
     expect(resolveLegacyRedirect('/')).toBeNull();
   });
 });
+
+describe('Memed CSP directives in middleware.ts', () => {
+  it('allows https://*.memed.com.br across script, style, font, connect, and frame directives', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const source = fs.readFileSync(path.resolve(__dirname, 'middleware.ts'), 'utf8');
+    const cspMatch = source.match(/const CSP_DIRECTIVES = \[([\s\S]*?)\]\.join\("; "\);/);
+    expect(cspMatch).not.toBeNull();
+    const block = cspMatch?.[1] ?? '';
+
+    for (const directive of ['script-src', 'style-src', 'font-src', 'connect-src', 'frame-src']) {
+      const line = block.split('\n').find((entry) => entry.includes(`"${directive} `));
+      expect(line, `missing directive ${directive}`).toBeDefined();
+      expect(line).toContain('https://*.memed.com.br');
+    }
+  });
+});
