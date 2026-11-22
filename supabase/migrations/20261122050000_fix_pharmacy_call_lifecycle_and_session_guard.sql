@@ -94,9 +94,10 @@ BEGIN
     RETURN false;
   END IF;
 
-  -- Terminal states cannot transition further.
+  -- Terminal states cannot transition to a different status (preserve invalid_parameter_value / 22023).
   IF call_row.status::text IN ('declined', 'canceled', 'ended') THEN
-    RETURN false;
+    RAISE EXCEPTION 'Invalid call status transition from terminal state % to %', call_row.status, p_status
+      USING ERRCODE = '22023';
   END IF;
 
   -- If ending before call was ever accepted, cancel cleanly instead of raising.
