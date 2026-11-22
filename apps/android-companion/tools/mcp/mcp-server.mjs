@@ -9,6 +9,7 @@ import { chromium } from "playwright-core";
 
 const execFileAsync = promisify(execFile);
 const VDISPLAY_SCRIPT = process.env.AUTAMEDICA_VDISPLAY_SCRIPT || "/root/Autamedica-src/apps/android/e2e/virtual_display.py";
+const FLOWSTORE_SCRIPT = process.env.AUTAMEDICA_FLOWSTORE_SCRIPT || "/root/Autamedica-src/apps/android/e2e/smart_agent.py";
 
 const DEFAULT_CANDIDATE_BASES = [
   process.env.AUTAMEDICA_ANDROID_URL,
@@ -116,7 +117,12 @@ const tools = [
   { name: "vdisplay_swipe", description: "Envía un gesto swipe aislado a la segunda pantalla virtual (input -d <id> swipe).", inputSchema: { type: "object", properties: { x1: { type: "integer" }, y1: { type: "integer" }, x2: { type: "integer" }, y2: { type: "integer" }, duration_ms: { type: "integer", minimum: 50, maximum: 5000 }, display_id: { type: "integer", minimum: 1 } }, required: ["x1", "y1", "x2", "y2"], additionalProperties: false } },
   { name: "vdisplay_text", description: "Escribe texto en el campo enfocado de la segunda pantalla virtual (input -d <id> text).", inputSchema: { type: "object", properties: { text: { type: "string" }, display_id: { type: "integer", minimum: 1 } }, required: ["text"], additionalProperties: false } },
   { name: "vdisplay_keyevent", description: "Envía una tecla (ej. KEYCODE_BACK, KEYCODE_ENTER) aislada a la segunda pantalla virtual.", inputSchema: { type: "object", properties: { keycode: { type: "string" }, display_id: { type: "integer", minimum: 1 } }, required: ["keycode"], additionalProperties: false } },
-  { name: "vdisplay_screenshot", description: "Captura PNG de la segunda pantalla virtual vía ADB screencap -d <id>.", inputSchema: { type: "object", properties: { display_id: { type: "integer", minimum: 1 } }, additionalProperties: false } }
+  { name: "vdisplay_screenshot", description: "Captura PNG de la segunda pantalla virtual vía ADB screencap -d <id>.", inputSchema: { type: "object", properties: { display_id: { type: "integer", minimum: 1 } }, additionalProperties: false } },
+
+  { name: "flow_list", description: "Lista los flujos codificados guardados en FlowStore (recetas determinísticas con self-healing y métricas de ejecución).", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "flow_get", description: "Devuelve la definición JSON completa de un flujo guardado en FlowStore.", inputSchema: { type: "object", properties: { name: { type: "string" } }, required: ["name"], additionalProperties: false } },
+  { name: "flow_save", description: "Guarda o actualiza una receta de flujo en FlowStore (name, target, tier, description, defaults, steps).", inputSchema: { type: "object", properties: { name: { type: "string" }, target: { type: "string" }, tier: { type: "integer", enum: [1, 2] }, description: { type: "string" }, defaults: { type: "object" }, read_only: { type: "boolean" }, steps: { type: "array", items: { type: "object" } } }, required: ["name", "target", "steps"], additionalProperties: false } },
+  { name: "flow_replay", description: "Ejecuta de forma determinística un flujo guardado de FlowStore con overrides de variables y self-healing semántico.", inputSchema: { type: "object", properties: { name: { type: "string" }, overrides: { type: "object" }, return_to_termux: { type: "boolean" } }, required: ["name"], additionalProperties: false } }
 ];
 
 async function request(path, options = {}) {
@@ -250,6 +256,11 @@ async function runVDisplay(cliArgs) {
   const { stdout, stderr } = await execFileAsync("python3", ["-u", VDISPLAY_SCRIPT, ...cliArgs], { timeout: 30000 });
   const text = (stdout || stderr || "{}").trim();
   return text;
+}
+
+async function runFlowStore(cliArgs) {
+  const { stdout, stderr } = await execFileAsync("python3", ["-u", FLOWSTORE_SCRIPT, ...cliArgs], { timeout: 60000 });
+  return (stdout || stderr || "{}").trim();
 }
 
 async function callTool(name, args) {
@@ -595,6 +606,22 @@ async function callTool(name, args) {
       } finally {
         await unlink(tmp).catch(() => {});
       }
+    }
+    case "flow_list":
+      return [{ type: "text", text: await runFlowStore(["list"]) }];
+    case "flow_get":
+      return [{ type: "text", text: await runFlowStore(["show", String(args.name)]) }];
+    case "flow_save":
+      return [{ type: "text", text: await runFlowStore(["save", JSON.stringify(args)]) }];
+    case "flow_replay": {
+      const cli = ["replay", String(args.name)];
+      if (args.overrides && typeof args.overrides === "object") {
+        for (const [k, v] of Object.entries(args.overrides)) {
+          cli.push("--var", `${k}=${v}`);
+        }
+      }
+      if (args.return_to_termux) cli.push("--return-to-termux");
+      return [{ type: "text", text: await runFlowStore(cli) }];
     }
     default:
       throw new Error("Unknown tool: " + name);
