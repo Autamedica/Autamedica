@@ -50,9 +50,10 @@ describe('GET /api/admin/integrations/memed-health', () => {
   });
 
   it('accepts partner credentials on 200 usuarios lookup and returns real flags', async () => {
-    globalThis.fetch = vi.fn(async (input) => {
+    globalThis.fetch = vi.fn(async (input, init) => {
       const url = String(input);
       expect(url).toContain('https://api.memed.com.br/v1/sinapse-prescricao/usuarios/autamedica-healthcheck-readonly');
+      expect(init?.redirect).toBe('manual');
       return new Response(JSON.stringify({
         data: { type: 'usuarios', attributes: { nome: 'Test', token: 'tok' } },
       }), { status: 200, headers: { 'Content-Type': 'application/vnd.api+json' } });

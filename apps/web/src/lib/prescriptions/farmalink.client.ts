@@ -135,8 +135,16 @@ export class FarmalinkClient {
 
   private async requestJson<T>(url: string, init: RequestInit): Promise<T> {
     // Never forward OAuth/password headers or bearer tokens through HTTP redirects.
-    // A redirect should be investigated explicitly rather than followed by this client.
-    const response = await this.fetchImpl(url, { ...init, signal: init.signal ?? AbortSignal.timeout(30_000), redirect: 'error' });
+    // Cloudflare Workers (workerd) does not support redirect: 'error', so use 'manual'
+    // and reject any 3xx redirect response explicitly.
+    const response = await this.fetchImpl(url, {
+      ...init,
+      signal: init.signal ?? AbortSignal.timeout(30_000),
+      redirect: 'manual',
+    });
+    if (response.status >= 300 && response.status < 400) {
+      throw new FarmalinkHttpError(response.status, { error: 'redirect_not_allowed' });
+    }
     const body = await parseJsonResponse(response);
     if (!response.ok) {
       throw new FarmalinkHttpError(response.status, body);

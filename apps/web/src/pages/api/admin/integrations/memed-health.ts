@@ -84,6 +84,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     // return real runtime flags alongside providerReachable=false so admins always see truth.
     let providerReachable = false;
     let providerStatus: number | null = null;
+    let providerErrorType: string | null = null;
     let accepted = false;
 
     if (memedCredentialsConfigured) {
@@ -93,6 +94,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
       url.searchParams.set('secret-key', secretKey);
 
       try {
+        // Cloudflare Workers (workerd) throws TypeError for redirect: 'error'.
+        // Use redirect: 'manual' and explicitly refuse 3xx responses.
         const response = await fetch(url.toString(), {
           method: 'GET',
           headers: {
@@ -101,31 +104,36 @@ export const GET: APIRoute = async ({ request, locals }) => {
             'Cache-Control': 'no-cache',
             'User-Agent': 'Autamedica-Memed-Health/1.0',
           },
-          redirect: 'error',
+          redirect: 'manual',
           signal: AbortSignal.timeout(8000),
         });
         providerReachable = true;
         providerStatus = response.status;
-        const raw = await response.text();
-        let payload: {
-          data?: { type?: unknown; attributes?: unknown };
-          errors?: Array<{ detail?: unknown }>;
-        } | null = null;
-        try {
-          payload = JSON.parse(raw) as typeof payload;
-        } catch {
-          payload = null;
+        if (response.status >= 300 && response.status < 400) {
+          accepted = false;
+        } else {
+          const raw = await response.text();
+          let payload: {
+            data?: { type?: unknown; attributes?: unknown };
+            errors?: Array<{ detail?: unknown }>;
+          } | null = null;
+          try {
+            payload = JSON.parse(raw) as typeof payload;
+          } catch {
+            payload = null;
+          }
+          const doctorFound = response.status === 200
+            && payload?.data?.type === 'usuarios'
+            && Boolean(payload?.data?.attributes && typeof payload.data.attributes === 'object');
+          const doctorNotRegistered = response.status === 404
+            && Array.isArray(payload?.errors)
+            && payload.errors.some((entry) => /nenhum usu[aá]rio encontrado/i.test(String(entry?.detail ?? '')));
+          accepted = Boolean(doctorFound || doctorNotRegistered);
         }
-        const doctorFound = response.status === 200
-          && payload?.data?.type === 'usuarios'
-          && Boolean(payload?.data?.attributes && typeof payload.data.attributes === 'object');
-        const doctorNotRegistered = response.status === 404
-          && Array.isArray(payload?.errors)
-          && payload.errors.some((entry) => /nenhum usu[aá]rio encontrado/i.test(String(entry?.detail ?? '')));
-        accepted = Boolean(doctorFound || doctorNotRegistered);
-      } catch {
+      } catch (err) {
         providerReachable = false;
         providerStatus = null;
+        providerErrorType = err instanceof Error ? err.name : 'UnknownError';
         accepted = false;
       }
     }
@@ -136,6 +144,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       credentialsAccepted: accepted,
       providerReachable,
       providerStatus,
+      providerErrorType,
       flags: {
         MEMED_RX_ENABLED: memedRxEnabled,
         MEMED_MOBILE_ENABLED: memedMobileEnabled,
