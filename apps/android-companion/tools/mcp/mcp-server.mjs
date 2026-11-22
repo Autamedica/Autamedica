@@ -1,6 +1,14 @@
 #!/usr/bin/env node
 import readline from "node:readline";
+import { execFile } from "node:child_process";
+import { readFile, unlink } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { promisify } from "node:util";
 import { chromium } from "playwright-core";
+
+const execFileAsync = promisify(execFile);
+const VDISPLAY_SCRIPT = process.env.AUTAMEDICA_VDISPLAY_SCRIPT || "/root/Autamedica-src/apps/android/e2e/virtual_display.py";
 
 const DEFAULT_CANDIDATE_BASES = [
   process.env.AUTAMEDICA_ANDROID_URL,
@@ -38,13 +46,14 @@ const attachedPages = new WeakSet();
 
 const tools = [
   { name: "android_status", description: "Estado de Autamedica Companion, accesibilidad y puertos locales.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
-  { name: "android_get_ui_tree", description: "Lee el árbol de accesibilidad Android profundo (hasta 24 niveles / 1200 nodos); contraseñas ocultas.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
-  { name: "android_get_ui_compact", description: "Devuelve snapshot transaccional (snapshotId, generation, package) con elementos semánticos (ref, path, text, hint, checked, editable, bounds) podando contenedores vacíos hasta profundidad 28.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
-  { name: "android_set_text", description: "Inyecta texto directo en un nodo Android por path o ref+snapshot_id (ACTION_SET_TEXT) sin abrir el teclado (~15 ms), con guardia opcional expected_package.", inputSchema: { type: "object", properties: { path: { type: "string" }, ref: { type: "string" }, snapshot_id: { type: "string" }, expected_package: { type: "string" }, strict_generation: { type: "boolean" }, text: { type: "string" } }, required: ["text"], additionalProperties: false } },
-  { name: "android_screenshot", description: "Captura la pantalla completa del Xiaomi.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_displays", description: "Lista todas las pantallas Android (física 0 y pantallas virtuales secundarias) con resolución y app activa en cada una.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_get_ui_tree", description: "Lee el árbol de accesibilidad Android profundo (hasta 24 niveles / 1200 nodos); soporta display_id opcional para pantallas virtuales.", inputSchema: { type: "object", properties: { display_id: { type: "integer", minimum: 0 } }, additionalProperties: false } },
+  { name: "android_get_ui_compact", description: "Devuelve snapshot transaccional (snapshotId, generation, package) con elementos semánticos; soporta display_id opcional para pantallas virtuales.", inputSchema: { type: "object", properties: { display_id: { type: "integer", minimum: 0 } }, additionalProperties: false } },
+  { name: "android_set_text", description: "Inyecta texto directo en un nodo Android por path o ref+snapshot_id sin abrir teclado (~15 ms), con soporte opcional display_id.", inputSchema: { type: "object", properties: { path: { type: "string" }, ref: { type: "string" }, snapshot_id: { type: "string" }, display_id: { type: "integer", minimum: 0 }, expected_package: { type: "string" }, strict_generation: { type: "boolean" }, text: { type: "string" } }, required: ["text"], additionalProperties: false } },
+  { name: "android_screenshot", description: "Captura la pantalla Android (física o display_id virtual en Android 11+).", inputSchema: { type: "object", properties: { display_id: { type: "integer", minimum: 0 } }, additionalProperties: false } },
   { name: "android_open_app", description: "Abre una aplicación Android por package name.", inputSchema: { type: "object", properties: { package: { type: "string" } }, required: ["package"], additionalProperties: false } },
   { name: "android_tap", description: "Toca una coordenada de pantalla Android (con guardia opcional expected_package).", inputSchema: { type: "object", properties: { x: { type: "number" }, y: { type: "number" }, expected_package: { type: "string" } }, required: ["x", "y"], additionalProperties: false } },
-  { name: "android_click_element", description: "Pulsa un nodo Android por path o por ref+snapshot_id con guardia transaccional expected_package.", inputSchema: { type: "object", properties: { path: { type: "string" }, ref: { type: "string" }, snapshot_id: { type: "string" }, expected_package: { type: "string" }, strict_generation: { type: "boolean" } }, additionalProperties: false } },
+  { name: "android_click_element", description: "Pulsa un nodo Android por path o por ref+snapshot_id con soporte opcional display_id y guardia expected_package.", inputSchema: { type: "object", properties: { path: { type: "string" }, ref: { type: "string" }, snapshot_id: { type: "string" }, display_id: { type: "integer", minimum: 0 }, expected_package: { type: "string" }, strict_generation: { type: "boolean" } }, additionalProperties: false } },
   { name: "android_click_text", description: "Busca y pulsa un elemento Android por texto, descripción o view_id con espera reactiva y guardia expected_package.", inputSchema: { type: "object", properties: { text: { type: "string" }, view_id: { type: "string" }, expected_package: { type: "string" }, timeout_ms: { type: "integer", minimum: 0, maximum: 15000 } }, additionalProperties: false } },
   { name: "android_scroll", description: "Hace scroll semántico (forward/backward/down/up/left/right) en un contenedor específico por path/ref o en el contenedor principal.", inputSchema: { type: "object", properties: { direction: { type: "string", enum: ["forward", "backward", "down", "up", "left", "right"] }, path: { type: "string" }, ref: { type: "string" }, snapshot_id: { type: "string" }, expected_package: { type: "string" } }, additionalProperties: false } },
   { name: "android_scroll_until", description: "Hace scroll nativo en bucle dentro del dispositivo hasta encontrar text o view_id en una sola llamada HTTP (opcionalmente hace click atómico).", inputSchema: { type: "object", properties: { text: { type: "string" }, view_id: { type: "string" }, path: { type: "string" }, ref: { type: "string" }, snapshot_id: { type: "string" }, direction: { type: "string", enum: ["forward", "backward", "down", "up", "left", "right"] }, max_scrolls: { type: "integer", minimum: 1, maximum: 25 }, delay_ms: { type: "integer", minimum: 50, maximum: 2000 }, click: { type: "boolean" }, expected_package: { type: "string" } }, additionalProperties: false } },
@@ -95,7 +104,19 @@ const tools = [
   { name: "vault_read_secret", description: "Lee un secreto de la bóveda Android cifrada cuando la tarea lo necesita.", inputSchema: { type: "object", properties: { name: { type: "string" } }, required: ["name"], additionalProperties: false } },
   { name: "vault_delete_secret", description: "Elimina un secreto de la bóveda cifrada; el token de conexión está protegido.", inputSchema: { type: "object", properties: { name: { type: "string" } }, required: ["name"], additionalProperties: false } },
 
-  { name: "android_wait_for_text", description: "Espera texto o view_id visible en Android usando el Event Bus reactivo (sin polling) y guardia opcional expected_package.", inputSchema: { type: "object", properties: { text: { type: "string" }, view_id: { type: "string" }, expected_package: { type: "string" }, timeout_ms: { type: "integer", minimum: 200, maximum: 20000 } }, additionalProperties: false } }
+  { name: "android_wait_for_text", description: "Espera texto o view_id visible en Android usando el Event Bus reactivo (sin polling) y guardia opcional expected_package.", inputSchema: { type: "object", properties: { text: { type: "string" }, view_id: { type: "string" }, expected_package: { type: "string" }, timeout_ms: { type: "integer", minimum: 200, maximum: 20000 } }, additionalProperties: false } },
+
+  { name: "vdisplay_adb_pair", description: "Empareja Depuración Inalámbrica local del teléfono una sola vez (host:puerto + código de 6 dígitos).", inputSchema: { type: "object", properties: { host_port: { type: "string" }, code: { type: "string" } }, required: ["host_port", "code"], additionalProperties: false } },
+  { name: "vdisplay_adb_connect", description: "Conecta ADB inalámbrico local (ej. 127.0.0.1:41234) para controlar la segunda pantalla virtual.", inputSchema: { type: "object", properties: { host_port: { type: "string" } }, required: ["host_port"], additionalProperties: false } },
+  { name: "vdisplay_status", description: "Devuelve estado de conexión ADB local, pantallas activas y display virtual secundario.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "vdisplay_create", description: "Crea una segunda pantalla virtual aislada vía ADB (overlay_display_devices) para operar apps sin tocar la pantalla principal.", inputSchema: { type: "object", properties: { width: { type: "integer", minimum: 360, maximum: 2160 }, height: { type: "integer", minimum: 640, maximum: 3840 }, density: { type: "integer", minimum: 120, maximum: 640 }, secure: { type: "boolean" }, own_content_only: { type: "boolean" } }, additionalProperties: false } },
+  { name: "vdisplay_destroy", description: "Elimina la segunda pantalla virtual y restaura el teléfono a una sola pantalla.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "vdisplay_launch_app", description: "Lanza una aplicación Android directamente dentro de la segunda pantalla virtual (am start --display <id>).", inputSchema: { type: "object", properties: { package: { type: "string" }, display_id: { type: "integer", minimum: 1 } }, required: ["package"], additionalProperties: false } },
+  { name: "vdisplay_tap", description: "Envía un toque aislado únicamente a la segunda pantalla virtual (input -d <id> tap).", inputSchema: { type: "object", properties: { x: { type: "integer" }, y: { type: "integer" }, display_id: { type: "integer", minimum: 1 } }, required: ["x", "y"], additionalProperties: false } },
+  { name: "vdisplay_swipe", description: "Envía un gesto swipe aislado a la segunda pantalla virtual (input -d <id> swipe).", inputSchema: { type: "object", properties: { x1: { type: "integer" }, y1: { type: "integer" }, x2: { type: "integer" }, y2: { type: "integer" }, duration_ms: { type: "integer", minimum: 50, maximum: 5000 }, display_id: { type: "integer", minimum: 1 } }, required: ["x1", "y1", "x2", "y2"], additionalProperties: false } },
+  { name: "vdisplay_text", description: "Escribe texto en el campo enfocado de la segunda pantalla virtual (input -d <id> text).", inputSchema: { type: "object", properties: { text: { type: "string" }, display_id: { type: "integer", minimum: 1 } }, required: ["text"], additionalProperties: false } },
+  { name: "vdisplay_keyevent", description: "Envía una tecla (ej. KEYCODE_BACK, KEYCODE_ENTER) aislada a la segunda pantalla virtual.", inputSchema: { type: "object", properties: { keycode: { type: "string" }, display_id: { type: "integer", minimum: 1 } }, required: ["keycode"], additionalProperties: false } },
+  { name: "vdisplay_screenshot", description: "Captura PNG de la segunda pantalla virtual vía ADB screencap -d <id>.", inputSchema: { type: "object", properties: { display_id: { type: "integer", minimum: 1 } }, additionalProperties: false } }
 ];
 
 async function request(path, options = {}) {
@@ -225,14 +246,26 @@ function requireHttpUrl(value) {
   return url.toString();
 }
 
+async function runVDisplay(cliArgs) {
+  const { stdout, stderr } = await execFileAsync("python3", ["-u", VDISPLAY_SCRIPT, ...cliArgs], { timeout: 30000 });
+  const text = (stdout || stderr || "{}").trim();
+  return text;
+}
+
 async function callTool(name, args) {
   switch (name) {
     case "android_status":
       return [{ type: "text", text: JSON.stringify(await (await request("/v1/health")).json()) }];
-    case "android_get_ui_tree":
-      return [{ type: "text", text: JSON.stringify(await (await request("/v1/ui")).json()) }];
-    case "android_get_ui_compact":
-      return [{ type: "text", text: JSON.stringify(await (await request("/v1/ui/compact")).json()) }];
+    case "android_displays":
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/displays")).json()) }];
+    case "android_get_ui_tree": {
+      const qs = args.display_id ? `?display_id=${Number(args.display_id)}` : "";
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/ui" + qs)).json()) }];
+    }
+    case "android_get_ui_compact": {
+      const qs = args.display_id ? `?display_id=${Number(args.display_id)}` : "";
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/ui/compact" + qs)).json()) }];
+    }
     case "android_set_text":
       return [{ type: "text", text: JSON.stringify(await post("/v1/set_text", args)) }];
     case "browser_state":
@@ -266,7 +299,8 @@ async function callTool(name, args) {
       return [{ type: "text", text: JSON.stringify({ url: resp.url, status: resp.status, text: clean.slice(0, maxChars) }) }];
     }
     case "android_screenshot": {
-      const response = await request("/v1/screenshot");
+      const qs = args.display_id ? `?display_id=${Number(args.display_id)}` : "";
+      const response = await request("/v1/screenshot" + qs);
       return [{ type: "image", data: Buffer.from(await response.arrayBuffer()).toString("base64"), mimeType: "image/png" }];
     }
     case "android_open_app":
@@ -493,6 +527,75 @@ async function callTool(name, args) {
       return [{ type: "text", text: JSON.stringify(await post("/v1/vault/get", args)) }];
     case "vault_delete_secret":
       return [{ type: "text", text: JSON.stringify(await post("/v1/vault/delete", args)) }];
+    case "vdisplay_adb_pair":
+      return [{ type: "text", text: await runVDisplay(["pair", String(args.host_port), String(args.code)]) }];
+    case "vdisplay_adb_connect":
+      return [{ type: "text", text: await runVDisplay(["connect", String(args.host_port)]) }];
+    case "vdisplay_status":
+      return [{ type: "text", text: await runVDisplay(["status"]) }];
+    case "vdisplay_create": {
+      const cli = ["create"];
+      if (args.width) cli.push("--width", String(args.width));
+      if (args.height) cli.push("--height", String(args.height));
+      if (args.density) cli.push("--density", String(args.density));
+      if (args.secure === false) cli.push("--no-secure");
+      if (args.own_content_only === false) cli.push("--no-own-content");
+      return [{ type: "text", text: await runVDisplay(cli) }];
+    }
+    case "vdisplay_destroy":
+      return [{ type: "text", text: await runVDisplay(["destroy"]) }];
+    case "vdisplay_launch_app": {
+      const cli = ["launch", String(args.package)];
+      if (args.display_id) cli.push("--display-id", String(args.display_id));
+      return [{ type: "text", text: await runVDisplay(cli) }];
+    }
+    case "vdisplay_tap": {
+      const cli = ["tap", String(args.x), String(args.y)];
+      if (args.display_id) cli.push("--display-id", String(args.display_id));
+      return [{ type: "text", text: await runVDisplay(cli) }];
+    }
+    case "vdisplay_swipe": {
+      const py = [
+        "-c",
+        "import json,sys; sys.path.insert(0,'/root/Autamedica-src/apps/android/e2e'); from virtual_display import VirtualDisplayController; "
+        + "a=json.loads(sys.argv[1]); print(json.dumps(VirtualDisplayController().swipe(a['x1'],a['y1'],a['x2'],a['y2'],a.get('duration_ms',300),a.get('display_id'))))",
+        JSON.stringify(args)
+      ];
+      const { stdout } = await execFileAsync("python3", py, { timeout: 20000 });
+      return [{ type: "text", text: stdout.trim() }];
+    }
+    case "vdisplay_text": {
+      const py = [
+        "-c",
+        "import json,sys; sys.path.insert(0,'/root/Autamedica-src/apps/android/e2e'); from virtual_display import VirtualDisplayController; "
+        + "a=json.loads(sys.argv[1]); print(json.dumps(VirtualDisplayController().text(a['text'],a.get('display_id'))))",
+        JSON.stringify(args)
+      ];
+      const { stdout } = await execFileAsync("python3", py, { timeout: 20000 });
+      return [{ type: "text", text: stdout.trim() }];
+    }
+    case "vdisplay_keyevent": {
+      const py = [
+        "-c",
+        "import json,sys; sys.path.insert(0,'/root/Autamedica-src/apps/android/e2e'); from virtual_display import VirtualDisplayController; "
+        + "a=json.loads(sys.argv[1]); print(json.dumps(VirtualDisplayController().keyevent(a['keycode'],a.get('display_id'))))",
+        JSON.stringify(args)
+      ];
+      const { stdout } = await execFileAsync("python3", py, { timeout: 20000 });
+      return [{ type: "text", text: stdout.trim() }];
+    }
+    case "vdisplay_screenshot": {
+      const tmp = path.join(os.tmpdir(), `vdisplay-${Date.now()}.png`);
+      try {
+        const cli = ["screenshot", tmp];
+        if (args.display_id) cli.push("--display-id", String(args.display_id));
+        await runVDisplay(cli);
+        const buf = await readFile(tmp);
+        return [{ type: "image", data: buf.toString("base64"), mimeType: "image/png" }];
+      } finally {
+        await unlink(tmp).catch(() => {});
+      }
+    }
     default:
       throw new Error("Unknown tool: " + name);
   }
@@ -515,7 +618,7 @@ for await (const line of rl) {
       send({ jsonrpc: "2.0", id, result: {
         protocolVersion: PROTOCOL,
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: "autamedica-android", version: "0.5.0" }
+        serverInfo: { name: "autamedica-android", version: "0.6.0" }
       }});
     } else if (message.method === "ping") {
       send({ jsonrpc: "2.0", id, result: {} });

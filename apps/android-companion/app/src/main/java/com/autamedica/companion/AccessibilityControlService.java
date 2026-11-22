@@ -169,6 +169,80 @@ public final class AccessibilityControlService extends AccessibilityService {
     private static final int MAX_COMPACT_SCAN = 2500;
     private static final int MAX_COMPACT_ELEMENTS = 400;
 
+    private AccessibilityNodeInfo resolveRootForDisplay(int displayId) {
+        if (displayId <= Display.DEFAULT_DISPLAY) {
+            return resolveActiveRoot();
+        }
+        if (Build.VERSION.SDK_INT >= 30) {
+            android.util.SparseArray<List<AccessibilityWindowInfo>> all = getWindowsOnAllDisplays();
+            if (all != null) {
+                List<AccessibilityWindowInfo> windows = all.get(displayId);
+                AccessibilityNodeInfo best = null;
+                int bestScore = -1;
+                if (windows != null) {
+                    for (AccessibilityWindowInfo win : windows) {
+                        if (win == null || win.getType() != AccessibilityWindowInfo.TYPE_APPLICATION) continue;
+                        AccessibilityNodeInfo root = win.getRoot();
+                        if (root == null) continue;
+                        if (isImePackage(root.getPackageName())) {
+                            root.recycle();
+                            continue;
+                        }
+                        int score = (win.isFocused() ? 1000 : 0) + (win.isActive() ? 500 : 0) + Math.min(root.getChildCount(), 100);
+                        if (score > bestScore) {
+                            if (best != null) best.recycle();
+                            best = root;
+                            bestScore = score;
+                        } else {
+                            root.recycle();
+                        }
+                    }
+                }
+                if (best != null) return best;
+            }
+        }
+        return null;
+    }
+
+    JSONArray listDisplays() throws Exception {
+        return onMain(() -> {
+            JSONArray out = new JSONArray();
+            android.hardware.display.DisplayManager dm =
+                (android.hardware.display.DisplayManager) getSystemService(DISPLAY_SERVICE);
+            android.util.SparseArray<List<AccessibilityWindowInfo>> allWin =
+                Build.VERSION.SDK_INT >= 30 ? getWindowsOnAllDisplays() : null;
+            if (dm == null) return out;
+            Display[] displays = dm.getDisplays();
+            for (Display d : displays) {
+                if (d == null) continue;
+                int did = d.getDisplayId();
+                android.graphics.Point size = new android.graphics.Point();
+                d.getRealSize(size);
+                JSONObject item = new JSONObject();
+                item.put("displayId", did);
+                item.put("name", d.getName() == null ? ("Display #" + did) : d.getName());
+                item.put("widthPx", size.x);
+                item.put("heightPx", size.y);
+                item.put("state", d.getState());
+                item.put("rotation", d.getRotation());
+                item.put("isDefault", did == Display.DEFAULT_DISPLAY);
+                if (allWin != null) {
+                    List<AccessibilityWindowInfo> wins = allWin.get(did);
+                    item.put("windowCount", wins == null ? 0 : wins.size());
+                }
+                AccessibilityNodeInfo root = resolveRootForDisplay(did);
+                if (root != null) {
+                    item.put("activePackage", safe(root.getPackageName()));
+                    root.recycle();
+                } else {
+                    item.put("activePackage", "");
+                }
+                out.put(item);
+            }
+            return out;
+        });
+    }
+
     private AccessibilityNodeInfo resolveActiveRoot() {
         AccessibilityNodeInfo active = getRootInActiveWindow();
         if (active != null && active.getChildCount() > 0 && !isImePackage(active.getPackageName())) {
@@ -242,9 +316,14 @@ public final class AccessibilityControlService extends AccessibilityService {
     }
 
     JSONObject getUiTree() throws Exception {
+        return getUiTree(Display.DEFAULT_DISPLAY);
+    }
+
+    JSONObject getUiTree(int displayId) throws Exception {
         return onMain(() -> {
             JSONObject result = new JSONObject();
-            AccessibilityNodeInfo root = resolveActiveRoot();
+            result.put("displayId", displayId);
+            AccessibilityNodeInfo root = resolveRootForDisplay(displayId);
             if (root == null) {
                 result.put("available", false);
                 result.put("generation", eventBus.getGeneration());
@@ -263,9 +342,14 @@ public final class AccessibilityControlService extends AccessibilityService {
     }
 
     JSONObject getCompactUi() throws Exception {
+        return getCompactUi(Display.DEFAULT_DISPLAY);
+    }
+
+    JSONObject getCompactUi(int displayId) throws Exception {
         return onMain(() -> {
             JSONObject result = new JSONObject();
-            AccessibilityNodeInfo root = resolveActiveRoot();
+            result.put("displayId", displayId);
+            AccessibilityNodeInfo root = resolveRootForDisplay(displayId);
             if (root == null) {
                 result.put("available", false);
                 result.put("generation", eventBus.getGeneration());
@@ -1232,8 +1316,68 @@ public final class AccessibilityControlService extends AccessibilityService {
         return pasteText(text, null).ok;
     }
 
+    ActionResult clickOnDisplay(int displayId, String path) throws Exception {
+        return onMain(() -> {
+            if (path == null || path.trim().isEmpty()) {
+                return ActionResult.fail("missing_target", "path is required for display_id click");
+            }
+            AccessibilityNodeInfo node = nodeAtPathOnDisplay(path.trim(), displayId);
+            if (node == null) {
+                return ActionResult.fail("not_found", "Node not found on display " + displayId + " at path: " + path);
+            }
+            try {
+                boolean ok = clickNodeOrAncestor(node);
+                return ok ? ActionResult.success(new JSONObject().put("displayId", displayId))
+                    : ActionResult.fail("action_failed", "Click action returned false on display " + displayId);
+            } finally {
+                node.recycle();
+            }
+        });
+    }
+
+    ActionResult setTextOnDisplay(int displayId, String path, String text) throws Exception {
+        return onMain(() -> {
+            if (path == null || path.trim().isEmpty()) {
+                return ActionResult.fail("missing_target", "path is required for display_id set_text");
+            }
+            AccessibilityNodeInfo node = nodeAtPathOnDisplay(path.trim(), displayId);
+            if (node == null) {
+                return ActionResult.fail("not_found", "Node not found on display " + displayId + " at path: " + path);
+            }
+            AccessibilityNodeInfo target = node;
+            try {
+                if (!target.isEditable()) {
+                    AccessibilityNodeInfo nested = findFirstEditableDescendant(target, 0);
+                    if (nested != null) target = nested;
+                }
+                if (target.isPassword()) {
+                    return ActionResult.fail("password_blocked", "Refusing to inject text into password field");
+                }
+                if (!target.isEnabled()) {
+                    return ActionResult.fail("node_disabled", "Target editable node is disabled");
+                }
+                Bundle args = new Bundle();
+                args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text == null ? "" : text);
+                boolean ok = target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args);
+                if (!ok) {
+                    target.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                    ok = target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args);
+                }
+                return ok ? ActionResult.success(new JSONObject().put("displayId", displayId))
+                    : ActionResult.fail("action_failed", "ACTION_SET_TEXT returned false on display " + displayId);
+            } finally {
+                if (target != node && target != null) target.recycle();
+                node.recycle();
+            }
+        });
+    }
+
     private AccessibilityNodeInfo nodeAtPath(String path) {
-        AccessibilityNodeInfo node = resolveActiveRoot();
+        return nodeAtPathOnDisplay(path, Display.DEFAULT_DISPLAY);
+    }
+
+    private AccessibilityNodeInfo nodeAtPathOnDisplay(String path, int displayId) {
+        AccessibilityNodeInfo node = resolveRootForDisplay(displayId);
         if (node == null) return null;
         String[] parts = path.split("\\.");
         if (parts.length == 0 || !"0".equals(parts[0])) {
@@ -1510,10 +1654,15 @@ public final class AccessibilityControlService extends AccessibilityService {
     }
 
     String screenshotBase64() throws Exception {
+        return screenshotBase64(Display.DEFAULT_DISPLAY);
+    }
+
+    String screenshotBase64(int displayId) throws Exception {
         if (Build.VERSION.SDK_INT < 30) throw new IllegalStateException("Screenshots require Android 11 or newer");
+        int targetDisplay = Math.max(Display.DEFAULT_DISPLAY, displayId);
         CompletableFuture<String> future = new CompletableFuture<>();
         onMain(() -> {
-            takeScreenshot(Display.DEFAULT_DISPLAY, getMainExecutor(), new TakeScreenshotCallback() {
+            takeScreenshot(targetDisplay, getMainExecutor(), new TakeScreenshotCallback() {
                 @Override public void onSuccess(ScreenshotResult result) {
                     HardwareBuffer buffer = result.getHardwareBuffer();
                     Bitmap hardwareBitmap = null;

@@ -120,9 +120,9 @@ final class LocalControlServer {
             if ("GET".equals(method) && "/v1/health".equals(path)) {
                 JSONObject result = new JSONObject();
                 result.put("ok", true);
-                result.put("apiVersion", 5);
+                result.put("apiVersion", 6);
                 result.put("versionName", BuildConfig.VERSION_NAME);
-                result.put("engine", "Companion Execution Engine 4.5");
+                result.put("engine", "Companion Execution Engine 5.0 (Multi-Display)");
                 result.put("accessibility", true);
                 result.put("bind", "127.0.0.1");
                 result.put("port", PORT);
@@ -145,15 +145,22 @@ final class LocalControlServer {
                     .put("paste").put("batch").put("batch_v4").put("browser_snapshot")
                     .put("browser_state").put("browser_wait").put("browser_nav")
                     .put("runtime_control").put("screen_telemetry").put("guarded_global_actions")
+                    .put("multi_display")
                     .put("transactional_snapshot").put("scroll_path").put("scroll_until")
                     .put("ime_action").put("long_press").put("double_tap")
                     .put("wait_for_text").put("assert_package").put("event_bus"));
+                respondJson(output, 200, result);
+            } else if ("GET".equals(method) && "/v1/displays".equals(path)) {
+                JSONObject result = new JSONObject();
+                result.put("ok", true);
+                result.put("displays", service.listDisplays());
                 respondJson(output, 200, result);
             } else if ("GET".equals(method) && ("/v1/ui".equals(path) || "/v1/ui/compact".equals(path))) {
                 boolean compact = "/v1/ui/compact".equals(path)
                     || "1".equals(query.get("compact"))
                     || "true".equalsIgnoreCase(query.get("compact"));
-                JSONObject result = compact ? service.getCompactUi() : service.getUiTree();
+                int displayId = (int) parseLong(query.get("display_id"), 0L);
+                JSONObject result = compact ? service.getCompactUi(displayId) : service.getUiTree(displayId);
                 respondJson(output, 200, result);
             } else if ("GET".equals(method) && "/v1/events/recent".equals(path)) {
                 long sinceSeq = parseLong(query.get("since_seq"), 0L);
@@ -226,7 +233,8 @@ final class LocalControlServer {
                 result.put("names", names);
                 respondJson(output, 200, result);
             } else if ("GET".equals(method) && "/v1/screenshot".equals(path)) {
-                byte[] image = android.util.Base64.decode(service.screenshotBase64(), android.util.Base64.NO_WRAP);
+                int displayId = (int) parseLong(query.get("display_id"), 0L);
+                byte[] image = android.util.Base64.decode(service.screenshotBase64(displayId), android.util.Base64.NO_WRAP);
                 respond(output, 200, "image/png", image);
             } else if ("POST".equals(method)) {
                 String bodyStr = body.length == 0 ? "{}" : new String(body, StandardCharsets.UTF_8);
@@ -257,13 +265,16 @@ final class LocalControlServer {
                         return;
                     }
                     case "/v1/click": {
-                        AccessibilityControlService.ActionResult r = service.clickTarget(
-                            optStr(args, "path"),
-                            optStr(args, "ref"),
-                            optStr(args, "snapshot_id"),
-                            optStr(args, "expected_package"),
-                            args.optBoolean("strict_generation", false)
-                        );
+                        int clickDisplayId = args.optInt("display_id", 0);
+                        AccessibilityControlService.ActionResult r = clickDisplayId > 0
+                            ? service.clickOnDisplay(clickDisplayId, optStr(args, "path"))
+                            : service.clickTarget(
+                                optStr(args, "path"),
+                                optStr(args, "ref"),
+                                optStr(args, "snapshot_id"),
+                                optStr(args, "expected_package"),
+                                args.optBoolean("strict_generation", false)
+                            );
                         respondAction(output, r);
                         return;
                     }
@@ -404,14 +415,17 @@ final class LocalControlServer {
                     case "/v1/set_text": {
                         String setTextVal = args.optString("text", "");
                         if (setTextVal.length() > 32768) throw new IllegalArgumentException("text too long");
-                        AccessibilityControlService.ActionResult r = service.setTextTarget(
-                            optStr(args, "path"),
-                            optStr(args, "ref"),
-                            optStr(args, "snapshot_id"),
-                            setTextVal,
-                            optStr(args, "expected_package"),
-                            args.optBoolean("strict_generation", false)
-                        );
+                        int setTextDisplayId = args.optInt("display_id", 0);
+                        AccessibilityControlService.ActionResult r = setTextDisplayId > 0
+                            ? service.setTextOnDisplay(setTextDisplayId, optStr(args, "path"), setTextVal)
+                            : service.setTextTarget(
+                                optStr(args, "path"),
+                                optStr(args, "ref"),
+                                optStr(args, "snapshot_id"),
+                                setTextVal,
+                                optStr(args, "expected_package"),
+                                args.optBoolean("strict_generation", false)
+                            );
                         respondAction(output, r);
                         return;
                     }
