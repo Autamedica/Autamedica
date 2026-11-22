@@ -97,8 +97,18 @@ export class MemedService {
 
   private async request(url: string, options: RequestInit): Promise<Response> {
     try {
-      return await fetch(url, { ...options, redirect: 'error', cache: 'no-store',
-        referrerPolicy: 'no-referrer', signal: AbortSignal.timeout(8000) });
+      // Cloudflare Workers (workerd) does not support redirect: 'error' or browser-only referrerPolicy.
+      // Use redirect: 'manual' and explicitly reject 3xx redirects so credentials are never forwarded.
+      const response = await fetch(url, {
+        ...options,
+        redirect: 'manual',
+        cache: 'no-store',
+        signal: AbortSignal.timeout(8000),
+      });
+      if (response.status >= 300 && response.status < 400) {
+        throw new Error('memed_provider_redirect_rejected');
+      }
+      return response;
     } catch {
       // Native fetch errors can include credential-bearing URLs. Never rethrow them.
       throw new Error('memed_provider_transport_failed');

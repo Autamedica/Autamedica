@@ -60,7 +60,7 @@ describe('FirmAR isolated PAdES verifier adapter (mock transport)', () => {
     expect(fetcher).toHaveBeenCalledOnce();
     expect(fetcher.mock.calls[0]?.[0]).toBe(service.endpoint);
     expect(fetcher.mock.calls[0]?.[1]).toEqual(expect.objectContaining({
-      method: 'POST', redirect: 'error',
+      method: 'POST', redirect: 'manual',
     }));
   });
 

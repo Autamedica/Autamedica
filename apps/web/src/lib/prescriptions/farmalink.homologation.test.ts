@@ -56,7 +56,7 @@ describe('Farmalink homologation regression (mock only)', () => {
       'https://test-servicios.farmalink.com.ar/api/recetaElect/v3/consultaReceta',
       expect.objectContaining({
         method: 'POST',
-        redirect: 'error',
+        redirect: 'manual',
         headers: expect.objectContaining({
           Authorization: 'Bearer dummy-test-token',
           'content-type': 'application/json',
@@ -82,7 +82,7 @@ describe('Farmalink homologation regression (mock only)', () => {
       'https://test-servicios.farmalink.com.ar/api/recetaElect/v3/bajaReceta',
       expect.objectContaining({
         method: 'POST',
-        redirect: 'error',
+        redirect: 'manual',
         headers: expect.objectContaining({ Authorization: 'Bearer dummy-test-token' }),
         body: JSON.stringify(request),
       }),
@@ -138,7 +138,15 @@ describe('Farmalink homologation regression (mock only)', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       'https://test-servicios.farmalink.com.ar/api/oauth/token/generate',
-      expect.objectContaining({ method: 'POST', redirect: 'error' }),
+      expect.objectContaining({ method: 'POST', redirect: 'manual' }),
     );
+  });
+
+  it('rejects 3xx redirect responses explicitly without following them', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(new Response(null, { status: 302, headers: { Location: 'https://other.example' } }));
+    const client = new FarmalinkClient({ ...config, fetch: fetchMock });
+
+    await expect(client.generateAccessToken())
+      .rejects.toMatchObject({ name: 'FarmalinkHttpError', status: 302 });
   });
 });

@@ -103,7 +103,7 @@ export class FirmarRemoteClient {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({ grant_type: 'client_credentials' }).toString(),
-      redirect: 'error',
+      redirect: 'manual',
       signal: AbortSignal.timeout(15000),
     });
     if (!tokenResp.ok) throw new Error('firmar_auth_failed');
