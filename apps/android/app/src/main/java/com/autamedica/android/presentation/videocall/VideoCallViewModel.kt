@@ -260,6 +260,7 @@ class VideoCallViewModel @Inject constructor(
     private var activePharmacyDispatchId: String? = null
     private var lastMemedConfirmedDispatchId: String? = null
     private var consultationMonitorJob: kotlinx.coroutines.Job? = null
+    private var reportedRemotePeerConnected = false
 
     init {
         viewModelScope.launch {
@@ -306,11 +307,20 @@ class VideoCallViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching {
                 val currentUser = authRepository.getCurrentUser()
-                    ?: throw IllegalStateException("No authenticated user available for video call")
-                callUserId = currentUser.id
-                callUserType = currentUser.role.wireName
-                callUserName = currentUser.displayName
-                val isDoc = currentUser.role == UserRole.DOCTOR
+                val isPharmacyRoom = effectiveRoomId.startsWith("cf-room") || effectiveRoomId.startsWith("room_pharmacy")
+                val guestToken = if (currentUser == null && isPharmacyRoom) {
+                    pharmacyDispatchRepository.getGuestAccessTokenForRoom(effectiveRoomId)
+                } else {
+                    null
+                }
+                if (currentUser == null && guestToken.isNullOrBlank()) {
+                    throw IllegalStateException("No authenticated user available for video call")
+                }
+                callUserId = currentUser?.id ?: "guest:$effectiveRoomId"
+                callUserType = currentUser?.role?.wireName ?: "guest"
+                callUserName = currentUser?.displayName ?: "Paciente"
+                val isDoc = currentUser?.role == UserRole.DOCTOR
+                reportedRemotePeerConnected = false
 
                 // 1. INICIALIZAR Y ENCENDER MEDIOS DE INMEDIATO (T0 -> T3 < 200ms)
                 // Cero bloqueo por queries de base de datos
@@ -368,7 +378,7 @@ class VideoCallViewModel @Inject constructor(
     }
 
     private suspend fun loadClinicalDataInBackground(
-        currentUser: User,
+        currentUser: User?,
         isDoc: Boolean,
         effectiveRoomId: String,
     ) {
@@ -382,7 +392,7 @@ class VideoCallViewModel @Inject constructor(
         var resolvedPatientId = ""
         var resolvedPatientName = ""
 
-        if (!previewOnlyMode && appointmentId.isNotBlank()) {
+        if (!previewOnlyMode && currentUser != null && appointmentId.isNotBlank()) {
             runCatching {
                 val appt = appointmentRepository.getAppointmentById(appointmentId).getOrNull()
                 if (appt != null) {
@@ -440,7 +450,7 @@ class VideoCallViewModel @Inject constructor(
                             medications = if (preReason.contains("Receta", ignoreCase = true)) "Solicita renovación de prescripción médica" else null,
                         )
 
-                        if (isDoc) {
+                        if (isDoc && currentUser != null) {
                             val currentDocId = currentUser.id
                             runCatching {
                                 val rpcParams = buildJsonObject {
@@ -473,7 +483,7 @@ class VideoCallViewModel @Inject constructor(
             }.getOrNull()
         } else null
 
-        if (isDoc) {
+        if (isDoc && currentUser != null) {
             val profile = runCatching { doctorRepository.getDoctorProfile(currentUser.id).getOrNull() }.getOrNull()
             docName = currentUser.displayName.ifBlank { "Dr. ${currentUser.lastName}".trim().ifBlank { "Médico Tratante" } }
             docRole = profile?.specialty?.takeIf { it.isNotBlank() } ?: "Clínica Médica & Telemedicina"
@@ -536,11 +546,14 @@ class VideoCallViewModel @Inject constructor(
         consultationMonitorJob?.cancel()
         consultationMonitorJob = null
         val callId = _uiState.value.activeCallId ?: appointmentId
-        if (callId.isNotBlank() && !previewOnlyMode) {
+        if (callId.isNotBlank() && !previewOnlyMode && callUserType != "guest") {
             viewModelScope.launch {
-                telemedicineRepository.updateCallStatus(callId, "ended")
+                if (authRepository.getCurrentUser() != null) {
+                    telemedicineRepository.updateCallStatus(callId, "ended")
+                }
             }
         }
+        reportedRemotePeerConnected = false
         val isDoc = _uiState.value.isDoctor
         val dispatchRoom = explicitRoomId.ifBlank { incomingRoomId.ifBlank { appointmentId } }
         val isPharmacyCall = !activePharmacyDispatchId.isNullOrBlank() || dispatchRoom.startsWith("cf-room") || dispatchRoom.startsWith("room_pharmacy")
@@ -1225,35 +1238,28 @@ class VideoCallViewModel @Inject constructor(
                         },
                     )
                 }
+                if (state == ConnectionState.CONNECTING) {
+                    val callId = _uiState.value.activeCallId ?: appointmentId
+                    if (callId.isNotBlank() && !previewOnlyMode && callUserType != "guest" && !reportedRemotePeerConnected) {
+                        viewModelScope.launch {
+                            telemedicineRepository.updateCallStatus(callId, "connecting")
+                        }
+                    }
+                }
                 if (state == ConnectionState.CONNECTED) {
                     CallTelemetry.recordMilestone(null, "T4_SFU_MEDIA_CONNECTED")
                     videoCallStateHolder.setInVideoCall(true)
                     CallNotificationService.start(context)
+                    sessionRetryJob?.cancel()
+                    // Local SFU connection only proves this participant opened a media session.
+                    // Keep call status in 'connecting' until the remote peer actually joins
+                    // (remote video track or peer data channel ready) or backend confirms both
+                    // doctor_cf_session_id and patient_cf_session_id.
                     val callId = _uiState.value.activeCallId ?: appointmentId
-                    if (callId.isNotBlank() && !previewOnlyMode) {
+                    if (callId.isNotBlank() && !previewOnlyMode && callUserType != "guest" && !reportedRemotePeerConnected) {
                         viewModelScope.launch {
-                            telemedicineRepository.updateCallStatus(callId, "connected")
+                            telemedicineRepository.updateCallStatus(callId, "connecting")
                         }
-                    }
-                    val currentDispatchId = activePharmacyDispatchId
-                    if (!currentDispatchId.isNullOrBlank()) {
-                        viewModelScope.launch {
-                            runCatching {
-                                supabaseClient.postgrest
-                                    .from("pharmacy_dispatch_requests")
-                                    .update(mapOf(
-                                        "status" to "in_call",
-                                        "call_started_at" to java.time.OffsetDateTime.now().toString()
-                                    )) {
-                                        filter { eq("id", currentDispatchId) }
-                                    }
-                            }
-                        }
-                    }
-                    if (callStartTimeMs == 0L) {
-                        sessionRetryJob?.cancel()
-                        callStartTimeMs = System.currentTimeMillis()
-                        startTimer()
                     }
                 }
             }
@@ -1274,6 +1280,9 @@ class VideoCallViewModel @Inject constructor(
         viewModelScope.launch {
             engine.chatReady.collect { ready ->
                 _uiState.update { it.copy(chatReady = ready) }
+                if (ready) {
+                    markRemotePeerConnectedIfNeeded()
+                }
             }
         }
 
@@ -1299,6 +1308,9 @@ class VideoCallViewModel @Inject constructor(
         viewModelScope.launch {
             engine.remoteVideoTrack.collect { track ->
                 _uiState.update { it.copy(hasRemoteVideo = track != null) }
+                if (track != null) {
+                    markRemotePeerConnectedIfNeeded()
+                }
             }
         }
 
@@ -1522,6 +1534,22 @@ class VideoCallViewModel @Inject constructor(
         }
     }
 
+    private fun markRemotePeerConnectedIfNeeded() {
+        if (reportedRemotePeerConnected) return
+        reportedRemotePeerConnected = true
+        if (callStartTimeMs == 0L) {
+            sessionRetryJob?.cancel()
+            callStartTimeMs = System.currentTimeMillis()
+            startTimer()
+        }
+        val callId = _uiState.value.activeCallId ?: appointmentId
+        if (callId.isNotBlank() && !previewOnlyMode && callUserType != "guest") {
+            viewModelScope.launch {
+                telemedicineRepository.updateCallStatus(callId, "connected")
+            }
+        }
+    }
+
     private fun startConsultationStatusMonitor(effectiveRoomId: String, dispatchId: String?) {
         consultationMonitorJob?.cancel()
         if (previewOnlyMode) return
@@ -1535,24 +1563,35 @@ class VideoCallViewModel @Inject constructor(
                 if (!callStarted) break
 
                 if (isPharmacyRoom || !targetDispatchId.isNullOrBlank()) {
-                    val status = runCatching {
-                        supabaseClient.postgrest.from("pharmacy_dispatch_requests")
-                            .select(Columns.list("id", "status")) {
-                                filter {
-                                    if (!targetDispatchId.isNullOrBlank()) {
-                                        eq("id", targetDispatchId)
-                                    } else {
-                                        eq("cloudflare_room_id", effectiveRoomId)
+                    val isGuestSession = callUserType == "guest" || authRepository.getCurrentUser() == null
+                    val status: DispatchStatusDto? = if (isGuestSession) {
+                        // Never query pharmacy_dispatch_requests directly as anon (401 / clinical PII).
+                        // Poll via the guest-token-bound HTTP endpoint instead.
+                        runCatching {
+                            pharmacyDispatchRepository.getGuestRequestStatusForRoom(effectiveRoomId)
+                        }.getOrNull()?.let { guestReq ->
+                            DispatchStatusDto(id = guestReq.id, status = guestReq.status)
+                        }
+                    } else {
+                        runCatching {
+                            supabaseClient.postgrest.from("pharmacy_dispatch_requests")
+                                .select(Columns.list("id", "status")) {
+                                    filter {
+                                        if (!targetDispatchId.isNullOrBlank()) {
+                                            eq("id", targetDispatchId)
+                                        } else {
+                                            eq("cloudflare_room_id", effectiveRoomId)
+                                        }
                                     }
-                                }
-                                limit(1)
-                            }.decodeSingleOrNull<DispatchStatusDto>()
-                    }.getOrNull()
+                                    limit(1)
+                                }.decodeSingleOrNull<DispatchStatusDto>()
+                        }.getOrNull()
+                    }
 
                     if (status != null) {
                         targetDispatchId = status.id
-                        if (status.status == "completed" || status.status == "cancelled") {
-                            SecureLog.info("[VideoCallVM] Pharmacy dispatch request reached ${status.status} in DB. Terminating call.")
+                        if (status.status == "completed" || status.status == "cancelled" || status.status == "expired") {
+                            SecureLog.info("[VideoCallVM] Pharmacy dispatch request reached ${status.status}. Terminating call.")
                             _uiState.update {
                                 it.copy(
                                     connectionState = ConnectionState.DISCONNECTED,
@@ -1563,7 +1602,7 @@ class VideoCallViewModel @Inject constructor(
                             break
                         }
                     }
-                } else if (appointmentId.isNotBlank()) {
+                } else if (appointmentId.isNotBlank() && callUserType != "guest") {
                     val appt = runCatching {
                         supabaseClient.postgrest.from("appointments")
                             .select(Columns.list("status")) {

@@ -10,12 +10,14 @@ import {
 import { UnifiedVideoCall, createCallProvider } from '@autamedica/telemedicine'
 import { useGuestCallSession } from '@/hooks/calls/useGuestCallSession'
 import PatientWaitingRoom from '@/components/calls/PatientWaitingRoom'
+import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
 
 interface GuestCallPageProps {
   roomId: string
   dispatchId?: string
   guestToken?: string
   language?: 'pt' | 'es'
+  onConnectionChange?: (connected: boolean) => void
 }
 
 type EncounterDocument = {
@@ -205,7 +207,7 @@ function LoadingScreen({ language }: { language: 'pt' | 'es' }) {
     </div>
   )
 }
-export default function GuestCallPage({ roomId, dispatchId, guestToken, language: requestedLanguage }: GuestCallPageProps) {
+export default function GuestCallPage({ roomId, dispatchId, guestToken, language: requestedLanguage, onConnectionChange }: GuestCallPageProps) {
   const [ended, setEnded] = useState(false)
   const [inWaitingRoom, setInWaitingRoom] = useState(true)
   const [documents, setDocuments] = useState<EncounterDocument[]>([])
@@ -245,8 +247,9 @@ export default function GuestCallPage({ roomId, dispatchId, guestToken, language
       attempts += 1
       try {
         const accessToken = guestToken || token
+        if (!accessToken) return
         const response = await fetchApi<{ documents?: EncounterDocument[] }>(
-          `/api/pharmacy/dispatch/${encodeURIComponent(dispatchId)}?token=${encodeURIComponent(accessToken!)}`,
+          `/api/pharmacy/dispatch/${encodeURIComponent(dispatchId)}?token=${encodeURIComponent(accessToken)}`,
         )
         if (current && Array.isArray(response.documents)) setDocuments(response.documents)
       } catch {
@@ -265,11 +268,32 @@ export default function GuestCallPage({ roomId, dispatchId, guestToken, language
     () => callSession
       ? createCallProvider({
           bootstrap: callSession,
-          // Guest never uses WebRTC P2P (no Supabase Realtime), always Cloudflare Calls SFU
+          // Share the exact same Supabase Realtime Broadcast/Presence channel
+          // (`signaling:<roomId>`) used by the Android doctor app; Broadcast &
+          // Presence never query protected clinical tables.
+          supabase: getBrowserSupabaseClient(),
         })
       : null,
     [callSession],
   )
+
+  useEffect(() => {
+    if (!callProvider || !onConnectionChange) return
+    onConnectionChange(false)
+    const unsubStream = callProvider.on('remote-stream', () => {
+      onConnectionChange(true)
+    })
+    const unsubState = callProvider.on('connection-state', (state) => {
+      if (state === 'disconnected' || state === 'failed' || state === 'closed') {
+        onConnectionChange(false)
+      }
+    })
+    return () => {
+      unsubStream()
+      unsubState()
+      onConnectionChange(false)
+    }
+  }, [callProvider, onConnectionChange])
 
   const doctorDisplayName = callSession?.peer?.displayName || (language === 'pt' ? 'médico responsável' : 'médico asignado')
 
@@ -293,7 +317,7 @@ export default function GuestCallPage({ roomId, dispatchId, guestToken, language
         doctorName={doctorDisplayName}
         clinicName="AutaMedica"
         patientName={callSession.user.displayName || 'Paciente'}
-        triageCompleted={false}
+        triageCompleted={Boolean(dispatchId)}
         language={language}
         onJoin={() => setInWaitingRoom(false)}
       />

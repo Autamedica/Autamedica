@@ -63,7 +63,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     ?? import.meta.env.SFU_SESSION_BINDINGS_ENABLED
   const result = await handleRoomBoundCloudflareProxy(
     request, admin, guest.roomId, `guest:${guest.callId}`,
-    { appId, appSecret, bindingsEnabled: enabled === 'true' },
+    { appId, appSecret, bindingsEnabled: enabled === 'true', participantRole: 'guest' },
   )
 
   return new Response(JSON.stringify(result.body), {

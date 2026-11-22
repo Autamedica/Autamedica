@@ -140,28 +140,70 @@ class TelemedicineRepositoryImpl @Inject constructor(
 
         // El fast path de llamada entrante entrega el room_id (room_xxxx) como call id.
         // La RPC canónica update_call_status keyea sobre calls.id, así que se resuelve
-        // el id real antes de actualizar para no escribir sobre una fila inexistente.
-        val resolvedCallId = resolveCallId(trimmedRawId)
+        // el id real y el estado actual para respetar la máquina de estados
+        // requested -> accepted -> connecting -> connected -> ended.
+        val existingCall = runCatching { findCallForIdentifier(trimmedRawId) }.getOrNull()
+        val resolvedCallId = existingCall?.id ?: trimmedRawId
+        val currentStatus = existingCall?.status
+
+        val transitionSteps = when (normalizedStatus) {
+            "connecting" -> when (currentStatus) {
+                "requested", "ringing" -> listOf("accepted", "connecting")
+                "accepted" -> listOf("connecting")
+                "connecting", "connected", "ended", "canceled", "declined" -> emptyList()
+                else -> listOf("connecting")
+            }
+            "connected" -> when (currentStatus) {
+                "requested", "ringing" -> listOf("accepted", "connecting", "connected")
+                "accepted" -> listOf("connecting", "connected")
+                "connecting" -> listOf("connected")
+                "connected", "ended", "canceled", "declined" -> emptyList()
+                else -> listOf("connected")
+            }
+            "ended" -> when (currentStatus) {
+                "requested", "ringing" -> listOf("canceled")
+                "accepted", "connecting", "connected" -> listOf("ended")
+                "ended", "canceled", "declined" -> emptyList()
+                else -> listOf("ended")
+            }
+            else -> if (currentStatus == normalizedStatus) emptyList() else listOf(normalizedStatus)
+        }
+
+        if (transitionSteps.isEmpty()) return@runCatching
 
         // 1. Camino canónico: la RPC update_call_status setea accepted_at/ended_at y
-        //    registra el evento status_changed de forma atómica. Antes se escribía el
-        //    status con UPDATE directo y sin accepted_at ni evento (estado corrupto).
-        val rpcSucceeded = runCatching {
-            supabaseClient.postgrest.rpc(
-                "update_call_status",
-                buildJsonObject {
-                    put("p_call_id", resolvedCallId)
-                    put("p_status", normalizedStatus)
+        //    registra el evento status_changed de forma atómica. Direct UPDATE sobre
+        //    public.calls está intencionalmente revocado (permission denied).
+        var rpcSucceeded = true
+        for (stepStatus in transitionSteps) {
+            val stepResult = runCatching {
+                supabaseClient.postgrest.rpc(
+                    "update_call_status",
+                    buildJsonObject {
+                        put("p_call_id", resolvedCallId)
+                        put("p_status", stepStatus)
+                    }
+                )
+            }
+            if (stepResult.isFailure) {
+                rpcSucceeded = false
+                val stepError = stepResult.exceptionOrNull()
+                if (stepError != null) {
+                    SecureLog.warn("[Telemedicine] update_call_status RPC rejected step $stepStatus for call=$resolvedCallId", stepError)
+                } else {
+                    SecureLog.warn("[Telemedicine] update_call_status RPC rejected step $stepStatus for call=$resolvedCallId")
                 }
-            )
-        }.isSuccess
+                break
+            }
+        }
 
+        val finalAppliedStatus = transitionSteps.last()
         if (rpcSucceeded) {
             // Sincronización best-effort de la tabla paralela (no bloqueante).
             runCatching {
                 supabaseClient.postgrest
                     .from("telemedicine_sessions")
-                    .update(mapOf("status" to normalizedStatus)) {
+                    .update(mapOf("status" to finalAppliedStatus)) {
                         filter {
                             or {
                                 eq("appointment_id", resolvedCallId)
@@ -172,46 +214,16 @@ class TelemedicineRepositoryImpl @Inject constructor(
             }
             Unit
         } else {
-            // 2. Fallback directo replicando la semántica de la RPC: el status nunca
-            //    se escribe sin su timestamp correspondiente (accepted_at/ended_at).
-            val nowIso = java.time.OffsetDateTime.now().toString()
-            val updates = buildMap {
-                put("status", normalizedStatus)
-                if (normalizedStatus == "accepted") put("accepted_at", nowIso)
-                if (normalizedStatus == "ended") put("ended_at", nowIso)
-            }
-            runCatching {
-                supabaseClient.postgrest
-                    .from("calls")
-                    .update(updates) {
-                        filter { eq("id", resolvedCallId) }
-                    }
-            }
-
-            runCatching {
-                supabaseClient.postgrest
-                    .from("telemedicine_sessions")
-                    .update(mapOf("status" to normalizedStatus)) {
-                        filter {
-                            or {
-                                eq("appointment_id", resolvedCallId)
-                                eq("id", resolvedCallId)
-                            }
-                        }
-                    }
-            }
-
-            // Último recurso: edge function con service role para el mismo camino RPC.
+            // Último recurso autorizado: edge function con service role (nunca UPDATE directo a public.calls).
             runCatching {
                 supabaseClient.functions.invoke(
                     "update-call-status",
                     buildJsonObject {
                         put("callId", resolvedCallId)
-                        put("status", normalizedStatus)
+                        put("status", finalAppliedStatus)
                     }
                 )
             }
-
             Unit
         }
     }.onFailure {

@@ -48,7 +48,7 @@ type EncounterDocument = {
 
 const COPY = {
   AR: {
-    brand: 'Consulta médica', ready: 'Médico conectado', restart: 'Nueva consulta', country: 'País de atención',
+    brand: 'Consulta médica', ready: 'Médico conectado', connectingCall: 'Médico asignado · Conectando sala', restart: 'Nueva consulta', country: 'País de atención',
     document: 'DNI', name: 'Nombre y apellido', phone: 'WhatsApp', reason: 'Motivo',
     nameExample: 'Ej. Juan Pérez', phoneExample: 'Ej. 11 2345-6789', reasonExample: 'Describí brevemente el motivo',
     submit: 'Continuar', submitting: 'Conectando...', searching: 'Buscando médico', elapsed: 'Tiempo',
@@ -62,7 +62,7 @@ const COPY = {
     retryAvailability: 'Volver a comprobar disponibilidad',
   },
   BR: {
-    brand: 'Consulta médica de plantão', ready: 'Médico conectado', restart: 'Nova consulta', country: 'País de atendimento',
+    brand: 'Consulta médica de plantão', ready: 'Médico conectado', connectingCall: 'Médico designado · Conectando sala', restart: 'Nova consulta', country: 'País de atendimento',
     document: 'CPF', name: 'Nome completo', phone: 'WhatsApp', reason: 'Motivo',
     nameExample: 'Ex.: João da Silva', phoneExample: 'Ex.: (51) 99999-9999', reasonExample: 'Descreva o motivo em poucas palavras',
     submit: 'Iniciar consulta', submitting: 'Conectando...', searching: 'Buscando médico', elapsed: 'Tempo',
@@ -128,6 +128,7 @@ export function PharmacyExpressConsultation({
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [recoveryToken, setRecoveryToken] = useState<string | null>(null)
   const [callRoomId, setCallRoomId] = useState<string | null>(null)
+  const [isCallMediaConnected, setIsCallMediaConnected] = useState(false)
   const [countryPaymentApproved, setCountryPaymentApproved] = useState(false)
   const [onDutyDoctorCount, setOnDutyDoctorCount] = useState<number | null>(null)
   const [availabilityChecked, setAvailabilityChecked] = useState(false)
@@ -299,6 +300,9 @@ export function PharmacyExpressConsultation({
           }
           setStep('CALL')
         }
+      } else if (req.status === 'searching') {
+        setIsCallMediaConnected(false)
+        setStep('WAITING')
       } else if (req.status === 'pending_payment') {
         if (!countryPaymentApproved) setCountryPaymentApproved(false)
         setStep('WAITING')
@@ -583,13 +587,21 @@ export function PharmacyExpressConsultation({
           <span className="font-bold tracking-tight text-slate-900">{pharmacyName || copy.brand}</span>
           {referralPartnerName && <span className="hidden text-slate-500 sm:inline">· {referralPartnerName}</span>}
           <span className="text-slate-400">•</span>
-          <span className="text-emerald-700 flex items-center gap-1.5 font-semibold">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-            {copy.ready}
+          <span className={isCallMediaConnected ? 'text-emerald-700 flex items-center gap-1.5 font-semibold' : 'text-amber-700 flex items-center gap-1.5 font-semibold'}>
+            <span className={isCallMediaConnected ? 'w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping' : 'w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse'} />
+            {isCallMediaConnected ? copy.ready : copy.connectingCall}
           </span>
           <span className="text-slate-400 hidden sm:inline">•</span>
         </div>
-        {(!requiresCountryPayment || countryPaymentApproved) && <GuestCallPage roomId={callRoomId} dispatchId={requestId ?? undefined} guestToken={accessToken ?? undefined} language={isPortuguese ? 'pt' : 'es'} />}
+        {(!requiresCountryPayment || countryPaymentApproved) && (
+          <GuestCallPage
+            roomId={callRoomId}
+            dispatchId={requestId ?? undefined}
+            guestToken={accessToken ?? undefined}
+            language={isPortuguese ? 'pt' : 'es'}
+            onConnectionChange={setIsCallMediaConnected}
+          />
+        )}
         {requiresCountryPayment && requestId && accessToken && currentPricing && (
           <JordanPaymentWidget
             dispatchId={requestId}

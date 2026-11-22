@@ -604,15 +604,64 @@ export async function handler(req: Request): Promise<Response> {
 
     // Never return a usable new SFU session ID before its scoped DB binding
     // is persisted. An orphaned Cloudflare session is not an authorization.
-    if (bindingsEnabled && path === 'sessions/new' &&
-        cfRes.status >= 200 && cfRes.status < 300) {
-      try {
-        const stored = await recordEdgeSfuSession(supabaseAdmin,roomId,principalKey,cfBody)
-        if (!stored) throw new Error('sfu_session_id_missing')
-      } catch {
-        return new Response(JSON.stringify({ error: 'sfu_session_binding_unavailable' }), {
-          status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
+    if (path === 'sessions/new' && cfRes.status >= 200 && cfRes.status < 300) {
+      if (bindingsEnabled) {
+        try {
+          const stored = await recordEdgeSfuSession(supabaseAdmin, roomId, principalKey, cfBody)
+          if (!stored) throw new Error('sfu_session_id_missing')
+        } catch {
+          return new Response(JSON.stringify({ error: 'sfu_session_binding_unavailable' }), {
+            status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+      }
+
+      // Persist participant Cloudflare session ID on pharmacy_dispatch_requests
+      // and promote status to 'in_call' + calls='connected' ONLY once BOTH
+      // doctor_cf_session_id and patient_cf_session_id are recorded.
+      const createdSessionId = typeof (cfBody as { sessionId?: unknown } | null)?.sessionId === 'string'
+        ? (cfBody as { sessionId: string }).sessionId
+        : null
+      if (mediaDispatch && createdSessionId) {
+        try {
+          const sessionColumn = participantRole === 'doctor'
+            ? 'doctor_cf_session_id'
+            : 'patient_cf_session_id'
+          const { data: updatedDispatch } = await supabaseAdmin
+            .from('pharmacy_dispatch_requests')
+            .update({ [sessionColumn]: createdSessionId })
+            .eq('id', mediaDispatch.id)
+            .select('id, call_id, status, doctor_cf_session_id, patient_cf_session_id, call_started_at')
+            .maybeSingle()
+
+          if (updatedDispatch?.doctor_cf_session_id && updatedDispatch?.patient_cf_session_id) {
+            if (updatedDispatch.status === 'matched') {
+              await supabaseAdmin
+                .from('pharmacy_dispatch_requests')
+                .update({
+                  status: 'in_call',
+                  call_started_at: updatedDispatch.call_started_at ?? new Date().toISOString(),
+                })
+                .eq('id', updatedDispatch.id)
+                .eq('status', 'matched')
+            }
+            if (updatedDispatch.call_id) {
+              await supabaseAdmin.rpc('update_call_status', {
+                p_call_id: updatedDispatch.call_id,
+                p_status: 'connected',
+                p_reason: 'both_cf_sessions_established',
+              })
+            }
+          } else if (updatedDispatch?.call_id) {
+            await supabaseAdmin.rpc('update_call_status', {
+              p_call_id: updatedDispatch.call_id,
+              p_status: 'connecting',
+              p_reason: `${participantRole}_cf_session_created`,
+            })
+          }
+        } catch (syncErr) {
+          console.warn('[cloudflare-calls] Non-blocking dispatch CF session sync warning:', syncErr)
+        }
       }
     }
 
