@@ -4,14 +4,16 @@ import { syncMemedSecrets } from './sync-memed-secrets.mjs';
 
 const env = { MEMED_API_KEY: 'synthetic-key', MEMED_SECRET_KEY: 'synthetic-secret',
   CLOUDFLARE_API_TOKEN: 'synthetic-cloudflare-token',
-  CLOUDFLARE_ACCOUNT_ID: '5b448192fe4b369642b68ad8f53a7603' };
+  CLOUDFLARE_ACCOUNT_ID: '5b448192fe4b369642b68ad8f53a7603',
+  MEMED_SYNC_PROJECTS: 'autamedica-doctors' };
 const initial = { MEMED_API_URL: { type: 'plain_text', value: 'https://api.memed.com.br/v1' },
   MEMED_SCRIPT_URL: { type: 'plain_text', value: 'https://partners.memed.com.br/integration.js' },
   MEMED_RX_ENABLED: { type: 'plain_text', value: 'false' },
   OTHER_SECRET: { type: 'secret_text', value: '' } };
 const response = (body, ok = true, status = 200) => ({ ok, status, json: async () => body });
 const project = vars => response({ success: true, result: { deployment_configs: { production: { env_vars: vars } } } });
-const validKeys = () => response({ success: [{ code: 'chave-valida' }] });
+const validKeys = () => response({ data: { type: 'usuarios', attributes: { token: 'tok' } } }, true, 200);
+const validNotRegistered = () => response({ errors: [{ detail: 'Nenhum usuário encontrado' }] }, false, 404);
 
 test('missing source credentials blocks explicitly without network calls', async () => {
   let called = false;
@@ -41,6 +43,7 @@ test('only production doctor secrets are patched; issuance and other settings re
     calls.push({ url, options }); return outputs.shift();
   });
   assert.equal(result.status, 'configured');
+  assert.deepEqual(result.projects, ['autamedica-doctors']);
   assert.equal(calls.length, 4);
   assert.ok(calls[2].url.endsWith('/pages/projects/autamedica-doctors'));
   assert.deepEqual(JSON.parse(calls[2].options.body), { deployment_configs: { production: { env_vars: {
@@ -49,6 +52,24 @@ test('only production doctor secrets are patched; issuance and other settings re
   } } } });
   assert.ok(!JSON.stringify(result).includes(env.MEMED_SECRET_KEY));
   for (const call of calls) assert.equal(call.options.redirect, 'error');
+});
+test('accepts valid Memed 404 lookup and patches all default production portals', async () => {
+  const calls = [];
+  const after = { ...initial, MEMED_API_KEY: { type: 'secret_text', value: '' },
+    MEMED_SECRET_KEY: { type: 'secret_text', value: '' } };
+  const outputs = [
+    validNotRegistered(),
+    project(initial), response({ success: true }), project(after),
+    project(initial), response({ success: true }), project(after),
+    project(initial), response({ success: true }), project(after),
+  ];
+  const { MEMED_SYNC_PROJECTS: _ignored, ...defaultEnv } = env;
+  const result = await syncMemedSecrets(defaultEnv, async (url, options) => {
+    calls.push({ url, options }); return outputs.shift();
+  });
+  assert.equal(result.status, 'configured');
+  assert.deepEqual(result.projects, ['autamedica-web', 'autamedica-doctors', 'autamedica-admin']);
+  assert.equal(calls.length, 10);
 });
 test('nonproduction environment is rejected before PATCH', async () => {
   const outputs = [validKeys(), project({ ...initial, MEMED_API_URL: { value: 'https://other.invalid' } })];
