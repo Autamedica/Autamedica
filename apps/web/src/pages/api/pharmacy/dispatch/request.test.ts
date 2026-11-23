@@ -207,9 +207,9 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     expect(dispatchTable.insert).toHaveBeenCalledWith(expect.objectContaining({
       requested_by_user_id: ownerId, care_country: 'BR', referral_partner_id: partnerId,
       lgpd_consent: true,
-      telemedicine_consent_at: expect.any(String),
-      telemedicine_consent_version: 'br-pharmacy-express-telemedicine-v1',
     }))
+    expect(dispatchTable.insert.mock.calls[0][0]).not.toHaveProperty('telemedicine_consent_at')
+    expect(dispatchTable.insert.mock.calls[0][0]).not.toHaveProperty('telemedicine_consent_version')
     expect(dispatchTable.insert.mock.calls[0][0]).not.toHaveProperty('patient_gender_code')
     expect(recoveryTable.insert).toHaveBeenCalledWith(expect.objectContaining({
       request_id: dispatchRow.id, token_sha256: expect.any(String),
@@ -302,6 +302,14 @@ describe('API: /api/pharmacy/dispatch/request', () => {
       patient_dni: null,
       lgpd_consent: true,
       requested_by_user_id: 'patient-auth-user-99',
+      telemedicine_consent_at: expect.any(String),
+      telemedicine_consent_version: 'br-pharmacy-express-telemedicine-v1',
+    }))
+    const insertedBrDispatch = table.insert.mock.calls[0][0] as Record<string, unknown>
+    expect(Number.isNaN(Date.parse(String(insertedBrDispatch.telemedicine_consent_at)))).toBe(false)
+    expect(patientTable.update).toHaveBeenCalledWith(expect.objectContaining({
+      telemedicine_consent_at: expect.any(String),
+      telemedicine_consent_version: 'br-pharmacy-express-telemedicine-v1',
     }))
     expect(table.insert.mock.calls[0][0]).not.toHaveProperty('patient_gender_code')
   })
