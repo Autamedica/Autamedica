@@ -328,7 +328,7 @@ describe('Memed DEMO flow: synthetic doctor + synthetic patient, no real provide
         },
         memed_full_pdf_url: 'https://documentos.memed.com.br/DEMO-RX-001.pdf',
         signature_verified: false,
-        delivery_status: 'provider_link_available',
+        delivery_status: 'provider_signed_pdf_available',
       },
     });
     expect(state.requests).toEqual([
