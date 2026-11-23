@@ -137,6 +137,62 @@ describe('Memed event persistence boundary', () => {
     });
   });
 
+  it('does not enable atestado delivery when the provider has not signed it', async () => {
+    rx = {
+      id: 'rx-test', medicos: { cpf: doctor.cpf, crm: '9236', uf: 'RS' },
+      paciente: { external_id: `autamedica-${patientId}`, cpf: doctor.cpf },
+      medicamentos: [{ tipo: 'custom', custom_categoria: 'atestado', nome: 'Atestado' }],
+      signed: 0,
+    };
+    mocks.pdfUrl.mockResolvedValue({ data: { attributes: { url: 'https://documentos.memed.com.br/rx-test.pdf' } } });
+    expect((await POST(context())).status).toBe(200);
+    expect(mocks.memedInsert).toHaveBeenCalledWith(expect.objectContaining({
+      provider_data: expect.objectContaining({ has_atestado: true, provider_reported_signed: false, patient_delivery_eligible: false }),
+    }));
+    expect(mocks.coreInsert.mock.calls[0][0].clinical_data).toMatchObject({
+      signature_status: 'pending', patient_delivery_eligible: false, delivery_status: 'pending',
+    });
+  });
+
+  it('does not enable atestado delivery when Memed reports signing without a full PDF', async () => {
+    rx = {
+      id: 'rx-test', medicos: { cpf: doctor.cpf, crm: '9236', uf: 'RS' },
+      paciente: { external_id: `autamedica-${patientId}`, cpf: doctor.cpf },
+      medicamentos: [{ tipo: 'custom', custom_categoria: 'atestado', nome: 'Atestado' }],
+      signed: 1,
+    };
+    expect((await POST(context())).status).toBe(200);
+    expect(mocks.memedInsert).toHaveBeenCalledWith(expect.objectContaining({
+      provider_data: expect.objectContaining({ has_atestado: true, provider_reported_signed: true, patient_delivery_eligible: false }),
+    }));
+    expect(mocks.coreInsert.mock.calls[0][0].clinical_data).toMatchObject({
+      signature_status: 'provider_reported_signed', patient_delivery_eligible: false, delivery_status: 'pending',
+    });
+  });
+
+  it('keeps medication and atestado together in a mixed Memed event', async () => {
+    rx = {
+      id: 'rx-test', medicos: { cpf: doctor.cpf, crm: '9236', uf: 'RS' },
+      paciente: { external_id: `autamedica-${patientId}`, cpf: doctor.cpf },
+      medicamentos: [
+        { tipo: 'medicamento', nome: 'Dipirona', descricao: 'Dipirona 500 mg', quantidade: 1 },
+        { tipo: 'custom', custom_categoria: 'atestado', nome: 'Atestado de afastamento', texto: 'Dois dias' },
+      ],
+      signed: 1,
+    };
+    mocks.pdfUrl.mockResolvedValue({ data: { attributes: { url: 'https://documentos.memed.com.br/rx-test.pdf' } } });
+    expect((await POST(context())).status).toBe(200);
+    expect(mocks.memedInsert).toHaveBeenCalledWith(expect.objectContaining({
+      provider_data: expect.objectContaining({
+        document_type: 'atestado', has_atestado: true,
+        medication_name: 'Dipirona 500 mg',
+        medications: [expect.objectContaining({ commercial_name: 'Dipirona', tipo: 'medicamento' })],
+        structured_documents: [expect.objectContaining({ custom_categoria: 'atestado' })],
+        patient_delivery_eligible: true,
+      }),
+    }));
+  });
+
   it('binds the issued prescription to the authenticated pharmacy dispatch', async () => {
     const requestId = '22222222-2222-4222-8222-222222222222';
     expect((await POST(context('rx-test', 'true', requestId))).status).toBe(200);
