@@ -7,6 +7,7 @@ import com.autamedica.android.domain.model.PharmacyConsultationStatus
 import com.autamedica.android.domain.model.PharmacyDispatchRequest
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.PharmacyDispatchRepository
+import com.autamedica.android.domain.repository.PharmacyEncounterDocument
 import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.logging.SecureLog
 import java.time.Instant
@@ -55,6 +56,9 @@ data class PharmacyIntakeUiState(
     val searchStartedAt: Instant? = null,
     val waitingSeconds: Int = 0,
     val status: PharmacyConsultationStatus? = null,
+    val documents: List<PharmacyEncounterDocument> = emptyList(),
+    val isLoadingDocuments: Boolean = false,
+    val documentsError: String? = null,
     val queuePosition: Int = 0,
     val estimatedMinutes: Int = 0,
     val assignedDoctorName: String? = null,
@@ -131,6 +135,7 @@ class PharmacyIntakeViewModel @Inject constructor(
     val uiState: StateFlow<PharmacyIntakeUiState> = _uiState.asStateFlow()
 
     private var statusPollingJob: Job? = null
+    private var documentsPollingJob: Job? = null
     private var observeActiveDoctorsJob: Job? = null
     private var marketCapacityJob: Job? = null
 
@@ -333,6 +338,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                             refreshCountryDoctorCount(request.careCountry)
                             // Observe the request even if the doctor already attended: payment is independent.
                             startStatusPolling(request.id)
+                            if (request.status == "completed") refreshEncounterDocuments(request.id)
                         }
                     }
                     .onFailure { error ->
@@ -544,6 +550,45 @@ class PharmacyIntakeViewModel @Inject constructor(
         _uiState.update { it.copy(paymentCheckoutUrl = null) }
     }
 
+    private fun refreshEncounterDocuments(requestId: String) {
+        documentsPollingJob?.cancel()
+        documentsPollingJob = viewModelScope.launch {
+            _uiState.update { state ->
+                if (state.activeRequestId == requestId) state.copy(isLoadingDocuments = true, documentsError = null)
+                else state
+            }
+            var lastError: String? = null
+            repeat(12) { attempt ->
+                pharmacyDispatchRepository.getPharmacyDispatchDocuments(requestId)
+                    .onSuccess { documents ->
+                        _uiState.update { state ->
+                            if (state.activeRequestId == requestId) state.copy(documents = documents)
+                            else state
+                        }
+                    }
+                    .onFailure { error -> lastError = error.message }
+                if (attempt < 11) delay(2_500L)
+            }
+            _uiState.update { state ->
+                if (state.activeRequestId != requestId) state
+                else state.copy(
+                    isLoadingDocuments = false,
+                    documentsError = if (state.documents.isEmpty()) {
+                        lastError ?: "Los documentos todavía no están disponibles."
+                    } else null,
+                )
+            }
+        }
+    }
+
+    fun retryEncounterDocuments() {
+        val state = _uiState.value
+        val requestId = state.activeRequestId ?: return
+        if (state.status == PharmacyConsultationStatus.COMPLETED && !state.isLoadingDocuments) {
+            refreshEncounterDocuments(requestId)
+        }
+    }
+
     private fun startStatusPolling(requestId: String) {
         statusPollingJob?.cancel()
         statusPollingJob = viewModelScope.launch {
@@ -585,6 +630,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                         statusPollingJob?.cancel()
                     }
                     if (completed) {
+                        refreshEncounterDocuments(requestId)
                         statusPollingJob?.cancel()
                     }
                     if (terminal) {
@@ -661,6 +707,9 @@ class PharmacyIntakeViewModel @Inject constructor(
                 paymentStatus = "not_started",
                 paymentCheckoutUrl = null,
                 paymentError = null,
+                documents = emptyList(),
+                isLoadingDocuments = false,
+                documentsError = null,
                 statusNotice = null,
                 error = null,
             )

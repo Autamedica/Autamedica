@@ -31,6 +31,9 @@ export interface CallEndedScreenProps {
   language?: 'pt' | 'es'
   whatsappUrl?: string
   documents?: EncounterDocument[]
+  canRefreshDocuments?: boolean
+  isRefreshingDocuments?: boolean
+  onRefreshDocuments?: () => void
 }
 
 const CALL_ENDED_I18N = {
@@ -46,6 +49,7 @@ const CALL_ENDED_I18N = {
     continuityBadge: 'Linha de cuidado',
     btnWhatsApp: 'Voltar para o WhatsApp',
     btnClose: 'Fechar Janela',
+    btnRefreshDocuments: 'Atualizar documentos',
     footerNotice: 'AutaMedica • Telemedicina em conformidade com CFM 2.314/2022 e LGPD',
   },
   es: {
@@ -60,6 +64,7 @@ const CALL_ENDED_I18N = {
     continuityBadge: 'Línea de cuidado',
     btnWhatsApp: 'Volver al WhatsApp',
     btnClose: 'Cerrar Ventana',
+    btnRefreshDocuments: 'Actualizar documentos',
     footerNotice: 'AutaMedica • Telemedicina y Protección de Datos Personales',
   },
 }
@@ -70,6 +75,9 @@ export function CallEndedScreen({
   language = 'pt',
   whatsappUrl = 'https://wa.me/',
   documents = [],
+  canRefreshDocuments = false,
+  isRefreshingDocuments = false,
+  onRefreshDocuments,
 }: CallEndedScreenProps) {
   const t = CALL_ENDED_I18N[language] || CALL_ENDED_I18N.pt
   const displayDoctorName = doctorName || (language === 'pt' ? 'médico responsável' : 'médico asignado')
@@ -156,6 +164,16 @@ export function CallEndedScreen({
               </p>
             )}
           </div>
+          {canRefreshDocuments && onRefreshDocuments && (
+            <button
+              type="button"
+              onClick={onRefreshDocuments}
+              disabled={isRefreshingDocuments}
+              className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 disabled:opacity-60"
+            >
+              {isRefreshingDocuments ? (language === 'pt' ? 'Atualizando...' : 'Actualizando...') : t.btnRefreshDocuments}
+            </button>
+          )}
 
           {/* ── Action Buttons ── */}
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full mt-6">
@@ -211,6 +229,9 @@ export default function GuestCallPage({ roomId, dispatchId, guestToken, language
   const [ended, setEnded] = useState(false)
   const [inWaitingRoom, setInWaitingRoom] = useState(true)
   const [documents, setDocuments] = useState<EncounterDocument[]>([])
+  const [canRefreshDocuments, setCanRefreshDocuments] = useState(false)
+  const [isRefreshingDocuments, setIsRefreshingDocuments] = useState(false)
+  const [documentsRefreshKey, setDocumentsRefreshKey] = useState(0)
 
   const { token, inviteId } = useMemo(() => {
     if (typeof window === 'undefined') return { token: guestToken ?? null, inviteId: null }
@@ -243,6 +264,9 @@ export default function GuestCallPage({ roomId, dispatchId, guestToken, language
     if (!ended || !dispatchId || !(guestToken || token)) return
     let current = true
     let attempts = 0
+    let timer: number | undefined
+    setCanRefreshDocuments(false)
+    setIsRefreshingDocuments(true)
     const loadDocuments = async () => {
       attempts += 1
       try {
@@ -254,15 +278,31 @@ export default function GuestCallPage({ roomId, dispatchId, guestToken, language
         if (current && Array.isArray(response.documents)) setDocuments(response.documents)
       } catch {
         // The dispatch may still be transitioning to completed; retry briefly.
+      } finally {
+        if (current && attempts >= 12) {
+          if (timer !== undefined) window.clearInterval(timer)
+          setIsRefreshingDocuments(false)
+          setCanRefreshDocuments(true)
+        }
       }
     }
     void loadDocuments()
-    const timer = window.setInterval(() => {
-      if (attempts >= 12) { window.clearInterval(timer); return }
+    timer = window.setInterval(() => {
+      if (attempts >= 12) {
+        if (timer !== undefined) window.clearInterval(timer)
+        if (current) {
+          setIsRefreshingDocuments(false)
+          setCanRefreshDocuments(true)
+        }
+        return
+      }
       void loadDocuments()
     }, 2500)
-    return () => { current = false; window.clearInterval(timer) }
-  }, [ended, dispatchId, guestToken, token])
+    return () => {
+      current = false
+      if (timer !== undefined) window.clearInterval(timer)
+    }
+  }, [ended, dispatchId, guestToken, token, documentsRefreshKey])
 
   const callProvider = useMemo(
     () => callSession
@@ -305,6 +345,12 @@ export default function GuestCallPage({ roomId, dispatchId, guestToken, language
         language={language}
         whatsappUrl={whatsappUrl}
         documents={documents}
+        canRefreshDocuments={canRefreshDocuments}
+        isRefreshingDocuments={isRefreshingDocuments}
+        onRefreshDocuments={() => {
+          setCanRefreshDocuments(false)
+          setDocumentsRefreshKey((current) => current + 1)
+        }}
       />
     )
   }

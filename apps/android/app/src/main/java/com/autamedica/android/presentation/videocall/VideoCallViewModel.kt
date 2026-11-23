@@ -1663,9 +1663,11 @@ class VideoCallViewModel @Inject constructor(
             appointmentId,
             activePharmacyDispatchId,
         )
+        val serverValidatedDispatch = target?.queryKey == "requestId" &&
+            activePharmacyDispatchId == target.encounterId
         if (!state.isDoctor || previewOnlyMode || target == null ||
             state.doctorCountryCode != "BR" || state.patientCareCountryCode != "BR" ||
-            state.patientId.isBlank()
+            (state.patientId.isBlank() && !serverValidatedDispatch)
         ) {
             _uiState.update {
                 it.copy(memedLaunchError = "Consulta brasileira não autorizada para Memed")
@@ -1714,7 +1716,6 @@ class VideoCallViewModel @Inject constructor(
     fun verifyMemedDispatchPrescriptionOnReturn() {
         val requestId = activePharmacyDispatchId?.takeIf { it.isNotBlank() } ?: return
         val state = _uiState.value
-        val patientId = state.patientId.takeIf { it.isNotBlank() } ?: return
         if (!state.isDoctor || state.doctorCountryCode != "BR" ||
             state.patientCareCountryCode != "BR" || state.isVerifyingMemedPrescription
         ) return
@@ -1724,6 +1725,18 @@ class VideoCallViewModel @Inject constructor(
                 it.copy(isVerifyingMemedPrescription = true, memedLaunchError = null, memedLaunchNotice = null)
             }
             try {
+                val patientId = state.patientId.takeIf { it.isNotBlank() }
+                    ?: supabaseClient.postgrest
+                        .from("pharmacy_dispatch_requests")
+                        .select(Columns.list("id", "patient_id")) {
+                            filter { eq("id", requestId) }
+                            limit(1)
+                        }
+                        .decodeSingleOrNull<DispatchPatientContextDto>()
+                        ?.patientId
+                        ?.takeIf { it.isNotBlank() }
+                    ?: throw IllegalStateException("Paciente vinculado à consulta não encontrado")
+                _uiState.update { it.copy(patientId = patientId) }
                 val userId = callUserId.ifBlank {
                     authRepository.getCurrentUser()?.id.orEmpty()
                 }

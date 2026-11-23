@@ -22,6 +22,7 @@ import com.autamedica.android.data.remote.currentAuthenticatedUserIdOrNull
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.domain.repository.DispatchCheckoutResult
+import com.autamedica.android.domain.repository.PharmacyEncounterDocument
 import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
@@ -269,9 +270,9 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                     data["request"] ?: return@withContext null
                 )
                 dto.toDomain().also { request ->
-                    if (request.status in setOf("completed", "cancelled")) {
-                        clearGuestRecovery(requestId)
-                    }
+                    // Keep the device recovery credential after completion: the
+                    // patient still needs it to retrieve signed PDFs.
+                    if (request.status == "cancelled") clearGuestRecovery(requestId)
                 }
             }
         }
@@ -797,6 +798,47 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         paymentRequest(requestId, "status").status
     }.onFailure { SecureLog.warn("[PharmacyDispatch] Payment confirmation not available") }
 
+    override suspend fun getPharmacyDispatchDocuments(
+        requestId: String,
+    ): Result<List<PharmacyEncounterDocument>> = runCatching {
+        withContext(ioDispatcher) {
+            require(requestId.matches(Regex("^[0-9a-fA-F-]{36}$"))) { "Invalid pharmacy request" }
+            val token = paymentGuestToken(requestId)
+            val request = Request.Builder()
+                .url("$guestApiOrigin/api/pharmacy/dispatch/$requestId")
+                .header("Authorization", "Bearer $token")
+                .get()
+                .build()
+            guestClient.newCall(request).execute().use { response ->
+                check(response.isSuccessful) { "Pharmacy documents unavailable (HTTP ${response.code})" }
+                val body = response.body?.string() ?: error("Empty pharmacy document response")
+                val data = json.parseToJsonElement(body).jsonObject["data"]?.jsonObject
+                    ?: error("Missing pharmacy document payload")
+                val documentRows = data["documents"] as? JsonArray ?: JsonArray(emptyList())
+                json.decodeFromJsonElement<List<DispatchEncounterDocumentDto>>(documentRows)
+                    .map { document ->
+                        PharmacyEncounterDocument(
+                            id = document.id,
+                            kind = document.kind,
+                            title = document.title,
+                            provider = document.provider,
+                            createdAt = document.createdAt,
+                            status = document.status,
+                            verificationCode = document.verificationCode,
+                            accessCode = document.accessCode,
+                            downloadUrl = if (document.downloadUrl.startsWith("https://")) {
+                                document.downloadUrl
+                            } else {
+                                guestApiOrigin + document.downloadUrl
+                            },
+                        )
+                    }
+            }
+        }
+    }.onFailure {
+        SecureLog.warn("[PharmacyDispatch] Encounter document retrieval unavailable")
+    }
+
     override suspend fun getCountryOnDutyCapacity(careCountry: String): Result<Int> = runCatching {
         check(supabaseClient.currentAuthenticatedUserIdOrNull() != null) {
             "Authenticated session required for on-duty capacity"
@@ -985,6 +1027,19 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 }
 
 // ── DTOs ────────────────────────────────────────────────────
+
+@Serializable
+private data class DispatchEncounterDocumentDto(
+    val id: String,
+    val kind: String,
+    val title: String,
+    val provider: String,
+    val createdAt: String,
+    val status: String,
+    val verificationCode: String? = null,
+    val accessCode: String? = null,
+    val downloadUrl: String,
+)
 
 @Serializable
 private data class DispatchStatusConfirmationDto(

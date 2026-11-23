@@ -262,6 +262,7 @@ fun PharmacyIntakeScreen(
                     if (uiState.readyToJoinCall) uiState.roomId?.let(onNavigateToCall)
                 },
                 onStartNewConsultation = viewModel::startNewConsultation,
+                onRetryDocuments = viewModel::retryEncounterDocuments,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),
@@ -606,9 +607,11 @@ private fun PharmacyWaitingRoomView(
     onBeginPayment: () -> Unit = {},
     onJoinCall: () -> Unit = {},
     onStartNewConsultation: () -> Unit = {},
+    onRetryDocuments: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val callReady = uiState.readyToJoinCall
+    val context = LocalContext.current
     val scrollState = rememberScrollState()
     val haptic = LocalHapticFeedback.current
 
@@ -636,6 +639,74 @@ private fun PharmacyWaitingRoomView(
             Spacer(modifier = Modifier.height(14.dp))
         }
         if (uiState.status == PharmacyConsultationStatus.COMPLETED) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = if (uiState.careCountry == "BR") "Documentos da consulta" else "Documentos de la consulta",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = AuTextPrimary,
+                )
+                uiState.documents.forEach { document ->
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = AuSurface,
+                        border = BorderStroke(1.dp, AuBorder),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(document.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                Text(document.provider, style = MaterialTheme.typography.bodySmall, color = AuTextSecondary)
+                            }
+                            Button(onClick = {
+                                runCatching {
+                                    context.startActivity(
+                                        android.content.Intent(
+                                            android.content.Intent.ACTION_VIEW,
+                                            android.net.Uri.parse(document.downloadUrl),
+                                        ),
+                                    )
+                                }
+                            }) {
+                                Text("Abrir PDF")
+                            }
+                        }
+                    }
+                }
+                if (uiState.documents.isEmpty()) {
+                    Text(
+                        text = if (uiState.careCountry == "BR") {
+                            "O médico ainda pode estar finalizando os documentos."
+                        } else {
+                            "El médico todavía puede estar finalizando los documentos."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AuTextSecondary,
+                    )
+                }
+                if (uiState.isLoadingDocuments) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Buscando documentos...", style = MaterialTheme.typography.bodySmall)
+                    }
+                } else {
+                    Button(onClick = onRetryDocuments, modifier = Modifier.fillMaxWidth()) {
+                        Text(if (uiState.careCountry == "BR") "Reintentar documentos" else "Actualizar documentos")
+                    }
+                }
+                uiState.documentsError?.let { error ->
+                    Text(error, style = MaterialTheme.typography.bodySmall, color = AuTextSecondary)
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = onStartNewConsultation, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.pharmacy_flow_new_consultation))
             }

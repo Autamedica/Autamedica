@@ -151,8 +151,7 @@ export function PharmacyExpressConsultation({
           referralCode?: string | null; qrSourceCode?: string | null; partnerName?: string | null; paymentApproved?: boolean; savedAt?: number;
         }
         const country = saved.country ?? saved.careCountry
-        if (!saved.requestId || !saved.recoveryToken || (country !== 'AR' && country !== 'BR')
-          || !saved.savedAt || Date.now() - saved.savedAt > 12 * 60 * 60 * 1000) {
+        if (!saved.requestId || !saved.recoveryToken || (country !== 'AR' && country !== 'BR')) {
           window.sessionStorage.removeItem(key); window.localStorage.removeItem(key); return
         }
         const restored = await fetchApi<{ request: DispatchRequest; accessToken: string }>('/api/pharmacy/dispatch/resume', {
