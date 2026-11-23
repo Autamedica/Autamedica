@@ -156,12 +156,22 @@ class PrescriptionsViewModel @Inject constructor(
         onFailure: () -> Unit,
     ) {
         viewModelScope.launch {
-            certificateRepository.getCertificatePdfDownloadUrl(certificate)
-                .onSuccess(onReady)
-                .onFailure { error ->
-                    SecureLog.error("[Certificates] Authenticated PDF download URL unavailable", error)
-                    onFailure()
-                }
+            if (certificate.source == "memed_br") {
+                val rowId = certificate.id.removePrefix("memed-")
+                prescriptionRepository.downloadPatientPrescriptionPdf("memed:" + rowId)
+                    .onSuccess { downloaded -> onReady(downloaded.localPath) }
+                    .onFailure { error ->
+                        SecureLog.error("[Certificates] Memed atestado PDF download unavailable", error)
+                        onFailure()
+                    }
+            } else {
+                certificateRepository.getCertificatePdfDownloadUrl(certificate)
+                    .onSuccess(onReady)
+                    .onFailure { error ->
+                        SecureLog.error("[Certificates] Authenticated PDF download URL unavailable", error)
+                        onFailure()
+                    }
+            }
         }
     }
 
