@@ -259,6 +259,14 @@ function normalizeMemedRows(rows: unknown[], admin: Db): Promise<NormalizedMemed
         ?? asString(provider.name)
         ?? asString(provider.title)
         ?? "Receita digital Memed";
+      // Keep the existing patient-facing Memed prescription link working when
+      // a provider PDF URL/signature is not yet reported; prefer the full PDF
+      // proxy as soon as Memed reports the signature and provides that artifact.
+      const prescriptionLink = [digital.url, digital.link, digital.digital_url, digital.pdf_url, digital.document_url]
+        .find((value) => typeof value === "string" && /^https:\/\//i.test(value as string));
+      const patientPrescriptionUrl = patientDeliveryEligible
+        ? `/api/patients/prescriptions/${encodeURIComponent(routeId)}/pdf`
+        : typeof prescriptionLink === "string" ? prescriptionLink : null;
 
       if (hasAtestado && patientDeliveryEligible) {
         const atestado = asObject(structuredDocuments[0]);
@@ -276,7 +284,7 @@ function normalizeMemedRows(rows: unknown[], admin: Db): Promise<NormalizedMemed
       }
 
       const hasPrescriptionItems = medicationItems.length > 0 || !hasAtestado;
-      if (hasPrescriptionItems && patientDeliveryEligible) {
+      if (hasPrescriptionItems && patientPrescriptionUrl) {
         prescriptions.push({
           id: routeId,
           patient_id: asString(row.patient_id) ?? "",
@@ -296,9 +304,9 @@ function normalizeMemedRows(rows: unknown[], admin: Db): Promise<NormalizedMemed
             doctor_name: doctorMap.get(doctorId) ?? null,
             vendor_name: "Memed BR",
             vendor_id: asString(row.memed_id),
-            signed_pdf_url: `/api/patients/prescriptions/${encodeURIComponent(routeId)}/pdf`,
+            signed_pdf_url: patientPrescriptionUrl,
             cuir: asString(provider.cuir) ?? asString(row.memed_id),
-            is_digital_artifact_ready: true,
+            is_digital_artifact_ready: Boolean(patientPrescriptionUrl),
             source: "memed_br",
           },
           created_at: createdAt,
