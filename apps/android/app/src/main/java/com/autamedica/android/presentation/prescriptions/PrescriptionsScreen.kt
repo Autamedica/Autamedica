@@ -1574,6 +1574,7 @@ private fun CertificateType.localizedDisplayName(): String {
         CertificateType.CONSTANCIA_ATENCION -> stringResource(R.string.prescriptions_cert_type_attendance)
         CertificateType.TRATAMIENTO -> stringResource(R.string.prescriptions_cert_type_treatment)
         CertificateType.OTRO -> stringResource(R.string.prescriptions_cert_type_other)
+        CertificateType.ATESTADO -> "Atestado médico"
     }
 }
 
@@ -1954,6 +1955,15 @@ private fun CertificateDetailBottomSheet(
                 }
             }
 
+            }
+
+            if (certificate.providerSignatureReported) {
+                Text(
+                    text = "Memed informó que el documento fue firmado. AutaMedica verifica la integridad del PDF, pero no afirma una validación criptográfica local ICP-Brasil.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF475569),
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
             }
 
             Spacer(modifier = Modifier.height(20.dp))
