@@ -24,6 +24,9 @@ data class MedicalCertificate(
     val restHours: Int = 0,
     val signatureHash: String? = null,
     val signatureMethod: String? = null,
+    val source: String = "autamedica",
+    val providerSignatureReported: Boolean = false,
+    val patientDeliveryEligible: Boolean = false,
 ) {
     /** A certificate is downloadable only when its persisted issuance evidence is complete. */
     val isActive: Boolean
@@ -41,6 +44,13 @@ data class MedicalCertificate(
                 else -> false
             }
         }
+
+    /** Provider-reported Memed signing is not local ICP-Brasil cryptographic verification. */
+    val canDownloadPdf: Boolean
+        get() = isActive || (
+            source == "memed_br" && providerSignatureReported && patientDeliveryEligible &&
+                signedPdfUrl == "/api/patients/prescriptions/$id/pdf"
+        )
 
     val effectiveQrContent: String
         get() = if (!isActive) "" else (
