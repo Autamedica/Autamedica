@@ -10,7 +10,7 @@ class MemedAtestadoDeliveryPolicyTest {
         id = "memed-12345678-1234-4234-8234-123456789abc",
         cuir = "",
         status = "signed",
-        certificateType = CertificateType.ATESTADO,
+        certificateType = CertificateType.OTRO,
         startDate = "2026-11-23",
         signedPdfUrl = "/api/patients/prescriptions/memed-12345678-1234-4234-8234-123456789abc/pdf",
         countryCode = "BR",
