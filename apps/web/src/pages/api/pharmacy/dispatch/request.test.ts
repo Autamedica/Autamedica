@@ -86,6 +86,7 @@ function makeContext(options?: {
   body?: unknown
   session?: { user: { id: string } } | null
   jordanEnabled?: boolean
+  telemedicineConsentRequired?: boolean
   bearerToken?: string
 }): Parameters<typeof POST>[0] {
   const rawBody = options?.body !== undefined
@@ -116,7 +117,11 @@ function makeContext(options?: {
     request,
     locals: {
       session: options?.session !== undefined ? options.session : null,
-      runtime: { env: { GUEST_TOKEN_SECRET: TEST_SECRET, ENABLE_JORDAN_PAYMENTS: options?.jordanEnabled ? 'true' : 'false' } },
+      runtime: { env: {
+        GUEST_TOKEN_SECRET: TEST_SECRET,
+        ENABLE_JORDAN_PAYMENTS: options?.jordanEnabled ? 'true' : 'false',
+        BR_TELEMEDICINE_CONSENT_REQUIRED: options?.telemedicineConsentRequired === false ? 'false' : 'true',
+      } },
     },
   } as unknown as Parameters<typeof POST>[0]
 }
@@ -266,6 +271,35 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     expect(response.status).toBe(400)
     expect((await response.json()).error.message).toBe('telemedicine_consent_required')
     expect(supabaseMock.from).not.toHaveBeenCalledWith('pharmacy_dispatch_requests')
+  })
+
+
+  it('allows an audited BR rollback switch without fabricating a consent record', async () => {
+    const dispatch = {
+      id: 'dispatch-br-consent-rollback', patient_id: 'patient-row-rollback',
+      patient_cpf: '12345678909', care_country: 'BR',
+      cloudflare_room_id: 'cf-room-br-consent-rollback', status: 'pending_payment',
+    }
+    const dispatchTable = buildTableChain(dispatch)
+    const patientTable = buildTableChain({ id: 'patient-row-rollback' })
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_pricing_configs') return buildTableChain(pricingRow('BR'))
+      if (table === 'pharmacy_dispatch_requests') return dispatchTable
+      if (table === 'patients') return patientTable
+      return buildTableChain(null)
+    })
+    const response = await POST(makeContext({
+      telemedicineConsentRequired: false,
+      body: {
+        careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909',
+        patientPhone: '+5551987654321', patientName: 'Paciente BR',
+      },
+    }))
+    expect(response.status).toBe(200)
+    expect(dispatchTable.insert.mock.calls[0][0]).not.toHaveProperty('telemedicine_consent_at')
+    expect(dispatchTable.insert.mock.calls[0][0]).not.toHaveProperty('telemedicine_consent_version')
+    expect(patientTable.update.mock.calls[0][0]).not.toHaveProperty('telemedicine_consent_at')
+    expect(patientTable.update.mock.calls[0][0]).not.toHaveProperty('telemedicine_consent_version')
   })
 
   it('crea un dispatch brasileño usando CPF y no DNI', async () => {
