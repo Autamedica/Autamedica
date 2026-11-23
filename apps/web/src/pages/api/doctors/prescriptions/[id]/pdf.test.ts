@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { supportsSignedPrescriptionDownload } from './[id]/pdf';
+import { supportsSignedPrescriptionDownload } from './pdf';
 
 describe('private prescription PDF policy', () => {
   it('supports PAdES governance policy only for Argentina', () => {
