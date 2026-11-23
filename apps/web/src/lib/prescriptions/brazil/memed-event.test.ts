@@ -10,7 +10,9 @@ vi.mock('@/lib/prescriptions/brazil/memed-patient', async (original) => ({
   resolveMemedPatient: mocks.patient,
   assertMemedDispatchEncounter: mocks.dispatchEncounter,
 }));
-vi.mock('@/lib/prescriptions/brazil/memed.service', () => ({ MemedService: class {
+vi.mock('@/lib/prescriptions/brazil/memed.service', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@/lib/prescriptions/brazil/memed.service')>(),
+  MemedService: class {
   getOrCreateDoctorToken = mocks.token;
   getIssuedPrescription = mocks.prescription;
   getDigitalPrescriptionLink = mocks.digitalLink;
