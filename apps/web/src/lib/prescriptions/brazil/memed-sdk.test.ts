@@ -91,7 +91,9 @@ describe('Memed SDK lifecycle', () => {
     expect(command.mock.calls[0]).toEqual(['plataforma.prescricao', 'setFeatureToggle', {
       deletePatient: false, removePatient: false, editPatient: false,
       editIdentification: false, dropdownSync: false, historyPrescription: false,
-      conclusionModalEdit: false, forceSign: true, allowShareModal: false,
+      conclusionModalEdit: false, forceSign: true,
+      setAllowedSignatureProviders: ['certisign', 'evaltec', 'lacuna', 'soluti', 'dinamo', 'vidaas', 'safeid'],
+      allowShareModal: false,
     }]);
     expect(command.mock.calls[1][1]).toBe('setPaciente');
   });
