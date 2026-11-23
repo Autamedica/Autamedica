@@ -6,6 +6,9 @@ import { createAstroAdminClient } from '@/lib/supabase';
 import { logger } from '@autamedica/shared';
 
 /** Private PAdES PDF download for the issuing doctor or the patient. */
+export function supportsSignedPrescriptionDownload(countryCode: string | null, signatureMethod: string | null): boolean {
+  return signatureMethod === 'ac_external' || (countryCode === 'AR' && signatureMethod === 'electronic_simple');
+}
 export const GET: APIRoute = async ({ request, params, locals }) => {
   const id = params.id;
   if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return badRequest('invalid_prescription_id');
@@ -24,7 +27,7 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
   try {
     const admin = createAstroAdminClient(locals.runtime?.env);
     const { data: rx, error } = await admin.from('prescriptions')
-      .select('id,doctor_id,patient_id,status,cuir,signed_pdf_url,signature_method,pdf_sha256,pdf_byte_length,pdf_storage_path')
+      .select('id,doctor_id,patient_id,status,country_code,cuir,signed_pdf_url,signature_method,pdf_sha256,pdf_byte_length,pdf_storage_path')
       .eq('id', id).maybeSingle();
     if (error) throw error;
     if (rx?.status !== 'active') return notFound();
@@ -55,7 +58,7 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
     const auditHash = signatureEvent?.signature_hash;
     const path = String(issueMeta?.pdfPath ?? '');
     if (!auditHash || issueMeta?.signature_hash !== auditHash ||
-        signatureMeta?.method !== 'PAdES_AC_EXTERNAL' ||
+        (signatureMeta?.method !== 'PAdES_AC_EXTERNAL' && !(isArgentineGovernancePades && signatureMeta?.method === 'PAdES_GOVERNANCE_POLICY')) ||
         signatureMeta?.document_hash !== auditHash ||
         !path.startsWith(`prescriptions/${rx.cuir}/`) || !path.endsWith('.pdf') ||
         (rx.pdf_sha256 && rx.pdf_sha256 !== auditHash) ||

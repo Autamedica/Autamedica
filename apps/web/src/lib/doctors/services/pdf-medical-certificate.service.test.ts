@@ -75,6 +75,20 @@ describe('medical certificate PDF', () => {
     expect(text).toContain('No es firma digital certificada');
   });
 
+  it('renders recorded care modality and rest period only on the definitive electronic PDF', () => {
+    const image = new Uint8Array(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAHgAAAAeCAIAAABoq03CAAAC4klEQVR4nO2Yz0syQRjHxzdB9FIXzfQf6Ba4BC0ruutuewk6BNUtIgi6FB36A7qFCN28aOwShHiQwkuoRWBkduqYgbc2guygF7OG8umwtLy4uhL0Tsk7n9PM+J3nGT7sD1YbACDKv+fPTx/gf4GKJgQVTQgqmhBUNCGoaEJ0ET0yMtKxoqoqwzAsyzIMs7+/ry8mk8lAIBAOh2dmZjRNM8J7e3sOh+Px8bFXNYTQ0dERz/M8z9vtdn2QyWRcLhf/ye7uLkLo+vpalmVBEKanpzVN67rrGxyQAUwMDw//Pc3lchzH1et1AKjX6xzHnZycFAoFQRCen58B4Pj4OBKJGPnZ2dmtrS1FUbpWs+hlTk5MTGiaBgCZTGZhYcEi+fvpL1oUxcvLS2NaKpUkSZJluVwuG4urq6sYYwBoNpuiKN7e3trx71d2F233G9SJJUKpWM6cXFhSzLoVDo6upKX2m320tLSwDw9vbGsqy+mMvlNjY2zNUsenUka7Wa0bdWq42OjvZKDgT9RefzeY7jGo0GfL4MT09P0+m0JEn60yOVSi0uLgJAsVhcW1vTdzWbzHxcXM1i14dyaenJ7/ff3d3BwCVSmVycrJXciCwm69xjHEwGNTHHMdFo9H7+3tBEBwOB8Z4fX1dFEWEULVaZRjG7XZ7PJ54PI4QymazkUhE3+hyuTweT6VSMVfrdW/pjw59zLLszs5OIpGYn593Op1DQ0OKonzbXfwT2ID+TUoE+mVICCqaEFQ0IahoQlDRhKCiCUFFE4KKJgQVTQgqmhBUNCGoaEJQ0YSgognxAe6iy0k3B59dAAAAAElFTkSuQmCC', 'base64'));
+    const definitive = generateMedicalCertificatePdf({ ...caseFile, careModality: 'Telemedicina', electronicSignature: {
+      signature: image, stamp: image, confirmedAt: '2026-10-29T22:00:00Z',
+    } }, 'electronic');
+    const text = Buffer.from(definitive).toString('latin1');
+    expect(text).toContain('Modalidad de atencion');
+    expect(text).toContain('Telemedicina');
+    expect(text).toContain('2 dia(s). Desde 26/10/2026 hasta 27/10/2026');
+    expect(text).not.toContain('BORRADOR - SIN FIRMA');
+    const draft = generateMedicalCertificatePdf({ ...caseFile, careModality: 'Telemedicina' }, 'draft');
+    expect(Buffer.from(draft).toString('latin1')).not.toContain('Modalidad de atencion');
+  });
+
   it('cannot render issued electronic mode without confirmation assets', () => {
     expect(() => generateMedicalCertificatePdf(caseFile, 'electronic')).toThrow('confirmation_required');
   });
