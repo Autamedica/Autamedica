@@ -100,6 +100,7 @@ export function ensureMemedScript(token: string, scriptUrl: string, userId: stri
     script.type = 'text/javascript';
     script.src = url.href;
     script.setAttribute('data-token', token);
+    script.setAttribute('data-color', '#0284C7');
     script.referrerPolicy = 'no-referrer';
     const timer = window.setTimeout(() => {
       reject(new Error('A Memed não iniciou no prazo esperado. Recarregue a página para tentar novamente.'));

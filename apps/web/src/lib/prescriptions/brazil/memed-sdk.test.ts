@@ -32,7 +32,9 @@ describe('Memed SDK lifecycle', () => {
   it('loads one script and installs one auth observer across repeated opens', async () => {
     const sdk = await ready();
     await sdk.ensureMemedScript('synthetic-token', 'https://partners.memed.com.br/integration.js', 'doctor-user');
-    expect(document.querySelectorAll('#memed-prescricao-script')).toHaveLength(1);
+    const scripts = document.querySelectorAll('#memed-prescricao-script');
+    expect(scripts).toHaveLength(1);
+    expect(scripts[0]?.getAttribute('data-color')).toBe('#0284C7');
     expect(mocks.observe).toHaveBeenCalledTimes(1);
   });
   it('routes events only to the latest mounted widget and clears callbacks on close', async () => {
