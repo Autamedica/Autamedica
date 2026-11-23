@@ -1,3 +1,4 @@
+import { logger } from '@autamedica/shared';
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser';
 import type { MemedPatient } from './memed-patient';
 
@@ -183,14 +184,27 @@ export function openMemedPatient(
       typeof provider === 'string' && /^[a-z][a-z0-9_-]{1,31}$/.test(provider),
     );
     const signatureProviders = Array.from(new Set([...DEFAULT_SIGNATURE_PROVIDERS, ...configured]));
-    // Lock patient identity, require signing, and preserve all documented providers.
-    await hub.command.send(MODULE_NAME, 'setFeatureToggle', {
+    // Memed documents setAllowedSignatureProviders as a setFeatureToggle
+    // property (not a standalone MdHub command). If a tenant SDK rejects that
+    // optional property, retry without it; forceSign remains mandatory.
+    const requiredFeatureToggles = {
       deletePatient: false, removePatient: false, editPatient: false,
       editIdentification: false, dropdownSync: false, historyPrescription: false,
       conclusionModalEdit: false, forceSign: true,
-      setAllowedSignatureProviders: signatureProviders,
       allowShareModal: false,
-    });
+    };
+    try {
+      await hub.command.send(MODULE_NAME, 'setFeatureToggle', {
+        ...requiredFeatureToggles,
+        setAllowedSignatureProviders: signatureProviders,
+      });
+    } catch (error) {
+      logger.warn('[memed-sdk] signature-provider allowlist was rejected; retrying required prescription toggles', {
+        code: 'memed_signature_provider_toggle_unsupported',
+        error: error instanceof Error ? error.message : 'unknown',
+      });
+      await hub.command.send(MODULE_NAME, 'setFeatureToggle', requiredFeatureToggles);
+    }
     if (!current()) return;
     await hub.command.send(MODULE_NAME, 'setPaciente', { ...patient });
     if (!current()) return;
