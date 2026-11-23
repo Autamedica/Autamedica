@@ -158,19 +158,27 @@ fun PrescriptionsScreen(
 
     val onOpenCertificatePdf: (MedicalCertificate) -> Unit = { certificate ->
         val certTitle = context.getString(R.string.prescriptions_certificates_title)
-        val certFileName = "Certificado_${certificate.cuir ?: certificate.id.take(8)}.pdf"
+        val certFileName = "Atestado_${certificate.cuir.ifBlank { certificate.id.take(8) }}.pdf"
         viewModel.openCertificatePdf(
             certificate = certificate,
             onReady = { signedUrl ->
-                val uri = Uri.parse(signedUrl)
-                if (uri.scheme.equals("https", ignoreCase = true)) {
-                    activeDocumentViewer = DocumentViewerSource.RemoteDocumentUrl(
-                        url = signedUrl,
+                if (certificate.source == "memed_br") {
+                    activeDocumentViewer = DocumentViewerSource.LocalPdfFile(
+                        filePath = signedUrl,
                         title = certTitle,
                         fileName = certFileName,
                     )
                 } else {
-                    Toast.makeText(context, context.getString(R.string.prescriptions_toast_cert_pdf_error), Toast.LENGTH_SHORT).show()
+                    val uri = Uri.parse(signedUrl)
+                    if (uri.scheme.equals("https", ignoreCase = true)) {
+                        activeDocumentViewer = DocumentViewerSource.RemoteDocumentUrl(
+                            url = signedUrl,
+                            title = certTitle,
+                            fileName = certFileName,
+                        )
+                    } else {
+                        Toast.makeText(context, context.getString(R.string.prescriptions_toast_cert_pdf_error), Toast.LENGTH_SHORT).show()
+                    }
                 }
             },
             onFailure = {
@@ -1602,7 +1610,7 @@ private fun CertificateCard(
     onOpenPdf: (MedicalCertificate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val canDownloadPdf = certificate.effectivePdfStoragePath != null
+    val canDownloadPdf = certificate.canDownloadPdf
 
     Surface(
         shape = RoundedCornerShape(16.dp),
@@ -1635,13 +1643,13 @@ private fun CertificateCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = if (certificate.isActive) Color(0xFFDCFCE7) else Color(0xFFF1F5F9),
+                    color = when { certificate.providerSignatureReported -> Color(0xFFE0F2FE); certificate.isActive -> Color(0xFFDCFCE7); else -> Color(0xFFF1F5F9) },
                 ) {
                     Text(
-                        text = if (certificate.isActive) stringResource(R.string.prescriptions_cert_status_valid) else stringResource(R.string.prescriptions_cert_status_expired),
+                        text = when { certificate.providerSignatureReported -> "Firma informada por Memed"; certificate.isActive -> stringResource(R.string.prescriptions_cert_status_valid); else -> stringResource(R.string.prescriptions_cert_status_expired) },
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = if (certificate.isActive) Color(0xFF15803D) else Color(0xFF64748B),
+                        color = when { certificate.providerSignatureReported -> Color(0xFF0369A1); certificate.isActive -> Color(0xFF15803D); else -> Color(0xFF64748B) },
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                     )
                 }
@@ -1685,6 +1693,7 @@ private fun CertificateCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    if (certificate.source != "memed_br") {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1708,6 +1717,7 @@ private fun CertificateCard(
                             fontWeight = FontWeight.Medium,
                             color = Color(0xFF475569),
                         )
+                    }
                     }
 
                     if (canDownloadPdf) {
@@ -1814,8 +1824,9 @@ private fun CertificateDetailBottomSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Card QR de validación institucional
-            Surface(
+            // Memed atestados use the provider PDF, not an AutaMedica QR/signature.
+            if (certificate.source != "memed_br") {
+                Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = Color.White,
                 border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
@@ -1941,6 +1952,8 @@ private fun CertificateDetailBottomSheet(
                         }
                     }
                 }
+            }
+
             }
 
             Spacer(modifier = Modifier.height(20.dp))
