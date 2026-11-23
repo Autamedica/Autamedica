@@ -31,7 +31,8 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
       .eq('id', id).maybeSingle();
     if (error) throw error;
     if (rx?.status !== 'active') return notFound();
-    if (!rx.cuir || rx.signature_method !== 'ac_external') return notFound();
+    const isArgentineGovernancePades = rx.country_code === 'AR' && rx.signature_method === 'electronic_simple';
+    if (!rx.cuir || !supportsSignedPrescriptionDownload(rx.country_code, rx.signature_method)) return notFound();
 
     const [{ data: doctor, error: doctorError }, { data: patient, error: patientError }] = await Promise.all([
       admin.from('doctors').select('user_id,active').eq('id', rx.doctor_id).maybeSingle(),
