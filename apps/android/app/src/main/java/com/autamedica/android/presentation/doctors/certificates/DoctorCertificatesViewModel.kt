@@ -37,6 +37,9 @@ data class DoctorCertificatesUiState(
     val selectedPatient: PrescriptionPatientItem? = null,
     val eligiblePatients: List<PrescriptionPatientItem> = emptyList(),
     val isLoadingPatients: Boolean = false,
+    val isRegisteringDni: Boolean = false,
+    val dniLookupError: String? = null,
+    val needsManualName: Boolean = false,
     val doctorEligibility: DoctorEligibility? = null,
     val isLoadingEligibility: Boolean = false,
 
@@ -215,7 +218,53 @@ class DoctorCertificatesViewModel @Inject constructor(
                 createError = null,
                 createErrorRes = null,
                 createErrorArg = null,
+                dniLookupError = null,
+                needsManualName = false,
             )
+        }
+    }
+
+    fun registerEventualPatientByDni(
+        dni: String,
+        gender: String,
+        contact: String,
+        manualName: String? = null,
+    ) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRegisteringDni = true, dniLookupError = null) }
+            prescriptionRepository.registerOrLookupEventualPatient(
+                documentNumber = dni,
+                gender = gender,
+                contact = contact,
+                fullNameFallback = manualName,
+            ).onSuccess { patient ->
+                _uiState.update { current ->
+                    val updatedList = listOf(patient) + current.eligiblePatients.filterNot { it.patientId == patient.patientId }
+                    current.copy(
+                        isRegisteringDni = false,
+                        selectedPatient = patient,
+                        patientId = patient.patientId,
+                        eligiblePatients = updatedList,
+                        dniLookupError = null,
+                        needsManualName = false,
+                        createError = null,
+                        createErrorRes = null,
+                    )
+                }
+            }.onFailure { err ->
+                val isNeedName = err.message == "NEED_MANUAL_NAME"
+                _uiState.update {
+                    it.copy(
+                        isRegisteringDni = false,
+                        needsManualName = isNeedName || it.needsManualName,
+                        dniLookupError = if (isNeedName) {
+                            "Ingresá Nombre y Apellido para completar el alta rápida por DNI"
+                        } else {
+                            err.message ?: "No se pudo vincular por DNI"
+                        },
+                    )
+                }
+            }
         }
     }
 
@@ -400,7 +449,11 @@ class DoctorCertificatesViewModel @Inject constructor(
                         it.copy(
                             isSubmitting = false,
                             createdCertificate = certificate,
-                            userMessage = "Borrador de certificado guardado, pendiente de firma: ${certificate.cuir}",
+                            userMessage = if (certificate.isActive) {
+                                "Certificado emitido y firmado: ${certificate.cuir}"
+                            } else {
+                                "Borrador de certificado guardado, pendiente de firma: ${certificate.cuir}"
+                            },
                             userMessageRes = R.string.cert_success_issued_cuir,
                             userMessageArg = certificate.cuir,
                         )
@@ -416,6 +469,24 @@ class DoctorCertificatesViewModel @Inject constructor(
                             createErrorArg = UiErrorMapper.map(error, "No se pudo emitir el certificado"),
                         )
                     }
+                }
+        }
+    }
+
+    fun openCertificatePdf(
+        certificate: MedicalCertificate,
+        onReady: (String) -> Unit,
+        onFailure: () -> Unit,
+    ) {
+        viewModelScope.launch {
+            certificateRepository.getCertificatePdfDownloadUrl(certificate)
+                .onSuccess(onReady)
+                .onFailure { error ->
+                    com.autamedica.android.logging.SecureLog.error(
+                        "[Certificates] Authenticated doctor PDF download URL unavailable",
+                        error,
+                    )
+                    onFailure()
                 }
         }
     }

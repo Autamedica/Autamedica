@@ -242,6 +242,24 @@ class NotificationRouteResolverTest {
     }
 
     @Test
+    fun `pharmacy QR preserves an explicit clinical market`() {
+        val route = NotificationRouteResolver.parseDeepLink(
+            "https://www.autamedica.com/farmacia/solicitar?ref=JORDAN&careCountry=AR"
+        )
+        assertThat(route).isEqualTo(Route.PharmacyIntake("", "JORDAN", "AR"))
+    }
+
+    @Test
+    fun `duplicate or unsupported market parameters are ignored`() {
+        assertThat(NotificationRouteResolver.extractCareCountry(
+            "https://www.autamedica.com/farmacia/solicitar?careCountry=AR&careCountry=BR"
+        )).isEmpty()
+        assertThat(NotificationRouteResolver.extractCareCountry(
+            "https://www.autamedica.com/farmacia/solicitar?careCountry=UY"
+        )).isEmpty()
+    }
+
+    @Test
     fun `malformed referral is not trusted as partner`() {
         val route = NotificationRouteResolver.parseDeepLink(
             "https://www.autamedica.com/farmacia/solicitar?ref=JORDAN%0Ainvalid"
@@ -271,5 +289,44 @@ class NotificationRouteResolverTest {
             deepLink = "autamedica://farmacia/pharm-456"
         )
         assertThat(route).isEqualTo(Route.PharmacyIntake("pharm-456"))
+    }
+
+    @Test
+    fun `prescription id extra resolves to patient Prescriptions`() {
+        val route = NotificationRouteResolver.resolve(
+            prescriptionId = "rx-123",
+            notificationType = "prescription_issued",
+        )
+        assertThat(route).isEqualTo(Route.Prescriptions)
+    }
+
+    @Test
+    fun `certificate notification type resolves to PatientCertificates`() {
+        val route = NotificationRouteResolver.resolve(
+            notificationType = "certificate_issued",
+        )
+        assertThat(route).isEqualTo(Route.PatientCertificates)
+    }
+
+    @Test
+    fun `medical order notification type resolves to PatientOrders`() {
+        val route = NotificationRouteResolver.resolve(
+            notificationType = "medical_order_ready",
+        )
+        assertThat(route).isEqualTo(Route.PatientOrders)
+    }
+
+    @Test
+    fun `patient web deep links route to real patient document screens`() {
+        assertThat(NotificationRouteResolver.parseDeepLink("https://paciente.autamedica.com/patients/prescriptions"))
+            .isEqualTo(Route.Prescriptions)
+        assertThat(NotificationRouteResolver.parseDeepLink("https://www.autamedica.com/patients/certificates"))
+            .isEqualTo(Route.PatientCertificates)
+        assertThat(NotificationRouteResolver.parseDeepLink("https://www.autamedica.com/patients/medical-orders"))
+            .isEqualTo(Route.PatientOrders)
+        assertThat(NotificationRouteResolver.parseDeepLink("autamedica://atestados"))
+            .isEqualTo(Route.PatientCertificates)
+        assertThat(NotificationRouteResolver.parseDeepLink("autamedica://ordenes"))
+            .isEqualTo(Route.PatientOrders)
     }
 }

@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     Logo oficial AutaMedica Monocromo para Themed Icons (Android 13+).
-    Mantiene el mismo inset de 20dp que el foreground para perfecta alineación.
+    El canvas transparente de 432x432px ya mantiene la cruz dentro de la zona segura de 66dp/108dp.
 -->
 <inset xmlns:android="http://schemas.android.com/apk/res/android"
-    android:drawable="@drawable/logo_autamedica_mono"
-    android:insetLeft="20dp"
-    android:insetRight="20dp"
-    android:insetTop="20dp"
-    android:insetBottom="20dp" />
+    android:drawable="@drawable/logo_autamedica_mono" />

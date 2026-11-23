@@ -21,18 +21,19 @@ export const GET: APIRoute = async ({ request, locals }) => {
   const apiKey = env?.MEMED_API_KEY;
   const secretKey = env?.MEMED_SECRET_KEY;
   const apiBase = env?.MEMED_API_URL;
-  if (typeof apiKey !== 'string' || !apiKey ||
-      typeof secretKey !== 'string' || !secretKey ||
-      apiBase !== 'https://api.memed.com.br/v1') {
-    return serviceUnavailable('memed_production_configuration_incomplete');
-  }
-
-  // Memed's documented read-only key validation accepts partner keys in query
-  // parameters. Only a fixed host and read-only path are allowed.
-  const url = new URL('https://api.memed.com.br/v1/sinapse-prescricao/check-key');
-  url.searchParams.set('api-key', apiKey);
-  url.searchParams.set('secret-key', secretKey);
-
+  const memedCredentialsConfigured = typeof apiKey === 'string' && apiKey.length > 0
+    && typeof secretKey === 'string' && secretKey.length > 0
+    && apiBase === 'https://api.memed.com.br/v1';
+  const memedRxEnabled = env?.MEMED_RX_ENABLED === 'true';
+  const memedMobileEnabled = env?.MEMED_MOBILE_ENABLED === 'true';
+  const farmalinkEnabled = env?.FARMALINK_ENABLED === 'true';
+  const farmalinkBaseUrlConfigured = typeof env?.FARMALINK_BASE_URL === 'string'
+    && env.FARMALINK_BASE_URL.trim().length > 0;
+  const farmalinkRequireExternalAc = env?.FARMALINK_REQUIRE_EXTERNAL_AC !== 'false';
+  const farmalinkCredentialsConfigured = [
+    env?.FARMALINK_OAUTH_USERNAME, env?.FARMALINK_OAUTH_PASSWORD,
+    env?.FARMALINK_BASIC_USER, env?.FARMALINK_BASIC_PASSWORD,
+  ].every((value) => typeof value === 'string' && value.length > 0);
 
   try {
     // Preflight is read-only; never creates a Memed user, prescription, or patient.
@@ -78,26 +79,96 @@ export const GET: APIRoute = async ({ request, locals }) => {
       });
     }
 
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: { Accept: 'application/vnd.api+json', 'Cache-Control': 'no-cache' },
-      redirect: 'error',
-      signal: AbortSignal.timeout(8000),
-    });
-    const result = await response.json() as { success?: Array<{ code?: unknown }> };
-    const accepted = response.ok && Array.isArray(result.success)
-      && result.success.some((entry) => entry.code === 'chave-valida');
+    // Validate partner credentials via a read-only GET lookup (mirrors scripts/ops/memed-preflight.mjs).
+    // Never fail the entire governance health response if upstream Memed is unreachable;
+    // return real runtime flags alongside providerReachable=false so admins always see truth.
+    let providerReachable = false;
+    let providerStatus: number | null = null;
+    let providerErrorType: string | null = null;
+    let accepted = false;
+
+    if (memedCredentialsConfigured) {
+      const probeExternalId = pilotId ?? 'autamedica-healthcheck-readonly';
+      const url = new URL(`/v1/sinapse-prescricao/usuarios/${encodeURIComponent(probeExternalId)}`, 'https://api.memed.com.br');
+      url.searchParams.set('api-key', apiKey);
+      url.searchParams.set('secret-key', secretKey);
+
+      try {
+        // Cloudflare Workers (workerd) throws TypeError for redirect: 'error'.
+        // Use redirect: 'manual' and explicitly refuse 3xx responses.
+        const response = await fetch(url.toString(), {
+          method: 'GET',
+          headers: {
+            Accept: 'application/vnd.api+json',
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            'User-Agent': 'Autamedica-Memed-Health/1.0',
+          },
+          redirect: 'manual',
+          signal: AbortSignal.timeout(8000),
+        });
+        providerReachable = true;
+        providerStatus = response.status;
+        if (response.status >= 300 && response.status < 400) {
+          accepted = false;
+        } else {
+          const raw = await response.text();
+          let payload: {
+            data?: { type?: unknown; attributes?: unknown };
+            errors?: Array<{ detail?: unknown }>;
+          } | null = null;
+          try {
+            payload = JSON.parse(raw) as typeof payload;
+          } catch {
+            payload = null;
+          }
+          const doctorFound = response.status === 200
+            && payload?.data?.type === 'usuarios'
+            && Boolean(payload?.data?.attributes && typeof payload.data.attributes === 'object');
+          const doctorNotRegistered = response.status === 404
+            && Array.isArray(payload?.errors)
+            && payload.errors.some((entry) => /nenhum usu[aá]rio encontrado/i.test(String(entry?.detail ?? '')));
+          accepted = Boolean(doctorFound || doctorNotRegistered);
+        }
+      } catch (err) {
+        providerReachable = false;
+        providerStatus = null;
+        providerErrorType = err instanceof Error ? err.name : 'UnknownError';
+        accepted = false;
+      }
+    }
+
     // Do not return any provider response body or secret to the caller.
     const health = jsonOk({ provider: 'memed', environment: 'production',
-      credentialsAccepted: accepted, providerStatus: response.status,
-      issuanceEnabled: env?.MEMED_RX_ENABLED === 'true',
+      credentialsConfigured: memedCredentialsConfigured,
+      credentialsAccepted: accepted,
+      providerReachable,
+      providerStatus,
+      providerErrorType,
+      flags: {
+        MEMED_RX_ENABLED: memedRxEnabled,
+        MEMED_MOBILE_ENABLED: memedMobileEnabled,
+        FARMALINK_ENABLED: farmalinkEnabled,
+      },
+      effectiveFlags: {
+        MEMED_RX_ENABLED: memedRxEnabled && accepted,
+        MEMED_MOBILE_ENABLED: memedMobileEnabled && memedRxEnabled && accepted,
+        FARMALINK_ENABLED: farmalinkEnabled && farmalinkBaseUrlConfigured && farmalinkCredentialsConfigured,
+      },
+      farmalink: {
+        enabled: farmalinkEnabled && farmalinkBaseUrlConfigured && farmalinkCredentialsConfigured,
+        baseUrlConfigured: farmalinkBaseUrlConfigured,
+        credentialsConfigured: farmalinkCredentialsConfigured,
+        requireExternalAc: farmalinkRequireExternalAc,
+      },
+      issuanceEnabled: memedRxEnabled,
       clinicalStatus,
       issuanceGovernanceEnabled,
       pilotConfigured: pilotId !== null,
       pilotReadiness: readiness,
       scriptConfigured: env?.MEMED_SCRIPT_URL === 'https://partners.memed.com.br/integration.js',
       readyForControlledPilot: accepted && issuanceGovernanceEnabled && readiness.readyForPilot
-        && env?.MEMED_RX_ENABLED === 'true'
+        && memedRxEnabled
         && env?.MEMED_SCRIPT_URL === 'https://partners.memed.com.br/integration.js',
       // A production clinical release additionally requires a clinician-led
       // signed-PDF and patient-delivery verification; preflight is not issuance.

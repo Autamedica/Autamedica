@@ -6,18 +6,21 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payment-access';
 import { getOperationalPaymentSwitches } from '@/lib/payments/operational-switches';
 import { resolvePatientContext } from '@/lib/patients/api/patient-context';
+import { parsePharmacyQrAttribution } from '@/lib/pharmacy/qr-attribution';
 
 export const prerender = false;
 
 const pharmacyId = Astro.url.searchParams.get('pharmacyId');
-const requestedReferral = Astro.url.searchParams.get('ref')?.trim().toUpperCase() ?? null;
+const { referralCode: requestedReferral, qrSourceCode } = parsePharmacyQrAttribution(Astro.url.searchParams);
 const requestedCareCountry = Astro.url.searchParams.get('careCountry')?.toUpperCase();
 const patientContext = await resolvePatientContext(Astro.request, Astro.locals).catch(() => null);
 // Commercial attribution and clinical jurisdiction are independent.
 // The patient's persisted jurisdiction wins; an explicit QR parameter is the
 // fallback for guests. A referral partner never selects the country of care.
 const initialCareCountry = patientContext?.careCountry
-  ?? (requestedCareCountry === 'AR' || requestedCareCountry === 'BR' ? requestedCareCountry : null);
+  ?? (requestedCareCountry === 'AR' || requestedCareCountry === 'BR'
+    ? requestedCareCountry
+    : requestedReferral === 'JORDAN' ? 'BR' : null);
 let referralCode: string | null = null;
 let referralPartnerName: string | null = null;
 if (requestedReferral && /^[A-Z0-9_-]{3,32}$/.test(requestedReferral)) {
@@ -95,6 +98,7 @@ const description = isPortugueseUI ? 'Ponto de atendimento de telemedicina da Au
     initialCareCountry={initialCareCountry}
     uiLocale={Astro.locals.locale}
     referralCode={referralCode}
+    qrSourceCode={qrSourceCode}
     referralPartnerName={referralPartnerName}
     jordanPaymentsEnabled={jordanPaymentsEnabled}
     pharmacyPaymentsEnabled={pharmacyPaymentsEnabled}

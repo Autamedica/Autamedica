@@ -1,5 +1,5 @@
--- Contract: explicit on-duty status owns queue visibility; a new clinical offer
--- requires a heartbeat from the last 90 seconds. FCM is delivery, never availability.
+-- Contract: explicit on-duty status owns duty/radar visibility; capacity and new clinical offers
+-- require a heartbeat from the last 90 seconds. FCM is delivery only.
 -- A current doctor-specific offer may still be claimed; search stays open 15 minutes.
 BEGIN;
 DO $guard_contract$
@@ -14,9 +14,10 @@ DECLARE
   v_expiry text := lower(pg_get_functiondef('public.expire_stale_dispatch_requests()'::regprocedure));
   v_cancel text := lower(pg_get_functiondef('public.cancel_my_pharmacy_dispatch_request(uuid)'::regprocedure));
 BEGIN
-  IF position('last_heartbeat_at' IN v_capacity) > 0
+  IF position('last_heartbeat_at' IN v_capacity) = 0
+     OR position('interval ''90 seconds''' IN v_capacity) = 0
      OR position('fcm_token' IN v_capacity) > 0 THEN
-    RAISE EXCEPTION 'Patient capacity must reflect active guard duty, not heartbeat freshness or FCM registration';
+    RAISE EXCEPTION 'Country capacity must require a heartbeat no older than 90 seconds and never depend on FCM registration';
   END IF;
   IF position('last_heartbeat_at' IN v_active) > 0 THEN
     RAISE EXCEPTION 'Active doctor radar must show explicit guard duty independently of heartbeat';

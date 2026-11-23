@@ -4,6 +4,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@autamedica/types";
 import { logger } from "@autamedica/shared";
+import { isMedicalCertificatePubliclyVerifiable } from "@/lib/doctors/services/medical-certificate-verification";
 import {
   createMedicalHistoryAdapter,
   type MedicalRecord,
@@ -278,6 +279,20 @@ async function listMemedPrescriptions(
   return normalizeMemedRows(data ?? [], admin);
 }
 
+/**
+ * Patient histories must use the same evidence gate as the certificate PDF
+ * endpoint and the patient's direct RLS read policy.
+ */
+export function isPatientCertificateDownloadable(row: Record<string, unknown>): boolean {
+  return isMedicalCertificatePubliclyVerifiable(row as {
+    status: string;
+    signed_pdf_url: string | null;
+    signature_verified_at: string | null;
+    signature_hash: string | null;
+    signature_method: string | null;
+  });
+}
+
 async function listPatientCertificatesAndOrders(
   supabase: Db,
   patientId: string,
@@ -285,8 +300,14 @@ async function listPatientCertificatesAndOrders(
   const loose = supabase as unknown as SupabaseClient;
   const [certificatesResult, ordersResult] = await Promise.all([
     loose.from("medical_certificates")
-      .select("id,doctor_id,patient_id,cuir,status,certificate_type,days_of_rest,start_date,end_date,diagnosis,observations,qr_code_content,signed_pdf_url,country_code,created_at,updated_at,signature_hash,signature_method")
-      .eq("patient_id", patientId).order("created_at", { ascending: false }),
+      .select("id,doctor_id,patient_id,cuir,status,certificate_type,days_of_rest,start_date,end_date,diagnosis,observations,qr_code_content,signed_pdf_url,country_code,created_at,updated_at,signature_hash,signature_method,signature_verified_at")
+      .eq("patient_id", patientId)
+      .eq("status", "signed")
+      .not("signed_pdf_url", "is", null)
+      .not("signature_verified_at", "is", null)
+      .not("signature_hash", "is", null)
+      .in("signature_method", ["ac_external", "electronic_verified"])
+      .order("created_at", { ascending: false }),
     loose.from("medical_orders")
       .select("id,doctor_id,patient_id,appointment_id,study_type,practices,diagnosis,notes,status,cuir,qr_code_content,signed_pdf_url,created_at,updated_at")
       .eq("patient_id", patientId).order("created_at", { ascending: false }),
@@ -294,7 +315,8 @@ async function listPatientCertificatesAndOrders(
   if (certificatesResult.error) logger.warn("[medicalHistoryService] certificates query failed", { code: certificatesResult.error.code });
   if (ordersResult.error) logger.warn("[medicalHistoryService] orders query failed", { code: ordersResult.error.code });
   return {
-    certificates: (certificatesResult.data ?? []) as Array<Record<string, unknown>>,
+    certificates: ((certificatesResult.data ?? []) as Array<Record<string, unknown>>)
+      .filter(isPatientCertificateDownloadable),
     orders: (ordersResult.data ?? []) as Array<Record<string, unknown>>,
   };
 }

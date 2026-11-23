@@ -97,9 +97,9 @@ function AuthenticatedPatientProfilePage({
   ];
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
+    <main className="min-h-screen bg-[#F8FBFF] text-slate-900">
       {/* Hero */}
-      <section className="bg-[#0F2537] px-6 lg:px-12 pt-10 pb-16">
+      <section className="bg-[#0284C7] px-6 lg:px-12 pt-10 pb-16">
         <div className="max-w-7xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 text-white/80 rounded-full text-xs font-medium mb-6">
             <Sparkles className="h-3.5 w-3.5" />
@@ -194,7 +194,7 @@ function AuthenticatedPatientProfilePage({
                     {profileCompletion}%
                   </p>
                 </div>
-                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-right">
+                <div className="rounded-2xl bg-[#F8FBFF] px-4 py-3 text-right">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
                     {isPortuguese ? 'Pendentes' : 'Pendientes'}
                   </p>
@@ -202,9 +202,9 @@ function AuthenticatedPatientProfilePage({
                 </div>
               </div>
 
-              <div className="mt-6 h-3 overflow-hidden rounded-full bg-slate-50">
+              <div className="mt-6 h-3 overflow-hidden rounded-full bg-[#F8FBFF]">
                 <div
-                  className="h-full rounded-full bg-[#10B981] transition-[width] duration-500"
+                  className="h-full rounded-full bg-sky-500 transition-[width] duration-500"
                   style={{ width: `${profileCompletion}%` }}
                 />
               </div>
@@ -237,7 +237,7 @@ function AuthenticatedPatientProfilePage({
         ) : null}
 
         {secondaryError && secondaryError !== session.error ? (
-          <div className="flex items-start gap-3 rounded-3xl border border-slate-200 bg-slate-50 px-5 py-4 text-sky-900">
+          <div className="flex items-start gap-3 rounded-3xl border border-slate-200 bg-[#F8FBFF] px-5 py-4 text-sky-900">
             <Stethoscope className="mt-0.5 h-5 w-5 shrink-0" />
             <p className="text-sm leading-6">
               {isPortuguese ? 'Alguns dados clínicos ainda não foram carregados.' : 'Algunos datos clínicos todavía no cargaron.'}
@@ -261,14 +261,14 @@ function AuthenticatedPatientProfilePage({
                   </h3>
                   {session.patient?.careCountry === 'AR' ? (
                     <>
-                  <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="mt-4 rounded-2xl border border-slate-200 bg-[#F8FBFF] p-4">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <p className="text-sm font-semibold text-sky-950">{isPortuguese ? 'Identidade oficial' : 'Identidad oficial'}</p>
                       <button
                         type="button"
                         onClick={lookupOfficialIdentity}
                         disabled={isLookingUpIdentity || !form.dni.trim() || !form.gender}
-                        className="inline-flex items-center gap-2 rounded-full bg-[#10B981] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0D9488] disabled:cursor-not-allowed disabled:bg-emerald-200"
+                        className="inline-flex items-center gap-2 rounded-full bg-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-sky-100"
                       >
                         {isLookingUpIdentity ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -331,7 +331,7 @@ function AuthenticatedPatientProfilePage({
                     </div>
                     <div className="mt-4 grid gap-3 sm:grid-cols-2">
                       {officialIdentityRows.map((row) => (
-                        <div key={row.label} className="rounded-2xl bg-slate-50 px-4 py-3">
+                        <div key={row.label} className="rounded-2xl bg-[#F8FBFF] px-4 py-3">
                           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
                             {row.label}
                           </p>
@@ -452,7 +452,7 @@ function AuthenticatedPatientProfilePage({
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:border-[#10B981] hover:text-gray-950"
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:border-sky-500 hover:text-gray-950"
                   >
                     <RefreshCcw className="h-4 w-4" />
                     {isPortuguese ? 'Redefinir' : 'Restablecer'}
@@ -463,7 +463,7 @@ function AuthenticatedPatientProfilePage({
                       void saveProfile();
                     }}
                     disabled={isSaving}
-                    className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#10B981] px-5 py-2.5 text-sm font-semibold text-white shadow-am-primary-sm transition-colors hover:bg-[#0D9488] disabled:cursor-wait disabled:opacity-80 active:scale-[0.98]"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-full bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-am-primary-sm transition-colors hover:bg-sky-600 disabled:cursor-wait disabled:opacity-80 active:scale-[0.98]"
                   >
                     {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     {isSaving ? (isPortuguese ? 'Salvando...' : 'Guardando...') : (isPortuguese ? 'Salvar alterações' : 'Guardar cambios')}
@@ -627,7 +627,7 @@ function AuthenticatedPatientProfilePage({
             <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-am-card-xl">
               <h2 className="font-heading text-2xl text-gray-950">{isPortuguese ? 'Visão integrada' : 'Lectura transversal'}</h2>
               <div className="mt-5 space-y-4">
-                <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <div className="rounded-2xl bg-[#F8FBFF] px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
                     {isPortuguese ? 'Rastreamentos' : 'Screenings'}
                   </p>
@@ -640,7 +640,7 @@ function AuthenticatedPatientProfilePage({
                   </div>
                 </div>
 
-                <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <div className="rounded-2xl bg-[#F8FBFF] px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
                     {isPortuguese ? 'Condições crônicas' : 'Condiciones crónicas'}
                   </p>
@@ -651,7 +651,7 @@ function AuthenticatedPatientProfilePage({
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <div className="rounded-2xl bg-[#F8FBFF] px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
                     {isPortuguese ? 'Medicação atual' : 'Medicación actual'}
                   </p>
@@ -677,13 +677,13 @@ export default function PatientProfilePage() {
 
   if (session.loading) {
     return (
-      <main className="min-h-screen bg-slate-50 px-5 py-8 text-gray-900">
+      <main className="min-h-screen bg-[#F8FBFF] px-5 py-8 text-gray-900">
         <div className="mx-auto max-w-6xl space-y-4">
           <div className="h-6 w-40 animate-pulse rounded-full bg-slate-100" />
-          <div className="h-64 animate-pulse rounded-[2rem] bg-slate-50" />
+          <div className="h-64 animate-pulse rounded-[2rem] bg-[#F8FBFF]" />
           <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(340px,1fr)]">
-            <div className="h-[560px] animate-pulse rounded-[2rem] bg-slate-50" />
-            <div className="h-[560px] animate-pulse rounded-[2rem] bg-slate-50" />
+            <div className="h-[560px] animate-pulse rounded-[2rem] bg-[#F8FBFF]" />
+            <div className="h-[560px] animate-pulse rounded-[2rem] bg-[#F8FBFF]" />
           </div>
         </div>
       </main>
@@ -694,7 +694,7 @@ export default function PatientProfilePage() {
     return (
       <main className="min-h-screen bg-white px-5 py-8 text-gray-900">
         <div className="mx-auto max-w-2xl rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-am-2xl">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-50 text-sky-600">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#F8FBFF] text-sky-600">
             <UserCircle2 className="h-8 w-8" />
           </div>
           <h1 className="font-heading mt-5 text-4xl text-gray-950">{isPortuguese ? 'Seu perfil clínico' : 'Tu perfil clínico'}</h1>
@@ -705,7 +705,7 @@ export default function PatientProfilePage() {
           <div className="mt-6 flex justify-center">
             <a
               href="/auth/login?role=patient"
-              className="inline-flex items-center gap-2 rounded-full bg-slate-500 px-5 py-3 text-sm font-semibold text-white transition-transform active:scale-[0.98]"
+              className="inline-flex items-center gap-2 rounded-full bg-[#F8FBFF]0 px-5 py-3 text-sm font-semibold text-white transition-transform active:scale-[0.98]"
             >
               Iniciar sesión
             </a>

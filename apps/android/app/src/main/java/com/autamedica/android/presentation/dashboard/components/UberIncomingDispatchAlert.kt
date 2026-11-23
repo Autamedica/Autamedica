@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.dashboard.components
 
+import com.autamedica.android.presentation.common.maskPatientDocument
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -175,7 +177,7 @@ fun UberIncomingDispatchAlert(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    val cleanName = cleanPatientName(request.patientName).ifBlank { "Paciente en espera" }
+                    val cleanName = cleanPatientName(request.patientName).ifBlank { stringResource(R.string.doctor_dispatch_patient_waiting) }
                     val initials = getPatientInitials(request.patientName)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -457,7 +459,7 @@ fun UberIncomingDispatchAlert(
                                     )
 
                                     Text(
-                                        text = "${when (request.careCountry) { "BR" -> "CPF"; "AR" -> "DNI"; else -> stringResource(R.string.ui_document_generic) }} ${request.patientDni}",
+                                        text = "${when (request.careCountry) { "BR" -> "CPF"; "AR" -> "DNI"; else -> stringResource(R.string.ui_document_generic) }} ${maskPatientDocument(request.patientDni)}",
                                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                                         color = Color(0xFF94A3B8),
                                     )

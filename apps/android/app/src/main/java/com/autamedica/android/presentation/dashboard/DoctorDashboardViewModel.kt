@@ -20,6 +20,7 @@ import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.ChatRepository
 import com.autamedica.android.domain.repository.DoctorRepository
+import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.logging.SecureLog
 import com.autamedica.android.presentation.common.UiErrorMapper
@@ -71,6 +72,7 @@ data class DoctorDashboardUiState(
     val telemedicineError: String? = null,
     val userId: String = "",
     val userName: String = "",
+    val userAvatarUrl: String? = null,
     val doctorId: String = "",
 )
 
@@ -86,6 +88,7 @@ class DoctorDashboardViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     @ApplicationContext private val applicationContext: Context? = null,
     private val notificationRepository: NotificationRepository? = null,
+    private val profileRepository: ProfileRepository? = null,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DoctorDashboardUiState())
@@ -119,12 +122,21 @@ class DoctorDashboardViewModel @Inject constructor(
                 }
                 return@launch
             }
+            // Use the same profile source as ProfileScreen so Home and Profile
+            // cannot show different doctor identities from stale auth metadata.
+            val canonicalProfile = profileRepository?.getProfile()?.getOrNull()
+            val canonicalDoctorName = canonicalProfile
+                ?.let { listOf(it.firstName, it.lastName).filter(String::isNotBlank).joinToString(" ") }
+                ?.takeIf { it.isNotBlank() }
+                ?: user.displayName
+            val canonicalAvatarUrl = canonicalProfile?.avatarUrl?.takeIf { it.isNotBlank() }
+                ?: user.avatarUrl?.takeIf { it.isNotBlank() }
+
             _uiState.update { state ->
                 state.copy(
                     userId = user.id,
-                    userName = listOfNotNull(user.firstName, user.lastName)
-                        .joinToString(" ")
-                        .ifBlank { user.email },
+                    userName = canonicalDoctorName,
+                    userAvatarUrl = canonicalAvatarUrl,
                 )
             }
 

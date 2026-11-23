@@ -40,6 +40,8 @@ import com.autamedica.android.domain.model.CertificateType
 import com.autamedica.android.domain.model.DoctorEligibility
 import com.autamedica.android.domain.model.MedicalCertificate
 import com.autamedica.android.domain.model.PrescriptionPatientItem
+import com.autamedica.android.presentation.doctors.components.EventualPatientDniSelectorCard
+import com.autamedica.android.presentation.doctors.components.ShareDocumentToPatientButton
 import com.autamedica.android.presentation.prescriptions.components.QrCodeView
 import com.autamedica.android.presentation.theme.*
 
@@ -151,7 +153,7 @@ fun CreateCertificateScreen(
                             .fillMaxWidth()
                             .height(50.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PortalDoctors),
+                        colors = ButtonDefaults.buttonColors(containerColor = PortalPatientsAction, contentColor = Color.White),
                         enabled = !uiState.isSubmitting,
                     ) {
                         if (uiState.isSubmitting) {
@@ -183,18 +185,24 @@ fun CreateCertificateScreen(
             // 1. Regulatory Verification Status Banner
             DoctorRegulatoryBanner(uiState.doctorEligibility)
 
-            // 2. Patient Selector Card
-            PatientSelectorSection(
+            // 2. Patient Selector Card (Existing patients + 3-field DNI/Sex/WhatsApp eventual lookup)
+            EventualPatientDniSelectorCard(
                 selectedPatient = uiState.selectedPatient,
                 eligiblePatients = uiState.eligiblePatients,
                 isLoadingPatients = uiState.isLoadingPatients,
-                patientSearchQuery = patientSearchQuery,
+                searchQuery = patientSearchQuery,
                 onSearchQueryChange = { patientSearchQuery = it },
                 expanded = expandedPatientDropdown,
                 onExpandedChange = { expandedPatientDropdown = it },
                 onSelectPatient = {
                     viewModel.onSelectPatient(it)
                     expandedPatientDropdown = false
+                },
+                isRegisteringDni = uiState.isRegisteringDni,
+                dniLookupError = uiState.dniLookupError,
+                needsManualName = uiState.needsManualName,
+                onLookupByDni = { dni, gender, contact, manualName ->
+                    viewModel.registerEventualPatientByDni(dni, gender, contact, manualName)
                 },
             )
 
@@ -335,6 +343,13 @@ fun CreateCertificateScreen(
                         }
                     }
 
+                    ShareDocumentToPatientButton(
+                        patient = uiState.selectedPatient,
+                        documentTitle = "Certificado Médico",
+                        cuir = created.cuir,
+                        context = context,
+                    )
+
                     // QR Preview
                     QrCodeView(
                         content = created.effectiveQrContent,
@@ -356,7 +371,7 @@ fun CreateCertificateScreen(
                         onBack()
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = PortalDoctors)
+                    colors = ButtonDefaults.buttonColors(containerColor = PortalPatientsAction, contentColor = Color.White)
                 ) {
                     Text(stringResource(R.string.cert_success_back_to_certificates))
                 }
@@ -392,7 +407,7 @@ private fun DoctorRegulatoryBanner(eligibility: DoctorEligibility?) {
                     text = if (isEligible) stringResource(R.string.cert_reg_active_title) else stringResource(R.string.cert_reg_pending_title),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (isEligible) AuSuccess else Color(0xFFB45309),
+                    color = if (isEligible) AuSuccess else PortalPatientsAction,
                 )
                 Text(
                     text = if (isEligible) {

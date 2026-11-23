@@ -1,0 +1,137 @@
+---
+export const prerender = false;
+const initialReference = Astro.url.searchParams.get('reference') ?? '';
+---
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow,noarchive" />
+  <title>Verificar documento | AutaMedica</title>
+</head>
+<body>
+  <main>
+    <header><a href="/" aria-label="AutaMedica inicio">AUTAMEDICA</a><span>VERIFICACIÓN PÚBLICA</span></header>
+    <section class="intro">
+      <p class="eyebrow">VALIDACIÓN DE DOCUMENTOS</p>
+      <h1>Comprobá si el PDF coincide con el registro</h1>
+      <p>Ingresá el código que aparece en el QR o en la constancia y seleccioná el PDF original. AutaMedica comprobará el registro de emisión y si el PDF coincide con el archivo original registrado.</p>
+    </section>
+    <form id="verify-form">
+      <label for="reference">Código de verificación o contenido del QR</label>
+      <input id="reference" name="reference" type="text" maxlength="180" required
+        placeholder="DOC-… o pegá el texto completo del QR" value={initialReference} autocomplete="off" />
+      <label for="pdf">Documento PDF</label>
+      <input id="pdf" name="pdf" type="file" accept="application/pdf,.pdf" required />
+      <p class="hint">El PDF se analiza en tu dispositivo. No se carga ni se almacena en nuestros servidores.</p>
+      <button type="submit">Verificar documento</button>
+    </form>
+    <section id="result" aria-live="polite" aria-atomic="true" hidden></section>
+    <p class="disclaimer">La consulta confirma la referencia registrada y la coincidencia SHA-256 del PDF. Los datos clínicos y de identidad del paciente permanecen reservados.</p>
+    <footer>AutaMedica · Verificación pública de documentos</footer>
+  </main>
+  <script>
+    const form = document.querySelector<HTMLFormElement>('#verify-form');
+    const result = document.querySelector<HTMLElement>('#result');
+    const referenceInput = document.querySelector<HTMLInputElement>('#reference');
+    const fileInput = document.querySelector<HTMLInputElement>('#pdf');
+    const normalizeReference = (value: string) => value.toUpperCase().match(/DOC-[A-F0-9]{32}|(?:AR|BR)-CERT-[A-F0-9]+-[A-F0-9]{6}/)?.[0] ?? '';
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!result || !referenceInput || !fileInput) return;
+      const reference = normalizeReference(referenceInput.value);
+      const file = fileInput.files?.[0];
+      result.hidden = false;
+      result.className = 'result pending';
+      result.textContent = '';
+      if (!reference) {
+        result.className = 'result invalid';
+        result.textContent = 'No se encontró un código de documento válido. Pegá el texto del QR o ingresá el código DOC o CUIR.';
+        return;
+      }
+      if (!file) {
+        result.className = 'result invalid';
+        result.textContent = 'Seleccioná el PDF que querés verificar.';
+        return;
+      }
+      if (file.size < 8 || file.size > 25 * 1024 * 1024) {
+        result.className = 'result invalid';
+        result.textContent = 'El PDF debe tener un tamaño máximo de 25 MB.';
+        return;
+      }
+      result.textContent = 'Comprobando referencia y archivo…';
+      try {
+        const header = new Uint8Array(await file.slice(0, 5).arrayBuffer());
+        if (String.fromCharCode(...header) !== '%PDF-') throw new Error('El archivo seleccionado no es un PDF válido.');
+        const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+        const hash = Array.from(new Uint8Array(digest)).map(byte => byte.toString(16).padStart(2, '0')).join('');
+        const response = await fetch('/api/verify/documentos/' + encodeURIComponent(reference), {
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+        });
+        if (response.status === 503) throw new Error('El servicio de verificación no está disponible en este momento. Reintentá más tarde.');
+        const payload = await response.json();
+        if (!response.ok || !payload.registered || !payload.document) {
+          result.className = 'result invalid';
+          result.innerHTML = '<strong>Documento no registrado</strong><p>La referencia no figura en el registro documental de AutaMedica. No se puede confirmar que este documento haya sido emitido por nuestra plataforma.</p>';
+          return;
+        }
+        const record = payload.document;
+        if (record.status !== 'registered') {
+          result.className = 'result invalid';
+          result.innerHTML = '<strong>Registro revocado</strong><p>Esta referencia existe, pero su registro fue revocado. El documento no debe considerarse vigente.</p>';
+          return;
+        }
+        const heading = document.createElement('strong');
+        const details = document.createElement('dl');
+        const add = (label: string, value: string) => {
+          const dt = document.createElement('dt'); dt.textContent = label;
+          const dd = document.createElement('dd'); dd.textContent = value;
+          details.append(dt, dd);
+        };
+        add('Profesional emisor', record.issuer.name);
+        add('Profesión', record.issuer.profession);
+        add('Matrícula', record.issuer.license);
+        add('Jurisdicción', record.issuer.jurisdiction);
+        add('Fecha del documento', record.documentDate.split('-').reverse().join('/'));
+        add('Referencia', record.reference);
+        if (hash === record.pdfSha256) {
+          result.className = 'result valid';
+          heading.textContent = 'Coincidencia confirmada: PDF registrado';
+          result.replaceChildren(heading, details);
+          const message = document.createElement('p');
+          message.textContent = 'La referencia está registrada y la huella SHA-256 coincide exactamente con el PDF archivado por AutaMedica.';
+          result.append(message);
+        } else {
+          result.className = 'result invalid';
+          heading.textContent = 'El PDF no coincide con el registro';
+          result.replaceChildren(heading, details);
+          const message = document.createElement('p');
+          message.textContent = 'La referencia existe, pero el archivo seleccionado tiene una huella digital diferente. Puede ser otro documento o una versión modificada.';
+          result.append(message);
+        }
+      } catch (error) {
+        result.className = 'result invalid';
+        result.textContent = error instanceof Error ? error.message : 'No se pudo completar la verificación.';
+      }
+    });
+  </script>
+</body>
+</html>
+<style>
+  :global(*){box-sizing:border-box}
+  :global(body){margin:0;background:#f1f5f9;color:#0f172a;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.55}
+  main{max-width:760px;margin:0 auto;padding:28px 20px 40px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #dbe3ec;padding:6px 0 20px;margin-bottom:36px}
+  header a{font-weight:850;letter-spacing:.08em;color:#0f172a;text-decoration:none}
+  header span,.eyebrow{font-size:12px;font-weight:750;letter-spacing:.12em;color:#0f766e}
+  .intro{margin-bottom:28px}.intro h1{font-size:clamp(28px,5vw,40px);line-height:1.15;letter-spacing:-.025em;margin:10px 0 14px}.intro>p:last-child{color:#475569;max-width:650px}
+  form{display:grid;gap:12px;background:white;border:1px solid #e2e8f0;border-radius:16px;padding:24px;box-shadow:0 8px 24px #0f172a08}
+  label{font-weight:700;margin-top:4px}input{width:100%;min-width:0;padding:12px;border:1px solid #cbd5e1;border-radius:9px;background:white;font:inherit}input:focus{outline:3px solid #99f6e4;border-color:#0f766e}
+  .hint{font-size:13px;color:#64748b;margin:0 0 6px}button{padding:14px 18px;border:0;border-radius:9px;background:#0f766e;color:white;font:700 16px system-ui;cursor:pointer}button:hover{background:#115e59}
+  .result{margin-top:20px;border-radius:12px;padding:20px;overflow-wrap:anywhere}.result strong{display:block;font-size:20px}.result p{margin:10px 0 0}.valid{background:#ecfdf5;border:1px solid #6ee7b7;color:#065f46}.invalid{background:#fff7ed;border:1px solid #fdba74;color:#9a3412}.pending{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af}
+  dl{display:grid;grid-template-columns:minmax(130px, .6fr) 1fr;gap:7px 16px;margin:18px 0 0}dt{font-size:13px;color:#64748b}dd{margin:0;font-weight:650}
+  footer{text-align:center;color:#64748b;font-size:12px;margin-top:24px}.disclaimer{font-size:12px;color:#64748b;line-height:1.5;margin:24px 4px 0}
+  @media(max-width:520px){main{padding:18px 14px 30px}form{padding:18px}dl{grid-template-columns:1fr;gap:2px}dd{margin-bottom:8px}}
+</style>

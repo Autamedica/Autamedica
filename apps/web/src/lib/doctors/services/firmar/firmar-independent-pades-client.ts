@@ -73,7 +73,7 @@ export function createFirmArIndependentPadesVerifier(
         expectedOriginalSha256: originalHash,
         expectedSignerCuil: expected.doctorCuil,
       }),
-      redirect: 'error',
+      redirect: 'manual',
       signal: AbortSignal.timeout(25_000),
     });
     if (!response.ok) throw new Error('firmar_pades_independent_verification_failed');

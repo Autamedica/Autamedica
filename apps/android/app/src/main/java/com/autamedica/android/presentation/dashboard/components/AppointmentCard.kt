@@ -375,7 +375,7 @@ private fun AppointmentStatus.toStatusInfo(): StatusInfo = when (this) {
     AppointmentStatus.PAYMENT_PENDING -> StatusInfo("Pago pendiente", Color(0xFFD97706), Color(0xFFFEF3C7))
     AppointmentStatus.SCHEDULED -> StatusInfo("Programada", Color(0xFF0284C7), Color(0xFFE0F2FE))
     AppointmentStatus.CONFIRMED -> StatusInfo("Confirmada", Color(0xFF047857), SuccessContainer)
-    AppointmentStatus.IN_PROGRESS -> StatusInfo("En curso", Color(0xFF0891B2), Color(0xFFECFEFF))
+    AppointmentStatus.IN_PROGRESS -> StatusInfo("En curso", Color(0xFF0284C7), Color(0xFFF0F9FF))
     AppointmentStatus.COMPLETED -> StatusInfo("Completada", Color(0xFF475569), Color(0xFFF1F5F9))
     AppointmentStatus.CANCELLED -> StatusInfo("Cancelada", AuDanger, ErrorContainer)
     AppointmentStatus.NO_SHOW -> StatusInfo("Ausente", Color(0xFF64748B), Color(0xFFF8FAFC))

@@ -123,12 +123,14 @@ class ChatRepositoryImpl @Inject constructor(
         val userId = requireUserId()
         val role = securePreferences.getString(SecurePreferences.KEY_USER_ROLE) ?: "patient"
 
-        val filterColumn = if (role == "doctor") "specialist_id" else "patient_id"
-        val recordId = resolveRecordId(userId, role)
+        val patientId = if (role == "doctor") null else resolveRecordId("patients", userId)
+        val specialistId = if (role == "doctor") resolveDoctorSpecialistId(userId) else null
+        val filter = MedicalChatQueryFilter.forUnreadCount(role, patientId, specialistId)
+            ?: return@runCatching 0
         val chatIds = supabaseClient.postgrest
             .from("medical_chats")
             .select(Columns.list("id")) {
-                filter { eq(filterColumn, recordId) }
+                filter { eq(filter.columnName, filter.recordId) }
             }
             .decodeList<ChatIdDto>()
             .map { it.id }
@@ -161,13 +163,18 @@ class ChatRepositoryImpl @Inject constructor(
         runCatching {
             val userId = requireUserId()
             val role = securePreferences.getString(SecurePreferences.KEY_USER_ROLE) ?: "patient"
-            val recordId = resolveRecordId(userId, role)
-            val filterColumn = if (role == "doctor") "specialist_id" else "patient_id"
+            val patientId = if (role == "doctor") null else resolveRecordId("patients", userId)
+            val specialistId = if (role == "doctor") resolveDoctorSpecialistId(userId) else null
+            val filter = MedicalChatQueryFilter.forChats(role, patientId, specialistId)
+            if (filter == null) {
+                _chats.value = emptyList()
+                return@runCatching
+            }
 
             val dtos = supabaseClient.postgrest
                 .from("medical_chats")
                 .select(Columns.ALL) {
-                    filter { eq(filterColumn, recordId) }
+                    filter { eq(filter.columnName, filter.recordId) }
                     order("last_message_at", Order.DESCENDING)
                 }
                 .decodeList<MedicalChatDto>()
@@ -185,8 +192,11 @@ class ChatRepositoryImpl @Inject constructor(
             } else {
                 dtos.map { it.specialistId }.toSet()
             }
-            val otherTable = if (role == "doctor") "patients" else "doctors"
-            val otherUserIds = resolveUserIdsFromRecords(otherTable, otherRecordIds)
+            val otherUserIds = if (role == "doctor") {
+                resolveUserIdsFromRecords("patients", otherRecordIds)
+            } else {
+                resolveDoctorUserIdsFromSpecialists(otherRecordIds)
+            }
             batchResolveNames(otherUserIds.values.toSet())
 
             // Map recordId → display name
@@ -367,12 +377,36 @@ class ChatRepositoryImpl @Inject constructor(
         securePreferences.getString(SecurePreferences.KEY_USER_ID)
             ?: throw IllegalStateException("No user ID found")
 
-    private suspend fun resolveRecordId(userId: String, role: String): String {
-        val table = if (role == "doctor") "doctors" else "patients"
-        return supabaseClient.postgrest
+    private suspend fun resolveRecordId(table: String, userId: String): String? =
+        supabaseClient.postgrest
             .from(table)
             .select(Columns.list("id")) { filter { eq("user_id", userId) } }
-            .decodeSingle<RecordIdDto>().id
+            .decodeSingleOrNull<RecordIdDto>()
+            ?.id
+
+    private suspend fun resolveDoctorSpecialistId(userId: String): String? {
+        val doctorId = resolveRecordId("doctors", userId) ?: return null
+        return supabaseClient.postgrest
+            .from("reproductive_health_specialists")
+            .select(Columns.list("id")) {
+                filter { eq("doctor_id", doctorId) }
+            }
+            .decodeSingleOrNull<RecordIdDto>()
+            ?.id
+    }
+
+    private suspend fun resolveDoctorUserIdsFromSpecialists(specialistIds: Set<String>): Map<String, String> {
+        if (specialistIds.isEmpty()) return emptyMap()
+        val specialists = supabaseClient.postgrest
+            .from("reproductive_health_specialists")
+            .select(Columns.list("id", "doctor_id")) {
+                filter { isIn("id", specialistIds.toList()) }
+            }
+            .decodeList<SpecialistDoctorDto>()
+        val doctorUserIds = resolveUserIdsFromRecords("doctors", specialists.map { it.doctorId }.toSet())
+        return specialists.mapNotNull { specialist ->
+            doctorUserIds[specialist.doctorId]?.let { specialist.id to it }
+        }.toMap()
     }
 
     private suspend fun resolveUserIdsFromRecords(
@@ -426,6 +460,12 @@ class ChatRepositoryImpl @Inject constructor(
     private data class RecordUserIdDto(
         val id: String,
         @SerialName("user_id") val userId: String,
+    )
+
+    @Serializable
+    private data class SpecialistDoctorDto(
+        val id: String,
+        @SerialName("doctor_id") val doctorId: String,
     )
 
     @Serializable

@@ -7,7 +7,7 @@ export interface ConnectingOverlayProps {
   isRetrying: boolean
   retryAttempt: number
   maxRetries: number
-  accentColor: 'violet' | 'sky'
+  accentColor: 'sky'
   roomId: string
 }
 
@@ -15,7 +15,7 @@ export function ConnectingOverlay({
   isRetrying,
   retryAttempt,
   maxRetries,
-  accentColor,
+  accentColor: _accentColor,
 }: ConnectingOverlayProps) {
   const dotColor = 'bg-am-primary-500'
   const spinColor = 'text-am-primary-400'

@@ -38,6 +38,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -66,9 +67,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.R
+import com.autamedica.android.domain.model.DoctorProfile
 import com.autamedica.android.domain.model.PatientProfileSnapshot
 import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.model.UserRole
+import com.autamedica.android.presentation.dashboard.DoctorDashboardViewModel
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
@@ -93,12 +96,23 @@ import java.util.Locale
 @Composable
 fun ProfileScreen(
     onLogout: () -> Unit,
+    onNavigateToDoctorSignature: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = hiltViewModel(),
+    doctorDashboardViewModel: DoctorDashboardViewModel = hiltViewModel(),
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val doctorDashboardState by doctorDashboardViewModel.uiState.collectAsStateWithLifecycle()
     val user = uiState.user
+    val doctorProfile = doctorDashboardState.doctorProfile.takeIf { user?.role == UserRole.DOCTOR }
+    val profileDisplayName = if (user?.role == UserRole.DOCTOR) {
+        doctorDashboardState.userName.ifBlank {
+            user?.let { displayName(it, uiState.firstName, uiState.lastName) }.orEmpty()
+        }
+    } else {
+        user?.let { displayName(it, uiState.firstName, uiState.lastName) }.orEmpty()
+    }
     val accentColor = remember(user?.role) { roleAccent(user?.role) }
     val completion = remember(
         uiState.firstName,
@@ -107,6 +121,7 @@ fun ProfileScreen(
         user?.email,
         uiState.patientSnapshot,
         user?.role,
+        doctorProfile,
     ) {
         calculateProfileCompletion(
             user = user,
@@ -114,6 +129,7 @@ fun ProfileScreen(
             lastName = uiState.lastName,
             phone = uiState.phone,
             patientSnapshot = uiState.patientSnapshot,
+            doctorProfile = doctorProfile,
         )
     }
 
@@ -171,6 +187,9 @@ fun ProfileScreen(
                             uiState = uiState,
                             accentColor = accentColor,
                             completion = completion,
+                            profileDisplayName = profileDisplayName,
+                            doctorProfile = doctorProfile,
+                            onNavigateToDoctorSignature = onNavigateToDoctorSignature,
                         )
                     }
 
@@ -231,10 +250,13 @@ private fun ProfileHeroCard(
     uiState: ProfileUiState,
     accentColor: Color,
     completion: Int,
+    profileDisplayName: String,
+    doctorProfile: DoctorProfile?,
+    onNavigateToDoctorSignature: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(20.dp),
         color = AuSurface,
         border = BorderStroke(1.dp, AuBorder),
     ) {
@@ -266,7 +288,7 @@ private fun ProfileHeroCard(
 
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            text = displayName(user, uiState.firstName, uiState.lastName),
+                            text = profileDisplayName,
                             style = MaterialTheme.typography.titleLarge,
                             color = AuTextPrimary,
                             fontWeight = FontWeight.SemiBold,
@@ -288,6 +310,86 @@ private fun ProfileHeroCard(
                             style = MaterialTheme.typography.bodySmall,
                             color = AuTextTertiary,
                         )
+                    }
+                }
+            }
+
+            doctorProfile?.let { doctor ->
+                HorizontalDivider(color = AuBorder)
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    val licenseValue = listOfNotNull(
+                        doctor.licenseType?.takeIf(String::isNotBlank),
+                        doctor.ufBrazil?.takeIf(String::isNotBlank),
+                        doctor.licenseNumber.takeIf(String::isNotBlank),
+                    ).joinToString(" ").ifBlank { stringResource(R.string.profile_doctor_license_pending) }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = stringResource(R.string.profile_doctor_license_label),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = AuTextTertiary,
+                        )
+                        Text(licenseValue, style = MaterialTheme.typography.bodyMedium, color = AuTextPrimary, fontWeight = FontWeight.SemiBold)
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = stringResource(R.string.profile_doctor_specialty_label),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = AuTextTertiary,
+                        )
+                        Text(
+                            doctor.specialty.ifBlank { stringResource(R.string.profile_doctor_specialty_pending) },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = AuTextPrimary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    text = stringResource(R.string.profile_doctor_signature_label),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = AuTextTertiary,
+                                )
+                                Text(
+                                    text = stringResource(
+                                        if (doctor.hasSignature) R.string.profile_doctor_signature_present
+                                        else R.string.profile_doctor_signature_pending,
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (doctor.hasSignature) AuTextPrimary else AuTextSecondary,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    text = stringResource(R.string.profile_doctor_stamp_label),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = AuTextTertiary,
+                                )
+                                Text(
+                                    text = stringResource(
+                                        if (doctor.hasStamp) R.string.profile_doctor_stamp_present
+                                        else R.string.profile_doctor_stamp_pending,
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (doctor.hasStamp) AuTextPrimary else AuTextSecondary,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        }
+                        TextButton(onClick = onNavigateToDoctorSignature) {
+                            Text(
+                                text = stringResource(R.string.profile_doctor_signature_action),
+                                color = PortalDoctors,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
                     }
                 }
             }
@@ -741,35 +843,6 @@ private fun roleAccent(role: UserRole?): Color = when (role) {
     UserRole.DOCTOR -> PortalDoctors
     UserRole.PATIENT -> PortalPatients
     else -> AuAccent
-}
-
-private fun calculateProfileCompletion(
-    user: User?,
-    firstName: String,
-    lastName: String,
-    phone: String,
-    patientSnapshot: PatientProfileSnapshot?,
-): Int {
-    if (user == null) return 0
-
-    val checks = mutableListOf(
-        firstName.isNotBlank(),
-        lastName.isNotBlank(),
-        user.email.isNotBlank(),
-        phone.isNotBlank(),
-    )
-
-    if (user.role == UserRole.PATIENT) {
-        checks += listOf(
-            !patientSnapshot?.birthDate.isNullOrBlank(),
-            !patientSnapshot?.gender.isNullOrBlank(),
-            !patientSnapshot?.bloodType.isNullOrBlank(),
-            !patientSnapshot?.emergencyContactPhone.isNullOrBlank(),
-        )
-    }
-
-    val completed = checks.count { it }
-    return ((completed.toFloat() / checks.size.toFloat()) * 100f).toInt()
 }
 
 private fun computeAge(birthDate: String?): Int? {

@@ -44,7 +44,8 @@ function readEnabled(source: RuntimeEnvRecord): boolean {
 export function resolveFarmalinkConfig(runtimeEnv?: RuntimeEnvRecord): FarmalinkResolvedConfig {
   const config = {
     enabled: readEnabled(runtimeEnv),
-    baseUrl: readEnv(runtimeEnv, 'FARMALINK_BASE_URL', 'https://test-servicios.farmalink.com.ar'),
+    baseUrl: readEnv(runtimeEnv, 'FARMALINK_BASE_URL',
+      readEnv(runtimeEnv, 'NODE_ENV') === 'production' ? '' : 'https://test-servicios.farmalink.com.ar'),
     tokenPath: readEnv(runtimeEnv, 'FARMALINK_TOKEN_PATH', '/api/oauth/token/generate'),
     recetaBasePath: readEnv(runtimeEnv, 'FARMALINK_RECETA_BASE_PATH', '/api/recetaElect/v3'),
     oauthUsername: readEnv(runtimeEnv, 'FARMALINK_OAUTH_USERNAME'),
@@ -134,8 +135,16 @@ export class FarmalinkClient {
 
   private async requestJson<T>(url: string, init: RequestInit): Promise<T> {
     // Never forward OAuth/password headers or bearer tokens through HTTP redirects.
-    // A redirect should be investigated explicitly rather than followed by this client.
-    const response = await this.fetchImpl(url, { ...init, signal: init.signal ?? AbortSignal.timeout(30_000), redirect: 'error' });
+    // Cloudflare Workers (workerd) does not support redirect: 'error', so use 'manual'
+    // and reject any 3xx redirect response explicitly.
+    const response = await this.fetchImpl(url, {
+      ...init,
+      signal: init.signal ?? AbortSignal.timeout(30_000),
+      redirect: 'manual',
+    });
+    if (response.status >= 300 && response.status < 400) {
+      throw new FarmalinkHttpError(response.status, { error: 'redirect_not_allowed' });
+    }
     const body = await parseJsonResponse(response);
     if (!response.ok) {
       throw new FarmalinkHttpError(response.status, body);

@@ -5,6 +5,7 @@ interface ProxyEnv {
   appId: string | undefined
   appSecret: string | undefined
   bindingsEnabled: boolean
+  participantRole?: 'doctor' | 'patient' | 'guest'
 }
 
 interface ProxyResult {
@@ -80,7 +81,14 @@ export async function handleRoomBoundCloudflareProxy(
     const jordan = await isJordanRoom(admin, roomId)
     if (!env.bindingsEnabled) {
       if (jordan) return deny(503, 'jordan_sfu_session_binding_not_ready')
-      return await handleCloudflareCallsProxy(request, env)
+      const result = await handleCloudflareCallsProxy(request, env)
+      if (payload.path === 'sessions/new' && result.status >= 200 && result.status < 300) {
+        const returned = result.body as { sessionId?: unknown } | null
+        if (typeof returned?.sessionId === 'string' && SESSION_ID.test(returned.sessionId)) {
+          await recordDispatchParticipantSession(admin, roomId, principalKey, returned.sessionId, env.participantRole)
+        }
+      }
+      return result
     }
 
     const path = payload.path
@@ -161,9 +169,78 @@ export async function handleRoomBoundCloudflareProxy(
       .insert({ session_id: sessionId, room_id: roomId, principal_key: principalKey })
     if (writeError) throw writeError
 
+    // Persist participant Cloudflare session ID on pharmacy_dispatch_requests
+    // and only promote the dispatch to 'in_call' + calls='connected' once BOTH
+    // doctor_cf_session_id and patient_cf_session_id are present.
+    await recordDispatchParticipantSession(admin, roomId, principalKey, sessionId, env.participantRole)
+
     return result
   } catch {
     // Never return an unregistered session id or expose private DB details.
     return deny(503, 'sfu_session_binding_unavailable')
+  }
+}
+
+async function recordDispatchParticipantSession(
+  admin: SupabaseClient,
+  roomId: string,
+  principalKey: string,
+  sessionId: string,
+  participantRole?: 'doctor' | 'patient' | 'guest',
+): Promise<void> {
+  try {
+    const { data: dispatch } = await admin
+      .from('pharmacy_dispatch_requests')
+      .select('id, call_id, status, doctor_cf_session_id, patient_cf_session_id, call_started_at')
+      .eq('cloudflare_room_id', roomId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (!dispatch?.id) return
+
+    const inferredRole = participantRole ?? (principalKey.startsWith('guest:') ? 'guest' : 'patient')
+    const column = inferredRole === 'doctor' ? 'doctor_cf_session_id' : 'patient_cf_session_id'
+
+    const { data: updated } = await admin
+      .from('pharmacy_dispatch_requests')
+      .update({ [column]: sessionId })
+      .eq('id', dispatch.id)
+      .select('id, call_id, status, doctor_cf_session_id, patient_cf_session_id, call_started_at')
+      .maybeSingle()
+
+    const effective = updated ?? {
+      ...dispatch,
+      [column]: sessionId,
+    }
+
+    if (effective.doctor_cf_session_id && effective.patient_cf_session_id) {
+      if (effective.status === 'matched') {
+        await admin
+          .from('pharmacy_dispatch_requests')
+          .update({
+            status: 'in_call',
+            call_started_at: effective.call_started_at ?? new Date().toISOString(),
+          })
+          .eq('id', effective.id)
+          .eq('status', 'matched')
+      }
+      if (effective.call_id && typeof admin.rpc === 'function') {
+        await admin.rpc('update_call_status', {
+          p_call_id: effective.call_id,
+          p_status: 'connected',
+          p_reason: 'both_cf_sessions_established',
+        })
+      }
+    } else if (effective.call_id && typeof admin.rpc === 'function') {
+      await admin.rpc('update_call_status', {
+        p_call_id: effective.call_id,
+        p_status: 'connecting',
+        p_reason: `${inferredRole}_cf_session_created`,
+      })
+    }
+  } catch {
+    // Never fail an already-bound Cloudflare session response if auxiliary
+    // dispatch telemetry sync cannot run (e.g. non-dispatch calls or partial mocks).
   }
 }

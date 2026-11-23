@@ -186,3 +186,65 @@ describe('issuePrescription prescriber validation gate', () => {
     expect(__testables.canIssueWithPrescriberValidationStatus(null)).toBe(false);
   });
 });
+
+describe('doctor-scoped private patient identity resolution', () => {
+  it('supplies a private Brazilian CPF and demographics to the issuance engine', () => {
+    const resolved = __testables.resolvePrivatePatientIdentityFields({
+      cpf: null,
+      dni: null,
+      birth_date: null,
+      gender: null,
+    }, {
+      full_name: 'Synthetic Eventual Patient',
+      document_type: 'CPF',
+      document_number: '52998224725',
+      birth_date: '1990-04-12',
+      gender: 'female',
+      consent_at: '2026-11-20T00:00:00.000Z',
+      consent_scope: 'prescription_issuance_and_delivery',
+    });
+    expect(resolved).toEqual({
+      cpf: '52998224725',
+      dni: null,
+      birth_date: '1990-04-12',
+      gender: 'female',
+    });
+  });
+
+  it('supplies a private Argentine DNI without changing unrelated chart fields', () => {
+    const resolved = __testables.resolvePrivatePatientIdentityFields({
+      cpf: null,
+      dni: null,
+      birth_date: null,
+      gender: null,
+    }, {
+      full_name: 'Synthetic Eventual Patient',
+      document_type: 'DNI',
+      document_number: '30123456',
+      birth_date: '1990-04-12',
+      gender: 'female',
+      consent_at: '2026-11-20T00:00:00.000Z',
+      consent_scope: 'prescription_issuance_and_delivery',
+    });
+    expect(resolved).toEqual({
+      cpf: null,
+      dni: '30123456',
+      birth_date: '1990-04-12',
+      gender: 'female',
+    });
+  });
+
+  it('preserves the existing registered-patient fields when no doctor-scoped identity exists', () => {
+    expect(__testables.resolvePrivatePatientIdentityFields({
+      cpf: '52998224725',
+      dni: '30123456',
+      birth_date: '1987-01-02',
+      gender: 'male',
+    }, null)).toEqual({
+      cpf: '52998224725',
+      dni: '30123456',
+      birth_date: '1987-01-02',
+      gender: 'male',
+    });
+  });
+});

@@ -25,6 +25,7 @@ export async function claimFarmalinkIssue(
   requestSha256: string,
   actorUserId: string,
   expectedClinicalData: unknown = null,
+  issueSnapshot: unknown = null,
 ): Promise<FarmalinkPersistResult<FarmalinkIssueClaim>> {
   try {
     const { data, error } = await supabase.rpc('claim_farmalink_issue', {
@@ -32,6 +33,7 @@ export async function claimFarmalinkIssue(
       p_request_sha256: requestSha256,
       p_actor_user_id: actorUserId,
       p_expected_clinical_data: expectedClinicalData,
+      p_issue_snapshot: issueSnapshot,
     });
 
     if (error) return { ok: false, reason: 'database_failure' };
@@ -77,4 +79,5 @@ export async function recordFarmalinkIssue(
     return false;
   }
 }
+
 

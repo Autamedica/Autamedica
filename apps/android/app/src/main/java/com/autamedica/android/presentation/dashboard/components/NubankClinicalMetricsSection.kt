@@ -3,30 +3,37 @@ package com.autamedica.android.presentation.dashboard.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.autamedica.android.R
 import com.autamedica.android.domain.model.DoctorStats
-import com.autamedica.android.presentation.theme.PortalDoctors
+import com.autamedica.android.presentation.theme.AuBorder
+import com.autamedica.android.presentation.theme.AuTextPrimary
+import com.autamedica.android.presentation.theme.AuTextSecondary
+import com.autamedica.android.presentation.theme.PortalPatientsAction
 
 /**
- * Clinical counters backed exclusively by the authenticated doctor's Supabase queries.
- * If the query fails, show an unavailable state instead of invented demo statistics.
+ * Compact 3-number daily summary (Turnos hoy · En espera · Atendidos).
+ * Automatically hidden when all three counters are 0 to eliminate visual noise.
  */
 @Composable
 fun NubankClinicalMetricsSection(
@@ -34,89 +41,97 @@ fun NubankClinicalMetricsSection(
     statsAvailable: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    if (!statsAvailable) return
+    val allZero = stats.todayAppointments == 0 &&
+        stats.pendingAppointments == 0 &&
+        stats.completedToday == 0
+    if (allZero) return
+
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
             text = stringResource(R.string.ui_clinical_metrics_title),
             style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 11.sp,
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 1.sp,
             ),
-            color = PortalDoctors,
+            color = PortalPatientsAction,
         )
 
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 4.dp),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            item {
-                ClinicalMetricCard(
-                    title = stringResource(R.string.ui_clinical_completed_today),
-                    value = if (statsAvailable) stats.completedToday.toString() else "—",
-                    subtext = stringResource(R.string.ui_clinical_completed_today_hint),
-                )
-            }
-            item {
-                ClinicalMetricCard(
-                    title = "Citas no canceladas hoy",
-                    value = if (statsAvailable) stats.todayAppointments.toString() else "—",
-                    subtext = "Registros de la agenda médica",
-                )
-            }
-            item {
-                ClinicalMetricCard(
-                    title = "Pacientes vinculados",
-                    value = if (statsAvailable) stats.totalPatients.toString() else "—",
-                    subtext = "Vínculos registrados del médico",
-                )
-            }
-        }
-        if (!statsAvailable) {
-            Text(
-                text = "No se pudieron cargar las métricas. Actualizá la pantalla para reintentar.",
-                color = Color(0xFF64748B),
-                style = MaterialTheme.typography.bodySmall,
+            CompactClinicalMetricPill(
+                label = stringResource(R.string.doctor_cockpit_metric_today),
+                value = stats.todayAppointments.toString(),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+            )
+            CompactClinicalMetricPill(
+                label = stringResource(R.string.doctor_cockpit_metric_pending),
+                value = stats.pendingAppointments.toString(),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+            )
+            CompactClinicalMetricPill(
+                label = stringResource(R.string.doctor_cockpit_metric_completed),
+                value = stats.completedToday.toString(),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
             )
         }
     }
 }
 
 @Composable
-private fun ClinicalMetricCard(
-    title: String,
+private fun CompactClinicalMetricPill(
+    label: String,
     value: String,
-    subtext: String,
+    modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = Modifier.width(226.dp),
-        shape = RoundedCornerShape(22.dp),
+        modifier = modifier,
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        border = BorderStroke(1.dp, AuBorder),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(9.dp),
+                .padding(horizontal = 10.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                text = title,
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF64748B),
-            )
-            Text(
                 text = value,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFF0F172A),
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                ),
+                color = PortalPatientsAction,
+                maxLines = 1,
+                softWrap = false,
             )
             Text(
-                text = subtext,
-                style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF64748B),
+                text = label,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                ),
+                color = AuTextSecondary,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
             )
         }
     }

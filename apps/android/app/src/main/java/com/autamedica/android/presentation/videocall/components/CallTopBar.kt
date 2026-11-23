@@ -88,8 +88,8 @@ fun CallTopBar(
 
     Surface(
         shape = RoundedCornerShape(999.dp),
-        color = Color(0xCC0F172A),
-        border = BorderStroke(1.dp, Color(0x26FFFFFF)),
+        color = Color(0xA80F172A),
+        border = BorderStroke(1.dp, Color(0x4DE0F2FE)),
         shadowElevation = 10.dp,
         modifier = modifier
             .statusBarsPadding()

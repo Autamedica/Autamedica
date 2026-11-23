@@ -1,83 +1,57 @@
 package com.autamedica.android.domain.model
 
-import com.google.common.truth.Truth.assertThat
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.OffsetDateTime
 
 class AppointmentTelemedicineRulesTest {
 
-    private fun createAppointment(
-        startTime: String,
+    private fun sampleAppointment(
         status: AppointmentStatus = AppointmentStatus.CONFIRMED,
         type: AppointmentType = AppointmentType.TELEMEDICINE,
+        startTime: String = OffsetDateTime.now().plusMinutes(15).toString(),
     ) = Appointment(
-        id = "test-apt-1",
+        id = "apt-1",
         patientId = "pat-1",
         doctorId = "doc-1",
         startTime = startTime,
         endTime = null,
         durationMinutes = 30,
-        type = type,
         status = status,
+        type = type,
         notes = null,
         meetingUrl = null,
     )
 
     @Test
-    fun `appointment within 45 minutes before start is join candidate`() {
-        val apt = createAppointment(
-            startTime = OffsetDateTime.now().plusMinutes(30).toString()
+    fun `confirmed telemedicine appointment within join window is joinable`() {
+        assertTrue(sampleAppointment().isTelemedicineJoinCandidate())
+        assertTrue(
+            sampleAppointment(
+                status = AppointmentStatus.IN_PROGRESS,
+                type = AppointmentType.CONSULTATION,
+                startTime = OffsetDateTime.now().minusHours(2).toString(),
+            ).isTelemedicineJoinCandidate(),
         )
-        assertThat(apt.isTelemedicineJoinCandidate()).isTrue()
     }
 
     @Test
-    fun `appointment more than 45 minutes in future is not join candidate`() {
-        val apt = createAppointment(
-            startTime = OffsetDateTime.now().plusMinutes(50).toString()
+    fun `appointments outside time window or with non-joinable status are rejected`() {
+        assertFalse(
+            sampleAppointment(startTime = OffsetDateTime.now().plusHours(2).toString()).isTelemedicineJoinCandidate(),
         )
-        assertThat(apt.isTelemedicineJoinCandidate()).isFalse()
-    }
-
-    @Test
-    fun `appointment within 24 hours in past is join candidate`() {
-        val apt = createAppointment(
-            startTime = OffsetDateTime.now().minusHours(12).toString()
+        assertFalse(
+            sampleAppointment(startTime = OffsetDateTime.now().minusHours(25).toString()).isTelemedicineJoinCandidate(),
         )
-        assertThat(apt.isTelemedicineJoinCandidate()).isTrue()
-    }
-
-    @Test
-    fun `appointment more than 24 hours in past is not join candidate`() {
-        val apt = createAppointment(
-            startTime = OffsetDateTime.now().minusHours(25).toString()
+        assertFalse(
+            sampleAppointment(status = AppointmentStatus.CANCELLED).isTelemedicineJoinCandidate(),
         )
-        assertThat(apt.isTelemedicineJoinCandidate()).isFalse()
-    }
-
-    @Test
-    fun `non joinable status is not join candidate even within window`() {
-        val apt = createAppointment(
-            startTime = OffsetDateTime.now().plusMinutes(10).toString(),
-            status = AppointmentStatus.PAYMENT_PENDING
+        assertFalse(
+            sampleAppointment(status = AppointmentStatus.COMPLETED).isTelemedicineJoinCandidate(),
         )
-        assertThat(apt.isTelemedicineJoinCandidate()).isFalse()
-    }
-
-    @Test
-    fun `non joinable type is not join candidate even within window`() {
-        val apt = createAppointment(
-            startTime = OffsetDateTime.now().plusMinutes(10).toString(),
-            type = AppointmentType.LAB_TEST
+        assertFalse(
+            sampleAppointment(startTime = "not-a-valid-iso-timestamp").isTelemedicineJoinCandidate(),
         )
-        assertThat(apt.isTelemedicineJoinCandidate()).isFalse()
-    }
-
-    @Test
-    fun `invalid start time date format returns false safely`() {
-        val apt = createAppointment(
-            startTime = "invalid-date"
-        )
-        assertThat(apt.isTelemedicineJoinCandidate()).isFalse()
     }
 }

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="patient_home_live_badge">Médicos disponíveis agora</string>
+    <string name="patient_home_value_prop_subtitle">Consultas médicas online, receitas digitais e atestados em um só lugar.</string>
+    <string name="patient_home_primary_cta">Atendimento imediato</string>
+    <string name="patient_home_secondary_cta">Agendar consulta</string>
+
+    <string name="patient_home_pillar_consultations">Consultas</string>
+    <string name="patient_home_pillar_consultations_sub">Vídeo e plantão</string>
+    <string name="patient_home_pillar_prescriptions">Receitas</string>
+    <string name="patient_home_pillar_prescriptions_sub">Digitais</string>
+    <string name="patient_home_pillar_certificates">Atestados</string>
+    <string name="patient_home_pillar_certificates_sub">Médicos PDF</string>
+
+    <string name="patient_home_doctors_title">Médicos disponíveis</string>
+    <string name="patient_home_doctors_subtitle">Escolha o profissional ou consulte agora</string>
+    <string name="patient_home_doctors_view_all">Ver todos</string>
+    <string name="patient_home_doctors_empty">Não há profissionais disponíveis para atendimento imediato no momento.</string>
+    <string name="patient_home_doctor_verified">CRM verificado</string>
+    <string name="patient_home_doctor_license_default">CRM Ativo</string>
+    <string name="patient_home_doctor_license_prefix">CRM</string>
+    <string name="patient_home_doctor_fee_label">Consulta</string>
+    <string name="patient_home_doctor_fee_tbd">Sob consulta</string>
+    <string name="patient_home_doctor_book_action">Agendar</string>
+
+    <string name="patient_home_readiness_title">Complete sua ficha médica</string>
+    <string name="patient_home_readiness_percent">%1$d%%</string>
+    <string name="patient_home_readiness_subtitle">Agilize sua próxima consulta com seus dados prontos</string>
+
+    <string name="patient_home_other_services_heading">Outros serviços</string>
+    <string name="patient_home_tile_history">Histórico clínico</string>
+    <string name="patient_home_tile_mental_health">Saúde mental</string>
+    <string name="patient_home_tile_prevention">Prevenção</string>
+    <string name="patient_home_tile_more">Mais serviços</string>
+
+    <string name="patient_home_more_sheet_title">Mais serviços de saúde</string>
+    <string name="patient_home_more_sheet_subtitle">Todo o seu histórico e acompanhamento clínico em um só lugar</string>
+    <string name="patient_home_more_documents_title">Exames e documentos</string>
+    <string name="patient_home_more_documents_desc">Envie exames laboratoriais, imagens e laudos</string>
+    <string name="patient_home_more_reproductive_title">Saúde reprodutiva</string>
+    <string name="patient_home_more_reproductive_desc">Acompanhamento e orientação sigilosa</string>
+    <string name="patient_home_more_continuity_title">Continuidade clínica</string>
+    <string name="patient_home_more_continuity_desc">Status de encaminhamentos e retornos</string>
+    <string name="patient_home_more_reserve_title">Plano e Reserva Saúde</string>
+    <string name="patient_home_more_reserve_desc">Benefícios, créditos acumulados e cobertura</string>
+
+    <string name="nav_patient_profile">Perfil</string>
+    <string name="patient_consult_segment_now">Agora</string>
+    <string name="patient_consult_segment_scheduled">Meus horários</string>
+    <string name="patient_home_more_community_title">Comunidade</string>
+    <string name="patient_home_more_community_desc">Grupos e experiências compartilhadas com outros pacientes</string>
+</resources>

@@ -42,22 +42,21 @@ pnpm dev
 ### **🌳 Estrategia de Ramas**
 
 ```
-main (producción)
-├── staging (pre-producción)
-└── develop (desarrollo)
-    ├── feature/nueva-funcionalidad
-    ├── fix/corregir-bug
-    ├── ops/infraestructura
-    └── docs/documentacion
+main (base predeterminada de integración)
+├── feat/descripcion-corta
+├── fix/descripcion-corta
+├── security/descripcion-corta
+├── refactor/descripcion-corta
+└── docs/descripcion-corta
 ```
 
 ### **🔄 Flujo de Trabajo**
 
-1. **Crear rama** desde `develop`:
+1. **Crear rama** desde `main`:
    ```bash
-   git checkout develop
-   git pull origin develop
-   git checkout -b feature/nombre-descriptivo
+   git checkout main
+   git pull origin main
+   git checkout -b feat/nombre-descriptivo
    ```
 
 2. **Desarrollo** siguiendo estándares:
@@ -74,9 +73,9 @@ main (producción)
 
 4. **Push y PR**:
    ```bash
-   git push -u origin feature/nombre-descriptivo
+   git push -u origin feat/nombre-descriptivo
    # Crear PR via GitHub CLI o web
-   gh pr create --base develop --title "✨ Nova feature: ..."
+   gh pr create --base main --title "feat(android): resultado concreto"
    ```
 
 ## 💬 **Convención de Commits**
@@ -121,7 +120,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ### **✅ Contenido del PR**
 
-- [ ] **Título** con emoji y tipo
+- [ ] **Título** con formato `tipo(área): resultado concreto`
 - [ ] **Descripción** clara del problema y solución
 - [ ] **Screenshots** si afecta UI
 - [ ] **Tests plan** documentado
@@ -244,11 +243,10 @@ const query = `SELECT * FROM patients WHERE id=${userId}` // SQL injection
 
 ## 📊 **Code Review Process**
 
-### **👥 Reviewers Requeridos**
-- **1 aprobación** para features normales
-- **2 aprobaciones** para cambios en `@autamedica/types`
-- **Security team** para cambios en auth/permissions
-- **Medical team** para lógica médica
+### **👥 Revisión**
+- No se exige una segunda aprobación humana obligatoria al propietario/admin cuando es el único integrador.
+- Los cambios en auth/permissions, `@autamedica/types` y lógica médica deben incluir revisión técnica específica y pruebas documentadas.
+- Las reglas de protección de `main` deben permitir el bypass administrativo del propietario.
 
 ### **🔍 Criterios de Review**
 
@@ -275,9 +273,9 @@ const query = `SELECT * FROM patients WHERE id=${userId}` // SQL injection
 - **PATCH** (0.0.1): Bug fixes
 
 ### **🔄 Deployment Pipeline**
-1. **PR** → `develop` (auto-deploy to dev)
-2. **Release PR** → `staging` (manual deploy)
-3. **Staging tests** → `main` (production deploy)
+1. **PR** → `main` como rama base predeterminada (otra base requiere justificación).
+2. **Validaciones** → CI y controles de base de datos/RLS configurados para el repositorio.
+3. **Release** → seguir el pipeline de despliegue vigente, sin asumir que merge equivale a deploy.
 
 ## 📞 **Obtener Ayuda**
 
@@ -297,3 +295,30 @@ const query = `SELECT * FROM patients WHERE id=${userId}` // SQL injection
 **🙏 Gracias por contribuir a la medicina del futuro!**
 
 **📅 Última actualización**: Septiembre 2025
+---
+
+## 🧭 Gobernanza Ligera de Pull Requests
+
+### Formato obligatorio del título de PR
+```text
+tipo(área): resultado concreto
+```
+- **Tipos permitidos:** `security`, `fix`, `feat`, `refactor`, `test`, `docs`, `chore`, `release`
+- **Áreas permitidas:** `android`, `web`, `api`, `supabase`, `pharmacy`, `farmalink`, `memed`, `renaper`, `billing`, `infra`, `governance`
+- **Ejemplos válidos:**
+  - `security(supabase): revoke anon ACL on social_agent tables`
+  - `fix(android): stop Realtime notification feedback loop`
+
+### Formato de rama
+```text
+tipo/descripcion-corta
+```
+Ejemplo: `fix/android-realtime-loop`, `security/pharmacy-country-isolation`.
+
+### Etiquetas de prioridad *(fuera del título)*
+| Etiqueta | Uso |
+|---|---|
+| `priority:P0` | Crítico, seguridad o producción |
+| `priority:P1` | Bloquea operación importante |
+| `priority:P2` | Funcionalidad o mejora |
+| `priority:P3` | Mantenimiento menor |

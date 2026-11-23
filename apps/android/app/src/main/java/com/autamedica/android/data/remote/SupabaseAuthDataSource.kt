@@ -26,6 +26,7 @@ data class AuthUser(
     val role: String?,
     val displayName: String? = null,
     val phone: String? = null,
+    val avatarUrl: String? = null,
 )
 
 @Singleton
@@ -53,6 +54,7 @@ class SupabaseAuthDataSource @Inject constructor(
                             role = role,
                             displayName = fullName,
                             phone = phone,
+                            avatarUrl = extractAvatarUrl(user),
                         )
                     } else null
                 }
@@ -82,6 +84,7 @@ class SupabaseAuthDataSource @Inject constructor(
             role = role,
             displayName = fullName,
             phone = phone,
+            avatarUrl = extractAvatarUrl(user),
         )
     }
 
@@ -107,6 +110,7 @@ class SupabaseAuthDataSource @Inject constructor(
             role = role,
             displayName = fullName,
             phone = phone,
+            avatarUrl = extractAvatarUrl(user),
         )
     }
 
@@ -129,6 +133,7 @@ class SupabaseAuthDataSource @Inject constructor(
                 role = extractRole(it),
                 displayName = fullName,
                 phone = phone,
+                avatarUrl = extractAvatarUrl(it),
             )
         }
     }
@@ -155,7 +160,16 @@ class SupabaseAuthDataSource @Inject constructor(
             role = role,
             displayName = fullName,
             phone = phone,
+            avatarUrl = extractAvatarUrl(user),
         )
+    }
+
+    private fun extractAvatarUrl(user: io.github.jan.supabase.auth.user.UserInfo): String? {
+        val meta = user.userMetadata?.jsonObject ?: return null
+        return (meta["avatar_url"]?.jsonPrimitive?.contentOrNull
+            ?: meta["picture"]?.jsonPrimitive?.contentOrNull
+            ?: meta["avatarUrl"]?.jsonPrimitive?.contentOrNull)
+            ?.takeIf { it.isNotBlank() }
     }
 
     private fun extractRole(user: io.github.jan.supabase.auth.user.UserInfo): String? {

@@ -54,11 +54,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Jordan is an attribution overlay, not a different payment requirement.
     const { data: source, error: sourceError } = await admin
       .from('pharmacy_dispatch_requests')
-      .select('referral_partner_id, commercial_referral_partners!pharmacy_dispatch_requests_referral_partner_id_fkey(code,active)')
+      .select('referral_partner_id,referral_source_code,commercial_referral_partners!pharmacy_dispatch_requests_referral_partner_id_fkey(code,active)')
       .eq('id', dispatch.id).maybeSingle()
     if (sourceError) throw sourceError
     const partner = source?.commercial_referral_partners as { code?: string; active?: boolean } | null
     const isJordan = partner?.code === 'JORDAN'
+    const qrSourceCode = typeof source?.referral_source_code === 'string' ? source.referral_source_code : null
     if (source?.referral_partner_id && partner?.active !== true) {
       return badRequest('unsupported_or_inactive_pharmacy_referral')
     }
@@ -88,11 +89,26 @@ export const POST: APIRoute = async ({ request, locals }) => {
         ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN')
       : undefined
     const { data: old, error: oldError } = await admin.from('pharmacy_dispatch_payments')
-      .select('id,status,checkout_url,amount_minor,currency,provider,provider_preference_id,provider_payment_id,metadata')
+      .select('id,status,checkout_url,amount_minor,currency,provider,provider_preference_id,provider_payment_id,referral_source_code,metadata')
       .eq('dispatch_request_id',dispatch.id).maybeSingle()
     if (oldError) throw oldError
     if (old) {
       if (old.amount_minor !== amountCents || old.currency !== currency) throw new Error('checkout_amount_changed')
+      if (qrSourceCode && old.referral_source_code !== qrSourceCode) {
+        const previousMetadata = old.metadata && typeof old.metadata === 'object' && !Array.isArray(old.metadata)
+          ? old.metadata as Record<string, unknown> : {}
+        const { error: attributionError } = await (admin as any).from('pharmacy_dispatch_payments')
+          .update({
+            referral_source_code: qrSourceCode,
+            metadata: {
+              ...previousMetadata,
+              referral_source_code: qrSourceCode,
+              referral_partner_code: partner?.code ?? null,
+            },
+          })
+          .eq('id', old.id)
+        if (attributionError) throw attributionError
+      }
       if (old.status === 'approved') return jsonOk({ status: 'approved', checkoutUrl: null, amountCents, currency })
       if (old.status === 'pending' && old.checkout_url) {
         return jsonOk({ status: 'pending', checkoutUrl: old.checkout_url, amountCents, currency })
@@ -110,10 +126,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
             status: 'initializing',
             provider: 'mercadopago',
             checkout_url: null,
+            referral_source_code: qrSourceCode,
             metadata: {
               ...(old.metadata ?? {}),
               payment_mode: 'mercadopago',
               manual_approval_pending: false,
+              referral_source_code: qrSourceCode,
+              referral_partner_code: partner?.code ?? null,
               recovered_from_manual_placeholder_at: new Date().toISOString(),
             },
           })
@@ -157,10 +176,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
         const { data: recovered, error: recoverError } = await admin.from('pharmacy_dispatch_payments')
           .update({
             status: 'initializing',
+            referral_source_code: qrSourceCode,
             metadata: {
               ...(old.metadata ?? {}),
               payment_mode: 'mercadopago',
               manual_approval_pending: false,
+              referral_source_code: qrSourceCode,
+              referral_partner_code: partner?.code ?? null,
               recovered_failed_checkout_at: new Date().toISOString(),
               provider_reconciliation: reconcileResult.data.found ? providerPaymentStatus : 'no_payment_found',
             },
@@ -210,6 +232,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
           dispatch_request_id: dispatch.id,
           amount_minor: amountCents,
           currency,
+          referral_source_code: qrSourceCode,
+          metadata: {
+            payment_type: 'pharmacy_consultation',
+            dispatch_id: dispatch.id,
+            referral_source_code: qrSourceCode,
+            referral_partner_code: partner?.code ?? null,
+          },
           status: 'initializing',
           provider: 'mercadopago',
         })
@@ -283,6 +312,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
           metadata: {
             payment_type: 'pharmacy_consultation',
             dispatch_id: dispatch.id,
+            referral_source_code: qrSourceCode,
+            referral_partner_code: partner?.code ?? null,
           },
         }),
         signal: AbortSignal.timeout(15000),

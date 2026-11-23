@@ -68,6 +68,12 @@ sealed interface Route {
     data object Prescriptions : Route
 
     @Serializable
+    data object PatientCertificates : Route
+
+    @Serializable
+    data object PatientOrders : Route
+
+    @Serializable
     data object ClinicalDocuments : Route
 
     @Serializable
@@ -110,7 +116,11 @@ sealed interface Route {
     data object TdahEvaluation : Route
 
     @Serializable
-    data class PharmacyIntake(val pharmacyId: String = "", val referralCode: String = "") : Route
+    data class PharmacyIntake(
+        val pharmacyId: String = "",
+        val referralCode: String = "",
+        val careCountry: String = "",
+    ) : Route
 
     @Serializable
     data object DoctorOnDemand : Route

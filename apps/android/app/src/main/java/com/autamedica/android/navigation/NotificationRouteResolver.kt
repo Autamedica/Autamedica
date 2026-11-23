@@ -21,11 +21,13 @@ object NotificationRouteResolver {
         appointmentId: String? = null,
         roomId: String? = null,
         chatRoomId: String? = null,
+        prescriptionId: String? = null,
         deepLink: String? = null,
         notificationType: String? = null,
     ): Route? {
         val normalizedAppointmentId = appointmentId.normalizedOrNull()
         val normalizedRoomId = roomId.normalizedOrNull()
+        val normalizedPrescriptionId = prescriptionId.normalizedOrNull()
 
         // A dispatch push is an invitation to REVIEW an offer, never a
         // permission to enter the video room. Claim authorization happens later.
@@ -37,9 +39,7 @@ object NotificationRouteResolver {
         }
 
         if (isCallNotification(notificationType)) {
-            // Las llamadas directas (creadas sin appointment) llegan con appointment_id
-            // vacío pero con room_id. El flujo de VideoCall resuelve la sala por
-            // incomingRoomId en el fast path, así que hay que navegar igual.
+            // Direct calls created without an appointment carry room_id without appointment_id.
             val hasRoomOnly = normalizedRoomId != null
             if (normalizedAppointmentId != null || hasRoomOnly) {
                 return Route.VideoCall(
@@ -57,6 +57,18 @@ object NotificationRouteResolver {
 
         if (isFollowupNotification(notificationType)) {
             return Route.ContinuityStatus
+        }
+
+        if (isCertificateNotification(notificationType)) {
+            return Route.PatientCertificates
+        }
+
+        if (isMedicalOrderNotification(notificationType)) {
+            return Route.PatientOrders
+        }
+
+        if (normalizedPrescriptionId != null || isPrescriptionNotification(notificationType)) {
+            return Route.Prescriptions
         }
 
         val deepLinkRoute = parseDeepLink(deepLink)
@@ -80,6 +92,7 @@ object NotificationRouteResolver {
             appointmentId = intent.getStringExtra(EXTRA_APPOINTMENT_ID),
             roomId = intent.getStringExtra(EXTRA_ROOM_ID),
             chatRoomId = intent.getStringExtra(EXTRA_CHAT_ROOM_ID),
+            prescriptionId = intent.getStringExtra(EXTRA_PRESCRIPTION_ID),
             deepLink = intent.getStringExtra(EXTRA_DEEP_LINK) ?: intent.dataString,
             notificationType = intent.getStringExtra(EXTRA_NOTIFICATION_TYPE) ?: intent.getStringExtra(EXTRA_EVENT),
         )
@@ -96,6 +109,36 @@ object NotificationRouteResolver {
             normalized == "continuity_status"
     }
 
+    fun isPrescriptionNotification(notificationType: String?): Boolean {
+        val normalized = notificationType?.trim()?.lowercase() ?: return false
+        return normalized == "prescription" ||
+            normalized == "prescription_ready" ||
+            normalized == "prescription_issued" ||
+            normalized == "prescription_created" ||
+            normalized == "receta" ||
+            normalized == "receta_emitida"
+    }
+
+    fun isCertificateNotification(notificationType: String?): Boolean {
+        val normalized = notificationType?.trim()?.lowercase() ?: return false
+        return normalized == "certificate" ||
+            normalized == "certificate_ready" ||
+            normalized == "certificate_issued" ||
+            normalized == "medical_certificate" ||
+            normalized == "certificado" ||
+            normalized == "atestado"
+    }
+
+    fun isMedicalOrderNotification(notificationType: String?): Boolean {
+        val normalized = notificationType?.trim()?.lowercase() ?: return false
+        return normalized == "medical_order" ||
+            normalized == "medical_order_ready" ||
+            normalized == "medical_order_issued" ||
+            normalized == "exam_order" ||
+            normalized == "orden_medica" ||
+            normalized == "lab_order"
+    }
+
     fun isCallNotification(notificationType: String?): Boolean {
         val normalized = notificationType?.trim()?.lowercase() ?: return false
         return normalized == "call_started" ||
@@ -108,8 +151,8 @@ object NotificationRouteResolver {
     }
 
     /**
-     * Solo las notificaciones dirigidas al paciente o médico con llamada entrante activan el join directo.
-     * PATIENT_CONNECTED va al médico, que ya se une por su propio flujo.
+     * Only notifications directed to patient/doctor with an incoming call trigger direct join.
+     * PATIENT_CONNECTED notifies the doctor, who joins through their own flow.
      */
     fun isIncomingCallNotificationType(notificationType: String?): Boolean {
         val normalized = notificationType?.trim()?.lowercase() ?: return false
@@ -123,6 +166,8 @@ object NotificationRouteResolver {
 
     fun parseDeepLink(raw: String?): Route? {
         val normalized = raw.normalizedOrNull() ?: return null
+        val isHttp = normalized.startsWith("https://", ignoreCase = true) ||
+            normalized.startsWith("http://", ignoreCase = true)
         val withoutScheme = if (normalized.contains("://")) {
             normalized.substringAfter("://")
         } else {
@@ -131,31 +176,77 @@ object NotificationRouteResolver {
         val cleanPath = withoutScheme.substringBefore('?').substringBefore('#').trim('/')
         if (cleanPath.isEmpty()) return null
 
-        val segments = cleanPath.split('/').filter { it.isNotBlank() }
+        val rawSegments = cleanPath.split('/').filter { it.isNotBlank() }
+        if (rawSegments.isEmpty()) return null
+
+        // On-demand pharmacy counter intake deep link:
+        // Handles https://autamedica.com/farmacia/*, https://www.autamedica.com/farmacia/*, autamedica://farmacia/*
+        if (rawSegments.any { it.equals("farmacia", ignoreCase = true) }) {
+            val pharmacyId = extractPharmacyId(normalized)
+            return Route.PharmacyIntake(
+                pharmacyId = pharmacyId,
+                referralCode = extractReferralCode(normalized),
+                careCountry = extractCareCountry(normalized),
+            )
+        }
+
+        // Strip known AutaMedica web host prefix so https://paciente.autamedica.com/patients/...
+        // and relative /patients/... resolve identically.
+        val segments = if (isHttp && isAutamedicaHost(rawSegments.first())) {
+            rawSegments.drop(1)
+        } else {
+            rawSegments
+        }
         if (segments.isEmpty()) return null
 
         val firstSegment = segments.first().lowercase()
 
+        // Patient-scoped web & app deep links (/patients/*, autamedica://patients/*, autamedica://paciente/*)
+        if (firstSegment == "patients" || firstSegment == "patient" || firstSegment == "paciente") {
+            val sub = segments.getOrNull(1)?.lowercase()
+            return when (sub) {
+                "prescriptions", "recetas", "receitas" -> Route.Prescriptions
+                "certificates", "certificados", "atestados" -> Route.PatientCertificates
+                "medical-orders", "orders", "ordenes", "exames", "examenes" -> Route.PatientOrders
+                "documents", "reports", "estudios" -> Route.ClinicalDocuments
+                "community", "comunidad", "comunidade" -> Route.PatientCommunity
+                "profile", "perfil", "identity" -> Route.PatientProfile
+                "anamnesis", "history", "historia-clinica" -> Route.AnamnesisForm
+                "continuity", "followup" -> Route.ContinuityStatus
+                "chat", "chats", "messages" -> {
+                    val chatId = segments.getOrNull(2).normalizedOrNull()
+                    if (chatId != null) Route.ChatConversation(chatId) else Route.ChatList
+                }
+                "appointments", "appointment", "consultations", "call", "videocall" -> {
+                    val aptId = segments.getOrNull(2).normalizedOrNull()
+                    if (aptId != null) Route.VideoCall(aptId) else null
+                }
+                else -> null
+            }
+        }
+
         // Single or multi-segment deep links for continuity / clinical followup:
-        // Handles autamedica://continuity, autamedica://followup, /continuity, /followup
         if (firstSegment == "continuity" || firstSegment == "followup" || firstSegment == "continuity_status") {
             return Route.ContinuityStatus
         }
 
-        // On-demand pharmacy counter intake deep link:
-        // Handles https://autamedica.com/farmacia/*, https://www.autamedica.com/farmacia/*, autamedica://farmacia/*
-        if (segments.any { it.equals("farmacia", ignoreCase = true) }) {
-            val pharmacyId = extractPharmacyId(normalized)
-            return Route.PharmacyIntake(pharmacyId, extractReferralCode(normalized))
+        // Direct patient document & community deep links:
+        if (firstSegment == "certificates" || firstSegment == "certificados" || firstSegment == "atestados") {
+            return Route.PatientCertificates
+        }
+        if (firstSegment == "medical-orders" || firstSegment == "ordenes" || firstSegment == "exames" || firstSegment == "examenes") {
+            return Route.PatientOrders
+        }
+        if (firstSegment == "community" || firstSegment == "comunidad" || firstSegment == "comunidade") {
+            return Route.PatientCommunity
         }
 
         // On-demand doctor duty / dispatch:
-        // Handles autamedica://ondemand, autamedica://guardia
         if (firstSegment == "ondemand" || firstSegment == "guardia") {
             return Route.DoctorOnDemand
         }
 
-        // Doctor prescriptions list or create prescription
+        // Doctor prescriptions list or create prescription (preserved for existing doctor workflows)
         if (firstSegment == "prescriptions" || firstSegment == "recetas") {
             if (segments.size < 2) return Route.DoctorPrescriptions
             val pid = segments.last().normalizedOrNull() ?: ""
@@ -166,7 +257,12 @@ object NotificationRouteResolver {
             return Route.CreatePrescription(pid)
         }
 
-        if (segments.size < 2) return null
+        if (segments.size < 2) {
+            return when (firstSegment) {
+                "chat", "chats", "messages" -> Route.ChatList
+                else -> null
+            }
+        }
 
         val identifier = segments.last().normalizedOrNull() ?: return null
 
@@ -176,6 +272,11 @@ object NotificationRouteResolver {
                 Route.VideoCall(identifier)
             else -> null
         }
+    }
+
+    private fun isAutamedicaHost(host: String): Boolean {
+        val lower = host.lowercase()
+        return lower == "autamedica.com" || lower.endsWith(".autamedica.com")
     }
 
     // A commercial QR source must be explicitly supplied and syntactically safe.
@@ -192,8 +293,24 @@ object NotificationRouteResolver {
         return normalized.takeIf { it.matches(Regex("^[A-Z0-9_-]{3,32}$")) } ?: ""
     }
 
+    fun extractCareCountry(raw: String): String {
+        val query = raw.substringAfter('?', "").substringBefore('#')
+        val matches = query.split('&').mapNotNull { pair ->
+            val key = pair.substringBefore('=').trim()
+            if (!key.equals("careCountry", ignoreCase = true) &&
+                !key.equals("care_country", ignoreCase = true)
+            ) null
+            else if ('=' !in pair) null
+            else runCatching {
+                java.net.URLDecoder.decode(pair.substringAfter('='), "UTF-8")
+            }.getOrNull()
+        }
+        if (matches.size != 1) return ""
+        return matches.single().trim().uppercase(java.util.Locale.ROOT)
+            .takeIf { it == "AR" || it == "BR" } ?: ""
+    }
+
     fun extractPharmacyId(raw: String): String {
-        // 1. Check query parameters
         val queryString = raw.substringAfter('?', "").substringBefore('#')
         if (queryString.isNotBlank()) {
             val params = queryString.split('&')
@@ -207,7 +324,6 @@ object NotificationRouteResolver {
             }
         }
 
-        // 2. Check path segments after "farmacia"
         val withoutScheme = if (raw.contains("://")) raw.substringAfter("://") else raw
         val cleanPath = withoutScheme.substringBefore('?').substringBefore('#').trim('/')
         val segments = cleanPath.split('/').filter { it.isNotBlank() }
@@ -216,9 +332,9 @@ object NotificationRouteResolver {
             val candidate = segments.subList(farmaciaIndex + 1, segments.size)
                 .firstOrNull {
                     !it.equals("on-demand", ignoreCase = true) &&
-                    !it.equals("entry", ignoreCase = true) &&
-                    !it.equals("intake", ignoreCase = true) &&
-                    !it.equals("solicitar", ignoreCase = true)
+                        !it.equals("entry", ignoreCase = true) &&
+                        !it.equals("intake", ignoreCase = true) &&
+                        !it.equals("solicitar", ignoreCase = true)
                 }
             if (!candidate.isNullOrBlank()) {
                 return runCatching { java.net.URLDecoder.decode(candidate.trim(), "UTF-8") }.getOrDefault(candidate.trim())

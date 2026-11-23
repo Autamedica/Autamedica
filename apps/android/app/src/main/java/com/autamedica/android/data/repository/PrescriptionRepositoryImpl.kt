@@ -2,6 +2,7 @@ package com.autamedica.android.data.repository
 
 import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.model.CreatePrescriptionRequest
+import com.autamedica.android.domain.model.DownloadedPrescriptionPdf
 import com.autamedica.android.domain.model.DoctorEligibility
 import com.autamedica.android.domain.model.InCallDocumentPolicy
 import com.autamedica.android.domain.model.Prescription
@@ -9,7 +10,16 @@ import com.autamedica.android.domain.model.PrescriptionItem
 import com.autamedica.android.domain.model.PrescriptionPatientItem
 import com.autamedica.android.domain.repository.PrescriptionRepository
 import com.autamedica.android.logging.SecureLog
+import com.autamedica.android.BuildConfig
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.util.concurrent.TimeUnit
 import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
@@ -38,7 +48,12 @@ import javax.inject.Singleton
 class PrescriptionRepositoryImpl @Inject constructor(
     private val supabaseClient: SupabaseClient,
     private val securePreferences: SecurePreferences,
+    private val pdfDownloader: PrescriptionPdfDownloader,
 ) : PrescriptionRepository {
+
+    override suspend fun downloadPatientPrescriptionPdf(
+        prescriptionId: String,
+    ): Result<DownloadedPrescriptionPdf> = pdfDownloader.download(prescriptionId)
 
     override suspend fun getPatientPrescriptions(): Result<List<Prescription>> = runCatching {
         val patientId = resolvePatientId()
@@ -95,10 +110,10 @@ class PrescriptionRepositoryImpl @Inject constructor(
             val documentUrl = links?.memedString("pdf_url", "document_url", "url", "link")
                 ?: provider?.memedString("pdf_url", "document_url", "digital_link", "url")
             Prescription(
-                id = "memed:${row.memedId}",
+                id = "memed:${row.id}",
                 status = if (row.status == "deleted") "cancelled" else "verified_at_provider",
                 cuir = null,
-                signedPdfUrl = documentUrl,
+                signedPdfUrl = documentUrl?.let { "/api/patients/prescriptions/memed-${row.id}/pdf" },
                 qrCodeContent = links?.memedString("qr_code", "qrCode"),
                 medicationName = clinical.medicationName.ifBlank { "Prescripción Memed" },
                 dosage = clinical.dosage,
@@ -113,13 +128,14 @@ class PrescriptionRepositoryImpl @Inject constructor(
                 notes = clinical.notes,
                 prescribedDate = clinical.prescribedDate ?: row.createdAt,
                 items = clinical.items,
+                providerId = row.memedId,
             )
         }
 
         val mirroredMemedIds = rows.mapNotNull { row ->
             (row.clinicalData as? JsonObject)?.memedString("memed_prescription_id", "vendor_id")
         }.toSet()
-        (normalized + memed.filterNot { it.id.removePrefix("memed:") in mirroredMemedIds })
+        (normalized + memed.filterNot { it.providerId != null && it.providerId in mirroredMemedIds })
             .distinctBy { it.id }
             .sortedByDescending { runCatching { Instant.parse(it.createdAt) }.getOrNull() ?: Instant.EPOCH }
     }.onFailure {
@@ -483,7 +499,7 @@ class PrescriptionRepositoryImpl @Inject constructor(
             try {
                 supabaseClient.postgrest
                     .from("profiles")
-                    .select(Columns.list("user_id", "first_name", "last_name")) {
+                    .select(Columns.list("user_id", "first_name", "last_name", "avatar_url", "phone", "email")) {
                         filter { isIn("user_id", userIds) }
                     }
                     .decodeList<DoctorProfileDto>()
@@ -493,22 +509,158 @@ class PrescriptionRepositoryImpl @Inject constructor(
             }
         } else emptyMap()
 
+        val eventualByPatientId = fetchEventualPatientsMap()
+
         patients.map { pat ->
             val prof = pat.userId?.let { profiles[it] }
+            val ev = eventualByPatientId[pat.id]
             val fullName = if (prof != null) {
                 listOfNotNull(prof.firstName?.trim(), prof.lastName?.trim())
                     .filter { it.isNotEmpty() }
                     .joinToString(" ")
-            } else ""
+            } else {
+                ev?.fullName.orEmpty()
+            }
+            val contact = prof?.phone?.takeIf { it.isNotBlank() }
+                ?: prof?.email?.takeIf { it.isNotBlank() }
+                ?: ev?.contact
             PrescriptionPatientItem(
                 patientId = pat.id,
                 fullName = fullName.ifBlank { "Paciente #${pat.id.take(6)}" },
-                dni = pat.dni,
-                birthDate = pat.birthDate,
+                dni = pat.dni?.takeIf { it.isNotBlank() } ?: ev?.dni,
+                birthDate = pat.birthDate?.takeIf { it.isNotBlank() } ?: ev?.birthDate,
+                avatarUrl = prof?.avatarUrl?.takeIf { it.isNotBlank() } ?: ev?.avatarUrl,
+                contact = contact,
+                coverageName = ev?.coverageName,
             )
         }.sortedBy { it.fullName }
     }.onFailure {
         SecureLog.error("[Prescriptions] Failed fetching eligible patients", it)
+    }
+
+    private val eventualHttpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .build()
+    }
+
+    private suspend fun fetchEventualPatientsMap(): Map<String, PrescriptionPatientItem> = withContext(Dispatchers.IO) {
+        runCatching {
+            val accessToken = supabaseClient.auth.currentSessionOrNull()?.accessToken ?: return@withContext emptyMap()
+            val url = BuildConfig.WEB_API_URL.trimEnd('/') + "/api/doctors/patients/eventual"
+            val req = Request.Builder()
+                .url(url)
+                .header("Authorization", "Bearer $accessToken")
+                .header("Accept", "application/json")
+                .get()
+                .build()
+            eventualHttpClient.newCall(req).execute().use { resp ->
+                if (!resp.isSuccessful) return@use emptyMap()
+                val raw = resp.body?.string().orEmpty()
+                val root = Json.parseToJsonElement(raw).jsonObject
+                val arr = root["data"] as? JsonArray ?: return@use emptyMap()
+                arr.mapNotNull { el ->
+                    val obj = el as? JsonObject ?: return@mapNotNull null
+                    val pid = obj["patientId"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+                    val name = obj["fullName"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+                    PrescriptionPatientItem(
+                        patientId = pid,
+                        fullName = name,
+                        dni = obj["dni"]?.jsonPrimitive?.contentOrNull,
+                        birthDate = obj["birthDate"]?.jsonPrimitive?.contentOrNull,
+                        contact = obj["contact"]?.jsonPrimitive?.contentOrNull,
+                        coverageName = obj["coverageName"]?.jsonPrimitive?.contentOrNull,
+                        avatarUrl = obj["avatarUrl"]?.jsonPrimitive?.contentOrNull,
+                    )
+                }.associateBy { it.patientId }
+            }
+        }.getOrDefault(emptyMap())
+    }
+
+    override suspend fun registerOrLookupEventualPatient(
+        documentNumber: String,
+        gender: String,
+        contact: String,
+        fullNameFallback: String?,
+    ): Result<PrescriptionPatientItem> = withContext(Dispatchers.IO) {
+        runCatching {
+            val cleanDoc = documentNumber.filter(Char::isDigit)
+            require(cleanDoc.length in 7..11) {
+                "Ingrese un DNI (7-8 dígitos) o CPF (11 dígitos) válido"
+            }
+            val cleanContact = contact.trim()
+            require(cleanContact.isNotBlank()) {
+                "Ingrese el WhatsApp o correo electrónico de la persona para enviarle el documento"
+            }
+            val accessToken = supabaseClient.auth.currentSessionOrNull()?.accessToken
+                ?: throw IllegalStateException("Sesión autenticada requerida")
+            val baseUrl = BuildConfig.WEB_API_URL.trimEnd('/')
+            val url = "$baseUrl/api/doctors/patients/eventual"
+            val payload = buildJsonObject {
+                put("documentNumber", cleanDoc)
+                put("gender", gender)
+                put("contact", cleanContact)
+                if (!fullNameFallback.isNullOrBlank()) {
+                    put("fullName", fullNameFallback.trim())
+                }
+                put("consentAccepted", true)
+                put("careCountryConfirmed", true)
+            }.toString()
+
+            val req = Request.Builder()
+                .url(url)
+                .header("Authorization", "Bearer $accessToken")
+                .header("Origin", baseUrl)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .post(payload.toRequestBody("application/json; charset=utf-8".toMediaType()))
+                .build()
+
+            eventualHttpClient.newCall(req).execute().use { resp ->
+                val raw = resp.body?.string().orEmpty()
+                val root = runCatching { Json.parseToJsonElement(raw).jsonObject }.getOrNull()
+                if (!resp.isSuccessful) {
+                    val errObj = root?.get("error")
+                    val code = when (errObj) {
+                        is JsonObject -> errObj["code"]?.jsonPrimitive?.contentOrNull
+                            ?: errObj["message"]?.jsonPrimitive?.contentOrNull
+                        else -> errObj?.jsonPrimitive?.contentOrNull
+                            ?: root?.get("message")?.jsonPrimitive?.contentOrNull
+                    }.orEmpty()
+                    if (code.contains("eventual_patient_name_invalid") || code.contains("eventual_patient_name_required")) {
+                        throw IllegalArgumentException("NEED_MANUAL_NAME")
+                    }
+                    if (code.contains("eventual_patient_dni_invalid")) {
+                        throw IllegalArgumentException("El DNI debe tener 7 u 8 dígitos numéricos")
+                    }
+                    if (code.contains("eventual_patient_cpf_invalid")) {
+                        throw IllegalArgumentException("El CPF ingresado no es válido")
+                    }
+                    if (code.contains("eventual_patient_contact_invalid")) {
+                        throw IllegalArgumentException("Ingrese un número de WhatsApp (ej: +54911...) o correo válido")
+                    }
+                    throw IllegalStateException("No se pudo vincular por DNI ($code)")
+                }
+                val data = root?.get("data")?.jsonObject
+                    ?: throw IllegalStateException("Respuesta inválida del servidor")
+                val patientId = data["patientId"]?.jsonPrimitive?.contentOrNull
+                    ?: throw IllegalStateException("Falta patientId en la respuesta")
+                val resolvedName = data["fullName"]?.jsonPrimitive?.contentOrNull
+                    ?.takeIf { it.isNotBlank() }
+                    ?: fullNameFallback?.trim()?.takeIf { it.isNotBlank() }
+                    ?: "Paciente DNI $cleanDoc"
+                PrescriptionPatientItem(
+                    patientId = patientId,
+                    fullName = resolvedName,
+                    dni = data["dni"]?.jsonPrimitive?.contentOrNull ?: cleanDoc,
+                    birthDate = data["birthDate"]?.jsonPrimitive?.contentOrNull,
+                    avatarUrl = data["avatarUrl"]?.jsonPrimitive?.contentOrNull,
+                    contact = data["contact"]?.jsonPrimitive?.contentOrNull ?: cleanContact,
+                    coverageName = data["coverageName"]?.jsonPrimitive?.contentOrNull,
+                )
+            }
+        }
     }
 
     override suspend fun getDoctorEligibility(): Result<DoctorEligibility> = runCatching {
@@ -976,6 +1128,9 @@ class PrescriptionRepositoryImpl @Inject constructor(
         @SerialName("user_id") val userId: String,
         @SerialName("first_name") val firstName: String? = null,
         @SerialName("last_name") val lastName: String? = null,
+        @SerialName("avatar_url") val avatarUrl: String? = null,
+        val phone: String? = null,
+        val email: String? = null,
     )
 
     @Serializable

@@ -7,5 +7,5 @@ const description = 'Completa tu historia clínica general';
 ---
 
 <Layout title={title} description={description} robots="noindex, nofollow, noarchive">
-  <AnamnesisPage client:load />
+  <AnamnesisPage client:load locale={Astro.locals.locale === 'pt' ? 'pt' : 'es'} />
 </Layout>

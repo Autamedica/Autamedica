@@ -15,20 +15,7 @@ import { AnalysisResultOverlay } from '@/components/patients/anamnesis/AnalysisR
 import { AnamnesisChatModal } from '@/components/patients/anamnesis/AnamnesisChatModal'
 import { AnamnesisFlowTour } from '@/components/patients/tours/AnamnesisFlowTour'
 import { PdfPreviewModal } from '@/components/patients/anamnesis/PdfPreviewModal'
-
-const SECTION_SHORT_LABELS: Record<string, string> = {
-  edad: 'Edad', ocupacion: 'Trabajo', motivo_consulta: 'Motivo',
-  enfermedades_previas: 'Enfermedades', medicamentos: 'Medicamentos',
-  alergias: 'Alergias', antecedentes_familiares: 'Familia',
-  habitos: 'Hábitos', cardiovascular: 'Corazón', respiratorio: 'Pulmones',
-  digestivo: 'Digestivo', genitourinario: 'Urinario', resumen_final: 'Resumen',
-}
-
-const CATEGORY_LABELS: Record<string, string> = {
-  filiacion: 'Filiación', motivo_consulta: 'Motivo consulta',
-  antecedentes: 'Antecedentes', habitos: 'Estilo de vida',
-  sistemas: 'Aparatos/Sistemas', cierre: 'Cierre',
-}
+import { getClientI18n, type Locale } from '@/i18n/index'
 
 const UPDATE_PICKER_OPTIONS = [
   { id: 'motivo_consulta', label: 'Nuevo motivo de consulta' },
@@ -39,9 +26,11 @@ const UPDATE_PICKER_OPTIONS = [
   { id: 'cardiovascular', label: 'Síntomas cardiovasculares' },
 ] as const
 
+type AnamnesisCopy = ReturnType<typeof getClientI18n>['dict']['patientPortal']['anamnesis'];
+
 // ── Field Renderer ──
 
-function FieldRenderer({ field, value, onChange }: {
+function FieldRenderer({ field, value, onChange, copy }: {
   field: {
     id: string;
     label: string;
@@ -52,20 +41,22 @@ function FieldRenderer({ field, value, onChange }: {
   };
   value: unknown;
   onChange: (val: unknown) => void;
+  copy: AnamnesisCopy;
 }) {
   const [selectedOptions, setSelectedOptions] = useState<string[]>(
     Array.isArray(value) ? value : []
   )
+  const localize = (text: string) => copy.fieldText[text] ?? text
 
   if (field.type === 'date') {
     return (
       <div>
-        <label className="block text-sm text-neutral-700 mb-2">{field.label}</label>
+        <label className="block text-sm text-neutral-700 mb-2">{localize(field.label)}</label>
         <input
           type="date"
           value={typeof value === 'string' ? value : ''}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full px-4 py-4 border border-neutral-200 rounded-xl focus:outline-none focus:border-neutral-900 transition-colors text-lg"
+          className="w-full px-4 py-4 border border-neutral-200 rounded-xl focus:outline-none focus:border-sky-600 transition-colors text-lg"
         />
       </div>
     )
@@ -74,13 +65,13 @@ function FieldRenderer({ field, value, onChange }: {
   if (field.type === 'text' || field.type === 'number') {
     return (
       <div>
-        <label className="block text-sm text-neutral-700 mb-2">{field.label}</label>
+        <label className="block text-sm text-neutral-700 mb-2">{localize(field.label)}</label>
         <input
           type={field.type === 'number' ? 'number' : 'text'}
-          placeholder={field.placeholder}
+          placeholder={field.placeholder ? localize(field.placeholder) : undefined}
           value={typeof value === 'string' || typeof value === 'number' ? String(value) : ''}
           onChange={(e) => onChange(field.type === 'number' ? Number(e.target.value) : e.target.value)}
-          className="w-full px-4 py-4 border border-neutral-200 rounded-xl focus:outline-none focus:border-neutral-900 transition-colors"
+          className="w-full px-4 py-4 border border-neutral-200 rounded-xl focus:outline-none focus:border-sky-600 transition-colors"
         />
       </div>
     )
@@ -89,13 +80,13 @@ function FieldRenderer({ field, value, onChange }: {
   if (field.type === 'textarea') {
     return (
       <div>
-        <label className="block text-sm text-neutral-700 mb-2">{field.label}</label>
+        <label className="block text-sm text-neutral-700 mb-2">{localize(field.label)}</label>
         <textarea
           rows={4}
-          placeholder={field.placeholder}
+          placeholder={field.placeholder ? localize(field.placeholder) : undefined}
           value={typeof value === 'string' ? value : ''}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full px-4 py-4 border border-neutral-200 rounded-xl focus:outline-none focus:border-neutral-900 transition-colors resize-none"
+          className="w-full px-4 py-4 border border-neutral-200 rounded-xl focus:outline-none focus:border-sky-600 transition-colors resize-none"
         />
       </div>
     )
@@ -104,15 +95,15 @@ function FieldRenderer({ field, value, onChange }: {
   if (field.type === 'select') {
     return (
       <div>
-        <label className="block text-sm text-neutral-700 mb-2">{field.label}</label>
+        <label className="block text-sm text-neutral-700 mb-2">{localize(field.label)}</label>
         <select
           value={typeof value === 'string' ? value : ''}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full px-4 py-4 border border-neutral-200 rounded-xl focus:outline-none focus:border-neutral-900 transition-colors"
+          className="w-full px-4 py-4 border border-neutral-200 rounded-xl focus:outline-none focus:border-sky-600 transition-colors"
         >
-          <option value="">Seleccionar...</option>
+          <option value="">{copy.ui.selectOption}</option>
           {field.options?.map((option) => (
-            <option key={option.value} value={option.value}>{option.label}</option>
+            <option key={option.value} value={option.value}>{localize(option.label)}</option>
           ))}
         </select>
       </div>
@@ -126,7 +117,7 @@ function FieldRenderer({ field, value, onChange }: {
 
     return (
       <div>
-        <label className="block text-sm text-neutral-700 mb-3">{field.label}</label>
+        <label className="block text-sm text-neutral-700 mb-3">{localize(field.label)}</label>
         <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
           {Array.from({ length: max - min + 1 }, (_, index) => {
             const optionValue = min + index
@@ -140,7 +131,7 @@ function FieldRenderer({ field, value, onChange }: {
                 aria-pressed={isSelected}
                 className={`rounded-xl border-2 py-3 text-base font-semibold transition-all ${
                   isSelected
-                    ? 'border-neutral-900 bg-neutral-900 text-white'
+                    ? 'border-sky-600 bg-sky-700 text-white'
                     : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-400'
                 }`}
               >
@@ -150,8 +141,8 @@ function FieldRenderer({ field, value, onChange }: {
           })}
         </div>
         <div className="mt-3 flex items-center justify-between text-sm text-neutral-500">
-          <span>{min} = Leve</span>
-          <span>{max} = Insoportable</span>
+          <span>{min} = {copy.ui.mild}</span>
+          <span>{max} = {copy.ui.unbearable}</span>
         </div>
       </div>
     )
@@ -168,7 +159,7 @@ function FieldRenderer({ field, value, onChange }: {
 
     return (
       <div>
-        <label className="block text-sm text-neutral-700 mb-4">{field.label}</label>
+        <label className="block text-sm text-neutral-700 mb-4">{localize(field.label)}</label>
         <div className="space-y-2">
           {field.options?.map((option) => (
             <button
@@ -177,11 +168,11 @@ function FieldRenderer({ field, value, onChange }: {
               onClick={() => toggleOption(option.value)}
               className={`w-full p-4 rounded-xl text-left transition-all border-2 ${
                 selectedOptions.includes(option.value)
-                  ? 'border-neutral-900 bg-neutral-900 text-white'
+                  ? 'border-sky-600 bg-sky-700 text-white'
                   : 'border-neutral-200 hover:border-neutral-300'
               }`}
             >
-              {option.label}
+              {localize(option.label)}
             </button>
           ))}
         </div>
@@ -192,25 +183,25 @@ function FieldRenderer({ field, value, onChange }: {
   if (field.type === 'boolean') {
     return (
       <div>
-        <label className="block text-sm text-neutral-700 mb-2">{field.label}</label>
+        <label className="block text-sm text-neutral-700 mb-2">{localize(field.label)}</label>
         <div className="flex gap-3">
           <button
             type="button"
             onClick={() => onChange(true)}
             className={`flex-1 py-4 border-2 rounded-xl transition-all ${
-              value === true ? 'border-neutral-900 bg-neutral-900 text-white' : 'border-neutral-200 hover:border-neutral-900'
+              value === true ? 'border-sky-600 bg-sky-700 text-white' : 'border-neutral-200 hover:border-sky-600'
             }`}
           >
-            Sí
+            {copy.ui.yes}
           </button>
           <button
             type="button"
             onClick={() => onChange(false)}
             className={`flex-1 py-4 border-2 rounded-xl transition-all ${
-              value === false ? 'border-neutral-900 bg-neutral-900 text-white' : 'border-neutral-200 hover:border-neutral-900'
+              value === false ? 'border-sky-600 bg-sky-700 text-white' : 'border-neutral-200 hover:border-sky-600'
             }`}
           >
-            No
+            {copy.ui.no}
           </button>
         </div>
       </div>
@@ -222,7 +213,10 @@ function FieldRenderer({ field, value, onChange }: {
 
 // ── Main Component ──
 
-export default function AnamnesisPage() {
+export default function AnamnesisPage({ locale = 'es' }: { locale?: Locale }) {
+  const { dict } = getClientI18n(locale)
+  const copy = dict.patientPortal.anamnesis
+  const localize = (text: string) => copy.fieldText[text] ?? text
   const {
     user, guidance, currentStepIndex, currentStep, formData,
     visibleFields, pageView, completionPct, isFirstStep, isLastStep,
@@ -282,13 +276,13 @@ export default function AnamnesisPage() {
           animate={{ opacity: 1 }}
         >
           <motion.div
-            className="size-16 rounded-full bg-neutral-900 flex items-center justify-center mx-auto mb-6"
+            className="size-16 rounded-full bg-sky-700 flex items-center justify-center mx-auto mb-6"
             animate={{ scale: [1, 1.1, 1] }}
             transition={{ duration: 1.5, repeat: Infinity }}
           >
             <Heart className="size-8 text-white" />
           </motion.div>
-          <p className="text-neutral-500">Cargando tu historia general...</p>
+          <p className="text-neutral-500">{copy.ui.loading}</p>
         </motion.div>
       </div>
     )
@@ -307,13 +301,13 @@ export default function AnamnesisPage() {
           <div className="size-20 rounded-full bg-neutral-100 flex items-center justify-center mx-auto mb-8">
             <FileText className="size-10 text-neutral-400" />
           </div>
-          <h1 className="text-3xl text-neutral-900 mb-4">Historia en revisión</h1>
-          <p className="text-neutral-500 mb-8">Tu historia clínica está siendo revisada por tu equipo médico.</p>
+          <h1 className="text-3xl text-neutral-900 mb-4">{copy.ui.underReview}</h1>
+          <p className="text-neutral-500 mb-8">{copy.ui.underReviewDescription}</p>
           <a
             href="/patients/dashboard"
-            className="inline-flex items-center gap-2 px-6 py-3 border border-neutral-200 rounded-full text-neutral-700 hover:border-neutral-900 transition-all"
+            className="inline-flex items-center gap-2 px-6 py-3 border border-neutral-200 rounded-full text-neutral-700 hover:border-sky-600 transition-all"
           >
-            <ArrowLeft className="size-4" /> Volver al panel
+            <ArrowLeft className="size-4" /> {copy.ui.backToPanel}
           </a>
         </motion.div>
       </div>
@@ -334,11 +328,11 @@ export default function AnamnesisPage() {
                 onClick={handleVoiceSwitchToText}
                 className="p-2 hover:bg-neutral-50 rounded-lg transition-colors hidden sm:flex items-center gap-2 text-sm text-neutral-600"
               >
-                <MessageCircle className="size-4" /> Modo formulario
+                <MessageCircle className="size-4" /> {copy.ui.formMode}
               </button>
             </div>
             <button type="button" onClick={handleExitWizard} className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors">
-              Guardar y salir
+              {copy.ui.saveAndExit}
             </button>
           </div>
         </header>
@@ -364,9 +358,9 @@ export default function AnamnesisPage() {
 
   if (pageView === 'completed') {
     const completedSections = progress?.completedSections ?? []
-    const patientName = user?.user_metadata?.full_name as string ?? user?.email?.split('@')[0] ?? 'Paciente'
+    const patientName = user?.user_metadata?.full_name as string ?? user?.email?.split('@')[0] ?? copy.ui.patient
     const completedDate = anamnesis?.completedAt
-      ? new Date(anamnesis.completedAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
+      ? new Date(anamnesis.completedAt).toLocaleDateString(locale === 'pt' ? 'pt-BR' : 'es', { day: 'numeric', month: 'long', year: 'numeric' })
       : null
 
     return (
@@ -407,15 +401,15 @@ export default function AnamnesisPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
                 >
-                  100% completada
+                  {copy.ui.completedPercent}
                 </motion.p>
               </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <section className="relative h-[50vh] overflow-hidden bg-neutral-900 flex items-center justify-center">
-          <div className="absolute inset-0 bg-gradient-to-br from-neutral-800 to-neutral-900" />
+        <section className="relative h-[50vh] overflow-hidden bg-sky-700 flex items-center justify-center">
+          <div className="absolute inset-0 bg-gradient-to-br from-sky-700 to-sky-800" />
           <motion.div
             className="relative z-10 text-center px-6"
             initial={{ opacity: 0, y: 40 }}
@@ -436,7 +430,7 @@ export default function AnamnesisPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              Historia completada
+              {copy.ui.completedTitle}
             </motion.h1>
             <motion.p
               className="text-lg text-white/50"
@@ -444,7 +438,7 @@ export default function AnamnesisPage() {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
             >
-              {completedSections.length} secciones completadas — ya podes acceder a todos los servicios
+              {completedSections.length} {copy.ui.completedDescription}
             </motion.p>
           </motion.div>
         </section>
@@ -454,7 +448,7 @@ export default function AnamnesisPage() {
           <motion.button
             type="button"
             onClick={() => setShowPdfPreview(true)}
-            className="group w-full max-w-2xl mx-auto mb-16 py-6 bg-neutral-900 text-white rounded-2xl text-lg font-medium hover:bg-neutral-800 transition-all flex items-center justify-center gap-3 shadow-xl"
+            className="group w-full max-w-2xl mx-auto mb-16 py-6 bg-sky-700 text-white rounded-2xl text-lg font-medium hover:bg-sky-800 transition-all flex items-center justify-center gap-3 shadow-xl"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
@@ -462,7 +456,7 @@ export default function AnamnesisPage() {
             whileTap={{ scale: 0.98 }}
           >
             <FileText className="size-6" strokeWidth={1.5} />
-            Ver y descargar PDF
+            {copy.ui.downloadPdf}
             <ArrowRight className="size-5 group-hover:translate-x-1 transition-transform" />
           </motion.button>
 
@@ -473,7 +467,17 @@ export default function AnamnesisPage() {
             saving={saving}
             patientName={patientName}
             completedDate={completedDate}
-            sections={anamnesisSteps}
+            sections={anamnesisSteps.map((step) => ({
+              ...step,
+              title: localize(step.title),
+              subtitle: localize(step.subtitle),
+              fields: step.fields.map((field) => ({
+                ...field,
+                label: localize(field.label),
+                placeholder: field.placeholder ? localize(field.placeholder) : undefined,
+                options: field.options?.map((option) => ({ ...option, label: localize(option.label) })),
+              })),
+            }))}
             formData={formData}
             completedSections={completedSections}
           />
@@ -481,10 +485,10 @@ export default function AnamnesisPage() {
           {/* ── Action grid — editorial 4-column ── */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-24">
             {[
-              { icon: Brain, label: 'Actualizar', sub: 'Modificar secciones', color: 'neutral' as const, onClick: () => setShowUpdatePicker(true), href: undefined as string | undefined },
-              { icon: Mic, label: 'Hablar', sub: 'Modo voz con IA', color: 'sky' as const, onClick: () => setShowVoiceChat(true), href: undefined as string | undefined },
-              { icon: Heart, label: 'Mi panel', sub: 'Volver al dashboard', color: 'neutral' as const, onClick: undefined as (() => void) | undefined, href: '/patients/dashboard' },
-              { icon: Video, label: 'Consultar', sub: 'Agendar teleconsulta', color: 'sky' as const, onClick: undefined as (() => void) | undefined, href: '/patients/appointments?type=telemedicine' },
+              { icon: Brain, label: copy.ui.update, sub: copy.ui.modifySections, color: 'neutral' as const, onClick: () => setShowUpdatePicker(true), href: undefined as string | undefined },
+              { icon: Mic, label: copy.ui.talk, sub: copy.ui.voiceMode, color: 'sky' as const, onClick: () => setShowVoiceChat(true), href: undefined as string | undefined },
+              { icon: Heart, label: copy.ui.dashboard, sub: copy.ui.backToDashboard, color: 'neutral' as const, onClick: undefined as (() => void) | undefined, href: '/patients/dashboard' },
+              { icon: Video, label: copy.ui.consult, sub: copy.ui.scheduleTeleconsultation, color: 'sky' as const, onClick: undefined as (() => void) | undefined, href: '/patients/appointments?type=telemedicine' },
             ].map((action, i) => {
               const isLink = !!action.href
               return (
@@ -500,12 +504,12 @@ export default function AnamnesisPage() {
                       href={action.href}
                       className={`group block w-full p-7 rounded-2xl text-left transition-all border ${
                         action.color === 'sky'
-                          ? 'bg-neutral-900 border-neutral-800 text-white hover:bg-neutral-800'
+                          ? 'bg-sky-700 border-neutral-800 text-white hover:bg-sky-800'
                           : 'bg-white border-neutral-200/60 hover:border-neutral-300 hover:shadow-md'
                       }`}
                     >
                       <action.icon className={`size-8 mb-5 ${
-                        action.color === 'sky' ? 'text-sky-400' : 'text-neutral-300 group-hover:text-neutral-900'
+                        action.color === 'sky' ? 'text-sky-400' : 'text-sky-200 group-hover:text-sky-300'
                       }`} strokeWidth={1.5} />
                       <p className={`text-base font-medium ${action.color === 'sky' ? 'text-white' : 'text-neutral-900'}`}>
                         {action.label}
@@ -520,12 +524,12 @@ export default function AnamnesisPage() {
                       onClick={action.onClick}
                       className={`group block w-full p-7 rounded-2xl text-left transition-all border ${
                         action.color === 'sky'
-                          ? 'bg-neutral-900 border-neutral-800 text-white hover:bg-neutral-800'
+                          ? 'bg-sky-700 border-neutral-800 text-white hover:bg-sky-800'
                           : 'bg-white border-neutral-200/60 hover:border-neutral-300 hover:shadow-md'
                       }`}
                     >
                       <action.icon className={`size-8 mb-5 ${
-                        action.color === 'sky' ? 'text-sky-400' : 'text-neutral-300 group-hover:text-neutral-900'
+                        action.color === 'sky' ? 'text-sky-400' : 'text-sky-200 group-hover:text-sky-300'
                       }`} strokeWidth={1.5} />
                       <p className={`text-base font-medium ${action.color === 'sky' ? 'text-white' : 'text-neutral-900'}`}>
                         {action.label}
@@ -542,7 +546,7 @@ export default function AnamnesisPage() {
 
           {/* ── Sections overview ── */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
-            <h2 className="text-xl font-light text-neutral-900 mb-6">Secciones completadas</h2>
+            <h2 className="text-xl font-light text-neutral-900 mb-6">{copy.ui.completedSections}</h2>
             <div className="flex flex-wrap gap-2.5">
               {anamnesisSteps.map((step) => {
                 const isComplete = completedSections.includes(step.id)
@@ -550,11 +554,11 @@ export default function AnamnesisPage() {
                   <span
                     key={step.id}
                     className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[13px] font-medium transition-colors ${
-                      isComplete ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-400'
+                      isComplete ? 'bg-sky-700 text-white' : 'bg-neutral-100 text-neutral-400'
                     }`}
                   >
                     {isComplete && <Check className="size-3" strokeWidth={2} />}
-                    {SECTION_SHORT_LABELS[step.id] ?? step.id}
+                    {copy.shortSections[step.id as keyof typeof copy.shortSections] ?? step.id}
                   </span>
                 )
               })}
@@ -585,7 +589,7 @@ export default function AnamnesisPage() {
                 transition={{ type: "spring", damping: 30, stiffness: 300 }}
               >
                 <div className="p-6 border-b border-neutral-100 flex items-center justify-between">
-                  <h3 className="text-xl font-medium text-neutral-900">¿Qué querés actualizar?</h3>
+                  <h3 className="text-xl font-medium text-neutral-900">{copy.ui.updateQuestion}</h3>
                   <button type="button" onClick={() => setShowUpdatePicker(false)} className="p-2 hover:bg-neutral-100 rounded-lg transition-colors">
                     <X className="size-5 text-neutral-600" />
                   </button>
@@ -595,19 +599,19 @@ export default function AnamnesisPage() {
                     <button
                       key={option.id}
                       type="button"
-                      className="group w-full p-4 border border-neutral-200 rounded-xl hover:border-neutral-900 transition-all text-left flex items-center justify-between"
+                      className="group w-full p-4 border border-neutral-200 rounded-xl hover:border-sky-600 transition-all text-left flex items-center justify-between"
                       onClick={() => selectUpdateSection(option.id)}
                     >
-                      <span className="text-neutral-900">{option.label}</span>
+                      <span className="text-neutral-900">{localize(option.label)}</span>
                       <ChevronRight className="size-5 text-neutral-400 group-hover:text-neutral-900 group-hover:translate-x-1 transition-all" />
                     </button>
                   ))}
                   <button
                     type="button"
-                    className="group w-full p-4 bg-neutral-900 text-white rounded-xl hover:bg-neutral-800 transition-all text-center font-medium"
+                    className="group w-full p-4 bg-sky-700 text-white rounded-xl hover:bg-sky-800 transition-all text-center font-medium"
                     onClick={() => selectUpdateSection('edad')}
                   >
-                    Revisar todo desde el inicio
+                    {copy.ui.reviewAll}
                   </button>
                 </div>
               </motion.div>
@@ -630,7 +634,7 @@ export default function AnamnesisPage() {
           transition={{ duration: 0.8 }}
         >
           <motion.div
-            className="size-20 rounded-full bg-neutral-900 flex items-center justify-center mx-auto mb-12"
+            className="size-20 rounded-full bg-sky-700 flex items-center justify-center mx-auto mb-12"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", delay: 0.2, duration: 0.6 }}
@@ -639,21 +643,21 @@ export default function AnamnesisPage() {
           </motion.div>
 
           <motion.h1 className="text-5xl lg:text-6xl text-neutral-900 text-center mb-6 leading-tight" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-            Tu historia clínica
+            {copy.ui.privacyTitle}
           </motion.h1>
 
           <motion.p className="text-lg text-neutral-500 text-center mb-16 max-w-lg mx-auto" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
-            Necesitamos conocer tu historial médico para ofrecerte la mejor atención. Toda la información es confidencial y protegida.
+            {copy.ui.privacyDescription}
           </motion.p>
 
           <motion.div className="space-y-6 mb-16" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
             {[
-              { title: 'Protección de datos', sub: 'Cumplimos con GDPR y normativas de salud' },
-              { title: 'Acceso controlado', sub: 'Solo profesionales autorizados pueden ver tu historia' },
-              { title: 'Control total', sub: 'Puedes actualizar o eliminar tus datos en cualquier momento' },
+              { title: copy.ui.dataProtection, sub: copy.ui.dataProtectionDescription },
+              { title: copy.ui.controlledAccess, sub: copy.ui.controlledAccessDescription },
+              { title: copy.ui.fullControl, sub: copy.ui.fullControlDescription },
             ].map((item) => (
               <div key={item.title} className="flex items-start gap-4">
-                <div className="size-6 rounded-full bg-neutral-900 flex items-center justify-center shrink-0 mt-1">
+                <div className="size-6 rounded-full bg-sky-700 flex items-center justify-center shrink-0 mt-1">
                   <Check className="size-4 text-white" />
                 </div>
                 <div>
@@ -668,19 +672,19 @@ export default function AnamnesisPage() {
             type="button"
             onClick={handleAcceptPrivacy}
             disabled={saving}
-            className="group w-full py-5 bg-neutral-900 text-white rounded-full text-lg font-medium hover:bg-neutral-800 transition-colors flex items-center justify-center gap-3 disabled:opacity-50"
+            className="group w-full py-5 bg-sky-700 text-white rounded-full text-lg font-medium hover:bg-sky-800 transition-colors flex items-center justify-center gap-3 disabled:opacity-50"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            Aceptar y continuar
+            {copy.ui.acceptContinue}
             <ArrowRight className="size-5 group-hover:translate-x-1 transition-transform" />
           </motion.button>
 
           <motion.p className="text-center text-sm text-neutral-400 mt-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
-            Al continuar, aceptas nuestra política de privacidad
+            {copy.ui.privacyNotice}
           </motion.p>
 
           {anamnesisError && (
@@ -709,7 +713,7 @@ export default function AnamnesisPage() {
 
   if (!currentStep) return null
 
-  const categoryLabel = CATEGORY_LABELS[currentStep.category] ?? currentStep.category
+  const categoryLabel = copy.categories[currentStep.category as keyof typeof copy.categories] ?? currentStep.category
 
   return (
     <div className="min-h-screen bg-white">
@@ -721,14 +725,14 @@ export default function AnamnesisPage() {
               <span className="text-lg font-medium text-neutral-900">AutaMedica</span>
             </div>
             <button type="button" onClick={handleExitWizard} className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors">
-              {editMode ? 'Volver al resumen' : 'Guardar y salir'}
+              {editMode ? copy.ui.backToSummary : copy.ui.saveAndExit}
             </button>
           </div>
 
           {/* Progress */}
           <div className="py-6">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-neutral-500">Paso {currentStepIndex + 1} de {anamnesisSteps.length}</span>
+              <span className="text-sm text-neutral-500">{copy.ui.step} {currentStepIndex + 1} {copy.ui.of} {anamnesisSteps.length}</span>
               <span className="text-sm text-neutral-900 tabular-nums font-medium">{Math.round(completionPct)}%</span>
             </div>
             <div className="h-1 bg-neutral-100 rounded-full overflow-hidden">
@@ -752,7 +756,7 @@ export default function AnamnesisPage() {
             animate={{ opacity: 1, y: 0 }}
           >
             <Sparkles className="size-3.5" strokeWidth={1.5} />
-            Basado en tu motivo de consulta, priorizaremos {SECTION_SHORT_LABELS[smartStepOrder] ?? smartStepOrder}
+            {copy.ui.prioritize} {copy.shortSections[smartStepOrder as keyof typeof copy.shortSections] ?? smartStepOrder}
           </motion.div>
         </div>
       )}
@@ -783,7 +787,7 @@ export default function AnamnesisPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              {currentStep.title}
+              {localize(currentStep.title)}
             </motion.h1>
 
             <motion.p
@@ -792,7 +796,7 @@ export default function AnamnesisPage() {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
             >
-              {currentStep.subtitle}
+              {localize(currentStep.subtitle)}
             </motion.p>
 
             {/* Carried forward preview */}
@@ -806,18 +810,18 @@ export default function AnamnesisPage() {
                 <div className="border border-neutral-200 rounded-2xl overflow-hidden">
                   <div className="border-b border-neutral-100 px-6 py-4">
                     <p className="text-sm font-medium text-neutral-800">
-                      {currentStep.mutability === 'carry_forward_additive' ? 'Datos anteriores — ¿hay algo nuevo?' : 'Datos anteriores — ¿cambió algo?'}
+                      {currentStep.mutability === 'carry_forward_additive' ? copy.ui.carriedAdditive : copy.ui.carriedChanged}
                     </p>
                   </div>
                   <div className="divide-y divide-neutral-100 px-6">
                     {currentStep.fields.filter(f => formData[currentStep.id]?.[f.id] != null).map(f => {
                       const val = formData[currentStep.id]?.[f.id]
-                      const display = val === true ? 'Sí' : val === false ? 'No'
-                        : Array.isArray(val) ? (val as string[]).join(', ') || 'Ninguno'
+                      const display = val === true ? copy.ui.yes : val === false ? copy.ui.no
+                        : Array.isArray(val) ? (val as string[]).join(', ') || copy.ui.none
                         : String(val ?? '')
                       return (
                         <div key={f.id} className="flex items-center justify-between py-4">
-                          <span className="text-neutral-500">{f.label}</span>
+                          <span className="text-neutral-500">{localize(f.label)}</span>
                           <span className="max-w-[55%] truncate text-right font-medium text-neutral-900">{display}</span>
                         </div>
                       )
@@ -828,20 +832,20 @@ export default function AnamnesisPage() {
                   <motion.button
                     type="button"
                     onClick={() => setEditingCarriedStep(true)}
-                    className="flex-1 px-6 py-4 border border-neutral-200 text-neutral-900 rounded-full font-medium hover:border-neutral-900 transition-all"
+                    className="flex-1 px-6 py-4 border border-neutral-200 text-neutral-900 rounded-full font-medium hover:border-sky-600 transition-all"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    {currentStep.mutability === 'carry_forward_additive' ? 'Sí, agregar datos' : 'Sí, actualizar'}
+                    {currentStep.mutability === 'carry_forward_additive' ? copy.ui.addData : copy.ui.updateData}
                   </motion.button>
                   <motion.button
                     type="button"
                     onClick={handleNext}
-                    className="flex-1 px-6 py-4 bg-neutral-900 text-white rounded-full font-medium hover:bg-neutral-800 transition-all"
+                    className="flex-1 px-6 py-4 bg-sky-700 text-white rounded-full font-medium hover:bg-sky-800 transition-all"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    No cambió nada
+                    {copy.ui.noChanges}
                   </motion.button>
                 </div>
               </motion.div>
@@ -856,6 +860,7 @@ export default function AnamnesisPage() {
                   <FieldRenderer
                     key={field.id}
                     field={field}
+                    copy={copy}
                     value={formData[currentStep.id]?.[field.id] ?? null}
                     onChange={(val) => handleFieldChange(field.id, val as never)}
                   />
@@ -881,7 +886,7 @@ export default function AnamnesisPage() {
             whileHover={{ scale: isFirstStep ? 1 : 1.02 }}
             whileTap={{ scale: isFirstStep ? 1 : 0.98 }}
           >
-            <ArrowLeft className="size-4" /> Anterior
+            <ArrowLeft className="size-4" /> {copy.ui.previous}
           </motion.button>
 
           <motion.button
@@ -896,11 +901,11 @@ export default function AnamnesisPage() {
               void handleNext()
             }}
             disabled={saving}
-            className="group px-8 py-3 bg-neutral-900 text-white rounded-full font-medium hover:bg-neutral-800 transition-all flex items-center gap-2 disabled:opacity-50"
+            className="group px-8 py-3 bg-sky-700 text-white rounded-full font-medium hover:bg-sky-800 transition-all flex items-center gap-2 disabled:opacity-50"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            {isLastStep ? 'Finalizar' : 'Siguiente'}
+            {isLastStep ? copy.ui.finish : copy.ui.next}
             {isLastStep ? <Check className="size-4" strokeWidth={1.5} /> : <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />}
           </motion.button>
         </div>
@@ -933,9 +938,9 @@ export default function AnamnesisPage() {
                   <Mic className="size-10 text-white" strokeWidth={1.5} />
                 </motion.div>
 
-                <h3 className="mb-2 text-xl font-light text-neutral-900">Punto de control</h3>
+                <h3 className="mb-2 text-xl font-light text-neutral-900">{copy.ui.checkpoint}</h3>
                 <p className="mb-8 max-w-sm text-[13px] leading-relaxed text-neutral-500">
-                  Completaste la primera mitad. Queres hablar con nuestro asistente para aclarar o profundizar lo que llenaste?
+                  {copy.ui.checkpointDescription}
                 </p>
 
                 <div className="flex w-full gap-3">
@@ -945,12 +950,12 @@ export default function AnamnesisPage() {
                       setShowVoiceCheckpoint(false)
                       setShowVoiceChat(true)
                     }}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-full bg-neutral-900 py-3.5 text-[13px] font-medium text-white transition-colors hover:bg-neutral-800"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-full bg-sky-700 py-3.5 text-[13px] font-medium text-white transition-colors hover:bg-sky-800"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
                     <Mic className="size-4" strokeWidth={1.5} />
-                    Si, hablar
+                    {copy.ui.speak}
                   </motion.button>
                   <motion.button
                     type="button"
@@ -959,7 +964,7 @@ export default function AnamnesisPage() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    Continuar sin hablar
+                    {copy.ui.continueWithoutSpeaking}
                   </motion.button>
                 </div>
               </div>

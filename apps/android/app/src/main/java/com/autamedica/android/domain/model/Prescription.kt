@@ -22,6 +22,7 @@ data class Prescription(
     val patientName: String? = null,
     val patientDni: String? = null,
     val items: List<PrescriptionItem> = emptyList(),
+    val providerId: String? = null,
 ) {
     /**
      * Determines whether this prescription is currently active and valid.
@@ -32,7 +33,8 @@ data class Prescription(
             status.equals("active", ignoreCase = true) ||
             status.equals("sent", ignoreCase = true) ||
             status.equals("signed", ignoreCase = true) ||
-            status.equals("firmada", ignoreCase = true)
+            status.equals("firmada", ignoreCase = true) ||
+            status.equals("verified_at_provider", ignoreCase = true)
         )
 
     /**
@@ -132,4 +134,13 @@ data class PrescriptionPatientItem(
     val fullName: String,
     val dni: String? = null,
     val birthDate: String? = null,
+    val avatarUrl: String? = null,
+    val contact: String? = null,
+    val coverageName: String? = null,
+)
+
+/** Verified local copy of a prescription PDF downloaded through the authenticated API. */
+data class DownloadedPrescriptionPdf(
+    val localPath: String,
+    val sha256: String,
 )

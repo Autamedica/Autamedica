@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, ShieldCheck, Lock, Activity, HeartPulse } from 'lucide-react';
 import { DoctorCard } from './DoctorCard';
@@ -24,14 +24,7 @@ export function AvailableDoctorsCarousel({
   const touchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Ensure enough items to create a continuous seamless scroll on any screen size
-  const displayDoctors = useMemo(() => {
-    if (!doctors || doctors.length === 0) return [];
-    let base = [...doctors];
-    while (base.length < 8) {
-      base = [...base, ...doctors];
-    }
-    return [...base, ...base];
-  }, [doctors]);
+  const displayDoctors = doctors;
 
   // Smooth continuous horizontal displacement (pauses on hover/touch)
   useEffect(() => {
@@ -55,7 +48,7 @@ export function AvailableDoctorsCarousel({
       lastTime = time;
 
       if (container) {
-        const halfWidth = container.scrollWidth / 2;
+        const halfWidth = container.scrollWidth;
         if (halfWidth > 0) {
           currentScroll += speedPxPerSec * elapsed;
           if (currentScroll >= halfWidth) {

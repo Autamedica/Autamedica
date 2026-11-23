@@ -8,6 +8,8 @@ import com.autamedica.android.domain.model.StreamQualityMetrics
 import com.autamedica.android.domain.model.StreamQualitySummary
 import com.autamedica.android.logging.SecureLog
 import com.autamedica.android.presentation.videocall.webrtc.AutoDegradeService
+import com.autamedica.android.presentation.videocall.webrtc.ClinicalLightingAnalyzerSink
+import com.autamedica.android.presentation.videocall.webrtc.LightingAlert
 import com.autamedica.android.presentation.videocall.webrtc.MedicalVideoQualityManager
 import com.autamedica.android.presentation.videocall.webrtc.QualityMonitor
 import io.github.jan.supabase.SupabaseClient
@@ -96,6 +98,33 @@ class CloudflareCallsEngine(
 
     private val _isAutoDegradedToAudio = MutableStateFlow(false)
     val isAutoDegradedToAudio: StateFlow<Boolean> = _isAutoDegradedToAudio.asStateFlow()
+
+    private val _isFrontCamera = MutableStateFlow(true)
+    val isFrontCamera: StateFlow<Boolean> = _isFrontCamera.asStateFlow()
+
+    private val _isTorchEnabled = MutableStateFlow(false)
+    val isTorchEnabled: StateFlow<Boolean> = _isTorchEnabled.asStateFlow()
+
+    private val _zoomRatio = MutableStateFlow(1.0f)
+    val zoomRatio: StateFlow<Float> = _zoomRatio.asStateFlow()
+
+    private val _lightingAlert = MutableStateFlow(LightingAlert.NONE)
+    val lightingAlert: StateFlow<LightingAlert> = _lightingAlert.asStateFlow()
+
+    private var sfuRecoveryJob: Job? = null
+    private var sfuRecoveryAttempts: Int = 0
+    private val lightingAnalyzerSink = ClinicalLightingAnalyzerSink { alert, _ ->
+        if (_lightingAlert.value != alert) {
+            _lightingAlert.value = alert
+            qualityManager.applyLowLightExposureAdaptation(videoCapturer, alert)
+            qualityManager.applyClinicalCamera2Controls(
+                capturer = videoCapturer,
+                torchEnabled = _isTorchEnabled.value,
+                zoomRatio = _zoomRatio.value,
+                lowLightBoost = alert == LightingAlert.LOW_LIGHT,
+            )
+        }
+    }
 
     private val autoDegradeService = AutoDegradeService(
         poorQualityThresholdMs = 30_000L,
@@ -259,6 +288,15 @@ class CloudflareCallsEngine(
                 mandatory.add(MediaConstraints.KeyValuePair("echoCancellation", "true"))
                 mandatory.add(MediaConstraints.KeyValuePair("noiseSuppression", "true"))
                 mandatory.add(MediaConstraints.KeyValuePair("autoGainControl", "true"))
+                optional.add(MediaConstraints.KeyValuePair("googEchoCancellation", "true"))
+                optional.add(MediaConstraints.KeyValuePair("googEchoCancellation2", "true"))
+                optional.add(MediaConstraints.KeyValuePair("googDAEchoCancellation", "true"))
+                optional.add(MediaConstraints.KeyValuePair("googNoiseSuppression", "true"))
+                optional.add(MediaConstraints.KeyValuePair("googNoiseSuppression2", "true"))
+                optional.add(MediaConstraints.KeyValuePair("googAutoGainControl", "true"))
+                optional.add(MediaConstraints.KeyValuePair("googAutoGainControl2", "true"))
+                optional.add(MediaConstraints.KeyValuePair("googHighpassFilter", "true"))
+                optional.add(MediaConstraints.KeyValuePair("googTypingNoiseDetection", "true"))
             }
             val aSource = peerConnectionFactory.createAudioSource(audioConstraints)
             audioSource = aSource
@@ -270,7 +308,9 @@ class CloudflareCallsEngine(
         if (localVideoTrackInternal == null) {
             val vSource = peerConnectionFactory.createVideoSource(false)
             videoSource = vSource
-            localVideoTrackInternal = peerConnectionFactory.createVideoTrack("video0", vSource)
+            localVideoTrackInternal = peerConnectionFactory.createVideoTrack("video0", vSource)?.also {
+                it.addSink(lightingAnalyzerSink)
+            }
             _localVideoTrack.value = localVideoTrackInternal
             Timber.i("[SFU] Local video track created")
         }
@@ -291,7 +331,8 @@ class CloudflareCallsEngine(
                 surfaceTextureHelper = sth
 
                 val enumerator = org.webrtc.Camera2Enumerator(context)
-                val (cameraName, isBack) = qualityManager.selectBestCamera(enumerator)
+                val (cameraName, isBack) = qualityManager.selectBestCamera(enumerator, preferFront = true)
+                _isFrontCamera.value = !isBack
 
                 if (cameraName != null && isActive) {
                     val capturer = enumerator.createCapturer(cameraName, null) as? CameraVideoCapturer
@@ -300,6 +341,13 @@ class CloudflareCallsEngine(
                     val initialProfile = qualityManager.getInitialProfile()
                     capturer?.startCapture(initialProfile.width, initialProfile.height, initialProfile.fps)
                     Timber.i("[SFU] Started video capture on $cameraName (isBack=$isBack) at ${initialProfile.name}")
+                    delay(450L)
+                    qualityManager.applyClinicalCamera2Controls(
+                        capturer = capturer,
+                        torchEnabled = _isTorchEnabled.value,
+                        zoomRatio = _zoomRatio.value,
+                        lowLightBoost = _lightingAlert.value == LightingAlert.LOW_LIGHT,
+                    )
                 }
             } catch (e: Throwable) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
@@ -316,8 +364,12 @@ class CloudflareCallsEngine(
         videoCapturer = null
         surfaceTextureHelper?.dispose()
         surfaceTextureHelper = null
+        runCatching { localVideoTrackInternal?.removeSink(lightingAnalyzerSink) }
         localVideoTrackInternal?.dispose()
         localVideoTrackInternal = null
+        _isTorchEnabled.value = false
+        _zoomRatio.value = 1.0f
+        _lightingAlert.value = LightingAlert.NONE
         videoSource?.dispose()
         videoSource = null
         localAudioTrack?.dispose()
@@ -352,7 +404,63 @@ class CloudflareCallsEngine(
     }
 
     fun switchCamera() {
-        videoCapturer?.switchCamera(null)
+        val capturer = videoCapturer ?: return
+        capturer.switchCamera(object : CameraVideoCapturer.CameraSwitchHandler {
+            override fun onCameraSwitchDone(isFrontCamera: Boolean) {
+                _isFrontCamera.value = isFrontCamera
+                _zoomRatio.value = 1.0f
+                if (isFrontCamera) {
+                    _isTorchEnabled.value = false
+                }
+                scope.launch {
+                    delay(350L)
+                    qualityManager.applyClinicalCamera2Controls(
+                        capturer = capturer,
+                        torchEnabled = _isTorchEnabled.value,
+                        zoomRatio = _zoomRatio.value,
+                        lowLightBoost = _lightingAlert.value == LightingAlert.LOW_LIGHT,
+                    )
+                }
+            }
+
+            override fun onCameraSwitchError(errorDescription: String?) {
+                Timber.w("[SFU] Error switching camera: $errorDescription")
+            }
+        })
+    }
+
+    fun toggleTorch(): Boolean {
+        if (_isFrontCamera.value) return false
+        val next = !_isTorchEnabled.value
+        _isTorchEnabled.value = next
+        qualityManager.applyClinicalCamera2Controls(
+            capturer = videoCapturer,
+            torchEnabled = next,
+            zoomRatio = _zoomRatio.value,
+            lowLightBoost = _lightingAlert.value == LightingAlert.LOW_LIGHT,
+        )
+        return next
+    }
+
+    fun setZoom(ratio: Float) {
+        val clamped = ratio.coerceIn(1.0f, 4.0f)
+        _zoomRatio.value = clamped
+        qualityManager.applyClinicalCamera2Controls(
+            capturer = videoCapturer,
+            torchEnabled = _isTorchEnabled.value,
+            zoomRatio = clamped,
+            lowLightBoost = _lightingAlert.value == LightingAlert.LOW_LIGHT,
+        )
+    }
+
+    fun focusOnPoint(normX: Float, normY: Float) {
+        qualityManager.applyClinicalCamera2Controls(
+            capturer = videoCapturer,
+            torchEnabled = _isTorchEnabled.value,
+            zoomRatio = _zoomRatio.value,
+            focusPoint = Pair(normX, normY),
+            lowLightBoost = _lightingAlert.value == LightingAlert.LOW_LIGHT,
+        )
     }
 
     fun adaptCaptureFormat(lowPressure: Boolean) {
@@ -554,11 +662,13 @@ class CloudflareCallsEngine(
                 Timber.i("[SFU] PeerConnection State: $state")
                 when (state) {
                     PeerConnection.PeerConnectionState.CONNECTED -> {
+                        sfuRecoveryAttempts = 0
+                        sfuRecoveryJob?.cancel()
                         setConnectionState(ConnectionState.CONNECTED)
                     }
                     PeerConnection.PeerConnectionState.FAILED -> {
-                        Timber.w("[SFU] Conexión SFU fallida")
-                        setConnectionState(ConnectionState.FAILED)
+                        Timber.w("[SFU] Conexión SFU fallida; iniciando auto-recuperación (WiFi <-> 5G)...")
+                        scheduleSfuNetworkRecovery()
                     }
                     PeerConnection.PeerConnectionState.DISCONNECTED -> {
                         setConnectionState(ConnectionState.RECONNECTING)
@@ -607,6 +717,32 @@ class CloudflareCallsEngine(
                 SecureLog.warn("[SFU] Session connect failed", err)
                 (err as? CloudflareCallsApiException)?.let(onAuthorizationError)
                 setConnectionState(ConnectionState.FAILED)
+            }
+        }
+    }
+
+    /**
+     * Auto-recuperación de sesión SFU ante cambio de red (WiFi <-> 5G/4G), portada del
+     * antiguo WebRTCEngine para unificar todo en CloudflareCallsEngine sin perder resiliencia.
+     */
+    private fun scheduleSfuNetworkRecovery() {
+        if (activeRoomId == null || _connectionState.value == ConnectionState.DISCONNECTED) return
+        if (sfuRecoveryJob?.isActive == true) return
+        val attempt = sfuRecoveryAttempts + 1
+        if (attempt > 3) {
+            Timber.w("[SFU] Auto-recuperación agotada tras 3 intentos -> FAILED")
+            setConnectionState(ConnectionState.FAILED)
+            return
+        }
+        sfuRecoveryAttempts = attempt
+        setConnectionState(ConnectionState.RECONNECTING)
+        sfuRecoveryJob = scope.launch {
+            delay(1_500L * attempt)
+            runCatching { session?.close() }
+            session = null
+            if (activeRoomId != null) {
+                Timber.i("[SFU] Recreando sesión SFU tras cambio de red (intento $attempt/3)...")
+                launchSfuSession()
             }
         }
     }

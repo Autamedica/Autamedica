@@ -27,6 +27,7 @@ export function NeuroTriageShowcase() {
   return (
     <div className="space-y-6 max-w-2xl mx-auto p-6 bg-white rounded-3xl shadow-am-xl">
       <div className="mb-8">
+        <span className="mb-4 inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700">Datos de demostración / Dados de demonstração</span>
         <h3 className="text-xl font-bold text-stone-900 mb-2">Triage Automático - Neurotrópicos</h3>
         <p className="text-sm text-stone-500">
           Visualización de los estados de estabilidad clínica basados en el motor de puntuación Medvi LATAM.

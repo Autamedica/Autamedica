@@ -4,6 +4,19 @@ compatibility_date = "2025-09-01"
 
 [observability]
 enabled = true
+head_sampling_rate = 0.05
+redact_query_string = true
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 0.1
+persist = true
+invocation_logs = false
+
+[observability.traces]
+enabled = true
+head_sampling_rate = 0.05
+persist = true
 
 [dev]
 port = 8787

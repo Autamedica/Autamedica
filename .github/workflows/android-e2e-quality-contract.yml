@@ -1,0 +1,36 @@
+name: Android E2E quality contract
+
+on:
+  pull_request:
+    paths:
+      - "scripts/android-e2e/**"
+      - "apps/android/app/src/main/res/**/strings_doctor.xml"
+      - "apps/android/app/src/main/java/com/autamedica/android/presentation/chat/ChatListScreen.kt"
+      - "apps/android/app/src/main/java/com/autamedica/android/presentation/main/MainScreen.kt"
+      - "apps/android/app/src/main/java/com/autamedica/android/presentation/dashboard/DoctorDashboardViewModel.kt"
+      - "apps/android/app/src/main/java/com/autamedica/android/presentation/theme/Color.kt"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/android-e2e/**"
+
+permissions:
+  contents: read
+
+jobs:
+  contract-tests:
+    name: Assertions, locale and PII redaction
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: scripts/android-e2e/requirements.txt
+      - name: Install screenshot redaction dependency
+        run: python -m pip install -r scripts/android-e2e/requirements.txt
+      - name: Run Android E2E quality contract tests
+        run: python -m unittest discover -s scripts/android-e2e -p "test_*.py" -v

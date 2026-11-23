@@ -37,10 +37,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return badRequest('Cuerpo de solicitud inválido')
     }
 
-    const { patientDni, patientCpf, patientGenderCode, careCountry, patientPhone, patientName, tier, kioskId, pharmacyId, symptomSummary, referralCode, lgpdConsent } = body
+    const { patientDni, patientCpf, patientGenderCode, careCountry, patientPhone, patientName, tier, kioskId, pharmacyId, symptomSummary, referralCode, qrSourceCode, lgpdConsent } = body
 
     // Choose the country explicitly. A DNI/CPF or mobile dialing prefix cannot
     // determine clinical jurisdiction or grant access to an existing patient.
+    let referralSourceCode: string | null = null
+    if (qrSourceCode != null) {
+      if (typeof qrSourceCode !== 'string') return badRequest('qr_source_code_invalid')
+      const normalizedSource = qrSourceCode.trim().toUpperCase()
+      if (!/^[A-Z0-9_-]{3,64}$/.test(normalizedSource)) return badRequest('qr_source_code_invalid')
+      referralSourceCode = normalizedSource
+    }
+
     if (careCountry !== 'AR' && careCountry !== 'BR') {
       return badRequest('Seleccioná Argentina o Brasil como país de atención')
     }
@@ -221,6 +229,25 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .maybeSingle()
     if (pricingError || !countryPricing) return serviceUnavailable('pharmacy_dispatch_pricing_not_configured')
 
+    // QR / pharmacy-originated intake must confirm capacity before creating
+    // a payable request. Generic non-QR intake retains its existing behavior.
+    const requiresQrAvailabilityPreflight = Boolean(
+      referralSourceCode || referralPartnerId || resolvedPharmacyId || resolvedKioskId,
+    )
+    if (requiresQrAvailabilityPreflight) {
+      const { data: capacity, error: capacityError } = await supabase.rpc('get_country_on_duty_capacity', {
+        p_care_country: careCountry,
+      })
+      if (capacityError || typeof capacity !== 'number' || !Number.isSafeInteger(capacity) || capacity < 0) {
+        return serviceUnavailable('doctor_availability_unavailable')
+      }
+      if (capacity === 0) return conflict('no_doctors_available_now')
+    }
+
+    if (countryPricing.require_payment_before_dispatch && !operationalSwitches?.global_pix_mp_payments_enabled) {
+      return serviceUnavailable('global_pix_mp_payments_disabled')
+    }
+
     if (countryPricing.require_payment_before_dispatch && !hasSecureGuestPaymentSecret(locals.runtime?.env)) {
       return serviceUnavailable('pharmacy_checkout_guest_security_not_configured')
     }
@@ -247,6 +274,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       kiosk_id: resolvedKioskId,
       pharmacy_id: resolvedPharmacyId,
       referral_partner_id: referralPartnerId,
+      referral_source_code: referralSourceCode,
       symptom_summary: sanitizedSymptoms,
       cloudflare_room_id: cloudflareRoomId,
       status: countryPricing.require_payment_before_dispatch ? 'pending_payment' as const : 'searching' as const,

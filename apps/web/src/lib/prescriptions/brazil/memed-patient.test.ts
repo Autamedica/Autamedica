@@ -8,8 +8,8 @@ const identity = { care_country: 'BR', user_id: 'synthetic-user', active: true, 
 
 function database(overrides: Record<string, unknown> = {}): SupabaseClient {
   const rows: Record<string, unknown> = { patient_care_team: { id: 'synthetic-team' },
-    appointments: null, pharmacy_dispatch_requests: null, patients: identity,
-    profiles: { first_name: 'Synthetic', last_name: 'Patient' }, ...overrides };
+    appointments: null, pharmacy_dispatch_requests: null, patient_private_identities: null,
+    patients: identity, profiles: { first_name: 'Synthetic', last_name: 'Patient' }, ...overrides };
   return { from: vi.fn((table: string) => {
     const chain = { select: vi.fn(), update: vi.fn(), eq: vi.fn(), is: vi.fn(), or: vi.fn(), in: vi.fn(), gte: vi.fn(), order: vi.fn(), limit: vi.fn(),
       maybeSingle: vi.fn(async () => ({ data: rows[table], error: null })) };
@@ -68,6 +68,71 @@ describe('Memed patient authorization', () => {
       cpf: '52998224725',
       telefone: '+5551999991111',
     });
+  });
+
+  it('resolves a doctor-created eventual patient from private identity and consent', async () => {
+    const result = await resolveMemedPatient(database({
+      patient_care_team: { id: 'synthetic-team' },
+      patients: { ...identity, user_id: null, cpf: null },
+      patient_private_identities: {
+        full_name: 'Eventual Synthetic Patient',
+        document_type: 'CPF',
+        document_number: '52998224725',
+        birth_date: '1991-08-19',
+        gender: 'female',
+        phone: '+55 51 99999-2222',
+        consent_at: '2026-11-20T00:00:00.000Z',
+        consent_scope: 'prescription_issuance_and_delivery',
+      },
+    }), 'doctor', patientId);
+    expect(result).toEqual({
+      idExterno: `autamedica-${patientId}`,
+      nome: 'Eventual Synthetic Patient',
+      cpf: '52998224725',
+      telefone: '+5551999992222',
+      data_nascimento: '19/08/1991',
+      sexo: 'Feminino',
+    });
+  });
+
+  it('uses the doctor-scoped private identity when an authorized registered chart is reused', async () => {
+    const result = await resolveMemedPatient(database({
+      patients: { ...identity, cpf: null },
+      patient_private_identities: {
+        full_name: 'Registered Synthetic Patient',
+        document_type: 'CPF',
+        document_number: '52998224725',
+        birth_date: '1988-03-04',
+        gender: 'male',
+        phone: '+55 51 98888-3333',
+        consent_at: '2026-11-20T00:00:00.000Z',
+        consent_scope: 'prescription_issuance_and_delivery',
+      },
+    }), 'doctor', patientId);
+    expect(result).toMatchObject({
+      nome: 'Registered Synthetic Patient',
+      cpf: '52998224725',
+      telefone: '+5551988883333',
+      data_nascimento: '04/03/1988',
+      sexo: 'Masculino',
+    });
+  });
+
+  it('rejects eventual identities without issuance and delivery consent', async () => {
+    await expect(resolveMemedPatient(database({
+      patient_care_team: { id: 'synthetic-team' },
+      patients: { ...identity, user_id: null, cpf: null },
+      patient_private_identities: {
+        full_name: 'Eventual Synthetic Patient',
+        document_type: 'CPF',
+        document_number: '52998224725',
+        birth_date: '1991-08-19',
+        gender: 'female',
+        phone: null,
+        consent_at: null,
+        consent_scope: 'prescription_issuance_and_delivery',
+      },
+    }), 'doctor', patientId)).rejects.toThrow('memed_patient_consent_required');
   });
 
   it('rejects QR guest dispatches without recorded LGPD consent', async () => {
@@ -144,5 +209,44 @@ describe('Memed patient authorization', () => {
   it('rejects manipulated patient identifiers', async () => {
     await expect(resolveMemedPatient(database(), 'doctor', '../../other')).rejects.toThrow('memed_patient_required');
   });
-});
 
+  it('forwards persisted patient address and city to Memed for controlled/B1 prescriptions', async () => {
+    const result = await resolveMemedPatient(database({
+      patients: { ...identity, address: 'Av. Paulista, 1000, Bela Vista — São Paulo - SP' },
+    }), 'doctor', patientId);
+    expect(result).toEqual({
+      idExterno: `autamedica-${patientId}`,
+      nome: 'Synthetic Patient',
+      cpf: identity.cpf,
+      data_nascimento: '29/02/2000',
+      sexo: 'Feminino',
+      endereco: 'Av. Paulista, 1000, Bela Vista',
+      cidade: 'São Paulo - SP',
+    });
+  });
+
+  it('forwards plain-text persisted patient address without fabricating city', async () => {
+    const result = await resolveMemedPatient(database({
+      patients: { ...identity, address: 'Rua das Flores, 123, Centro' },
+    }), 'doctor', patientId);
+    expect(result.endereco).toBe('Rua das Flores, 123, Centro');
+    expect(result).not.toHaveProperty('cidade');
+  });
+
+  it('persists clinician-confirmed patient address and city without requiring DOB re-entry', async () => {
+    const db = database({ patients: { ...identity, address: 'Av. Paulista, 1000 — São Paulo - SP' } });
+    const result = await resolveMemedPatient(db, 'doctor', patientId, {
+      address: 'Av. Paulista, 1000',
+      city: 'São Paulo - SP',
+    });
+    expect(result.endereco).toBe('Av. Paulista, 1000');
+    expect(result.cidade).toBe('São Paulo - SP');
+  });
+
+  it('rejects too-short or city-only address submissions', async () => {
+    await expect(resolveMemedPatient(database(), 'doctor', patientId, { address: 'abc' }))
+      .rejects.toThrow('memed_patient_demographics_invalid');
+    await expect(resolveMemedPatient(database(), 'doctor', patientId, { city: 'São Paulo - SP' }))
+      .rejects.toThrow('memed_patient_demographics_invalid');
+  });
+});

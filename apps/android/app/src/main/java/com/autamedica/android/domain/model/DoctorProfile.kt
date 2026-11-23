@@ -14,6 +14,9 @@ data class DoctorProfile(
     val countryCode: String? = null,
     val licenseType: String? = null,
     val ufBrazil: String? = null,
+    val isLicenseValidated: Boolean = false,
+    val hasSignature: Boolean = false,
+    val hasStamp: Boolean = false,
 )
 
 data class DoctorStats(

@@ -39,7 +39,7 @@ export interface GreenRoomProps {
   userName?: string
   roomId: string
   userType: string
-  accentColor: 'violet' | 'sky'
+  accentColor: 'sky'
   preflightResult: PreflightResult | null
   preflightRunning: boolean
   onPreflightRerun: () => void

@@ -241,7 +241,7 @@ describe('MemedService', () => {
     expect(String(fetchMock.mock.calls[0][0])).toContain('/prescricoes/901/get-digital-prescription-link?token=doctor-token');
     expect(String(fetchMock.mock.calls[1][0])).toContain('/prescricoes/901/url-document/full?token=doctor-token');
     for (const [, options] of fetchMock.mock.calls) {
-      expect(options).toMatchObject({ redirect: 'error', cache: 'no-store' });
+      expect(options).toMatchObject({ redirect: 'manual', cache: 'no-store' });
     }
   });
 
@@ -278,8 +278,16 @@ describe('MemedService', () => {
     const service = new MemedService({ MEMED_API_KEY: 'test-key', MEMED_SECRET_KEY: 'test-secret' });
     await expect(service.getIssuedPrescription('rx-test', 'synthetic-token'))
       .rejects.toThrow('memed_provider_transport_failed');
-    expect(fetchMock.mock.calls[0][1]).toMatchObject({ redirect: 'error', cache: 'no-store' });
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ redirect: 'manual', cache: 'no-store' });
     expect(fetchMock.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('rejects 3xx redirect responses explicitly without following them', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 302 });
+    vi.stubGlobal('fetch', fetchMock);
+    const service = new MemedService({ MEMED_API_KEY: 'test-key', MEMED_SECRET_KEY: 'test-secret' });
+    await expect(service.getIssuedPrescription('rx-test', 'synthetic-token'))
+      .rejects.toThrow('memed_provider_transport_failed');
   });
 
   it.each(['cpf', 'uf', 'external_id'])('rejects provider identity mismatch for %s', async (field) => {

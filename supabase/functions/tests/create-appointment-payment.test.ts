@@ -91,7 +91,7 @@ Deno.test("create-appointment-payment - Wallet payment when balance is sufficien
     }
     if (url.includes("/rest/v1/patients")) {
       return new Response(
-        JSON.stringify({ id: "patient-1", user_id: "user-patient-1" }),
+        JSON.stringify({ id: "patient-1", user_id: "user-patient-1", cpf: "12345678901", dni: null }),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -103,6 +103,7 @@ Deno.test("create-appointment-payment - Wallet payment when balance is sufficien
           doctor_id: "doctor-1",
           status: "pending_payment",
           doctor: {
+            uf_brazil: "RS",
             id: "doctor-1",
             consultation_fee: 150000,
             payout_cbu: "1234567890123456789012",
@@ -118,6 +119,11 @@ Deno.test("create-appointment-payment - Wallet payment when balance is sufficien
         headers: { "Content-Type": "application/json" },
       });
     }
+    if (url.includes("/rest/v1/patient_wallets")) {
+      return new Response(JSON.stringify({ currency: "BRL" }), {
+        status: 200, headers: { "Content-Type": "application/json" },
+      });
+    }
     if (url.includes("/rpc/patient_wallet_get_balance")) {
       return new Response(
         JSON.stringify([
@@ -126,7 +132,7 @@ Deno.test("create-appointment-payment - Wallet payment when balance is sufficien
             available_credit_cents: 200000,
             locked_credit_cents: 0,
             total_credit_cents: 200000,
-            currency: "ARS",
+            currency: "BRL",
           },
         ]),
         { status: 200, headers: { "Content-Type": "application/json" } }
@@ -181,7 +187,7 @@ Deno.test("create-appointment-payment - MercadoPago preference when wallet balan
   Deno.env.set("SUPABASE_URL", "https://dummy.supabase.co");
   Deno.env.set("SUPABASE_ANON_KEY", "dummy_anon");
   Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", "dummy_service_role");
-  Deno.env.set("MERCADOPAGO_ACCESS_TOKEN", "APP_USR_TEST_TOKEN");
+  Deno.env.set("MERCADOPAGO_ACCESS_TOKEN_AR", "APP_USR_AR_TEST_TOKEN");
 
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -196,7 +202,7 @@ Deno.test("create-appointment-payment - MercadoPago preference when wallet balan
     }
     if (url.includes("/rest/v1/patients")) {
       return new Response(
-        JSON.stringify({ id: "patient-2", user_id: "user-patient-2" }),
+        JSON.stringify({ id: "patient-2", user_id: "user-patient-2", dni: "30123456", cpf: null }),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -208,6 +214,7 @@ Deno.test("create-appointment-payment - MercadoPago preference when wallet balan
           doctor_id: "doctor-2",
           status: "pending_payment",
           doctor: {
+            refeps_id: "REFEPS-AR",
             id: "doctor-2",
             consultation_fee: 120000,
             payout_cbu: "1234567890123456789012",
@@ -221,6 +228,11 @@ Deno.test("create-appointment-payment - MercadoPago preference when wallet balan
       return new Response("null", {
         status: 200,
         headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (url.includes("/rest/v1/patient_wallets")) {
+      return new Response(JSON.stringify({ currency: "ARS" }), {
+        status: 200, headers: { "Content-Type": "application/json" },
       });
     }
     if (url.includes("/rpc/patient_wallet_get_balance")) {
@@ -238,6 +250,9 @@ Deno.test("create-appointment-payment - MercadoPago preference when wallet balan
       );
     }
     if (url.includes("api.mercadopago.com/checkout/preferences")) {
+      const payload = JSON.parse(String(init?.body));
+      assertEquals(payload.notification_url,
+        "https://dummy.supabase.co/functions/v1/mobile-payments-webhook?market=AR");
       return new Response(
         JSON.stringify({
           id: "pref-mp-123456",
@@ -283,4 +298,42 @@ Deno.test("create-appointment-payment - MercadoPago preference when wallet balan
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+
+Deno.test("create-appointment-payment - rejects old ARS checkout for Brazilian patient before returning it", async () => {
+  Deno.env.set("SUPABASE_URL", "https://dummy.supabase.co");
+  Deno.env.set("SUPABASE_ANON_KEY", "dummy_anon");
+  Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", "dummy_service_role");
+  const previousFetch = globalThis.fetch;
+  let touchedWallet = false;
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (url.includes("/auth/v1/user")) return Response.json({ id: "user-br" });
+    if (url.includes("/rest/v1/patients")) {
+      return Response.json({ id: "pat-br", user_id: "user-br", cpf: "12345678901", dni: null });
+    }
+    if (url.includes("/rest/v1/appointments")) return Response.json({
+      id: "apt-br", patient_id: "pat-br", doctor_id: "doc-br", status: "payment_pending",
+      doctor: { id: "doc-br", consultation_fee: 7900, uf_brazil: "RS", refeps_id: null },
+    });
+    if (url.includes("/rest/v1/appointment_payments")) return Response.json({
+      id: "old-payment", status: "pending", currency: "ARS", gross_amount: 7900,
+      checkout_url: "https://mp.example/old-argentine-checkout", provider_preference_id: "pref-old",
+    });
+    if (url.includes("/rest/v1/rpc/patient_wallet_get_balance") ||
+        url.includes("/rest/v1/patient_wallets")) touchedWallet = true;
+    return previousFetch(input, init);
+  };
+  try {
+    const req = new Request("http://localhost/create-appointment-payment", {
+      method: "POST", headers: { Authorization: "Bearer valid", "Content-Type": "application/json" },
+      body: JSON.stringify({ appointmentId: "apt-br" }),
+    });
+    const res = await handler(req);
+    assertEquals(res.status, 409);
+    const body = await res.json();
+    assertEquals(body.error, "billing_currency_conflict");
+    assertEquals(touchedWallet, false);
+  } finally { globalThis.fetch = previousFetch; }
 });

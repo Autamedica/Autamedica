@@ -37,6 +37,9 @@ data class PharmacyIntakeUiState(
     val patientDni: String = "",
     val hasAcceptedLgpdConsent: Boolean = false,
     val careCountry: String? = null,
+    val careCountryPersisted: Boolean = false,
+    val isPersistingCareCountry: Boolean = false,
+    val pendingSubmitAfterCountryPersistence: Boolean = false,
     val currency: String? = null,
     val priceMinor: Int? = null,
     val selectedReasonChip: String? = null,
@@ -58,6 +61,7 @@ data class PharmacyIntakeUiState(
     val assignedDoctorSpecialty: String? = null,
     val roomId: String? = null,
     val readyToJoinCall: Boolean = false,
+    val hasJoinedCall: Boolean = false,
     val activeDoctors: List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo> = emptyList(),
     // Count of clinically approved, on-duty doctors eligible for dispatch in this care country.
     // Null means unavailable/unknown, not zero; this is not a count of every signed-in doctor.
@@ -66,7 +70,8 @@ data class PharmacyIntakeUiState(
     val canCancelRequest: Boolean
         get() = activeRequestId != null &&
             status in setOf(PharmacyConsultationStatus.PENDING, PharmacyConsultationStatus.EXPIRED) &&
-            waitingSeconds >= 15 * 60
+            waitingSeconds >= 15 * 60 &&
+            (!requiresDispatchPayment || paymentStatus == "approved")
 
     /** The signed backend resolves partner provenance; recovery must not bypass payment. */
     val requiresDispatchPayment: Boolean
@@ -94,6 +99,10 @@ data class PharmacyIntakeUiState(
             (if (careCountry == "BR") isValidBrazilianCpf(patientDni) else patientDni.count(Char::isDigit) in 5..10) &&
             (careCountry != "BR" || hasAcceptedLgpdConsent) &&
             effectiveReason.trim().isNotBlank()
+
+    val canSubmitRequest: Boolean
+        get() = isFormValid && !isLoadingProfile && !isRestoringRequest &&
+            !isSubmitting && !isPersistingCareCountry
 }
 
 @HiltViewModel
@@ -108,12 +117,15 @@ class PharmacyIntakeViewModel @Inject constructor(
     private val referralCodeParam: String = (savedStateHandle.get<String>("referralCode") ?: "")
         .trim().uppercase(java.util.Locale.ROOT)
         .takeIf { it.matches(Regex("^[A-Z0-9_-]{3,32}$")) } ?: ""
+    private val careCountryParam: String = (savedStateHandle.get<String>("careCountry") ?: "")
+        .trim().uppercase(java.util.Locale.ROOT)
+        .takeIf { it == "AR" || it == "BR" } ?: ""
 
     private val _uiState = MutableStateFlow(
         PharmacyIntakeUiState(
             pharmacyId = pharmacyIdParam,
             referralCode = referralCodeParam,
-            careCountry = if (referralCodeParam == "JORDAN") "BR" else null,
+            careCountry = careCountryParam.takeIf(String::isNotBlank),
         )
     )
     val uiState: StateFlow<PharmacyIntakeUiState> = _uiState.asStateFlow()
@@ -169,6 +181,53 @@ class PharmacyIntakeViewModel @Inject constructor(
         observeActiveDoctors()
     }
 
+    private fun persistSelectedCareCountry(country: String) {
+        if (country !in setOf("AR", "BR")) return
+        _uiState.update {
+            it.copy(
+                isPersistingCareCountry = true,
+                careCountryPersisted = false,
+                error = null,
+            )
+        }
+        viewModelScope.launch {
+            var submitAfterPersistence = false
+            profileRepository.persistCareCountry(country)
+                .onSuccess { confirmedCountry ->
+                    _uiState.update { state ->
+                        if (state.careCountry != country || confirmedCountry != country) {
+                            state.copy(
+                                isPersistingCareCountry = false,
+                                careCountryPersisted = false,
+                                pendingSubmitAfterCountryPersistence = false,
+                                error = "pharmacy_flow_error_country_persist",
+                            )
+                        } else {
+                            submitAfterPersistence = state.pendingSubmitAfterCountryPersistence
+                            state.copy(
+                                isPersistingCareCountry = false,
+                                careCountryPersisted = true,
+                                pendingSubmitAfterCountryPersistence = false,
+                                error = null,
+                            )
+                        }
+                    }
+                    if (submitAfterPersistence) submitRequest()
+                }
+                .onFailure { error ->
+                    SecureLog.error("[PharmacyIntakeVM] Failed persisting patient care country", error)
+                    _uiState.update {
+                        it.copy(
+                            isPersistingCareCountry = false,
+                            careCountryPersisted = false,
+                            pendingSubmitAfterCountryPersistence = false,
+                            error = "pharmacy_flow_error_country_persist",
+                        )
+                    }
+                }
+        }
+    }
+
     fun loadUserProfile() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRestoringRequest = true) }
@@ -189,8 +248,11 @@ class PharmacyIntakeViewModel @Inject constructor(
                     val phone = profile?.phone?.takeIf { it.isNotBlank() }
                         ?: currentUser.phone.orEmpty()
                     val dni = snapshot?.dni.orEmpty()
-                    val persistedCareCountry = if (referralCodeParam == "JORDAN") "BR"
-                        else profileRepository.getCareCountry().getOrNull()?.takeIf { it == "AR" || it == "BR" }
+                    val persistedCareCountry = profileRepository.getCareCountry().getOrThrow()
+                        ?.takeIf { it == "AR" || it == "BR" }
+                    val resolvedCareCountry = persistedCareCountry
+                        ?: careCountryParam.takeIf(String::isNotBlank)
+                        ?: if (referralCodeParam == "JORDAN") "BR" else null
 
                     _uiState.update { state ->
                         val currentName = state.patientName
@@ -204,12 +266,27 @@ class PharmacyIntakeViewModel @Inject constructor(
                             patientName = resolvedPatientName,
                             patientPhone = if (state.patientPhone.isBlank()) phone else state.patientPhone,
                             patientDni = if (state.patientDni.isBlank()) dni else state.patientDni,
-                            careCountry = state.careCountry ?: persistedCareCountry,
+                            // A patient's saved clinical jurisdiction wins over the QR market.
+                            // The QR market is the guest fallback; Jordan's legacy QR defaults to BR.
+                            careCountry = persistedCareCountry ?: resolvedCareCountry ?: state.careCountry,
+                            careCountryPersisted = persistedCareCountry != null,
                             isLoadingProfile = false,
                         )
                     }
+                    if (persistedCareCountry == null && resolvedCareCountry != null) {
+                        persistSelectedCareCountry(resolvedCareCountry)
+                    }
                 } else {
-                    _uiState.update { it.copy(isAuthenticated = false, isLoadingProfile = false) }
+                    _uiState.update { state ->
+                        state.copy(
+                            isAuthenticated = false,
+                            isLoadingProfile = false,
+                            careCountry = state.careCountry
+                                ?: careCountryParam.takeIf(String::isNotBlank)
+                                ?: if (referralCodeParam == "JORDAN") "BR" else null,
+                            careCountryPersisted = false,
+                        )
+                    }
                 }
             }.onFailure { e ->
                 SecureLog.error("[PharmacyIntakeVM] Failed loading user profile", e)
@@ -239,8 +316,10 @@ class PharmacyIntakeViewModel @Inject constructor(
                                     reasonText = request.symptomSummary ?: it.reasonText,
                                     status = mapDispatchStatus(request.status),
                                     roomId = request.cloudflareRoomId.takeIf(String::isNotBlank),
+                                    statusNotice = if (request.status == "completed") "pharmacy_flow_notice_completed" else null,
+                                    hasJoinedCall = request.status == "completed",
                                     // Dispatch state alone never authorizes a Jordan video call after process death.
-                                    readyToJoinCall = request.doctorAttendedCall &&
+                                    readyToJoinCall = request.status == "in_call" && request.doctorAttendedCall &&
                                         request.cloudflareRoomId.isNotBlank() &&
                                         !(
                                             (request.priceMinor != null && request.priceMinor > 0 &&
@@ -249,7 +328,6 @@ class PharmacyIntakeViewModel @Inject constructor(
                                                     (referralCodeParam == "JORDAN" || request.referralPartnerId != null))
                                         ),
                                     error = null,
-                                    statusNotice = null,
                                 )
                             }
                             refreshCountryDoctorCount(request.careCountry)
@@ -283,8 +361,13 @@ class PharmacyIntakeViewModel @Inject constructor(
 
     fun onCountrySelected(country: String) {
         require(country == "AR" || country == "BR")
+        val previous = _uiState.value
+        // A persisted clinical jurisdiction is immutable; don't let local UI drift from it.
+        if (previous.careCountryPersisted && previous.careCountry != country) return
+        if (previous.careCountry == country &&
+            (previous.careCountryPersisted || previous.isPersistingCareCountry)) return
         // Brazil-only QR partner may never be submitted as an Argentine intake.
-        if (_uiState.value.referralCode == "JORDAN" && country != "BR") return
+        if (previous.referralCode == "JORDAN" && country != "BR") return
         _uiState.update { state ->
             // Initial selection is not a switch between clinical markets.
             val countryChanged = state.careCountry != null && state.careCountry != country
@@ -299,7 +382,13 @@ class PharmacyIntakeViewModel @Inject constructor(
                 reasonText = if (countryChanged && reasonWasAutoFilled) "" else state.reasonText,
                 error = null,
                 availableDoctorsInMarket = null,
+                // Guest country stays request-scoped; it is not persisted to public.patients.
+                careCountryPersisted = false,
+                isPersistingCareCountry = state.isAuthenticated,
             )
+        }
+        if (previous.isAuthenticated) {
+            persistSelectedCareCountry(country)
         }
         refreshCountryDoctorCount(country)
     }
@@ -327,6 +416,14 @@ class PharmacyIntakeViewModel @Inject constructor(
     fun submitRequest() {
         val state = _uiState.value
         if (state.isRestoringRequest || state.isSubmitting || state.activeRequestId != null) return
+        if (state.isPersistingCareCountry) {
+            _uiState.update { it.copy(pendingSubmitAfterCountryPersistence = true) }
+            return
+        }
+        if (state.isAuthenticated && state.careCountry in setOf("AR", "BR") && !state.careCountryPersisted) {
+            persistSelectedCareCountry(requireNotNull(state.careCountry))
+            return
+        }
         if (!state.isFormValid) {
             _uiState.update {
                 it.copy(
@@ -388,12 +485,14 @@ class PharmacyIntakeViewModel @Inject constructor(
                         activeReferralPartnerId = request.referralPartnerId,
                         paymentStatus = "not_started",
                         paymentCheckoutUrl = null,
-                        status = PharmacyConsultationStatus.PENDING,
+                        status = mapDispatchStatus(request.status) ?: PharmacyConsultationStatus.PENDING,
                         // Queue position and wait time have not been confirmed by the backend.
                         queuePosition = 0,
                         estimatedMinutes = 0,
                         roomId = if (hasRoom) request.cloudflareRoomId else null,
                         readyToJoinCall = false,
+                        hasJoinedCall = false,
+                        statusNotice = null,
                         error = null,
                     )
                 }
@@ -452,7 +551,8 @@ class PharmacyIntakeViewModel @Inject constructor(
             // event clock. An idle Realtime stream cannot stop payment polling.
             launch {
                 pharmacyDispatchRepository.observePatientRequest(requestId).collect { request ->
-                    val joinable = request.doctorAttendedCall
+                    val joinable = request.status == "in_call" && request.doctorAttendedCall
+                    val completed = request.status == "completed"
                     val terminal = request.status == "cancelled"
                     val hasRoom = request.cloudflareRoomId.isNotBlank()
                     val paymentRequired =
@@ -461,7 +561,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                             (request.careCountry == "BR" &&
                                 (_uiState.value.referralCode == "JORDAN" || request.referralPartnerId != null))
 
-                    if (request.status == "searching" || request.status == "matched") {
+                    if (request.status == "pending_payment" || request.status == "searching" || request.status == "matched") {
                         refreshCountryDoctorCount(_uiState.value.careCountry)
                     }
                     _uiState.update { state ->
@@ -475,12 +575,16 @@ class PharmacyIntakeViewModel @Inject constructor(
                             queuePosition = 0,
                             estimatedMinutes = 0,
                             roomId = if (hasRoom) request.cloudflareRoomId else state.roomId,
-                            readyToJoinCall = joinable && hasRoom &&
+                            readyToJoinCall = joinable && hasRoom && !state.hasJoinedCall &&
                                 (!paymentRequired || state.paymentStatus == "approved"),
+                            statusNotice = if (completed) "pharmacy_flow_notice_completed" else state.statusNotice,
                         )
                     }
-                    if (joinable && hasRoom &&
+                    if (joinable && hasRoom && !_uiState.value.hasJoinedCall &&
                         (!paymentRequired || _uiState.value.paymentStatus == "approved")) {
+                        statusPollingJob?.cancel()
+                    }
+                    if (completed) {
                         statusPollingJob?.cancel()
                     }
                     if (terminal) {
@@ -519,7 +623,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                                     else current.copy(
                                         paymentStatus = status,
                                         readyToJoinCall = current.status == PharmacyConsultationStatus.IN_CALL &&
-                                            !current.roomId.isNullOrBlank() && status == "approved",
+                                            !current.hasJoinedCall && !current.roomId.isNullOrBlank() && status == "approved",
                                     )
                                 }
                             }
@@ -535,21 +639,54 @@ class PharmacyIntakeViewModel @Inject constructor(
         }
     }
 
-    fun onCallNavigated() {
+    fun startNewConsultation() {
+        val state = _uiState.value
+        if (state.status != PharmacyConsultationStatus.COMPLETED &&
+            state.activeRequestId != null) return
         statusPollingJob?.cancel()
+        statusPollingJob = null
+        _uiState.update {
+            it.copy(
+                activeRequestId = null,
+                searchStartedAt = null,
+                waitingSeconds = 0,
+                status = null,
+                queuePosition = 0,
+                estimatedMinutes = 0,
+                assignedDoctorName = null,
+                assignedDoctorSpecialty = null,
+                roomId = null,
+                readyToJoinCall = false,
+                hasJoinedCall = false,
+                paymentStatus = "not_started",
+                paymentCheckoutUrl = null,
+                paymentError = null,
+                statusNotice = null,
+                error = null,
+            )
+        }
+    }
+
+    fun refreshActiveRequest() {
+        val requestId = _uiState.value.activeRequestId ?: return
+        startStatusPolling(requestId)
+    }
+
+    fun onCallNavigated() {
+        // Keep the request identity under VideoCall; do not relaunch it on back navigation.
         _uiState.update {
             it.copy(
                 readyToJoinCall = false,
-                activeRequestId = null,
-                roomId = null,
-                status = null,
+                hasJoinedCall = true,
             )
         }
     }
 
     private fun parseSearchStartedAt(request: PharmacyDispatchRequest): Instant? {
         val raw = request.searchStartedAt
-            ?: request.createdAt.takeIf { request.status == "searching" || request.status == "expired" }
+            ?: request.createdAt.takeIf {
+                request.status == "pending_payment" || request.status == "searching" || request.status == "expired"
+            }
             ?: return null
         return runCatching { Instant.parse(raw) }.getOrNull()
     }
@@ -563,7 +700,7 @@ class PharmacyIntakeViewModel @Inject constructor(
     }
 
     private fun mapDispatchStatus(dispatchStatus: String): PharmacyConsultationStatus? = when (dispatchStatus) {
-        "searching" -> PharmacyConsultationStatus.PENDING
+        "pending_payment", "searching" -> PharmacyConsultationStatus.PENDING
         "matched" -> PharmacyConsultationStatus.ASSIGNED
         "in_call" -> PharmacyConsultationStatus.IN_CALL
         "completed" -> PharmacyConsultationStatus.COMPLETED
@@ -596,6 +733,7 @@ class PharmacyIntakeViewModel @Inject constructor(
                                 assignedDoctorSpecialty = null,
                                 roomId = null,
                                 readyToJoinCall = false,
+                                hasJoinedCall = false,
                                 paymentStatus = "not_started",
                                 paymentCheckoutUrl = null,
                                 error = null,
@@ -636,19 +774,38 @@ class PharmacyIntakeViewModel @Inject constructor(
 internal fun classifyIntakeCreationFailure(error: Throwable): String {
     val message = error.message.orEmpty().lowercase(java.util.Locale.ROOT)
     return when {
+        "lgpd_consent_required" in message ->
+            "pharmacy_error_lgpd_required"
+        "pharmacy_error_cpf_checksum" in message ->
+            "pharmacy_error_cpf_checksum"
+        "no_doctors_available_now" in message ->
+            "pharmacy_flow_error_no_doctors"
+        "dispatch_patient_role_required" in message ->
+            "pharmacy_flow_error_patient_role"
         "care_country_or_patient_profile_required" in message ->
             "Necesitás completar tu perfil de paciente para solicitar una consulta."
         "care_country_dispatch_mismatch" in message ||
-            "care_country_required_or_mismatched" in message ->
+            "care_country_required_or_mismatched" in message ||
+            "patient_inactive_or_country_mismatch" in message ->
             "El país de la consulta no coincide con tu perfil de paciente."
         "invalid_mobile_session" in message || "dispatch_request_identity_denied" in message ||
+            "mobile_session_conflicts_with_cookie_session" in message ||
             "http 401" in message || "jwt expired" in message ->
             "No pudimos validar tu sesión. Iniciá sesión nuevamente."
+        "pharmacy_express_payments_disabled" in message ||
+            "global_pix_mp_payments_disabled" in message ||
+            "jordan_checkout_not_ready" in message ||
+            "pharmacy_dispatch_pricing_not_configured" in message ||
+            "pharmacy_checkout_guest_security_not_configured" in message ||
+            "patient_consent_persistence_failed" in message ||
+            "doctor_availability_unavailable" in message ||
+            "guest_token_not_configured" in message ||
+            "guest_queue_recovery_unavailable" in message ||
+            "http 503" in message || "dispatch_service_unavailable" in message ->
+            "El servicio de consultas no está disponible temporalmente. Intentá más tarde."
         "permission denied" in message || "http 403" in message ||
             "42501" in message ->
             "No se pudo autorizar la solicitud. Revisá tus datos de paciente."
-        "http 503" in message || "dispatch_service_unavailable" in message ->
-            "El servicio de consultas no está disponible temporalmente. Intentá más tarde."
         "unable to resolve host" in message || "unknownhost" in message ||
             "socket" in message || "timeout" in message ||
             "connection" in message || "network" in message ->

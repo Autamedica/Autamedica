@@ -39,7 +39,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       'br_doctor_cpf_required',
       'br_patient_cpf_required',
       'br_special_prescription_provider_required',
-      'ar_production_homologation_required',
+      'farmalink_governance_disabled',
       'farmalink_registration_required',
       'digital_signature_required',
       'digital_signature_failed',
@@ -47,6 +47,12 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       'patient_country_required_or_mismatched',
       'prescription_country_required',
     ].includes(code)) {
+      return conflict(code);
+    }
+    if (code === 'patient_identity_lookup_failed') {
+      return internalError(code);
+    }
+    if (code === 'patient_identity_consent_required') {
       return conflict(code);
     }
     if (code === 'farmalink_idempotency_unavailable') {

@@ -18,7 +18,7 @@ export interface CallControlsBarProps {
   unreadMessages: number
   showControls: boolean
   userType: string
-  accentColor: 'violet' | 'sky'
+  accentColor: 'sky'
   onToggleVideo: () => void
   onToggleAudio: () => void
   onToggleScreenShare: () => void

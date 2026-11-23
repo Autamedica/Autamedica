@@ -31,9 +31,10 @@ BEGIN
   -- Guard membership/capacity is explicit; do not hide on-duty doctors merely
   -- because their app heartbeat is stale. The offer matcher remains the hard gate.
   IF position('fcm_token' IN v_capacity)>0
-     OR position('last_heartbeat_at' IN v_capacity)>0
+     OR position('last_heartbeat_at' IN v_capacity)=0
+     OR position('interval ''90 seconds''' IN v_capacity)=0
      OR position('s.is_on_duty' IN v_capacity)=0 THEN
-    RAISE EXCEPTION 'Country capacity must reflect explicit on-duty membership';
+    RAISE EXCEPTION 'Country capacity must require fresh heartbeat and explicit duty; FCM is not a capacity prerequisite';
   END IF;
 
   IF position('fcm_token' IN v_trigger)>0

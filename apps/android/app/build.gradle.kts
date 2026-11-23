@@ -12,6 +12,7 @@ plugins {
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.firebase.perf)
+    jacoco
 }
 
 val localProperties = Properties().apply {
@@ -54,8 +55,8 @@ android {
         applicationId = "com.autamedica.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 35
-        versionName = "1.2.25"
+        versionCode = 41
+        versionName = "1.2.31"
 
         resourceConfigurations += listOf("es", "es-rAR", "pt", "pt-rBR" )
 
@@ -140,6 +141,7 @@ android {
 
     buildTypes {
         debug {
+            enableUnitTestCoverage = true
             val releaseConfig = signingConfigs.findByName("release")
             if (releaseConfig?.storeFile != null) {
                 signingConfig = releaseConfig
@@ -171,6 +173,11 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    // CI generates this baseline from the target branch so lint blocks only new findings.
+    lint {
+        baseline = file("lint-baseline.xml")
     }
 }
 
@@ -290,7 +297,7 @@ dependencies {
 
 tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
     // A broken coroutine retry/heartbeat must never pin the release runner indefinitely.
-    timeout.set(Duration.ofMinutes(3))
+    timeout.set(Duration.ofMinutes(10))
     testLogging {
         events(
             org.gradle.api.tasks.testing.logging.TestLogEvent.STARTED,

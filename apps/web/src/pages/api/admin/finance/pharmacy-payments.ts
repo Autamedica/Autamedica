@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro'
 import { withAuthRole, ADMIN_ROLES, isAuthed } from '@/lib/api-auth'
 import { badRequest, internalError, jsonOk } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
+import { isManualPilotApprovalEligible, resolveManualApprovalResult } from '@/lib/payments/manual-payment-governance'
 
 export const prerender = false
 
@@ -31,7 +32,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
  if(error) return internalError('pharmacy_payments_unavailable')
  const ids=(payments??[]).map((p:any)=>p.dispatch_request_id).filter(Boolean)
  const {data:requests}=ids.length?await db.from('pharmacy_dispatch_requests')
-  .select('id,assigned_doctor_id,doctor_fee_brl,doctor_fee_minor,price_brl,price_minor,currency').in('id',ids):{data:[]}
+  .select('id,status,assigned_doctor_id,doctor_fee_brl,doctor_fee_minor,price_brl,price_minor,currency').in('id',ids):{data:[]}
  const byId=new Map<string, any>((requests??[]).map((r:any)=>[r.id,r]))
  const doctorIds=[...new Set((requests??[]).map((r:any)=>r.assigned_doctor_id).filter(Boolean))]
  const {data:doctors}=doctorIds.length?await db.from('doctors').select('id,user_id').in('id',doctorIds):{data:[]}
@@ -45,6 +46,9 @@ export const GET: APIRoute = async ({ request, locals }) => {
   const doctor=req?.assigned_doctor_id?doctorById.get(req.assigned_doctor_id):null
   const doctorFeeMinor=typeof req?.doctor_fee_minor==='number'&&Number.isFinite(req.doctor_fee_minor)?req.doctor_fee_minor:(req?.doctor_fee_brl?Math.round(Number(req.doctor_fee_brl)*100):null)
   return {...p,request_id:p.dispatch_request_id,assigned_doctor_id:req?.assigned_doctor_id??null,
+   request_status:req?.status??null,
+   payment_mode:typeof p.metadata?.payment_mode==='string'?p.metadata.payment_mode:null,
+   manual_approval_pending:p.metadata?.manual_approval_pending===true,
    doctor_user_id:doctor?.user_id??null,doctor_fee_minor:doctorFeeMinor,
    jordan_commission_minor:commissionByDispatch.get(p.dispatch_request_id)?.status==='eligible'||commissionByDispatch.get(p.dispatch_request_id)?.status==='paid'?commissionByDispatch.get(p.dispatch_request_id).amount_minor:0,
    commercial_commission_status:commissionByDispatch.get(p.dispatch_request_id)?.status??null}
@@ -75,6 +79,22 @@ export const POST: APIRoute = async ({ request, locals }) => {
    if (!payment) return badRequest('pharmacy_payment_not_pending')
    resolvedPaymentId = payment.id
   }
+  const { data: candidate, error: candidateError } = await db.from('pharmacy_dispatch_payments')
+   .select('id,dispatch_request_id,provider,status,metadata')
+   .eq('id', resolvedPaymentId).maybeSingle()
+  if (candidateError) return internalError('pharmacy_payment_lookup_failed')
+  if (!candidate) return badRequest('pharmacy_payment_not_found')
+  const { data: dispatchRequest, error: requestError } = await db.from('pharmacy_dispatch_requests')
+   .select('status').eq('id', candidate.dispatch_request_id).maybeSingle()
+  if (requestError) return internalError('pharmacy_dispatch_lookup_failed')
+  if (!isManualPilotApprovalEligible({
+   provider: candidate.provider,
+   payment_mode: typeof candidate.metadata?.payment_mode === 'string' ? candidate.metadata.payment_mode : null,
+   manual_approval_pending: candidate.metadata?.manual_approval_pending === true,
+   status: candidate.status,
+   request_status: dispatchRequest?.status ?? null,
+  })) return badRequest('pharmacy_payment_not_eligible_for_manual_approval')
+
   const { data, error } = await db.rpc('admin_manual_approve_pharmacy_payment', {
    p_payment_id: resolvedPaymentId,
    p_actor_id: auth.user.id,
@@ -82,8 +102,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
    p_evidence_reference: evidenceReference,
   })
   if (error) return internalError('pharmacy_manual_approval_failed')
-  if (!data?.success) return badRequest(data?.code ?? 'pharmacy_payment_not_eligible_for_manual_approval')
-  return jsonOk(data)
+  const approvalResult = resolveManualApprovalResult(data ?? {})
+  if (approvalResult.status === 'approved_pending_dispatch_resolution') return jsonOk(approvalResult)
+  if (!approvalResult.success) return badRequest(approvalResult.code ?? 'pharmacy_payment_not_eligible_for_manual_approval')
+  return jsonOk(approvalResult)
  }
 
  const commissionId = typeof body?.commissionId === 'string' ? body.commissionId.trim() : ''

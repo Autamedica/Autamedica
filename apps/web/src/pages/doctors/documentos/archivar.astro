@@ -1,0 +1,118 @@
+---
+export const prerender = false;
+---
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow,noarchive" />
+  <title>Archivar documento emitido | AutaMedica</title>
+</head>
+<body>
+  <main>
+    <header><a href="/doctors">AUTAMEDICA</a><span>PORTAL DEL PROFESIONAL</span></header>
+    <p class="eyebrow">REGISTRO DE EMISIÓN EXTERNA</p>
+    <h1>Archivar documento emitido</h1>
+    <p class="intro">Registrá el PDF final que emitiste fuera del generador de certificados de AutaMedica. El registro queda vinculado a tu matrícula y permite que cualquier destinatario compruebe la referencia y la integridad del archivo.</p>
+    <form id="archive-form">
+      <fieldset>
+        <legend>Documento emitido</legend>
+        <label for="reference">Código DOC impreso en el QR del documento</label>
+        <input id="reference" name="reference" required maxlength="36" minlength="36" pattern="DOC-[A-Fa-f0-9]{32}" placeholder="DOC-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" autocomplete="off" />
+        <label for="pdf">PDF final emitido</label>
+        <input id="pdf" name="pdf" type="file" accept="application/pdf,.pdf" required />
+        <label for="document_date">Fecha de emisión</label>
+        <input id="document_date" name="document_date" type="date" required />
+        <label for="document_type">Tipo de documento</label>
+        <input id="document_type" name="document_type" maxlength="100" placeholder="Constancia de atención, certificado, informe…" required />
+        <label for="document_description">Descripción breve (opcional)</label>
+        <textarea id="document_description" name="document_description" maxlength="2000" rows="3"></textarea>
+      </fieldset>
+      <fieldset>
+        <legend>Identificación del paciente</legend>
+        <label for="patient_name">Nombre completo</label>
+        <input id="patient_name" name="patient_name" maxlength="200" required />
+        <label for="patient_document">Documento de identidad</label>
+        <input id="patient_document" name="patient_document" maxlength="80" required />
+        <label for="patient_id">ID de paciente en AutaMedica (opcional, vincula el documento a su portal)</label>
+        <input id="patient_id" name="patient_id" maxlength="36" minlength="36" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}" placeholder="UUID del paciente" autocomplete="off" />
+      </fieldset>
+      <fieldset>
+        <legend>Confirmación del profesional emisor</legend>
+        <label class="attestation">
+          <input id="attestation" type="checkbox" required />
+          <span>Confirmo que emití este documento y autorizo su registro para verificación de integridad en AutaMedica.</span>
+        </label>
+      </fieldset>
+      <p class="privacy">El PDF original se conserva en Storage privado con su huella SHA-256. Al informar un ID de paciente, AutaMedica valida que su documento de identidad coincida y lo incorpora a su portal.</p>
+      <button type="submit">Registrar documento emitido</button>
+      <p id="result" role="status" aria-live="polite"></p>
+    </form>
+    <footer>El destinatario utiliza el verificador público y no puede crear ni modificar registros.</footer>
+  </main>
+  <script>
+    const form = document.querySelector<HTMLFormElement>('#archive-form');
+    const result = document.querySelector<HTMLElement>('#result');
+    const attestation = document.querySelector<HTMLInputElement>('#attestation');
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!form || !result || !attestation?.checked) return;
+      const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+      if (button) button.disabled = true;
+      result.className = 'pending';
+      result.textContent = 'Calculando huella y registrando el documento…';
+      const payload = new FormData(form);
+      payload.set('authorization_statement', 'Confirmo que emití este documento y autorizo su registro para verificación de integridad en AutaMedica.');
+      try {
+        const response = await fetch('/api/doctors/document-archives', {
+          method: 'POST', body: payload, credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'No se pudo registrar el documento.');
+        const link = document.createElement('a');
+        link.href = data.verificationUrl;
+        link.textContent = location.origin + data.verificationUrl;
+        link.rel = 'noopener noreferrer';
+        result.className = 'success';
+        result.replaceChildren(
+          document.createTextNode('Documento registrado' + (data.patientLinked ? ' y vinculado al portal del paciente' : '') + '. Referencia: ' + data.reference + ' · SHA-256: ' + data.pdfSha256 + ' · Verificador: '),
+          link,
+        );
+        form.reset();
+      } catch (error) {
+        result.className = 'failure';
+        result.textContent = error instanceof Error ? error.message : 'No se pudo registrar el documento.';
+      } finally {
+        if (button) button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
+<style>
+  :global(*){box-sizing:border-box}
+  :global(body){margin:0;background:#f1f5f9;color:#0f172a;font:16px/1.55 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  main{max-width:760px;margin:auto;padding:26px 18px 40px}
+  header{display:flex;justify-content:space-between;gap:12px;align-items:center;border-bottom:1px solid #dbe3ec;padding:4px 0 18px;margin-bottom:32px}
+  header a{font-weight:850;color:#0f172a;text-decoration:none;letter-spacing:.08em}
+  header span,.eyebrow{font-size:12px;font-weight:750;letter-spacing:.12em;color:#0f766e}
+  h1{font-size:clamp(28px,5vw,38px);line-height:1.15;margin:8px 0 12px;letter-spacing:-.02em}
+  .intro{color:#475569;margin:0 0 24px}
+  form{display:grid;gap:16px}
+  fieldset{display:grid;gap:12px;min-width:0;border:1px solid #dbe3ec;border-radius:14px;background:#fff;padding:20px}
+  legend{padding:0 8px;font-weight:750}
+  label{display:grid;gap:6px;font-weight:650}
+  input,textarea{width:100%;min-width:0;padding:11px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font:inherit}
+  input:focus,textarea:focus{outline:3px solid #99f6e4;border-color:#0f766e}
+  .attestation{display:flex;align-items:flex-start;gap:10px;line-height:1.45}
+  .attestation input{width:19px;height:19px;flex:0 0 19px;margin-top:2px}
+  .privacy{font-size:13px;color:#64748b;margin:0}
+  button{border:0;border-radius:9px;background:#0f766e;color:#fff;padding:14px 18px;font:750 16px system-ui;cursor:pointer}
+  button:disabled{opacity:.6;cursor:wait}
+  #result{padding:0;overflow-wrap:anywhere}#result a{color:inherit;font-weight:700}
+  .pending{color:#1d4ed8}.success{padding:16px;border:1px solid #6ee7b7;border-radius:10px;background:#ecfdf5;color:#065f46}.failure{padding:16px;border:1px solid #fdba74;border-radius:10px;background:#fff7ed;color:#9a3412}
+  footer{text-align:center;color:#64748b;font-size:12px;margin-top:30px}
+  @media(max-width:520px){main{padding:18px 13px 30px}fieldset{padding:16px}}
+</style>

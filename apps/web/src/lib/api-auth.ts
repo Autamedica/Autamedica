@@ -1,7 +1,7 @@
 import type { SupabaseClient, User, Session } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
 import { unauthorized, forbidden, jsonFail } from '@/lib/api-helpers'
-import { createAstroAdminClient, createAstroServerClientFromRequest } from '@/lib/supabase'
+import { createAstroAdminClient, createAstroBearerClient, createAstroServerClientFromRequest } from '@/lib/supabase'
 
 type TypedClient = SupabaseClient<Database>
 type ApiKeyRow = {
@@ -51,6 +51,29 @@ export async function withAuth(
       updated_at: "2026-05-24T09:17:38.019784+00:00"
     }
     return { user, supabase }
+  }
+
+  // Native mobile clients (Android) authenticate via Authorization: Bearer <jwt>.
+  // When present, validate the bearer token directly against Supabase Auth and
+  // bind downstream PostgREST queries to that user's RLS context. Malformed or
+  // invalid bearer tokens fail closed without falling back to browser cookies.
+  const authorization = request.headers.get('authorization')?.trim() ?? ''
+  if (authorization) {
+    const match = /^Bearer\s+([A-Za-z0-9._~+/-]+=*)$/i.exec(authorization)
+    if (!match) return unauthorized()
+
+    const bearerToken = match[1]
+    let bearerClient: TypedClient
+    try {
+      bearerClient = createAstroBearerClient(bearerToken, locals?.runtime?.env)
+    } catch {
+      return unauthorized()
+    }
+
+    const { data: { user }, error } = await bearerClient.auth.getUser(bearerToken)
+    if (error || !user) return unauthorized()
+
+    return { user, supabase: bearerClient }
   }
 
   let supabase: TypedClient

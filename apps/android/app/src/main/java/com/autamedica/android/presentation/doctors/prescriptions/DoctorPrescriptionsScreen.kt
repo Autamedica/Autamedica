@@ -43,7 +43,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.browser.customtabs.CustomTabsIntent
 import com.autamedica.android.R
+import com.autamedica.android.presentation.common.DocumentViewerSource
+import com.autamedica.android.presentation.common.InAppDocumentViewerDialog
 import com.autamedica.android.domain.model.Prescription
 import com.autamedica.android.domain.model.PrescriptionItem
 import com.autamedica.android.presentation.theme.*
@@ -54,21 +57,36 @@ fun DoctorPrescriptionsScreen(
     onBack: () -> Unit,
     onNavigateToCreatePrescription: () -> Unit,
     modifier: Modifier = Modifier,
+    showBackButton: Boolean = true,
     viewModel: DoctorPrescriptionsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
+    var activeDocumentViewer by remember { mutableStateOf<DocumentViewerSource?>(null) }
+
     val onOpenPdf: (String) -> Unit = { pdfUrl ->
-        runCatching {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(pdfUrl)).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (pdfUrl.contains("/verify/")) {
+            runCatching {
+                CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(pdfUrl))
+            }.onFailure {
+                Toast.makeText(context, context.getString(R.string.doctor_rx_pdf_error_toast), Toast.LENGTH_SHORT).show()
             }
-            context.startActivity(intent)
-        }.onFailure {
-            Toast.makeText(context, context.getString(R.string.doctor_rx_pdf_error_toast), Toast.LENGTH_SHORT).show()
+        } else {
+            activeDocumentViewer = DocumentViewerSource.RemoteDocumentUrl(
+                url = pdfUrl,
+                title = context.getString(R.string.doctor_rx_title),
+                fileName = "Receta_${System.currentTimeMillis()}.pdf",
+            )
         }
+    }
+
+    activeDocumentViewer?.let { docSource ->
+        InAppDocumentViewerDialog(
+            source = docSource,
+            onDismiss = { activeDocumentViewer = null },
+        )
     }
 
     var cancellationReasonText by remember { mutableStateOf("") }
@@ -108,12 +126,14 @@ fun DoctorPrescriptionsScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.doctor_rx_action_back),
-                            tint = AuTextPrimary,
-                        )
+                    if (showBackButton) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.doctor_rx_action_back),
+                                tint = AuTextPrimary,
+                            )
+                        }
                     }
                 },
                 actions = {
@@ -131,7 +151,7 @@ fun DoctorPrescriptionsScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onNavigateToCreatePrescription,
-                containerColor = PortalDoctorsAction,
+                containerColor = PortalPatientsAction,
                 contentColor = Color.White,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text(stringResource(R.string.doctor_rx_action_new), fontWeight = FontWeight.SemiBold) },

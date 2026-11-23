@@ -25,6 +25,8 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -255,6 +257,15 @@ fun DoctorAgendaScreen(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = AuTextTertiary,
                                 )
+                                Button(
+                                    onClick = viewModel::refresh,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = PortalDoctors,
+                                        contentColor = Color.White,
+                                    ),
+                                ) {
+                                    Text(stringResource(R.string.doctor_agenda_retry))
+                                }
                             }
                         }
                     }

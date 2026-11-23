@@ -70,6 +70,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.domain.model.PatientProfileSnapshot
 import com.autamedica.android.domain.model.User
+import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.presentation.dashboard.components.WalletTopupDialog
 import com.autamedica.android.presentation.dashboard.components.formatCents
 import com.autamedica.android.presentation.theme.AuAccent
@@ -84,6 +85,7 @@ fun PatientProfileScreen(
     onBack: () -> Unit,
     onLogout: () -> Unit,
     modifier: Modifier = Modifier,
+    showBackButton: Boolean = true,
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -125,15 +127,17 @@ fun PatientProfileScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.common_back),
-                            tint = AuTextPrimary,
-                        )
+                    if (showBackButton) {
+                        IconButton(
+                            onClick = onBack,
+                            modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.common_back),
+                                tint = AuTextPrimary,
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
@@ -168,6 +172,20 @@ fun PatientProfileScreen(
                         user = uiState.user,
                         snapshot = uiState.patientSnapshot,
                     )
+
+                    // 1b. Argentina-only RENAPER identity consultation (Kotlin-native)
+                    uiState.patientSnapshot
+                        ?.takeIf { it.careCountry == "AR" && uiState.user?.role == UserRole.PATIENT }
+                        ?.let { patient ->
+                            RenaperIdentityCard(
+                                patient = patient,
+                                loading = uiState.renaperLoading,
+                                identity = uiState.renaperResult,
+                                errorStatus = uiState.renaperErrorStatus,
+                                onLookup = viewModel::lookupRenaper,
+                                onClear = viewModel::clearRenaperResponse,
+                            )
+                        }
 
                     // 2. Wallet Balance Card
                     PatientWalletCard(
@@ -216,6 +234,11 @@ fun PatientProfileScreen(
                 }
             }
         }
+    }
+
+    // No conservar datos de identidad obtenidos al abandonar la pantalla.
+    DisposableEffect(Unit) {
+        onDispose { viewModel.clearRenaperResponse() }
     }
 
     // Diálogo de recarga de billetera

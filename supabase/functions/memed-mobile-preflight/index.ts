@@ -12,7 +12,7 @@ import {
   verifiedBrazilLicense,
   validBrazilPatientIdentity,
   memedMobileFeatureEnabled,
-  resolveMemedMobilePilotDoctorId,
+  isMemedMobilePilotDoctorAllowed,
 } from '../_shared/memed-mobile-policy.ts';
 
 const NO_STORE = {'Cache-Control': 'private, no-store', 'Referrer-Policy': 'no-referrer'};
@@ -55,11 +55,15 @@ export async function handler(req: Request): Promise<Response> {
     const {data: doctor, error: doctorError} = await db.from('doctors')
       .select('id, active, license_type, license_number, uf_brazil, care_country')
       .eq('user_id', user.id).maybeSingle();
-    const pilotId = resolveMemedMobilePilotDoctorId(
-      Deno.env.get('MEMED_MOBILE_PILOT_DOCTOR_ID'),
-      Deno.env.get('MEMED_PILOT_DOCTOR_ID'),
-    );
-    if (doctorError || !doctor || !pilotId || pilotId !== doctor.id) {
+    if (
+      doctorError ||
+      !doctor ||
+      !isMemedMobilePilotDoctorAllowed(
+        doctor.id,
+        Deno.env.get('MEMED_MOBILE_PILOT_DOCTOR_ID'),
+        Deno.env.get('MEMED_PILOT_DOCTOR_ID'),
+      )
+    ) {
       return reply({code: 'PILOT_DOCTOR_REQUIRED'}, 403, cors);
     }
     const {data: licenses, error: licenseError} = await db.from('doctor_licenses')
@@ -93,10 +97,17 @@ export async function handler(req: Request): Promise<Response> {
     }
     if (!patientId) return reply({code: 'CLINICAL_ENCOUNTER_REQUIRED'}, 403, cors);
     const {data: patient, error: patientError} = await db.from('patients')
-      .select('id, active, care_country, lgpd_consent, cpf, birth_date, gender')
+      .select('id, user_id, active, care_country, lgpd_consent, lgpd_consent_date, cpf, birth_date, gender')
       .eq('id', patientId).maybeSingle();
     if (patientError || patient?.active !== true || patient.care_country !== 'BR' ||
-      patient.lgpd_consent !== true) return reply({code: 'BRAZIL_PATIENT_CONSENT_REQUIRED'}, 403, cors);
+      patient.lgpd_consent !== true || !patient.lgpd_consent_date || !patient.user_id) {
+      return reply({code: 'BRAZIL_PATIENT_CONSENT_REQUIRED'}, 403, cors);
+    }
+    const {data: patientProfile, error: patientProfileError} = await db.from('profiles')
+      .select('active').eq('user_id', patient.user_id).maybeSingle();
+    if (patientProfileError || patientProfile?.active !== true) {
+      return reply({code: 'PATIENT_ACCOUNT_INACTIVE'}, 403, cors);
+    }
     if (!validBrazilPatientIdentity(patient.cpf, patient.birth_date, patient.gender, Date.now())) {
       return reply({code: 'PATIENT_IDENTITY_INCOMPLETE'}, 403, cors);
     }

@@ -9,9 +9,17 @@ import com.autamedica.android.domain.repository.UserRegistrationResult
 import com.google.common.truth.Truth.assertThat
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.auth.MemorySessionManager
+import io.github.jan.supabase.auth.MemoryCodeVerifierCache
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.Postgrest
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -24,6 +32,8 @@ import io.mockk.mockk
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import java.util.concurrent.TimeUnit
+import java.util.Base64
 
 private class FakeAuthRepository(var currentUser: User? = null) : AuthRepository {
     override fun observeSession(): Flow<User?> = flowOf(currentUser)
@@ -67,6 +77,14 @@ class PharmacyDispatchRepositoryImplTest {
             supabaseUrl = mockWebServer.url("/").toString(),
             supabaseKey = "test-anon-key",
         ) {
+            install(Auth) {
+                sessionManager = MemorySessionManager()
+                codeVerifierCache = MemoryCodeVerifierCache()
+                autoLoadFromStorage = false
+                autoSaveToStorage = false
+                alwaysAutoRefresh = false
+                enableLifecycleCallbacks = false
+            }
             install(Postgrest)
         }
 
@@ -85,6 +103,39 @@ class PharmacyDispatchRepositoryImplTest {
     @After
     fun tearDown() {
         mockWebServer.shutdown()
+    }
+
+    private fun syntheticAuthenticatedJwt(userId: String): String {
+        val encoder = Base64.getUrlEncoder().withoutPadding()
+        val header = encoder.encodeToString("""{"alg":"none","typ":"JWT"}""".toByteArray())
+        val payload = encoder.encodeToString(
+            """{"sub":"$userId","aud":"authenticated","role":"authenticated","exp":4102444800,"iat":1700000000}"""
+                .toByteArray(),
+        )
+        return "$header.$payload.synthetic-signature"
+    }
+
+    private suspend fun authenticateDoctor(userId: String) {
+        val email = "doctor@example.invalid"
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{"id":"$userId","aud":"authenticated","role":"authenticated","email":"$email","email_confirmed_at":"2026-01-01T00:00:00Z","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","app_metadata":{"provider":"email","providers":["email"]},"user_metadata":{},"identities":[]}""",
+                ),
+        )
+        supabaseClient.auth.importAuthToken(
+            accessToken = syntheticAuthenticatedJwt(userId),
+            retrieveUser = true,
+            autoRefresh = false,
+        )
+        val authRequest = mockWebServer.takeRequest(2, TimeUnit.SECONDS)
+        assertThat(authRequest?.path).contains("/auth/v1/user")
+        fakeAuthRepository.currentUser = User(
+            id = userId,
+            email = email,
+            role = UserRole.DOCTOR,
+        )
     }
 
     private suspend fun createSyntheticGuestRequest(): String {
@@ -235,11 +286,8 @@ class PharmacyDispatchRepositoryImplTest {
 
     @Test
     fun `doctor refusal sends exact offer id to server guarded RPC`() = runTest {
-        fakeAuthRepository.currentUser = User(
-            id = "33333333-3333-4333-8333-333333333333",
-            email = "doctor@example.invalid",
-            role = UserRole.DOCTOR,
-        )
+        val doctorUserId = "33333333-3333-4333-8333-333333333333"
+        authenticateDoctor(doctorUserId)
         val offerId = "44444444-4444-4444-8444-444444444444"
         mockWebServer.enqueue(
             MockResponse().setResponseCode(200)
@@ -253,7 +301,7 @@ class PharmacyDispatchRepositoryImplTest {
         assertThat(request.method).isEqualTo("POST")
         assertThat(request.path).isEqualTo("/rest/v1/rpc/decline_my_pharmacy_dispatch_offer")
         assertThat(request.body.readUtf8()).contains("\"p_offer_id\":\"$offerId\"")
-        assertThat(mockWebServer.requestCount).isEqualTo(1)
+        assertThat(mockWebServer.requestCount).isEqualTo(2)
     }
 
     @Test
@@ -308,6 +356,7 @@ class PharmacyDispatchRepositoryImplTest {
     @Test
     fun `getDoctorDutyStatus returns successful duty status and active tiers`() = runTest {
         val doctorId = "doc-uuid-123"
+        authenticateDoctor(doctorId)
         val responseBody = """
             [
                 {
@@ -339,6 +388,91 @@ class PharmacyDispatchRepositoryImplTest {
         val recordedRequest = mockWebServer.takeRequest()
         assertThat(recordedRequest.path).contains("doctor_duty_status")
         assertThat(recordedRequest.path).contains("doctor_id=eq.$doctorId")
+        assertThat(mockWebServer.requestCount).isEqualTo(2)
+    }
+
+    @Test
+    fun `pending offer polling skips the protected RPC without an authenticated session`() = runTest {
+        repository.observeSearchingRequests()
+
+        // The observer starts before sign-in on some app paths. It must not
+        // issue the protected PostgREST RPC with the project's anon credential.
+        val request = mockWebServer.takeRequest(2, TimeUnit.SECONDS)
+        assertThat(request).isNull()
+    }
+
+    @Test
+    fun `pending offers transition from anon to authenticated session and clear on logout`() = runTest {
+        val anonymousOffers = repository.observeSearchingRequests()
+        assertThat(anonymousOffers.value).isEmpty()
+        assertThat(mockWebServer.requestCount).isEqualTo(0)
+
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"id":"authenticated-user-id","aud":"authenticated","role":"authenticated","email":"patient@example.test","email_confirmed_at":"2026-01-01T00:00:00Z","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","app_metadata":{"provider":"email","providers":["email"]},"user_metadata":{},"identities":[]}"""),
+        )
+        supabaseClient.auth.importAuthToken(
+            accessToken = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhdXRoZW50aWNhdGVkLWRvY3Rvci1pZCIsImF1ZCI6ImF1dGhlbnRpY2F0ZWQiLCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImV4cCI6NDEwMjQ0NDgwMCwiaWF0IjoxNzAwMDAwMDAwfQ.c3ludGhldGljLXNpZ25hdHVyZQ",
+            retrieveUser = true,
+            autoRefresh = false,
+        )
+        val authUserRequest = mockWebServer.takeRequest(2, TimeUnit.SECONDS)
+        assertThat(authUserRequest?.path).contains("/auth/v1/user")
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """[
+                      {
+                        "id": "offer-request-123",
+                        "patient_phone": "+5491100000000",
+                        "patient_name": "Synthetic Patient",
+                        "tier_requested": "general",
+                        "status": "searching",
+                        "cloudflare_room_id": "synthetic-doctor-room",
+                        "created_at": "2026-11-19T00:00:00Z",
+                        "care_country": "AR",
+                        "offer_id": "offer-123",
+                        "offer_expires_at": "2026-11-19T00:10:00Z"
+                      }
+                    ]""".trimIndent(),
+                ),
+        )
+
+        val authenticatedOffers = repository.observeSearchingRequests()
+        // Drive the session-aware worker login-resume poll in this JVM fixture.
+        testDispatcher.scheduler.advanceTimeBy(1_001L)
+        val rpc = mockWebServer.takeRequest(2, TimeUnit.SECONDS)
+        assertThat(rpc).isNotNull()
+        assertThat(rpc!!.path).isEqualTo("/rest/v1/rpc/get_my_pending_dispatch_offers")
+        assertThat(rpc.getHeader("Authorization"))
+            .isEqualTo("Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhdXRoZW50aWNhdGVkLWRvY3Rvci1pZCIsImF1ZCI6ImF1dGhlbnRpY2F0ZWQiLCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImV4cCI6NDEwMjQ0NDgwMCwiaWF0IjoxNzAwMDAwMDAwfQ.c3ludGhldGljLXNpZ25hdHVyZQ")
+        val receivedOffers = withContext(Dispatchers.Default) {
+            withTimeout(5_000L) {
+                authenticatedOffers.first { offers ->
+                    offers.any { it.id == "offer-request-123" }
+                }
+            }
+        }
+        assertThat(receivedOffers.map { it.id })
+            .containsExactly("offer-request-123")
+
+        mockWebServer.enqueue(MockResponse().setResponseCode(204))
+        supabaseClient.auth.signOut()
+        val loggedOutOffers = repository.observeSearchingRequests()
+        val logout = mockWebServer.takeRequest(2, TimeUnit.SECONDS)
+        assertThat(logout?.path).contains("/auth/v1/logout")
+        assertThat(loggedOutOffers.value).isEmpty()
+        assertThat(mockWebServer.requestCount).isEqualTo(3)
+    }
+
+    @Test
+    fun `active on duty doctors RPC is skipped without an authenticated Supabase session`() = runTest {
+        val result = repository.getActiveOnDutyDoctors()
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(mockWebServer.requestCount).isEqualTo(0)
     }
 
     @Test
@@ -357,6 +491,7 @@ class PharmacyDispatchRepositoryImplTest {
 
     @Test
     fun `forbidden consultation finish never falls back to direct clinical updates`() = runTest {
+        authenticateDoctor("doc-uuid-1")
         mockWebServer.enqueue(
             MockResponse()
                 .setResponseCode(403)
@@ -365,7 +500,7 @@ class PharmacyDispatchRepositoryImplTest {
         )
         val result = repository.finishPharmacyRequest("doc-uuid-1", "request-uuid-2")
         assertThat(result.isFailure).isTrue()
-        assertThat(mockWebServer.requestCount).isEqualTo(1)
+        assertThat(mockWebServer.requestCount).isEqualTo(2)
         val request = mockWebServer.takeRequest()
         assertThat(request.path).contains("rpc/finish_pharmacy_consultation")
     }
@@ -439,6 +574,110 @@ class PharmacyDispatchRepositoryImplTest {
             careCountry = "AR",
         )
         assertThat(result.isFailure).isTrue()
+    }
+
+    @Test
+    fun `authenticated Brazilian intake uses signed API with Bearer token, lgpdConsent and handles pending_payment`() = runTest {
+        val patientUserId = "77777777-7777-4777-8777-777777777777"
+        val email = "paciente.br@example.invalid"
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{"id":"$patientUserId","aud":"authenticated","role":"authenticated","email":"$email","email_confirmed_at":"2026-01-01T00:00:00Z","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","app_metadata":{"provider":"email","providers":["email"]},"user_metadata":{},"identities":[]}""",
+                ),
+        )
+        supabaseClient.auth.importAuthToken(
+            accessToken = syntheticAuthenticatedJwt(patientUserId),
+            retrieveUser = true,
+            autoRefresh = false,
+        )
+        mockWebServer.takeRequest(2, TimeUnit.SECONDS)
+        fakeAuthRepository.currentUser = User(id = patientUserId, email = email, role = UserRole.PATIENT)
+
+        // 1) patients care_country verification query
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""[{"care_country":"BR"}]"""),
+        )
+        // 2) Signed API response returning pending_payment + recoveryToken
+        val requestId = "88888888-8888-4888-8888-888888888888"
+        val recovery = "b".repeat(64)
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{
+                      "success": true,
+                      "data": {
+                        "request": {
+                          "id": "$requestId",
+                          "care_country": "BR",
+                          "patient_cpf": "12345678909",
+                          "patient_phone": "+5551987654321",
+                          "patient_name": "Paciente Brasil",
+                          "tier_requested": "general",
+                          "status": "pending_payment",
+                          "currency": "BRL",
+                          "price_minor": 7900,
+                          "cloudflare_room_id": "cf-room-br-auth",
+                          "created_at": "2026-11-21T18:00:00Z"
+                        },
+                        "accessToken": "signed-br-auth-token",
+                        "recoveryToken": "$recovery"
+                      }
+                    }""".trimIndent(),
+                ),
+        )
+
+        val created = repository.createPatientDispatchRequest(
+            patientDni = "12345678909",
+            patientPhone = "+5551987654321",
+            patientName = "Paciente Brasil",
+            tierRequested = "general",
+            symptomSummary = "Renovação de receita",
+            patientCpf = "12345678909",
+            careCountry = "BR",
+            referralCode = null,
+        ).getOrThrow()
+
+        assertThat(created.id).isEqualTo(requestId)
+        assertThat(created.status).isEqualTo("pending_payment")
+        assertThat(created.priceMinor).isEqualTo(7900)
+        assertThat(created.currency).isEqualTo("BRL")
+
+        val countryCheckReq = mockWebServer.takeRequest(2, TimeUnit.SECONDS)
+        assertThat(countryCheckReq?.path).contains("/rest/v1/patients")
+
+        val dispatchReq = mockWebServer.takeRequest(2, TimeUnit.SECONDS)
+        assertThat(dispatchReq?.path).isEqualTo("/api/pharmacy/dispatch/request")
+        assertThat(dispatchReq?.getHeader("Authorization")).startsWith("Bearer ")
+        val sentBody = dispatchReq?.body?.readUtf8().orEmpty()
+        assertThat(sentBody).contains("\"careCountry\":\"BR\"")
+        assertThat(sentBody).contains("\"lgpdConsent\":true")
+        assertThat(sentBody).contains("\"patientCpf\":\"12345678909\"")
+    }
+
+    @Test
+    fun `signed API rejection surfaces allowlisted error code without leaking PHI`() = runTest {
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(409)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"success":false,"error":"no_doctors_available_now"}"""),
+        )
+        val result = repository.createPatientDispatchRequest(
+            patientDni = "12345678909",
+            patientPhone = "+5551987654321",
+            patientName = "Paciente Brasil",
+            tierRequested = "general",
+            symptomSummary = "Consulta",
+            patientCpf = "12345678909",
+            careCountry = "BR",
+        )
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()?.message).contains("no_doctors_available_now")
+        assertThat(extractSafeDispatchErrorCode("""{"error":"CPF 12345678909 leaked"}""")).isNull()
     }
 
 }

@@ -65,6 +65,13 @@ function getDoctorDisplayName(
   return fullName || "Doctor/a";
 }
 
+function getLocalDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 const EDITORIAL_EASE = [0.25, 0.46, 0.45, 0.94] as const;
 
 export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPageProps): JSX.Element {
@@ -80,9 +87,9 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
   // Today's appointments filtered
   const todayAppointments = useMemo(() => {
     if (!appointments) return [];
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = getLocalDateKey(new Date());
     return appointments.filter((a: any) => {
-      return a.start_time.startsWith(todayStr) && a.status !== "cancelled";
+      return getLocalDateKey(new Date(a.start_time)) === todayStr && a.status !== "cancelled";
     });
   }, [appointments]);
 
@@ -1362,7 +1369,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
                               <button
                                 onClick={() => handleApproveLab(lab.id)}
                                 disabled={isApproving}
-                                className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 text-[10px] font-bold transition-colors"
+                                className="inline-flex items-center gap-1 rounded-lg bg-sky-600 hover:bg-sky-700 text-white px-2.5 py-1 text-[10px] font-bold transition-colors"
                               >
                                 {isApproving ? (
                                   <>

@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { logger } from '@autamedica/shared'
 import { badRequest, internalError, jsonOk } from '@/lib/api-helpers'
 import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth'
@@ -68,6 +69,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
       }
       return acc
     }, {})
+
+    const unresolvedIds = patientIds.filter((id) => !nameMap[id] || nameMap[id] === 'Paciente')
+    if (unresolvedIds.length > 0) {
+      const untypedAdmin = admin as unknown as SupabaseClient
+      const { data: privateRows } = await untypedAdmin
+        .from('patient_private_identities')
+        .select('patient_id, full_name')
+        .in('patient_id', unresolvedIds)
+      for (const row of (privateRows ?? []) as Array<{ patient_id?: string | null; full_name?: string | null }>) {
+        if (row.patient_id && row.full_name?.trim()) {
+          nameMap[row.patient_id] = row.full_name.trim()
+        }
+      }
+    }
 
     return jsonOk(nameMap)
   } catch (error) {

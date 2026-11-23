@@ -11,8 +11,9 @@ vi.mock('@autamedica/shared', () => {
 })
 
 const { supabaseMock, paymentSwitchesMock } = vi.hoisted(() => ({
-  supabaseMock: { from: vi.fn(), auth: { getUser: vi.fn() } } as {
+  supabaseMock: { from: vi.fn(), rpc: vi.fn(), auth: { getUser: vi.fn() } } as {
     from: ReturnType<typeof vi.fn>
+    rpc: ReturnType<typeof vi.fn>
     auth: { getUser: ReturnType<typeof vi.fn> }
   },
   paymentSwitchesMock: vi.fn(),
@@ -123,6 +124,7 @@ function makeContext(options?: {
 describe('API: /api/pharmacy/dispatch/request', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    supabaseMock.rpc.mockResolvedValue({ data: 1, error: null })
     paymentSwitchesMock.mockResolvedValue({
       jordan_qr_payments_enabled: true,
       pharmacy_express_payments_enabled: true,
@@ -138,6 +140,25 @@ describe('API: /api/pharmacy/dispatch/request', () => {
         careCountry: careCountry === 'BR' ? 'BR' : 'AR',
       }
     })
+  })
+
+  it('does not create a dispatch or checkout when the canonical capacity RPC reports no available doctor', async () => {
+    supabaseMock.rpc.mockResolvedValue({ data: 0, error: null })
+    supabaseMock.from.mockImplementation((table: string) => table === 'pharmacy_dispatch_pricing_configs'
+      ? buildTableChain(pricingRow('BR'))
+      : buildTableChain(null))
+
+    const response = await POST(makeContext({
+      body: {
+        careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909', qrSourceCode: 'SANTANA_DO_LIVRAMENTO_01',
+        patientPhone: '+5551987654321', patientName: 'Paciente sintético',
+      },
+    }))
+
+    expect(response.status).toBe(409)
+    expect((await response.json()).error.message).toBe('no_doctors_available_now')
+    expect(supabaseMock.rpc).toHaveBeenCalledWith('get_country_on_duty_capacity', { p_care_country: 'BR' })
+    expect(supabaseMock.from).not.toHaveBeenCalledWith('pharmacy_dispatch_requests')
   })
 
   it('rechaza una solicitud sin país explícito antes de consultar la base', async () => {
@@ -467,13 +488,14 @@ describe('API: /api/pharmacy/dispatch/request', () => {
       body: {
         careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909',
         patientPhone: '+5551999998888', patientName: 'Paciente sintético',
-        referralCode: 'JORDAN',
+        referralCode: 'JORDAN', qrSourceCode: 'SANTANA_DO_LIVRAMENTO_01',
       },
       jordanEnabled: true,
     }))
     expect(response.status).toBe(200)
     expect(dispatchTable.insert).toHaveBeenCalledWith(expect.objectContaining({
       referral_partner_id: partnerId,
+      referral_source_code: 'SANTANA_DO_LIVRAMENTO_01',
       care_country: 'BR',
       pharmacy_id: null,
       patient_dni: null,

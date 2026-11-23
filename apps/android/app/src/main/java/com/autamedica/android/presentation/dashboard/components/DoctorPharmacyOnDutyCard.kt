@@ -262,9 +262,9 @@ fun DoctorPharmacyOnDutyCard(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = if (state.isOnDuty) {
-                            "Conectado a guardia médica • Heartbeat activo cada 30s"
+                            stringResource(R.string.doctor_pharmacy_duty_connected)
                         } else {
-                            "Guardia en pausa • Conéctate para recibir consultas de farmacia"
+                            stringResource(R.string.doctor_pharmacy_duty_paused)
                         },
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 11.sp,

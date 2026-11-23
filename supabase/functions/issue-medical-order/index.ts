@@ -224,6 +224,18 @@ export async function handler(req: Request): Promise<Response> {
         patientCuil = patientCuil || patProfile.cuil;
         patientAddress = patientAddress || patProfile.address;
       }
+    } else if (patient?.id) {
+      const { data: privateIdentity } = await serviceClient
+        .from('patient_private_identities')
+        .select('full_name, document_number')
+        .eq('patient_id', patient.id)
+        .eq('doctor_id', doctor.id)
+        .maybeSingle();
+
+      if (privateIdentity) {
+        patientName = String(privateIdentity.full_name || '').trim() || 'Paciente';
+        patientDni = patientDni || privateIdentity.document_number;
+      }
     }
 
     // 6. Generate CUIR and QR code

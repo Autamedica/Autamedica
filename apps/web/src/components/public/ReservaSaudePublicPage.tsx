@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { RESERVA_SAUDE, formatReservaMonthlyPrice } from '@/config/reserva-saude'
 import { 
   Shield, 
   Sparkles, 
@@ -44,7 +45,8 @@ export default function ReservaSaudePublicPage() {
       .finally(() => setLoadingCatalog(false))
   }, [])
 
-  const accumulatedCredits = Math.min(months * 22, 600)
+  const accumulatedCredits = Math.min(months * RESERVA_SAUDE.monthlyCredits, RESERVA_SAUDE.maxCapCredits)
+  const monthlyPrice = formatReservaMonthlyPrice()
   
   const formatBrl = (cents: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100)
@@ -53,11 +55,11 @@ export default function ReservaSaudePublicPage() {
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'consultation':
-        return <Stethoscope className="w-5 h-5 text-cyan-600" strokeWidth={1.5} />
+        return <Stethoscope className="w-5 h-5 text-sky-600" strokeWidth={1.5} />
       case 'lab_exam':
-        return <FlaskConical className="w-5 h-5 text-emerald-600" strokeWidth={1.5} />
+        return <FlaskConical className="w-5 h-5 text-sky-600" strokeWidth={1.5} />
       case 'medication':
-        return <Pill className="w-5 h-5 text-indigo-600" strokeWidth={1.5} />
+        return <Pill className="w-5 h-5 text-sky-600" strokeWidth={1.5} />
       default:
         return <Shield className="w-5 h-5 text-neutral-600" strokeWidth={1.5} />
     }
@@ -70,7 +72,7 @@ export default function ReservaSaudePublicPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-6 relative z-10">
           
           <div className="inline-flex items-center gap-2 rounded-full border border-neutral-300 bg-white px-4 py-1.5 text-xs font-semibold text-neutral-800 shadow-xs">
-            <Sparkles className="h-3.5 w-3.5 text-cyan-600" strokeWidth={2} />
+            <Sparkles className="h-3.5 w-3.5 text-sky-600" strokeWidth={2} />
             Programa de Benefícios & Reserva de Saúde
           </div>
 
@@ -80,16 +82,16 @@ export default function ReservaSaudePublicPage() {
           </h1>
 
           <p className="max-w-xl mx-auto text-base sm:text-xl text-neutral-600 leading-relaxed font-normal">
-            Por <strong className="text-neutral-950 font-semibold">R$ 49,90/mês</strong> você tem 1 consulta médica mensal. 
+            Por <strong className="text-neutral-950 font-semibold">{monthlyPrice}/mês</strong> você tem 1 consulta médica mensal. 
             Se estiver saudável e não usar, o valor vira créditos para especialistas, exames e farmácia.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
             <a
               href="/auth/register?portal=patient&plan=cuidado"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-neutral-950 px-8 py-4 text-sm font-semibold text-white shadow-md transition hover:bg-neutral-800 active:scale-[0.99]"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500 px-8 py-4 text-sm font-semibold text-white shadow-md transition hover:bg-sky-600 active:scale-[0.99]"
             >
-              Assinar Plano Cuidado (R$ 49,90/mês)
+              Assinar Plano Cuidado ({monthlyPrice}/mês)
               <ArrowRight className="h-4 w-4" />
             </a>
             <a
@@ -105,10 +107,10 @@ export default function ReservaSaudePublicPage() {
               <QrCode className="h-3.5 w-3.5 text-emerald-700" strokeWidth={2} /> Pagamento via Pix ou Cartão
             </span>
             <span className="flex items-center gap-1.5">
-              <Check className="h-4 w-4 text-emerald-600" strokeWidth={2.5} /> Sem carência
+              <Check className="h-4 w-4 text-sky-600" strokeWidth={2.5} /> Sem carência
             </span>
             <span className="flex items-center gap-1.5">
-              <Check className="h-4 w-4 text-emerald-600" strokeWidth={2.5} /> Cancele quando quiser
+              <Check className="h-4 w-4 text-sky-600" strokeWidth={2.5} /> Cancele quando quiser
             </span>
           </div>
         </div>
@@ -173,9 +175,9 @@ export default function ReservaSaudePublicPage() {
           </div>
 
           {/* PLANO CUIDADO (HERO CARD DESTACADO) */}
-          <div className="relative flex flex-col justify-between rounded-3xl border-2 border-neutral-950 bg-white p-8 shadow-xl space-y-8">
+          <div className="relative flex flex-col justify-between rounded-3xl border-2 border-sky-300 bg-white p-8 shadow-xl space-y-8">
             <div className="absolute -top-3.5 right-8">
-              <span className="rounded-full bg-neutral-950 px-4 py-1 text-[10px] font-bold uppercase tracking-widest text-white shadow-sm">
+              <span className="rounded-full bg-sky-700 px-4 py-1 text-[10px] font-bold uppercase tracking-widest text-white shadow-sm">
                 Mais Recomendado
               </span>
             </div>
@@ -183,7 +185,7 @@ export default function ReservaSaudePublicPage() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-cyan-50 border border-cyan-300 px-3 py-1 text-[11px] font-bold text-cyan-900 uppercase tracking-wider">
+                  <span className="rounded-full bg-sky-50 border border-sky-300 px-3 py-1 text-[11px] font-bold text-sky-900 uppercase tracking-wider">
                     Reserva Ativa
                   </span>
                   <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
@@ -191,7 +193,7 @@ export default function ReservaSaudePublicPage() {
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className="text-3xl font-light text-neutral-950">R$ 49,90</span>
+                  <span className="text-3xl font-light text-neutral-950">{monthlyPrice}</span>
                   <span className="text-xs text-neutral-500 font-medium block">/mês</span>
                 </div>
               </div>
@@ -205,19 +207,19 @@ export default function ReservaSaudePublicPage() {
 
               <ul className="space-y-3.5 pt-4 text-sm text-neutral-900 border-t border-neutral-200">
                 <li className="flex items-start gap-3">
-                  <Check className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" strokeWidth={2.5} />
+                  <Check className="h-4 w-4 text-sky-600 shrink-0 mt-0.5" strokeWidth={2.5} />
                   <span><strong>1 consulta médica mensal</strong> de telemedicina incluída</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <Check className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" strokeWidth={2.5} />
-                  <span><strong>Não usou no mês?</strong> Ganhe <strong>+22 créditos</strong></span>
+                  <Check className="h-4 w-4 text-sky-600 shrink-0 mt-0.5" strokeWidth={2.5} />
+                  <span><strong>Não usou no mês?</strong> Ganhe <strong>+{RESERVA_SAUDE.monthlyCredits} créditos</strong></span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <Check className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" strokeWidth={2.5} />
+                  <Check className="h-4 w-4 text-sky-600 shrink-0 mt-0.5" strokeWidth={2.5} />
                   <span>Troque por <strong>cardiologistas, exames de sangue e farmácia</strong></span>
                 </li>
                 <li className="flex items-start gap-3 text-xs text-neutral-600 pt-1">
-                  <Zap className="h-4 w-4 text-cyan-700 shrink-0" strokeWidth={2} />
+                  <Zap className="h-4 w-4 text-sky-700 shrink-0" strokeWidth={2} />
                   <span>Cobrança automática sem burocracia via <strong>Pix</strong> ou cartão</span>
                 </li>
               </ul>
@@ -226,7 +228,7 @@ export default function ReservaSaudePublicPage() {
             <div className="pt-2">
               <a
                 href="/auth/register?portal=patient&plan=cuidado"
-                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-neutral-950 py-4 text-sm font-semibold text-white transition hover:bg-neutral-850 shadow-md active:scale-[0.99]"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500 py-4 text-sm font-semibold text-white transition hover:bg-sky-600 shadow-md active:scale-[0.99]"
               >
                 Assinar com Pix ou Cartão
                 <ArrowRight className="h-4 w-4" />
@@ -241,7 +243,7 @@ export default function ReservaSaudePublicPage() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 space-y-8">
           <div className="text-center space-y-2">
             <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-700 uppercase tracking-wider">
-              <Calculator className="h-4 w-4 text-cyan-600" strokeWidth={2} />
+              <Calculator className="h-4 w-4 text-sky-600" strokeWidth={2} />
               Simulador de Economia
             </div>
             <h2 className="text-2xl sm:text-3xl font-light text-neutral-950">
@@ -269,7 +271,7 @@ export default function ReservaSaudePublicPage() {
                 className="w-full h-2.5 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-neutral-950"
               />
               <div className="flex justify-between text-xs font-semibold text-neutral-500">
-                <span>1 mês (22 pts)</span>
+                <span>1 mês ({RESERVA_SAUDE.monthlyCredits} pts)</span>
                 <span>6 meses (132 pts)</span>
                 <span>12 meses (264 pts)</span>
               </div>
@@ -280,7 +282,7 @@ export default function ReservaSaudePublicPage() {
                 <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">Saldo Disponível</span>
                 <div className="flex items-baseline gap-2">
                   <span className="text-4xl font-light text-neutral-950 tracking-tight">{accumulatedCredits}</span>
-                  <span className="text-xs font-bold text-cyan-800 uppercase">AUTA Créditos</span>
+                  <span className="text-xs font-bold text-sky-800 uppercase">AUTA Créditos</span>
                 </div>
                 <p className="text-xs text-neutral-500 pt-1">
                   Válidos por até 24 meses sem expirar
@@ -292,13 +294,13 @@ export default function ReservaSaudePublicPage() {
                 <div className="text-xs font-medium space-y-1.5 pt-0.5">
                   {accumulatedCredits >= 100 && (
                     <p className="text-emerald-800 flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                      <CheckCircle2 className="h-4 w-4 text-sky-600 shrink-0" />
                       <span>1 Consulta com Cardiologista</span>
                     </p>
                   )}
                   {accumulatedCredits >= 60 && (
-                    <p className="text-cyan-800 flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-cyan-600 shrink-0" />
+                    <p className="text-sky-800 flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-sky-600 shrink-0" />
                       <span>1 Check-up de Sangue Completo</span>
                     </p>
                   )}
@@ -356,7 +358,7 @@ export default function ReservaSaudePublicPage() {
 
                   <div>
                     <h3 className="text-base font-semibold text-neutral-950 leading-snug">{item.name}</h3>
-                    <p className="text-xs text-cyan-800 font-medium mt-1">📍 {item.partner_name}</p>
+                    <p className="text-xs text-sky-800 font-medium mt-1">📍 {item.partner_name}</p>
                   </div>
                 </div>
 
@@ -398,14 +400,14 @@ export default function ReservaSaudePublicPage() {
             <div className="rounded-2xl border border-neutral-300 bg-neutral-50 p-5 space-y-1.5 shadow-xs">
               <strong className="text-neutral-950 block font-semibold text-base">O que acontece se eu não usar a consulta no mês?</strong>
               <p className="text-neutral-600 leading-relaxed">
-                Você ganha automaticamente <strong>22 AUTA Créditos</strong> na sua Reserva de Saúde para usar quando precisar.
+                Você ganha automaticamente <strong>{RESERVA_SAUDE.monthlyCredits} AUTA Créditos</strong> na sua Reserva de Saúde para usar quando precisar.
               </p>
             </div>
 
             <div className="rounded-2xl border border-neutral-300 bg-neutral-50 p-5 space-y-1.5 shadow-xs">
               <strong className="text-neutral-950 block font-semibold text-base">Os créditos expiram?</strong>
               <p className="text-neutral-600 leading-relaxed">
-                Seus créditos ficam válidos por até 24 meses enquanto sua assinatura estiver ativa, com teto de até 600 créditos.
+                Seus créditos ficam válidos por até 24 meses enquanto sua assinatura estiver ativa, com teto de até {RESERVA_SAUDE.maxCapCredits} créditos.
               </p>
             </div>
 

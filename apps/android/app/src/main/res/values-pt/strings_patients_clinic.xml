@@ -9,7 +9,7 @@
     <string name="patients_empty_subtitle">Aqui aparecerão os pacientes que atender</string>
     <string name="patients_count_single">%1$d paciente</string>
     <string name="patients_count_plural">%1$d pacientes</string>
-    <string name="patients_anonymous">Paciente Anónimo</string>
+    <string name="patients_anonymous">Paciente sem nome cadastrado</string>
     <string name="patients_consultations_total_single">%1$d consulta no total</string>
     <string name="patients_consultations_total_plural">%1$d consultas no total</string>
     <string name="patients_last_consultation">Última consulta</string>
@@ -173,4 +173,12 @@
     <string name="community_dialog_content_label">Partilhe a sua experiência...</string>
     <string name="community_dialog_cancel_btn">Cancelar</string>
     <string name="community_dialog_submit_btn">Publicar</string>
+    <string name="patient_detail_error_auth">Não foi possível validar sua sessão. Entre novamente.</string>
+    <string name="patient_detail_error_invalid_reference">O identificador do paciente é inválido.</string>
+    <string name="patient_detail_error_not_assigned">Este paciente não está vinculado à sua conta médica.</string>
+    <string name="patient_detail_error_network">Falha de conexão ao carregar a ficha. Verifique a rede e tente novamente.</string>
+    <string name="patient_detail_error_generic">Não foi possível carregar a ficha clínica.</string>
+    <string name="patient_detail_retry">Tentar novamente</string>
+    <string name="patients_name_not_registered">Nome não cadastrado</string>
+    <string name="patients_record_reference">Registro #%1$s</string>
 </resources>

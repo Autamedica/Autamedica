@@ -143,7 +143,8 @@ fun AppNavHost(
                             isIncomingCall = true,
                         )
                     ) {
-                        popUpTo<Route.PharmacyIntake> { inclusive = true }
+                        // Preserve PharmacyIntake below VideoCall so Back returns
+                        // to the same request and retained ViewModel.
                         launchSingleTop = true
                     }
                 }
@@ -195,6 +196,15 @@ fun AppNavHost(
                 onNavigateToPrescriptions = {
                     navController.navigate(Route.Prescriptions)
                 },
+                onNavigateToCertificates = {
+                    navController.navigate(Route.PatientCertificates)
+                },
+                onNavigateToMedicalOrders = {
+                    navController.navigate(Route.PatientOrders)
+                },
+                onNavigateToChatList = {
+                    navController.navigate(Route.ChatList)
+                },
                 onNavigateToClinicalDocuments = {
                     navController.navigate(Route.ClinicalDocuments)
                 },
@@ -214,6 +224,18 @@ fun AppNavHost(
                 },
                 onNavigateToDoctorMedicalOrders = {
                     navController.navigate(Route.DoctorMedicalOrders)
+                },
+                onNavigateToDoctorAgenda = {
+                    navController.navigate(Route.DoctorAgenda)
+                },
+                onNavigateToCreatePrescription = {
+                    navController.navigate(Route.CreatePrescription(""))
+                },
+                onNavigateToCreateCertificate = {
+                    navController.navigate(Route.CreateCertificate(""))
+                },
+                onNavigateToCreateMedicalOrder = {
+                    navController.navigate(Route.CreateMedicalOrder(""))
                 },
                 onNavigateToDoctorOnDemand = {
                     navController.navigate(Route.DoctorOnDemand) {
@@ -277,6 +299,15 @@ fun AppNavHost(
                     navController.navigate(Route.VideoCall(appointmentId)) {
                         launchSingleTop = true
                     }
+                },
+                onNavigateToCreatePrescription = { patientId ->
+                    navController.navigate(Route.CreatePrescription(patientId))
+                },
+                onNavigateToCreateCertificate = { patientId ->
+                    navController.navigate(Route.CreateCertificate(patientId))
+                },
+                onNavigateToCreateMedicalOrder = { patientId ->
+                    navController.navigate(Route.CreateMedicalOrder(patientId))
                 },
             )
         }
@@ -478,6 +509,26 @@ fun AppNavHost(
         composable<Route.Prescriptions> {
             com.autamedica.android.presentation.prescriptions.PrescriptionsScreen(
                 onBack = { navController.popBackStack() },
+                onRequestConsultation = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable<Route.PatientCertificates> {
+            com.autamedica.android.presentation.prescriptions.PrescriptionsScreen(
+                onBack = { navController.popBackStack() },
+                initialTab = com.autamedica.android.presentation.prescriptions.DocumentTab.ATESTADOS,
+                onRequestConsultation = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable<Route.PatientOrders> {
+            com.autamedica.android.presentation.prescriptions.PrescriptionsScreen(
+                onBack = { navController.popBackStack() },
+                initialTab = com.autamedica.android.presentation.prescriptions.DocumentTab.ORDENES,
                 onRequestConsultation = {
                     navController.popBackStack()
                 }

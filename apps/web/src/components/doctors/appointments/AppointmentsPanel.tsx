@@ -4,6 +4,7 @@ import type { Appointment } from '@autamedica/types'
 import { useEffect, useMemo, useState } from 'react'
 import { Calendar, Clock, Video, User, Plus, Filter, ChevronRight, Stethoscope, FileText, Pill, AlertTriangle } from 'lucide-react'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
+import { useCurrentDoctor } from '@/hooks/doctors/useRealDoctors'
 import { useDoctorAppointments } from '@/hooks/doctors/useDoctorAppointments'
 
 import { resolvePatientNameMap } from '@/lib/doctors/services/appointment.service'
@@ -187,9 +188,20 @@ function ClinicalContextSummary({
 
 
 
+function getLocalDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function AppointmentsPanel() {
   const { user } = useAuthenticatedUser()
-  
+  const { doctor } = useCurrentDoctor(user?.id)
+  const doctorCountry = (doctor as (NonNullable<typeof doctor> & { care_country?: string }) | null)
+    ?.care_country
+  const dateLocale = doctorCountry === 'BR' ? 'pt-BR' : 'es-AR'
+
   const doctorId = user?.doctorProfileId
   const {
     appointments,
@@ -217,8 +229,8 @@ export function AppointmentsPanel() {
     const nowMs = now.getTime()
     let list = [...appointments]
     if (filter === 'today') {
-      const todayStr = now.toISOString().slice(0, 10)
-      list = list.filter(a => a.start_time.startsWith(todayStr))
+      const todayStr = getLocalDateKey(now)
+      list = list.filter(a => getLocalDateKey(new Date(a.start_time)) === todayStr)
     } else if (filter === 'upcoming') {
       list = list.filter(a => new Date(a.start_time).getTime() >= nowMs - 30 * 60 * 1000)
     }
@@ -236,9 +248,9 @@ export function AppointmentsPanel() {
   // Find current/next appointment for hero card
   const currentTurno = useMemo(() => {
     const now = new Date()
-    const todayStr = now.toISOString().slice(0, 10)
+    const todayStr = getLocalDateKey(now)
     const todayAppointments = appointments
-      .filter(a => a.start_time.startsWith(todayStr) && a.status !== 'cancelled' && a.status !== 'completed')
+      .filter(a => getLocalDateKey(new Date(a.start_time)) === todayStr && a.status !== 'cancelled' && a.status !== 'completed')
       .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
 
     // Find in_progress first, then next upcoming
@@ -303,10 +315,10 @@ export function AppointmentsPanel() {
                   </div>
                   <div>
                     <p className="text-3xl font-black tracking-tight text-neutral-950">
-                      {new Date(currentTurno.start_time).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(currentTurno.start_time).toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' })}
                     </p>
                     <p className="text-sm font-medium text-neutral-400 mt-1">
-                      Hoy, {new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}
+                      Hoy, {new Date().toLocaleDateString(dateLocale, { day: 'numeric', month: 'long' })}
                     </p>
                   </div>
                 </div>
@@ -429,7 +441,7 @@ export function AppointmentsPanel() {
                     const isSelected = selectedAppointmentId === a.id
                     const isCurrent = currentTurno?.id === a.id
                     const start = new Date(a.start_time)
-                    const timeStr = start.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+                    const timeStr = start.toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' })
                     const isTelemedicine = a.type === 'telemedicine'
 
                     return (
@@ -440,7 +452,7 @@ export function AppointmentsPanel() {
                           isSelected
                             ? 'bg-am-doctor-50 ring-1 ring-am-doctor-100'
                             : isCurrent
-                            ? 'bg-emerald-50/50'
+                            ? 'bg-sky-50/70'
                             : 'hover:bg-neutral-50'
                         }`}
                       >

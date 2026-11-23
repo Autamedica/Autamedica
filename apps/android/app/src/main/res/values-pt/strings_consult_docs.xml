@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="consult_radar_doctors_one">1 médico disponível agora</string>
+    <string name="consult_radar_doctors_many">%1$d médicos disponíveis agora</string>
+    <string name="consult_radar_checking">Verificando profissionais online</string>
+    <string name="consult_radar_title">Atendimento médico agora</string>
+    <string name="consult_radar_subtitle">Consulte por vídeo sem agendamento e receba receita, atestado ou pedido de exame na hora.</string>
+    <string name="consult_radar_cta">Buscar médico agora</string>
+
+    <string name="consult_schedule_card_title">Agendar uma consulta</string>
+    <string name="consult_schedule_card_subtitle">Escolha especialidade, profissional e o melhor horário para você</string>
+    <string name="consult_schedule_card_cta">Ver horários disponíveis</string>
+
+    <string name="consult_active_room_badge">Consulta confirmada · Sala pronta</string>
+    <string name="consult_active_room_default_doctor">Seu médico está conectado</string>
+    <string name="consult_active_room_cta">Entrar na videochamada</string>
+
+    <string name="consult_pending_payment_title">Pagamento pendente de confirmação</string>
+    <string name="consult_pending_payment_subtitle">Conclua o pagamento para confirmar sua consulta</string>
+    <string name="consult_pending_payment_cta">Concluir pagamento</string>
+
+    <string name="docs_tab_prescriptions_short">Receitas</string>
+    <string name="docs_tab_certificates_short">Atestados</string>
+    <string name="docs_tab_orders_short">Exames</string>
+
+    <string name="docs_orders_screen_title">Pedidos de Exames</string>
+    <string name="docs_orders_active_count_one">%1$d pedido emitido</string>
+    <string name="docs_orders_active_count_many">%1$d pedidos emitidos</string>
+    <string name="docs_orders_none_issued">Sem pedidos de exames emitidos</string>
+    <string name="docs_orders_error_title">Não foi possível carregar seus exames</string>
+    <string name="docs_orders_empty_title">Você ainda não tem pedidos de exames</string>
+    <string name="docs_orders_empty_subtitle">Quando um médico solicitar exames ou laudos, eles aparecerão aqui prontos para baixar em PDF.</string>
+    <string name="docs_orders_empty_cta">Solicitar consulta</string>
+    <string name="docs_order_view_detail">Ver pedido médico</string>
+    <string name="docs_order_status_issued">Emitido</string>
+    <string name="docs_order_status_pending">Em andamento</string>
+    <string name="docs_order_status_cancelled">Cancelado</string>
+    <string name="docs_order_practices_label">Exames solicitados</string>
+    <string name="docs_order_diagnosis_label">Hipótese diagnóstica</string>
+    <string name="docs_order_download_pdf">Baixar PDF do pedido</string>
+
+    <string name="docs_study_type_lab">Laboratório</string>
+    <string name="docs_study_type_imaging">Exames de imagem</string>
+    <string name="docs_study_type_cardiology">Cardiologia</string>
+    <string name="docs_study_type_other">Outros exames</string>
+
+    <string name="doctor_tab_prescriptions">Receitas</string>
+    <string name="doctor_header_agenda_cd">Ver agenda médica</string>
+    <string name="doctor_header_messages_cd">Ver mensagens com pacientes</string>
+
+    <string name="doctor_quick_action_issue_cta">Emitir</string>
+
+    <string name="doctor_dni_selector_title">Destinatário do documento</string>
+    <string name="doctor_dni_selector_subtitle">Selecione um paciente ou emita por DNI/CPF + WhatsApp/E-mail</string>
+    <string name="doctor_dni_quick_add_btn">Emitir por DNI/CPF</string>
+    <string name="doctor_dni_delivery_badge">Envio: %1$s</string>
+    <string name="doctor_dni_panel_title">Cadastro rápido por DNI/CPF</string>
+    <string name="doctor_dni_panel_subtitle">Obtém nome, foto e cobertura e envia por WhatsApp/E-mail</string>
+    <string name="doctor_dni_field_document">1. DNI / CPF</string>
+    <string name="doctor_dni_field_sex">2. Sexo no documento</string>
+    <string name="doctor_dni_sex_f">Feminino (F)</string>
+    <string name="doctor_dni_sex_m">Masculino (M)</string>
+    <string name="doctor_dni_sex_x">X</string>
+    <string name="doctor_dni_field_contact">3. WhatsApp ou E-mail</string>
+    <string name="doctor_dni_field_manual_name">Nome e Sobrenome completos</string>
+    <string name="doctor_dni_searching_btn">Consultando cadastro…</string>
+    <string name="doctor_dni_submit_btn">Buscar e vincular</string>
+    <string name="doctor_dni_share_direct_btn">Enviar para %1$s (WhatsApp / E-mail)</string>
+    <string name="doctor_dni_share_generic_btn">Enviar por WhatsApp / E-mail</string>
+</resources>

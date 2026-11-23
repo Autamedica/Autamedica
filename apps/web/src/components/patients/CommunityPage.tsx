@@ -17,17 +17,20 @@ import {
   X,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { getClientI18n, type Locale } from '@/i18n/index';
 
-function timeAgo(dateStr: string): string {
+type CommunityCopy = ReturnType<typeof getClientI18n>['dict']['patientPortal']['community'];
+
+function timeAgo(dateStr: string, copy: CommunityCopy): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'Ahora';
+  if (mins < 1) return copy.justNow;
   if (mins < 60) return `${mins}m`;
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h`;
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d`;
-  return `${Math.floor(days / 7)}sem`;
+  return `${Math.floor(days / 7)}${copy.weekSuffix}`;
 }
 
 /* ─── Post Card (Feed) ─── */
@@ -36,8 +39,10 @@ function PostCard({
   post,
   onReact,
   onOpen,
+  copy,
 }: {
   post: CommunityPost;
+  copy: CommunityCopy;
   onReact: (postId: string) => Promise<void>;
   onOpen: (post: CommunityPost) => void;
 }) {
@@ -66,10 +71,10 @@ function PostCard({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span className={`text-sm truncate ${post.is_anonymous ? 'font-medium text-stone-500 italic' : 'font-semibold text-stone-900'}`}>
-                {post.is_anonymous ? 'Anónimo' : post.author_display_name ?? 'Paciente'}
+                {post.is_anonymous ? copy.anonymous : post.author_display_name ?? copy.patient}
               </span>
               <span className="text-xs text-stone-300">
-                {isUpdated ? `Actualizado ${timeAgo(post.updated_at)}` : timeAgo(post.created_at)}
+                {isUpdated ? `${copy.updated} ${timeAgo(post.updated_at, copy)}` : timeAgo(post.created_at, copy)}
               </span>
             </div>
 
@@ -122,8 +127,10 @@ function PostDetailView({
   post,
   onBack,
   onReact,
+  copy,
 }: {
   post: CommunityPost;
+  copy: CommunityCopy;
   onBack: () => void;
   onReact: (postId: string) => Promise<void>;
 }) {
@@ -177,12 +184,12 @@ function PostDetailView({
       {/* Header */}
       <header className="sticky top-0 z-30 bg-white shadow-am-xs">
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-5 py-4">
-          <button type="button" onClick={onBack} aria-label="Volver" className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600">
+          <button type="button" onClick={onBack} aria-label={copy.back} className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600">
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <h1 className="text-sm font-bold text-stone-900">Publicacion</h1>
+          <h1 className="text-sm font-bold text-stone-900">{copy.publication}</h1>
           <span className="ml-auto rounded-full bg-stone-100 px-2.5 py-1 text-[10px] font-semibold text-stone-500">
-            {post.group?.name ?? 'General'}
+            {post.group?.name ?? copy.general}
           </span>
         </div>
       </header>
@@ -199,9 +206,9 @@ function PostDetailView({
               </div>
               <div>
                 <p className={`text-sm ${post.is_anonymous ? 'font-medium text-stone-500 italic' : 'font-semibold text-stone-900'}`}>
-                  {post.is_anonymous ? 'Anónimo' : post.author_display_name ?? 'Paciente'}
+                  {post.is_anonymous ? copy.anonymous : post.author_display_name ?? copy.patient}
                 </p>
-                <p className="text-xs text-stone-400">{timeAgo(post.created_at)}</p>
+                <p className="text-xs text-stone-400">{timeAgo(post.created_at, copy)}</p>
               </div>
             </div>
 
@@ -245,7 +252,7 @@ function PostDetailView({
         {/* Comments section */}
         <div className="mt-6">
           <p className="text-[13px] font-semibold uppercase tracking-widest text-stone-400">
-            Comentarios ({comments.length || post.comment_count})
+            {copy.comments} ({comments.length || post.comment_count})
           </p>
 
           {loadingComments ? (
@@ -255,7 +262,7 @@ function PostDetailView({
           ) : comments.length === 0 ? (
             <div className="mt-6 rounded-2xl border border-dashed border-stone-200 bg-white p-8 text-center">
               <MessageCircle className="mx-auto h-6 w-6 text-stone-300" />
-              <p className="mt-2 text-sm text-stone-400">Sin comentarios todavia. Se el primero.</p>
+              <p className="mt-2 text-sm text-stone-400">{copy.noComments}</p>
             </div>
           ) : (
             <div className="mt-4 space-y-3">
@@ -276,14 +283,14 @@ function PostDetailView({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className={`text-sm truncate ${comment.is_anonymous ? 'font-medium text-stone-500 italic' : 'font-semibold text-stone-900'}`}>
-                            {comment.is_anonymous ? 'Anónimo' : comment.author_display_name ?? 'Paciente'}
+                            {comment.is_anonymous ? copy.anonymous : comment.author_display_name ?? copy.patient}
                           </span>
                           {comment.author_role === 'doctor' && (
                             <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-700">
-                              Medico{comment.doctor_specialty ? ` · ${comment.doctor_specialty}` : ''}
+                              {copy.doctor}{comment.doctor_specialty ? ` · ${comment.doctor_specialty}` : ''}
                             </span>
                           )}
-                          <span className="text-xs text-stone-300">{timeAgo(comment.created_at)}</span>
+                          <span className="text-xs text-stone-300">{timeAgo(comment.created_at, copy)}</span>
                         </div>
                       </div>
                     </div>
@@ -304,7 +311,7 @@ function PostDetailView({
               <textarea
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Escribi tu comentario..."
+                placeholder={copy.commentPlaceholder}
                 rows={1}
                 className="w-full resize-none rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-900 shadow-sm outline-none transition-all placeholder:text-stone-300 focus:border-stone-400 focus:bg-white focus:ring-2 focus:ring-stone-900/5"
                 onKeyDown={(e) => {
@@ -321,14 +328,14 @@ function PostDetailView({
                   onChange={(e) => setIsAnonymous(e.target.checked)}
                   className="rounded border-stone-300"
                 />
-                Anonimo
+                {copy.anonymousLabel}
               </label>
             </div>
             <button
               type="button"
               onClick={handleSubmitComment}
               disabled={!commentText.trim() || submitting}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-stone-900 text-white shadow-sm transition-all hover:bg-stone-800 active:scale-95 disabled:opacity-40"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-700 text-white shadow-sm transition-all hover:bg-sky-800 active:scale-95 disabled:opacity-40"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </button>
@@ -341,7 +348,9 @@ function PostDetailView({
 
 /* ─── Main Community Page ─── */
 
-export default function CommunityPage() {
+export default function CommunityPage({ locale = 'es' }: { locale?: Locale }) {
+  const { dict } = getClientI18n(locale);
+  const copy = dict.patientPortal.community;
   const {
     displayName: _displayName,
     loading,
@@ -403,6 +412,7 @@ export default function CommunityPage() {
   if (selectedPost) {
     return (
       <PostDetailView
+        copy={copy}
         post={selectedPost}
         onBack={() => setSelectedPost(null)}
         onReact={reactToPost}
@@ -425,16 +435,16 @@ export default function CommunityPage() {
   return (
     <div className="min-h-screen bg-white text-neutral-900">
       {/* Hero Header */}
-      <section className="bg-neutral-900 px-6 lg:px-12 pt-16 pb-20">
+      <section className="bg-sky-700 px-6 lg:px-12 pt-16 pb-20">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between">
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 text-white/80 rounded-full text-xs font-medium mb-6">
                 <Users className="size-3.5" />
-                Comunidad de pacientes
+                {copy.eyebrow}
               </div>
-              <h1 className="text-4xl lg:text-5xl text-white mb-4 leading-tight">Comunidad</h1>
-              <p className="text-lg text-white/60 max-w-lg">Conectá con otros pacientes, compartí experiencias</p>
+              <h1 className="text-4xl lg:text-5xl text-white mb-4 leading-tight">{copy.title}</h1>
+              <p className="text-lg text-white/60 max-w-lg">{copy.description}</p>
             </div>
             <button
               type="button"
@@ -442,7 +452,7 @@ export default function CommunityPage() {
               className="hidden sm:inline-flex items-center gap-2 px-7 py-4 bg-white text-neutral-900 rounded-full font-medium hover:bg-neutral-50 transition-all"
             >
               <Plus className="size-4" />
-              Publicar
+              {copy.publish}
             </button>
           </div>
         </div>
@@ -453,7 +463,7 @@ export default function CommunityPage() {
         <button
           type="button"
           onClick={() => openComposer()}
-          className="w-full flex items-center justify-center gap-2 py-3.5 bg-neutral-900 text-white rounded-full font-medium shadow-xl"
+          className="w-full flex items-center justify-center gap-2 py-3.5 bg-sky-700 text-white rounded-full font-medium shadow-xl"
         >
           <Plus className="size-4" />
           Publicar
@@ -471,10 +481,10 @@ export default function CommunityPage() {
             type="button"
             onClick={() => setActiveGroupId(null)}
             className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-all ${
-              activeGroupId === null ? 'bg-stone-900 text-white shadow-sm' : 'bg-white text-stone-500 ring-1 ring-stone-200'
+              activeGroupId === null ? 'bg-sky-700 text-white shadow-sm' : 'bg-white text-stone-500 ring-1 ring-stone-200'
             }`}
           >
-            Todos
+            {copy.allGroups}
           </button>
           {groups.map((group) => (
             <button
@@ -483,7 +493,7 @@ export default function CommunityPage() {
               onClick={() => setActiveGroupId(group.id)}
               className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-all ${
                 activeGroupId === group.id
-                  ? 'bg-stone-900 text-white shadow-sm'
+                  ? 'bg-sky-700 text-white shadow-sm'
                   : membershipSet.has(group.id)
                     ? 'bg-sky-50 text-sky-700 ring-1 ring-sky-200'
                     : 'bg-white text-stone-500 ring-1 ring-stone-200'
@@ -497,7 +507,7 @@ export default function CommunityPage() {
         {/* Recommended groups */}
         {recommendedGroups.length > 0 && !activeGroupId && (
           <div className="space-y-2.5">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-400">Sugeridos para vos</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-400">{copy.suggested}</p>
             <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none">
               {recommendedGroups.slice(0, 3).map((group) => (
                 <button
@@ -528,10 +538,10 @@ export default function CommunityPage() {
               type="button"
               onClick={() => setSortBy(s)}
               className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                sortBy === s ? 'bg-stone-900 text-white' : 'bg-white text-stone-400 ring-1 ring-stone-200'
+                sortBy === s ? 'bg-sky-700 text-white' : 'bg-white text-stone-400 ring-1 ring-stone-200'
               }`}
             >
-              {s === 'recent' ? 'Recientes' : 'Populares'}
+              {s === 'recent' ? copy.recent : copy.popular}
             </button>
           ))}
         </div>
@@ -560,19 +570,20 @@ export default function CommunityPage() {
                 key={post.id}
                 post={post}
                 onReact={reactToPost}
+                copy={copy}
                 onOpen={setSelectedPost}
               />
             ))
           ) : (
             <div className="rounded-2xl border border-dashed border-stone-200 bg-white p-10 text-center">
               <Users className="mx-auto h-8 w-8 text-stone-300" />
-              <p className="mt-3 text-sm font-medium text-stone-400">Sin publicaciones todavia</p>
+              <p className="mt-3 text-sm font-medium text-stone-400">{copy.noPosts}</p>
               <button
                 type="button"
                 onClick={() => openComposer()}
                 className="mt-3 text-sm font-bold text-sky-500 transition-colors hover:text-sky-600"
               >
-                Se el primero en compartir
+                {copy.firstToShare}
               </button>
             </div>
           )}
@@ -585,7 +596,7 @@ export default function CommunityPage() {
           <div className="absolute inset-0" onClick={() => setShowComposer(false)} />
           <div className="relative w-full max-w-lg rounded-t-2xl bg-white p-6 shadow-xl sm:rounded-2xl">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-stone-900">Nueva publicacion</h2>
+              <h2 className="text-lg font-bold text-stone-900">{copy.newPublication}</h2>
               <button type="button" onClick={() => setShowComposer(false)} className="rounded-full p-2 text-stone-400 hover:bg-stone-50 hover:text-stone-600">
                 <X className="h-5 w-5" />
               </button>
@@ -597,7 +608,7 @@ export default function CommunityPage() {
                 onChange={(e) => setComposerGroupId(e.target.value)}
                 className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition-all focus:border-stone-400 focus:ring-2 focus:ring-stone-900/5"
               >
-                <option value="">Elegir grupo</option>
+                <option value="">{copy.chooseGroup}</option>
                 {groups.map((g: CommunityGroup) => (
                   <option key={g.id} value={g.id}>{g.name}</option>
                 ))}
@@ -607,7 +618,7 @@ export default function CommunityPage() {
                 type="text"
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="Titulo (opcional)"
+                placeholder={copy.titlePlaceholder}
                 className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm shadow-sm outline-none transition-all placeholder:text-stone-300 focus:border-stone-400 focus:ring-2 focus:ring-stone-900/5"
               />
 
@@ -615,7 +626,7 @@ export default function CommunityPage() {
                 value={newContent}
                 onChange={(e) => setNewContent(e.target.value)}
                 rows={4}
-                placeholder="Conta tu experiencia..."
+                placeholder={copy.experiencePlaceholder}
                 className="w-full resize-none rounded-xl border border-stone-200 px-4 py-3 text-sm leading-relaxed shadow-sm outline-none transition-all placeholder:text-stone-300 focus:border-stone-400 focus:ring-2 focus:ring-stone-900/5"
               />
 
@@ -626,7 +637,7 @@ export default function CommunityPage() {
                   onChange={(e) => setIsAnonymous(e.target.checked)}
                   className="rounded border-stone-300"
                 />
-                Publicar anonimamente
+                {copy.publish} anonimamente
               </label>
             </div>
 
@@ -635,10 +646,10 @@ export default function CommunityPage() {
                 type="button"
                 onClick={handleSubmitPost}
                 disabled={!composerGroupId || !newContent.trim() || submitting}
-                className="inline-flex items-center gap-2 rounded-xl bg-stone-900 px-6 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-stone-800 active:scale-[0.97] disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl bg-stone-900 px-6 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-sky-800 active:scale-[0.97] disabled:opacity-50"
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                Publicar
+                {copy.publish}
               </button>
             </div>
           </div>

@@ -32,9 +32,18 @@ export function MemedPrescriptionWidget({
   const [doctorBirthInput, setDoctorBirthInput] = useState('');
   const [doctorIdentitySubmitted, setDoctorIdentitySubmitted] = useState<{ cpf: string; birthDate: string } | null>(null);
   const [patientDemographicsRequired, setPatientDemographicsRequired] = useState(false);
+  const [missingPatientFields, setMissingPatientFields] = useState<{ demographics: boolean; address: boolean }>({ demographics: false, address: false });
   const [patientBirthInput, setPatientBirthInput] = useState('');
   const [patientGenderInput, setPatientGenderInput] = useState<'male' | 'female' | ''>('');
-  const [patientDemographicsSubmitted, setPatientDemographicsSubmitted] = useState<{ patientBirthDate: string; patientGender: 'male' | 'female' } | null>(null);
+  const [patientAddressInput, setPatientAddressInput] = useState('');
+  const [patientCityInput, setPatientCityInput] = useState('');
+  const [skipOptionalAddress, setSkipOptionalAddress] = useState(false);
+  const [patientDemographicsSubmitted, setPatientDemographicsSubmitted] = useState<{
+    patientBirthDate?: string;
+    patientGender?: 'male' | 'female';
+    patientAddress?: string;
+    patientCity?: string;
+  } | null>(null);
   const onSavedRef = useRef(onPrescriptionSaved);
   const onDeletedRef = useRef(onPrescriptionDeleted);
   onSavedRef.current = onPrescriptionSaved;
@@ -99,7 +108,10 @@ export function MemedPrescriptionWidget({
         }
         if (cancelled) return;
         setPatientLabel(json.data.patient.nome);
-        if (json.data.patientDemographicsMissing) {
+        const needsDemographics = Boolean(json.data.patientDemographicsMissing);
+        const needsAddress = Boolean(json.data.patientAddressMissing) && !skipOptionalAddress;
+        if (needsDemographics || needsAddress) {
+          setMissingPatientFields({ demographics: needsDemographics, address: needsAddress });
           setPatientDemographicsRequired(true);
           setLoading(false);
           return;
@@ -124,7 +136,7 @@ export function MemedPrescriptionWidget({
       void hub?.module.hide?.('plataforma.prescricao').catch(() => undefined);
       // Leave the script in place to prevent duplicate initialization.
     };
-  }, [patientId, requestId, doctorIdentitySubmitted, patientDemographicsSubmitted]);
+  }, [patientId, requestId, doctorIdentitySubmitted, patientDemographicsSubmitted, skipOptionalAddress]);
 
   return (
     <div className={mobileFullscreen
@@ -177,32 +189,82 @@ export function MemedPrescriptionWidget({
         {patientDemographicsRequired && !loading && (
           <form className="space-y-3 border-b p-5" onSubmit={(event) => {
             event.preventDefault();
-            if (!patientBirthInput || !patientGenderInput) return;
+            if (missingPatientFields.demographics && (!patientBirthInput || !patientGenderInput)) return;
+            const trimmedAddress = patientAddressInput.trim();
+            const trimmedCity = patientCityInput.trim();
+            if (missingPatientFields.address && trimmedAddress.length < 5) return;
             setPatientDemographicsRequired(false);
             setErrorMessage(null);
             setLoading(true);
-            setPatientDemographicsSubmitted({ patientBirthDate: patientBirthInput, patientGender: patientGenderInput });
+            setPatientDemographicsSubmitted({
+              ...(missingPatientFields.demographics && patientBirthInput && patientGenderInput
+                ? { patientBirthDate: patientBirthInput, patientGender: patientGenderInput }
+                : {}),
+              ...(missingPatientFields.address && trimmedAddress
+                ? {
+                    patientAddress: trimmedAddress,
+                    ...(trimmedCity.length >= 2 ? { patientCity: trimmedCity } : {}),
+                  }
+                : {}),
+            });
           }}>
-            <p className="text-sm text-slate-800">Complete os dados que faltam do paciente, confirmando a informação diretamente com ele. A Memed pode exigir data de nascimento e sexo para determinados medicamentos e receituários.</p>
-            <label className="block text-sm text-slate-700">
-              Data de nascimento do paciente
-              <input type="date" required max={new Date().toISOString().slice(0, 10)}
-                value={patientBirthInput} onChange={(event) => setPatientBirthInput(event.target.value)}
-                className="mt-1 block w-full rounded border p-2" />
-            </label>
-            <label className="block text-sm text-slate-700">
-              Sexo cadastral do paciente
-              <select required value={patientGenderInput} onChange={(event) => setPatientGenderInput(event.target.value as 'male' | 'female' | '')}
-                className="mt-1 block w-full rounded border p-2">
-                <option value="">Selecione</option>
-                <option value="female">Feminino</option>
-                <option value="male">Masculino</option>
-              </select>
-            </label>
+            <p className="text-sm text-slate-800">
+              Complete os dados que faltam do paciente, confirmando a informação diretamente com ele.
+              {missingPatientFields.address
+                ? ' Para receitas controladas e Notificação de Receita B (azul / SNCR - RDC 1.000/2025), a Memed exige endereço completo do paciente.'
+                : ' A Memed pode exigir data de nascimento e sexo para determinados medicamentos e receituários.'}
+            </p>
+            {missingPatientFields.demographics && (
+              <>
+                <label className="block text-sm text-slate-700">
+                  Data de nascimento do paciente
+                  <input type="date" required max={new Date().toISOString().slice(0, 10)}
+                    value={patientBirthInput} onChange={(event) => setPatientBirthInput(event.target.value)}
+                    className="mt-1 block w-full rounded border p-2" />
+                </label>
+                <label className="block text-sm text-slate-700">
+                  Sexo cadastral do paciente
+                  <select required value={patientGenderInput} onChange={(event) => setPatientGenderInput(event.target.value as 'male' | 'female' | '')}
+                    className="mt-1 block w-full rounded border p-2">
+                    <option value="">Selecione</option>
+                    <option value="female">Feminino</option>
+                    <option value="male">Masculino</option>
+                  </select>
+                </label>
+              </>
+            )}
+            {missingPatientFields.address && (
+              <>
+                <label className="block text-sm text-slate-700">
+                  Endereço completo (rua, número, bairro)
+                  <input type="text" required minLength={5} maxLength={200}
+                    placeholder="Ex.: Av. Paulista, 1000, Bela Vista"
+                    value={patientAddressInput} onChange={(event) => setPatientAddressInput(event.target.value)}
+                    className="mt-1 block w-full rounded border p-2" />
+                </label>
+                <label className="block text-sm text-slate-700">
+                  Cidade / UF (opcional, recomendado para SNCR)
+                  <input type="text" minLength={2} maxLength={100}
+                    placeholder="Ex.: São Paulo - SP"
+                    value={patientCityInput} onChange={(event) => setPatientCityInput(event.target.value)}
+                    className="mt-1 block w-full rounded border p-2" />
+                </label>
+              </>
+            )}
             <div className="flex flex-wrap gap-2">
               <button type="submit" className="rounded bg-blue-700 px-4 py-2 text-sm font-medium text-white">
                 Salvar dados e abrir Memed
               </button>
+              {!missingPatientFields.demographics && missingPatientFields.address && (
+                <button type="button" onClick={() => {
+                  setPatientDemographicsRequired(false);
+                  setErrorMessage(null);
+                  setSkipOptionalAddress(true);
+                }}
+                  className="rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800">
+                  Abrir sem endereço (receita simples)
+                </button>
+              )}
               <button type="button" onClick={onFallbackToNativePrescription}
                 className="rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800">
                 Continuar con receta nativa Autamedica

@@ -1,0 +1,119 @@
+name: Play Store Real Screenshots Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Inspect active Play Store locales without modifying screenshots"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  upload-screenshots:
+    name: Upload real phoneScreenshots to Google Play Console
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Google Play API client
+        run: pip install --quiet google-auth google-api-python-client
+
+      - name: Upload real phoneScreenshots for active listings
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          from google.oauth2 import service_account
+          from googleapiclient.discovery import build
+          from googleapiclient.http import MediaFileUpload
+
+          sa_raw = os.environ.get("SERVICE_ACCOUNT", "").strip()
+          if not sa_raw:
+              print("::error::GOOGLE_PLAY_SERVICE_ACCOUNT is not configured")
+              sys.exit(1)
+
+          dry_run = os.environ.get("DRY_RUN", "false").lower() == "true"
+          package_name = "com.autamedica.android"
+          assets_root = Path("apps/android/play-store-assets/screenshots")
+
+          creds = service_account.Credentials.from_service_account_info(
+              json.loads(sa_raw),
+              scopes=["https://www.googleapis.com/auth/androidpublisher"],
+          )
+          service = build("androidpublisher", "v3", credentials=creds)
+          edits = service.edits()
+
+          edit = edits.insert(packageName=package_name, body={}).execute()
+          edit_id = edit["id"]
+          print(f"Opened Play Store edit: {edit_id}")
+
+          try:
+              listings_resp = edits.listings().list(packageName=package_name, editId=edit_id).execute()
+              active_languages = [item["language"] for item in listings_resp.get("listings", [])]
+              print(f"Active Play Store listing languages: {active_languages}")
+
+              def resolve_asset_dir(lang: str) -> Path:
+                  direct = assets_root / lang
+                  if direct.is_dir():
+                      return direct
+                  if lang.startswith("pt"):
+                      return assets_root / "pt-BR"
+                  if lang.startswith("es"):
+                      return assets_root / "es-419"
+                  return assets_root / "en-US"
+
+              for lang in active_languages:
+                  src_dir = resolve_asset_dir(lang)
+                  pngs = sorted(src_dir.glob("*.png"))
+                  if not pngs:
+                      print(f"WARNING: No PNGs found for {lang} in {src_dir}, skipping")
+                      continue
+                  print(f"Locale {lang} -> {len(pngs)} real screenshots from {src_dir}")
+                  if dry_run:
+                      continue
+
+                  edits.images().deleteall(
+                      packageName=package_name,
+                      editId=edit_id,
+                      language=lang,
+                      imageType="phoneScreenshots",
+                  ).execute()
+
+                  for png in pngs:
+                      media = MediaFileUpload(str(png), mimetype="image/png", resumable=False)
+                      edits.images().upload(
+                          packageName=package_name,
+                          editId=edit_id,
+                          language=lang,
+                          imageType="phoneScreenshots",
+                          media_body=media,
+                      ).execute()
+                      print(f"  Uploaded {lang}/{png.name}")
+
+              if dry_run:
+                  edits.delete(packageName=package_name, editId=edit_id).execute()
+                  print("Dry run completed; edit deleted without changes.")
+              else:
+                  edits.commit(packageName=package_name, editId=edit_id).execute()
+                  print("Play Store edit committed successfully!")
+          except Exception:
+              try:
+                  edits.delete(packageName=package_name, editId=edit_id).execute()
+              except Exception:
+                  pass
+              raise
+          PY

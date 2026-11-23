@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.doctors.certificates
 
+import com.autamedica.android.presentation.common.maskPatientDocument
+
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -41,6 +43,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.R
+import com.autamedica.android.presentation.common.DocumentViewerSource
+import com.autamedica.android.presentation.common.InAppDocumentViewerDialog
 import com.autamedica.android.domain.model.CertificateType
 import com.autamedica.android.domain.model.MedicalCertificate
 import com.autamedica.android.presentation.prescriptions.components.QrCodeView
@@ -64,21 +68,43 @@ fun DoctorCertificatesScreen(
     onBack: () -> Unit,
     onNavigateToCreateCertificate: () -> Unit,
     modifier: Modifier = Modifier,
+    showBackButton: Boolean = true,
     viewModel: DoctorCertificatesViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val onOpenPdf: (String) -> Unit = { pdfUrl ->
-        runCatching {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(pdfUrl)).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            context.startActivity(intent)
-        }.onFailure {
-            Toast.makeText(context, context.getString(R.string.cert_toast_open_pdf_error), Toast.LENGTH_SHORT).show()
-        }
+    var activeDocumentViewer by remember { mutableStateOf<DocumentViewerSource?>(null) }
+
+    val onOpenPdf: (MedicalCertificate) -> Unit = { certificate ->
+        val certTitle = context.getString(R.string.cert_screen_title)
+        val certFileName = "Certificado_${certificate.cuir ?: certificate.id.take(8)}.pdf"
+        viewModel.openCertificatePdf(
+            certificate = certificate,
+            onReady = { signedUrl ->
+                val uri = Uri.parse(signedUrl)
+                if (uri.scheme.equals("https", ignoreCase = true)) {
+                    activeDocumentViewer = DocumentViewerSource.RemoteDocumentUrl(
+                        url = signedUrl,
+                        title = certTitle,
+                        fileName = certFileName,
+                    )
+                } else {
+                    Toast.makeText(context, context.getString(R.string.cert_toast_open_pdf_error), Toast.LENGTH_SHORT).show()
+                }
+            },
+            onFailure = {
+                Toast.makeText(context, context.getString(R.string.cert_toast_open_pdf_error), Toast.LENGTH_SHORT).show()
+            },
+        )
+    }
+
+    activeDocumentViewer?.let { docSource ->
+        InAppDocumentViewerDialog(
+            source = docSource,
+            onDismiss = { activeDocumentViewer = null },
+        )
     }
 
     var selectedCertForDetail by remember { mutableStateOf<MedicalCertificate?>(null) }
@@ -117,12 +143,14 @@ fun DoctorCertificatesScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.clinical_ops_back),
-                            tint = AuTextPrimary,
-                        )
+                    if (showBackButton) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.clinical_ops_back),
+                                tint = AuTextPrimary,
+                            )
+                        }
                     }
                 },
                 actions = {
@@ -142,7 +170,7 @@ fun DoctorCertificatesScreen(
                 onClick = onNavigateToCreateCertificate,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text(stringResource(R.string.cert_action_new_certificate), fontWeight = FontWeight.Bold) },
-                containerColor = PortalDoctors,
+                containerColor = PortalPatientsAction,
                 contentColor = Color.White,
                 shape = RoundedCornerShape(16.dp),
             )
@@ -307,7 +335,7 @@ fun DoctorCertificatesScreen(
                     )
                     cert.patientName?.let { name ->
                         val patientText = cert.patientDni?.takeIf { it.isNotBlank() }?.let { dni ->
-                            stringResource(R.string.cert_detail_patient_with_dni, name, dni)
+                            stringResource(R.string.cert_detail_patient_with_dni, name, maskPatientDocument(dni))
                         } ?: stringResource(R.string.cert_detail_patient, name)
                         Text(
                             text = patientText,
@@ -346,8 +374,6 @@ fun DoctorCertificatesScreen(
                 }
             },
             confirmButton = {
-                val pdfUrl = cert.effectivePdfUrl
-                    ?: "https://autamedica.com/verify/${cert.cuir}"
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -355,7 +381,7 @@ fun DoctorCertificatesScreen(
                     Button(
                         onClick = {
                             selectedCertForDetail = null
-                            onOpenPdf(pdfUrl)
+                            onOpenPdf(cert)
                         },
                         enabled = cert.isActive,
                         colors = ButtonDefaults.buttonColors(
@@ -380,7 +406,7 @@ fun DoctorCertificatesScreen(
 @Composable
 private fun DoctorCertificateCard(
     certificate: MedicalCertificate,
-    onOpenPdf: (String) -> Unit,
+    onOpenPdf: (MedicalCertificate) -> Unit,
     onCopyCuir: () -> Unit,
     onOpenDetail: () -> Unit,
 ) {
@@ -434,7 +460,7 @@ private fun DoctorCertificateCard(
                         )
                         certificate.patientDni?.takeIf { it.isNotBlank() }?.let { dni ->
                             Text(
-                                text = stringResource(R.string.cert_card_dni_label, dni),
+                                text = stringResource(R.string.cert_card_dni_label, maskPatientDocument(dni)),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AuTextTertiary
                             )
@@ -537,11 +563,8 @@ private fun DoctorCertificateCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    val pdfUrl = certificate.signedPdfUrl?.takeIf { it.isNotBlank() }
-                        ?: "https://autamedica.com/verify/${certificate.cuir}"
-
                     Button(
-                        onClick = { onOpenPdf(pdfUrl) },
+                        onClick = { onOpenPdf(certificate) },
                         enabled = isValid && certificate.signedPdfUrl?.isNotBlank() == true,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF0F766E),

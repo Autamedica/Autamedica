@@ -53,6 +53,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Videocam
@@ -140,27 +141,27 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private const val DOCTOR_TAB_APPOINTMENTS = 2
-private const val DOCTOR_TAB_PATIENTS = 3
+private const val DOCTOR_TAB_PATIENTS = 2
+private const val DOCTOR_TAB_PROFILE = 3
 
 // =============================================================================
 // DESIGN TOKENS "AUTAMEDICA OS v2 — UBER DRIVER PARA TELEMEDICINA" (MATERIAL 3)
 // Sensación: "Hay pacientes esperando ahora mismo y yo puedo aceptarlos."
 // Apple + Uber + Nubank + Linear | M3 | Glassmorphism sutil
-// Card radius: 28 dp | Botón principal: 20 dp radius, 58 dp altura
+// Card radius: 20 dp | Botón principal: 20 dp radius, 58 dp altura
 // Switch Guardia: Muy grande (escala 1.5f) con track verde activo
 // Triaje: Rojo urgencia, Cian quirúrgico prioritario, Azul control, Verde estable
 // =============================================================================
-private val AutaBlue = Color(0xFF155EEF)      // Color principal AutaMedica
+private val AutaBlue = Color(0xFF0EA5E9)      // AutaMedica sky-500
 private val AutaGreen = Color(0xFF16C784)     // EN LÍNEA, disponible, éxito
 private val AutaRed = Color(0xFFFF4D4F)       // Urgencias de triaje
 private val MedicalBlue = AutaBlue            // Alias de compatibilidad
-private val MedicalCyan = Color(0xFF06B6D4)   // Cian Quirúrgico (Prioritario - Zero-Yellow Gate)
-private val SoftBlueBg = Color(0xFFEBF1FF)
+private val MedicalCyan = Color(0xFF0284C7)   // AutaMedica sky-600
+private val SoftBlueBg = Color(0xFFE0F2FE)
 private val SoftGreenBg = Color(0xFFECFDF5)
 private val SoftRedBg = Color(0xFFFEF2F2)
 private val SoftCyanBg = Color(0xFFF0F9FF)
-private val GlassBorder = Color(0x1E155EEF)   // Glassmorphism borde sutil
+private val GlassBorder = Color(0x1E0EA5E9)   // Glassmorphism borde sutil
 private val Slate50 = Color(0xFFF8FAFC)
 private val Slate100 = Color(0xFFF1F5F9)
 private val Slate200 = Color(0xFFE2E8F0)
@@ -168,10 +169,10 @@ private val Slate500 = Color(0xFF64748B)
 private val Slate700 = Color(0xFF334155)
 private val Slate800 = Color(0xFF1E293B)
 private val Slate900 = Color(0xFF0F172A)
-private val CardRadius = 28.dp
+private val CardRadius = 20.dp
 
 /**
- * Modificador de sombra ultra-suave con glow azul AutaMedica (#155EEF)
+ * Modificador de sombra ultra-suave con glow azul AutaMedica (#0EA5E9)
  */
 private fun Modifier.auSoftShadow(radius: Dp = CardRadius): Modifier = this.shadow(
     elevation = 3.dp,
@@ -189,7 +190,12 @@ fun DoctorDashboardScreen(
     onNavigateToDoctorPrescriptions: () -> Unit = {},
     onNavigateToDoctorCertificates: () -> Unit = {},
     onNavigateToDoctorMedicalOrders: () -> Unit = {},
+    onNavigateToCreatePrescription: () -> Unit = onNavigateToDoctorPrescriptions,
+    onNavigateToCreateCertificate: () -> Unit = onNavigateToDoctorCertificates,
+    onNavigateToCreateMedicalOrder: () -> Unit = onNavigateToDoctorMedicalOrders,
     onNavigateToDoctorOnDemand: () -> Unit = {},
+    onNavigateToDoctorAgenda: () -> Unit = {},
+    onNavigateToDoctorMessages: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: DoctorDashboardViewModel = hiltViewModel(),
 ) {
@@ -224,38 +230,65 @@ fun DoctorDashboardScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            text = "AutaMedica",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = AuTextPrimary,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-0.6).sp,
-                        )
-                        if (uiState.doctorProfile != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(11.dp))
+                                .background(com.autamedica.android.presentation.theme.PortalPatientsAction),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.MedicalServices,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                        Column {
+                            Text(
+                                text = "AutaMedica",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = AuTextPrimary,
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = (-0.6).sp,
+                            )
                             Text(
                                 text = stringResource(R.string.doctor_portal_title),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = PortalDoctors,
-                                fontWeight = FontWeight.Medium,
+                                color = com.autamedica.android.presentation.theme.PortalPatientsAction,
+                                fontWeight = FontWeight.Bold,
                             )
                         }
                     }
                 },
                 actions = {
-                    uiState.doctorProfile?.let { doctorProfile ->
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = SoftBlueBg,
-                            modifier = Modifier.padding(end = 12.dp),
-                        ) {
-                            Text(
-                                text = formatDoctorSpecialty(doctorProfile.specialty),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MedicalBlue,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                    IconButton(onClick = onNavigateToDoctorAgenda) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = stringResource(R.string.doctor_header_agenda_cd),
+                            tint = com.autamedica.android.presentation.theme.PortalPatientsAction,
+                        )
+                    }
+                    IconButton(onClick = onNavigateToDoctorMessages) {
+                        Box {
+                            Icon(
+                                imageVector = Icons.Outlined.Email,
+                                contentDescription = stringResource(R.string.doctor_header_messages_cd),
+                                tint = com.autamedica.android.presentation.theme.PortalPatientsAction,
                             )
+                            if (uiState.unreadMessagesCount > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .align(Alignment.TopEnd)
+                                        .clip(CircleShape)
+                                        .background(com.autamedica.android.presentation.theme.PortalPatientsAction),
+                                )
+                            }
                         }
                     }
                 },
@@ -381,61 +414,51 @@ fun DoctorDashboardScreen(
                             }
                         }
 
+                        // 1. HEADER DR. + FOTO AVATAR + SWITCH DE GUARDIA
                         item {
                             DoctorCockpitHeader(
                                 doctorName = uiState.userName,
-                                specialty = uiState.doctorProfile?.specialty,
+                                specialty = uiState.doctorProfile?.specialty?.let { raw ->
+                                    formatDoctorSpecialty(raw, stringResource(R.string.doctor_specialty_general))
+                                },
                                 licenseNumber = uiState.doctorProfile?.licenseNumber,
                                 licenseType = uiState.doctorProfile?.licenseType,
                                 countryCode = uiState.doctorProfile?.countryCode,
                                 ufBrazil = uiState.doctorProfile?.ufBrazil,
-                                avatarUrl = null,
+                                avatarUrl = uiState.userAvatarUrl,
                                 isOnDuty = uiState.pharmacyOnDutyState.isOnDuty,
                                 isLoading = uiState.pharmacyOnDutyState.isLoading,
                                 guardApproved = uiState.guardApproved,
                                 onToggleOnDuty = viewModel::togglePharmacyOnDuty,
+                                onOpenProfile = { onNavigateToTab(DOCTOR_TAB_PROFILE) },
                             )
                         }
 
-                        // 2. NUBANK-STYLE METRICS TICKER (FinTech / Clinical KPIs)
-                        item {
-                            NubankClinicalMetricsSection(
-                                stats = uiState.stats,
-                                statsAvailable = uiState.statsAvailable,
-                            )
-                        }
-
-                        // 3. LIVE PATIENT RADAR & WAITING DRAWER (Cockpit de guardia)
-                        item {
-                            LivePatientRadarDrawer(
-                                isOnDuty = uiState.pharmacyOnDutyState.isOnDuty,
-                                liveWaitingQueue = uiState.liveWaitingQueue,
-                                activelyDispatchedPatientId = uiState.activelyDispatchedPatientId,
-                                onViewPatientChart = { patient ->
-                                    inspectingPatient = patient
-                                },
-                                onNavigateToRadarDetail = onNavigateToDoctorOnDemand,
-                            )
-                        }
-
-                        // 4. QUICK CLINICAL ACTIONS BAR (Herramientas de 1 toque)
+                        // 2. 3 BOTONES GRANDES DE EMISIÓN DIRECTA ARRIBA DE TODO (Receta · Certificado · Órdenes)
                         item {
                             QuickClinicalActionsBar(
-                                onNavigateToPrescriptions = {
-                                    if (isBrazilianDoctor) showBrazilMemedPatientPrompt = true
-                                    else onNavigateToDoctorPrescriptions()
-                                },
-                                onNavigateToCertificates = {
-                                    if (isBrazilianDoctor) showBrazilMemedPatientPrompt = true
-                                    else onNavigateToDoctorCertificates()
-                                },
-                                onNavigateToMedicalOrders = onNavigateToDoctorMedicalOrders,
-                                onNavigateToDoctorOnDemand = onNavigateToDoctorOnDemand,
-                                onNavigateToCreateAppointment = { onNavigateToTab(DOCTOR_TAB_APPOINTMENTS) },
+                                onNavigateToPrescriptions = onNavigateToCreatePrescription,
+                                onNavigateToCertificates = onNavigateToCreateCertificate,
+                                onNavigateToMedicalOrders = onNavigateToCreateMedicalOrder,
                             )
                         }
 
-                        // 5. PRÓXIMO EN ESPERA / CONSULTA TELEMEDICINA DESTACADA
+                        // 3. RADAR DE GUARDIA (Visible SOLO cuando el switch de Guardia está ACTIVO)
+                        if (uiState.pharmacyOnDutyState.isOnDuty) {
+                            item {
+                                LivePatientRadarDrawer(
+                                    isOnDuty = true,
+                                    liveWaitingQueue = uiState.liveWaitingQueue,
+                                    activelyDispatchedPatientId = uiState.activelyDispatchedPatientId,
+                                    onViewPatientChart = { patient ->
+                                        inspectingPatient = patient
+                                    },
+                                    onNavigateToRadarDetail = onNavigateToDoctorOnDemand,
+                                )
+                            }
+                        }
+
+                        // 4. PRÓXIMO PACIENTE EN ESPERA + AGENDA DE HOY
                         if (nextInQueue != null) {
                             item {
                                 HeroNextInQueueCard(
@@ -449,25 +472,22 @@ fun DoctorDashboardScreen(
                             }
                         }
 
-                        // 6. CONTINUIDAD ASISTENCIAL (Seguimiento a 30 días)
-                        if (uiState.recentPatients.isNotEmpty()) {
-                            item {
-                                FollowUpStarSection(
-                                    patients = uiState.recentPatients,
-                                    onViewAll = { onNavigateToTab(DOCTOR_TAB_PATIENTS) },
-                                )
-                            }
-                        }
-
-                        // 7. AGENDA DE HOY ESTILO UBER EATS (Lista Viva)
                         item {
                             UberEatsLiveAgendaSection(
                                 appointments = uiState.todayAppointments,
                                 joinableAppointmentIds = uiState.joinableAppointmentIds,
                                 patientsMap = uiState.patientsMap,
                                 onJoinCall = onNavigateToVideoCall,
-                                onViewAll = { onNavigateToTab(DOCTOR_TAB_APPOINTMENTS) },
-                                onNavigateToCreateAppointment = { onNavigateToTab(DOCTOR_TAB_APPOINTMENTS) },
+                                onViewAll = onNavigateToDoctorAgenda,
+                                onNavigateToCreateAppointment = onNavigateToDoctorAgenda,
+                            )
+                        }
+
+                        // 5. MÉTRICAS DEL DÍA AL FINAL (Fila compacta de 3 números, oculta si están en 0)
+                        item {
+                            NubankClinicalMetricsSection(
+                                stats = uiState.stats,
+                                statsAvailable = uiState.statsAvailable,
                             )
                         }
                     }
@@ -601,9 +621,9 @@ private fun AutaMedicaOsDutyHero(
                     Column {
                         Text(
                             text = when {
-                                guardApproved != true -> "Guardia pendiente de validación"
-                                isOnDuty -> "Guardia Médica Activa"
-                                else -> "Guardia en Pausa"
+                                guardApproved != true -> stringResource(R.string.doctor_duty_label_pending)
+                                isOnDuty -> stringResource(R.string.doctor_duty_label_active)
+                                else -> stringResource(R.string.doctor_duty_label_paused)
                             },
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontSize = 16.sp,
@@ -667,7 +687,7 @@ private fun AutaMedicaOsDutyHero(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = if (isOnDuty) "Conectado a guardia médica • Heartbeat activo cada 30s" else "Desconectado • Telemetría en espera",
+                        text = if (isOnDuty) stringResource(R.string.doctor_duty_connected) else stringResource(R.string.doctor_duty_disconnected),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 11.sp,
                             fontWeight = if (isOnDuty) FontWeight.Bold else FontWeight.Medium,
@@ -793,7 +813,7 @@ private fun FollowUpStarSection(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "CONTINUIDAD ASISTENCIAL",
+                    text = stringResource(R.string.doctor_continuity_title),
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = 11.sp,
                         fontWeight = FontWeight.ExtraBold,
@@ -803,7 +823,7 @@ private fun FollowUpStarSection(
                     maxLines = 1,
                 )
                 Text(
-                    text = "Seguimiento activo a 30 días",
+                    text = stringResource(R.string.doctor_continuity_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary,
                     maxLines = 1,
@@ -812,7 +832,7 @@ private fun FollowUpStarSection(
             }
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Ver todos →",
+                text = stringResource(R.string.doctor_view_all),
                 style = MaterialTheme.typography.labelMedium,
                 color = MedicalBlue,
                 fontWeight = FontWeight.Bold,
@@ -842,7 +862,7 @@ private fun FollowUpPatientCard(
     patient: PatientSummary,
     modifier: Modifier = Modifier,
 ) {
-    val patientName = "${patient.firstName} ${patient.lastName}".trim().ifBlank { "Paciente" }
+    val patientName = "${patient.firstName} ${patient.lastName}".trim().ifBlank { stringResource(R.string.doctor_patient_fallback_name) }
     Card(
         modifier = modifier
             .width(230.dp)
@@ -896,7 +916,7 @@ private fun FollowUpPatientCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = "${patient.appointmentCount} consultas previas",
+                        text = if (patient.appointmentCount == 1) stringResource(R.string.doctor_prior_consultations_single, patient.appointmentCount) else stringResource(R.string.doctor_prior_consultations_plural, patient.appointmentCount),
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                         color = AuTextTertiary,
                     )
@@ -919,7 +939,7 @@ private fun FollowUpPatientCard(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Telemetría y Adherencia OK",
+                        text = stringResource(R.string.doctor_telemetry_adherence_ok),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
@@ -950,7 +970,11 @@ private fun UberEatsLiveAgendaSection(
         LocalDate.now(),
         ZoneId.systemDefault(),
     )
-    val countText = "${todayScheduled.size} consulta${if (todayScheduled.size == 1) "" else "s"} programada${if (todayScheduled.size == 1) "" else "s"}"
+    val countText = if (todayScheduled.size == 1) {
+        stringResource(R.string.doctor_schedule_count_single, todayScheduled.size)
+    } else {
+        stringResource(R.string.doctor_schedule_count_plural, todayScheduled.size)
+    }
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -960,7 +984,7 @@ private fun UberEatsLiveAgendaSection(
         ) {
             Column {
                 Text(
-                    text = "Agenda de hoy",
+                    text = stringResource(R.string.doctor_schedule_today_title),
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontSize = 20.sp,
                         fontWeight = FontWeight.ExtraBold,
@@ -977,7 +1001,7 @@ private fun UberEatsLiveAgendaSection(
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Agendar turno",
+                    contentDescription = stringResource(R.string.doctor_schedule_create_appointment_cd),
                     tint = MedicalBlue,
                     modifier = Modifier.size(24.dp),
                 )
@@ -987,7 +1011,7 @@ private fun UberEatsLiveAgendaSection(
         Spacer(modifier = Modifier.height(16.dp))
         if (todayScheduled.isEmpty()) {
             Text(
-                text = "No hay consultas programadas para hoy.",
+                text = stringResource(R.string.doctor_schedule_empty_state),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Slate500,
                 modifier = Modifier.padding(vertical = 14.dp),
@@ -997,8 +1021,8 @@ private fun UberEatsLiveAgendaSection(
                 todayScheduled.forEachIndexed { index, appointment ->
                     val patient = appointment.patientId?.let { patientsMap[it] }
                     val patientName = patient?.let {
-                        "${it.firstName} ${it.lastName}".trim().ifBlank { "Paciente" }
-                    } ?: "Paciente"
+                        "${it.firstName} ${it.lastName}".trim().ifBlank { stringResource(R.string.doctor_patient_fallback_name) }
+                    } ?: stringResource(R.string.doctor_patient_fallback_name)
                     val isJoinable = appointment.id in joinableAppointmentIds
                     UberEatsLiveRowItem(
                         patientName = patientName,
@@ -1026,7 +1050,7 @@ private fun UberEatsLiveAgendaSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "+ Agendar turno",
+                text = stringResource(R.string.doctor_schedule_new),
                 style = MaterialTheme.typography.labelMedium,
                 color = MedicalBlue,
                 fontWeight = FontWeight.Bold,
@@ -1043,7 +1067,7 @@ private fun UberEatsLiveAgendaSection(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Ver agenda completa",
+                    text = stringResource(R.string.doctor_schedule_view_all),
                     style = MaterialTheme.typography.labelMedium,
                     color = MedicalBlue,
                     fontWeight = FontWeight.Bold,
@@ -1199,7 +1223,7 @@ private fun HeroNextInQueueCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "PRÓXIMO EN ESPERA",
+                        text = stringResource(R.string.doctor_next_waiting),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.ExtraBold,
@@ -1210,7 +1234,7 @@ private fun HeroNextInQueueCard(
                 }
 
                 Text(
-                    text = "${formatTime(appointment.startTime)} hs",
+                    text = stringResource(R.string.doctor_appointment_time_label, formatTime(appointment.startTime)), 
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = FontWeight.Bold,
                     ),
@@ -1300,7 +1324,7 @@ private fun HeroNextInQueueCard(
                         modifier = Modifier.size(22.dp),
                     )
                     Text(
-                        text = if (isJoinable) "ATENDER AHORA (ENTRAR A SALA)" else "ABRIR CONSULTA DE TELEMEDICINA",
+                        text = if (isJoinable) stringResource(R.string.doctor_consult_start_now) else stringResource(R.string.doctor_consult_open),
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp),
                     )
@@ -1343,7 +1367,7 @@ fun StripeWeeklySummaryCard(
             ) {
                 Column(modifier = Modifier.weight(1f, fill = false)) {
                     Text(
-                        text = "Resumen semanal",
+                        text = stringResource(R.string.doctor_weekly_summary_title),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Slate800,
@@ -1352,7 +1376,7 @@ fun StripeWeeklySummaryCard(
                     )
                     Spacer(modifier = Modifier.height(3.dp))
                     Text(
-                        text = "Últimos 7 días",
+                        text = stringResource(R.string.doctor_last_seven_days),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
                         color = Slate500,
@@ -1378,7 +1402,7 @@ fun StripeWeeklySummaryCard(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "7 DÍAS",
+                            text = stringResource(R.string.doctor_seven_days_badge),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
@@ -1407,9 +1431,9 @@ fun StripeWeeklySummaryCard(
                 Spacer(modifier = Modifier.width(16.dp))
                 StripeKpiItem(
                     modifier = Modifier.weight(1f),
-                    title = "Pacientes",
+                    title = stringResource(R.string.doctor_dashboard_patients_label),
                     value = "16",
-                    trend = "+4 nuevos",
+                    trend = stringResource(R.string.doctor_dashboard_new_patients_trend, 4),
                     trendUp = true,
                     isCyan = false,
                 )
@@ -1421,16 +1445,16 @@ fun StripeWeeklySummaryCard(
             Row(modifier = Modifier.fillMaxWidth()) {
                 StripeKpiItem(
                     modifier = Modifier.weight(1f),
-                    title = "Satisfacción",
+                    title = stringResource(R.string.doctor_dashboard_satisfaction_label),
                     value = "94%",
-                    trend = "+2% pts",
+                    trend = stringResource(R.string.doctor_dashboard_satisfaction_trend, 2),
                     trendUp = true,
                     isCyan = true, // Cian médico para calidad y satisfacción
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 StripeKpiItem(
                     modifier = Modifier.weight(1f),
-                    title = "Tiempo medio",
+                    title = stringResource(R.string.doctor_dashboard_average_time_label),
                     value = "18 min",
                     trend = "-2 min",
                     trendUp = false, // Menor tiempo es mejor, flecha hacia abajo
@@ -1608,7 +1632,7 @@ private fun LivePatientQueueSection(
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Guardia activa · Sin pacientes en espera",
+                                text = stringResource(R.string.doctor_duty_active_no_waiting),
                                 style = MaterialTheme.typography.titleSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 15.sp,
@@ -1642,7 +1666,7 @@ private fun LivePatientQueueSection(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
-                            text = "Pacientes esperando ahora",
+                            text = stringResource(R.string.doctor_patients_waiting_now),
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.ExtraBold,
@@ -1800,7 +1824,7 @@ private fun TriagePatientCard(
             ) {
                 // 1. Paciente y edad
                 val cleanName = cleanPatientName(patient.name)
-                val patientDisplayName = if (patient.age > 0) "$cleanName, ${patient.age} años" else cleanName
+                val patientDisplayName = if (patient.age > 0) stringResource(R.string.doctor_patient_name_with_age, cleanName, patient.age) else cleanName
                 Text(
                     text = patientDisplayName,
                     style = MaterialTheme.typography.titleMedium.copy(
@@ -1906,7 +1930,7 @@ private fun TriagePatientCard(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "${patient.waitMinutes} min",
+                            text = stringResource(R.string.doctor_wait_time_minutes, patient.waitMinutes),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (isUrgent) AutaRed else Slate500,
@@ -1918,7 +1942,7 @@ private fun TriagePatientCard(
                             color = if (isActivelyOffered) SoftBlueBg else Slate100,
                         ) {
                             Text(
-                                text = if (isActivelyOffered) "⏱ 30s · Ofertada" else "En espera",
+                                text = if (isActivelyOffered) stringResource(R.string.doctor_offer_countdown) else stringResource(R.string.doctor_waiting_status),
                                 fontSize = 10.sp,
                                 fontWeight = if (isActivelyOffered) FontWeight.Bold else FontWeight.Medium,
                                 color = if (isActivelyOffered) AutaBlue else Slate500,
@@ -1936,7 +1960,7 @@ private fun TriagePatientCard(
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
                     ) {
                         Text(
-                            text = "VER FICHA",
+                            text = stringResource(R.string.doctor_view_patient_record),
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp,
                             color = AutaBlue,
@@ -2006,7 +2030,7 @@ private fun PreConsultationBottomSheet(
 
             // Identificación
             val cleanPreConsultName = cleanPatientName(patient.name)
-            val preConsultDisplayName = if (patient.age > 0) "$cleanPreConsultName, ${patient.age} años" else cleanPreConsultName
+            val preConsultDisplayName = if (patient.age > 0) stringResource(R.string.doctor_patient_name_with_age, cleanPreConsultName, patient.age) else cleanPreConsultName
             Column {
                 Text(
                     text = preConsultDisplayName,
@@ -2016,7 +2040,7 @@ private fun PreConsultationBottomSheet(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Ficha clínica de pre-consulta • Resumen en 20 segundos",
+                    text = stringResource(R.string.doctor_preconsultation_summary),
                     fontSize = 12.sp,
                     color = Slate500,
                 )
@@ -2029,7 +2053,7 @@ private fun PreConsultationBottomSheet(
                 border = BorderStroke(0.5.dp, GlassBorder),
             ) {
                 Text(
-                    text = "“Ningún médico atiende a ciegas. Ficha clínica estructurada lista antes de conectar.”",
+                    text = stringResource(R.string.doctor_preconsultation_quote),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = AutaBlue,
@@ -2040,7 +2064,7 @@ private fun PreConsultationBottomSheet(
             // Signos Vitales
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    text = "SIGNOS VITALES REGISTRADOS",
+                    text = stringResource(R.string.doctor_vitals_recorded),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Slate500,
@@ -2063,7 +2087,7 @@ private fun PreConsultationBottomSheet(
             // Anamnesis / Motivo
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    text = "ANAMNESIS DE INGRESO",
+                    text = stringResource(R.string.doctor_intake_anamnesis),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Slate500,
@@ -2080,7 +2104,7 @@ private fun PreConsultationBottomSheet(
             // Antecedentes
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    text = "ANTECEDENTES & MEDICACIÓN HABITUAL",
+                    text = stringResource(R.string.doctor_history_medication),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Slate500,
@@ -2106,7 +2130,7 @@ private fun PreConsultationBottomSheet(
                 colors = ButtonDefaults.buttonColors(containerColor = AutaBlue),
             ) {
                 Text(
-                    text = "Entendido • Cerrar Ficha",
+                    text = stringResource(R.string.doctor_close_record),
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                 )
@@ -2136,19 +2160,6 @@ private fun cleanConsultationReason(notes: String?, type: AppointmentType): Stri
         AppointmentType.CHECKUP -> "Control"
         AppointmentType.TELEMEDICINE -> "Teleconsulta"
         AppointmentType.CONSULTATION -> "Consulta"
-    }
-}
-
-@Composable
-private fun formatDoctorSpecialty(specialty: String): String {
-    return if (specialty.equals("general", ignoreCase = true) ||
-        specialty.equals("medicina general", ignoreCase = true) ||
-        specialty.equals("clínica médica", ignoreCase = true) ||
-        specialty.equals("clinica medica", ignoreCase = true)
-    ) {
-        stringResource(R.string.doctor_specialty_general)
-    } else {
-        specialty.replaceFirstChar { it.uppercase() }
     }
 }
 

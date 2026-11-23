@@ -80,7 +80,7 @@ fun UpcomingAppointmentHeroCard(
                         isJoinableNow -> Color(0xFFECFEFF)
                         else -> Color(0xFF0F172A)
                     },
-                    border = if (isJoinableNow && !isInProgress) BorderStroke(1.dp, Color(0xFF22D3EE)) else null,
+                    border = if (isJoinableNow && !isInProgress) BorderStroke(1.dp, Color(0xFF0EA5E9)) else null,
                 ) {
                     Text(
                         text = when {
@@ -91,8 +91,8 @@ fun UpcomingAppointmentHeroCard(
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = when {
-                            isInProgress -> Color(0xFFDC2626)
-                            isJoinableNow -> Color(0xFF0891B2)
+                            isInProgress -> Color(0xFF0284C7)
+                            isJoinableNow -> Color(0xFF0284C7)
                             else -> Color.White
                         },
                         letterSpacing = 0.5.sp,
@@ -112,7 +112,7 @@ fun UpcomingAppointmentHeroCard(
                     Icon(
                         imageVector = if (isJoinableNow) Icons.Default.Videocam else Icons.Default.CalendarMonth,
                         contentDescription = if (isJoinableNow) "Sala de videoconsulta disponible" else "Fecha de consulta",
-                        tint = if (isJoinableNow) Color(0xFF0891B2) else PortalPatients,
+                        tint = if (isJoinableNow) Color(0xFF0284C7) else PortalPatients,
                         modifier = Modifier.size(20.dp),
                     )
                 }

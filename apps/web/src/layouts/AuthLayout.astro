@@ -23,18 +23,18 @@ const {
 
 const locale = Astro.locals.locale ?? 'es';
 const { t, dict } = getI18n(locale);
-const testimonials = dict.landing.authLayout.testimonials;
+const testimonials = dict.landing.authLayout.testimonials as unknown as Array<{ quote: string; name: string; role: string }>;
 
 const fullTitle = title.includes('AutaMedica') ? title : `${title} | AutaMedica`;
 const currentPath = Astro.url.pathname;
 const currentSearch = getSafeAuthNavigationSearch(Astro.url.searchParams);
 const role = Astro.url.searchParams.get('role') || 'patient';
 
-const themeClass = `theme-${role}`;
+const themeClass = role === 'patient' ? 'theme-patient' : role === 'doctor' ? 'theme-doctor' : 'theme-company';
 
 const authFlowLinks = [
-  { href: '/auth/login', label: 'Iniciar sesión' },
-  { href: '/auth/register', label: 'Crear cuenta' },
+  { href: '/auth/login', label: t('auth.signIn') },
+  { href: '/auth/register', label: t('auth.createAccount') },
 ];
 const { publicSupabaseUrl, publicSupabaseAnonKey, publicSentryDsn } = resolvePublicClientEnv(
   Astro.locals.runtime?.env,
@@ -42,7 +42,7 @@ const { publicSupabaseUrl, publicSupabaseAnonKey, publicSentryDsn } = resolvePub
 ---
 
 <!doctype html>
-<html lang="es" dir="ltr">
+<html lang={locale === 'pt' ? 'pt-BR' : 'es'} dir="ltr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />

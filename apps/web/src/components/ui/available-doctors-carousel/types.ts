@@ -11,6 +11,6 @@ export interface Doctor {
   experienceYears?: number;
   hospital?: string;
   university?: string;
-  availability?: 'today' | 'tomorrow' | 'full';
+  availability?: 'available' | 'today' | 'tomorrow' | 'full';
   verified?: boolean;
 }

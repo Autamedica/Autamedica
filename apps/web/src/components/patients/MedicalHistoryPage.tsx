@@ -76,7 +76,7 @@ function PrescriptionCard({ prescription, onClick, index, locale }: {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.08 }}
       whileHover={{ y: -4 }}
-      className="group rounded-2xl border border-slate-200 bg-white p-5 transition-all hover:border-[#10B981] sm:p-6"
+      className="group rounded-2xl border border-slate-200 bg-white p-5 transition-all hover:border-sky-500 sm:p-6"
     >
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="min-w-0 flex-1">
@@ -84,7 +84,7 @@ function PrescriptionCard({ prescription, onClick, index, locale }: {
             {prescription.medication_name || (locale === 'pt-BR' ? 'Receita médica' : 'Prescripción médica')}
           </h3>
           <p className="text-sm text-neutral-500 mt-0.5">{doctorName} · {dateStr}</p>
-          <p className="mt-1 text-[11px] font-semibold text-emerald-700">{prescription.source === 'memed_br' ? 'Memed BR' : prescription.source === 'prescriptions_core' ? 'RCTA / Core AR' : (isPortuguese ? 'Histórico clínico' : 'Historial clínico')}</p>
+          <p className="mt-1 text-[11px] font-semibold text-sky-700">{prescription.source === 'memed_br' ? 'Memed BR' : prescription.source === 'prescriptions_core' ? 'RCTA / Core AR' : (isPortuguese ? 'Histórico clínico' : 'Historial clínico')}</p>
           {prescription.access_code && <p className="mt-1 text-xs text-slate-600">{isPortuguese ? 'Código de acesso' : 'Código de acceso'}: <span className="font-mono font-semibold text-slate-900">{prescription.access_code}</span></p>}
         </div>
         <span className={`rounded-full px-3 py-1 text-xs font-bold shrink-0 ${statusStyle}`}>
@@ -114,7 +114,7 @@ function PrescriptionCard({ prescription, onClick, index, locale }: {
             target="_blank"
             rel="noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full border border-slate-200 py-3 font-medium text-slate-700 transition-all hover:border-[#10B981]"
+            className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full border border-slate-200 py-3 font-medium text-slate-700 transition-all hover:border-sky-500"
           >
             <ExternalLink className="size-4" /> {prescription.source === 'memed_br' ? (isPortuguese ? 'Abrir Memed' : 'Abrir Memed') : 'PDF'}
           </a>
@@ -125,7 +125,7 @@ function PrescriptionCard({ prescription, onClick, index, locale }: {
             target="_blank"
             rel="noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="flex min-h-11 items-center justify-center gap-2 rounded-full border border-slate-200 px-3 py-3 font-medium text-slate-700 transition-all hover:border-[#10B981]"
+            className="flex min-h-11 items-center justify-center gap-2 rounded-full border border-slate-200 px-3 py-3 font-medium text-slate-700 transition-all hover:border-sky-500"
           >
             WhatsApp
           </a>
@@ -133,7 +133,7 @@ function PrescriptionCard({ prescription, onClick, index, locale }: {
         <button
           type="button"
           onClick={onClick}
-          className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full bg-[#10B981] py-3 font-medium text-white transition-all hover:bg-[#0D9488]"
+          className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full bg-sky-500 py-3 font-medium text-white transition-all hover:bg-sky-600"
         >
           <FileText className="size-4" /> {locale === 'pt-BR' ? 'Ver detalhes' : 'Ver detalle'}
         </button>
@@ -154,7 +154,7 @@ export default function MedicalHistoryPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Hero */}
-      <section className="bg-[#0F2537] px-6 lg:px-12 pt-10 pb-16">
+      <section className="bg-[#0284C7] px-6 lg:px-12 pt-10 pb-16">
         <div className="max-w-7xl mx-auto">
           <motion.div
             className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 text-white/80 rounded-full text-xs font-medium mb-6"
@@ -187,14 +187,14 @@ export default function MedicalHistoryPage() {
       {/* Content */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 -mt-8 pb-32">
         <div className="mb-5 grid grid-cols-3 gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
-          <button type="button" onClick={() => setActiveTab('prescriptions')} className={`min-h-11 rounded-xl px-2 text-xs font-semibold transition ${activeTab === 'prescriptions' ? 'bg-[#10B981] text-white' : 'text-slate-600 hover:bg-slate-50'}`}>{isPortuguese ? 'Receitas digitais' : 'Recetas digitales'}</button>
-          <button type="button" onClick={() => setActiveTab('certificates')} className={`min-h-11 rounded-xl px-2 text-xs font-semibold transition ${activeTab === 'certificates' ? 'bg-[#10B981] text-white' : 'text-slate-600 hover:bg-slate-50'}`}>{isPortuguese ? 'Atestados' : 'Certificados / Atestados'}</button>
-          <button type="button" onClick={() => setActiveTab('orders')} className={`min-h-11 rounded-xl px-2 text-xs font-semibold transition ${activeTab === 'orders' ? 'bg-[#10B981] text-white' : 'text-slate-600 hover:bg-slate-50'}`}>{isPortuguese ? 'Exames e ordens' : 'Órdenes y estudios'}</button>
+          <button type="button" onClick={() => setActiveTab('prescriptions')} className={`min-h-11 rounded-xl px-2 text-xs font-semibold transition ${activeTab === 'prescriptions' ? 'bg-sky-500 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>{isPortuguese ? 'Receitas digitais' : 'Recetas digitales'}</button>
+          <button type="button" onClick={() => setActiveTab('certificates')} className={`min-h-11 rounded-xl px-2 text-xs font-semibold transition ${activeTab === 'certificates' ? 'bg-sky-500 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>{isPortuguese ? 'Atestados' : 'Certificados / Atestados'}</button>
+          <button type="button" onClick={() => setActiveTab('orders')} className={`min-h-11 rounded-xl px-2 text-xs font-semibold transition ${activeTab === 'orders' ? 'bg-sky-500 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>{isPortuguese ? 'Exames e ordens' : 'Órdenes y estudios'}</button>
         </div>
         {loading && (
           <div className="flex flex-col items-center justify-center py-24">
             <motion.div
-              className="size-12 animate-spin rounded-full border-2 border-slate-200 border-t-[#10B981]"
+              className="size-12 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
             />
@@ -230,7 +230,7 @@ export default function MedicalHistoryPage() {
                 </p>
                 <motion.a
                   href="/patients/appointments?type=telemedicine"
-                  className="group inline-flex min-h-12 items-center gap-2 px-7 py-4 bg-[#10B981] text-white rounded-full font-medium hover:bg-[#0D9488] transition-all"
+                  className="group inline-flex min-h-12 items-center gap-2 px-7 py-4 bg-sky-500 text-white rounded-full font-medium hover:bg-sky-600 transition-all"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
@@ -271,7 +271,7 @@ export default function MedicalHistoryPage() {
                   {certificate.days_of_rest ? <p className="mt-3 text-sm text-slate-700">{String(certificate.days_of_rest)} {isPortuguese ? 'dias de afastamento' : 'días de reposo'}</p> : null}
                   {code && <p className="mt-3 text-xs text-slate-500">{isPortuguese ? 'Código de verificação' : 'Código de verificación'}: <span className="font-mono font-semibold text-slate-800">{code}</span></p>}
                   <div className="mt-4 flex gap-2">
-                    {status === 'signed' && <a href={pdfUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl bg-[#10B981] px-3 text-xs font-semibold text-white hover:bg-[#0D9488]">{isPortuguese ? 'Abrir PDF assinado' : 'Abrir PDF firmado'}</a>}
+                    {status === 'signed' && <a href={pdfUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl bg-sky-500 px-3 text-xs font-semibold text-white hover:bg-sky-600">{isPortuguese ? 'Abrir PDF assinado' : 'Abrir PDF firmado'}</a>}
                     {code && <a href={`/verify/${encodeURIComponent(code)}`} className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700">{isPortuguese ? 'Verificar' : 'Verificar'}</a>}
                   </div>
                 </article>
@@ -301,8 +301,8 @@ export default function MedicalHistoryPage() {
                   {order.diagnosis && <p className="mt-2 text-xs text-slate-500">{String(order.diagnosis)}</p>}
                   {isDiagnosticStudy && order.result_summary && <p className="mt-2 text-sm leading-relaxed text-slate-700">{String(order.result_summary)}</p>}
                   {code && <p className="mt-3 text-xs text-slate-500">CUIR: <span className="font-mono font-semibold text-slate-800">{code}</span></p>}
-                  {rawStatus === 'signed' && <a href={`/api/patients/medical-orders/${encodeURIComponent(id)}/pdf`} target="_blank" rel="noreferrer" className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-[#10B981] px-3 text-xs font-semibold text-white hover:bg-[#0D9488]">{isPortuguese ? 'Abrir PDF do pedido' : 'Abrir PDF de la orden'}</a>}
-                  {isDiagnosticStudy && rawStatus === 'available' && <a href={`/api/patients/diagnostic-studies/${encodeURIComponent(sourceId)}/result`} target="_blank" rel="noreferrer" className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-[#10B981] px-3 text-xs font-semibold text-white hover:bg-[#0D9488]">{isPortuguese ? 'Abrir resultado do exame' : 'Abrir resultado del estudio'}</a>}
+                  {rawStatus === 'signed' && <a href={`/api/patients/medical-orders/${encodeURIComponent(id)}/pdf`} target="_blank" rel="noreferrer" className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-sky-500 px-3 text-xs font-semibold text-white hover:bg-sky-600">{isPortuguese ? 'Abrir PDF do pedido' : 'Abrir PDF de la orden'}</a>}
+                  {isDiagnosticStudy && rawStatus === 'available' && <a href={`/api/patients/diagnostic-studies/${encodeURIComponent(sourceId)}/result`} target="_blank" rel="noreferrer" className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-sky-500 px-3 text-xs font-semibold text-white hover:bg-sky-600">{isPortuguese ? 'Abrir resultado do exame' : 'Abrir resultado del estudio'}</a>}
                   {code && <a href={`/verify/${encodeURIComponent(code)}`} className="mt-2 inline-flex min-h-10 w-full items-center justify-center rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700">{isPortuguese ? 'Verificar ordem' : 'Verificar orden'}</a>}
                 </article>
               )

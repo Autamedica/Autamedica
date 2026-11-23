@@ -12,6 +12,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.FlashOff
+import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Refresh
@@ -28,9 +30,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.autamedica.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,6 +49,9 @@ fun CallActionsOverflowSheet(
     onToggleSpeaker: () -> Unit,
     onSwitchCamera: () -> Unit,
     onDismiss: () -> Unit,
+    isFrontCamera: Boolean = true,
+    isTorchEnabled: Boolean = false,
+    onToggleTorch: (() -> Unit)? = null,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -63,63 +70,64 @@ fun CallActionsOverflowSheet(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                text = "Medios",
+                text = stringResource(R.string.videocall_quality_indicator, "HD"),
                 color = Color.White,
-                fontSize = 18.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 4.dp),
             )
 
+            if (isVideoEnabled) {
+                OverflowActionRow(
+                    icon = Icons.Filled.Refresh,
+                    title = stringResource(R.string.videocall_switch_camera),
+                    subtitle = if (isFrontCamera) "Cámara frontal activa (tocar para cámara trasera)" else "Cámara trasera de inspección activa (sin espejo)",
+                    accent = Color(0xFF38BDF8),
+                    onClick = onSwitchCamera,
+                )
+
+                if (!isFrontCamera && onToggleTorch != null) {
+                    OverflowActionRow(
+                        icon = if (isTorchEnabled) Icons.Filled.FlashOn else Icons.Filled.FlashOff,
+                        title = if (isTorchEnabled) "Linterna clínica encendida" else "Encender linterna (Flash)",
+                        subtitle = "Iluminar garganta, piel o documento médico",
+                        accent = if (isTorchEnabled) Color(0xFF06B6D4) else Color(0xFF94A3B8),
+                        onClick = onToggleTorch,
+                    )
+                }
+            }
+
             OverflowActionRow(
                 icon = if (isAudioEnabled) Icons.Filled.Mic else Icons.Filled.MicOff,
-                title = if (isAudioEnabled) "Micrófono activo" else "Micrófono silenciado",
-                subtitle = "Silenciar o activar audio",
+                title = if (isAudioEnabled) stringResource(R.string.videocall_mute) else stringResource(R.string.videocall_unmute_mic),
+                subtitle = "DSP con supresión de ruido y cancelación de eco activa",
                 accent = if (isAudioEnabled) Color(0xFF94A3B8) else Color(0xFFEF4444),
                 onClick = onToggleAudio,
             )
 
             OverflowActionRow(
                 icon = if (isVideoEnabled) Icons.Filled.Videocam else Icons.Filled.VideocamOff,
-                title = if (isVideoEnabled) "Cámara activa" else "Cámara apagada",
-                subtitle = "Mostrar u ocultar tu video",
+                title = if (isVideoEnabled) stringResource(R.string.videocall_camera_off) else stringResource(R.string.videocall_camera_on),
+                subtitle = stringResource(R.string.videocall_end),
                 accent = if (isVideoEnabled) Color(0xFF94A3B8) else Color(0xFFEF4444),
                 onClick = onToggleVideo,
             )
 
             OverflowActionRow(
                 icon = if (isSpeakerOn) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
-                title = if (isSpeakerOn) "Altavoz activo" else "Usar auricular",
-                subtitle = "Salida de audio de la llamada",
+                title = if (isSpeakerOn) "Altavoz activo" else "Auricular / Bluetooth activo",
+                subtitle = "Ruteo inteligente de audio",
                 accent = Color(0xFF94A3B8),
                 onClick = onToggleSpeaker,
             )
 
-            if (isVideoEnabled) {
-                OverflowActionRow(
-                    icon = Icons.Filled.Refresh,
-                    title = "Cambiar cámara",
-                    subtitle = "Frontal / trasera",
-                    accent = Color(0xFF94A3B8),
-                    onClick = onSwitchCamera,
-                )
-            }
-
-            Text(
-                text = "Comunicación",
-                color = Color(0xFF94A3B8),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp,
-                modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
-            )
-
             OverflowActionRow(
                 icon = Icons.AutoMirrored.Filled.Chat,
-                title = "Chat",
+                title = stringResource(R.string.videocall_chat),
                 subtitle = if (unreadMessages > 0) {
                     "$unreadMessages sin leer"
                 } else {
-                    "Mensajes con el paciente"
+                    stringResource(R.string.videocall_clinical_notes)
                 },
                 accent = if (unreadMessages > 0) Color(0xFFEF4444) else Color(0xFF38BDF8),
                 onClick = {

@@ -117,27 +117,9 @@ export async function handler(req: Request): Promise<Response> {
       )
     }
 
-    // 3. Call RPC to get wallet balance
-    const { data: balanceRows, error: balanceError } = await supabaseAdmin
-      .rpc('patient_wallet_get_balance', { p_patient_id: patient.id })
-
-    if (balanceError) {
-      console.error('[patients-wallet-balance] RPC error:', balanceError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to retrieve wallet balance', details: balanceError.message }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
-    }
-
-    const balance = Array.isArray(balanceRows)
-      ? (balanceRows[0] as WalletBalanceRow | undefined)
-      : (balanceRows as WalletBalanceRow | null)
-
-    // The wallet RPC may default to ARS when no wallet exists. Read the
-    // actual stored denomination to avoid fictitious currency for BR users.
+    // 3. Read the stored wallet before invoking the balance RPC.
+    // The RPC creates missing wallets, so a read must not invoke it when no
+    // wallet exists and currency evidence is unresolved.
     const { data: storedWallet, error: storedWalletError } = await supabaseAdmin
       .from('patient_wallets')
       .select('currency')
@@ -148,6 +130,7 @@ export async function handler(req: Request): Promise<Response> {
         status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+
     const resolved = resolveBillingCurrency({
       patientCpf: patient.cpf,
       patientDni: patient.dni,
@@ -158,6 +141,25 @@ export async function handler(req: Request): Promise<Response> {
       return new Response(JSON.stringify({ error: resolved.error }), {
         status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
+    }
+
+    let balance: WalletBalanceRow | null = null
+    if (storedWallet) {
+      const { data: balanceRows, error: balanceError } = await supabaseAdmin
+        .rpc('patient_wallet_get_balance', { p_patient_id: patient.id })
+      if (balanceError) {
+        console.error('[patients-wallet-balance] RPC error:', balanceError)
+        return new Response(
+          JSON.stringify({ error: 'Failed to retrieve wallet balance', details: balanceError.message }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+      balance = Array.isArray(balanceRows)
+        ? (balanceRows[0] as WalletBalanceRow | undefined) ?? null
+        : (balanceRows as WalletBalanceRow | null)
     }
 
     const availableCreditCents = storedWallet ? (balance?.available_credit_cents ?? 0) : 0

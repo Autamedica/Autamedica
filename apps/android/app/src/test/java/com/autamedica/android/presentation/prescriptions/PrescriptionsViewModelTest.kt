@@ -2,10 +2,15 @@ package com.autamedica.android.presentation.prescriptions
 
 import com.autamedica.android.domain.model.CertificateType
 import com.autamedica.android.domain.model.CreateCertificateRequest
+import com.autamedica.android.domain.model.CreateMedicalOrderRequest
 import com.autamedica.android.domain.model.MedicalCertificate
+import com.autamedica.android.domain.model.MedicalOrder
+import com.autamedica.android.domain.model.PracticeItem
+import com.autamedica.android.domain.model.StudyType
 import com.autamedica.android.domain.model.Prescription
 import com.autamedica.android.domain.model.PrescriptionPatientItem
 import com.autamedica.android.domain.repository.MedicalCertificateRepository
+import com.autamedica.android.domain.repository.MedicalOrderRepository
 import com.autamedica.android.domain.repository.PrescriptionRepository
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +29,7 @@ class PrescriptionsViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
     private lateinit var fakeRepository: FakePrescriptionRepository
     private lateinit var fakeCertificateRepository: FakeMedicalCertificateRepository
+    private lateinit var fakeOrderRepository: FakeMedicalOrderRepository
     private lateinit var viewModel: PrescriptionsViewModel
 
     private val samplePrescriptions = listOf(
@@ -93,10 +99,30 @@ class PrescriptionsViewModelTest {
             doctorLicense = "MN 12345",
             patientName = "Maximiliano",
             patientDni = "34567890",
-            signedPdfUrl = "https://storage.autamedica.com/cert1.pdf",
+            signedPdfUrl = "certificates/signed/cert-1.pdf",
+            signatureVerifiedAt = "2026-09-11T12:00:00Z",
+            signatureHash = "a".repeat(64),
+            signatureMethod = "ac_external",
             qrCodeContent = "https://autamedica.com/verify/AR-CERT-001",
             countryCode = "AR",
             createdAt = "2026-09-11T12:00:00Z",
+        ),
+    )
+
+    private val sampleOrders = listOf(
+        MedicalOrder(
+            id = "ord-1",
+            cuir = "AR-ORD-001",
+            status = "issued",
+            studyType = StudyType.LABORATORY,
+            practices = listOf(PracticeItem(name = "Hemograma completo", code = "660475")),
+            diagnosis = "Control anual",
+            notes = "Concurrir en ayunas de 8 hs",
+            qrCodeContent = "https://autamedica.com/verify/AR-ORD-001",
+            signedPdfUrl = "https://storage.autamedica.com/ord1.pdf",
+            doctorName = "Dr. Eduardo Marques",
+            doctorLicense = "MN 12345",
+            createdAt = "2026-09-12T10:00:00Z",
         ),
     )
 
@@ -105,7 +131,8 @@ class PrescriptionsViewModelTest {
         Dispatchers.setMain(testDispatcher)
         fakeRepository = FakePrescriptionRepository(samplePrescriptions)
         fakeCertificateRepository = FakeMedicalCertificateRepository(sampleCertificates)
-        viewModel = PrescriptionsViewModel(fakeRepository, fakeCertificateRepository)
+        fakeOrderRepository = FakeMedicalOrderRepository(sampleOrders)
+        viewModel = PrescriptionsViewModel(fakeRepository, fakeCertificateRepository, fakeOrderRepository)
     }
 
     @After
@@ -127,10 +154,25 @@ class PrescriptionsViewModelTest {
     }
 
     @Test
-    fun switchingTabsUpdatesSelectedTab() = runTest {
+    fun switchingTabsUpdatesSelectedTabAcrossAllThreeTabs() = runTest {
         viewModel.selectTab(DocumentTab.ATESTADOS)
+        assertThat(viewModel.uiState.value.selectedTab).isEqualTo(DocumentTab.ATESTADOS)
+
+        viewModel.selectTab(DocumentTab.ORDENES)
         val state = viewModel.uiState.value
-        assertThat(state.selectedTab).isEqualTo(DocumentTab.ATESTADOS)
+        assertThat(state.selectedTab).isEqualTo(DocumentTab.ORDENES)
+        assertThat(state.orders).hasSize(1)
+        assertThat(state.activeOrdersCount).isEqualTo(1)
+    }
+
+    @Test
+    fun selectingAndClearingOrderUpdatesState() = runTest {
+        val target = sampleOrders.first()
+        viewModel.selectOrder(target)
+        assertThat(viewModel.uiState.value.selectedOrder).isEqualTo(target)
+
+        viewModel.clearSelectedOrder()
+        assertThat(viewModel.uiState.value.selectedOrder).isNull()
     }
 
     @Test
@@ -204,6 +246,9 @@ private class FakePrescriptionRepository(
 
     override suspend fun getDoctorEligibility(): Result<com.autamedica.android.domain.model.DoctorEligibility> =
         Result.success(com.autamedica.android.domain.model.DoctorEligibility(true, "MN 12345", "valid"))
+
+    override suspend fun downloadPatientPrescriptionPdf(prescriptionId: String): Result<com.autamedica.android.domain.model.DownloadedPrescriptionPdf> =
+        Result.failure(UnsupportedOperationException("PDF download is not exercised by this test"))
 }
 
 private class FakeMedicalCertificateRepository(
@@ -215,6 +260,9 @@ private class FakeMedicalCertificateRepository(
         return if (item != null) Result.success(item) else Result.failure(NoSuchElementException())
     }
 
+    override suspend fun getCertificatePdfDownloadUrl(certificate: MedicalCertificate): Result<String> =
+        Result.failure(UnsupportedOperationException("Certificate PDF download is not exercised by this test"))
+
     override suspend fun getDoctorCertificates(patientId: String?): Result<List<MedicalCertificate>> =
         Result.success(items)
 
@@ -223,4 +271,19 @@ private class FakeMedicalCertificateRepository(
 
     override suspend fun getEligiblePatients(): Result<List<PrescriptionPatientItem>> =
         Result.success(emptyList())
+}
+
+private class FakeMedicalOrderRepository(
+    private val items: List<MedicalOrder> = emptyList(),
+) : MedicalOrderRepository {
+    override suspend fun getDoctorMedicalOrders(): Result<List<MedicalOrder>> = Result.success(items)
+    override suspend fun getPatientMedicalOrders(): Result<List<MedicalOrder>> = Result.success(items)
+    override suspend fun getMedicalOrderById(id: String): Result<MedicalOrder> {
+        val item = items.find { it.id == id }
+        return if (item != null) Result.success(item) else Result.failure(NoSuchElementException())
+    }
+    override suspend fun createMedicalOrder(request: CreateMedicalOrderRequest): Result<MedicalOrder> =
+        Result.success(items.first())
+    override suspend fun cancelMedicalOrder(orderId: String, reason: String): Result<Unit> =
+        Result.success(Unit)
 }

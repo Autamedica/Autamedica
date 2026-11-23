@@ -70,13 +70,13 @@ BEGIN
     RAISE EXCEPTION 'Anonymous caller executed authenticated medication search';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
-  IF (SELECT count(*) FROM public.doctors) <> (SELECT doctors FROM pg_temp.helper_probe_expected)
-    OR EXISTS (SELECT 1 FROM public.doctors WHERE active IS DISTINCT FROM true)
-    OR (SELECT count(*) FROM public.companies) <> (SELECT companies FROM pg_temp.helper_probe_expected)
-    OR EXISTS (SELECT 1 FROM public.companies WHERE active IS DISTINCT FROM true)
-    OR (SELECT count(*) FROM public.profiles) <> (SELECT doctor_profiles FROM pg_temp.helper_probe_expected)
-    OR EXISTS (SELECT 1 FROM public.profiles p WHERE NOT EXISTS (SELECT 1 FROM public.doctors d WHERE d.user_id=p.user_id AND d.active=true)) THEN
-    RAISE EXCEPTION 'Anonymous active directory visibility changed';
+  IF has_table_privilege('anon','public.doctors','SELECT')
+    OR has_table_privilege('anon','public.profiles','SELECT') THEN
+    RAISE EXCEPTION 'Anonymous direct access remains granted on identity tables';
+  END IF;
+  IF (SELECT count(*) FROM public.companies) <> (SELECT companies FROM pg_temp.helper_probe_expected)
+    OR EXISTS (SELECT 1 FROM public.companies WHERE active IS DISTINCT FROM true) THEN
+    RAISE EXCEPTION 'Anonymous company directory visibility changed';
   END IF;
   FOREACH relation_name IN ARRAY ARRAY['appointments','audit_logs','conversation_events','conversation_sessions','doctor_patient','medical_records','patient_care_team','patients'] LOOP
     BEGIN
@@ -115,5 +115,5 @@ BEGIN
 END;
 $authenticated$;
 RESET ROLE;
-SELECT 'PASS: private helper ACLs, public policy isolation, anonymous directories and authenticated queries' AS result;
+SELECT 'PASS: private helper ACLs, anonymous identity-table denial and authenticated queries' AS result;
 ROLLBACK;

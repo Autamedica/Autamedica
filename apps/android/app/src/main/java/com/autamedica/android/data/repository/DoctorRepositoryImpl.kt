@@ -9,6 +9,9 @@ import com.autamedica.android.domain.model.InCallDocumentPolicy
 import com.autamedica.android.domain.model.DoctorStats
 import com.autamedica.android.domain.model.PatientClinicalContext
 import com.autamedica.android.domain.model.PatientDetail
+import com.autamedica.android.domain.model.InvalidPatientReferenceException
+import com.autamedica.android.domain.model.PatientNotAssignedException
+import com.autamedica.android.domain.model.PatientNotFoundOrUnauthorizedException
 import com.autamedica.android.domain.model.PatientSummary
 import com.autamedica.android.domain.repository.DoctorRepository
 import com.autamedica.android.logging.SecureLog
@@ -18,6 +21,7 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -54,8 +58,46 @@ class DoctorRepositoryImpl @Inject constructor(
             SecureLog.warn("[DoctorRepo] Failed fetching doctor validation status: ${it.message}")
             null
         }
+        val licenseValidated = if (!dto.active) {
+            false
+        } else if (dto.licenseType.equals("CRM", ignoreCase = true)) {
+            runCatching {
+                supabaseClient.postgrest
+                    .from("doctor_licenses")
+                    .select(Columns.list(
+                        "license_number", "uf_brazil", "status", "cfm_validation_status",
+                        "cfm_evidence_path", "cfm_review_notes", "cfm_reviewed_by",
+                        "cfm_reviewed_at", "cfm_last_checked_at",
+                    )) {
+                        filter {
+                            eq("doctor_id", dto.id)
+                            eq("license_type", "CRM")
+                            eq("status", "active")
+                            eq("cfm_validation_status", "valid")
+                        }
+                    }
+                    .decodeList<DoctorCfmLicenseDto>()
+                    .any { license ->
+                        license.licenseNumber.filter(Char::isDigit) == dto.licenseNumber.orEmpty().filter(Char::isDigit) &&
+                            license.ufBrazil?.uppercase() == dto.ufBrazil?.uppercase() &&
+                            !license.evidencePath.isNullOrBlank() &&
+                            (license.reviewNotes?.trim()?.length ?: 0) >= 10 &&
+                            !license.reviewedBy.isNullOrBlank() &&
+                            !license.reviewedAt.isNullOrBlank() &&
+                            !license.lastCheckedAt.isNullOrBlank()
+                    }
+            }.getOrElse { error ->
+                SecureLog.warn("[DoctorRepo] Failed fetching CRM validation status: ${error.message}")
+                false
+            }
+        } else {
+            sssValidationStatus?.lowercase() in setOf("valid", "exempt")
+        }
 
-        dto.toDomain(sssValidationStatus = sssValidationStatus)
+        dto.toDomain(
+            sssValidationStatus = sssValidationStatus,
+            licenseValidated = licenseValidated,
+        )
     }.onFailure {
         SecureLog.error("[DoctorRepo] Failed fetching doctor profile", it)
     }
@@ -247,38 +289,46 @@ class DoctorRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getPatientDetail(doctorId: String, patientId: String): Result<PatientDetail> = runCatching {
-        // Get patient basic data
+        if (doctorId.isBlank() || patientId.isBlank()) {
+            throw InvalidPatientReferenceException()
+        }
+
+        // Require the exact doctor-patient relationship before reading clinical identity.
+        // This mirrors the patient list and prevents a route ID from widening access.
+        val relationship = supabaseClient.postgrest
+            .from("doctor_patient")
+            .select(Columns.list("patient_id")) {
+                filter {
+                    eq("doctor_id", doctorId)
+                    eq("patient_id", patientId)
+                }
+            }
+            .decodeList<PatientIdDto>()
+            .firstOrNull() ?: throw PatientNotAssignedException()
+
+        // RLS remains the authority. Decode a list so an RLS-filtered/missing row
+        // is classified as not found or unauthorized rather than a decoder crash.
         val patient = supabaseClient.postgrest
             .from("patients")
             .select(Columns.ALL) {
-                filter { eq("id", patientId) }
+                filter { eq("id", relationship.patientId) }
             }
-            .decodeSingle<PatientFullDto>()
+            .decodeList<PatientFullDto>()
+            .firstOrNull() ?: throw PatientNotFoundOrUnauthorizedException()
 
-        // Get profile info
+        // A linked patient can still have an incomplete profile. Treat that as
+        // optional identity data, not as a fatal failure of the clinical record.
         val profile = patient.userId?.let { uid ->
             supabaseClient.postgrest
                 .from("profiles")
-                .select(Columns.list("user_id", "first_name", "last_name", "avatar_url", "phone")) {
+                .select(Columns.list("user_id", "first_name", "last_name", "avatar_url", "phone", "email")) {
                     filter { eq("user_id", uid) }
                 }
-                .decodeSingle<PatientProfileFullDto>()
+                .decodeList<PatientProfileFullDto>()
+                .firstOrNull()
         }
 
-        // Get email from auth (from profiles table which has it)
-        val email = patient.userId?.let { uid ->
-            try {
-                supabaseClient.postgrest
-                    .from("profiles")
-                    .select(Columns.list("email")) {
-                        filter { eq("user_id", uid) }
-                    }
-                    .decodeSingle<EmailDto>()
-                    .email
-            } catch (_: Exception) { null }
-        }
-
-        // Get appointment history for this patient with this doctor
+        // Keep history scoped to this doctor-patient pair.
         val appointments = supabaseClient.postgrest
             .from("appointments")
             .select(Columns.list(
@@ -308,22 +358,22 @@ class DoctorRepositoryImpl @Inject constructor(
         PatientDetail(
             id = patient.id,
             userId = patient.userId ?: "",
-            firstName = profile?.firstName ?: "",
-            lastName = profile?.lastName ?: "",
+            firstName = profile?.firstName.orEmpty(),
+            lastName = profile?.lastName.orEmpty(),
             avatarUrl = profile?.avatarUrl,
-            email = email,
+            email = profile?.email,
             phone = profile?.phone,
             birthDate = patient.birthDate,
             gender = patient.gender,
             bloodType = patient.bloodType,
-            allergies = patient.allergies,
+            allergies = normalizePatientAllergies(patient.allergies),
             appointmentHistory = appointments.map { it.toDomain() },
             totalAppointments = appointments.count { it.status != "cancelled" },
             lastAppointment = pastAppointments.firstOrNull()?.startTime,
             nextAppointment = futureAppointments.lastOrNull()?.startTime,
         )
     }.onFailure {
-        SecureLog.error("[DoctorRepo] Failed fetching patient detail", it)
+        SecureLog.warn("[DoctorRepo] Patient detail load failed")
     }
 
     override suspend fun getDoctorAvailability(doctorId: String): Result<List<DoctorAvailabilitySlot>> = runCatching {
@@ -551,12 +601,16 @@ private data class DoctorDto(
     @SerialName("license_type") val licenseType: String? = null,
     @SerialName("care_country") val careCountry: String? = null,
     @SerialName("refeps_id") val refepsId: String? = null,
+    @SerialName("signature_image_url") val signatureImageUrl: String? = null,
+    @SerialName("signature_url") val signatureUrl: String? = null,
+    @SerialName("stamp_image_url") val stampImageUrl: String? = null,
+    @SerialName("stamp_url") val stampUrl: String? = null,
 ) {
-    fun toDomain(sssValidationStatus: String? = null) = DoctorProfile(
+    fun toDomain(sssValidationStatus: String? = null, licenseValidated: Boolean = false) = DoctorProfile(
         id = id,
         userId = userId,
         licenseNumber = licenseNumber.orEmpty(),
-        specialty = specialty ?: "Medicina General",
+        specialty = specialty.orEmpty(),
         subspecialty = subspecialty,
         yearsExperience = yearsExperience ?: 0,
         bio = bio,
@@ -565,6 +619,9 @@ private data class DoctorDto(
         sssValidationStatus = sssValidationStatus,
         licenseType = licenseType,
         ufBrazil = ufBrazil,
+        isLicenseValidated = licenseValidated,
+        hasSignature = !signatureImageUrl.isNullOrBlank() || !signatureUrl.isNullOrBlank(),
+        hasStamp = !stampImageUrl.isNullOrBlank() || !stampUrl.isNullOrBlank(),
         countryCode = InCallDocumentPolicy.doctorCountry(
             licenseType = licenseType,
             careCountry = careCountry,
@@ -576,6 +633,19 @@ private data class DoctorDto(
 @Serializable
 private data class DoctorProfileValidationDto(
     @SerialName("sss_validation_status") val sssValidationStatus: String? = null,
+)
+
+@Serializable
+private data class DoctorCfmLicenseDto(
+    @SerialName("license_number") val licenseNumber: String,
+    @SerialName("uf_brazil") val ufBrazil: String? = null,
+    val status: String,
+    @SerialName("cfm_validation_status") val validationStatus: String,
+    @SerialName("cfm_evidence_path") val evidencePath: String? = null,
+    @SerialName("cfm_review_notes") val reviewNotes: String? = null,
+    @SerialName("cfm_reviewed_by") val reviewedBy: String? = null,
+    @SerialName("cfm_reviewed_at") val reviewedAt: String? = null,
+    @SerialName("cfm_last_checked_at") val lastCheckedAt: String? = null,
 )
 
 @Serializable
@@ -601,13 +671,13 @@ private data class PatientDto(
 )
 
 @Serializable
-private data class PatientFullDto(
+internal data class PatientFullDto(
     val id: String,
     @SerialName("user_id") val userId: String? = null,
     @SerialName("birth_date") val birthDate: String? = null,
     val gender: String? = null,
     @SerialName("blood_type") val bloodType: String? = null,
-    val allergies: String? = null,
+    val allergies: JsonElement? = null,
 )
 
 @Serializable
@@ -625,10 +695,6 @@ private data class PatientProfileFullDto(
     @SerialName("last_name") val lastName: String? = null,
     @SerialName("avatar_url") val avatarUrl: String? = null,
     val phone: String? = null,
-)
-
-@Serializable
-private data class EmailDto(
     val email: String? = null,
 )
 

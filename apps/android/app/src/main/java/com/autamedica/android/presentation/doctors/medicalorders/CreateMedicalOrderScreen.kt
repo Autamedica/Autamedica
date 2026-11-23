@@ -43,6 +43,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.R
 import com.autamedica.android.domain.model.PracticeItem
 import com.autamedica.android.domain.model.PrescriptionPatientItem
+import com.autamedica.android.presentation.doctors.components.EventualPatientDniSelectorCard
 import com.autamedica.android.domain.model.StudyType
 import com.autamedica.android.presentation.theme.*
 
@@ -97,9 +98,7 @@ fun CreateMedicalOrderScreen(
     var patientSearchQuery by remember { mutableStateOf("") }
 
     LaunchedEffect(patientId) {
-        if (patientId.isNotBlank()) {
-            viewModel.selectPatientById(patientId)
-        }
+        viewModel.initCreateOrder(patientId)
     }
 
     Scaffold(
@@ -187,7 +186,7 @@ fun CreateMedicalOrderScreen(
                             .fillMaxWidth()
                             .height(50.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PortalDoctors),
+                        colors = ButtonDefaults.buttonColors(containerColor = PortalPatientsAction, contentColor = Color.White),
                         enabled = !uiState.isSubmitting,
                     ) {
                         if (uiState.isSubmitting) {
@@ -216,8 +215,8 @@ fun CreateMedicalOrderScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // 1. Selector de Paciente Elegible
-            PatientSelectorCard(
+            // 1. Selector de Paciente Elegible + Emisión rápida por DNI / Sexo / WhatsApp
+            EventualPatientDniSelectorCard(
                 selectedPatient = uiState.selectedPatient,
                 eligiblePatients = uiState.eligiblePatients,
                 isLoadingPatients = uiState.isLoadingPatients,
@@ -228,6 +227,12 @@ fun CreateMedicalOrderScreen(
                 onSelectPatient = {
                     viewModel.selectPatient(it)
                     expandedPatientDropdown = false
+                },
+                isRegisteringDni = uiState.isRegisteringDni,
+                dniLookupError = uiState.dniLookupError,
+                needsManualName = uiState.needsManualName,
+                onLookupByDni = { dni, gender, contact, manualName ->
+                    viewModel.registerEventualPatientByDni(dni, gender, contact, manualName)
                 },
             )
 
@@ -452,8 +457,8 @@ private fun StudyTypeSelectorCard(
                     val isSelected = selectedStudyType == type
                     val (icon, color) = when (type) {
                         StudyType.LABORATORY -> Icons.Outlined.Science to PortalPatients
-                        StudyType.IMAGING -> Icons.Outlined.Visibility to Color(0xFF8B5CF6)
-                        StudyType.CARDIOLOGY -> Icons.Outlined.Favorite to Color(0xFFE11D48)
+                        StudyType.IMAGING -> Icons.Outlined.Visibility to PortalPatientsAction
+                        StudyType.CARDIOLOGY -> Icons.Outlined.Favorite to SecondaryDark
                         StudyType.OTHER -> Icons.Outlined.Description to PortalDoctors
                     }
                     val typeName = when (type) {

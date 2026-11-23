@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro'
-import { withAuth, isAuthed } from '@/lib/api-auth'
+import { withAuthRole, ADMIN_ROLES, isAuthed } from '@/lib/api-auth'
+import { isSpecificPaymentSwitchReason } from '@/lib/payments/manual-payment-governance'
 import { badRequest, internalError, jsonOk } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
 
@@ -10,14 +11,8 @@ type SwitchName = typeof ALLOWED[number]
 type SwitchAdmin = { user: { id: string } } | Response
 
 async function requireSwitchAdmin(request: Request, locals: any): Promise<SwitchAdmin> {
-  const auth = await withAuth(request, locals)
+  const auth = await withAuthRole(request, ADMIN_ROLES, locals)
   if (!isAuthed(auth)) return auth
-  const db = createAstroAdminClient(locals.runtime?.env) as any
-  const { data: profile, error } = await db.from('profiles').select('role,active').eq('user_id', auth.user.id).maybeSingle()
-  const trustedAppRole = auth.user.app_metadata?.role === 'admin'
-  if (error || (profile && profile.active !== true) || !((profile?.active === true && profile.role === 'admin') || trustedAppRole)) {
-    return new Response(JSON.stringify({ success:false, error:'forbidden' }), { status:403, headers:{'content-type':'application/json'} })
-  }
   return { user: { id: auth.user.id } }
 }
 
@@ -48,6 +43,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (auth instanceof Response) return auth
   const body = await request.json().catch(() => null) as { key?:string; enabled?:boolean; reason?:string } | null
   if (!body || !ALLOWED.includes(body.key as SwitchName) || typeof body.enabled !== 'boolean') return badRequest('invalid_payment_switch')
+  const reason = typeof body.reason === 'string' ? body.reason.trim() : ''
+  if (!isSpecificPaymentSwitchReason(reason)) return badRequest('specific_payment_switch_reason_required')
   const db = createAstroAdminClient(locals.runtime?.env) as any
   const changedAt = new Date().toISOString()
   const { data: current, error: readError } = await db.from('platform_operational_switches')
@@ -55,14 +52,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (readError || !current) return internalError('payment_switches_unavailable')
   const switchAudit = { ...(current.switch_audit ?? {}), [body.key]: {
     updated_by: auth.user.id, updated_at: changedAt,
-    reason: typeof body.reason === 'string' ? body.reason.slice(0,500) : null,
+    reason,
   } }
   const { data, error } = await db.from('platform_operational_switches').update({
     [body.key as SwitchName]:body.enabled, updated_by:auth.user.id,
-    reason: typeof body.reason === 'string' ? body.reason.slice(0,500) : null,
+    reason,
     updated_at:changedAt, switch_audit:switchAudit,
   }).eq('id','global').select('*').single()
   if (error) return internalError('payment_switch_update_failed')
-  await db.from('audit_logs').insert({user_id:auth.user.id,action:'platform_operational_switch_updated',resource_type:'platform_operational_switches',metadata:{key:body.key,enabled:body.enabled,reason:body.reason ?? null}})
+  const { error: auditError } = await db.from('audit_logs').insert({
+    user_id:auth.user.id, action:'platform_operational_switch_updated',
+    resource_type:'platform_operational_switches',
+    metadata:{key:body.key,enabled:body.enabled,reason},
+  })
+  if (auditError) return internalError('payment_switch_audit_failed')
   return jsonOk(data)
 }

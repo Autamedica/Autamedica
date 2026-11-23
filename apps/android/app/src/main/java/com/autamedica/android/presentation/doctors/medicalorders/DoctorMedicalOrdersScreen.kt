@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.doctors.medicalorders
 
+import com.autamedica.android.presentation.common.maskPatientDocument
+
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -43,6 +45,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.R
+import com.autamedica.android.presentation.common.DocumentViewerSource
+import com.autamedica.android.presentation.common.InAppDocumentViewerDialog
 import com.autamedica.android.domain.model.MedicalOrder
 import com.autamedica.android.domain.model.StudyType
 import com.autamedica.android.presentation.prescriptions.components.QrCodeView
@@ -54,6 +58,7 @@ fun DoctorMedicalOrdersScreen(
     onBack: () -> Unit,
     onNavigateToCreateOrder: () -> Unit,
     modifier: Modifier = Modifier,
+    showBackButton: Boolean = true,
     viewModel: DoctorMedicalOrdersViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -86,15 +91,21 @@ fun DoctorMedicalOrdersScreen(
         }
     }
 
+    var activeDocumentViewer by remember { mutableStateOf<DocumentViewerSource?>(null) }
+
     val onOpenPdf: (String) -> Unit = { pdfUrl ->
-        runCatching {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(pdfUrl)).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            context.startActivity(intent)
-        }.onFailure {
-            Toast.makeText(context, context.getString(R.string.doctor_orders_pdf_error_toast), Toast.LENGTH_SHORT).show()
-        }
+        activeDocumentViewer = DocumentViewerSource.RemoteDocumentUrl(
+            url = pdfUrl,
+            title = context.getString(R.string.doctor_orders_title),
+            fileName = "Orden_${System.currentTimeMillis()}.pdf",
+        )
+    }
+
+    activeDocumentViewer?.let { docSource ->
+        InAppDocumentViewerDialog(
+            source = docSource,
+            onDismiss = { activeDocumentViewer = null },
+        )
     }
 
     Scaffold(
@@ -119,12 +130,14 @@ fun DoctorMedicalOrdersScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.doctor_orders_action_back),
-                            tint = AuTextPrimary,
-                        )
+                    if (showBackButton) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.doctor_orders_action_back),
+                                tint = AuTextPrimary,
+                            )
+                        }
                     }
                 },
                 actions = {
@@ -142,7 +155,7 @@ fun DoctorMedicalOrdersScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onNavigateToCreateOrder,
-                containerColor = PortalDoctors,
+                containerColor = PortalPatientsAction,
                 contentColor = Color.White,
                 shape = RoundedCornerShape(16.dp),
             ) {
@@ -409,14 +422,14 @@ fun MedicalOrderCard(
 
     val (studyBg, studyColor, studyLabel) = when (order.studyType) {
         StudyType.LABORATORY -> Triple(PortalPatientsSoft, PortalPatients, stringResource(R.string.doctor_orders_filter_lab))
-        StudyType.IMAGING -> Triple(Color(0x1F8B5CF6), Color(0xFF8B5CF6), stringResource(R.string.doctor_orders_filter_imaging))
-        StudyType.CARDIOLOGY -> Triple(Color(0x1FE11D48), Color(0xFFE11D48), stringResource(R.string.doctor_orders_filter_cardiology))
+        StudyType.IMAGING -> Triple(PortalDoctorsSoft, PortalDoctors, stringResource(R.string.doctor_orders_filter_imaging))
+        StudyType.CARDIOLOGY -> Triple(AuSurfaceHover, AuTextSecondary, stringResource(R.string.doctor_orders_filter_cardiology))
         StudyType.OTHER -> Triple(PortalDoctorsSoft, PortalDoctors, stringResource(R.string.doctor_orders_filter_other))
     }
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = AuSurface),
         border = BorderStroke(1.dp, AuBorder),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
@@ -503,7 +516,7 @@ fun MedicalOrderCard(
                     )
                     Text(
                         text = buildString {
-                            order.patientDni?.let { append("${stringResource(R.string.doctor_create_order_patient_dni_short, it)} · ") }
+                            order.patientDni?.let { append("${stringResource(R.string.doctor_create_order_patient_dni_short, maskPatientDocument(it))} · ") }
                             append(order.createdAt.take(10))
                         },
                         style = MaterialTheme.typography.bodySmall,

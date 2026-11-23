@@ -64,6 +64,7 @@ import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.PatientDetail
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
+import com.autamedica.android.presentation.dashboard.components.QuickClinicalActionsBar
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
 import com.autamedica.android.presentation.theme.AuDanger
@@ -86,6 +87,9 @@ import java.util.Locale
 fun PatientDetailScreen(
     onBack: () -> Unit,
     onNavigateToVideoCall: (appointmentId: String) -> Unit,
+    onNavigateToCreatePrescription: (patientId: String) -> Unit = {},
+    onNavigateToCreateCertificate: (patientId: String) -> Unit = {},
+    onNavigateToCreateMedicalOrder: (patientId: String) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: PatientDetailViewModel = hiltViewModel(),
 ) {
@@ -96,7 +100,7 @@ fun PatientDetailScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = uiState.patient?.displayName ?: stringResource(R.string.patient_detail_title_fallback),
+                        text = uiState.patient?.displayName?.takeIf { it.isNotBlank() } ?: stringResource(R.string.patient_detail_title_fallback),
                         style = MaterialTheme.typography.titleMedium,
                         color = AuTextPrimary,
                         fontWeight = FontWeight.SemiBold,
@@ -133,7 +137,7 @@ fun PatientDetailScreen(
                 }
             }
 
-            uiState.error != null -> {
+            uiState.errorMessageRes != null -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -158,11 +162,21 @@ fun PatientDetailScreen(
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = uiState.error ?: stringResource(R.string.patients_error_generic),
+                            text = stringResource(uiState.errorMessageRes ?: R.string.patient_detail_error_generic),
                             color = AuDanger,
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium,
                         )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = viewModel::refresh,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PortalDoctors,
+                                contentColor = Color.White,
+                            ),
+                        ) {
+                            Text(stringResource(R.string.patient_detail_retry))
+                        }
                     }
                 }
             }
@@ -179,6 +193,15 @@ fun PatientDetailScreen(
                 ) {
                     // Patient header card
                     item { PatientHeaderCard(patient) }
+
+                    // Direct 3-button clinical issuance for this patient (Receta · Certificado · Órdenes)
+                    item {
+                        QuickClinicalActionsBar(
+                            onNavigateToPrescriptions = { onNavigateToCreatePrescription(patient.id) },
+                            onNavigateToCertificates = { onNavigateToCreateCertificate(patient.id) },
+                            onNavigateToMedicalOrders = { onNavigateToCreateMedicalOrder(patient.id) },
+                        )
+                    }
 
                     // Quick info pills
                     item { PatientInfoPills(patient) }
@@ -218,7 +241,7 @@ fun PatientDetailScreen(
                         item {
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(20.dp),
                                 color = AuSurface,
                                 border = BorderStroke(1.dp, AuBorder),
                             ) {
@@ -254,6 +277,56 @@ fun PatientDetailScreen(
                     }
                 }
             }
+
+            else -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(32.dp),
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(64.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            color = AuSurfaceHover,
+                        ) {
+                            Icon(
+                                Icons.Outlined.History,
+                                contentDescription = null,
+                                modifier = Modifier.padding(16.dp),
+                                tint = PortalDoctors,
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = stringResource(R.string.patient_detail_empty_title),
+                            color = AuTextPrimary,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = stringResource(R.string.patient_detail_empty_desc),
+                            color = AuTextTertiary,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = viewModel::refresh,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PortalDoctors,
+                                contentColor = AuTextPrimary,
+                            ),
+                        ) {
+                            Text(stringResource(R.string.patient_detail_retry))
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -262,13 +335,13 @@ fun PatientDetailScreen(
 private fun PatientHeaderCard(patient: PatientDetail) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         color = Color.Transparent,
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(20.dp))
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
@@ -295,7 +368,7 @@ private fun PatientHeaderCard(patient: PatientDetail) {
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = patient.displayName,
+                        text = patient.displayName.ifBlank { stringResource(R.string.patients_anonymous) },
                         style = MaterialTheme.typography.titleLarge,
                         color = AuTextPrimary,
                         fontWeight = FontWeight.Bold,

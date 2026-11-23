@@ -69,9 +69,9 @@ function resetState() {
   };
   state.patient = {
     id: patientId, user_id: patientUserId, active: true, care_country: 'BR',
-    cpf: fakePatientCpf, birth_date: '2000-02-29', gender: 'female', lgpd_consent: true,
+    cpf: fakePatientCpf, birth_date: '2000-02-29', gender: 'female', lgpd_consent: true, lgpd_consent_date: '2026-11-12T18:00:00.000Z',
   };
-  state.patientProfile = { user_id: patientUserId, first_name: 'Paciente', last_name: 'Demonstração' };
+  state.patientProfile = { user_id: patientUserId, first_name: 'Paciente', last_name: 'Demonstração', active: true };
   state.license = {
     doctor_id: doctorId, license_number: fakeCrm, license_type: 'CRM',
     uf_brazil: 'RS', status: 'active', cfm_validation_status: 'valid',
@@ -116,6 +116,8 @@ function readTable(table: string, filters: Map<string, unknown>): Row | Row[] | 
       return null;
     case 'pharmacy_dispatch_requests':
       return null;
+    case 'patient_private_identities':
+      return null; // Registered synthetic chart: no doctor-scoped eventual identity row.
     case 'patients':
       return filters.get('id') === patientId ? state.patient : null;
     case 'memed_prescriptions':
@@ -296,7 +298,11 @@ describe('Memed DEMO flow: synthetic doctor + synthetic patient, no real provide
     const event = await callEvent();
     expect(event.status).toBe(200);
     expect(event.data).toMatchObject({
-      status: 'recorded_pending_signature_and_delivery', prescriptionId: fakeRx,
+      status: 'recorded_pending_signature_and_delivery',
+      prescriptionId: fakeRx,
+      digitalLinkUrl: 'https://receita.memed.com.br/DEMO-RX-001',
+      fullDocumentUrl: 'https://documentos.memed.com.br/DEMO-RX-001.pdf',
+      digitalUnlockCode: 'DEMO-UNLOCK-ONLY',
     });
     expect(state.rows).toHaveLength(1);
     expect(state.memedRows).toHaveLength(1);

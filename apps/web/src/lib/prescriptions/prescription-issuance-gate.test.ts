@@ -8,7 +8,7 @@ const approvedAR = {
   prescriptionCountry: 'AR',
   doctorCountry: 'AR',
   patientCountry: 'AR',
-  argentinaProductionApproved: true,
+  farmalinkGovernanceEnabled: true,
 } as const;
 
 describe('proof-of-issuance clinical gate', () => {
@@ -30,16 +30,16 @@ describe('proof-of-issuance clinical gate', () => {
     });
   });
 
-  it('allows the independent Brazilian CFM path without Argentina approval', () => {
+  it('allows the independent Brazilian CFM path without Farmalink governance', () => {
     expect(check({
       prescriptionCountry: 'BR', doctorCountry: 'BR', patientCountry: 'BR',
-      argentinaProductionApproved: false,
+      farmalinkGovernanceEnabled: false,
     })).toEqual({ ok: true, country: 'BR' });
   });
 
-  it('defaults Argentina to not approved until production homologation', () => {
-    expect(check({ ...approvedAR, argentinaProductionApproved: false })).toEqual({
-      ok: false, code: 'ar_production_homologation_required',
+  it('defaults Argentina to disabled until governance enables Farmalink', () => {
+    expect(check({ ...approvedAR, farmalinkGovernanceEnabled: false })).toEqual({
+      ok: false, code: 'farmalink_governance_disabled',
     });
   });
 
@@ -53,11 +53,12 @@ describe('proof-of-issuance clinical gate', () => {
     expect(eligibleCertificate(null, now)).toBe(false);
     expect(eligibleCertificate({ ...base, acProvider: 'self_signed' }, now)).toBe(false);
     expect(eligibleCertificate({ ...base, signatureMethod: 'electronic_simple' }, now)).toBe(false);
+    expect(eligibleCertificate({ ...base, signatureMethod: 'electronic_simple' }, now, false)).toBe(true);
     expect(eligibleCertificate({ ...base, certValidUntil: '2025-11-04T12:00:00Z' }, now)).toBe(false);
     expect(eligibleCertificate(base, now)).toBe(true);
   });
 
-  it('only allows matched Argentine clinical country with explicit approval', () => {
+  it('only allows matched Argentine clinical country when governance enables Farmalink', () => {
     expect(check(approvedAR)).toEqual({ ok: true, country: 'AR' });
   });
 });
