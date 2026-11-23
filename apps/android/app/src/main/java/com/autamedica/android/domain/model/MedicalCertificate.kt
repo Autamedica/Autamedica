@@ -79,8 +79,7 @@ enum class CertificateType(val code: String, val displayName: String) {
     APTITUD_FISICA("aptitud_fisica", "Aptitud Física"),
     CONSTANCIA_ATENCION("constancia_atencion", "Constancia de Atención"),
     TRATAMIENTO("tratamiento", "Tratamiento Prolongado"),
-    OTRO("otro", "Certificado Médico"),
-    ATESTADO("atestado", "Atestado Médico");
+    OTRO("otro", "Certificado Médico");
 
     companion object {
         fun fromCode(code: String?): CertificateType {
