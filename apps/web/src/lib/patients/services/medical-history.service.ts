@@ -182,7 +182,9 @@ async function listReadModelPrescriptions(
     return [];
   }
 
-  const prescriptions = (rows ?? []) as CorePrescriptionRow[];
+  const prescriptions = ((rows ?? []) as CorePrescriptionRow[]).filter((row) =>
+    !(row.vendor_name?.toLowerCase() === "memed" && row.status === "draft"),
+  );
   const doctorIds = [...new Set(prescriptions.map((row) => row.doctor_id).filter(Boolean))];
   const doctorMap = new Map<string, DoctorLookupRow>();
 
@@ -204,7 +206,12 @@ async function listReadModelPrescriptions(
   return prescriptions.map((row) => normalizeCorePrescription(row, doctorMap));
 }
 
-function normalizeMemedRows(rows: unknown[], admin: Db): Promise<MedicalRecord[]> {
+interface NormalizedMemedDocuments {
+  prescriptions: MedicalRecord[];
+  certificates: Array<Record<string, unknown>>;
+}
+
+function normalizeMemedRows(rows: unknown[], admin: Db): Promise<NormalizedMemedDocuments> {
   return (async () => {
     const records = rows.filter((row): row is Record<string, unknown> => Boolean(row && typeof row === "object"));
     const doctorIds = [...new Set(records.map((row) => asString(row.doctor_id)).filter((id): id is string => Boolean(id)))];
@@ -218,63 +225,104 @@ function normalizeMemedRows(rows: unknown[], admin: Db): Promise<MedicalRecord[]
         if (name) doctorMap.set(doctor.id, name);
       }
     }
-    return records.map((row) => {
+
+    const prescriptions: MedicalRecord[] = [];
+    const certificates: Array<Record<string, unknown>> = [];
+    for (const row of records) {
       const provider = asObject(row.provider_data);
       const digital = asObject(row.digital_link_data);
+      const id = asString(row.id) ?? asString(row.memed_id) ?? crypto.randomUUID();
+      const routeId = "memed-" + id;
+      const doctorId = asString(row.doctor_id) ?? "";
+      const createdAt = asString(row.created_at) ?? new Date().toISOString();
+      const pdfUrl = asString(digital.pdf_url) ?? asString(digital.document_url);
+      const providerReportedSigned = provider.provider_reported_signed === true;
+      const patientDeliveryEligible = provider.patient_delivery_eligible === true
+        && providerReportedSigned && Boolean(pdfUrl);
+      const structuredDocuments = Array.isArray(provider.structured_documents)
+        ? provider.structured_documents.filter((document) => {
+            const item = asObject(document);
+            return item.tipo === "custom" && item.custom_categoria === "atestado";
+          })
+        : [];
+      const hasAtestado = provider.has_atestado === true
+        || provider.document_type === "atestado" || structuredDocuments.length > 0;
+      const medicationItems = Array.isArray(provider.medications)
+        ? provider.medications.filter((medication) => {
+            const item = asObject(medication);
+            return !(item.tipo === "custom" && item.custom_categoria === "atestado");
+          })
+        : [];
       const medicationName = asString(provider.medication_name)
         ?? asString(provider.medicationName)
         ?? asString(provider.nome)
         ?? asString(provider.name)
         ?? asString(provider.title)
         ?? "Receita digital Memed";
-      const digitalUrl = [digital.url, digital.link, digital.pdf_url, digital.document_url]
-        .find((value) => typeof value === "string" && /^https:\/\//i.test(value as string));
-      const id = asString(row.id) ?? asString(row.memed_id) ?? crypto.randomUUID();
-      const doctorId = asString(row.doctor_id) ?? "";
-      const createdAt = asString(row.created_at) ?? new Date().toISOString();
-      return {
-        id: "memed-" + id,
-        patient_id: asString(row.patient_id) ?? "",
-        type: "prescription",
-        title: "Prescripcion: " + medicationName,
-        content: {
-          medication_name: medicationName,
-          dosage: asString(provider.dosage) ?? asString(provider.dose) ?? "",
-          frequency: asString(provider.frequency) ?? "",
-          duration: asString(provider.duration) ?? "",
-          instructions: asString(provider.instructions) ?? "",
-          diagnosis: asString(provider.diagnosis),
-          status: asString(row.status) ?? "verified_at_provider",
-          issuance_status: asString(row.status) ?? "verified_at_provider",
-          prescribed_date: createdAt,
-          start_date: createdAt,
-          doctor_name: doctorMap.get(doctorId) ?? null,
-          vendor_name: "Memed BR",
-          vendor_id: asString(row.memed_id),
-          signed_pdf_url: typeof digitalUrl === "string" ? digitalUrl : null,
-          cuir: asString(provider.cuir) ?? asString(row.memed_id),
-          is_digital_artifact_ready: Boolean(digitalUrl),
+
+      if (hasAtestado && patientDeliveryEligible) {
+        const atestado = asObject(structuredDocuments[0]);
+        certificates.push({
+          id: routeId,
+          status: "signed",
+          certificate_type: "atestado",
+          title: asString(atestado.nome) ?? "Atestado médico",
+          created_at: createdAt,
+          doctor_name: doctorMap.get(doctorId) ?? "Médico",
+          signed_pdf_url: `/api/patients/prescriptions/${encodeURIComponent(routeId)}/pdf`,
           source: "memed_br",
-        },
-        created_at: createdAt,
-        updated_at: createdAt,
-      } satisfies MedicalRecord;
-    });
+          signature_status: "provider_reported_signed",
+        });
+      }
+
+      const hasPrescriptionItems = medicationItems.length > 0 || !hasAtestado;
+      if (hasPrescriptionItems && patientDeliveryEligible) {
+        prescriptions.push({
+          id: routeId,
+          patient_id: asString(row.patient_id) ?? "",
+          type: "prescription",
+          title: "Prescripcion: " + medicationName,
+          content: {
+            medication_name: medicationName,
+            dosage: asString(provider.dosage) ?? asString(provider.dose) ?? "",
+            frequency: asString(provider.frequency) ?? "",
+            duration: asString(provider.duration) ?? "",
+            instructions: asString(provider.instructions) ?? "",
+            diagnosis: asString(provider.diagnosis),
+            status: "signed",
+            issuance_status: "signed",
+            prescribed_date: createdAt,
+            start_date: createdAt,
+            doctor_name: doctorMap.get(doctorId) ?? null,
+            vendor_name: "Memed BR",
+            vendor_id: asString(row.memed_id),
+            signed_pdf_url: `/api/patients/prescriptions/${encodeURIComponent(routeId)}/pdf`,
+            cuir: asString(provider.cuir) ?? asString(row.memed_id),
+            is_digital_artifact_ready: true,
+            source: "memed_br",
+          },
+          created_at: createdAt,
+          updated_at: createdAt,
+        } satisfies MedicalRecord);
+      }
+    }
+    return { prescriptions, certificates };
   })();
 }
 
-async function listMemedPrescriptions(
+async function listMemedDocuments(
   admin: Db,
   authenticatedClient: SupabaseClient,
-): Promise<MedicalRecord[]> {
+): Promise<NormalizedMemedDocuments> {
+  const empty: NormalizedMemedDocuments = { prescriptions: [], certificates: [] };
   const scoped = authenticatedClient as unknown as {
     rpc: (name: string) => Promise<{ data: unknown[] | null; error: { message?: string } | null }>;
   };
-  if (typeof scoped.rpc !== "function") return [];
+  if (typeof scoped.rpc !== "function") return empty;
   const { data, error } = await scoped.rpc("patient_memed_prescriptions_get");
   if (error) {
     logger.warn("[medicalHistoryService] patient Memed RPC failed", { message: error.message });
-    return [];
+    return empty;
   }
   return normalizeMemedRows(data ?? [], admin);
 }
@@ -342,15 +390,15 @@ export const medicalHistoryService = {
   async getFullHistory(supabase: Db, patientId: string, authenticatedClient: SupabaseClient = supabase): Promise<MedicalHistorySnapshot> {
     const medicalHistoryRepo = createMedicalHistoryAdapter(supabase);
 
-    const [corePrescriptions, memedPrescriptions, medications, conditions, allergies, timeline, clinicalDocuments, anamnesisRes] =
+    const [corePrescriptions, memedDocuments, medications, conditions, allergies, timeline, clinicalDocuments, anamnesisRes] =
       await Promise.all([
         listReadModelPrescriptions(supabase, patientId).catch((err) => {
           logger.error("[medicalHistoryService] prescriptions failed", err);
           return [];
         }),
-        listMemedPrescriptions(supabase, authenticatedClient).catch((err) => {
-          logger.error("[medicalHistoryService] Memed prescriptions failed", err);
-          return [];
+        listMemedDocuments(supabase, authenticatedClient).catch((err) => {
+          logger.error("[medicalHistoryService] Memed documents failed", err);
+          return { prescriptions: [], certificates: [] };
         }),
         medicalHistoryRepo.listByType(patientId, "prescription").catch((err) => {
           logger.error("[medicalHistoryService] medications failed", err);
@@ -385,7 +433,7 @@ export const medicalHistoryService = {
     const coreRecords = corePrescriptions ?? [];
     const memedIds = new Set(coreRecords.map((record) => asString(asObject(record.content).vendor_id)).filter((value): value is string => Boolean(value)));
     const coreIds = new Set(coreRecords.map((record) => record.id));
-    const uniqueMemed = memedPrescriptions.filter((record) => {
+    const uniqueMemed = memedDocuments.prescriptions.filter((record) => {
       const vendorId = asString(asObject(record.content).vendor_id);
       const sourceId = record.id.replace(/^memed-/, "");
       return (!vendorId || !memedIds.has(vendorId)) && !coreIds.has(sourceId);
@@ -395,7 +443,7 @@ export const medicalHistoryService = {
 
     return {
       prescriptions: effectiveMedications,
-      certificates: clinicalDocuments.certificates,
+      certificates: [...clinicalDocuments.certificates, ...memedDocuments.certificates],
       orders: clinicalDocuments.orders,
       summary: { medications: effectiveMedications, conditions, allergies },
       timeline: mergeTimelineRecords(effectiveMedications, timeline),
