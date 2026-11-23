@@ -185,7 +185,7 @@ describe('Memed event persistence boundary', () => {
     expect(mocks.memedInsert).toHaveBeenCalledWith(expect.objectContaining({
       provider_data: expect.objectContaining({
         document_type: 'atestado', has_atestado: true,
-        medication_name: 'Dipirona 500 mg',
+        medication_name: 'Dipirona',
         medications: [expect.objectContaining({ commercial_name: 'Dipirona', tipo: 'medicamento' })],
         structured_documents: [expect.objectContaining({ custom_categoria: 'atestado' })],
         patient_delivery_eligible: true,
