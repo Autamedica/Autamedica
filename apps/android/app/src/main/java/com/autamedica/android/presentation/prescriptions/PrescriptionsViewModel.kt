@@ -153,15 +153,31 @@ class PrescriptionsViewModel @Inject constructor(
     fun openCertificatePdf(
         certificate: MedicalCertificate,
         onReady: (String) -> Unit,
-        onFailure: () -> Unit,
+        onFailure: (String) -> Unit,
     ) {
         viewModelScope.launch {
-            certificateRepository.getCertificatePdfDownloadUrl(certificate)
-                .onSuccess(onReady)
-                .onFailure { error ->
-                    SecureLog.error("[Certificates] Authenticated PDF download URL unavailable", error)
-                    onFailure()
-                }
+            if (certificate.source == "memed_br") {
+                val rowId = certificate.id.removePrefix("memed-")
+                prescriptionRepository.downloadPatientPrescriptionPdf("memed:" + rowId)
+                    .onSuccess { downloaded -> onReady(downloaded.localPath) }
+                    .onFailure { error ->
+                        SecureLog.error("[Certificates] Memed atestado PDF download unavailable", error)
+                        onFailure(
+                            if (error.message?.contains("http_403") == true) {
+                                "Memed no autorizó la entrega de este atestado (HTTP 403). Actualizá e intentá nuevamente."
+                            } else {
+                                "No se pudo descargar el atestado. Verificá tu conexión e intentá nuevamente."
+                            },
+                        )
+                    }
+            } else {
+                certificateRepository.getCertificatePdfDownloadUrl(certificate)
+                    .onSuccess(onReady)
+                    .onFailure { error ->
+                        SecureLog.error("[Certificates] Authenticated PDF download URL unavailable", error)
+                        onFailure("No se pudo descargar el certificado. Intentá nuevamente.")
+                    }
+            }
         }
     }
 

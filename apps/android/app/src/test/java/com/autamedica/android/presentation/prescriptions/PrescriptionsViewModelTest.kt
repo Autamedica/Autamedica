@@ -213,19 +213,54 @@ class PrescriptionsViewModelTest {
     }
 
     @Test
-    fun selectingAndClearingCertificateUpdatesState() = runTest {
-        val target = sampleCertificates.first()
-        viewModel.selectCertificate(target)
-        assertThat(viewModel.uiState.value.selectedCertificate).isEqualTo(target)
+    fun memedCertificateDownloadSuccessReturnsVerifiedLocalPath() = runTest {
+        val certificate = sampleCertificates.first().copy(
+            id = "memed-12345678-1234-4234-8234-123456789abc",
+            source = "memed_br",
+            providerSignatureReported = true,
+            patientDeliveryEligible = true,
+        )
+        fakeRepository.downloadResult = Result.success(
+            com.autamedica.android.domain.model.DownloadedPrescriptionPdf(
+                localPath = "/cache/memed-atestado.pdf",
+                sha256 = "a".repeat(64),
+            ),
+        )
+        var openedPath: String? = null
+        viewModel.openCertificatePdf(certificate, onReady = { openedPath = it }, onFailure = {})
+        assertThat(openedPath).isEqualTo("/cache/memed-atestado.pdf")
+    }
 
-        viewModel.clearSelectedCertificate()
-        assertThat(viewModel.uiState.value.selectedCertificate).isNull()
+    @Test
+    fun memedCertificateHttp403ReturnsExplicitUserFeedback() = runTest {
+        val certificate = sampleCertificates.first().copy(
+            id = "memed-12345678-1234-4234-8234-123456789abc",
+            source = "memed_br",
+            providerSignatureReported = true,
+            patientDeliveryEligible = true,
+        )
+        fakeRepository.downloadResult = Result.failure(IllegalStateException("prescription_pdf_http_403"))
+        var failureMessage: String? = null
+        viewModel.openCertificatePdf(certificate, onReady = {}, onFailure = { failureMessage = it })
+        assertThat(failureMessage).contains("HTTP 403")
+        assertThat(failureMessage).contains("Memed")
+    }
+
+    @Test
+    fun memedRpcFailureIsExposedAndDoesNotBecomeAnEmptyCertificateList() = runTest {
+        fakeCertificateRepository.result = Result.failure(IllegalStateException("RPC unavailable"))
+        viewModel.refresh()
+        assertThat(viewModel.uiState.value.error).contains("Certificados")
+        assertThat(viewModel.uiState.value.error).contains("RPC unavailable")
+        assertThat(viewModel.uiState.value.certificates).containsExactlyElementsIn(sampleCertificates)
     }
 }
 
 private class FakePrescriptionRepository(
     private val items: List<Prescription> = emptyList(),
 ) : PrescriptionRepository {
+    var downloadResult: Result<com.autamedica.android.domain.model.DownloadedPrescriptionPdf> =
+        Result.failure(UnsupportedOperationException("PDF download is not exercised by this test"))
     override suspend fun getPatientPrescriptions(): Result<List<Prescription>> = Result.success(items)
     override suspend fun getPrescriptionById(id: String): Result<Prescription> {
         val item = items.find { it.id == id }
@@ -248,13 +283,14 @@ private class FakePrescriptionRepository(
         Result.success(com.autamedica.android.domain.model.DoctorEligibility(true, "MN 12345", "valid"))
 
     override suspend fun downloadPatientPrescriptionPdf(prescriptionId: String): Result<com.autamedica.android.domain.model.DownloadedPrescriptionPdf> =
-        Result.failure(UnsupportedOperationException("PDF download is not exercised by this test"))
+        downloadResult
 }
 
 private class FakeMedicalCertificateRepository(
     private val items: List<MedicalCertificate> = emptyList(),
 ) : MedicalCertificateRepository {
-    override suspend fun getPatientCertificates(): Result<List<MedicalCertificate>> = Result.success(items)
+    var result: Result<List<MedicalCertificate>> = Result.success(items)
+    override suspend fun getPatientCertificates(): Result<List<MedicalCertificate>> = result
     override suspend fun getCertificateById(id: String): Result<MedicalCertificate> {
         val item = items.find { it.id == id }
         return if (item != null) Result.success(item) else Result.failure(NoSuchElementException())

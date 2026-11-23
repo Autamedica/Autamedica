@@ -19,10 +19,14 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.coroutines.Dispatchers
@@ -65,12 +69,15 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             }
             .decodeList<CertificateRowDto>()
 
-        if (rows.isEmpty()) return@runCatching emptyList()
+        // A failed RPC must remain distinguishable from a legitimate empty result.
+        val memedRows = supabaseClient.postgrest.rpc("patient_memed_prescriptions_get")
+            .decodeList<MemedPatientCertificateRowDto>()
+        if (rows.isEmpty() && memedRows.isEmpty()) return@runCatching emptyList()
 
-        val doctorIds = rows.mapNotNull { it.doctorId }.distinct()
+        val doctorIds = (rows.mapNotNull { it.doctorId } + memedRows.mapNotNull { it.doctorId }).distinct()
         val (doctorNameMap, doctorLicenseMap) = resolveDoctorsInfo(doctorIds)
 
-        rows.map { row ->
+        val coreCertificates = rows.map { row ->
             val docId = row.doctorId
             MedicalCertificate(
                 id = row.id,
@@ -95,6 +102,44 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
                 createdAt = row.createdAt,
             )
         }
+
+        val memedCertificates = memedRows.mapNotNull { row ->
+            val provider = row.providerData ?: return@mapNotNull null
+            val digital = row.digitalLinkData
+            val providerReportedSigned = provider["provider_reported_signed"]?.jsonPrimitive?.booleanOrNull == true
+            val patientDeliveryEligible = provider["patient_delivery_eligible"]?.jsonPrimitive?.booleanOrNull == true
+            val structuredAtestado = runCatching {
+                provider["structured_documents"]?.jsonArray?.any { document ->
+                    val item = document.jsonObject
+                    item["tipo"]?.jsonPrimitive?.contentOrNull == "custom" &&
+                        item["custom_categoria"]?.jsonPrimitive?.contentOrNull == "atestado"
+                } == true
+            }.getOrDefault(false)
+            val hasAtestado = provider["has_atestado"]?.jsonPrimitive?.booleanOrNull == true ||
+                provider["document_type"]?.jsonPrimitive?.contentOrNull == "atestado" || structuredAtestado
+            val pdfAvailable = findMemedPdfUrl(digital) != null
+            if (!hasAtestado || !providerReportedSigned || !patientDeliveryEligible || !pdfAvailable) {
+                return@mapNotNull null
+            }
+            val routeId = "memed-" + row.id
+            MedicalCertificate(
+                id = routeId,
+                cuir = "",
+                status = "signed",
+                certificateType = CertificateType.OTRO,
+                startDate = row.createdAt?.take(10).orEmpty(),
+                doctorName = row.doctorId?.let { doctorNameMap[it] },
+                signedPdfUrl = "/api/patients/prescriptions/" + routeId + "/pdf",
+                countryCode = "BR",
+                createdAt = row.createdAt.orEmpty(),
+                signatureMethod = "memed_provider_reported",
+                source = "memed_br",
+                providerSignatureReported = true,
+                patientDeliveryEligible = true,
+                hideDiagnosis = true,
+            )
+        }
+        coreCertificates + memedCertificates
     }.onFailure {
         SecureLog.error("[Certificates] Failed fetching patient certificates", it)
     }
@@ -499,6 +544,17 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
     }
 
     @Serializable
+    private data class MemedPatientCertificateRowDto(
+        val id: String,
+        @SerialName("doctor_id") val doctorId: String? = null,
+        @SerialName("patient_id") val patientId: String? = null,
+        @SerialName("memed_id") val memedId: String? = null,
+        @SerialName("created_at") val createdAt: String? = null,
+        @SerialName("provider_data") val providerData: JsonObject? = null,
+        @SerialName("digital_link_data") val digitalLinkData: JsonObject? = null,
+    )
+
+    @Serializable
     private data class RecordIdDto(val id: String)
 
     @Serializable
@@ -693,3 +749,54 @@ private fun mapCertificateIssueError(raw: String, httpCode: Int): String {
         else -> parsedError ?: "No se pudo firmar y emitir el certificado (HTTP $httpCode)"
     }
 }
+
+
+/** Mirrors the backend's two-pass, depth-limited Memed URL lookup. */
+internal fun findMemedPdfUrl(value: JsonElement?): String? =
+    findMemedUrl(value, pdfKeysOnly = true, depth = 0, inPdfContext = false)
+        ?: findMemedUrl(value, pdfKeysOnly = false, depth = 0, inPdfContext = false)
+
+private fun findMemedUrl(
+    value: JsonElement?,
+    pdfKeysOnly: Boolean,
+    depth: Int,
+    inPdfContext: Boolean,
+): String? {
+    if (depth > 7 || value == null) return null
+    when (value) {
+        is JsonArray -> {
+            value.forEach { nested ->
+                findMemedUrl(nested, pdfKeysOnly, depth + 1, inPdfContext)?.let { return it }
+            }
+        }
+        is JsonObject -> {
+            value.forEach { (key, nested) ->
+                val documentKey = Regex("(pdf|document)", RegexOption.IGNORE_CASE).containsMatchIn(key)
+                val matches = documentKey || (
+                    if (pdfKeysOnly) inPdfContext && Regex("(url|link)", RegexOption.IGNORE_CASE).containsMatchIn(key)
+                    else Regex("(digital|url|link)", RegexOption.IGNORE_CASE).containsMatchIn(key)
+                )
+                val candidate = (nested as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull
+                if (matches && candidate != null && isMemedHttpsUrl(candidate)) return candidate
+            }
+            value.forEach { (key, nested) ->
+                findMemedUrl(
+                    nested,
+                    pdfKeysOnly,
+                    depth + 1,
+                    inPdfContext || Regex("(pdf|document)", RegexOption.IGNORE_CASE).containsMatchIn(key),
+                )?.let { return it }
+            }
+        }
+        else -> Unit
+    }
+    return null
+}
+
+private fun isMemedHttpsUrl(value: String): Boolean = runCatching {
+    val uri = URI(value)
+    val host = uri.host?.lowercase()?.removeSuffix(".") ?: return@runCatching false
+    uri.scheme.equals("https", ignoreCase = true) &&
+        (host == "memed.com.br" || host.endsWith(".memed.com.br") ||
+            host == "memed.com" || host.endsWith(".memed.com"))
+}.getOrDefault(false)
