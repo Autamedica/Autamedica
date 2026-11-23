@@ -89,6 +89,52 @@ describe('Memed event persistence boundary', () => {
       signature_status: signed ? 'provider_reported_signed' : 'pending',
     } });
   });
+  it('persists structured atestados and enables delivery only when Memed reports signing and returns the full PDF', async () => {
+    rx = {
+      id: 'rx-test',
+      medicos: { cpf: doctor.cpf, crm: '9236', uf: 'RS' },
+      paciente: { external_id: `autamedica-${patientId}`, cpf: doctor.cpf },
+      medicamentos: [{
+        tipo: 'custom',
+        custom_categoria: 'atestado',
+        nome: 'Atestado de afastamento',
+        texto: 'Documento médico emitido pelo profissional',
+      }],
+      signed: 1,
+    };
+    mocks.pdfUrl.mockResolvedValue({
+      data: { attributes: { url: 'https://documentos.memed.com.br/rx-test.pdf' } },
+    });
+
+    expect((await POST(context())).status).toBe(200);
+    expect(mocks.memedInsert).toHaveBeenCalledWith(expect.objectContaining({
+      provider_data: expect.objectContaining({
+        document_type: 'atestado',
+        has_atestado: true,
+        provider_reported_signed: true,
+        patient_delivery_eligible: true,
+        structured_documents: [{
+          tipo: 'custom',
+          custom_categoria: 'atestado',
+          nome: 'Atestado de afastamento',
+          texto: 'Documento médico emitido pelo profissional',
+        }],
+      }),
+      digital_link_data: expect.objectContaining({ pdf_url: 'https://documentos.memed.com.br/rx-test.pdf' }),
+      pdf_signature_verified: false,
+      patient_delivery_confirmed: false,
+    }));
+    expect(mocks.coreInsert.mock.calls[0][0]).toMatchObject({
+      physical_pdf_url: 'https://documentos.memed.com.br/rx-test.pdf',
+      clinical_data: {
+        document_type: 'atestado',
+        signature_status: 'provider_reported_signed',
+        patient_delivery_eligible: true,
+        delivery_status: 'provider_signed_pdf_available',
+      },
+    });
+  });
+
   it('binds the issued prescription to the authenticated pharmacy dispatch', async () => {
     const requestId = '22222222-2222-4222-8222-222222222222';
     expect((await POST(context('rx-test', 'true', requestId))).status).toBe(200);
