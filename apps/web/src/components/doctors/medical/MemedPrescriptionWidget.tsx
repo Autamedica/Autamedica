@@ -118,7 +118,10 @@ export function MemedPrescriptionWidget({
         }
         await ensureMemedScript(json.data.token, json.data.scriptUrl, json.data.doctor.userId);
         if (cancelled) return;
-        await openMemedPatient(json.data.patient, () => !cancelled);
+        const allowedSignatureProviders = Array.isArray(json.data.allowedSignatureProviders)
+          ? json.data.allowedSignatureProviders.filter((provider: unknown): provider is string => typeof provider === 'string')
+          : undefined;
+        await openMemedPatient(json.data.patient, () => !cancelled, allowedSignatureProviders);
         if (!cancelled) setLoading(false);
       } catch (error) {
         if (!cancelled) {
