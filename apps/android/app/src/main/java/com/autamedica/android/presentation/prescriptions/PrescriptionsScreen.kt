@@ -181,8 +181,8 @@ fun PrescriptionsScreen(
                     }
                 }
             },
-            onFailure = {
-                Toast.makeText(context, context.getString(R.string.prescriptions_toast_cert_pdf_error), Toast.LENGTH_SHORT).show()
+            onFailure = { message ->
+                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
             },
         )
     }
