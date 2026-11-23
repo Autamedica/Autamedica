@@ -894,7 +894,7 @@ export function PharmacyExpressConsultation({
                   <article key={document.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-900">{document.kind === 'certificate' ? (isPortuguese ? 'Atestado / Certificado Médico' : 'Atestado / Certificado Médico') : document.kind === 'memed' ? 'Receita Digital Memed' : 'Receta Digital RCTA'}</p>
+                        <p className="text-sm font-semibold text-slate-900">{document.kind === 'certificate' ? (isPortuguese ? 'Atestado / Certificado Médico' : 'Atestado / Certificado Médico') : document.kind === 'memed' ? 'Receita Digital BR' : 'Receta Digital RCTA'}</p>
                         <p className="mt-0.5 truncate text-xs text-slate-600">{document.title} · {document.provider}</p>
                         {document.verificationCode && <p className="mt-1 text-[11px] text-slate-500">{isPortuguese ? 'Código de verificação' : 'Código de verificación'}: <span className="font-mono font-semibold text-slate-800">{document.verificationCode}</span></p>}
                       </div>

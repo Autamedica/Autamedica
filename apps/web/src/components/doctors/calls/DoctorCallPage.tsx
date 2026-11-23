@@ -710,7 +710,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                 <>
                   {isBrazilianDispatch ? (
                     <CallAuxiliaryButton icon={<Pill className="h-5 w-5 md:h-5.5 md:w-5.5" />}
-                      label={isBrazilianDispatch ? 'Receita Memed' : 'Receta Memed'} onClick={() => setShowMemedWidget(true)} />
+                      label={isBrazilianDispatch ? 'Receita digital' : 'Receta digital'} onClick={() => setShowMemedWidget(true)} />
                   ) : (
                     <CallAuxiliaryButton icon={<Pill className="h-5 w-5 md:h-5.5 md:w-5.5" />}
                       label={isBrazilianDoctor ? 'Receita' : 'Receta'} onClick={() => setShowPrescriptionModal(true)} />

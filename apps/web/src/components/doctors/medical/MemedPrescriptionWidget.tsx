@@ -99,12 +99,12 @@ export function MemedPrescriptionWidget({
           const doctorGate = ['verified_brazilian_license_required', 'memed_doctor_identity_incomplete',
             'active_brazilian_doctor_required', 'memed_pilot_prescriber_only'].includes(code);
           throw new Error(code === 'memed_issuance_not_enabled'
-            ? 'Memed está em validação clínica. A consulta continua normalmente e você pode emitir a receita nativa Autamedica.'
+            ? 'O receituário digital está em validação clínica. A consulta continua normalmente e você pode emitir o rascunho interno Autamedica.'
             : patientGate
-              ? 'Paciente sem consentimento LGPD ativo ou identidade completa. A receita Memed foi bloqueada; continue pela receita nativa Autamedica.'
+              ? 'Paciente sem consentimento LGPD ativo ou identidade completa. A receita digital oficial foi bloqueada; continue pelo rascunho interno Autamedica.'
               : doctorGate
-                ? 'Identidade ou habilitação do prescritor ainda não está validada para Memed. Continue pela receita nativa Autamedica.'
-                : 'Memed não autorizou esta emissão. Continue pela receita nativa Autamedica; a videoconsulta permanece ativa.');
+                ? 'Identidade ou habilitação do prescritor ainda não está validada para emissão oficial. Continue pelo rascunho interno Autamedica.'
+                : 'Não foi possível autorizar esta emissão oficial. Continue pelo rascunho interno Autamedica; a videoconsulta permanece ativa.');
         }
         if (cancelled) return;
         setPatientLabel(json.data.patient.nome);
@@ -124,7 +124,7 @@ export function MemedPrescriptionWidget({
         if (!cancelled) {
           setLoading(false);
           setFallbackAvailable(true);
-          setErrorMessage(error instanceof Error ? error.message : 'Erro ao iniciar Memed.');
+          setErrorMessage(error instanceof Error ? error.message : 'Erro ao iniciar o receituário digital.');
         }
       }
     }
@@ -151,7 +151,7 @@ export function MemedPrescriptionWidget({
               <h2 className="text-sm font-semibold text-slate-900 sm:text-base">Receituário digital Brasil</h2>
               <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-700">
                 <ShieldCheck className="h-3 w-3" />
-                Memed · ICP-Brasil
+                AutaMedica · ICP-Brasil
               </span>
             </div>
             <p className="mt-0.5 truncate text-xs text-slate-600">Paciente: <span className="font-medium text-slate-800">{patientLabel ?? 'Confirmando cadastro…'}</span></p>
@@ -160,7 +160,7 @@ export function MemedPrescriptionWidget({
             type="button"
             onClick={onClose}
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
-            aria-label="Fechar Memed"
+            aria-label="Fechar receituário"
           >
             <X className="h-3.5 w-3.5" />
             Fechar
@@ -175,7 +175,7 @@ export function MemedPrescriptionWidget({
             setLoading(true);
             setDoctorIdentitySubmitted({ cpf: doctorCpfInput, birthDate: doctorBirthInput });
           }}>
-            <p className="text-sm text-slate-800">Para vincular sua identidade ao Memed, informe seu CPF e data de nascimento reais. A matrícula CRM deve estar previamente validada.</p>
+            <p className="text-sm text-slate-800">Para vincular sua identidade ao receituário digital oficial, informe seu CPF e data de nascimento reais. A matrícula CRM deve estar previamente validada.</p>
             <label className="block text-sm text-slate-700">
               CPF do médico (11 dígitos)
               <input type="text" inputMode="numeric" autoComplete="off" pattern="[0-9]{11}"
@@ -188,10 +188,10 @@ export function MemedPrescriptionWidget({
                 value={doctorBirthInput} onChange={(event) => setDoctorBirthInput(event.target.value)}
                 className="mt-1 block w-full rounded border p-2" />
             </label>
-            <p className="text-xs text-slate-600">A data de nascimento será transmitida à Memed apenas para o cadastro, sem armazenamento na AutaMedica.</p>
+            <p className="text-xs text-slate-600">A data de nascimento será usada apenas na validação cadastral do emissor oficial, sem armazenamento na AutaMedica.</p>
             <div className="flex flex-wrap gap-2">
               <button type="submit" className="rounded bg-blue-700 px-4 py-2 text-sm font-medium text-white">
-                Validar cadastro Memed
+                Validar cadastro
               </button>
               <button type="button" onClick={onFallbackToNativePrescription}
                 className="rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800">
@@ -225,8 +225,8 @@ export function MemedPrescriptionWidget({
             <p className="text-sm text-slate-800">
               Complete os dados que faltam do paciente, confirmando a informação diretamente com ele.
               {missingPatientFields.address
-                ? ' Para receitas controladas e Notificação de Receita B (azul / SNCR - RDC 1.000/2025), a Memed exige endereço completo do paciente.'
-                : ' A Memed pode exigir data de nascimento e sexo para determinados medicamentos e receituários.'}
+                ? ' Para receitas controladas e Notificação de Receita B (azul / SNCR - RDC 1.000/2025), a legislação exige endereço completo do paciente.'
+                : ' O receituário oficial pode exigir data de nascimento e sexo para determinados medicamentos.'}
             </p>
             {missingPatientFields.demographics && (
               <>
@@ -267,7 +267,7 @@ export function MemedPrescriptionWidget({
             )}
             <div className="flex flex-wrap gap-2">
               <button type="submit" className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-700">
-                Salvar dados e abrir Memed
+                Salvar dados e abrir receituário
               </button>
               {!missingPatientFields.demographics && missingPatientFields.address && (
                 <button type="button" onClick={() => {
@@ -286,7 +286,7 @@ export function MemedPrescriptionWidget({
             </div>
           </form>
         )}
-        {loading && <div className="flex items-center gap-2 p-5 text-slate-700"><Loader2 className="h-5 w-5 animate-spin" />Carregando Memed...</div>}
+        {loading && <div className="flex items-center gap-2 p-5 text-slate-700"><Loader2 className="h-5 w-5 animate-spin" />Carregando receituário digital...</div>}
         {errorMessage && <div role="alert" className="space-y-3 border-b border-amber-200 bg-amber-50 p-5 text-amber-950">
           <div className="flex items-start gap-2 text-sm"><AlertCircle className="h-5 w-5 shrink-0" />{errorMessage}</div>
           {fallbackAvailable && <button type="button" onClick={onFallbackToNativePrescription}
@@ -295,7 +295,7 @@ export function MemedPrescriptionWidget({
           </button>}
         </div>}
         {issuedId && <div role="status" className="p-3 text-sm text-amber-800">
-          Prescrição confirmada na API Memed e registrada como pendente (ID {issuedId}). Confirme a assinatura e a entrega ao paciente antes de concluir o atendimento.
+          Prescrição confirmada e registrada como pendente (ID {issuedId}). Confirme a assinatura e a entrega ao paciente antes de concluir o atendimento.
         </div>}
         <div id="memed-prescricao-container" className={mobileFullscreen
           ? "min-h-0 flex-1 overflow-auto overscroll-contain"

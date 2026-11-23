@@ -135,7 +135,7 @@ function prescriptionErrorMessage(error: unknown, phase: "save" | "issue"): stri
     prescription_country_required: "Definí el país de atención de la receta antes de emitir.",
     doctor_country_mismatch: "La matrícula o el país del médico no coinciden con la jurisdicción de esta receta.",
     patient_country_required_or_mismatched: "Confirmá el país clínico del paciente antes de emitir.",
-    br_requires_memed_provider: "En Brasil, la emisión oficial debe realizarse a través de Memed. Este PDF interno no es válido como emisión.",
+    br_requires_memed_provider: "En Brasil, la emisión oficial debe realizarse desde el receituário digital oficial (ICP-Brasil). Este PDF interno no es válido como emisión.",
     ar_production_homologation_required: "Emisión oficial argentina deshabilitada hasta completar homologación y firma verificable. El borrador permanece guardado.",
     digital_signature_required: "No hay un certificado digital profesional disponible y verificable para firmar esta receta.",
     digital_signature_failed: "No se pudo firmar digitalmente la receta. No se considera emitida.",
@@ -881,7 +881,7 @@ export function PrescriptionCreateModal({
 
           {isBrEventualMemedHandoff ? (
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs leading-relaxed text-emerald-900">
-              Al confirmar el cadastro y consentimiento LGPD, se abrirá directamente el receituário digital de <strong>Memed</strong> para emitir la receta oficial en Brasil.
+              Al confirmar el cadastro y consentimiento LGPD, se abrirá directamente el receituário digital oficial para emitir la receta en Brasil.
             </div>
           ) : (
           <>
@@ -1240,7 +1240,7 @@ export function PrescriptionCreateModal({
               {saving
                 ? "Guardando..."
                 : isBrEventualMemedHandoff
-                  ? "Registrar paciente y abrir Memed"
+                  ? "Registrar paciente y abrir receituário"
                   : submitLabel ?? (isEditing ? "Actualizar" : "Guardar receta")}
             </button>
           </div>

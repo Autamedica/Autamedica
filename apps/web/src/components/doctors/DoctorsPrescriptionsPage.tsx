@@ -605,13 +605,13 @@ export function DoctorsPrescriptionsPage() {
                 onClick={openPrimaryPrescriptionAction}
                 title={
                   selectedPatientId
-                    ? "Emitir receita digital oficial via Memed"
-                    : "Cadastrar ou selecionar paciente BR para abrir Memed"
+                    ? "Emitir receita digital oficial"
+                    : "Cadastrar ou selecionar paciente BR"
                 }
                 className="inline-flex items-center gap-2 rounded-xl bg-am-primary-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-am-primary-700 active:scale-[0.97]"
               >
                 <Plus className="h-4 w-4" />
-                Receita digital (Memed)
+                Receita digital
               </button>
             )}
             {(certificateCountry === "AR" || (certificateCountry === "BR" && !externalProviderEnabled)) && (
@@ -668,7 +668,7 @@ export function DoctorsPrescriptionsPage() {
                 className="inline-flex items-center gap-1.5 rounded-lg border border-am-primary-200 bg-am-primary-50 px-3 py-1.5 text-xs font-semibold text-am-primary-700 transition hover:bg-am-primary-100"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Nuevo paciente BR (Memed)
+                Nuevo paciente BR
               </button>
             )}
           </div>
@@ -759,7 +759,7 @@ export function DoctorsPrescriptionsPage() {
                 className="inline-flex items-center gap-2 rounded-xl bg-am-primary-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-am-primary-700"
               >
                 <Plus className="h-4 w-4" />
-                {useBrMemedPrimary ? "Receita digital (Memed)" : "Nueva receta"}
+                {useBrMemedPrimary ? "Receita digital" : "Nueva receta"}
               </button>
               <button
                 type="button"
@@ -993,7 +993,7 @@ export function DoctorsPrescriptionsPage() {
                             className="mt-4 inline-flex items-center gap-2 rounded-xl bg-am-primary-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-am-primary-700"
                           >
                             <Plus className="h-4 w-4" />
-                            {useBrMemedPrimary ? "Receita digital (Memed)" : "Nueva receta"}
+                            {useBrMemedPrimary ? "Receita digital" : "Nueva receta"}
                           </button>
                         )}
                       </div>
@@ -1368,7 +1368,7 @@ export function DoctorsPrescriptionsPage() {
         <section className="fixed bottom-4 left-4 right-4 z-[60] mx-auto max-w-2xl rounded-xl border border-sky-200 bg-white p-4 shadow-xl" aria-live="polite">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-sky-900">Receta Memed registrada. Compartí el documento con el paciente.</p>
+              <p className="text-sm font-semibold text-sky-900">Receta digital registrada. Compartí el documento con el paciente.</p>
               {memedDelivery.accessCode && <p className="mt-1 text-xs text-am-surface-600">Código de acceso: <strong>{memedDelivery.accessCode}</strong></p>}
             </div>
             <button type="button" onClick={() => setMemedDelivery(null)} className="rounded px-2 py-1 text-xs text-am-surface-500 hover:bg-am-surface-100">Cerrar</button>
@@ -1414,7 +1414,7 @@ export function DoctorsPrescriptionsPage() {
                 };
               } | null;
               if (!response.ok || envelope?.success !== true) {
-                throw new Error("Falha ao registrar receita Memed.");
+                throw new Error("Falha ao registrar receita digital.");
               }
               const url = envelope.data?.fullDocumentUrl || envelope.data?.digitalLinkUrl;
               if (url) {
@@ -1437,7 +1437,7 @@ export function DoctorsPrescriptionsPage() {
                   prescriptionId,
                 }),
               });
-              if (!response.ok) throw new Error("Falha ao sincronizar exclusão Memed.");
+              if (!response.ok) throw new Error("Falha ao sincronizar exclusão da receita.");
               refresh();
             }}
             onClose={() => setShowMemedWidget(false)}

@@ -149,9 +149,9 @@ jobs:
             exit 0
           fi
           test "${SUPABASE_PROJECT_ID}" = "qxjjrpksmwwrmubhvjew"
-          supabase secrets set --yes --project-ref "${SUPABASE_PROJECT_ID}" \
-            MEMED_MOBILE_ENABLED=true \
-            MEMED_MOBILE_PILOT_DOCTOR_ID=080fb7ae-92b4-44d4-8941-a6db65004b9f
+          supabase secrets set --yes --project-ref "${SUPABASE_PROJECT_ID}" MEMED_MOBILE_ENABLED=true
+          # Empty the pilot allowlist so any CFM-verified Brazilian CRM doctor can use the official prescriber.
+          supabase secrets unset --yes --project-ref "${SUPABASE_PROJECT_ID}" MEMED_MOBILE_PILOT_DOCTOR_ID || true
           echo "Memed mobile Edge Function secrets configured."
 
   build-and-deploy:
@@ -237,6 +237,21 @@ jobs:
         # autamedica-admin before Pages uploads so all portals share identical production keys.
         continue-on-error: true
         run: node scripts/ops/sync-memed-secrets.mjs
+      - name: Clear Memed pilot allowlist on Cloudflare Pages portals
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          for project in autamedica-web autamedica-doctors autamedica-admin; do
+            curl --fail --silent --show-error --max-time 20 -X PATCH \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$project" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"deployment_configs":{"production":{"env_vars":{"MEMED_PILOT_DOCTOR_ID":null,"MEMED_MOBILE_PILOT_DOCTOR_ID":null}}}}' > /dev/null
+          done
+          echo "Cleared Memed pilot doctor allowlist on Cloudflare Pages portals."
       - name: Build workspace packages
         run: pnpm build:packages:core
 

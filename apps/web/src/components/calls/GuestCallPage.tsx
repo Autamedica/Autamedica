@@ -135,7 +135,7 @@ export function CallEndedScreen({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <h2 className="text-sm font-semibold text-slate-900">
-                        {document.kind === 'certificate' ? (language === 'pt' ? 'Atestado / Certificado Médico' : 'Atestado / Certificado Médico') : document.kind === 'memed' ? 'Receita Digital Memed' : 'Receta Digital RCTA'}
+                        {document.kind === 'certificate' ? (language === 'pt' ? 'Atestado / Certificado Médico' : 'Atestado / Certificado Médico') : document.kind === 'memed' ? 'Receita Digital BR' : 'Receta Digital RCTA'}
                       </h2>
                       <p className="mt-1 truncate text-xs text-slate-600">{document.title} · {document.provider}</p>
                       {document.verificationCode && <p className="mt-1 text-[11px] text-slate-500">{language === 'pt' ? 'Código de verificação' : 'Código de verificación'}: <span className="font-mono font-semibold text-slate-800">{document.verificationCode}</span></p>}
