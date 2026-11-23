@@ -49,7 +49,7 @@ export function mapEventualPatientToSelectable(
   const firstName = parts[0] ?? null;
   const lastName = parts.length > 1 ? parts.slice(1).join(' ') : null;
   const contact = (item.contact ?? '').trim() || null;
-  const isEmail = Boolean(contact && contact.includes('@'));
+  const isEmail = Boolean(contact?.includes('@'));
   const docNumber = (item.dni ?? '').trim() || null;
   const documentType = (item.documentType ?? '').trim().toUpperCase() || null;
 
@@ -171,7 +171,7 @@ export function matchesSelectablePatientSearch(
     .join(' ');
 
   if (haystack.includes(normalizedQuery)) return true;
-  if (digitsQuery.length >= 3 && digitsDocument && digitsDocument.includes(digitsQuery)) {
+  if (digitsQuery.length >= 3 && digitsDocument.includes(digitsQuery)) {
     return true;
   }
   return false;

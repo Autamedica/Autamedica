@@ -42,12 +42,13 @@ describe('eventual-patient-picker', () => {
   it('maps eventual BR patient with CPF label and email contact', () => {
     const mapped = mapEventualPatientToSelectable(eventualBr);
     expect(mapped).not.toBeNull();
-    expect(mapped?.id).toBe(eventualBr.patientId);
-    expect(mapped?.isEventual).toBe(true);
-    expect(mapped?.documentType).toBe('CPF');
-    expect(mapped?.contact).toBe('jaqueline42marques@gmail.com');
-    expect(getSelectablePatientDisplayName(mapped!)).toBe('Jaqueline Marques');
-    expect(getSelectablePatientSecondaryLabel(mapped!)).toBe('CPF 811.034.920-04');
+    if (!mapped) throw new Error('expected mapped patient');
+    expect(mapped.id).toBe(eventualBr.patientId);
+    expect(mapped.isEventual).toBe(true);
+    expect(mapped.documentType).toBe('CPF');
+    expect(mapped.contact).toBe('jaqueline42marques@gmail.com');
+    expect(getSelectablePatientDisplayName(mapped)).toBe('Jaqueline Marques');
+    expect(getSelectablePatientSecondaryLabel(mapped)).toBe('CPF 811.034.920-04');
   });
 
   it('merges eventual patients alongside distinct platform accounts without dropping either', () => {
@@ -79,7 +80,9 @@ describe('eventual-patient-picker', () => {
   });
 
   it('matches eventual BR patients by name, raw CPF digits, and formatted CPF', () => {
-    const mapped = mapEventualPatientToSelectable(eventualBr)!;
+    const mapped = mapEventualPatientToSelectable(eventualBr);
+    expect(mapped).not.toBeNull();
+    if (!mapped) throw new Error('expected mapped patient');
     expect(matchesSelectablePatientSearch(mapped, 'jaqueline')).toBe(true);
     expect(matchesSelectablePatientSearch(mapped, '81103492004')).toBe(true);
     expect(matchesSelectablePatientSearch(mapped, '811.034.920-04')).toBe(true);
