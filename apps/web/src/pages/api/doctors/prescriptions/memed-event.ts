@@ -8,7 +8,11 @@ import { badRequest, forbidden, internalError, jsonOk } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase';
 import { assertMemedDispatchEncounter, resolveMemedPatient, validCpf } from '@/lib/prescriptions/brazil/memed-patient';
 import { isMemedEnabled, isMemedPilotDoctor } from '@/lib/prescriptions/brazil/memed-pilot';
-import { MemedService } from '@/lib/prescriptions/brazil/memed.service';
+import {
+  extractMemedAtestadoDocuments,
+  isMemedAtestadoDocument,
+  MemedService,
+} from '@/lib/prescriptions/brazil/memed.service';
 import { getMemedDoctorCpf } from '@/lib/prescriptions/brazil/memed-identity.repository';
 import { logger } from '@autamedica/shared';
 import type { Json } from '@autamedica/types';
@@ -94,6 +98,8 @@ function sanitizeMemedDocumentReferences(value: unknown): Array<Record<string, J
       ...(typeof document.id === 'string' || typeof document.id === 'number' ? { id: String(document.id) } : {}),
       ...(typeof document.uuid === 'string' ? { uuid: document.uuid } : {}),
       ...(typeof document.type === 'string' ? { type: document.type } : {}),
+      ...(typeof document.tipo === 'string' ? { tipo: document.tipo } : {}),
+      ...(typeof document.custom_categoria === 'string' ? { custom_categoria: document.custom_categoria } : {}),
       ...(typeof document.status === 'string' ? { status: document.status } : {}),
       ...(typeof document.prescription_id === 'string' || typeof document.prescription_id === 'number'
         ? { prescription_id: String(document.prescription_id) } : {}),
@@ -274,8 +280,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
         instructions: typeof med.sanitized_posology === 'string' ? med.sanitized_posology : '',
         quantity: typeof med.quantidade === 'number' ? med.quantidade : 1,
         receituario: typeof med.receituario === 'string' ? med.receituario : '',
+        ...(typeof med.tipo === 'string' ? { tipo: med.tipo } : {}),
+        ...(typeof med.custom_categoria === 'string' ? { custom_categoria: med.custom_categoria } : {}),
       };
     });
+    const structuredAtestados = extractMemedAtestadoDocuments(rx);
+    const hasAtestado = structuredAtestados.length > 0;
+    const medicationItems = items.filter((item) => !isMemedAtestadoDocument(item));
 
     // Resolve the patient-facing Memed link and PDF resource server-side.
     // They remain provider references; neither is misrepresented as signed evidence.
@@ -312,7 +323,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const documentReferences = sanitizeMemedDocumentReferences(rx.documents);
     const providerVerifiedAt = new Date().toISOString();
+    const providerReportedSigned = rx.signed === 1 || rx.signed === true;
+    const patientDeliveryEligible = providerReportedSigned && Boolean(fullDocumentUrl);
     const clinicalData: Json = {
+      document_type: hasAtestado ? 'atestado' : 'prescription',
+      memed_structured_documents: structuredAtestados as unknown as Json,
       source: 'memed',
       governance: {
         emission_mode: 'memed_provider_live',
@@ -338,9 +353,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       ...(fullDocumentUrl ? { memed_full_pdf_url: fullDocumentUrl } : {}),
       emission_status: 'provider_verified',
       provider_verified_at: providerVerifiedAt,
-      signature_status: rx.signed === 1 || rx.signed === true ? 'provider_reported_signed' : 'pending',
+      signature_status: providerReportedSigned ? 'provider_reported_signed' : 'pending',
       signature_verified: false,
-      delivery_status: digitalLinkUrl ? 'provider_link_available' : 'pending',
+      patient_delivery_eligible: patientDeliveryEligible,
+      delivery_status: patientDeliveryEligible ? 'provider_signed_pdf_available'
+        : digitalLinkUrl ? 'provider_link_available' : 'pending',
       delivery_verified: false,
     };
 
@@ -353,9 +370,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
       memed_id: prescriptionId,
       status: 'verified_at_provider',
       provider_data: {
-        medication_name: String(items[0]?.commercial_name || items[0]?.generic_name || 'Receita digital Memed'),
-        medications: items,
-        provider_reported_signed: rx.signed === 1 || rx.signed === true,
+        document_type: hasAtestado ? 'atestado' : 'prescription',
+        has_atestado: hasAtestado,
+        structured_documents: structuredAtestados as unknown as Json,
+        medication_name: String(medicationItems[0]?.commercial_name || medicationItems[0]?.generic_name
+          || (hasAtestado ? 'Atestado médico Memed' : 'Receita digital Memed')),
+        medications: medicationItems,
+        provider_reported_signed: providerReportedSigned,
+        patient_delivery_eligible: patientDeliveryEligible,
+        signature_status: providerReportedSigned ? 'provider_reported_signed' : 'pending',
         provider_verified_at: providerVerifiedAt,
         emission_mode: 'memed_provider_live',
         governance_source: 'cloudflare_pages_runtime_env',
@@ -424,11 +447,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
           ? { memed_digital_prescription: previousClinicalData.memed_digital_prescription }
           : {}),
         ...(persistedQrCodeContent ? { qr_code_content: persistedQrCodeContent } : {}),
-        delivery_status: digitalLinkUrl
-          ? 'provider_link_available'
-          : (typeof previousClinicalData.delivery_status === 'string'
-            ? previousClinicalData.delivery_status
-            : 'pending'),
+        delivery_status: patientDeliveryEligible
+          ? 'provider_signed_pdf_available'
+          : digitalLinkUrl
+            ? 'provider_link_available'
+            : (typeof previousClinicalData.delivery_status === 'string'
+              ? previousClinicalData.delivery_status
+              : 'pending'),
       };
       const { error: updateError } = await admin.from('prescriptions')
         .update({
