@@ -19,6 +19,9 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
@@ -66,12 +69,9 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             }
             .decodeList<CertificateRowDto>()
 
-        val memedRows = runCatching {
-            supabaseClient.postgrest.rpc("patient_memed_prescriptions_get")
-                .decodeList<MemedPatientCertificateRowDto>()
-        }.onFailure {
-            SecureLog.error("[Certificates] Failed fetching patient Memed atestados", it)
-        }.getOrDefault(emptyList())
+        // A failed RPC must remain distinguishable from a legitimate empty result.
+        val memedRows = supabaseClient.postgrest.rpc("patient_memed_prescriptions_get")
+            .decodeList<MemedPatientCertificateRowDto>()
         if (rows.isEmpty() && memedRows.isEmpty()) return@runCatching emptyList()
 
         val doctorIds = (rows.mapNotNull { it.doctorId } + memedRows.mapNotNull { it.doctorId }).distinct()
@@ -117,9 +117,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             }.getOrDefault(false)
             val hasAtestado = provider["has_atestado"]?.jsonPrimitive?.booleanOrNull == true ||
                 provider["document_type"]?.jsonPrimitive?.contentOrNull == "atestado" || structuredAtestado
-            val pdfAvailable = listOf("pdf_url", "document_url").any { key ->
-                digital?.get(key)?.jsonPrimitive?.contentOrNull?.startsWith("https://", ignoreCase = true) == true
-            }
+            val pdfAvailable = findMemedPdfUrl(digital) != null
             if (!hasAtestado || !providerReportedSigned || !patientDeliveryEligible || !pdfAvailable) {
                 return@mapNotNull null
             }
@@ -751,3 +749,54 @@ private fun mapCertificateIssueError(raw: String, httpCode: Int): String {
         else -> parsedError ?: "No se pudo firmar y emitir el certificado (HTTP $httpCode)"
     }
 }
+
+
+/** Mirrors the backend's two-pass, depth-limited Memed URL lookup. */
+internal fun findMemedPdfUrl(value: JsonElement?): String? =
+    findMemedUrl(value, pdfKeysOnly = true, depth = 0, inPdfContext = false)
+        ?: findMemedUrl(value, pdfKeysOnly = false, depth = 0, inPdfContext = false)
+
+private fun findMemedUrl(
+    value: JsonElement?,
+    pdfKeysOnly: Boolean,
+    depth: Int,
+    inPdfContext: Boolean,
+): String? {
+    if (depth > 7 || value == null) return null
+    when (value) {
+        is JsonArray -> {
+            value.forEach { nested ->
+                findMemedUrl(nested, pdfKeysOnly, depth + 1, inPdfContext)?.let { return it }
+            }
+        }
+        is JsonObject -> {
+            value.forEach { (key, nested) ->
+                val documentKey = Regex("(pdf|document)", RegexOption.IGNORE_CASE).containsMatchIn(key)
+                val matches = documentKey || (
+                    if (pdfKeysOnly) inPdfContext && Regex("(url|link)", RegexOption.IGNORE_CASE).containsMatchIn(key)
+                    else Regex("(digital|url|link)", RegexOption.IGNORE_CASE).containsMatchIn(key)
+                )
+                val candidate = (nested as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull
+                if (matches && candidate != null && isMemedHttpsUrl(candidate)) return candidate
+            }
+            value.forEach { (key, nested) ->
+                findMemedUrl(
+                    nested,
+                    pdfKeysOnly,
+                    depth + 1,
+                    inPdfContext || Regex("(pdf|document)", RegexOption.IGNORE_CASE).containsMatchIn(key),
+                )?.let { return it }
+            }
+        }
+        else -> Unit
+    }
+    return null
+}
+
+private fun isMemedHttpsUrl(value: String): Boolean = runCatching {
+    val uri = URI(value)
+    val host = uri.host?.lowercase()?.removeSuffix(".") ?: return@runCatching false
+    uri.scheme.equals("https", ignoreCase = true) &&
+        (host == "memed.com.br" || host.endsWith(".memed.com.br") ||
+            host == "memed.com" || host.endsWith(".memed.com"))
+}.getOrDefault(false)
