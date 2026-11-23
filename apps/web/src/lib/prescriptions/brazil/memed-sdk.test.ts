@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ observe: vi.fn() }));
 vi.mock('@/lib/supabase-browser', () => ({ getBrowserSupabaseClient: () => ({ auth: { onAuthStateChange: mocks.observe } }) }));
+vi.mock('@autamedica/shared', () => ({ logger: { warn: vi.fn() } }));
 
 let initialized: (module: { name: string }) => void;
 let events: Record<string, (payload: Record<string, unknown>) => void>;
@@ -97,6 +98,24 @@ describe('Memed SDK lifecycle', () => {
     }]);
     expect(command.mock.calls[1][1]).toBe('setPaciente');
   });
+  it('keeps forceSign and opens the widget when the optional provider allowlist is rejected', async () => {
+    const sdk = await ready();
+    command.mockRejectedValueOnce(new Error('unsupported optional feature toggle'));
+    await sdk.openMemedPatient({ idExterno: 'synthetic-patient', nome: 'Synthetic Patient',
+      cpf: '52998224725', data_nascimento: '01/01/2000', sexo: 'Feminino' }, () => true);
+    expect(command).toHaveBeenCalledTimes(3);
+    expect(command.mock.calls[0][1]).toBe('setFeatureToggle');
+    expect(command.mock.calls[0][2]).toMatchObject({ forceSign: true, setAllowedSignatureProviders: expect.any(Array) });
+    expect(command.mock.calls[1][1]).toBe('setFeatureToggle');
+    expect(command.mock.calls[1][2]).toMatchObject({ forceSign: true });
+    expect(command.mock.calls[1][2]).not.toHaveProperty('setAllowedSignatureProviders');
+    expect(command.mock.calls[2][1]).toBe('setPaciente');
+    expect((await import('@autamedica/shared')).logger.warn).toHaveBeenCalledWith(
+      '[memed-sdk] signature-provider allowlist was rejected; retrying required prescription toggles',
+      expect.objectContaining({ code: 'memed_signature_provider_toggle_unsupported' }),
+    );
+  });
+
   it('never opens a stale patient after a selection change', async () => {
     const sdk = await ready();
     await sdk.openMemedPatient({ idExterno: 'synthetic-patient', nome: 'Synthetic Patient',
