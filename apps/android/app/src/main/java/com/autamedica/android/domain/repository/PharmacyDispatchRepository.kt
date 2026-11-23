@@ -17,6 +17,18 @@ data class DispatchCheckoutResult(
     val checkoutUrl: String? = null,
 )
 
+data class PharmacyEncounterDocument(
+    val id: String,
+    val kind: String,
+    val title: String,
+    val provider: String,
+    val createdAt: String,
+    val status: String,
+    val verificationCode: String?,
+    val accessCode: String?,
+    val downloadUrl: String,
+)
+
 interface PharmacyDispatchRepository {
 
     /** Server-authoritative administrator approval for this authenticated doctor.
@@ -107,6 +119,10 @@ interface PharmacyDispatchRepository {
     /** Reads payment state from server (which reconciles against the PSP). */
     suspend fun getDispatchPaymentStatus(requestId: String): Result<String> =
         Result.failure(UnsupportedOperationException("Commercial payment status unavailable"))
+
+    /** Fetch signed pharmacy encounter document links using the same scoped guest credential. */
+    suspend fun getPharmacyDispatchDocuments(requestId: String): Result<List<PharmacyEncounterDocument>> =
+        Result.success(emptyList())
 
     /** Public aggregate for patient radar: doctors accepting consults in AR or BR.
      * Does not expose clinician identities or return doctors from another country. */

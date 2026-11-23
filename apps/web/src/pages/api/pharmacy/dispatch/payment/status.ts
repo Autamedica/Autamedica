@@ -6,7 +6,10 @@ import { authorizePharmacyPaymentRequest } from '@/lib/pharmacy/payments/guest-p
 import { getRuntimeEnvValue } from '@/lib/runtime-env'
 import { createMercadoPagoBrokerHeaders } from '@/lib/payments/mercadopago-broker-signature'
 import {
-  reconcilePharmacyProviderPayment, type VerifiedPharmacyProviderPayment,
+  classifyVerifiedPharmacyPayment,
+  reconcilePharmacyProviderPayment,
+  type LocalPharmacyPayment,
+  type VerifiedPharmacyProviderPayment,
 } from '@/lib/pharmacy/payments/referral-finance'
 import { logger } from '@autamedica/shared'
 
@@ -67,20 +70,62 @@ export const POST: APIRoute = async ({ request, locals }) => {
       } else if (dispatch.care_country === 'BR') {
         const accessToken = (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN as string | undefined)
           ?? getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN')
-        if (local.provider_payment_id && accessToken) {
-          const response = await fetch(
-            'https://api.mercadopago.com/v1/payments/' + encodeURIComponent(local.provider_payment_id),
-            {
-              headers: { Authorization: 'Bearer ' + accessToken },
-              signal: AbortSignal.timeout(10000),
-            },
-          )
-          if (response.ok) {
-            const provider = await response.json() as VerifiedPharmacyProviderPayment
-            const result = await reconcilePharmacyProviderPayment(admin, provider)
-            if (!result.handled) logger.warn('[pharmacy-payment/status] BR PSP evidence rejected', { reason: result.reason })
+        if (accessToken) {
+          let providerPayments: VerifiedPharmacyProviderPayment[] = []
+          if (local.provider_payment_id) {
+            const response = await fetch(
+              'https://api.mercadopago.com/v1/payments/' + encodeURIComponent(local.provider_payment_id),
+              {
+                headers: { Authorization: 'Bearer ' + accessToken },
+                signal: AbortSignal.timeout(10000),
+              },
+            )
+            if (response.ok) {
+              providerPayments = [await response.json() as VerifiedPharmacyProviderPayment]
+            } else {
+              logger.warn('[pharmacy-payment/status] BR provider unavailable', { httpStatus: response.status })
+            }
           } else {
-            logger.warn('[pharmacy-payment/status] BR provider unavailable', { httpStatus: response.status })
+            // Recover a delayed/lost webhook by the exact external reference used
+            // by checkout. Candidate classification verifies amount, currency,
+            // metadata and dispatch identity before changing local payment state.
+            const search = new URL('https://api.mercadopago.com/v1/payments/search')
+            search.searchParams.set('external_reference', 'pharm:' + dispatch.id)
+            search.searchParams.set('sort', 'date_last_updated')
+            search.searchParams.set('criteria', 'desc')
+            search.searchParams.set('limit', '10')
+            const response = await fetch(search.toString(), {
+              headers: { Authorization: 'Bearer ' + accessToken },
+              signal: AbortSignal.timeout(12000),
+            })
+            if (response.ok) {
+              const result = await response.json() as { results?: VerifiedPharmacyProviderPayment[] }
+              const localEvidence: LocalPharmacyPayment = {
+                id: local.id,
+                dispatch_request_id: dispatch.id,
+                provider_payment_id: null,
+                amount_minor: local.amount_minor,
+                currency: local.currency,
+                status: local.status,
+                provider: local.provider,
+              }
+              providerPayments = (result.results ?? []).filter(payment =>
+                classifyVerifiedPharmacyPayment(localEvidence, payment) !== null,
+              )
+              if (providerPayments.length > 1) {
+                logger.warn('[pharmacy-payment/status] BR multiple provider payments match dispatch; reconciliation withheld', {
+                  dispatchId: dispatch.id,
+                  candidateCount: providerPayments.length,
+                })
+                providerPayments = []
+              }
+            } else {
+              logger.warn('[pharmacy-payment/status] BR provider search unavailable', { httpStatus: response.status })
+            }
+          }
+          if (providerPayments.length === 1) {
+            const result = await reconcilePharmacyProviderPayment(admin, providerPayments[0])
+            if (!result.handled) logger.warn('[pharmacy-payment/status] BR PSP evidence rejected', { reason: result.reason })
           }
         }
       }
