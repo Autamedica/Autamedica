@@ -3,7 +3,10 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { badRequest, forbidden, internalError, jsonOk } from '@/lib/api-helpers';
 import { DOCTOR_ROLES, isAuthed, withAuthRole } from '@/lib/api-auth';
 import { createAstroAdminClient } from '@/lib/supabase';
-import { MemedService } from '@/lib/prescriptions/brazil/memed.service';
+import {
+  MemedService,
+  resolveMemedAllowedSignatureProviders,
+} from '@/lib/prescriptions/brazil/memed.service';
 import {
   assertMemedDispatchEncounter,
   type MemedPatientDemographicsInput,
@@ -170,6 +173,7 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
       patientAddressMissing: !patient.endereco,
       token: tokenData.token,
       scriptUrl: memed.getScriptUrl(),
+      allowedSignatureProviders: resolveMemedAllowedSignatureProviders(envMap.MEMED_ALLOWED_SIGNATURE_PROVIDERS),
       doctor: { id: doctor.id, userId: auth.user.id, crm, uf, nome: `${nome} ${sobrenome}` },
     });
     response.headers.set('Cache-Control', 'no-store, private');
