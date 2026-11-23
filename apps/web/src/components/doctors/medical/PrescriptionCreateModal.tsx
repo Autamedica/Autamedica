@@ -9,6 +9,13 @@ import { X, Pill, Save, Loader2, ClipboardCheck, BookmarkPlus, Trash2 } from "lu
 import { ApiError } from "@/lib/api-client";
 import { requiresStrictPrescriptionValidation } from "@/lib/prescriptions/strict-validation";
 import { validateEventualPatientDetails } from "@/lib/prescriptions/eventual-patient";
+import {
+  getSelectablePatientDisplayName,
+  getSelectablePatientSecondaryLabel,
+  matchesSelectablePatientSearch,
+  mergePrescriptionPatients,
+  type EventualPatientRecord,
+} from "@/lib/prescriptions/eventual-patient-picker";
 import { validCpf } from "@/lib/prescriptions/brazil/cpf";
 import { useRealPatients } from "@/hooks/doctors/useRealPatients";
 import type { Prescription, UUID } from "@/types/medical";
@@ -18,6 +25,8 @@ interface PrescriptionCreateModalProps {
   doctorCareCountry?: 'AR' | 'BR';
   patientIdentity?: { identityStatus: 'verified_renaper' | 'unverified' | 'mismatch'; fullName?: string | null; dni?: string | null; cuil?: string | null; birthDate?: string | null; gender?: string | null; pucoCoverageName?: string | null };
   allowEventualPatientCreation?: boolean;
+  initialQuickPatientMode?: "registered" | "external";
+  eventualPatients?: EventualPatientRecord[];
   onEventualPatientCreated?: (patientId: UUID, contact: string) => void;
   onPatientSelected?: (patientId: UUID | null) => void;
   onClose: () => void;
@@ -171,6 +180,8 @@ export function PrescriptionCreateModal({
   doctorCareCountry,
   patientIdentity,
   allowEventualPatientCreation = false,
+  initialQuickPatientMode = "registered",
+  eventualPatients = [],
   onEventualPatientCreated,
   onPatientSelected,
   onClose,
@@ -182,26 +193,29 @@ export function PrescriptionCreateModal({
   submitLabel,
 }: PrescriptionCreateModalProps) {
   const isEditing = !!editingPrescription;
-  const { patients: availablePatients, loading: availablePatientsLoading } = useRealPatients();
-  const [selectedPatientId, setSelectedPatientId] = useState<UUID | null>(patientId ?? null);
+  const { patients: platformPatients, loading: availablePatientsLoading } = useRealPatients();
+  const availablePatients = mergePrescriptionPatients(platformPatients, eventualPatients);
+  const [selectedPatientId, setSelectedPatientId] = useState<UUID | null>(
+    initialQuickPatientMode === "external" && !isEditing ? null : (patientId ?? null),
+  );
   const [patientSearch, setPatientSearch] = useState("");
   const [quickPatientMode, setQuickPatientMode] = useState<"registered" | "external">(
-    patientId || isEditing ? "registered" : "registered",
+    isEditing ? "registered" : initialQuickPatientMode,
   );
   const activePatientId = quickPatientMode === "registered"
     ? patientId ?? selectedPatientId ?? undefined
     : undefined;
-  const filteredQuickPatients = availablePatients.filter((patient) => {
-    const query = patientSearch.trim().toLocaleLowerCase();
-    if (!query) return true;
-    const name = `${patient.profile?.first_name ?? ""} ${patient.profile?.last_name ?? ""}`.trim().toLocaleLowerCase();
-    return [
-      name,
-      patient.dni ?? "",
-      patient.profile?.email ?? "",
-      patient.profile?.phone ?? "",
-    ].some((value) => String(value).toLocaleLowerCase().includes(query));
-  }).slice(0, 12);
+  const isBrEventualMemedHandoff = Boolean(
+    allowEventualPatientCreation &&
+      !isEditing &&
+      !activePatientId &&
+      quickPatientMode === "external" &&
+      doctorCareCountry === "BR" &&
+      onEventualPatientCreated,
+  );
+  const filteredQuickPatients = availablePatients
+    .filter((patient) => matchesSelectablePatientSearch(patient, patientSearch))
+    .slice(0, 12);
   const chosenPatient = availablePatients.find((patient) => patient.id === activePatientId);
 
   useEffect(() => {
@@ -474,11 +488,11 @@ export function PrescriptionCreateModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.medication_name.trim()) {
+    if (!isBrEventualMemedHandoff && !form.medication_name.trim()) {
       setError("El nombre del medicamento es requerido");
       return;
     }
-    if (requiresStrictValidation && (!form.diagnosis.trim() || !form.dosage.trim())) {
+    if (!isBrEventualMemedHandoff && requiresStrictValidation && (!form.diagnosis.trim() || !form.dosage.trim())) {
       setError("Medicación con validación reforzada: diagnóstico y dosis son obligatorios.");
       return;
     }
@@ -737,8 +751,8 @@ export function PrescriptionCreateModal({
                     <div className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50 p-3">
                       <div className="min-w-0">
                         <p className="text-[10px] font-bold uppercase tracking-wide text-sky-700">Paciente seleccionado</p>
-                        <p className="truncate text-sm font-semibold text-am-surface-900">{[chosenPatient.profile?.first_name, chosenPatient.profile?.last_name].filter(Boolean).join(" ") || "Paciente"}</p>
-                        <p className="text-xs text-am-surface-600">{chosenPatient.dni ? `Documento: ${chosenPatient.dni}` : "Paciente de tu padrón asistencial"}</p>
+                        <p className="truncate text-sm font-semibold text-am-surface-900">{getSelectablePatientDisplayName(chosenPatient)}</p>
+                        <p className="text-xs text-am-surface-600">{chosenPatient.dni ? getSelectablePatientSecondaryLabel(chosenPatient) : "Paciente de tu padrón asistencial"}</p>
                       </div>
                       <button type="button" onClick={() => { setSelectedPatientId(null); onPatientSelected?.(null); }} className="min-h-10 shrink-0 rounded-lg border border-sky-200 bg-white px-3 text-xs font-semibold text-sky-700 hover:bg-sky-100">Cambiar</button>
                     </div>
@@ -749,17 +763,17 @@ export function PrescriptionCreateModal({
                           type="search"
                           value={patientSearch}
                           onChange={(event) => setPatientSearch(event.target.value)}
-                          placeholder="Buscar paciente por nombre o documento"
+                          placeholder="Buscar paciente por nombre, DNI o CPF"
                           aria-label="Buscar paciente del padrón"
                           className="min-h-11 w-full rounded-xl border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-100"
                         />
                       </div>
-                      {availablePatientsLoading ? (
+                      {availablePatientsLoading && availablePatients.length === 0 ? (
                         <div className="flex items-center gap-2 py-3 text-xs text-am-surface-500"><Loader2 className="h-4 w-4 animate-spin" />Cargando tu padrón de pacientes…</div>
                       ) : filteredQuickPatients.length > 0 ? (
                         <div className="max-h-44 space-y-1 overflow-y-auto overscroll-contain pr-1">
                           {filteredQuickPatients.map((patient) => {
-                            const name = [patient.profile?.first_name, patient.profile?.last_name].filter(Boolean).join(" ") || "Paciente";
+                            const name = getSelectablePatientDisplayName(patient);
                             return (
                               <button
                                 key={patient.id}
@@ -768,7 +782,7 @@ export function PrescriptionCreateModal({
                                 className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-transparent bg-white px-3 py-2 text-left transition hover:border-sky-200 hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
                               >
                                 <span className="min-w-0 truncate text-sm font-medium text-am-surface-900">{name}</span>
-                                <span className="shrink-0 text-[11px] text-am-surface-500">{patient.dni ? `DNI/CPF ${patient.dni}` : "Seleccionar"}</span>
+                                <span className="shrink-0 text-[11px] text-am-surface-500">{patient.dni ? getSelectablePatientSecondaryLabel(patient) : "Seleccionar"}</span>
                               </button>
                             );
                           })}
@@ -865,6 +879,12 @@ export function PrescriptionCreateModal({
             </section>
           )}
 
+          {isBrEventualMemedHandoff ? (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs leading-relaxed text-emerald-900">
+              Al confirmar el cadastro y consentimiento LGPD, se abrirá directamente el receituário digital de <strong>Memed</strong> para emitir la receta oficial en Brasil.
+            </div>
+          ) : (
+          <>
           {!isEditing && (
             <div className="rounded-xl border border-am-surface-200 bg-white p-3">
               <div className="flex items-end gap-2">
@@ -1163,6 +1183,8 @@ export function PrescriptionCreateModal({
               className="w-full rounded-lg border border-am-surface-200 px-3 py-2 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500 resize-none"
             />
           </div>
+          </>
+          )}
 
           {deliveryUrl && (
             <section className="space-y-3 rounded-xl border border-sky-200 bg-sky-50 p-4" aria-live="polite">
@@ -1215,7 +1237,11 @@ export function PrescriptionCreateModal({
               className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-am-doctor-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-am-doctor-700 disabled:opacity-60 transition"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {saving ? "Guardando..." : submitLabel ?? (isEditing ? "Actualizar" : "Guardar receta")}
+              {saving
+                ? "Guardando..."
+                : isBrEventualMemedHandoff
+                  ? "Registrar paciente y abrir Memed"
+                  : submitLabel ?? (isEditing ? "Actualizar" : "Guardar receta")}
             </button>
           </div>
         </form>
