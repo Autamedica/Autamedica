@@ -39,6 +39,12 @@ BEGIN
 
   INSERT INTO public.doctors (user_id, specialty, license_type, license_number, uf_brazil, active)
   VALUES (doc_user_id, 'Clínica Geral', 'CRM', '999999', 'RS', true)
+  ON CONFLICT (user_id) DO UPDATE
+    SET specialty = EXCLUDED.specialty,
+        license_type = EXCLUDED.license_type,
+        license_number = EXCLUDED.license_number,
+        uf_brazil = EXCLUDED.uf_brazil,
+        active = true
   RETURNING id INTO doc_id;
 
   PERFORM set_config('request.jwt.claim.role', 'service_role', true);
