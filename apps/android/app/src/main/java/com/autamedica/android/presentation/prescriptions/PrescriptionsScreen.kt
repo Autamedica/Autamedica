@@ -158,7 +158,7 @@ fun PrescriptionsScreen(
 
     val onOpenCertificatePdf: (MedicalCertificate) -> Unit = { certificate ->
         val certTitle = context.getString(R.string.prescriptions_certificates_title)
-        val certFileName = "Atestado_${certificate.cuir.ifBlank { certificate.id.take(8) }}.pdf"
+        val certFileName = if (certificate.source == "memed_br") "Atestado_${certificate.id.takeLast(8)}.pdf" else "Certificado_${certificate.cuir.ifBlank { certificate.id.take(8) }}.pdf"
         viewModel.openCertificatePdf(
             certificate = certificate,
             onReady = { signedUrl ->
@@ -1954,6 +1954,23 @@ private fun CertificateDetailBottomSheet(
                 }
             }
 
+            }
+
+            if (certificate.source == "memed_br" && canDownloadPdf) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = { onOpenPdf(certificate) },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFDC2626),
+                        contentColor = Color.White,
+                    ),
+                ) {
+                    Icon(imageVector = Icons.Outlined.PictureAsPdf, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(text = stringResource(R.string.prescriptions_cert_download_pdf), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                }
             }
 
             if (certificate.providerSignatureReported) {
