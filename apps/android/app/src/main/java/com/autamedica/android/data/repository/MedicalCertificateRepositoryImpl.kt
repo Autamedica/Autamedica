@@ -128,7 +128,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
                 id = routeId,
                 cuir = "",
                 status = "signed",
-                certificateType = CertificateType.ATESTADO,
+                certificateType = CertificateType.OTRO,
                 startDate = row.createdAt?.take(10).orEmpty(),
                 doctorName = row.doctorId?.let { doctorNameMap[it] },
                 signedPdfUrl = "/api/patients/prescriptions/" + routeId + "/pdf",
