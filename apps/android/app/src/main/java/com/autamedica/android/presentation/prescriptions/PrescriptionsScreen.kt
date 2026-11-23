@@ -1574,7 +1574,6 @@ private fun CertificateType.localizedDisplayName(): String {
         CertificateType.CONSTANCIA_ATENCION -> stringResource(R.string.prescriptions_cert_type_attendance)
         CertificateType.TRATAMIENTO -> stringResource(R.string.prescriptions_cert_type_treatment)
         CertificateType.OTRO -> stringResource(R.string.prescriptions_cert_type_other)
-        CertificateType.ATESTADO -> "Atestado médico"
     }
 }
 
@@ -1632,7 +1631,7 @@ private fun CertificateCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = certificate.certificateType.localizedDisplayName(),
+                    text = if (certificate.source == "memed_br") "Atestado médico" else certificate.certificateType.localizedDisplayName(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     fontSize = 17.sp,
