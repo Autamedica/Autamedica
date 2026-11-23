@@ -29,6 +29,63 @@ export interface MemedTokenResponse {
   };
 }
 
+/** Known Memed ICP-Brasil signature providers, extensible via runtime configuration. */
+export const DEFAULT_MEMED_SIGNATURE_PROVIDERS = [
+  'certisign', 'evaltec', 'lacuna', 'soluti', 'dinamo', 'vidaas', 'safeid',
+] as const;
+
+export function resolveMemedAllowedSignatureProviders(configured?: string): string[] {
+  const additional = (configured ?? '')
+    .split(',')
+    .map((provider) => provider.trim().toLowerCase())
+    .filter((provider) => /^[a-z][a-z0-9_-]{1,31}$/.test(provider));
+  return Array.from(new Set<string>([...DEFAULT_MEMED_SIGNATURE_PROVIDERS, ...additional]));
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+export interface MemedAtestadoDocument {
+  tipo: 'custom';
+  custom_categoria: 'atestado';
+  nome?: string;
+  descricao?: string;
+  texto?: string;
+}
+
+/** Detect a structured free-text medical certificate returned by Memed. */
+export function isMemedAtestadoDocument(value: unknown): boolean {
+  const item = asRecord(value);
+  const tipo = typeof item.tipo === 'string'
+    ? item.tipo
+    : typeof item.type === 'string' ? item.type : '';
+  return tipo.toLowerCase() === 'custom'
+    && typeof item.custom_categoria === 'string'
+    && item.custom_categoria.trim().toLowerCase() === 'atestado';
+}
+
+/** Memed returns structured atestados in the medicamentos collection. */
+export function extractMemedAtestadoDocuments(prescription: unknown): MemedAtestadoDocument[] {
+  const root = asRecord(prescription);
+  const nested = asRecord(root.prescricao);
+  const source = Array.isArray(nested.medicamentos)
+    ? nested.medicamentos
+    : Array.isArray(root.medicamentos) ? root.medicamentos : [];
+  return source.filter(isMemedAtestadoDocument).map((value) => {
+    const item = asRecord(value);
+    return {
+      tipo: 'custom',
+      custom_categoria: 'atestado',
+      ...(typeof item.nome === 'string' ? { nome: item.nome.slice(0, 200) } : {}),
+      ...(typeof item.descricao === 'string' ? { descricao: item.descricao.slice(0, 500) } : {}),
+      ...(typeof item.texto === 'string' ? { texto: item.texto.slice(0, 4000) } : {}),
+    };
+  });
+}
+
 function assertMemedDoctorMatch(attrs: Record<string, unknown>, doctor: MemedDoctorData): void {
   // A lookup by CPF can return another account's access token. Never accept
   // that token until Memed's identity matches the authenticated CFM doctor.
