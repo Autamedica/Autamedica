@@ -268,7 +268,7 @@ export default function MedicalHistoryPage() {
                 <article key={id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                   <div className="flex items-start justify-between gap-3">
                     <div><h3 className="font-semibold capitalize text-slate-900">{type}</h3><p className="mt-1 text-xs text-slate-500">{formatDate(String(certificate.created_at ?? ''), locale)}</p></div>
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{status === 'signed' ? (isPortuguese ? 'Assinado' : 'Firmado') : status === 'draft' ? (isPortuguese ? 'Rascunho' : 'Borrador') : status === 'revoked' ? (isPortuguese ? 'Revogado' : 'Revocado') : status === 'expired' ? (isPortuguese ? 'Expirado' : 'Vencido') : status}</span>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{status === 'signed' ? (certificate.source === 'memed_br' ? (isPortuguese ? 'Assinado via Memed' : 'Firmado vía Memed') : (isPortuguese ? 'Assinado' : 'Firmado')) : status === 'draft' ? (isPortuguese ? 'Rascunho' : 'Borrador') : status === 'revoked' ? (isPortuguese ? 'Revogado' : 'Revocado') : status === 'expired' ? (isPortuguese ? 'Expirado' : 'Vencido') : status}</span>
                   </div>
                   {certificate.days_of_rest ? <p className="mt-3 text-sm text-slate-700">{String(certificate.days_of_rest)} {isPortuguese ? 'dias de afastamento' : 'días de reposo'}</p> : null}
                   {code && <p className="mt-3 text-xs text-slate-500">{isPortuguese ? 'Código de verificação' : 'Código de verificación'}: <span className="font-mono font-semibold text-slate-800">{code}</span></p>}
