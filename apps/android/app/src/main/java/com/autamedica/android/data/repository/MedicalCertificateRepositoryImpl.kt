@@ -23,6 +23,7 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.coroutines.Dispatchers
@@ -65,12 +66,18 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             }
             .decodeList<CertificateRowDto>()
 
-        if (rows.isEmpty()) return@runCatching emptyList()
+        val memedRows = runCatching {
+            supabaseClient.postgrest.rpc("patient_memed_prescriptions_get")
+                .decodeList<MemedPatientCertificateRowDto>()
+        }.onFailure {
+            SecureLog.error("[Certificates] Failed fetching patient Memed atestados", it)
+        }.getOrDefault(emptyList())
+        if (rows.isEmpty() && memedRows.isEmpty()) return@runCatching emptyList()
 
-        val doctorIds = rows.mapNotNull { it.doctorId }.distinct()
+        val doctorIds = (rows.mapNotNull { it.doctorId } + memedRows.mapNotNull { it.doctorId }).distinct()
         val (doctorNameMap, doctorLicenseMap) = resolveDoctorsInfo(doctorIds)
 
-        rows.map { row ->
+        val coreCertificates = rows.map { row ->
             val docId = row.doctorId
             MedicalCertificate(
                 id = row.id,
@@ -95,6 +102,46 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
                 createdAt = row.createdAt,
             )
         }
+
+        val memedCertificates = memedRows.mapNotNull { row ->
+            val provider = row.providerData ?: return@mapNotNull null
+            val digital = row.digitalLinkData
+            val providerReportedSigned = provider["provider_reported_signed"]?.jsonPrimitive?.booleanOrNull == true
+            val patientDeliveryEligible = provider["patient_delivery_eligible"]?.jsonPrimitive?.booleanOrNull == true
+            val structuredAtestado = runCatching {
+                provider["structured_documents"]?.jsonArray?.any { document ->
+                    val item = document.jsonObject
+                    item["tipo"]?.jsonPrimitive?.contentOrNull == "custom" &&
+                        item["custom_categoria"]?.jsonPrimitive?.contentOrNull == "atestado"
+                } == true
+            }.getOrDefault(false)
+            val hasAtestado = provider["has_atestado"]?.jsonPrimitive?.booleanOrNull == true ||
+                provider["document_type"]?.jsonPrimitive?.contentOrNull == "atestado" || structuredAtestado
+            val pdfAvailable = listOf("pdf_url", "document_url").any { key ->
+                digital?.get(key)?.jsonPrimitive?.contentOrNull?.startsWith("https://", ignoreCase = true) == true
+            }
+            if (!hasAtestado || !providerReportedSigned || !patientDeliveryEligible || !pdfAvailable) {
+                return@mapNotNull null
+            }
+            val routeId = "memed-" + row.id
+            MedicalCertificate(
+                id = routeId,
+                cuir = "",
+                status = "signed",
+                certificateType = CertificateType.ATESTADO,
+                startDate = row.createdAt?.take(10).orEmpty(),
+                doctorName = row.doctorId?.let { doctorNameMap[it] },
+                signedPdfUrl = "/api/patients/prescriptions/" + routeId + "/pdf",
+                countryCode = "BR",
+                createdAt = row.createdAt.orEmpty(),
+                signatureMethod = "memed_provider_reported",
+                source = "memed_br",
+                providerSignatureReported = true,
+                patientDeliveryEligible = true,
+                hideDiagnosis = true,
+            )
+        }
+        coreCertificates + memedCertificates
     }.onFailure {
         SecureLog.error("[Certificates] Failed fetching patient certificates", it)
     }
@@ -497,6 +544,15 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
 
         return nameMap to dniMap
     }
+
+    @Serializable
+    private data class MemedPatientCertificateRowDto(
+        val id: String,
+        @SerialName("doctor_id") val doctorId: String? = null,
+        @SerialName("created_at") val createdAt: String? = null,
+        @SerialName("provider_data") val providerData: JsonObject? = null,
+        @SerialName("digital_link_data") val digitalLinkData: JsonObject? = null,
+    )
 
     @Serializable
     private data class RecordIdDto(val id: String)
