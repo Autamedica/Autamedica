@@ -261,7 +261,9 @@ export default function MedicalHistoryPage() {
               const status = String(certificate.status ?? 'draft')
               const type = String(certificate.certificate_type ?? (isPortuguese ? 'outro' : 'otro')).replace(/_/g, ' ')
               const code = String(certificate.cuir ?? '')
-              const pdfUrl = `/api/patients/certificates/${encodeURIComponent(id)}/pdf`
+              const pdfUrl = certificate.source === 'memed_br' && typeof certificate.signed_pdf_url === 'string'
+                ? certificate.signed_pdf_url
+                : `/api/patients/certificates/${encodeURIComponent(id)}/pdf`
               return (
                 <article key={id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                   <div className="flex items-start justify-between gap-3">
