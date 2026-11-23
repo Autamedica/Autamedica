@@ -510,7 +510,11 @@ export function PharmacyExpressConsultation({
         method: 'POST',
         body: {
           careCountry: formData.careCountry,
-          ...(formData.careCountry === 'BR' ? { patientCpf: documentNumber, lgpdConsent: true } : { patientDni: documentNumber, patientGenderCode: formData.genderCode }),
+          ...(formData.careCountry === 'BR' ? {
+            patientCpf: documentNumber,
+            lgpdConsent: true,
+            telemedicineConsent: true,
+          } : { patientDni: documentNumber, patientGenderCode: formData.genderCode }),
           patientName: formData.name.trim(),
           patientPhone: formData.phone.trim(),
           symptomSummary: reasonSummary,
@@ -791,7 +795,7 @@ export function PharmacyExpressConsultation({
                   <input type="checkbox" required checked={lgpdConsent}
                     onChange={(event) => setLgpdConsent(event.target.checked)}
                     className="mt-0.5 h-4 w-4 shrink-0 accent-sky-600" />
-                  <span>Ao continuar, você concorda com os termos de teleconsulta e o tratamento de dados conforme a LGPD</span>
+                  <span>Autorizo a realização desta teleconsulta por meios digitais e concordo com o tratamento dos meus dados pessoais e de saúde para este atendimento, conforme a LGPD.</span>
                 </label>
               )}
               {formData.careCountry && currentPricing && amountLabel && <div className="flex items-center justify-between rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-sm"><span className="font-medium text-slate-700">{isPortuguese ? 'Valor da consulta' : 'Precio de la consulta'}</span><strong className="tabular-nums text-slate-900">{amountLabel}</strong></div>}
