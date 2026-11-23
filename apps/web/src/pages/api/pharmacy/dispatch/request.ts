@@ -13,6 +13,8 @@ import { getOperationalPaymentSwitches } from '@/lib/payments/operational-switch
 import { validCpf } from '@/lib/prescriptions/brazil/cpf'
 import { fetchAndPersistOfficialIdentity } from '@/lib/patients/services/patient-identity.service'
 
+const BR_TELEMEDICINE_CONSENT_VERSION = 'br-pharmacy-express-telemedicine-v1'
+
 const VALID_TIERS: DispatchTierCategory[] = [
   'general',
   'cardiologia',
@@ -37,7 +39,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return badRequest('Cuerpo de solicitud inválido')
     }
 
-    const { patientDni, patientCpf, patientGenderCode, careCountry, patientPhone, patientName, tier, kioskId, pharmacyId, symptomSummary, referralCode, qrSourceCode, lgpdConsent } = body
+    const { patientDni, patientCpf, patientGenderCode, careCountry, patientPhone, patientName, tier, kioskId, pharmacyId, symptomSummary, referralCode, qrSourceCode, lgpdConsent, telemedicineConsent } = body
 
     // Choose the country explicitly. A DNI/CPF or mobile dialing prefix cannot
     // determine clinical jurisdiction or grant access to an existing patient.
@@ -116,6 +118,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return forbidden('mobile_session_conflicts_with_cookie_session')
     }
     const requestedByUserId = mobileUserId || sessionUser?.id || null
+
+    // The web guest and browser intake must explicitly accept telemedicine.
+    // Legacy native clients keep their existing LGPD flow until their UI is updated;
+    // never fabricate telemedicine consent evidence for those requests.
+    const telemedicineConsentAccepted = careCountry === 'BR' && telemedicineConsent === true
+    const telemedicineConsentRequired = locals.runtime?.env?.BR_TELEMEDICINE_CONSENT_REQUIRED !== 'false'
+    if (careCountry === 'BR' && telemedicineConsentRequired && !mobileUserId && !telemedicineConsentAccepted) {
+      return badRequest('telemedicine_consent_required')
+    }
 
     // 2. Validar pertenencia a kiosco registrado si kioskId viene provisto
     let resolvedKioskId: string | null = null
@@ -264,7 +275,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       payment_started_at: countryPricing.require_payment_before_dispatch ? dispatchStartedAt : null,
       search_started_at: countryPricing.require_payment_before_dispatch ? null : dispatchStartedAt,
       patient_id: context?.patientId ?? null,
-      ...(careCountry === 'BR' ? { lgpd_consent: lgpdConsent === true } : {}),
+      ...(careCountry === 'BR' ? {
+        lgpd_consent: lgpdConsent === true,
+        ...(telemedicineConsentAccepted ? {
+          telemedicine_consent_at: dispatchStartedAt,
+          telemedicine_consent_version: BR_TELEMEDICINE_CONSENT_VERSION,
+        } : {}),
+      } : {}),
       patient_dni: sanitizedDni,
       patient_cpf: sanitizedCpf,
       ...(careCountry === 'AR' ? { patient_gender_code: sanitizedGenderCode } : {}),
@@ -328,6 +345,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
           lgpd_consent: true,
           lgpd_consent_date: new Date().toISOString(),
           lgpd_consent_version: 'pharmacy-express-lgpd-v1',
+          ...(telemedicineConsentAccepted ? {
+            telemedicine_consent_at: dispatchStartedAt,
+            telemedicine_consent_version: BR_TELEMEDICINE_CONSENT_VERSION,
+          } : {}),
         })
         .eq('id', data.patient_id)
         .or('care_country.eq.BR,care_country.is.null')

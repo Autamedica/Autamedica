@@ -86,6 +86,7 @@ function makeContext(options?: {
   body?: unknown
   session?: { user: { id: string } } | null
   jordanEnabled?: boolean
+  telemedicineConsentRequired?: boolean
   bearerToken?: string
 }): Parameters<typeof POST>[0] {
   const rawBody = options?.body !== undefined
@@ -116,7 +117,11 @@ function makeContext(options?: {
     request,
     locals: {
       session: options?.session !== undefined ? options.session : null,
-      runtime: { env: { GUEST_TOKEN_SECRET: TEST_SECRET, ENABLE_JORDAN_PAYMENTS: options?.jordanEnabled ? 'true' : 'false' } },
+      runtime: { env: {
+        GUEST_TOKEN_SECRET: TEST_SECRET,
+        ENABLE_JORDAN_PAYMENTS: options?.jordanEnabled ? 'true' : 'false',
+        BR_TELEMEDICINE_CONSENT_REQUIRED: options?.telemedicineConsentRequired === false ? 'false' : 'true',
+      } },
     },
   } as unknown as Parameters<typeof POST>[0]
 }
@@ -150,7 +155,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
 
     const response = await POST(makeContext({
       body: {
-        careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909', qrSourceCode: 'SANTANA_DO_LIVRAMENTO_01',
+        careCountry: 'BR', lgpdConsent: true, telemedicineConsent: true, patientCpf: '12345678909', qrSourceCode: 'SANTANA_DO_LIVRAMENTO_01',
         patientPhone: '+5551987654321', patientName: 'Paciente sintético',
       },
     }))
@@ -208,6 +213,8 @@ describe('API: /api/pharmacy/dispatch/request', () => {
       requested_by_user_id: ownerId, care_country: 'BR', referral_partner_id: partnerId,
       lgpd_consent: true,
     }))
+    expect(dispatchTable.insert.mock.calls[0][0]).not.toHaveProperty('telemedicine_consent_at')
+    expect(dispatchTable.insert.mock.calls[0][0]).not.toHaveProperty('telemedicine_consent_version')
     expect(dispatchTable.insert.mock.calls[0][0]).not.toHaveProperty('patient_gender_code')
     expect(recoveryTable.insert).toHaveBeenCalledWith(expect.objectContaining({
       request_id: dispatchRow.id, token_sha256: expect.any(String),
@@ -221,7 +228,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     const response = await POST(makeContext({
       bearerToken: 'Bearer forged-native-jwt',
       jordanEnabled: true,
-      body: { careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909', patientPhone: '+5551987654321', referralCode: 'JORDAN' },
+      body: { careCountry: 'BR', lgpdConsent: true, telemedicineConsent: true, patientCpf: '12345678909', patientPhone: '+5551987654321', referralCode: 'JORDAN' },
     }))
     expect(response.status).toBe(401)
     expect(supabaseMock.from).not.toHaveBeenCalled()
@@ -235,7 +242,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
       bearerToken: 'Bearer valid-native-jwt',
       jordanEnabled: true,
       session: { user: { id: 'different-browser-patient' } },
-      body: { careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909', patientPhone: '+5551987654321', referralCode: 'JORDAN' },
+      body: { careCountry: 'BR', lgpdConsent: true, telemedicineConsent: true, patientCpf: '12345678909', patientPhone: '+5551987654321', referralCode: 'JORDAN' },
     }))
     expect(response.status).toBe(403)
     expect(supabaseMock.from).not.toHaveBeenCalled()
@@ -244,10 +251,55 @@ describe('API: /api/pharmacy/dispatch/request', () => {
   it('rejects malformed Authorization headers rather than silently creating a guest', async () => {
     const response = await POST(makeContext({
       bearerToken: 'TokenNotBearer random',
-      body: { careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909', patientPhone: '+5551987654321' },
+      body: { careCountry: 'BR', lgpdConsent: true, telemedicineConsent: true, patientCpf: '12345678909', patientPhone: '+5551987654321' },
     }))
     expect(response.status).toBe(401)
     expect(supabaseMock.from).not.toHaveBeenCalled()
+  })
+
+
+  it('rejects a Brazilian browser intake without explicit telemedicine consent', async () => {
+    supabaseMock.from.mockImplementation((table: string) => table === 'pharmacy_dispatch_pricing_configs'
+      ? buildTableChain(pricingRow('BR'))
+      : buildTableChain(null))
+    const response = await POST(makeContext({
+      body: {
+        careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909',
+        patientPhone: '+5551987654321', patientName: 'Paciente BR',
+      },
+    }))
+    expect(response.status).toBe(400)
+    expect((await response.json()).error.message).toBe('telemedicine_consent_required')
+    expect(supabaseMock.from).not.toHaveBeenCalledWith('pharmacy_dispatch_requests')
+  })
+
+
+  it('allows an audited BR rollback switch without fabricating a consent record', async () => {
+    const dispatch = {
+      id: 'dispatch-br-consent-rollback', patient_id: 'patient-row-rollback',
+      patient_cpf: '12345678909', care_country: 'BR',
+      cloudflare_room_id: 'cf-room-br-consent-rollback', status: 'pending_payment',
+    }
+    const dispatchTable = buildTableChain(dispatch)
+    const patientTable = buildTableChain({ id: 'patient-row-rollback' })
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_pricing_configs') return buildTableChain(pricingRow('BR'))
+      if (table === 'pharmacy_dispatch_requests') return dispatchTable
+      if (table === 'patients') return patientTable
+      return buildTableChain(null)
+    })
+    const response = await POST(makeContext({
+      telemedicineConsentRequired: false,
+      body: {
+        careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909',
+        patientPhone: '+5551987654321', patientName: 'Paciente BR',
+      },
+    }))
+    expect(response.status).toBe(200)
+    expect(dispatchTable.insert.mock.calls[0][0]).not.toHaveProperty('telemedicine_consent_at')
+    expect(dispatchTable.insert.mock.calls[0][0]).not.toHaveProperty('telemedicine_consent_version')
+    expect(patientTable.update.mock.calls[0][0]).not.toHaveProperty('telemedicine_consent_at')
+    expect(patientTable.update.mock.calls[0][0]).not.toHaveProperty('telemedicine_consent_version')
   })
 
   it('crea un dispatch brasileño usando CPF y no DNI', async () => {
@@ -270,7 +322,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
 
     const response = await POST(makeContext({
       body: {
-        careCountry: 'BR', lgpdConsent: true,
+        careCountry: 'BR', lgpdConsent: true, telemedicineConsent: true,
         patientCpf: '12345678909',
         patientPhone: '+5551987654321',
         patientName: 'PACIENTE DEMO',
@@ -284,13 +336,21 @@ describe('API: /api/pharmacy/dispatch/request', () => {
       patient_dni: null,
       lgpd_consent: true,
       requested_by_user_id: 'patient-auth-user-99',
+      telemedicine_consent_at: expect.any(String),
+      telemedicine_consent_version: 'br-pharmacy-express-telemedicine-v1',
+    }))
+    const insertedBrDispatch = table.insert.mock.calls[0][0] as Record<string, unknown>
+    expect(Number.isNaN(Date.parse(String(insertedBrDispatch.telemedicine_consent_at)))).toBe(false)
+    expect(patientTable.update).toHaveBeenCalledWith(expect.objectContaining({
+      telemedicine_consent_at: expect.any(String),
+      telemedicine_consent_version: 'br-pharmacy-express-telemedicine-v1',
     }))
     expect(table.insert.mock.calls[0][0]).not.toHaveProperty('patient_gender_code')
   })
 
   it('rechaza CPF brasileño incompleto', async () => {
     const response = await POST(makeContext({
-      body: { careCountry: 'BR', lgpdConsent: true, patientCpf: '1234', patientPhone: '+5551987654321' },
+      body: { careCountry: 'BR', lgpdConsent: true, telemedicineConsent: true, patientCpf: '1234', patientPhone: '+5551987654321' },
     }))
     expect(response.status).toBe(400)
     expect(supabaseMock.from).not.toHaveBeenCalled()
@@ -486,7 +546,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
 
     const response = await POST(makeContext({
       body: {
-        careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909',
+        careCountry: 'BR', lgpdConsent: true, telemedicineConsent: true, patientCpf: '12345678909',
         patientPhone: '+5551999998888', patientName: 'Paciente sintético',
         referralCode: 'JORDAN', qrSourceCode: 'SANTANA_DO_LIVRAMENTO_01',
       },
@@ -510,7 +570,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     })
     const response = await POST(makeContext({
       body: {
-        careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909', patientName: 'Paciente sintético',
+        careCountry: 'BR', lgpdConsent: true, telemedicineConsent: true, patientCpf: '12345678909', patientName: 'Paciente sintético',
         patientPhone: '+5551999998888', referralCode: 'JORDAN',
       },
     }))
@@ -541,10 +601,12 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     expect(dispatch.insert).toHaveBeenCalledWith(expect.objectContaining({
       care_country: 'AR', referral_partner_id: partnerId, patient_dni: '38123456',
     }))
+    expect(dispatch.insert.mock.calls[0][0]).not.toHaveProperty('telemedicine_consent_at')
+    expect(dispatch.insert.mock.calls[0][0]).not.toHaveProperty('telemedicine_consent_version')
     supabaseMock.from.mockClear()
     const specialist = await POST(makeContext({
       body: {
-        careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909',
+        careCountry: 'BR', lgpdConsent: true, telemedicineConsent: true, patientCpf: '12345678909',
         patientName: 'Paciente BR', patientPhone: '+5551999998888',
         referralCode: 'JORDAN', tier: 'cardiologia',
       },
@@ -596,6 +658,54 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     }))
   })
 
+
+  it('preserves Brazilian guest intake without an auth.users account and stores consent evidence', async () => {
+    vi.mocked(resolvePatientContext).mockResolvedValue(null)
+    const dispatchRow = {
+      id: 'guest-dispatch-br-123',
+      care_country: 'BR',
+      patient_id: 'guest-br-patient-row',
+      requested_by_user_id: null,
+      patient_cpf: '12345678909',
+      patient_dni: null,
+      status: 'pending_payment',
+      patient_name: 'Paciente BR convidado',
+      patient_phone: '+5551987654321',
+    }
+    const dispatchTable = buildTableChain(dispatchRow)
+    const patientTable = buildTableChain({ id: 'guest-br-patient-row' })
+    const recoveryTable = buildTableChain(null)
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_pricing_configs') return buildTableChain(pricingRow('BR'))
+      if (table === 'pharmacy_dispatch_requests') return dispatchTable
+      if (table === 'patients') return patientTable
+      if (table === 'pharmacy_guest_dispatch_sessions') return recoveryTable
+      return buildTableChain(null)
+    })
+    const response = await POST(makeContext({
+      body: {
+        careCountry: 'BR', lgpdConsent: true, telemedicineConsent: true,
+        patientCpf: '12345678909', patientPhone: '+5551987654321',
+        patientName: 'Paciente BR convidado',
+      },
+    }))
+    expect(response.status).toBe(200)
+    expect(dispatchTable.insert).toHaveBeenCalledWith(expect.objectContaining({
+      care_country: 'BR', patient_id: null, requested_by_user_id: null,
+      patient_cpf: '12345678909', patient_dni: null, lgpd_consent: true,
+      telemedicine_consent_at: expect.any(String),
+      telemedicine_consent_version: 'br-pharmacy-express-telemedicine-v1',
+    }))
+    expect(patientTable.update).toHaveBeenCalledWith(expect.objectContaining({
+      lgpd_consent: true,
+      telemedicine_consent_at: expect.any(String),
+      telemedicine_consent_version: 'br-pharmacy-express-telemedicine-v1',
+    }))
+    expect(recoveryTable.insert).toHaveBeenCalledWith(expect.objectContaining({
+      request_id: dispatchRow.id, token_sha256: expect.any(String),
+    }))
+  })
+
   it('does not infer a missing patient care country', async () => {
     vi.mocked(resolvePatientContext).mockResolvedValue({ userId: 'p', patientId: 'p-row', careCountry: null })
     const response = await POST(makeContext())
@@ -605,7 +715,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
 
   it('rejects a request country that differs from the authenticated patient country', async () => {
     vi.mocked(resolvePatientContext).mockResolvedValue({ userId: 'p', patientId: 'p-row', careCountry: 'AR' })
-    const response = await POST(makeContext({ body: { careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909', patientPhone: '+5551987654321' } }))
+    const response = await POST(makeContext({ body: { careCountry: 'BR', lgpdConsent: true, telemedicineConsent: true, patientCpf: '12345678909', patientPhone: '+5551987654321' } }))
     expect(response.status).toBe(403)
     expect(supabaseMock.from).not.toHaveBeenCalledWith('pharmacy_dispatch_requests')
   })
@@ -625,7 +735,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
   it('rechaza referralCode manipulados antes de realizar cualquier escritura', async () => {
     const response = await POST(makeContext({
       body: {
-        careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909',
+        careCountry: 'BR', lgpdConsent: true, telemedicineConsent: true, patientCpf: '12345678909',
         patientPhone: '+5551999998888', patientName: 'Paciente sintético',
         referralCode: 'jordan<script>',
       },
@@ -642,7 +752,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     })
     const response = await POST(makeContext({
       body: {
-        careCountry: 'BR', lgpdConsent: true, patientCpf: '12345678909',
+        careCountry: 'BR', lgpdConsent: true, telemedicineConsent: true, patientCpf: '12345678909',
         patientPhone: '+5551999998888', patientName: 'Paciente sintético',
         referralCode: 'FAKEPARTNER',
       },
