@@ -13,6 +13,30 @@ function createQueryChain(result: { data: unknown; error: unknown }) {
   return chain;
 }
 
+describe('medicalHistoryService ↔ Memed prescription history compatibility', () => {
+  it('keeps an existing signed Memed prescription visible while excluding only draft mirrors', async () => {
+    const signedMemed = {
+      id: 'signed-memed-rx', created_at: '2026-11-20T10:00:00.000Z',
+      updated_at: '2026-11-20T10:00:00.000Z', doctor_id: 'doc-1', patient_id: 'pat-1',
+      cuir: null, status: 'signed', clinical_data: { medication_name: 'Dipirona' },
+      vendor_name: 'memed', vendor_id: 'provider-rx-1', qr_code_content: null,
+      signed_pdf_url: null, signature_method: null,
+    };
+    const draftMemed = { ...signedMemed, id: 'draft-memed-rx', status: 'draft', vendor_id: 'provider-rx-2' };
+    const supabase = {
+      from: vi.fn((table: string) => {
+        if (table === 'prescriptions') return createQueryChain({ data: [signedMemed, draftMemed], error: null });
+        if (table === 'doctors') return createQueryChain({ data: [{ id: 'doc-1', specialty: null, profile: { first_name: 'Test', last_name: 'Doctor' } }], error: null });
+        return createQueryChain({ data: [], error: null });
+      }),
+      rpc: vi.fn(async () => ({ data: [], error: null })),
+    } as unknown as SupabaseClient;
+    const snapshot = await medicalHistoryService.getFullHistory(supabase as never, 'pat-1', supabase);
+    expect(snapshot.prescriptions.map((item) => item.id)).toContain('signed-memed-rx');
+    expect(snapshot.prescriptions.map((item) => item.id)).not.toContain('draft-memed-rx');
+  });
+});
+
 describe('medicalHistoryService ↔ certificate PDF verification contract', () => {
   it('only exposes patient certificates that pass the same verification gate as /api/doctors/certificates/[id]/pdf', async () => {
     const validHash = 'a'.repeat(64);

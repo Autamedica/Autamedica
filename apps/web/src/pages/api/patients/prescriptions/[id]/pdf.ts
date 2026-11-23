@@ -33,11 +33,11 @@ function isAllowedProviderHost(hostname: string): boolean {
     [...REDIRECT_HOSTS].some((domain) => host === domain || host.endsWith(`.${domain}`));
 }
 
-function findMemedPdfUrl(value: unknown, depth = 0): string | null {
+function findMemedUrl(value: unknown, pdfKeysOnly: boolean, depth = 0, inPdfContext = false): string | null {
   if (depth > 7 || value === null || typeof value !== 'object') return null;
   if (Array.isArray(value)) {
     for (const item of value) {
-      const found = findMemedPdfUrl(item, depth + 1);
+      const found = findMemedUrl(item, pdfKeysOnly, depth + 1, inPdfContext);
       if (found) return found;
     }
     return null;
@@ -45,7 +45,11 @@ function findMemedPdfUrl(value: unknown, depth = 0): string | null {
 
   const object = value as JsonObject;
   for (const [key, nested] of Object.entries(object)) {
-    if (!/(pdf|document|digital|url|link)/i.test(key) || typeof nested !== 'string') continue;
+    const documentKey = /(pdf|document)/i.test(key);
+    const matches = documentKey || (pdfKeysOnly
+      ? inPdfContext && /(url|link)/i.test(key)
+      : /(digital|url|link)/i.test(key));
+    if (!matches || typeof nested !== 'string') continue;
     try {
       const url = new URL(nested);
       if (url.protocol === 'https:' && isMemedHost(url.hostname)) return url.toString();
@@ -54,11 +58,16 @@ function findMemedPdfUrl(value: unknown, depth = 0): string | null {
     }
   }
 
-  for (const nested of Object.values(object)) {
-    const found = findMemedPdfUrl(nested, depth + 1);
+  for (const [key, nested] of Object.entries(object)) {
+    const found = findMemedUrl(nested, pdfKeysOnly, depth + 1, inPdfContext || /(pdf|document)/i.test(key));
     if (found) return found;
   }
   return null;
+}
+
+function findMemedPdfUrl(value: unknown): string | null {
+  // Prefer the full PDF/document artifact to a patient-facing landing page.
+  return findMemedUrl(value, true) ?? findMemedUrl(value, false);
 }
 
 async function fetchOfficialPdf(initialUrl: string): Promise<Uint8Array> {
@@ -125,7 +134,16 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
     const row = data as MemedPrescriptionPdfRow | null;
     if (!row || row.status === 'deleted') return notFound();
     if (row.patient_id !== context.patientId) return forbidden('prescription_access_denied');
-    if (row.pdf_signature_verified !== true) return forbidden('memed_pdf_signature_not_verified');
+    const providerData = row.provider_data !== null && typeof row.provider_data === 'object'
+      && !Array.isArray(row.provider_data) ? row.provider_data as JsonObject : {};
+    const providerReportedSigned = providerData.provider_reported_signed === true;
+    const providerDeliveryEligible = providerData.patient_delivery_eligible === true;
+    // Release only when Memed reports the signature and a full PDF is available.
+    // AutaMedica checks URL origin, PDF format, size and SHA-256 integrity; it
+    // does not claim local cryptographic ICP-Brasil certificate validation.
+    if (row.pdf_signature_verified !== true && !(providerReportedSigned && providerDeliveryEligible)) {
+      return forbidden('memed_pdf_signature_not_verified');
+    }
 
     const providerUrl = findMemedPdfUrl(row.digital_link_data)
       ?? findMemedPdfUrl(row.provider_data);

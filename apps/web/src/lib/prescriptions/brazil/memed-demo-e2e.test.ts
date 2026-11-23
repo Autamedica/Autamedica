@@ -315,7 +315,7 @@ describe('Memed DEMO flow: synthetic doctor + synthetic patient, no real provide
       status: 'draft', vendor_name: 'memed', vendor_id: fakeRx,
       clinical_data: {
         emission_status: 'provider_verified', signature_status: 'provider_reported_signed',
-        signature_verified: false, delivery_status: 'provider_link_available', delivery_verified: false,
+        signature_verified: false, delivery_status: 'provider_signed_pdf_available', delivery_verified: false,
       },
     });
     expect(state.rows[0]).toMatchObject({
@@ -328,7 +328,7 @@ describe('Memed DEMO flow: synthetic doctor + synthetic patient, no real provide
         },
         memed_full_pdf_url: 'https://documentos.memed.com.br/DEMO-RX-001.pdf',
         signature_verified: false,
-        delivery_status: 'provider_link_available',
+        delivery_status: 'provider_signed_pdf_available',
       },
     });
     expect(state.requests).toEqual([

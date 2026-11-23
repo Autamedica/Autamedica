@@ -7,7 +7,9 @@ vi.mock('@/lib/supabase', () => ({ createAstroAdminClient: mocks.admin }));
 vi.mock('@/lib/prescriptions/brazil/memed-patient', async (original) => ({
   ...await original<typeof import('./memed-patient')>(), resolveMemedPatient: mocks.patient,
 }));
-vi.mock('@/lib/prescriptions/brazil/memed.service', () => ({ MemedService: class {
+vi.mock('@/lib/prescriptions/brazil/memed.service', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@/lib/prescriptions/brazil/memed.service')>(),
+  MemedService: class {
   getOrCreateDoctorToken = mocks.token;
   getScriptUrl() { return 'https://partners.memed.com.br/integration.js'; }
 } }));

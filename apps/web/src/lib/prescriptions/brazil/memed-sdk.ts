@@ -1,3 +1,4 @@
+import { logger } from '@autamedica/shared';
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser';
 import type { MemedPatient } from './memed-patient';
 
@@ -12,6 +13,9 @@ interface MemedCore {
 
 const SCRIPT_ID = 'memed-prescricao-script';
 const MODULE_NAME = 'plataforma.prescricao';
+const DEFAULT_SIGNATURE_PROVIDERS = [
+  'certisign', 'evaltec', 'lacuna', 'soluti', 'dinamo', 'vidaas', 'safeid',
+] as const;
 
 /**
  * Memed's REST /prescricoes/{id} and /url-document/full routes use the
@@ -166,18 +170,41 @@ export function setMemedCallbacks(onIssued: (id: string) => void, onDeleted: (id
   };
 }
 
-export function openMemedPatient(patient: MemedPatient, isCurrent: () => boolean): Promise<void> {
+export function openMemedPatient(
+  patient: MemedPatient,
+  isCurrent: () => boolean,
+  configuredSignatureProviders?: readonly string[],
+): Promise<void> {
   const task = opening.then(async () => {
     const current = () => !sessionInvalidated && isCurrent();
     if (!current()) return;
     const hub = getMemedHub();
     if (!hub) throw new Error('Módulo Memed indisponível.');
-    // Official Memed controls: identity is fixed by the backend and signing is mandatory.
-    await hub.command.send(MODULE_NAME, 'setFeatureToggle', {
+    const configured = (configuredSignatureProviders ?? []).filter((provider) =>
+      typeof provider === 'string' && /^[a-z][a-z0-9_-]{1,31}$/.test(provider),
+    );
+    const signatureProviders = Array.from(new Set([...DEFAULT_SIGNATURE_PROVIDERS, ...configured]));
+    // Memed documents setAllowedSignatureProviders as a setFeatureToggle
+    // property (not a standalone MdHub command). If a tenant SDK rejects that
+    // optional property, retry without it; forceSign remains mandatory.
+    const requiredFeatureToggles = {
       deletePatient: false, removePatient: false, editPatient: false,
       editIdentification: false, dropdownSync: false, historyPrescription: false,
-      conclusionModalEdit: false, forceSign: true, allowShareModal: false,
-    });
+      conclusionModalEdit: false, forceSign: true,
+      allowShareModal: false,
+    };
+    try {
+      await hub.command.send(MODULE_NAME, 'setFeatureToggle', {
+        ...requiredFeatureToggles,
+        setAllowedSignatureProviders: signatureProviders,
+      });
+    } catch (error) {
+      logger.warn('[memed-sdk] signature-provider allowlist was rejected; retrying required prescription toggles', {
+        code: 'memed_signature_provider_toggle_unsupported',
+        error: error instanceof Error ? error.message : 'unknown',
+      });
+      await hub.command.send(MODULE_NAME, 'setFeatureToggle', requiredFeatureToggles);
+    }
     if (!current()) return;
     await hub.command.send(MODULE_NAME, 'setPaciente', { ...patient });
     if (!current()) return;

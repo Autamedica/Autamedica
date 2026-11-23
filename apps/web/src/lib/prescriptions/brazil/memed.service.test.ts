@@ -8,10 +8,35 @@ vi.mock('@autamedica/shared', () => ({
   },
 }));
 
-import { MemedService } from './memed.service';
+import {
+  extractMemedAtestadoDocuments,
+  MemedService,
+  resolveMemedAllowedSignatureProviders,
+} from './memed.service';
 import { logger } from '@autamedica/shared';
 
 describe('MemedService', () => {
+  it('keeps documented ICP-Brasil providers enabled and supports additive configuration', () => {
+    expect(resolveMemedAllowedSignatureProviders()).toEqual([
+      'certisign', 'evaltec', 'lacuna', 'soluti', 'dinamo', 'vidaas', 'safeid',
+    ]);
+    expect(resolveMemedAllowedSignatureProviders('new-provider,VIDAAS')).toContain('new-provider');
+    expect(resolveMemedAllowedSignatureProviders('new-provider')).toContain('vidaas');
+  });
+
+  it('preserves Memed structured atestado classification', () => {
+    expect(extractMemedAtestadoDocuments({
+      medicamentos: [
+        { tipo: 'custom', custom_categoria: 'atestado', nome: 'Atestado de afastamento', texto: 'Texto do médico' },
+        { tipo: 'medicamento', nome: 'Medicamento' },
+      ],
+    })).toEqual([{
+      tipo: 'custom',
+      custom_categoria: 'atestado',
+      nome: 'Atestado de afastamento',
+      texto: 'Texto do médico',
+    }]);
+  });
   const originalEnv = process.env;
 
   beforeEach(() => {
