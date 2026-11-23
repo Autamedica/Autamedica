@@ -12,6 +12,9 @@ interface MemedCore {
 
 const SCRIPT_ID = 'memed-prescricao-script';
 const MODULE_NAME = 'plataforma.prescricao';
+const DEFAULT_SIGNATURE_PROVIDERS = [
+  'certisign', 'evaltec', 'lacuna', 'soluti', 'dinamo', 'vidaas', 'safeid',
+] as const;
 
 /**
  * Memed's REST /prescricoes/{id} and /url-document/full routes use the
@@ -166,17 +169,27 @@ export function setMemedCallbacks(onIssued: (id: string) => void, onDeleted: (id
   };
 }
 
-export function openMemedPatient(patient: MemedPatient, isCurrent: () => boolean): Promise<void> {
+export function openMemedPatient(
+  patient: MemedPatient,
+  isCurrent: () => boolean,
+  configuredSignatureProviders?: readonly string[],
+): Promise<void> {
   const task = opening.then(async () => {
     const current = () => !sessionInvalidated && isCurrent();
     if (!current()) return;
     const hub = getMemedHub();
     if (!hub) throw new Error('Módulo Memed indisponível.');
-    // Official Memed controls: identity is fixed by the backend and signing is mandatory.
+    const configured = (configuredSignatureProviders ?? []).filter((provider) =>
+      typeof provider === 'string' && /^[a-z][a-z0-9_-]{1,31}$/.test(provider),
+    );
+    const signatureProviders = Array.from(new Set([...DEFAULT_SIGNATURE_PROVIDERS, ...configured]));
+    // Lock patient identity, require signing, and preserve all documented providers.
     await hub.command.send(MODULE_NAME, 'setFeatureToggle', {
       deletePatient: false, removePatient: false, editPatient: false,
       editIdentification: false, dropdownSync: false, historyPrescription: false,
-      conclusionModalEdit: false, forceSign: true, allowShareModal: false,
+      conclusionModalEdit: false, forceSign: true,
+      setAllowedSignatureProviders: signatureProviders,
+      allowShareModal: false,
     });
     if (!current()) return;
     await hub.command.send(MODULE_NAME, 'setPaciente', { ...patient });
