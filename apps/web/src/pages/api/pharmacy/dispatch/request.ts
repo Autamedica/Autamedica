@@ -123,7 +123,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Legacy native clients keep their existing LGPD flow until their UI is updated;
     // never fabricate telemedicine consent evidence for those requests.
     const telemedicineConsentAccepted = careCountry === 'BR' && telemedicineConsent === true
-    if (careCountry === 'BR' && !mobileUserId && !telemedicineConsentAccepted) {
+    const telemedicineConsentRequired = locals.runtime?.env?.BR_TELEMEDICINE_CONSENT_REQUIRED !== 'false'
+    if (careCountry === 'BR' && telemedicineConsentRequired && !mobileUserId && !telemedicineConsentAccepted) {
       return badRequest('telemedicine_consent_required')
     }
 
