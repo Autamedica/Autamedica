@@ -36,7 +36,7 @@ export function MemedMobileRoute() {
           if (!controller.signal.aborted) setState({status: 'login'});
           return;
         }
-        if (!response.ok) throw new Error('O médico, o paciente ou a consulta não estão autorizados para Memed.');
+        if (!response.ok) throw new Error('O médico, o paciente ou a consulta não estão autorizados para emissão digital.');
         if (!response.headers.get('content-type')?.includes('application/json')) {
           throw new Error('Memed mobile context returned a non-JSON response.');
         }
@@ -70,7 +70,7 @@ export function MemedMobileRoute() {
         ...(state.requestId ? {requestId: state.requestId} : {}),
       }),
     });
-    if (!response.ok) throw new Error('Falha ao confirmar evento com Memed.');
+    if (!response.ok) throw new Error('Falha ao confirmar evento da receita digital.');
   };
   if (state.status === 'loading') {
     return <main className="p-6 text-sm text-slate-700" role="status">Verificando médico e consulta…</main>;
@@ -93,7 +93,7 @@ export function MemedMobileRoute() {
   }
   if (state.status === 'error' || !state.patientId) {
     return <main className="mx-auto max-w-md p-6" role="alert">
-      <h1 className="font-semibold">Memed indisponível</h1>
+      <h1 className="font-semibold">Receituário indisponível</h1>
       <p className="mt-2 text-sm">{state.error ?? 'Acesso clínico não confirmado.'}</p>
       <button className="mt-4 rounded border px-4 py-2" onClick={returnToApp}>Voltar à AutaMedica</button>
     </main>;

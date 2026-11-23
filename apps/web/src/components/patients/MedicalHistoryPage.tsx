@@ -84,7 +84,7 @@ function PrescriptionCard({ prescription, onClick, index, locale }: {
             {prescription.medication_name || (locale === 'pt-BR' ? 'Receita médica' : 'Prescripción médica')}
           </h3>
           <p className="text-sm text-neutral-500 mt-0.5">{doctorName} · {dateStr}</p>
-          <p className="mt-1 text-[11px] font-semibold text-sky-700">{prescription.source === 'memed_br' ? 'Memed BR' : prescription.source === 'prescriptions_core' ? 'RCTA / Core AR' : (isPortuguese ? 'Histórico clínico' : 'Historial clínico')}</p>
+          <p className="mt-1 text-[11px] font-semibold text-sky-700">{prescription.source === 'memed_br' ? 'Receita Digital BR' : prescription.source === 'prescriptions_core' ? 'RCTA / Core AR' : (isPortuguese ? 'Histórico clínico' : 'Historial clínico')}</p>
           {prescription.access_code && <p className="mt-1 text-xs text-slate-600">{isPortuguese ? 'Código de acesso' : 'Código de acceso'}: <span className="font-mono font-semibold text-slate-900">{prescription.access_code}</span></p>}
         </div>
         <span className={`rounded-full px-3 py-1 text-xs font-bold shrink-0 ${statusStyle}`}>
@@ -116,7 +116,7 @@ function PrescriptionCard({ prescription, onClick, index, locale }: {
             onClick={(e) => e.stopPropagation()}
             className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full border border-slate-200 py-3 font-medium text-slate-700 transition-all hover:border-sky-500"
           >
-            <ExternalLink className="size-4" /> {prescription.source === 'memed_br' ? (isPortuguese ? 'Abrir Memed' : 'Abrir Memed') : 'PDF'}
+            <ExternalLink className="size-4" /> {prescription.source === 'memed_br' ? (isPortuguese ? 'Abrir receita' : 'Abrir receta') : 'PDF'}
           </a>
         )}
         {prescription.source === 'memed_br' && downloadablePdfUrl && (
