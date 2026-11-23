@@ -37,8 +37,8 @@ BEGIN
   VALUES (doc_user_id, 'cpf-test-doctor@synthetic.invalid', 'doctor', 'Synthetic', 'Doctor', true)
   ON CONFLICT (user_id) DO UPDATE SET role = 'doctor', active = true;
 
-  INSERT INTO public.doctors (user_id, license_type, license_number, uf_brazil, active)
-  VALUES (doc_user_id, 'CRM', '999999', 'RS', true)
+  INSERT INTO public.doctors (user_id, specialty, license_type, license_number, uf_brazil, active)
+  VALUES (doc_user_id, 'Clínica Geral', 'CRM', '999999', 'RS', true)
   RETURNING id INTO doc_id;
 
   PERFORM set_config('request.jwt.claim.role', 'service_role', true);
