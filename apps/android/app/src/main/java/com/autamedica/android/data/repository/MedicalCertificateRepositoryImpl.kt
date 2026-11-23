@@ -549,6 +549,8 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
     private data class MemedPatientCertificateRowDto(
         val id: String,
         @SerialName("doctor_id") val doctorId: String? = null,
+        @SerialName("patient_id") val patientId: String? = null,
+        @SerialName("memed_id") val memedId: String? = null,
         @SerialName("created_at") val createdAt: String? = null,
         @SerialName("provider_data") val providerData: JsonObject? = null,
         @SerialName("digital_link_data") val digitalLinkData: JsonObject? = null,
