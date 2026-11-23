@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ensureMemedScript, getMemedHub, openMemedPatient, setMemedCallbacks } from '@/lib/prescriptions/brazil/memed-sdk';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, ShieldCheck, X } from 'lucide-react';
 
 interface MemedPrescriptionWidgetProps {
   patientId: string;
@@ -141,16 +141,30 @@ export function MemedPrescriptionWidget({
   return (
     <div className={mobileFullscreen
       ? "fixed inset-0 z-50 flex min-h-0 items-stretch bg-white"
-      : "fixed inset-0 z-50 flex items-center justify-center bg-black/50"}>
+      : "fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-0 sm:p-4"}>
       <div className={mobileFullscreen
         ? "relative flex h-[100dvh] min-h-0 w-full flex-col overflow-hidden bg-white"
-        : "relative flex h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl"}>
-        <div className="flex items-center justify-between border-b p-4">
-          <div>
-            <h2 className="font-semibold text-slate-900">Prescrição digital Brasil — Memed</h2>
-            <p className="text-xs text-slate-600">Paciente: {patientLabel ?? 'Confirmando cadastro…'}</p>
+        : "relative flex h-[100dvh] w-full max-w-5xl flex-col overflow-hidden bg-white shadow-2xl sm:h-[92vh] sm:rounded-2xl sm:border sm:border-slate-200"}>
+        <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/90 px-4 py-3 sm:px-5">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-sm font-semibold text-slate-900 sm:text-base">Receituário digital Brasil</h2>
+              <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-700">
+                <ShieldCheck className="h-3 w-3" />
+                Memed · ICP-Brasil
+              </span>
+            </div>
+            <p className="mt-0.5 truncate text-xs text-slate-600">Paciente: <span className="font-medium text-slate-800">{patientLabel ?? 'Confirmando cadastro…'}</span></p>
           </div>
-          <button onClick={onClose} className="rounded-lg px-3 py-1 text-slate-700" aria-label="Fechar Memed">Fechar</button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+            aria-label="Fechar Memed"
+          >
+            <X className="h-3.5 w-3.5" />
+            Fechar
+          </button>
         </div>
         {identityRequired && !loading && (
           <form className="space-y-3 border-b p-5" onSubmit={(event) => {
@@ -252,7 +266,7 @@ export function MemedPrescriptionWidget({
               </>
             )}
             <div className="flex flex-wrap gap-2">
-              <button type="submit" className="rounded bg-blue-700 px-4 py-2 text-sm font-medium text-white">
+              <button type="submit" className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-700">
                 Salvar dados e abrir Memed
               </button>
               {!missingPatientFields.demographics && missingPatientFields.address && (
@@ -261,13 +275,13 @@ export function MemedPrescriptionWidget({
                   setErrorMessage(null);
                   setSkipOptionalAddress(true);
                 }}
-                  className="rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800">
+                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 transition hover:bg-slate-50">
                   Abrir sem endereço (receita simples)
                 </button>
               )}
               <button type="button" onClick={onFallbackToNativePrescription}
-                className="rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800">
-                Continuar con receta nativa Autamedica
+                className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50">
+                Rascunho interno (sem validade em farmácia)
               </button>
             </div>
           </form>

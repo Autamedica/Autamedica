@@ -558,6 +558,23 @@ export function DoctorsPrescriptionsPage() {
     return { id: created.id, patient_id: created.patient_id, ...p };
   };
 
+  const useBrMemedPrimary = certificateCountry === "BR" && externalProviderEnabled;
+
+  const openPrimaryPrescriptionAction = (): void => {
+    setEditingPrescription(null);
+    if (useBrMemedPrimary) {
+      if (selectedPatientId) {
+        setShowMemedWidget(true);
+      } else {
+        setCreateModalInitialMode("external");
+        setShowCreateModal(true);
+      }
+      return;
+    }
+    setCreateModalInitialMode("registered");
+    setShowCreateModal(true);
+  };
+
   return (
     <DoctorsPortalFrame
       title="Recetas Médicas"
@@ -581,30 +598,26 @@ export function DoctorsPrescriptionsPage() {
                 : "Creá una receta para un paciente de la plataforma o cargá sus datos manualmente"}
             </p>
           </div>
-          <div className="flex gap-2">
-            {certificateCountry === "BR" && externalProviderEnabled && (
+          <div className="flex flex-wrap gap-2">
+            {useBrMemedPrimary && (
               <button
-                onClick={() => {
-                  setEditingPrescription(null);
-                  setShowMemedWidget(true);
-                }}
-                disabled={!selectedPatientId}
+                type="button"
+                onClick={openPrimaryPrescriptionAction}
                 title={
-                  selectedPatientId ? "Abrir Memed para paciente BR" : "Selecione um paciente BR"
+                  selectedPatientId
+                    ? "Emitir receita digital oficial via Memed"
+                    : "Cadastrar ou selecionar paciente BR para abrir Memed"
                 }
-                className="inline-flex items-center gap-2 rounded-xl bg-am-primary-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-am-primary-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl bg-am-primary-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-am-primary-700 active:scale-[0.97]"
               >
                 <Plus className="h-4 w-4" />
-                Receita BR (Memed)
+                Receita digital (Memed)
               </button>
             )}
-            {(certificateCountry === "AR" || certificateCountry === "BR") && (
+            {(certificateCountry === "AR" || (certificateCountry === "BR" && !externalProviderEnabled)) && (
               <button
-                onClick={() => {
-                  setEditingPrescription(null);
-                  setCreateModalInitialMode("registered");
-                  setShowCreateModal(true);
-                }}
+                type="button"
+                onClick={openPrimaryPrescriptionAction}
                 className="inline-flex items-center gap-2 rounded-xl bg-am-primary-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-am-primary-700 active:scale-[0.97]"
               >
                 <Plus className="h-4 w-4" />
@@ -741,18 +754,17 @@ export function DoctorsPrescriptionsPage() {
             </p>
             <div className="mt-4 flex flex-wrap gap-2 justify-center">
               <button
-                onClick={() => {
-                  setEditingPrescription(null);
-                  setShowCreateModal(true);
-                }}
+                type="button"
+                onClick={openPrimaryPrescriptionAction}
                 className="inline-flex items-center gap-2 rounded-xl bg-am-primary-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-am-primary-700"
               >
                 <Plus className="h-4 w-4" />
-                Nueva receta
+                {useBrMemedPrimary ? "Receita digital (Memed)" : "Nueva receta"}
               </button>
               <button
+                type="button"
                 onClick={() => setShowCertificateModal(true)}
-                className="inline-flex items-center gap-2 rounded-xl bg-am-primary-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-am-primary-700"
+                className="inline-flex items-center gap-2 rounded-xl border border-neutral-300 bg-white px-5 py-2.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50"
               >
                 <FileText className="h-4 w-4" />
                 Preparar atestado
@@ -976,14 +988,12 @@ export function DoctorsPrescriptionsPage() {
                         </p>
                         {!search && (
                           <button
-                            onClick={() => {
-                              setEditingPrescription(null);
-                              setShowCreateModal(true);
-                            }}
+                            type="button"
+                            onClick={openPrimaryPrescriptionAction}
                             className="mt-4 inline-flex items-center gap-2 rounded-xl bg-am-primary-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-am-primary-700"
                           >
                             <Plus className="h-4 w-4" />
-                            Nueva receta
+                            {useBrMemedPrimary ? "Receita digital (Memed)" : "Nueva receta"}
                           </button>
                         )}
                       </div>
