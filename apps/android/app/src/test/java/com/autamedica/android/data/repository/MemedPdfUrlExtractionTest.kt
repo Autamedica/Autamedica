@@ -14,7 +14,7 @@ class MemedPdfUrlExtractionTest {
     @Test
     fun findsPdfUrlNestedThroughBackendDepthLimit() {
         val data = Json.parseToJsonElement(
-            """{"a":{"b":{"c":{"d":{"e":{"f":{"document_url":"https://api.memed.com.br/atestado.pdf"}}}}}}}""",
+            """{"a":{"b":{"c":{"d":{"e":{"f":{"g":{"document_url":"https://api.memed.com.br/atestado.pdf"}}}}}}}}""",
         )
         assertThat(findMemedPdfUrl(data)).isEqualTo("https://api.memed.com.br/atestado.pdf")
     }
