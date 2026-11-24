@@ -1,5 +1,6 @@
 ---
 import Layout from '@/layouts/Layout.astro';
+import AdminLogoutButton from '@/components/admin/AdminLogoutButton.astro';
 import { GrowthDashboardUI } from '@/components/admin/GrowthDashboardUI';
 import { resolveAdminRole } from '@/lib/admin/auth';
 
@@ -35,6 +36,7 @@ if (!isLocalDevBypass && !role) {
               Admin / Growth
             </h1>
           </div>
+          <AdminLogoutButton />
         </div>
       </div>
     </header>

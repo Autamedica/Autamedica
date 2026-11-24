@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.autamedica.android.R
 import com.autamedica.android.domain.model.DoctorBookingInfo
+import com.autamedica.android.domain.model.DoctorFeeFormatter
 import com.autamedica.android.presentation.theme.AuBorder
 import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
@@ -59,8 +60,6 @@ import com.autamedica.android.presentation.theme.PortalPatientsAction
 import com.autamedica.android.presentation.theme.SecondaryDark
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import java.text.NumberFormat
-import java.util.Locale
 import kotlin.math.abs
 
 @Composable
@@ -310,9 +309,7 @@ private fun DoctorCard(
                         color = AuTextTertiary,
                     )
                     val feeText = doctor.consultationFee?.takeIf { it > 0 }?.let { fee ->
-                        NumberFormat.getCurrencyInstance(Locale.getDefault()).apply {
-                            maximumFractionDigits = 0
-                        }.format(fee)
+                        DoctorFeeFormatter.format(fee, doctor.licenseNumber)
                     } ?: feeFallback
                     Text(
                         text = feeText,

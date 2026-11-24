@@ -18,6 +18,7 @@ import PWAUpdatePrompt from '../components/PWAUpdatePrompt.astro';
 
 
 interface Props {
+  localeOverride?: 'es' | 'pt';
   title?: string;
   description?: string;
   canonical?: string;
@@ -27,14 +28,14 @@ interface Props {
   robots?: string;
 }
 
-const locale = Astro.locals.locale ?? 'es';
+const locale = Astro.props.localeOverride ?? Astro.locals.locale ?? 'es';
 const { t } = getI18n(locale);
 
 const {
   title = t('layout.defaultTitle'),
   description = t('layout.defaultDescription'),
   canonical,
-  ogImage = '/images/seo/og-main.webp',
+  ogImage = '/images/seo/og-main.png',
   ogType = 'website',
   publishedTime,
   robots = 'index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1',
@@ -46,15 +47,16 @@ const { publicSupabaseUrl, publicSupabaseAnonKey, publicSentryDsn } = resolvePub
 );
 
 const devPortal = import.meta.env.DEV ? Astro.url.searchParams.get('portal') : null;
+const normalizedPathname = Astro.url.pathname.replace(/\/+$/, '') || '/';
 const isPatientHost =
   Astro.url.hostname === 'paciente.autamedica.com' ||
   Astro.url.hostname === 'patients.autamedica.com' ||
-  Astro.url.pathname.startsWith('/patients') ||
+  normalizedPathname.startsWith('/patients/') ||
   devPortal === 'patient';
 const isDoctorHost =
   Astro.url.hostname === 'doctor.autamedica.com' ||
   Astro.url.hostname === 'doctors.autamedica.com' ||
-  Astro.url.pathname.startsWith('/doctors') ||
+  normalizedPathname.startsWith('/doctors/') ||
   devPortal === 'doctor';
 
 
@@ -114,7 +116,7 @@ const needsCareCountry = Boolean(careContext && !careContext.careCountry);
     )}
 
     <link rel="preconnect" href="https://qxjjrpksmwwrmubhvjew.supabase.co" />
-    <link rel="icon" href="/images/brand/logo_bioceramic.png" type="image/png" />
+    <link rel="icon" href="/images/brand/logo_bioceramic.jpg" type="image/jpeg" />
     <!-- Android se distribuye como app Kotlin desde Google Play; no anunciar la web como PWA instalable. -->
     <StructuredData />
     <GoogleTag />

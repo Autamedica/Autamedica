@@ -33,6 +33,9 @@ data class DoctorSignatureState(
     val validationMessage: String? = null,
     val validationMessageRes: Int? = null,
     val lastCheckedAt: String? = null,
+    val careCountry: String? = null,
+    val licenseType: String? = null,
+    val ufBrazil: String? = null,
 )
 
 @HiltViewModel
@@ -42,6 +45,27 @@ class DoctorSignatureViewModel @Inject constructor(
 ) : ViewModel() {
     private val _state = MutableStateFlow(DoctorSignatureState())
     val state: StateFlow<DoctorSignatureState> = _state.asStateFlow()
+
+    fun loadDoctorJurisdiction() {
+        viewModelScope.launch {
+            runCatching {
+                val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID) ?: return@runCatching
+                val doctor = supabaseClient.postgrest.from("doctors")
+                    .select(Columns.list("id", "license_number", "license_type", "uf_brazil", "care_country", "cpf")) {
+                        filter { eq("user_id", userId) }
+                    }.decodeSingleOrNull<DoctorValidationRecordDto>()
+                if (doctor != null) {
+                    _state.update {
+                        it.copy(
+                            careCountry = doctor.careCountry,
+                            licenseType = doctor.licenseType,
+                            ufBrazil = doctor.ufBrazil,
+                        )
+                    }
+                }
+            }
+        }
+    }
 
     fun validateDoctorLicense(dni: String, medicalLicense: String) {
         val normalizedDocument = dni.trim()
@@ -63,6 +87,14 @@ class DoctorSignatureViewModel @Inject constructor(
                         filter { eq("user_id", userId) }
                     }.decodeSingleOrNull<DoctorValidationRecordDto>()
                     ?: throw IllegalStateException("doctor_profile_missing")
+
+                _state.update {
+                    it.copy(
+                        careCountry = doctor.careCountry,
+                        licenseType = doctor.licenseType,
+                        ufBrazil = doctor.ufBrazil,
+                    )
+                }
 
                 if (doctor.licenseType?.uppercase() == "CRM" || doctor.careCountry?.uppercase() == "BR") {
                     if (!validCpf(normalizedDocument)) throw IllegalArgumentException("invalid_brazil_cpf")

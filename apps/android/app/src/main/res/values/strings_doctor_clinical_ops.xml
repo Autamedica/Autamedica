@@ -121,7 +121,7 @@
     <string name="cert_cid10_optional_label">CID-10 (opcional)</string>
     <string name="cert_cid10_optional_placeholder">Informe o código CID-10 opcional</string>
     <string name="cert_privacy_hide_diagnosis_title">Ocultar diagnóstico en documento final</string>
-    <string name="cert_privacy_hide_diagnosis_subtitle">Garantía de Secreto Médico y confidencialidad ante empleadores (Ley 27.553 / CFM)</string>
+    <string name="cert_privacy_hide_diagnosis_subtitle">Garantía de Secreto Médico y confidencialidad ante empleadores (secreto médico profesional)</string>
     <string name="cert_obs_section_title">Indicaciones y Observaciones Clínicas (Opcional)</string>
     <string name="cert_obs_placeholder">Ej: Reposo domiciliario con hidratación continua. Presentar en RRHH.</string>
     <string name="cert_success_dialog_title">Borrador guardado</string>

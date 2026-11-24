@@ -9,9 +9,9 @@ import { jsonOk, badRequest, internalError } from '@/lib/api-helpers';
 import { accountingService } from '@/lib/doctors/services/accounting.service';
 import { doctorsRepo } from '@/lib/doctors/lib/repos/doctors';
 
-export const GET: APIRoute = async ({ request }) => {
+export const GET: APIRoute = async ({ request, locals }) => {
   try {
-    const auth = await withAuthRole(request, DOCTOR_ROLES);
+    const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
     if (!isAuthed(auth)) return auth;
     const { supabase } = auth;
 
@@ -26,16 +26,19 @@ export const GET: APIRoute = async ({ request }) => {
   }
 };
 
-export const PUT: APIRoute = async ({ request }) => {
+export const PUT: APIRoute = async ({ request, locals }) => {
   try {
-    const auth = await withAuthRole(request, DOCTOR_ROLES);
+    const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
     if (!isAuthed(auth)) return auth;
     const { supabase } = auth;
 
     const doctorId = await doctorsRepo.resolveIdByUserId(auth.user.id, supabase);
     if (!doctorId) return badRequest('doctor_not_found');
 
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return badRequest('invalid_body');
+    }
     const profile = await accountingService.saveFiscalProfile(supabase, doctorId, body);
     return jsonOk({ profile });
   } catch (err) {

@@ -60,7 +60,8 @@ Criterio de salida:
    - Organization
    - WebSite
    - WebPage
-   - MedicalBusiness/Breadcrumb segun ruta
+   - Organization / WebSite / WebPage / Service / BreadcrumbList segun ruta
+   - MedicalBusiness solo cuando la página represente realmente un establecimiento o entidad médica verificable
 2. Eliminar drift entre schemas globales y verticales.
 3. Definir pruebas automáticas de schema:
    - campos obligatorios,
@@ -137,3 +138,29 @@ Se considera cumplido solo si:
 ---
 
 Este plan no busca “mejorar un poco”; busca **garantizar 100/100** de manera repetible y auditable.
+
+
+## 7) Estado de ejecución y cierre — 2026-11-24
+
+### Correcciones preparadas en la rama de cierre SEO
+
+- Hreflang: se eliminan las declaraciones implícitas que asignaban la misma URL a español, portugués y `x-default`. Solo se emiten alternativas explícitas, absolutas y alojadas en el dominio canónico. No se declaran equivalencias lingüísticas mientras no existan URLs equivalentes reales.
+- Imágenes sociales: el generador usa el logo existente, produce PNG de 1200×630 con la paleta azul de AutaMedica y verifica sus dimensiones. Las referencias heredadas `.webp` se normalizan a los PNG generados.
+- Metadatos y datos estructurados: se eliminan ratings agregados y ofertas gratuitas sin respaldo verificable. Las páginas verticales se describen como `Organization`, `Service` y `WebPage`, no como establecimientos médicos. Se conserva el schema `Physician` de los perfiles profesionales.
+- Sitemap: se incorpora la guía existente sobre la Ley 27.553 y se reconcilia el backlog de palabras clave con las páginas ya implementadas.
+- Logo: se detectó que las rutas `logo_bioceramic.png` servían bytes JPEG. Se conservaron los archivos originales y se agregaron rutas `.jpg` con MIME correcto; las referencias del sitio y los schemas apuntan a ellas.
+- PWA: el manifest usa iconos PNG reales de 192×192 y 512×512, generados desde el logo y validados por dimensiones.
+- Idioma BR: no se emite `hreflang="pt-BR"` hasta que existan rutas portuguesas equivalentes y traducidas. La preferencia de idioma en runtime por sí sola no constituye una URL alternativa indexable.
+- CI: se añade un gate SEO obligatorio que genera los assets y valida sitemap/paridad, robots, dimensiones de imágenes, JSON-LD y hreflang. El estado del gate forma parte del resultado agregado de CI.
+- Lighthouse: el job Build ejecuta Lighthouse CI sobre el servidor Cloudflare Pages local, con tres corridas por cada ruta `/`, `/patients`, `/doctors`, `/companies` y `/platform`. El umbral de la categoría SEO es 100/100 y usa agregación pesimista: cualquier corrida inferior a 100 bloquea el CI. Los reportes se conservan como artefactos internos del workflow.
+- Publicación: los workflows de producción y contenido generan y validan los assets antes del build Astro.
+
+### Evidencia que todavía falta para declarar el 100/100
+
+1. Ejecutar el CI de la rama y corregir cualquier fallo real de build, lint o validación.
+2. Medir Lighthouse SEO en `/`, `/patients`, `/doctors`, `/companies` y `/platform`: tres ejecuciones por ruta, cada una con score 100.
+3. Confirmar en producción que las imágenes sociales servidas responden correctamente y mantienen 1200×630.
+4. Registrar el baseline de indexación en Google Search Console y los Core Web Vitals reales.
+5. Mantener dos semanas consecutivas sin regresiones SEO antes de cerrar la sostenibilidad.
+
+**Estado:** el contrato de validación está incorporado en la rama; el objetivo Lighthouse 100/100, la indexación real y las dos semanas de estabilidad siguen abiertos hasta que exista evidencia de ejecución y producción.

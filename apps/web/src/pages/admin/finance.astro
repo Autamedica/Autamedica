@@ -1,5 +1,6 @@
 ---
 import Layout from '@/layouts/Layout.astro';
+import AdminLogoutButton from '@/components/admin/AdminLogoutButton.astro';
 import { FinanceAdminDashboard } from '@/components/admin/FinanceAdminDashboard';
 import { resolveAdminRole } from '@/lib/admin/auth';
 
@@ -35,6 +36,7 @@ if (!role) {
             <a href="/admin/telemedicine" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-indigo-400 hover:text-indigo-700">Telemedicina</a>
             <a href="/admin/patients" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-sky-400 hover:text-sky-700">Pacientes</a>
             <a href="/admin/finance" class="rounded-md border border-stone-800 bg-stone-900 px-3 py-2 font-semibold text-stone-100">Finanzas</a>
+            <AdminLogoutButton />
           </nav>
         </div>
       </div>

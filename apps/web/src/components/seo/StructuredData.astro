@@ -12,9 +12,8 @@ const jsonLd = {
       url: `${baseUrl}/`,
       logo: {
         '@type': 'ImageObject',
-        url: `${baseUrl}/images/brand/logo_bioceramic.png`,
-        width: 1024,
-        height: 1024
+        url: `${baseUrl}/images/brand/logo_bioceramic.jpg`,
+        encodingFormat: 'image/jpeg'
       },
       description: 'Plataforma de telemedicina y coordinación clínica en LATAM con Inteligencia Artificial médica integrada.',
       knowsAbout: ['Telemedicine', 'Digital Health', 'Medical AI', 'Electronic Prescriptions'],
@@ -57,42 +56,32 @@ const jsonLd = {
       inLanguage: ['es-AR', 'pt-BR']
     },
     {
-      '@type': 'MedicalOrganization',
-      '@id': `${baseUrl}/#medical-organization`,
-      name: 'AutaMedica',
-      url: `${baseUrl}/`,
-      image: `${baseUrl}/images/seo/og-main.webp`,
-      medicalSpecialty: ['Telemedicine', 'PrimaryCare', 'PreventiveMedicine', 'MentalHealth', 'Cardiology', 'Dermatology'],
+      '@type': 'Service',
+      '@id': `${baseUrl}/#telemedicine-service`,
+      name: 'Plataforma de telemedicina AutaMedica',
+      serviceType: 'Plataforma digital para telemedicina y coordinación clínica',
+      url: `${baseUrl}/platform`,
+      image: `${baseUrl}/images/seo/og-main.png`,
+      provider: {
+        '@id': `${baseUrl}/#organization`
+      },
       areaServed: [
         { '@type': 'Country', 'name': 'Argentina' },
-        { '@type': 'Country', 'name': 'Brasil' },
-        { '@type': 'Country', 'name': 'Colombia' },
-        { '@type': 'Country', 'name': 'Peru' },
-        { '@type': 'Country', 'name': 'Mexico' },
-        { '@type': 'Country', 'name': 'Ecuador' },
-        { '@type': 'Country', 'name': 'Chile' }
+        { '@type': 'Country', 'name': 'Brasil' }
       ],
-      availableService: {
-        '@type': 'Service',
-        name: 'Telemedicina sin fricciones',
-        serviceType: 'Atención médica virtual 24/7',
-        url: `${baseUrl}/platform`,
-        provider: {
-          '@id': `${baseUrl}/#organization`
-        }
+      availableChannel: {
+        '@type': 'ServiceChannel',
+        serviceUrl: `${baseUrl}/platform`
       },
       isPartOf: {
-        '@id': `${baseUrl}/#website`,
-      },
-      founder: {
-        '@id': `${baseUrl}/#founder`,
-      },
+        '@id': `${baseUrl}/#website`
+      }
     },
     {
       '@type': 'SoftwareApplication',
       '@id': `${baseUrl}/#application`,
       name: 'AutaMedica',
-      operatingSystem: 'Web, iOS, Android',
+      operatingSystem: 'Web, Android',
       applicationCategory: 'HealthApplication',
       url: `${baseUrl}/`,
       author: {
@@ -101,17 +90,8 @@ const jsonLd = {
       brand: {
         '@id': `${baseUrl}/#organization`
       },
-      offers: {
-        '@type': 'Offer',
-        price: '0',
-        priceCurrency: 'ARS',
-        availability: 'https://schema.org/InStock'
-      },
-      aggregateRating: {
-        '@type': 'AggregateRating',
-        ratingValue: '4.8',
-        ratingCount: '250'
-      }
+      applicationSubCategory: 'Telemedicine and digital health',
+      availableLanguage: ['es-AR', 'pt-BR']
     }
   ]
 };

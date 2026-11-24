@@ -96,6 +96,12 @@ function mapCore(row: PrescriptionRow, doctorName: string): PatientPrescriptionD
   };
 }
 
+function safeTimestamp(value: string | null | undefined): number {
+  if (!value) return 0;
+  const ts = new Date(value).getTime();
+  return Number.isFinite(ts) ? ts : 0;
+}
+
 export const GET: APIRoute = async ({ request, locals }) => {
   const context = await resolvePatientContext(request, locals);
   if (!context) return unauthorized();
@@ -133,14 +139,17 @@ export const GET: APIRoute = async ({ request, locals }) => {
     }
 
     const coreRows = (coreResult.data ?? []) as PrescriptionRow[];
-    const doctorIds = [...new Set([...coreRows.map((row) => row.doctor_id), ...memedRows.map((row) => row.doctor_id)])];
-    const { data: doctors } = doctorIds.length
+    const doctorIds = [...new Set([...coreRows.map((row) => row.doctor_id), ...memedRows.map((row) => row.doctor_id)].filter(Boolean))];
+    const { data: doctors, error: doctorsError } = doctorIds.length
       ? await admin.from('doctors').select('id,user_id').in('id', doctorIds)
-      : { data: [] };
+      : { data: [], error: null };
+    if (doctorsError) logger.warn('[patients/prescriptions] doctors lookup failed', { code: doctorsError.code });
+
     const doctorUserIds = (doctors ?? []).map((doctor) => doctor.user_id).filter((id): id is string => typeof id === 'string');
-    const { data: profiles } = doctorUserIds.length
+    const { data: profiles, error: profilesError } = doctorUserIds.length
       ? await admin.from('profiles').select('user_id,first_name,last_name').in('user_id', doctorUserIds)
-      : { data: [] };
+      : { data: [], error: null };
+    if (profilesError) logger.warn('[patients/prescriptions] profiles lookup failed', { code: profilesError.code });
     const doctorNameMap = new Map<string, string>();
     for (const doctor of doctors ?? []) {
       const profile = (profiles ?? []).find((candidate) => candidate.user_id === doctor.user_id);
@@ -192,7 +201,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       });
 
     const result = [...coreDtos, ...memedDtos]
-      .sort((a, b) => new Date(b.prescribedDate).getTime() - new Date(a.prescribedDate).getTime());
+      .sort((a, b) => safeTimestamp(b.prescribedDate) - safeTimestamp(a.prescribedDate));
     return jsonOk(result);
   } catch (err) {
     logger.error('[patients/prescriptions] GET error', err);

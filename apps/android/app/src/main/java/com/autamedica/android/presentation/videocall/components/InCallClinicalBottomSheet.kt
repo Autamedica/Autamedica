@@ -658,10 +658,15 @@ fun InCallClinicalBottomSheet(
                                                 modifier = Modifier.size(14.dp),
                                             )
                                         }
+                                        val inCallJurisdiction = com.autamedica.android.domain.model.resolveRegulatoryJurisdiction(
+                                            countryCode = countryCode,
+                                        )
                                         Text(
                                             text = stringResource(
                                                 when (type) {
-                                                    CertificateType.REPOSO_LABORAL -> R.string.cert_type_reposo_laboral
+                                                    CertificateType.REPOSO_LABORAL ->
+                                                        com.autamedica.android.domain.model.RegulatoryJurisdictionCopy
+                                                            .certificateWorkLeaveLabelRes(inCallJurisdiction)
                                                     CertificateType.REPOSO_ESCOLAR -> R.string.cert_type_reposo_escolar
                                                     CertificateType.APTITUD_FISICA -> R.string.cert_type_aptitud_fisica
                                                     CertificateType.CONSTANCIA_ATENCION -> R.string.cert_type_constancia_atencion

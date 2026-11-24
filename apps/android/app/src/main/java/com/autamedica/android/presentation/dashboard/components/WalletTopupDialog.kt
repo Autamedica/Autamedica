@@ -9,12 +9,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -43,6 +45,8 @@ import com.autamedica.android.presentation.theme.AuTextTertiary
 fun WalletTopupDialog(
     onDismiss: () -> Unit,
     currency: String? = null,
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
     onConfirmTopup: (amount: Double) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -50,7 +54,7 @@ fun WalletTopupDialog(
     val quickAmounts = if (currency == "BRL") listOf("20", "50", "100") else listOf("2000", "5000", "10000")
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!isLoading) onDismiss() },
         shape = RoundedCornerShape(28.dp),
         containerColor = Color.White,
         modifier = modifier,
@@ -77,6 +81,7 @@ fun WalletTopupDialog(
                 OutlinedTextField(
                     value = amountText,
                     onValueChange = { amountText = it.filter { ch -> ch.isDigit() } },
+                    enabled = !isLoading,
                     label = { Text(stringResource(R.string.wallet_topup_amount_label, currency ?: stringResource(R.string.wallet_topup_currency_unknown))) },
                     prefix = { Text(if (currency == "BRL") "R$ " else "$ ", fontWeight = FontWeight.Bold) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -102,6 +107,7 @@ fun WalletTopupDialog(
                                 1.dp,
                                 if (isSelected) Color(0xFF38BDF8) else Color(0xFFE2E8F0)
                             ),
+                            enabled = !isLoading,
                             onClick = { amountText = amount },
                             modifier = Modifier
                                 .weight(1f)
@@ -122,6 +128,15 @@ fun WalletTopupDialog(
                         }
                     }
                 }
+
+                if (!errorMessage.isNullOrBlank()) {
+                    Text(
+                        text = errorMessage,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFFDC2626),
+                    )
+                }
             }
         },
         confirmButton = {
@@ -133,19 +148,28 @@ fun WalletTopupDialog(
                     }
                 },
                 shape = RoundedCornerShape(999.dp),
-                enabled = currency == "BRL" || currency == "ARS",
+                enabled = !isLoading && (currency == "BRL" || currency == "ARS"),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF0F172A),
                     contentColor = Color.White,
                 ),
                 modifier = Modifier.sizeIn(minHeight = 48.dp),
             ) {
-                Text(stringResource(R.string.wallet_topup_confirm), fontWeight = FontWeight.Bold)
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = Color.White,
+                    )
+                } else {
+                    Text(stringResource(R.string.wallet_topup_confirm), fontWeight = FontWeight.Bold)
+                }
             }
         },
         dismissButton = {
             TextButton(
                 onClick = onDismiss,
+                enabled = !isLoading,
                 modifier = Modifier.sizeIn(minHeight = 48.dp),
             ) {
                 Text(stringResource(R.string.wallet_topup_cancel), color = AuTextSecondary)

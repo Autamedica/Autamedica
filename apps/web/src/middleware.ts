@@ -16,6 +16,13 @@ import { getPasswordRecoveryRedirectUrl } from "./lib/auth/password-recovery";
 import { checkRateLimit } from "./lib/rate-limit";
 import { primeRuntimeEnv, resolvePublicSupabaseEnv } from "./lib/runtime-env";
 import {
+  ADMIN_LAST_ACTIVE_COOKIE,
+  isAdminSessionIdleExpired,
+  isAdminSurfacePath,
+  parseAdminLastActiveCookie,
+  resolveAdminIdleTimeoutMs,
+} from "./lib/admin/session-timeout";
+import {
   createSupabaseCookieClient,
   type CookieMethodsServer,
 } from "./lib/supabase";
@@ -71,6 +78,13 @@ const PUBLIC_ROUTES = [
   "/api/calls",
   "/api/preanamnesis",
 ];
+
+// Public marketing landings. Their nested portal routes remain protected.
+const PUBLIC_PORTAL_LANDING_ROUTES = new Set([
+  "/patients",
+  "/doctors",
+  "/companies",
+]);
 
 // Static showcase pages are prerendered at build time and should bypass
 // request-header-dependent middleware logic entirely.
@@ -239,10 +253,10 @@ function getRoleRedirect(role: string): string {
       doctor: "https://doctor.autamedica.com",
       company: "https://empresa.autamedica.com",
       company_admin: "https://empresa.autamedica.com",
-      organization_admin: "https://admin.autamedica.com",
-      platform_admin: "https://admin.autamedica.com",
+      organization_admin: "https://www.autamedica.com/admin",
+      platform_admin: "https://www.autamedica.com/admin",
       pharmacist: "https://farmacia.autamedica.com",
-      admin: "https://admin.autamedica.com",
+      admin: "https://www.autamedica.com/admin",
     };
     return PROD[role] ?? "/auth/select-role";
   }
@@ -307,6 +321,8 @@ function normalizePath(pathname: string): string {
 
 function isProtectedPath(pathname: string): boolean {
   const normalizedPath = normalizePath(pathname);
+
+  if (PUBLIC_PORTAL_LANDING_ROUTES.has(normalizedPath)) return false;
 
   return PROTECTED_ROUTES.some((route) => {
     const normalizedRoute = normalizePath(route);
@@ -598,6 +614,20 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return context.redirect(canonicalUrl.toString(), 308);
   }
 
+  // Admin host enforcement: route admin subdomain / pages.dev alias to real /admin portal
+  if (
+    import.meta.env.PROD &&
+    (requestUrl.hostname === "admin.autamedica.com" ||
+      requestUrl.hostname.startsWith("autamedica-admin-"))
+  ) {
+    const targetUrl = new URL(requestUrl.toString());
+    targetUrl.hostname = "www.autamedica.com";
+    if (pathname === "/") {
+      targetUrl.pathname = "/admin";
+    }
+    return context.redirect(targetUrl.toString(), 302);
+  }
+
   // Direct Google Play Store download routes (instant 302 redirect directly to store with UTM attribution)
   if (pathname === "/descargar" || pathname === "/play" || pathname === "/playstore") {
     const rawRef = requestUrl.searchParams.get("ref") || "";
@@ -709,8 +739,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
     !isAuthRoute &&
     !isPortalHostRoot &&
     !isRootWithSession &&
-    PUBLIC_ROUTES.some(
-      (route) => pathname === route || pathname.startsWith(`${route}/`),
+    (
+      PUBLIC_PORTAL_LANDING_ROUTES.has(normalizePath(pathname)) ||
+      PUBLIC_ROUTES.some(
+        (route) => pathname === route || pathname.startsWith(`${route}/`),
+      )
     )
   ) {
     return secureNext();
@@ -820,6 +853,69 @@ export const onRequest = defineMiddleware(async (context, next) => {
     context.locals.supabase = supabase;
 
     const isAuthenticated = !!user;
+
+    if (
+      isAuthenticated &&
+      isAdminSurfacePath(pathname) &&
+      pathname !== "/admin/unauthorized"
+    ) {
+      const timeoutMs = resolveAdminIdleTimeoutMs(context.locals.runtime?.env);
+      const lastActiveMs = parseAdminLastActiveCookie(
+        context.request.headers.get("cookie"),
+      );
+      const nowMs = Date.now();
+      const useDomainOverride =
+        isProduction() &&
+        (requestUrl.hostname === "autamedica.com" ||
+          requestUrl.hostname.endsWith(".autamedica.com"));
+      const cookieDomain = useDomainOverride ? ".autamedica.com" : undefined;
+
+      if (isAdminSessionIdleExpired(lastActiveMs, nowMs, timeoutMs)) {
+        logger.warn("[middleware] Admin session expired due to inactivity", {
+          pathname,
+        });
+        try {
+          await supabase.auth.signOut({ scope: "local" });
+        } catch {
+          // Ignore cleanup errors
+        }
+        context.cookies.set(ADMIN_LAST_ACTIVE_COOKIE, "", {
+          path: "/",
+          domain: cookieDomain,
+          maxAge: 0,
+          httpOnly: true,
+          sameSite: "lax",
+          secure: import.meta.env.PROD,
+        } as AstroCookieSetOptions);
+
+        if (pathname.startsWith("/api/admin")) {
+          const expiredRes = new Response(
+            JSON.stringify({ error: "admin_session_expired" }),
+            {
+              status: 401,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+          applySecurityHeaders(expiredRes);
+          return expiredRes;
+        }
+
+        const loginUrl = new URL("/auth/login", context.request.url);
+        loginUrl.searchParams.set("returnTo", pathname + requestUrl.search);
+        loginUrl.searchParams.set("portal", "admin");
+        loginUrl.searchParams.set("reason", "session_timeout");
+        return context.redirect(loginUrl.toString(), 302);
+      }
+
+      context.cookies.set(ADMIN_LAST_ACTIVE_COOKIE, String(nowMs), {
+        path: "/",
+        domain: cookieDomain,
+        maxAge: Math.ceil(timeoutMs / 1000),
+        httpOnly: true,
+        sameSite: "lax",
+        secure: import.meta.env.PROD,
+      } as AstroCookieSetOptions);
+    }
 
     // Redirigir a usuarios logueados que acceden a la landing raíz "/"
     // Pero solo si están en el dominio principal (no en los subdominios de portal como doctor.autamedica.com)

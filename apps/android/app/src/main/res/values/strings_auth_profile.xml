@@ -119,6 +119,10 @@
     <string name="patient_profile_label_phone">Teléfono</string>
     <string name="patient_profile_label_birth_date">Fecha de nacimiento</string>
     <string name="patient_profile_label_gender">Género</string>
+    <string name="patient_profile_gender_male">Masculino</string>
+    <string name="patient_profile_gender_female">Femenino</string>
+    <string name="patient_profile_gender_other">Otro</string>
+    <string name="patient_profile_gender_prefer_not_to_say">Prefiero no especificar</string>
     <string name="patient_profile_logout_button">Cerrar sesión</string>
     <string name="patient_wallet_title">BILLETERA AUTAMÉDICA</string>
     <string name="patient_wallet_available_balance">Saldo disponible</string>

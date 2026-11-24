@@ -79,8 +79,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .eq('user_id', userId)
       .maybeSingle();
 
-    if (doctorErr || !doctor) {
-      logger.warn('[signature-upload] Doctor profile not found', { userId, error: doctorErr });
+    if (doctorErr) {
+      logger.error('[signature-upload] Doctor profile lookup failed', { userId, error: doctorErr });
+      return jsonError('doctor_profile_lookup_failed', 500);
+    }
+
+    if (!doctor) {
+      logger.warn('[signature-upload] Doctor profile not found', { userId });
       return jsonError('doctor_profile_not_found', 404);
     }
 
@@ -108,6 +113,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const imageUrl = urlData?.signedUrl ?? null;
     if (urlErr || !imageUrl) {
+      await admin.storage.from('medical-documents').remove([filePath]).catch(() => undefined);
       logger.error('[signature-upload] Signed URL error', urlErr);
       return jsonError('signature_url_failed', 500);
     }
@@ -120,6 +126,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .eq('id', doctor.id);
 
     if (updateErr) {
+      await admin.storage.from('medical-documents').remove([filePath]).catch(() => undefined);
       logger.error('[signature-upload] DB update error', updateErr);
       return jsonError('signature_profile_update_failed', 500);
     }

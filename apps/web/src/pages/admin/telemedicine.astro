@@ -1,5 +1,6 @@
 ---
 import Layout from '@/layouts/Layout.astro';
+import AdminLogoutButton from '@/components/admin/AdminLogoutButton.astro';
 import TelemedicineDashboard from '@/components/admin/TelemedicineDashboard';
 import { resolveAdminRole } from '@/lib/admin/auth';
 
@@ -27,6 +28,9 @@ if (!role) {
             <h1 class="text-xl font-semibold text-gray-900">
               Telemedicina
             </h1>
+          </div>
+          <div class="flex items-center">
+            <AdminLogoutButton />
           </div>
         </div>
       </div>

@@ -2,6 +2,7 @@ package com.autamedica.android.presentation.appointments
 
 import androidx.compose.ui.res.stringResource
 import com.autamedica.android.R
+import com.autamedica.android.domain.model.DoctorFeeFormatter
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -1816,7 +1817,10 @@ private fun DoctorPickerBottomSheet(
                                     Text(text = "·", color = AuTextTertiary)
                                     Text(
                                         text = if (doctor.consultationFee != null && doctor.consultationFee > 0) {
-                                            stringResource(R.string.appointments_doctor_fee, "%,.0f".format(doctor.consultationFee))
+                                            stringResource(
+                                                R.string.appointments_doctor_fee,
+                                                DoctorFeeFormatter.format(doctor.consultationFee, doctor.licenseNumber),
+                                            )
                                         } else {
                                             stringResource(R.string.appointments_covered_by_plan)
                                         },

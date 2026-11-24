@@ -13,7 +13,7 @@ interface Props {
   twitterSite?: string;
   twitterCreator?: string;
   keywords?: string;
-  includeHreflang?: boolean;
+  hreflangAlternates?: Array<{ lang: string; href: string }>;
 }
 
 const {
@@ -30,8 +30,18 @@ const {
   twitterSite,
   twitterCreator,
   keywords,
-  includeHreflang = true,
+  hreflangAlternates = [],
 } = Astro.props;
+
+const validHreflangAlternates = hreflangAlternates.filter(({ lang, href }) => {
+  if (!/^(?:[a-z]{2,3}(?:-[A-Z]{2})?|x-default)$/.test(lang)) return false;
+  try {
+    const url = new URL(href);
+    return url.protocol === 'https:' && url.hostname === 'www.autamedica.com';
+  } catch {
+    return false;
+  }
+});
 
 const requestOrigin = new URL(Astro.url.origin);
 const siteUrl = Astro.site ?? new URL('https://www.autamedica.com');
@@ -39,8 +49,9 @@ const canonicalBase = requestOrigin.hostname !== 'localhost' ? requestOrigin : s
 const canonicalUrl = canonical
   ? new URL(canonical, canonicalBase).toString()
   : new URL(Astro.url.pathname, canonicalBase).toString();
-const socialImageUrl = ogImage
-  ? (ogImage.startsWith('http') ? ogImage : new URL(ogImage, siteUrl).toString())
+const resolvedOgImage = ogImage?.replace(/^\/images\/seo\/(.+)\.webp$/, '/images/seo/$1.png');
+const socialImageUrl = resolvedOgImage
+  ? (resolvedOgImage.startsWith('http') ? resolvedOgImage : new URL(resolvedOgImage, siteUrl).toString())
   : undefined;
 ---
 
@@ -73,6 +84,6 @@ const socialImageUrl = ogImage
 
 {keywords && <meta name="keywords" content={keywords} />}
 
-{includeHreflang && <link rel="alternate" hreflang="es" href={canonicalUrl} />}
-{includeHreflang && <link rel="alternate" hreflang="pt" href={canonicalUrl} />}
-{includeHreflang && <link rel="alternate" hreflang="x-default" href={canonicalUrl} />}
+{validHreflangAlternates.map(({ lang, href }) => (
+  <link rel="alternate" hreflang={lang} href={href} />
+))}

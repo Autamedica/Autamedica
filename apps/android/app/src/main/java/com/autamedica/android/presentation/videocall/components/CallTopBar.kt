@@ -49,7 +49,7 @@ fun CallTopBar(
     modifier: Modifier = Modifier,
     isWaitingRoom: Boolean = false,
     safetyAlert: String? = null,
-    /** En call del médico: solo identidad + seguridad. Sin timer ni barras. */
+    /** En call del médico: identidad + seguridad + cronómetro clínico; barras solo si señal baja. */
     clinicalFirst: Boolean = false,
     onMinimize: (() -> Unit)? = null,
 ) {
@@ -195,10 +195,15 @@ fun CallTopBar(
                 }
             }
 
-            if (showMediaChrome && durationSeconds > 0) {
+            if (!isWaitingRoom && durationSeconds > 0) {
+                val timerColor = when {
+                    durationSeconds >= 1800L -> Color(0xFFF87171)
+                    durationSeconds >= 1500L -> Color(0xFFFBBF24)
+                    else -> Color(0xFFE2E8F0)
+                }
                 Text(
                     text = formattedDuration,
-                    color = Color(0xFFE2E8F0),
+                    color = timerColor,
                     fontFamily = FontFamily.Monospace,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,

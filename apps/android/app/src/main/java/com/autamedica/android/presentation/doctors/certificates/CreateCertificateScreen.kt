@@ -232,6 +232,10 @@ fun CreateCertificateScreen(
                 cid10Code = uiState.diagnosisCode.orEmpty(),
                 showCid10Field = uiState.doctorEligibility?.countryCode == "BR",
                 hideDiagnosis = uiState.hideDiagnosis,
+                jurisdiction = com.autamedica.android.domain.model.resolveRegulatoryJurisdiction(
+                    countryCode = uiState.doctorEligibility?.countryCode,
+                    doctorLicense = uiState.doctorEligibility?.doctorLicense
+                ),
                 onDiagnosisChange = { viewModel.onDiagnosisChange(it) },
                 onCid10CodeChange = { viewModel.onDiagnosisCodeChange(it) },
                 onToggleHide = { viewModel.onToggleHideDiagnosis(it) }
@@ -384,6 +388,10 @@ fun CreateCertificateScreen(
 private fun DoctorRegulatoryBanner(eligibility: DoctorEligibility?) {
     val isEligible = eligibility?.isEligible ?: true
     val license = eligibility?.doctorLicense ?: stringResource(R.string.cert_reg_registered)
+    val jurisdiction = com.autamedica.android.domain.model.resolveRegulatoryJurisdiction(
+        countryCode = eligibility?.countryCode,
+        doctorLicense = eligibility?.doctorLicense,
+    )
 
     Surface(
         shape = RoundedCornerShape(12.dp),
@@ -413,7 +421,10 @@ private fun DoctorRegulatoryBanner(eligibility: DoctorEligibility?) {
                     text = if (isEligible) {
                         stringResource(R.string.cert_reg_license_active, license)
                     } else {
-                        eligibility?.reason ?: stringResource(R.string.cert_reg_license_required)
+                        eligibility?.reason ?: stringResource(
+                            com.autamedica.android.domain.model.RegulatoryJurisdictionCopy
+                                .certificateLicenseRequiredRes(jurisdiction)
+                        )
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary
@@ -831,6 +842,8 @@ private fun DiagnosisAndPrivacySection(
     onDiagnosisChange: (String) -> Unit,
     onCid10CodeChange: (String) -> Unit,
     onToggleHide: (Boolean) -> Unit,
+    jurisdiction: com.autamedica.android.domain.model.RegulatoryJurisdiction =
+        com.autamedica.android.domain.model.RegulatoryJurisdiction.GENERIC,
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
@@ -928,7 +941,11 @@ private fun DiagnosisAndPrivacySection(
                             color = AuTextPrimary
                         )
                         Text(
-                            text = stringResource(R.string.cert_privacy_hide_diagnosis_subtitle),
+                            text = stringResource(
+                                com.autamedica.android.domain.model.RegulatoryJurisdictionCopy.certificateHideDiagnosisSubtitleRes(
+                                    jurisdiction
+                                )
+                            ),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextSecondary
                         )
