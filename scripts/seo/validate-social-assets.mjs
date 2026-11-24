@@ -16,6 +16,10 @@ const requiredAssets = [
   'apps/web/public/twitter-image.png',
 ];
 const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const requiredPwaAssets = [
+  { path: 'apps/web/public/pwa-icon-192.png', width: 192, height: 192 },
+  { path: 'apps/web/public/pwa-icon-512.png', width: 512, height: 512 },
+];
 const requiredLogoAssets = [
   'apps/web/public/logo_bioceramic.jpg',
   'apps/web/public/images/brand/logo_bioceramic.jpg',
@@ -53,6 +57,26 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
+for (const asset of requiredPwaAssets) {
+  const absolutePath = path.join(projectRoot, asset.path);
+  if (!fs.existsSync(absolutePath)) {
+    errors.push(`Missing PWA icon: ${asset.path}`);
+    continue;
+  }
+  const buffer = fs.readFileSync(absolutePath);
+  if (buffer.length < 24 || !buffer.subarray(0, 8).equals(pngSignature)) {
+    errors.push(`Invalid PWA icon PNG: ${asset.path}`);
+    continue;
+  }
+  const width = buffer.readUInt32BE(16);
+  const height = buffer.readUInt32BE(20);
+  if (width !== asset.width || height !== asset.height) {
+    errors.push(`Wrong PWA icon dimensions for ${asset.path}: ${width}x${height}; expected ${asset.width}x${asset.height}`);
+    continue;
+  }
+  console.log(`✅ PWA icon OK: ${asset.path} (${width}x${height})`);
+}
+
 for (const relativePath of requiredLogoAssets) {
   const absolutePath = path.join(projectRoot, relativePath);
   if (!fs.existsSync(absolutePath)) {
@@ -72,4 +96,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(`✅ SEO social asset validation passed (${requiredAssets.length} PNGs + ${requiredLogoAssets.length} JPEG logos).`);
+console.log(`✅ SEO social asset validation passed (${requiredAssets.length} social PNGs + ${requiredPwaAssets.length} PWA PNGs + ${requiredLogoAssets.length} JPEG logos).`);
