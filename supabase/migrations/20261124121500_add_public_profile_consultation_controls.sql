@@ -15,7 +15,7 @@ CREATE OR REPLACE FUNCTION public.get_public_doctor_profile(p_doctor_id UUID)
 RETURNS JSONB
 LANGUAGE SQL
 STABLE
-SECURITY INVOKER
+SECURITY DEFINER
 SET search_path TO ''
 AS $public_profile$
   SELECT jsonb_build_object(
@@ -82,5 +82,8 @@ AS $public_profile$
     AND d.public_profile_enabled IS TRUE
     AND (d.accepting_consultations IS FALSE OR app_private.is_doctor_dispatch_approved(d.id));
 $public_profile$;
+
+REVOKE ALL ON FUNCTION public.get_public_doctor_profile(UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_public_doctor_profile(UUID) TO anon, authenticated, service_role;
 
 COMMIT;
