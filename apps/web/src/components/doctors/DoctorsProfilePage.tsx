@@ -2,6 +2,7 @@
 
 import { DoctorsPortalFrame } from "@/components/doctors/DoctorsPortalFrame";
 import { ProfileForm } from "@/components/doctors/ProfileForm";
+import { PublicProfileEditor } from "@/components/doctors/PublicProfileEditor";
 
 export function DoctorsProfilePage() {
   return (
@@ -11,6 +12,7 @@ export function DoctorsProfilePage() {
       activeSection="profile"
     >
       <ProfileForm />
+      <PublicProfileEditor />
     </DoctorsPortalFrame>
   );
 }
