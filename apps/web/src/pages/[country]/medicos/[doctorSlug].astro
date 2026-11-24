@@ -1,7 +1,7 @@
 ---
 import Layout from '@/layouts/Layout.astro';
 import { createAstroAdminClient } from '@/lib/supabase';
-import { getPublicProfileCredentials, getVisibleProfileSections, toEditorialEntries, toStringEntries } from '@/lib/doctors/public-profile-view';
+import { getPublicProfileCredentials, getVisibleProfileSections, shouldShowTestimonials, toEditorialEntries, toStringEntries, toVerifiedTestimonials } from '@/lib/doctors/public-profile-view';
 
 export const prerender = false;
 Astro.response.headers.set('Cache-Control', 'no-store');
@@ -27,6 +27,7 @@ type PublicProfile = {
   uf_brazil?: string | null;
   enrollment_jurisdiction?: string | null;
   licenses?: unknown;
+  testimonials?: unknown;
 };
 
 function stringValue(value: unknown): string {
@@ -87,6 +88,26 @@ if (profile && canonicalSlug && slug !== canonicalSlug) {
   return Astro.redirect('/' + country.toLowerCase() + '/medicos/' + canonicalSlug, 301);
 }
 const avatarUrl = publicAvatarUrl(profile?.avatar_url);
+let testimonialsEnabled = false;
+if (profile) {
+  try {
+    const admin = createAstroAdminClient(Astro.locals.runtime?.env) as unknown as {
+      from: (table: string) => {
+        select: (columns: string) => { eq: (column: string, value: string) => { maybeSingle: () => Promise<{ data: { public_doctor_testimonials_enabled?: boolean } | null; error: unknown }> } };
+      };
+    };
+    const { data: flag } = await admin.from('platform_operational_domains')
+      .select('public_doctor_testimonials_enabled').eq('scope_key', country).maybeSingle();
+    testimonialsEnabled = flag?.public_doctor_testimonials_enabled === true;
+  } catch {
+    testimonialsEnabled = false;
+  }
+}
+const testimonials = toVerifiedTestimonials(profile?.testimonials);
+const showTestimonials = Boolean(profile && shouldShowTestimonials(profile, { [country]: testimonialsEnabled }));
+const consultationPath = '/consulta-medica-online?doctor_id=' + encodeURIComponent(doctorId ?? '') + '&care_country=' + country;
+const consultationHref = consultationPath;
+
 if (!profile) Astro.response.status = 404;
 const specialty = stringValue(profile?.specialty);
 const subspecialty = stringValue(profile?.subspecialty);
@@ -114,6 +135,19 @@ const description = profile
       : `${specialty} · Matrícula profesional validada en AutaMedica.`)).slice(0, 160)
   : (isPortuguese ? 'Este perfil profissional não está disponível.' : 'Este perfil profesional no está disponible.');
 const canonical = profile && canonicalSlug ? 'https://www.autamedica.com/' + country.toLowerCase() + '/medicos/' + canonicalSlug : undefined;
+const physicianJsonLd = profile && canonical ? {
+  '@context': 'https://schema.org',
+  '@type': 'Physician',
+  name,
+  medicalSpecialty: specialty,
+  url: canonical,
+  description,
+  address: { '@type': 'PostalAddress', addressCountry: country },
+  identifier: [
+    ...licenses.map((license) => ({ '@type': 'PropertyValue', name: license.split(' ')[0], value: license })),
+    ...(rqeNumber ? [{ '@type': 'PropertyValue', name: 'RQE', value: rqeNumber }] : []),
+  ],
+} : null;
 ---
 
 <Layout
@@ -122,6 +156,7 @@ const canonical = profile && canonicalSlug ? 'https://www.autamedica.com/' + cou
   canonical={profile ? canonical : undefined}
   robots={profile ? 'index, follow' : 'noindex, nofollow'}
 >
+  {physicianJsonLd && <script type="application/ld+json" set:html={JSON.stringify(physicianJsonLd)} />}
   {profile ? (
     <main class="public-profile">
       <header class="profile-header">
@@ -139,10 +174,10 @@ const canonical = profile && canonicalSlug ? 'https://www.autamedica.com/' + cou
           <div class="credentials" aria-label={isPortuguese ? 'Registro profissional validado' : 'Matrícula profesional validada'}>
             <span>{isPortuguese ? 'Registro validado' : 'Matrícula validada'}</span>
             <span class="credential-list">{licenses.join(' · ')}</span>
-            {rqeNumber && <span class="credential-list">{isPortuguese ? 'RQE informado' : 'RQE informado'} · {rqeNumber}</span>}
+            {rqeNumber && <span class="credential-list">RQE {rqeNumber}</span>}
           </div>
         )}
-        <a class="profile-cta" href="/consulta-medica-online">{isPortuguese ? 'Iniciar atendimento' : 'Solicitar consulta'}</a>
+        <a class="profile-cta" href={consultationHref}>{isPortuguese ? 'Iniciar atendimento' : 'Solicitar consulta'}</a>
         <div class="header-rule"></div>
       </header>
 
@@ -229,9 +264,21 @@ const canonical = profile && canonicalSlug ? 'https://www.autamedica.com/' + cou
           </section>
         )}
 
+        {showTestimonials && testimonials.length > 0 && (
+          <section class="profile-section testimonials" aria-labelledby="testimonials-heading">
+            <h2 id="testimonials-heading">{renderSectionHeading('Experiencia de atención', 'Experiência de atendimento', isPortuguese)}</h2>
+            {testimonials.map((testimonial) => (
+              <article class="testimonial-entry">
+                <p>“{testimonial.comment}”</p>
+                <span>{isPortuguese ? 'Atendimento concluído na AutaMedica' : 'Consulta completada en AutaMedica'}</span>
+              </article>
+            ))}
+          </section>
+        )}
+
         <footer class="profile-footer">
           <p>{isPortuguese ? 'Perfil profissional publicado em AutaMedica.' : 'Perfil profesional publicado en AutaMedica.'}</p>
-          <a href="/consulta-medica-online">{isPortuguese ? 'Conhecer a telemedicina AutaMedica' : 'Conocer la telemedicina de AutaMedica'}</a>
+          <a href={consultationHref}>{isPortuguese ? 'Iniciar atendimento com este médico' : 'Iniciar consulta con este médico'}</a>
         </footer>
       </div>
     </main>
@@ -443,6 +490,25 @@ const canonical = profile && canonicalSlug ? 'https://www.autamedica.com/' + cou
     color: var(--profile-accent);
     font-size: 15px;
     font-weight: 650;
+  }
+
+  .testimonial-entry {
+    padding: 16px 0;
+    border-top: 1px solid #EAECF0;
+  }
+
+  .testimonial-entry p {
+    margin: 0;
+    color: #344054;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+
+  .testimonial-entry span {
+    display: inline-block;
+    margin-top: 8px;
+    color: #667085;
+    font-size: 12px;
   }
 
   .verification p {
