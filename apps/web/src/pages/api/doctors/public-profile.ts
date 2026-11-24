@@ -50,7 +50,7 @@ function parseLines(value: unknown, maxItems: number, maxLength: number): string
 async function getDoctor(admin: any, userId: string) {
   return admin
     .from('doctors')
-    .select('id,care_country,specialty,subspecialty,bio,years_experience,education,certifications,clinical_focus_areas,professional_experience,academic_activity,public_profile_enabled,public_profile_published_at,public_profile_updated_at')
+    .select('id,care_country,specialty,subspecialty,bio,years_experience,education,certifications,clinical_focus_areas,professional_experience,academic_activity,public_profile_enabled,public_profile_accepts_consultations,public_profile_headline,public_profile_published_at,public_profile_updated_at')
     .eq('user_id', userId)
     .maybeSingle();
 }
@@ -90,6 +90,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
         professional_experience: data.professional_experience,
         academic_activity: data.academic_activity,
         public_profile_enabled: data.public_profile_enabled,
+        public_profile_accepts_consultations: data.public_profile_accepts_consultations,
+        public_profile_headline: data.public_profile_headline,
         public_profile_published_at: data.public_profile_published_at,
         public_profile_updated_at: data.public_profile_updated_at,
       },
@@ -137,6 +139,19 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
       patch.bio = bio;
     }
 
+    if ('public_profile_headline' in input) {
+      if (input.public_profile_headline !== null && typeof input.public_profile_headline !== 'string') {
+        return jsonResponse({ error: 'invalid_public_profile_headline' }, 400);
+      }
+      const headline = typeof input.public_profile_headline === 'string'
+        ? input.public_profile_headline.trim()
+        : null;
+      if (headline && headline.length > 160) {
+        return jsonResponse({ error: 'invalid_public_profile_headline' }, 400);
+      }
+      patch.public_profile_headline = headline || null;
+    }
+
     if ('years_experience' in input) {
       const years = input.years_experience;
       if (years === null || years === '') {
@@ -166,6 +181,10 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
       patch.public_profile_updated_by = auth.user.id;
     }
 
+    if (typeof input.public_profile_accepts_consultations === 'boolean') {
+      patch.public_profile_accepts_consultations = input.public_profile_accepts_consultations;
+    }
+
     if (!Object.keys(patch).length) return jsonResponse({ error: 'no_editable_fields' }, 400);
 
     const { data: updated, error: updateError } = await admin
@@ -173,7 +192,7 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
       .update(patch)
       .eq('id', doctor.id)
       .eq('user_id', auth.user.id)
-      .select('id,public_profile_enabled,public_profile_published_at,public_profile_updated_at,bio,years_experience,education,certifications,clinical_focus_areas,professional_experience,academic_activity')
+      .select('id,public_profile_enabled,public_profile_accepts_consultations,public_profile_headline,public_profile_published_at,public_profile_updated_at,bio,years_experience,education,certifications,clinical_focus_areas,professional_experience,academic_activity')
       .single();
     if (updateError) throw updateError;
 

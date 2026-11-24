@@ -17,11 +17,14 @@ type PublicProfileEditorData = {
   professional_experience?: unknown
   academic_activity?: unknown
   public_profile_enabled: boolean
+  public_profile_accepts_consultations?: boolean | null
+  public_profile_headline?: string | null
   public_profile_published_at?: string | null
   public_profile_updated_at?: string | null
 }
 
 type EditorForm = {
+  public_profile_headline: string
   bio: string
   years_experience: string
   education: string
@@ -30,6 +33,7 @@ type EditorForm = {
   professional_experience: string
   academic_activity: string
   public_profile_enabled: boolean
+  public_profile_accepts_consultations: boolean
 }
 
 function entriesToText(value: unknown): string {
@@ -67,6 +71,7 @@ function slugify(value: string): string {
 export function PublicProfileEditor() {
   const [profile, setProfile] = useState<PublicProfileEditorData | null>(null)
   const [form, setForm] = useState<EditorForm>({
+    public_profile_headline: '',
     bio: '',
     years_experience: '',
     education: '',
@@ -75,6 +80,7 @@ export function PublicProfileEditor() {
     professional_experience: '',
     academic_activity: '',
     public_profile_enabled: false,
+    public_profile_accepts_consultations: true,
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -97,6 +103,7 @@ export function PublicProfileEditor() {
       const data = payload.data as PublicProfileEditorData
       setProfile(data)
       setForm({
+        public_profile_headline: data.public_profile_headline ?? '',
         bio: data.bio ?? '',
         years_experience: data.years_experience == null ? '' : String(data.years_experience),
         education: entriesToText(data.education),
@@ -105,6 +112,7 @@ export function PublicProfileEditor() {
         professional_experience: entriesToText(data.professional_experience),
         academic_activity: entriesToText(data.academic_activity),
         public_profile_enabled: Boolean(data.public_profile_enabled),
+        public_profile_accepts_consultations: data.public_profile_accepts_consultations !== false,
       })
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'profile_load_failed')
@@ -137,6 +145,7 @@ export function PublicProfileEditor() {
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({
+          public_profile_headline: form.public_profile_headline,
           bio: form.bio,
           years_experience: form.years_experience === '' ? null : Number(form.years_experience),
           education: toLines(form.education),
@@ -145,6 +154,7 @@ export function PublicProfileEditor() {
           professional_experience: toLines(form.professional_experience),
           academic_activity: toLines(form.academic_activity),
           public_profile_enabled: form.public_profile_enabled,
+          public_profile_accepts_consultations: form.public_profile_accepts_consultations,
         }),
       })
       const payload = await response.json()
@@ -165,6 +175,10 @@ export function PublicProfileEditor() {
       ? 'Apresente sua prática e trajetória com informações profissionais que você escolhe compartilhar.'
       : 'Presentá tu práctica y trayectoria con información profesional que elegís compartir.',
     loading: isPortuguese ? 'Carregando perfil…' : 'Cargando perfil…',
+    headline: isPortuguese ? 'Titular profissional / Cargo editorial' : 'Titular profesional / Cargo editorial',
+    headlinePlaceholder: isPortuguese
+      ? 'Ex.: Fundador & Diretor Médico · AutaMedica'
+      : 'Ej.: Fundador & Director Médico · AutaMedica',
     bio: isPortuguese ? 'Apresentação clínica' : 'Presentación clínica',
     years: isPortuguese ? 'Anos de exercício' : 'Años de ejercicio',
     education: isPortuguese ? 'Formação acadêmica' : 'Formación académica',
@@ -176,6 +190,12 @@ export function PublicProfileEditor() {
       ? 'Um item por linha. Seções sem conteúdo não aparecem na página pública.'
       : 'Un dato por línea. Las secciones sin contenido no aparecen en la página pública.',
     publish: isPortuguese ? 'Publicar meu perfil' : 'Publicar mi perfil',
+    acceptsConsultations: isPortuguese
+      ? 'Exibir botão "Iniciar atendimento" (aceitar solicitações de consulta no perfil público)'
+      : 'Mostrar botón "Solicitar consulta" (aceptar solicitudes de consulta en el perfil público)',
+    acceptsConsultationsHint: isPortuguese
+      ? 'Se desmarcado, o perfil funciona como credencial institucional verificada sem botões de agendamento.'
+      : 'Si se desmarca, el perfil funciona como credencial institucional verificada sin botones de reserva.',
     save: isPortuguese ? 'Salvar alterações' : 'Guardar cambios',
     saving: isPortuguese ? 'Salvando…' : 'Guardando…',
     saved: isPortuguese ? 'Alterações salvas.' : 'Cambios guardados.',
@@ -244,6 +264,18 @@ export function PublicProfileEditor() {
             <p className="text-sm leading-6 text-am-surface-600">{copy.hint}</p>
 
             <label className="block border-t border-am-surface-200 py-4 text-sm font-semibold text-am-surface-800">
+              {copy.headline}
+              <input
+                type="text"
+                maxLength={160}
+                value={form.public_profile_headline}
+                onChange={(event) => setForm((current) => ({ ...current, public_profile_headline: event.target.value }))}
+                placeholder={copy.headlinePlaceholder}
+                className="mt-2 block w-full rounded-xl border border-am-surface-300 bg-white px-3.5 py-2.5 text-sm font-normal text-am-surface-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+              />
+            </label>
+
+            <label className="block border-t border-am-surface-200 py-4 text-sm font-semibold text-am-surface-800">
               {copy.years}
               <input
                 type="number"
@@ -273,7 +305,7 @@ export function PublicProfileEditor() {
               </details>
             ))}
 
-            <div className="border-t border-am-surface-200 pt-4">
+            <div className="space-y-3 border-t border-am-surface-200 pt-4">
               <label className="flex items-start gap-3 text-sm leading-6 text-am-surface-700">
                 <input
                   type="checkbox"
@@ -282,6 +314,19 @@ export function PublicProfileEditor() {
                   className="mt-1 h-4 w-4 rounded border-am-surface-300 accent-sky-600"
                 />
                 <span>{copy.publish}</span>
+              </label>
+
+              <label className="flex items-start gap-3 text-sm leading-6 text-am-surface-700">
+                <input
+                  type="checkbox"
+                  checked={form.public_profile_accepts_consultations}
+                  onChange={(event) => setForm((current) => ({ ...current, public_profile_accepts_consultations: event.target.checked }))}
+                  className="mt-1 h-4 w-4 rounded border-am-surface-300 accent-sky-600"
+                />
+                <span>
+                  <span className="block">{copy.acceptsConsultations}</span>
+                  <span className="block text-xs text-am-surface-500">{copy.acceptsConsultationsHint}</span>
+                </span>
               </label>
             </div>
 
