@@ -6,7 +6,7 @@ WEB_PUBLIC="$ROOT_DIR/apps/web/public"
 WEB_APP_PUBLIC="$ROOT_DIR/apps/web-app/public"
 SEO_DIR="$WEB_PUBLIC/images/seo"
 # Present in the web public tree; ImageMagick detects its actual file format.
-LOGO_PATH="$WEB_PUBLIC/images/brand/logo_bioceramic.png"
+LOGO_PATH="$WEB_PUBLIC/images/brand/logo_bioceramic.jpg"
 
 FONT_BOLD="${FONT_BOLD:-DejaVu-Sans-Bold}"
 FONT_REG="${FONT_REG:-DejaVu-Sans}"
