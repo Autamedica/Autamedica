@@ -167,10 +167,18 @@ fun PatientProfileScreen(
                         .padding(horizontal = 16.dp, vertical = 20.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
+                    val launchAvatarPicker = rememberAvatarPickerLauncher(
+                        onPicked = viewModel::uploadAvatar,
+                        onError = viewModel::onAvatarError,
+                    )
+
                     // 1. Patient Info Card
                     PatientInfoCard(
                         user = uiState.user,
                         snapshot = uiState.patientSnapshot,
+                        isUploadingAvatar = uiState.isUploadingAvatar,
+                        avatarError = uiState.avatarError,
+                        onPickAvatar = launchAvatarPicker,
                     )
 
                     // 1b. Argentina-only RENAPER identity consultation (Kotlin-native)
@@ -297,6 +305,9 @@ fun PatientProfileScreen(
 private fun PatientInfoCard(
     user: User?,
     snapshot: PatientProfileSnapshot?,
+    isUploadingAvatar: Boolean,
+    avatarError: String?,
+    onPickAvatar: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val defaultPatientName = stringResource(R.string.role_label_patient)
@@ -321,20 +332,15 @@ private fun PatientInfoCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(54.dp)
-                        .clip(CircleShape)
-                        .background(PortalPatients),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = initial,
-                        color = Color.White,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
+                ProfileAvatarBadge(
+                    avatarUrl = user?.avatarUrl,
+                    initials = initial,
+                    accentColor = PortalPatients,
+                    isUploading = isUploadingAvatar,
+                    size = 58.dp,
+                    contentDescription = stringResource(R.string.profile_change_avatar_cd),
+                    onClick = onPickAvatar,
+                )
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -352,6 +358,14 @@ private fun PatientInfoCard(
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
+            }
+
+            if (!avatarError.isNullOrBlank()) {
+                Text(
+                    text = avatarError,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFFDC2626),
+                )
             }
 
             Box(

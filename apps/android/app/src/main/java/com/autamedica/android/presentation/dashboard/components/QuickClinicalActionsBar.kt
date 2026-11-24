@@ -171,13 +171,13 @@ private fun ClinicalActionButton(
             Text(
                 text = label,
                 style = MaterialTheme.typography.titleSmall.copy(
-                    fontSize = 13.5.sp,
+                    fontSize = 12.5.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    lineHeight = 17.sp,
+                    lineHeight = 15.sp,
                 ),
                 color = AuTextPrimary,
-                maxLines = 1,
-                softWrap = false,
+                maxLines = 2,
+                softWrap = true,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
             )

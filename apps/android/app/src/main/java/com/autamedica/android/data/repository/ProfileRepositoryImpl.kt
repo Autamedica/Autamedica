@@ -10,6 +10,9 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.storage.storage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -189,6 +192,52 @@ class ProfileRepositoryImpl @Inject constructor(
         dto.toDomain()
     }.onFailure {
         SecureLog.error("[Profile] Failed updating profile", it)
+    }
+
+    override suspend fun uploadAvatar(bytes: ByteArray, mimeType: String): Result<String> = runCatching {
+        require(bytes.isNotEmpty()) { "La imagen seleccionada está vacía." }
+        require(bytes.size <= MAX_AVATAR_SIZE_BYTES) { "La imagen supera el máximo de 2 MB." }
+
+        val normalizedMime = mimeType.trim().lowercase().substringBefore(';').trim().let {
+            if (it == "image/jpg") "image/jpeg" else it
+        }
+        val ext = when (normalizedMime) {
+            "image/jpeg" -> "jpg"
+            "image/png" -> "png"
+            "image/webp" -> "webp"
+            else -> throw IllegalArgumentException("Formato no soportado. Usá PNG, JPEG o WebP.")
+        }
+
+        val userId = supabaseClient.auth.currentSessionOrNull()?.user?.id
+            ?: securePreferences.getString(SecurePreferences.KEY_USER_ID)
+            ?: throw IllegalStateException("No user ID found")
+        val storagePath = "$userId/profile/avatar.$ext"
+
+        withContext(Dispatchers.IO) {
+            supabaseClient.storage.from(AVATAR_BUCKET).upload(storagePath, bytes) {
+                upsert = true
+            }
+        }
+
+        val publicUrl = supabaseClient.storage.from(AVATAR_BUCKET).publicUrl(storagePath)
+        val versionedUrl = "$publicUrl?v=${System.currentTimeMillis()}"
+
+        supabaseClient.postgrest
+            .from("profiles")
+            .update({
+                set("avatar_url", versionedUrl)
+            }) {
+                filter { eq("user_id", userId) }
+            }
+
+        versionedUrl
+    }.onFailure {
+        SecureLog.error("[Profile] Failed uploading avatar", it)
+    }
+
+    private companion object {
+        const val AVATAR_BUCKET = "avatars"
+        const val MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024
     }
 }
 

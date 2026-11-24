@@ -9,5 +9,7 @@ interface ProfileRepository {
     suspend fun getCareCountry(): Result<String?> = Result.success(null)
     suspend fun persistCareCountry(country: String): Result<String> = Result.failure(UnsupportedOperationException("Care country persistence is not implemented"))
     suspend fun updateProfile(firstName: String, lastName: String, phone: String?): Result<User>
+    suspend fun uploadAvatar(bytes: ByteArray, mimeType: String): Result<String> =
+        Result.failure(UnsupportedOperationException("Avatar upload is not implemented"))
     suspend fun persistLgpdConsent(userId: String, acceptedAt: String, version: String): Result<Unit>
 }

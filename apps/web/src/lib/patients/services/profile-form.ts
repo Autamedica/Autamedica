@@ -221,18 +221,22 @@ export function computeBmi(heightCm: string, weightKg: string): number | null {
   return Number(bmi.toFixed(1));
 }
 
-export function getGenderLabel(value: PatientProfileFormState['gender']): string {
+export function getGenderLabel(
+  value: PatientProfileFormState['gender'],
+  locale: 'es' | 'pt' = 'es',
+): string {
+  const isPt = locale === 'pt';
   switch (value) {
     case 'male':
       return 'Masculino';
     case 'female':
-      return 'Femenino';
+      return isPt ? 'Feminino' : 'Femenino';
     case 'other':
-      return 'Otro';
+      return isPt ? 'Outro' : 'Otro';
     case 'prefer_not_to_say':
-      return 'Prefiero no decirlo';
+      return isPt ? 'Prefiro não informar' : 'Prefiero no decirlo';
     default:
-      return 'Sin especificar';
+      return isPt ? 'Não informado' : 'Sin especificar';
   }
 }
 

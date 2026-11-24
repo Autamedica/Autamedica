@@ -159,6 +159,9 @@
     <string name="rx_license_mn">Matrícula: %1$s</string>
     <string name="rx_emergency_samu">SAMU 192</string>
     <string name="rx_emergency_same">SAMU 192</string>
+    <string name="rx_posology_every_hours">A cada %1$s h</string>
+    <string name="rx_posology_duration_days">%1$s dias</string>
+    <string name="rx_doctor_fallback">Dr. Médico Assistente</string>
 
     <!-- Auth & Login Validation (Neutral & Localized) -->
     <string name="login_error_empty_email">Por favor, informe seu e-mail</string>

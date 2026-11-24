@@ -136,4 +136,7 @@
     <string name="patient_deletion_mailto_url" formatted="false">mailto:contacto@autamedica.com?subject=Solicitud%20de%20eliminaci%C3%B3n%20de%20cuenta</string>
     <string name="patient_logout_dialog_title">Cerrar sesión</string>
     <string name="patient_logout_dialog_message">¿Estás seguro de que deseas cerrar sesión en AutaMedica?</string>
+    <string name="profile_change_avatar_cd">Cambiar foto de perfil</string>
+    <string name="profile_avatar_too_large">La imagen no puede superar los 2 MB.</string>
+    <string name="profile_avatar_invalid_type">Formato no compatible. Usá PNG, JPEG o WebP.</string>
 </resources>

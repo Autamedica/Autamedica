@@ -319,7 +319,12 @@ export function usePatientProfilePage(
   const profileCompletion = useMemo(() => buildProfileCompletion(form), [form]);
   const missingFields = useMemo(() => buildMissingFields(form), [form]);
   const bmi = useMemo(() => computeBmi(form.heightCm, form.weightKg), [form.heightCm, form.weightKg]);
-  const genderLabel = useMemo(() => getGenderLabel(form.gender), [form.gender]);
+  const isPortuguese = patient?.careCountry === 'BR'
+    || (typeof navigator !== 'undefined' && navigator.language.toLowerCase().startsWith('pt'));
+  const genderLabel = useMemo(
+    () => getGenderLabel(form.gender, isPortuguese ? 'pt' : 'es'),
+    [form.gender, isPortuguese],
+  );
   const anamnesisCompletion = anamnesis.progress?.completionPercentage ?? 0;
   const pendingAnamnesisSections = anamnesis.progress?.pendingSections ?? [];
   const upcomingAppointment = useMemo(() => {

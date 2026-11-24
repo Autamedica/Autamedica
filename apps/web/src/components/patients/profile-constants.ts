@@ -1,10 +1,15 @@
-export const GENDER_OPTIONS = [
-  { value: '', label: 'Seleccionar' },
-  { value: 'female', label: 'Femenino' },
-  { value: 'male', label: 'Masculino' },
-  { value: 'other', label: 'Otro' },
-  { value: 'prefer_not_to_say', label: 'Prefiero no decirlo' },
-] as const;
+export function getGenderOptions(locale: 'es' | 'pt' = 'es') {
+  const isPt = locale === 'pt';
+  return [
+    { value: '', label: isPt ? 'Selecionar' : 'Seleccionar' },
+    { value: 'female', label: isPt ? 'Feminino' : 'Femenino' },
+    { value: 'male', label: 'Masculino' },
+    { value: 'other', label: isPt ? 'Outro' : 'Otro' },
+    { value: 'prefer_not_to_say', label: isPt ? 'Prefiro não informar' : 'Prefiero no decirlo' },
+  ] as const;
+}
+
+export const GENDER_OPTIONS = getGenderOptions('es');
 
 export const BLOOD_TYPE_OPTIONS = [
   { value: '', label: 'Seleccionar' },

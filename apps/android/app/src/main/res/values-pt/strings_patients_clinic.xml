@@ -173,6 +173,16 @@
     <string name="community_dialog_content_label">Partilhe a sua experiência...</string>
     <string name="community_dialog_cancel_btn">Cancelar</string>
     <string name="community_dialog_submit_btn">Publicar</string>
+    <string name="community_group_reproductive">Saúde Reprodutiva</string>
+    <string name="community_group_nutrition">Nutrição</string>
+    <string name="community_group_mental_health">Saúde Mental</string>
+    <string name="community_post_1_title">Minha experiência</string>
+    <string name="community_post_1_content">Queria partilhar como correu a minha última consulta...</string>
+    <string name="community_post_1_author">Anónimo</string>
+    <string name="community_post_2_title">Dúvidas sobre medicamentos</string>
+    <string name="community_post_2_content">Alguém sabe se o novo medicamento dá sono?</string>
+    <string name="community_post_2_author">Maria</string>
+    <string name="community_author_user">Utilizador</string>
     <string name="patient_detail_error_auth">Não foi possível validar sua sessão. Entre novamente.</string>
     <string name="patient_detail_error_invalid_reference">O identificador do paciente é inválido.</string>
     <string name="patient_detail_error_not_assigned">Este paciente não está vinculado à sua conta médica.</string>

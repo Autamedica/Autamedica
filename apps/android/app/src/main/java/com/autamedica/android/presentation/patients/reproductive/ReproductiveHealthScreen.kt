@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -62,8 +63,11 @@ fun ReproductiveHealthScreen(
                 onRequestConsultation = { viewModel.setShowUrgentContact(true) }
             )
             
-            TabRow(selectedTabIndex = state.activeTab.ordinal) {
-                ReproductiveTab.entries.forEachIndexed { index, tab ->
+            ScrollableTabRow(
+                selectedTabIndex = state.activeTab.ordinal,
+                edgePadding = 16.dp,
+            ) {
+                ReproductiveTab.entries.forEach { tab ->
                     val tabLabel = when (tab) {
                         ReproductiveTab.OVERVIEW -> stringResource(R.string.reproductive_tab_overview)
                         ReproductiveTab.RIGHTS -> stringResource(R.string.reproductive_tab_rights)
@@ -74,7 +78,14 @@ fun ReproductiveHealthScreen(
                     Tab(
                         selected = state.activeTab == tab,
                         onClick = { viewModel.setTab(tab) },
-                        text = { Text(tabLabel) }
+                        text = {
+                            Text(
+                                text = tabLabel,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
                     )
                 }
             }

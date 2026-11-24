@@ -1,6 +1,8 @@
 package com.autamedica.android.presentation.patients.community
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
+import com.autamedica.android.R
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -10,13 +12,17 @@ data class CommunityPost(
     val title: String,
     val content: String,
     val author: String,
-    val likeCount: Int
+    val likeCount: Int,
+    @StringRes val titleRes: Int? = null,
+    @StringRes val contentRes: Int? = null,
+    @StringRes val authorRes: Int? = null,
 )
 
 data class CommunityGroup(
     val id: String,
     val name: String,
-    val memberCount: Int
+    val memberCount: Int,
+    @StringRes val nameRes: Int? = null,
 )
 
 data class PatientCommunityState(
@@ -31,16 +37,34 @@ class PatientCommunityViewModel : ViewModel() {
     val state: StateFlow<PatientCommunityState> = _state.asStateFlow()
 
     init {
-        // Mock data
+        // Mock data localized via string resources
         _state.value = _state.value.copy(
             groups = listOf(
-                CommunityGroup("1", "Salud Reproductiva", 120),
-                CommunityGroup("2", "Nutrición", 85),
-                CommunityGroup("3", "Salud Mental", 200)
+                CommunityGroup("1", "Salud Reproductiva", 120, R.string.community_group_reproductive),
+                CommunityGroup("2", "Nutrición", 85, R.string.community_group_nutrition),
+                CommunityGroup("3", "Salud Mental", 200, R.string.community_group_mental_health),
             ),
             posts = listOf(
-                CommunityPost("1", "Mi experiencia", "Quería compartir cómo me fue en la última consulta...", "Anónimo", 15),
-                CommunityPost("2", "Dudas sobre medicamentos", "¿Alguien sabe si el nuevo medicamento da sueño?", "María", 8)
+                CommunityPost(
+                    id = "1",
+                    title = "Mi experiencia",
+                    content = "Quería compartir cómo me fue en la última consulta...",
+                    author = "Anónimo",
+                    likeCount = 15,
+                    titleRes = R.string.community_post_1_title,
+                    contentRes = R.string.community_post_1_content,
+                    authorRes = R.string.community_post_1_author,
+                ),
+                CommunityPost(
+                    id = "2",
+                    title = "Dudas sobre medicamentos",
+                    content = "¿Alguien sabe si el nuevo medicamento da sueño?",
+                    author = "María",
+                    likeCount = 8,
+                    titleRes = R.string.community_post_2_title,
+                    contentRes = R.string.community_post_2_content,
+                    authorRes = R.string.community_post_2_author,
+                ),
             )
         )
     }
@@ -59,7 +83,8 @@ class PatientCommunityViewModel : ViewModel() {
             title = title,
             content = content,
             author = "Usuario",
-            likeCount = 0
+            likeCount = 0,
+            authorRes = R.string.community_author_user,
         )
         val updatedPosts = listOf(newPost) + _state.value.posts
         _state.value = _state.value.copy(

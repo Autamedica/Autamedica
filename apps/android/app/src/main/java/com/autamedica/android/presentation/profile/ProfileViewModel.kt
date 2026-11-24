@@ -45,6 +45,8 @@ data class ProfileUiState(
     val topupError: String? = null,
     val checkoutUrlToLaunch: String? = null,
     val isTopupDialogOpen: Boolean = false,
+    val isUploadingAvatar: Boolean = false,
+    val avatarError: String? = null,
 )
 
 @HiltViewModel
@@ -249,6 +251,36 @@ class ProfileViewModel @Inject constructor(
                         it.copy(
                             isTopupLoading = false,
                             topupError = UiErrorMapper.map(error, "Error al generar enlace de recarga"),
+                        )
+                    }
+                },
+            )
+        }
+    }
+
+    fun onAvatarError(message: String) {
+        _uiState.update { it.copy(isUploadingAvatar = false, avatarError = message) }
+    }
+
+    fun uploadAvatar(bytes: ByteArray, mimeType: String) {
+        if (_uiState.value.isUploadingAvatar) return
+        _uiState.update { it.copy(isUploadingAvatar = true, avatarError = null) }
+        viewModelScope.launch {
+            profileRepository.uploadAvatar(bytes, mimeType).fold(
+                onSuccess = { avatarUrl ->
+                    _uiState.update {
+                        it.copy(
+                            user = it.user?.copy(avatarUrl = avatarUrl),
+                            isUploadingAvatar = false,
+                            avatarError = null,
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(
+                            isUploadingAvatar = false,
+                            avatarError = UiErrorMapper.map(error, "No se pudo actualizar el avatar"),
                         )
                     }
                 },

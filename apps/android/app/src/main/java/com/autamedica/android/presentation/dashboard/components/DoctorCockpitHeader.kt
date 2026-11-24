@@ -258,37 +258,38 @@ fun DoctorCockpitHeader(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                }
-            }
 
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Pill Biocerámico de Matrícula Verificada
-            if (credentialLabel != null && guardApproved == true) {
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFFE0F2FE),
-                    border = BorderStroke(0.5.dp, PortalDoctors.copy(alpha = 0.25f)),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            Icons.Outlined.CheckCircle,
-                            contentDescription = null,
-                            modifier = Modifier.size(13.dp),
-                            tint = PortalDoctors,
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = credentialLabel,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                            ),
-                            color = PortalDoctorsAction,
-                        )
+                    // Pill Biocerámico de Matrícula Verificada (debajo para no aplastar nombre/especialidad)
+                    if (credentialLabel != null && guardApproved == true) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFE0F2FE),
+                            border = BorderStroke(0.5.dp, PortalDoctors.copy(alpha = 0.25f)),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    Icons.Outlined.CheckCircle,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(13.dp),
+                                    tint = PortalDoctors,
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = credentialLabel,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                    ),
+                                    color = PortalDoctorsAction,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
                     }
                 }
             }

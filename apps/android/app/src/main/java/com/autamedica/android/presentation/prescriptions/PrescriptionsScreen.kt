@@ -577,11 +577,20 @@ private fun PrescriptionCard(
     onCopyCuir: (cuir: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val doctorText = formatDoctorName(prescription.doctorName)
+    val doctorText = formatDoctorName(
+        rawDoctor = prescription.doctorName,
+        fallback = stringResource(R.string.rx_doctor_fallback),
+    )
     val dateStr = formatPrescriptionDate(prescription.prescribedDate ?: prescription.createdAt)
     val downloadablePdfUrl = getDownloadablePdfUrl(prescription.signedPdfUrl, prescription.cuir)
     val formattedMedication = formatMedicationName(prescription.medicationName)
-    val formattedPosology = formatPosologySummary(prescription.dosage, prescription.frequency, prescription.duration)
+    val formattedPosology = formatPosologySummary(
+        dosage = prescription.dosage,
+        frequency = prescription.frequency,
+        duration = prescription.duration,
+        everyHoursTemplate = stringResource(R.string.rx_posology_every_hours, "%s"),
+        durationDaysTemplate = stringResource(R.string.rx_posology_duration_days, "%s"),
+    )
 
     Surface(
         onClick = onClick,
@@ -839,7 +848,10 @@ private fun PrescriptionDetailBottomSheet(
     onCopyCuir: (cuir: String) -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val doctorText = formatDoctorName(prescription.doctorName)
+    val doctorText = formatDoctorName(
+        rawDoctor = prescription.doctorName,
+        fallback = stringResource(R.string.rx_doctor_fallback),
+    )
     val dateStr = formatPrescriptionDate(prescription.prescribedDate ?: prescription.createdAt)
     val formattedMedication = formatMedicationName(prescription.medicationName)
     val downloadablePdfUrl = getDownloadablePdfUrl(prescription.signedPdfUrl, prescription.cuir)
@@ -1088,7 +1100,13 @@ private fun PrescriptionDetailBottomSheet(
                     Column(modifier = Modifier.padding(14.dp)) {
                         // Dosis y posología
                         if (prescription.dosage.isNotBlank() || prescription.frequency.isNotBlank() || prescription.duration.isNotBlank()) {
-                            val posologyText = formatPosologySummary(prescription.dosage, prescription.frequency, prescription.duration)
+                            val posologyText = formatPosologySummary(
+                                dosage = prescription.dosage,
+                                frequency = prescription.frequency,
+                                duration = prescription.duration,
+                                everyHoursTemplate = stringResource(R.string.rx_posology_every_hours, "%s"),
+                                durationDaysTemplate = stringResource(R.string.rx_posology_duration_days, "%s"),
+                            )
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1276,7 +1294,13 @@ private fun formatMedicationName(raw: String?): String {
     }
 }
 
-private fun formatPosologySummary(dosage: String?, frequency: String?, duration: String?): String {
+private fun formatPosologySummary(
+    dosage: String?,
+    frequency: String?,
+    duration: String?,
+    everyHoursTemplate: String = "Cada %s hs",
+    durationDaysTemplate: String = "%s días",
+): String {
     val parts = mutableListOf<String>()
     val cleanDosage = dosage?.trim().orEmpty()
     if (cleanDosage.isNotBlank()) {
@@ -1286,7 +1310,7 @@ private fun formatPosologySummary(dosage: String?, frequency: String?, duration:
     val cleanFreq = frequency?.trim().orEmpty()
     if (cleanFreq.isNotBlank()) {
         val formattedFreq = when {
-            cleanFreq.all { it.isDigit() } -> "Cada $cleanFreq hs"
+            cleanFreq.all { it.isDigit() } -> everyHoursTemplate.replace("%s", cleanFreq)
             cleanFreq.startsWith("cada", ignoreCase = true) -> cleanFreq
             else -> cleanFreq
         }
@@ -1294,14 +1318,14 @@ private fun formatPosologySummary(dosage: String?, frequency: String?, duration:
     }
     val cleanDuration = duration?.trim().orEmpty()
     if (cleanDuration.isNotBlank()) {
-        val formattedDur = if (cleanDuration.all { it.isDigit() }) "$cleanDuration días" else cleanDuration
+        val formattedDur = if (cleanDuration.all { it.isDigit() }) durationDaysTemplate.replace("%s", cleanDuration) else cleanDuration
         parts.add(formattedDur)
     }
     return parts.joinToString(" · ")
 }
 
-private fun formatDoctorName(rawDoctor: String?): String {
-    if (rawDoctor.isNullOrBlank()) return "Dr. Médico Tratante"
+private fun formatDoctorName(rawDoctor: String?, fallback: String = "Dr. Médico Tratante"): String {
+    if (rawDoctor.isNullOrBlank()) return fallback
     val trimmed = rawDoctor.trim()
     return when {
         trimmed.startsWith("Dra.", ignoreCase = true) -> trimmed
