@@ -1,6 +1,6 @@
 ---
 import Layout from '@/layouts/Layout.astro';
-import { createAstroAdminClient } from '@/lib/supabase';
+import { createAstroAdminClient, createAstroServerClientFromRequest } from '@/lib/supabase';
 import { getPublicProfileCredentials, getPublicProfileHeadline, getVisibleProfileSections, shouldShowConsultationCta, shouldShowTestimonials, toEditorialEntries, toStringEntries, toVerifiedTestimonials } from '@/lib/doctors/public-profile-view';
 
 export const prerender = false;
@@ -69,10 +69,10 @@ let profile: PublicProfile | null = null;
 
 if ((country === 'AR' || country === 'BR') && doctorId) {
   try {
-    const admin = createAstroAdminClient(Astro.locals.runtime?.env) as unknown as {
+    const publicClient = createAstroServerClientFromRequest(Astro.request, Astro.locals.runtime?.env) as unknown as {
       rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
     };
-    const { data, error } = await admin.rpc('get_public_doctor_profile', { p_doctor_id: doctorId });
+    const { data, error } = await publicClient.rpc('get_public_doctor_profile', { p_doctor_id: doctorId });
     if (!error && data && typeof data === 'object' && !Array.isArray(data)) {
       const candidate = data as PublicProfile;
       if (candidate.id === doctorId && candidate.care_country === country) profile = candidate;
