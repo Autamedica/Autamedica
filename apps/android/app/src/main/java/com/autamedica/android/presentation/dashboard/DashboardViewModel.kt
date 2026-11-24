@@ -60,6 +60,7 @@ data class DashboardUiState(
     val isWalletSheetOpen: Boolean = false,
     val isTopupDialogOpen: Boolean = false,
     val isTopupLoading: Boolean = false,
+    val topupError: String? = null,
     val checkoutUrlToLaunch: String? = null,
     // Notifications
     val notifications: List<PortalNotification> = emptyList(),
@@ -133,18 +134,19 @@ class DashboardViewModel @Inject constructor(
     }
 
     fun setTopupDialogVisible(visible: Boolean) {
-        _uiState.update { it.copy(isTopupDialogOpen = visible) }
+        _uiState.update { it.copy(isTopupDialogOpen = visible, topupError = null) }
     }
 
     fun topupWallet(amount: Double) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isTopupLoading = true) }
+            _uiState.update { it.copy(isTopupLoading = true, topupError = null) }
             walletRepository.createTopupPreference(amount).fold(
                 onSuccess = { checkoutUrl ->
                     _uiState.update {
                         it.copy(
                             checkoutUrlToLaunch = checkoutUrl,
                             isTopupLoading = false,
+                            topupError = null,
                             isTopupDialogOpen = false,
                         )
                     }
@@ -153,7 +155,7 @@ class DashboardViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isTopupLoading = false,
-                            error = UiErrorMapper.map(error, "Error al generar enlace de recarga"),
+                            topupError = UiErrorMapper.map(error, "Error al generar enlace de recarga"),
                         )
                     }
                 }

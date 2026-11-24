@@ -284,6 +284,8 @@ fun DashboardScreen(
     if (uiState.isTopupDialogOpen) {
         WalletTopupDialog(
             currency = uiState.walletCurrency,
+            isLoading = uiState.isTopupLoading,
+            errorMessage = uiState.topupError,
             onDismiss = { viewModel.setTopupDialogVisible(false) },
             onConfirmTopup = { amount ->
                 viewModel.topupWallet(amount)

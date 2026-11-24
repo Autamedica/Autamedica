@@ -92,70 +92,76 @@ class ClinicalDocumentRepositoryImpl @Inject constructor(
         supabaseClient.storage.from(DOCUMENT_BUCKET).upload(storagePath, bytes) {
             upsert = true
         }
-        val bucketUsed = DOCUMENT_BUCKET
-        val fileUrl = supabaseClient.storage.from(DOCUMENT_BUCKET)
-            .createSignedUrl(storagePath, expiresIn = SIGNED_URL_TTL)
 
-        val attachmentsPayload = buildJsonArray {
-            add(
-                buildJsonObject {
-                    put("name", JsonPrimitive(sanitizedFileName))
-                    put("file_name", JsonPrimitive(sanitizedFileName))
-                    put("url", JsonPrimitive(fileUrl))
-                    put("file_url", JsonPrimitive(fileUrl))
-                    put("path", JsonPrimitive(storagePath))
-                    put("bucket", JsonPrimitive(bucketUsed))
-                    put("size", JsonPrimitive(fileSize))
-                    put("file_size", JsonPrimitive(fileSize))
-                    put("mime_type", JsonPrimitive(mimeType))
-                    put("type", JsonPrimitive(mimeType))
-                }
-            )
-        }
+        try {
+            val bucketUsed = DOCUMENT_BUCKET
+            val fileUrl = supabaseClient.storage.from(DOCUMENT_BUCKET)
+                .createSignedUrl(storagePath, expiresIn = SIGNED_URL_TTL)
 
-        val contentPayload = buildJsonObject {
-            put("title", JsonPrimitive(title))
-            put("file_url", JsonPrimitive(fileUrl))
-            put("file_name", JsonPrimitive(sanitizedFileName))
-            put("file_size", JsonPrimitive(fileSize))
-            put("mime_type", JsonPrimitive(mimeType))
-            put("bucket", JsonPrimitive(bucketUsed))
-            put("storage_path", JsonPrimitive(storagePath))
-            put("uploaded_by", JsonPrimitive("patient"))
-            put("attachments", attachmentsPayload)
-        }
-
-        val nowIso = OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-
-        // 2. Insert into medical_records
-        val insertDto = CreateMedicalRecordDto(
-            patientId = patientId,
-            type = mapToValidRecordType(type),
-            title = title,
-            content = contentPayload,
-            attachments = attachmentsPayload,
-            visibility = "patient",
-            createdAt = nowIso,
-            updatedAt = nowIso,
-        )
-
-        val inserted = supabaseClient.postgrest
-            .from("medical_records")
-            .insert(insertDto) {
-                select()
+            val attachmentsPayload = buildJsonArray {
+                add(
+                    buildJsonObject {
+                        put("name", JsonPrimitive(sanitizedFileName))
+                        put("file_name", JsonPrimitive(sanitizedFileName))
+                        put("url", JsonPrimitive(fileUrl))
+                        put("file_url", JsonPrimitive(fileUrl))
+                        put("path", JsonPrimitive(storagePath))
+                        put("bucket", JsonPrimitive(bucketUsed))
+                        put("size", JsonPrimitive(fileSize))
+                        put("file_size", JsonPrimitive(fileSize))
+                        put("mime_type", JsonPrimitive(mimeType))
+                        put("type", JsonPrimitive(mimeType))
+                    }
+                )
             }
-            .decodeSingle<MedicalRecordRowDto>()
 
-        ClinicalDocument(
-            id = inserted.id,
-            title = title,
-            type = type,
-            fileUrl = fileUrl,
-            fileName = sanitizedFileName,
-            fileSize = fileSize,
-            dateRecorded = inserted.createdAt ?: nowIso,
-            mimeType = mimeType,
-        )
+            val contentPayload = buildJsonObject {
+                put("title", JsonPrimitive(title))
+                put("file_url", JsonPrimitive(fileUrl))
+                put("file_name", JsonPrimitive(sanitizedFileName))
+                put("file_size", JsonPrimitive(fileSize))
+                put("mime_type", JsonPrimitive(mimeType))
+                put("bucket", JsonPrimitive(bucketUsed))
+                put("storage_path", JsonPrimitive(storagePath))
+                put("uploaded_by", JsonPrimitive("patient"))
+                put("attachments", attachmentsPayload)
+            }
+
+            val nowIso = OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+
+            // 2. Insert into medical_records
+            val insertDto = CreateMedicalRecordDto(
+                patientId = patientId,
+                type = mapToValidRecordType(type),
+                title = title,
+                content = contentPayload,
+                attachments = attachmentsPayload,
+                visibility = "patient",
+                createdAt = nowIso,
+                updatedAt = nowIso,
+            )
+
+            val inserted = supabaseClient.postgrest
+                .from("medical_records")
+                .insert(insertDto) {
+                    select()
+                }
+                .decodeSingle<MedicalRecordRowDto>()
+
+            ClinicalDocument(
+                id = inserted.id,
+                title = title,
+                type = type,
+                fileUrl = fileUrl,
+                fileName = sanitizedFileName,
+                fileSize = fileSize,
+                dateRecorded = inserted.createdAt ?: nowIso,
+                mimeType = mimeType,
+            )
+        } catch (e: Throwable) {
+            runCatching { supabaseClient.storage.from(DOCUMENT_BUCKET).delete(storagePath) }
+            throw e
+        }
     }.onFailure {
         SecureLog.error("[ClinicalDocuments] Failed uploading document", it)
     }
