@@ -52,7 +52,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   if (!isAuthed(auth)) return auth;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any\n    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const admin = createAstroAdminClient(locals.runtime?.env) as any;
     const { data, error } = await getDoctor(admin, auth.user.id);
     if (error) throw error;
@@ -94,6 +94,7 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
       return jsonResponse({ error: 'invalid_body' }, 400);
     }
     const input = body as Record<string, unknown>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const admin = createAstroAdminClient(locals.runtime?.env) as any;
     const { data: doctor, error: doctorError } = await getDoctor(admin, auth.user.id);
     if (doctorError) throw doctorError;
