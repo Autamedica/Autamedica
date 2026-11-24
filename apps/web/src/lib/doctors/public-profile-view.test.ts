@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  dedupeCertificationsAgainstFocus,
+  formatDisplayName,
+  formatSpecialtyLabel,
   getPublicProfileCredentials,
   getVisibleProfileSections,
   isTestimonialsEnabled,
+  shouldShowConsultationCta,
   shouldShowTestimonials,
   toVerifiedTestimonials,
   toEditorialEntries,
@@ -131,5 +135,46 @@ describe('jurisdictional verified testimonials', () => {
       null,
       { comment: 42 },
     ])).toEqual([{ comment: 'Buen trato.', created_at: '2026-11-20' }]);
+  });
+});
+
+describe('executive and editorial public profile helpers', () => {
+  it('formats ALL-CAPS doctor names cleanly in Title Case while preserving prepositions', () => {
+    expect(formatDisplayName('EDUARDO', 'DA ROSA')).toBe('Eduardo da Rosa');
+    expect(formatDisplayName('MARÍA', 'DE LA CRUZ')).toBe('María de la Cruz');
+    expect(formatDisplayName('Dra. Ana', 'Silva')).toBe('Dra. Ana Silva');
+  });
+
+  it('localizes common specialty labels to Brazilian Portuguese', () => {
+    expect(formatSpecialtyLabel('Medicina General', true)).toBe('Clínica Médica');
+    expect(formatSpecialtyLabel('Medicina General', false)).toBe('Medicina General');
+    expect(formatSpecialtyLabel('Cardiología', true)).toBe('Cardiologia');
+  });
+
+  it('splits delimited editorial strings into title, institution, and period', () => {
+    expect(toEditorialEntries([
+      'Fundador — AutaMedica (Argentina y Brasil)',
+      'Residência em Clínica Médica — HCPA — 2018-2021',
+    ])).toEqual([
+      { title: 'Fundador', institution: 'AutaMedica (Argentina y Brasil)' },
+      { title: 'Residência em Clínica Médica', institution: 'HCPA', period: '2018-2021' },
+    ]);
+  });
+
+  it('deduplicates flat certification strings that already appear in clinical focus areas', () => {
+    const certifications = toEditorialEntries([
+      'Salud digital',
+      'Telemedicina',
+      'Pós-graduação em Gestão em Saúde — FGV',
+    ]);
+    expect(dedupeCertificationsAgainstFocus(certifications, ['Salud digital', 'Telemedicina'])).toEqual([
+      { title: 'Pós-graduação em Gestão em Saúde', institution: 'FGV' },
+    ]);
+  });
+
+  it('hides consultation CTAs only when explicitly disabled', () => {
+    expect(shouldShowConsultationCta({ care_country: 'BR' })).toBe(true);
+    expect(shouldShowConsultationCta({ care_country: 'BR', public_profile_accepts_consultations: true })).toBe(true);
+    expect(shouldShowConsultationCta({ care_country: 'BR', public_profile_accepts_consultations: false })).toBe(false);
   });
 });
