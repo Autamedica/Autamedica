@@ -152,6 +152,7 @@ Este plan no busca “mejorar un poco”; busca **garantizar 100/100** de manera
 - PWA: el manifest usa iconos PNG reales de 192×192 y 512×512, generados desde el logo y validados por dimensiones.
 - Idioma BR: no se emite `hreflang="pt-BR"` hasta que existan rutas portuguesas equivalentes y traducidas. La preferencia de idioma en runtime por sí sola no constituye una URL alternativa indexable.
 - CI: se añade un gate SEO obligatorio que genera los assets y valida sitemap/paridad, robots, dimensiones de imágenes, JSON-LD y hreflang. El estado del gate forma parte del resultado agregado de CI.
+- Lighthouse: el job Build ejecuta Lighthouse CI sobre el servidor Cloudflare Pages local, con tres corridas por cada ruta `/`, `/patients`, `/doctors`, `/companies` y `/platform`. El umbral de la categoría SEO es 100/100 y cualquier resultado inferior bloquea el CI. Los reportes se conservan como artefactos internos del workflow.
 - Publicación: los workflows de producción y contenido generan y validan los assets antes del build Astro.
 
 ### Evidencia que todavía falta para declarar el 100/100
