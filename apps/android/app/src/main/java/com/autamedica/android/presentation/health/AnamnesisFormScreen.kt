@@ -107,7 +107,7 @@ fun AnamnesisFormScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
-                            text = "Anamnesis",
+                            text = healthText("Anamnesis", "Anamnese"),
                             style = MaterialTheme.typography.titleLarge,
                             color = AuTextPrimary,
                             fontWeight = FontWeight.Bold,
@@ -132,7 +132,7 @@ fun AnamnesisFormScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
+                            contentDescription = healthText("Volver", "Voltar"),
                             tint = AuTextPrimary,
                         )
                     }
@@ -141,7 +141,11 @@ fun AnamnesisFormScreen(
                     if (uiState.sections.isNotEmpty()) {
                         // Switch between Wizard (Paso a paso) and Overview (Secciones)
                         Text(
-                            text = if (uiState.displayMode == AnamnesisDisplayMode.WIZARD) "Ver Todo" else "Paso a Paso",
+                            text = if (uiState.displayMode == AnamnesisDisplayMode.WIZARD) {
+                                healthText("Ver Todo", "Ver Tudo")
+                            } else {
+                                healthText("Paso a Paso", "Passo a Passo")
+                            },
                             style = MaterialTheme.typography.labelMedium,
                             color = AuAccent,
                             fontWeight = FontWeight.SemiBold,
@@ -184,7 +188,7 @@ fun AnamnesisFormScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = uiState.error ?: "Error desconocido",
+                            text = uiState.error ?: healthText("Error desconocido", "Erro desconhecido"),
                             color = Color(0xFFB91C1C),
                             style = MaterialTheme.typography.bodyLarge,
                         )
@@ -225,6 +229,7 @@ private fun AnamnesisFormContent(
     onDismissSuccess: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val isPortuguese = isPortugueseUi()
     val completed = uiState.completedSectionsCount
     val total = uiState.sections.size.coerceAtLeast(1)
     val progress = (completed.toFloat() / total).coerceIn(0f, 1f)
@@ -243,7 +248,11 @@ private fun AnamnesisFormContent(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Paso ${uiState.currentSectionIndex + 1} de $total",
+                    text = if (isPortuguese) {
+                        "Etapa ${uiState.currentSectionIndex + 1} de $total"
+                    } else {
+                        "Paso ${uiState.currentSectionIndex + 1} de $total"
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextTertiary,
                 )
@@ -253,7 +262,11 @@ private fun AnamnesisFormContent(
                     border = BorderStroke(1.dp, if (completed == total) EmeraldSuccess.copy(alpha = 0.4f) else AuBorder),
                 ) {
                     Text(
-                        text = "${uiState.completionPercentage}% completado",
+                        text = if (isPortuguese) {
+                            "${uiState.completionPercentage}% concluído"
+                        } else {
+                            "${uiState.completionPercentage}% completado"
+                        },
                         style = MaterialTheme.typography.labelSmall,
                         color = if (completed == total) EmeraldSuccess else AuAccent,
                         fontWeight = FontWeight.Bold,
@@ -279,7 +292,7 @@ private fun AnamnesisFormContent(
         ) {
             itemsIndexed(uiState.sections) { index, section ->
                 SectionChip(
-                    label = AnamnesisSection.shortLabel(section.section),
+                    label = AnamnesisSection.shortLabel(section.section, isPortuguese),
                     isSelected = index == uiState.currentSectionIndex,
                     isCompleted = section.completed,
                     onClick = { onGoToSection(index) },
@@ -328,7 +341,7 @@ private fun AnamnesisFormContent(
                     IconButton(onClick = onDismissSuccess, modifier = Modifier.size(20.dp)) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Cerrar",
+                            contentDescription = healthText("Cerrar", "Fechar"),
                             tint = Color(0xFF14532D),
                             modifier = Modifier.size(14.dp),
                         )
@@ -349,8 +362,8 @@ private fun AnamnesisFormContent(
             // WIZARD MODE: Active section with rich field inputs
             val currentSection = uiState.currentSection
             if (currentSection != null) {
-                val sectionFields = getSectionFieldDefinitions(currentSection.section)
-                val validationHint = getSectionValidationHint(currentSection.section)
+                val sectionFields = getSectionFieldDefinitions(currentSection.section, isPortuguese)
+                val validationHint = getSectionValidationHint(currentSection.section, isPortuguese)
                 val readOnlyMessage = uiState.readOnlyMessage
 
                 LazyColumn(
@@ -362,8 +375,8 @@ private fun AnamnesisFormContent(
                 ) {
                     item {
                         Column {
-                            val category = AnamnesisSection.category(currentSection.section)
-                            val subtitle = AnamnesisSection.subtitle(currentSection.section)
+                            val category = AnamnesisSection.category(currentSection.section, isPortuguese)
+                            val subtitle = AnamnesisSection.subtitle(currentSection.section, isPortuguese)
 
                             Text(
                                 text = category.uppercase(),
@@ -374,7 +387,7 @@ private fun AnamnesisFormContent(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = AnamnesisSection.displayName(currentSection.section),
+                                text = AnamnesisSection.displayName(currentSection.section, isPortuguese),
                                 style = MaterialTheme.typography.titleLarge,
                                 color = AuTextPrimary,
                                 fontWeight = FontWeight.Bold,
@@ -393,7 +406,7 @@ private fun AnamnesisFormContent(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 StatusChip(
-                                    text = anamnesisStatusLabel(uiState.summary),
+                                    text = anamnesisStatusLabel(uiState.summary, isPortuguese),
                                     color = when {
                                         uiState.summary?.status.equals("approved", ignoreCase = true) -> Color(0xFF14532D)
                                         uiState.summary?.status.equals("under_review", ignoreCase = true) -> Color(0xFF1D4ED8)
@@ -419,7 +432,7 @@ private fun AnamnesisFormContent(
                                             )
                                             Spacer(modifier = Modifier.width(4.dp))
                                             Text(
-                                                text = "Completada",
+                                                text = healthText("Completada", "Concluída"),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = EmeraldSuccess,
                                                 fontWeight = FontWeight.Bold,
@@ -512,7 +525,7 @@ private fun AnamnesisFormContent(
 
                 if (uiState.isReadOnly) {
                     Text(
-                        text = "Solo lectura",
+                        text = healthText("Solo lectura", "Somente leitura"),
                         style = MaterialTheme.typography.labelLarge,
                         color = AuTextTertiary,
                         fontWeight = FontWeight.Medium,
@@ -569,6 +582,7 @@ private fun AnamnesisOverviewList(
     onSelectSection: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val isPortuguese = isPortugueseUi()
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -577,14 +591,20 @@ private fun AnamnesisOverviewList(
     ) {
         item {
             Text(
-                text = "Estructura de la Historia Clínica (13 Pasos)",
+                text = healthText(
+                    es = "Estructura de la Historia Clínica (13 Pasos)",
+                    pt = "Estrutura do Histórico Clínico (13 Etapas)",
+                ),
                 style = MaterialTheme.typography.titleMedium,
                 color = AuTextPrimary,
                 fontWeight = FontWeight.Bold,
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Podés completar las secciones en orden o seleccionar cualquiera para revisar su contenido.",
+                text = healthText(
+                    es = "Podés completar las secciones en orden o seleccionar cualquiera para revisar su contenido.",
+                    pt = "Você pode preencher as seções em ordem ou selecionar qualquer uma para revisar o conteúdo.",
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = AuTextSecondary,
             )
@@ -594,9 +614,9 @@ private fun AnamnesisOverviewList(
         itemsIndexed(sections) { index, section ->
             val isCurrent = index == currentSectionIndex
             val isCompleted = section.completed
-            val category = AnamnesisSection.category(section.section)
-            val displayName = AnamnesisSection.displayName(section.section)
-            val subtitle = AnamnesisSection.subtitle(section.section)
+            val category = AnamnesisSection.category(section.section, isPortuguese)
+            val displayName = AnamnesisSection.displayName(section.section, isPortuguese)
+            val subtitle = AnamnesisSection.subtitle(section.section, isPortuguese)
 
             Surface(
                 onClick = { onSelectSection(index) },
@@ -678,6 +698,7 @@ private fun AnamnesisFieldRenderer(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val isPortuguese = isPortugueseUi()
     val displayLabel = buildString {
         append(field.label)
         if (field.required) append(" *")
@@ -735,7 +756,7 @@ private fun AnamnesisFieldRenderer(
                                 Spacer(modifier = Modifier.width(6.dp))
                             }
                             Text(
-                                text = "Sí",
+                                text = healthText("Sí", "Sim"),
                                 color = if (isYesSelected) Color.White else AuTextPrimary,
                                 fontWeight = if (isYesSelected) FontWeight.Bold else FontWeight.Medium,
                             )
@@ -765,7 +786,7 @@ private fun AnamnesisFieldRenderer(
                                 Spacer(modifier = Modifier.width(6.dp))
                             }
                             Text(
-                                text = "No",
+                                text = healthText("No", "Não"),
                                 color = if (isNoSelected) Color.White else AuTextPrimary,
                                 fontWeight = if (isNoSelected) FontWeight.Bold else FontWeight.Medium,
                             )
@@ -958,17 +979,21 @@ private fun AnamnesisFieldRenderer(
                     placeholder = { Text(field.hint, color = AuTextTertiary) },
                     trailingIcon = {
                         if (enabled) {
+                            val speechPrompt = healthText(
+                                es = "Dictá tus síntomas o antecedentes...",
+                                pt = "Dite seus sintomas ou antecedentes...",
+                            )
                             IconButton(onClick = {
                                 val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, "es-AR")
-                                    putExtra(RecognizerIntent.EXTRA_PROMPT, "Dictá tus síntomas o antecedentes...")
+                                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, if (isPortuguese) "pt-BR" else "es-AR")
+                                    putExtra(RecognizerIntent.EXTRA_PROMPT, speechPrompt)
                                 }
                                 runCatching { speechLauncher.launch(intent) }
                             }) {
                                 Icon(
                                     imageVector = Icons.Default.Mic,
-                                    contentDescription = "Dictar por voz",
+                                    contentDescription = healthText("Dictar por voz", "Ditar por voz"),
                                     tint = AuAccent,
                                 )
                             }

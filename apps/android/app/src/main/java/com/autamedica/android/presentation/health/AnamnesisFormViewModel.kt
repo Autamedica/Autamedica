@@ -64,7 +64,7 @@ data class AnamnesisFormUiState(
         get() = isAnamnesisReadOnly(summary)
 
     val readOnlyMessage: String?
-        get() = anamnesisReadOnlyMessage(summary)
+        get() = anamnesisReadOnlyMessage(summary, isPortugueseRuntime())
 }
 
 @HiltViewModel
@@ -124,14 +124,28 @@ class AnamnesisFormViewModel @Inject constructor(
                         .onFailure { e ->
                             SecureLog.error("[Anamnesis] Failed loading sections", e)
                             _uiState.update {
-                                it.copy(isLoading = false, error = "No se pudieron cargar las secciones")
+                                it.copy(
+                                    isLoading = false,
+                                    error = localizedCopy(
+                                        es = "No se pudieron cargar las secciones",
+                                        pt = "Não foi possível carregar as seções",
+                                        isPortuguese = isPortugueseRuntime(),
+                                    ),
+                                )
                             }
                         }
                 }
                 .onFailure { e ->
                     SecureLog.error("[Anamnesis] Failed creating anamnesis", e)
                     _uiState.update {
-                        it.copy(isLoading = false, error = "No se pudo iniciar la anamnesis")
+                        it.copy(
+                            isLoading = false,
+                            error = localizedCopy(
+                                es = "No se pudo iniciar la anamnesis",
+                                pt = "Não foi possível iniciar a anamnese",
+                                isPortuguese = isPortugueseRuntime(),
+                            ),
+                        )
                     }
                 }
         }
@@ -174,17 +188,22 @@ class AnamnesisFormViewModel @Inject constructor(
         val state = _uiState.value
         val section = state.currentSection ?: return
         val summary = state.summary ?: return
+        val pt = isPortugueseRuntime()
         if (state.isReadOnly) {
             _uiState.update {
                 it.copy(
-                    error = state.readOnlyMessage ?: "La anamnesis se encuentra en solo lectura",
+                    error = state.readOnlyMessage ?: localizedCopy(
+                        es = "La anamnesis se encuentra en solo lectura",
+                        pt = "A anamnese está em modo somente leitura",
+                        isPortuguese = pt,
+                    ),
                     fieldErrors = emptyMap(),
                 )
             }
             return
         }
 
-        val validation = validateSection(section.section, state.fieldValues)
+        val validation = validateSection(section.section, state.fieldValues, isPortuguese = pt)
         if (!validation.isValid) {
             _uiState.update {
                 it.copy(
@@ -211,7 +230,7 @@ class AnamnesisFormViewModel @Inject constructor(
                                         state.currentSectionIndex + 1
                                     }
                                     val nextSection = updatedSections.getOrNull(nextIndex)
-                                    val sectionDisplayName = AnamnesisSection.displayName(section.section)
+                                    val sectionDisplayName = AnamnesisSection.displayName(section.section, isPortuguese = pt)
                                     _uiState.update {
                                         it.copy(
                                             isSaving = false,
@@ -219,7 +238,11 @@ class AnamnesisFormViewModel @Inject constructor(
                                             currentSectionIndex = nextIndex,
                                             fieldValues = nextSection?.data ?: emptyMap(),
                                             fieldErrors = emptyMap(),
-                                            saveSuccessMessage = "Sección $sectionDisplayName guardada correctamente.",
+                                            saveSuccessMessage = localizedCopy(
+                                                es = "Sección $sectionDisplayName guardada correctamente.",
+                                                pt = "Seção $sectionDisplayName salva com sucesso.",
+                                                isPortuguese = pt,
+                                            ),
                                         )
                                     }
                                 }
@@ -228,7 +251,11 @@ class AnamnesisFormViewModel @Inject constructor(
                                     _uiState.update {
                                         it.copy(
                                             isSaving = false,
-                                            error = "La seccion se guardo, pero no se pudo refrescar el formulario",
+                                            error = localizedCopy(
+                                                es = "La seccion se guardo, pero no se pudo refrescar el formulario",
+                                                pt = "A seção foi salva, mas não foi possível atualizar o formulário",
+                                                isPortuguese = pt,
+                                            ),
                                         )
                                     }
                                 }
@@ -238,7 +265,14 @@ class AnamnesisFormViewModel @Inject constructor(
                             _uiState.update {
                                 it.copy(
                                     isSaving = false,
-                            error = UiErrorMapper.map(e, "No se pudo guardar la seccion"),
+                                    error = UiErrorMapper.map(
+                                        e,
+                                        localizedCopy(
+                                            es = "No se pudo guardar la seccion",
+                                            pt = "Não foi possível salvar a seção",
+                                            isPortuguese = pt,
+                                        ),
+                                    ),
                                 )
                             }
                         }
@@ -248,7 +282,14 @@ class AnamnesisFormViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSaving = false,
-                            error = UiErrorMapper.map(e, "No se pudo guardar la seccion"),
+                            error = UiErrorMapper.map(
+                                e,
+                                localizedCopy(
+                                    es = "No se pudo guardar la seccion",
+                                    pt = "Não foi possível salvar a seção",
+                                    isPortuguese = pt,
+                                ),
+                            ),
                         )
                     }
                 }
@@ -300,10 +341,15 @@ class AnamnesisFormViewModel @Inject constructor(
     fun submitAnamnesis() {
         val state = _uiState.value
         val summary = state.summary ?: return
+        val pt = isPortugueseRuntime()
         if (state.isReadOnly) {
             _uiState.update {
                 it.copy(
-                    error = state.readOnlyMessage ?: "La anamnesis se encuentra en solo lectura",
+                    error = state.readOnlyMessage ?: localizedCopy(
+                        es = "La anamnesis se encuentra en solo lectura",
+                        pt = "A anamnese está em modo somente leitura",
+                        isPortuguese = pt,
+                    ),
                     fieldErrors = emptyMap(),
                 )
             }
@@ -312,7 +358,11 @@ class AnamnesisFormViewModel @Inject constructor(
         if (state.hasUnsavedChanges) {
             _uiState.update {
                 it.copy(
-                    error = "Guarde la seccion actual antes de enviar la anamnesis.",
+                    error = localizedCopy(
+                        es = "Guarde la seccion actual antes de enviar la anamnesis.",
+                        pt = "Salve a seção atual antes de enviar a anamnese.",
+                        isPortuguese = pt,
+                    ),
                     fieldErrors = emptyMap(),
                 )
             }
@@ -320,12 +370,17 @@ class AnamnesisFormViewModel @Inject constructor(
         }
 
         val invalidSection = state.sections.firstOrNull { section ->
-            !section.completed || !validateSection(section.section, section.data).isValid
+            !section.completed || !validateSection(section.section, section.data, isPortuguese = pt).isValid
         }
         if (invalidSection != null) {
+            val sectionName = AnamnesisSection.displayName(invalidSection.section, isPortuguese = pt)
             _uiState.update {
                 it.copy(
-                    error = "No puede enviar la anamnesis hasta completar ${AnamnesisSection.displayName(invalidSection.section)}.",
+                    error = localizedCopy(
+                        es = "No puede enviar la anamnesis hasta completar $sectionName.",
+                        pt = "Não é possível enviar a anamnese sem concluir $sectionName.",
+                        isPortuguese = pt,
+                    ),
                     fieldErrors = emptyMap(),
                 )
             }
@@ -355,7 +410,14 @@ class AnamnesisFormViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
-                            error = UiErrorMapper.map(e, "No se pudo enviar la anamnesis"),
+                            error = UiErrorMapper.map(
+                                e,
+                                localizedCopy(
+                                    es = "No se pudo enviar la anamnesis",
+                                    pt = "Não foi possível enviar a anamnese",
+                                    isPortuguese = pt,
+                                ),
+                            ),
                         )
                     }
                 }

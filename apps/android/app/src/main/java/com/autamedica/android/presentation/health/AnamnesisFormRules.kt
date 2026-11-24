@@ -745,15 +745,49 @@ private val sectionRules: Map<String, SectionRule> = mapOf(
 )
 
 fun getSectionFieldDefinitions(section: String): List<AnamnesisFieldDefinition> =
-    sectionRules[section]?.fields ?: listOf(
-        AnamnesisFieldDefinition("notes", "Notas", "Ingrese informacion relevante", required = true),
+    getSectionFieldDefinitions(section, isPortuguese = false)
+
+fun getSectionFieldDefinitions(
+    section: String,
+    isPortuguese: Boolean,
+): List<AnamnesisFieldDefinition> {
+    val fields = sectionRules[section]?.fields
+    if (fields != null) {
+        return fields.map { it.localized(section, isPortuguese) }
+    }
+    return listOf(
+        AnamnesisFieldDefinition(
+            key = "notes",
+            label = "Notas",
+            hint = if (isPortuguese) "Informe dados relevantes" else "Ingrese informacion relevante",
+            required = true,
+        ),
     )
+}
 
-fun getSectionValidationHint(section: String): String? = sectionRules[section]?.message
+fun getSectionValidationHint(section: String): String? =
+    getSectionValidationHint(section, isPortuguese = false)
 
-fun validateSection(section: String, fieldValues: Map<String, String>): SectionValidationResult {
-    val rule = sectionRules[section] ?: return validateFallback(fieldValues)
+fun getSectionValidationHint(section: String, isPortuguese: Boolean): String? =
+    if (isPortuguese) {
+        anamnesisSectionMessagesPt[section] ?: sectionRules[section]?.message
+    } else {
+        sectionRules[section]?.message
+    }
+
+fun validateSection(
+    section: String,
+    fieldValues: Map<String, String>,
+): SectionValidationResult = validateSection(section, fieldValues, isPortuguese = false)
+
+fun validateSection(
+    section: String,
+    fieldValues: Map<String, String>,
+    isPortuguese: Boolean,
+): SectionValidationResult {
+    val rule = sectionRules[section] ?: return validateFallback(fieldValues, isPortuguese)
     val fieldErrors = linkedMapOf<String, String>()
+    val localizedHint = getSectionValidationHint(section, isPortuguese)
 
     rule.fields.forEach { field ->
         val isVisible = if (field.dependsOnKey != null) {
@@ -767,20 +801,36 @@ fun validateSection(section: String, fieldValues: Map<String, String>): SectionV
             val rawValue = fieldValues[field.key]
             when {
                 rawValue.isNullOrBlank() -> {
-                    fieldErrors[field.key] = "Este campo es obligatorio."
+                    fieldErrors[field.key] = if (isPortuguese) {
+                        "Este campo é obrigatório."
+                    } else {
+                        "Este campo es obligatorio."
+                    }
                 }
                 field.key.contains("phone") && !looksLikePhone(rawValue) -> {
-                    fieldErrors[field.key] = "Ingrese un telefono valido para emergencias."
+                    fieldErrors[field.key] = if (isPortuguese) {
+                        "Informe um telefone válido para emergências."
+                    } else {
+                        "Ingrese un telefono valido para emergencias."
+                    }
                 }
                 field.type == FieldType.BOOLEAN && rawValue != "true" && rawValue != "false" -> {
-                    fieldErrors[field.key] = "Seleccione una opción."
+                    fieldErrors[field.key] = if (isPortuguese) {
+                        "Selecione uma opção."
+                    } else {
+                        "Seleccione una opción."
+                    }
                 }
             }
         }
     }
 
     if (rule.atLeastOneOf.isNotEmpty() && rule.atLeastOneOf.none { hasMeaningfulAnswer(fieldValues[it]) }) {
-        val errorMessage = rule.message ?: "Complete al menos un dato relevante en esta seccion."
+        val errorMessage = localizedHint ?: if (isPortuguese) {
+            "Preencha pelo menos um dado relevante nesta seção."
+        } else {
+            "Complete al menos un dato relevante en esta seccion."
+        }
         rule.atLeastOneOf.forEachIndexed { index, key ->
             if (index == 0) {
                 fieldErrors[key] = errorMessage
@@ -794,7 +844,11 @@ fun validateSection(section: String, fieldValues: Map<String, String>): SectionV
         SectionValidationResult(
             isValid = false,
             fieldErrors = fieldErrors,
-            message = rule.message ?: "Revise los datos obligatorios de esta seccion.",
+            message = localizedHint ?: if (isPortuguese) {
+                "Revise os dados obrigatórios desta seção."
+            } else {
+                "Revise los datos obligatorios de esta seccion."
+            },
         )
     }
 }
@@ -803,20 +857,38 @@ fun isAnamnesisReadOnly(summary: AnamnesisSummary?): Boolean {
     return isAnamnesisSummaryReadOnly(summary)
 }
 
-fun anamnesisReadOnlyMessage(summary: AnamnesisSummary?): String? {
-    return anamnesisReadOnlyReason(summary)
-}
+fun anamnesisReadOnlyMessage(summary: AnamnesisSummary?): String? =
+    anamnesisReadOnlyReason(summary)
+
+fun anamnesisReadOnlyMessage(summary: AnamnesisSummary?, isPortuguese: Boolean): String? =
+    anamnesisReadOnlyReason(summary, isPortuguese)
 
 fun anamnesisStatusLabel(summary: AnamnesisSummary?): String = anamnesisDisplayStatus(summary)
 
-private fun validateFallback(fieldValues: Map<String, String>): SectionValidationResult {
+fun anamnesisStatusLabel(summary: AnamnesisSummary?, isPortuguese: Boolean): String =
+    anamnesisDisplayStatus(summary, isPortuguese)
+
+private fun validateFallback(
+    fieldValues: Map<String, String>,
+    isPortuguese: Boolean = false,
+): SectionValidationResult {
     return if (fieldValues.values.any(::hasMeaningfulAnswer)) {
         SectionValidationResult(isValid = true)
     } else {
         SectionValidationResult(
             isValid = false,
-            fieldErrors = mapOf("notes" to "Ingrese al menos una nota clinica relevante."),
-            message = "Ingrese al menos una nota clinica relevante antes de continuar.",
+            fieldErrors = mapOf(
+                "notes" to if (isPortuguese) {
+                    "Informe pelo menos uma nota clínica relevante."
+                } else {
+                    "Ingrese al menos una nota clinica relevante."
+                },
+            ),
+            message = if (isPortuguese) {
+                "Informe pelo menos uma nota clínica relevante antes de continuar."
+            } else {
+                "Ingrese al menos una nota clinica relevante antes de continuar."
+            },
         )
     }
 }
