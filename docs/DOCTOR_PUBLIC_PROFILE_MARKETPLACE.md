@@ -1,99 +1,76 @@
-# Doctor Public Profiles & Marketplace
+# Public Doctor Profiles
 
-Status: implementation kickoff
+Status: implementation in PR #878
 Branch: `feat/doctor-public-profiles-marketplace`
 Base: `main` at `eda686dd018eff1bc076954627745fa2f3d4fc15`
 
 ## Product objective
 
-Give every eligible AutaMedica clinician a shareable public professional page that can become an acquisition channel and, later, a booking entry point. The public page is separate from the authenticated doctor portal and must never expose clinical or private account data.
+Give eligible AutaMedica clinicians a shareable public professional page with an editorial presentation, verifiable credentials and a direct entry to the existing consultation intake. The public page is separate from the authenticated doctor portal and must never expose clinical or private account data.
 
-Initial URL target:
+Public routes:
 - `/ar/medicos/{slug}-{doctorId}`
 - `/br/medicos/{slug}-{doctorId}`
 
-The country segment is the clinician's care jurisdiction, not the visitor's browser locale.
+The country segment is the clinician's care jurisdiction. The visitor's UI locale is resolved independently.
 
-## Non-negotiable safety rules
+## Publication and clinical eligibility
 
-1. A profile is not public merely because a doctor account or `doctors` row exists.
-2. Publication requires explicit doctor opt-in and completed clinical credential approval.
-3. Public eligibility must use the same central predicate as dispatch: `app_private.is_doctor_dispatch_approved(doctor_id)`.
-4. Public responses use an allowlist. Never serialize whole `doctors`, `profiles`, or `doctor_licenses` rows.
-5. Never expose email, phone, CPF, payout details, signature/stamp URLs, patient data, credential evidence, internal IDs beyond the opaque public URL identifier, or admin review notes.
-6. No appointment booking is enabled until a server-side booking contract, availability rules, idempotency, and patient consent are verified.
-7. Do not publish ratings or testimonials until they are tied to completed consultations and moderation rules exist.
-8. Pages must be `noindex` until explicit publication is enabled and verified.
+- The doctor controls visibility with `doctors.public_profile_enabled` in the professional profile editor.
+- There is no separate publication-consent checkbox or version gate.
+- A database trigger timestamps every transition to enabled, records the actor and writes an audit-log entry.
+- A platform administrator can also enable/disable an individual profile through `PATCH /api/admin/doctors/public-profile`; the same database audit trigger applies.
+- Publication still requires the existing central clinical eligibility predicate `app_private.is_doctor_dispatch_approved(doctor_id)`.
+- If the database schema or eligibility predicate is unavailable, public rendering fails closed and the editor API returns a controlled unavailable response.
 
-## Phase 1 scope
+## Public DTO and privacy
 
-- Explicit public-profile opt-in and publication state.
-- Country-specific public route and canonical URL.
-- Server-side lookup by opaque doctor ID.
-- Server-side eligibility check using the central clinical approval predicate.
-- Strict public DTO allowlist.
-- SEO metadata and Person/Physician structured data only from verified public fields.
-- Shareable profile link and WhatsApp share action.
-- No public booking, reviews, pricing promises, or availability claims in this phase.
+Public responses use an allowlist. Never serialize whole `doctors`, `profiles`, or `doctor_licenses` rows.
 
-## Data contract to implement
+Never expose email, phone, CPF, payout details, signature/stamp URLs, patient data, credential evidence, admin review notes, or private account data. Only approved public credential numbers and the existing public avatar URL may be returned.
 
-A dedicated public-profile record (preferred) or equivalent fields with explicit consent:
+## Editorial page
 
-- `doctor_id` (unique FK)
-- `is_published` (boolean, default false)
-- `display_name` (doctor-controlled, moderated)
-- `public_bio`
-- `public_city`
-- `public_region`
-- `public_languages`
-- `public_avatar_path` (private storage path; signed/public delivery policy decided separately)
-- `public_slug` (unique)
-- `consented_at`
-- `updated_at`
+- Header: professional name, specialty, public photo when present, AR MN/MP or BR CRM/UF, and RQE where present.
+- Sections: clinical practice, education, professional trajectory, academic activity and recognition.
+- Optional sections render only when real content exists.
+- RQE is displayed as a professional credential value, without a warning label or claim that it independently validates the CRM.
+- CTA enters the existing consultation intake and carries `doctor_id` and `care_country` through patient registration. This is not a named-doctor booking contract.
 
-Do not reuse internal `doctors.bio` or `profiles.avatar_url` as public consent. Existing fields were not designed as publication consent.
+## Verified patient feedback
 
-## Server-side publication predicate
+The profile can show approved comments from `doctor_reviews` only when the linked appointment has status `completed`. Ratings and ranking scores are not exposed.
 
-A page can render only if all conditions hold:
+Visibility is governed independently by jurisdiction:
+- `platform_operational_domains.public_doctor_testimonials_enabled` for AR
+- `platform_operational_domains.public_doctor_testimonials_enabled` for BR
 
-- Public-profile record exists and `is_published = true`.
-- Doctor is active.
-- `app_private.is_doctor_dispatch_approved(doctor_id)` returns true.
-- Doctor country is AR or BR and matches the URL prefix.
-- License number is non-empty and not a PENDING placeholder.
-- Required public display fields pass validation.
+The platform administrator changes each flag through `PATCH /api/admin/doctors/public-profile-governance`, with a reason and an audit entry. Missing or disabled flags hide the section. No empty testimonial block is rendered.
 
-If the predicate cannot be evaluated, fail closed and return not found/noindex.
+## Database contract
 
-## Phase 2 (separate follow-up)
+The migration `20261124090000_add_public_doctor_profiles.sql` is additive and repeatable. It:
+- Adds optional structured professional fields and publication state to `doctors`.
+- Adds jurisdictional testimonial flags to the existing `platform_operational_domains` table.
+- Creates a server-only allowlisted read RPC.
+- Adds database-side publication timestamp and audit behavior.
+- Adds an audited administrator RPC for AR/BR testimonial flags.
+- Does not open anon/authenticated access to private doctor, profile or license tables.
 
-- Public availability and appointment booking.
-- Booking idempotency and collision protection.
-- Confirmations, cancellations, reminders, and waitlist.
-- Verified post-consultation reviews.
-- Profile analytics and attribution.
-- Embeddable booking widget.
+Do not apply the migration to production until the PR checks are green and the deployment sequence is explicitly approved.
 
-Each requires its own backend contract and tests; do not simulate these features in the public page.
+## SEO and acceptance criteria
 
-## Acceptance criteria
-
+- Public published profiles return canonical URLs, title, meta description and `schema.org/Physician` JSON-LD.
 - Unpublished, pending, inactive, or wrong-country clinicians return 404 and noindex.
-- A published, approved AR doctor appears only under `/ar/`; BR only under `/br/`.
 - A browser locale switch never changes legal jurisdiction or currency.
 - Public HTML and JSON contain only allowlisted public fields.
 - Anonymous access cannot enumerate unpublished clinicians.
-- No patient/clinical data or private credential evidence is present in HTML, JSON-LD, metadata, logs, or analytics.
-- Doctor can preview, publish, unpublish, and revoke consent.
-- Automated tests cover authorization, country mismatch, opt-out, inactive doctor, and missing approval.
+- No patient/clinical data or private credential evidence is present in HTML, JSON-LD, metadata, logs or analytics.
+- Doctor can preview, publish and unpublish through one visibility toggle.
+- Admin can override publication and independently configure testimonial visibility by country.
+- Unit tests cover minimum and populated profiles, AR/BR credentials, and jurisdictional testimonial flags.
 
-## Implementation sequence
+## Not included
 
-1. Schema and RLS for explicit publication consent.
-2. Shared server-side publication service and DTO.
-3. Public SSR route, metadata, JSON-LD, and share link.
-4. Doctor portal controls for preview/publish/unpublish.
-5. E2E and security regression.
-6. Only then implement booking, reviews, and growth analytics.
+Public appointment booking, availability claims, cancellation/reminders, waitlist, rankings, ratings, analytics and embeddable booking widgets remain separate work. The profile CTA preserves the clinician context into the current intake, but it does not reserve a named doctor or slot.
