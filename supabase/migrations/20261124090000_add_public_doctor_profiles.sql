@@ -54,6 +54,7 @@ AS $public_profile$
     'care_country', d.care_country,
     'first_name', p.first_name,
     'last_name', p.last_name,
+    'avatar_url', p.avatar_url,
     'specialty', d.specialty,
     'subspecialty', d.subspecialty,
     'bio', d.bio,
