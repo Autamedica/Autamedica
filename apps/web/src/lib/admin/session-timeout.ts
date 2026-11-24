@@ -1,3 +1,5 @@
+import { getServerEnvOrDefault } from '@autamedica/shared';
+
 export const ADMIN_LAST_ACTIVE_COOKIE = 'au_admin_last_active';
 export const DEFAULT_ADMIN_IDLE_TIMEOUT_MINUTES = 30;
 export const MIN_ADMIN_IDLE_TIMEOUT_MINUTES = 5;
@@ -8,7 +10,7 @@ export function resolveAdminIdleTimeoutMs(
 ): number {
   const raw =
     runtimeEnv?.ADMIN_IDLE_TIMEOUT_MINUTES ??
-    (typeof process !== 'undefined' ? process.env.ADMIN_IDLE_TIMEOUT_MINUTES : undefined);
+    getServerEnvOrDefault('ADMIN_IDLE_TIMEOUT_MINUTES');
 
   const parsed =
     typeof raw === 'number'
