@@ -586,7 +586,7 @@ export function PharmacyExpressConsultation({
     return (
       <div className="w-full h-full min-h-[100dvh] bg-slate-50">
         <div className="fixed top-3 left-4 z-50 flex items-center gap-2.5 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-slate-200 shadow-lg text-xs font-medium text-slate-900">
-          <img src="/logo_bioceramic.png" alt="AutaMedica" className="w-5 h-5 rounded-md object-contain" />
+          <img src="/logo_bioceramic.jpg" alt="AutaMedica" className="w-5 h-5 rounded-md object-contain" />
           <span className="font-bold tracking-tight text-slate-900">{pharmacyName || copy.brand}</span>
           {referralPartnerName && <span className="hidden text-slate-500 sm:inline">· {referralPartnerName}</span>}
           <span className="text-slate-400">•</span>
@@ -624,7 +624,7 @@ export function PharmacyExpressConsultation({
 
       <div className="w-full max-w-xl flex flex-col items-center relative z-10 my-auto">
         <header className="mb-5 flex items-center justify-center gap-2.5 text-center">
-          <img src="/logo_bioceramic.png" alt="AutaMedica" className="h-9 w-9 object-contain" />
+          <img src="/logo_bioceramic.jpg" alt="AutaMedica" className="h-9 w-9 object-contain" />
           <h1 className="text-xl font-semibold tracking-tight text-slate-900">
             {isPortuguese ? 'Consulta médica de plantão' : 'Consulta médica'}
           </h1>
@@ -873,7 +873,7 @@ export function PharmacyExpressConsultation({
             {/* Bioceramic Success Container */}
             <div className="relative w-16 h-16 rounded-[1.5rem] bg-white p-1 ring-1 ring-slate-200 shadow-lg flex items-center justify-center overflow-hidden mb-4">
               <img
-                src="/logo_bioceramic.png"
+                src="/logo_bioceramic.jpg"
                 alt="AutaMedica"
                 width={48}
                 height={48}
