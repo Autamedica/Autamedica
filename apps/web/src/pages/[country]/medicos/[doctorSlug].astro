@@ -4,6 +4,7 @@ import { createAstroAdminClient } from '@/lib/supabase';
 import { getPublicProfileCredentials, getVisibleProfileSections, toEditorialEntries, toStringEntries } from '@/lib/doctors/public-profile-view';
 
 export const prerender = false;
+Astro.response.headers.set('Cache-Control', 'no-store');
 
 type PublicProfile = {
   id: string;
@@ -30,6 +31,25 @@ type PublicProfile = {
 
 function stringValue(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+
+function slugify(value: string): string {
+  return value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function publicAvatarUrl(value: unknown): string {
+  const candidate = stringValue(value);
+  if (!candidate) return '';
+  try {
+    const url = new URL(candidate);
+    const supabaseAvatar = url.hostname.endsWith('.supabase.co')
+      && url.pathname.startsWith('/storage/v1/object/public/avatars/');
+    const googleAvatar = url.hostname === 'lh3.googleusercontent.com';
+    return url.protocol === 'https:' && (supabaseAvatar || googleAvatar) ? url.toString() : '';
+  } catch {
+    return '';
+  }
 }
 
 function renderSectionHeading(es: string, pt: string, isPortuguese: boolean): string {
@@ -62,6 +82,12 @@ if ((country === 'AR' || country === 'BR') && doctorId) {
 const name = profile
   ? [stringValue(profile.first_name), stringValue(profile.last_name)].filter(Boolean).join(' ')
   : '';
+const canonicalSlug = profile && doctorId ? (slugify(name) || 'medico') + '-' + doctorId : '';
+if (profile && canonicalSlug && slug !== canonicalSlug) {
+  return Astro.redirect('/' + country.toLowerCase() + '/medicos/' + canonicalSlug, 301);
+}
+const avatarUrl = publicAvatarUrl(profile?.avatar_url);
+if (!profile) Astro.response.status = 404;
 const specialty = stringValue(profile?.specialty);
 const subspecialty = stringValue(profile?.subspecialty);
 const bio = stringValue(profile?.bio);
@@ -87,7 +113,7 @@ const description = profile
       ? `${specialty} · Registro profissional validado em AutaMedica.`
       : `${specialty} · Matrícula profesional validada en AutaMedica.`)).slice(0, 160)
   : (isPortuguese ? 'Este perfil profissional não está disponível.' : 'Este perfil profesional no está disponible.');
-const canonical = `https://www.autamedica.com${Astro.url.pathname}`;
+const canonical = profile && canonicalSlug ? 'https://www.autamedica.com/' + country.toLowerCase() + '/medicos/' + canonicalSlug : undefined;
 ---
 
 <Layout
@@ -101,7 +127,7 @@ const canonical = `https://www.autamedica.com${Astro.url.pathname}`;
       <header class="profile-header">
         <a class="brand" href="/" aria-label="AutaMedica">AutaMedica</a>
         <div class="identity">
-          {profile.avatar_url && <img class="avatar" src={profile.avatar_url} alt={isPortuguese ? 'Foto profissional' : 'Foto profesional'} loading="eager" />}
+          {avatarUrl && <img class="avatar" src={avatarUrl} alt={isPortuguese ? 'Foto profissional' : 'Foto profesional'} loading="eager" />}
           <div class="identity-copy">
             <p class="eyebrow">{isPortuguese ? 'PERFIL PROFISSIONAL' : 'PERFIL PROFESIONAL'}</p>
             <h1>{name}</h1>
