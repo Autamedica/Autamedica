@@ -3,7 +3,13 @@ import AccountMenu from "./ui/AccountMenu";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { getI18n } from "../i18n/index";
 
-const locale = Astro.locals.locale ?? "es";
+interface Props {
+  localeOverride?: "es" | "pt";
+  showLanguageSwitcher?: boolean;
+}
+
+const { localeOverride, showLanguageSwitcher = true } = Astro.props;
+const locale = localeOverride ?? Astro.locals.locale ?? "es";
 const { t } = getI18n(locale);
 
 type MegaNavItem = {
@@ -128,7 +134,7 @@ const megaNav: MegaNavItem[] = [
 <nav class="navbar" aria-label="Navegacion principal">
   <div class="navbar-inner">
     <a href="/" class="navbar-logo" aria-label="AutaMedica - Inicio">
-      <img src="/logo_bioceramic.png" alt="AutaMedica" width="40" height="40" loading="eager" class="brand-logo" />
+      <img src="/logo_bioceramic.jpg" alt="AutaMedica" width="40" height="40" loading="eager" class="brand-logo" />
       <span class="navbar-brand">AutaMedica</span>
     </a>
 
@@ -159,7 +165,7 @@ const megaNav: MegaNavItem[] = [
     </ul>
 
     <div class="navbar-actions">
-      <LanguageSwitcher currentLocale={locale} client:load />
+      {showLanguageSwitcher && <LanguageSwitcher currentLocale={locale} client:load />}
       <AccountMenu locale={locale} client:load />
     </div>
 

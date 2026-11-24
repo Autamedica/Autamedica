@@ -54,6 +54,9 @@ const ROUTES: Array<{ path: string; priority: string; changefreq: string }> = [
   { path: '/consulta-medica-express', priority: '0.85', changefreq: 'weekly' },
   { path: '/medico-de-guardia-online', priority: '0.90', changefreq: 'daily' },
 
+  // Legal and regulatory
+  { path: '/ley-27553-telemedicina', priority: '0.80', changefreq: 'monthly' },
+
   // Blog
   { path: '/blog', priority: '0.85', changefreq: 'weekly' },
   { path: '/blog/vacuna-antigripal-h3n2-2026', priority: '0.80', changefreq: 'monthly' },

@@ -1,0 +1,38 @@
+{
+  "ci": {
+    "collect": {
+      "url": [
+        "http://127.0.0.1:8788/",
+        "http://127.0.0.1:8788/patients",
+        "http://127.0.0.1:8788/doctors",
+        "http://127.0.0.1:8788/companies",
+        "http://127.0.0.1:8788/platform"
+      ],
+      "numberOfRuns": 3,
+      "startServerCommand": "pnpm dlx wrangler@4.59.1 pages dev dist --cwd apps/web --ip 127.0.0.1 --port 8788",
+      "startServerReadyPattern": "Ready on",
+      "startServerReadyTimeout": 120000,
+      "settings": {
+        "onlyCategories": [
+          "seo"
+        ],
+        "chromeFlags": "--headless --no-sandbox"
+      }
+    },
+    "assert": {
+      "assertions": {
+        "categories:seo": [
+          "error",
+          {
+            "minScore": 1,
+            "aggregationMethod": "pessimistic"
+          }
+        ]
+      }
+    },
+    "upload": {
+      "target": "filesystem",
+      "outputDir": ".lighthouseci"
+    }
+  }
+}

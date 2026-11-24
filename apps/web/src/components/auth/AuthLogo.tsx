@@ -30,7 +30,7 @@ export function AuthLogo({ size = 'md' }: AuthLogoProps) {
     `}>
       <div className="absolute inset-0 bg-gradient-to-tr from-[var(--au-accent-glow)]/10 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
       <img
-        src="/logo_bioceramic.png"
+        src="/logo_bioceramic.jpg"
         alt="AutaMedica"
         width={dimension}
         height={dimension}

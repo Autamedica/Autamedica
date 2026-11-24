@@ -14,65 +14,49 @@ interface Props {
   breadcrumbs?: BreadcrumbItem[];
 }
 
-const {
-  vertical,
-  pathname,
-  title,
-  description,
-  breadcrumbs,
-} = Astro.props;
-
+const { vertical, pathname, title, description, breadcrumbs } = Astro.props;
 const baseOrigin = 'https://www.autamedica.com';
+const locale = Astro.locals.locale === 'pt' ? 'pt-BR' : 'es-AR';
 const canonicalUrl = new URL(pathname, `${baseOrigin}/`).toString();
 
 const verticalConfig: Record<Vertical, {
   name: string;
-  medicalEntityType: 'MedicalOrganization' | 'MedicalBusiness';
   serviceType: string;
   audienceType: string;
-  specialties: string[];
   imagePath: string;
   summary: string;
 }> = {
   patients: {
     name: 'Portal de Pacientes',
-    medicalEntityType: 'MedicalOrganization',
     serviceType: 'Atención médica virtual para pacientes',
     audienceType: 'Pacientes y familias',
-    specialties: ['PrimaryCare', 'PreventiveMedicine', 'Telemedicine'],
-    imagePath: '/images/seo/og-patients.webp',
+    imagePath: '/images/seo/og-patients.png',
     summary: 'Seguimiento clínico, turnos y continuidad de atención en una sola experiencia digital.',
   },
   doctors: {
     name: 'Portal para Médicos',
-    medicalEntityType: 'MedicalOrganization',
     serviceType: 'Herramientas clínicas y teleconsulta para profesionales',
     audienceType: 'Profesionales de la salud',
-    specialties: ['Telemedicine', 'MedicalClinic'],
-    imagePath: '/images/seo/og-doctors.webp',
+    imagePath: '/images/seo/og-doctors.png',
     summary: 'Flujo médico optimizado para agenda, teleconsulta y gestión de pacientes.',
   },
   companies: {
     name: 'Portal de Empresas',
-    medicalEntityType: 'MedicalBusiness',
     serviceType: 'Salud ocupacional y continuidad operativa empresarial',
     audienceType: 'Empresas y equipos de RRHH',
-    specialties: ['OccupationalMedicine', 'PreventiveMedicine'],
-    imagePath: '/images/seo/og-companies.webp',
+    imagePath: '/images/seo/og-companies.png',
     summary: 'Cobertura de salud corporativa para operación continua y prevención de riesgos.',
   },
 };
 
 const config = verticalConfig[vertical];
-const medicalEntityId = `${canonicalUrl}#medical-entity`;
+const organizationId = `${baseOrigin}/#organization`;
 const serviceId = `${canonicalUrl}#service`;
-
 const defaultBreadcrumbs: BreadcrumbItem[] = [
   { name: 'Inicio', path: '/' },
   { name: config.name, path: pathname },
 ];
-
-const breadcrumbTrail = breadcrumbs && breadcrumbs.length > 0 ? breadcrumbs : defaultBreadcrumbs;
+const breadcrumbTrail = breadcrumbs?.length ? breadcrumbs : defaultBreadcrumbs;
 
 const breadcrumbList = {
   '@type': 'BreadcrumbList',
@@ -90,54 +74,34 @@ const jsonLd = {
   '@graph': [
     {
       '@type': 'Organization',
-      '@id': `${baseOrigin}/#organization`,
+      '@id': organizationId,
       name: 'AutaMedica',
       url: `${baseOrigin}/`,
       logo: {
         '@type': 'ImageObject',
-        url: `${baseOrigin}/images/brand/logo_bioceramic.png`,
+        url: `${baseOrigin}/images/brand/logo_bioceramic.jpg`,
       },
-      areaServed: {
-        '@type': 'Country',
-        name: 'Argentina',
-      },
-    },
-    {
-      '@type': ['MedicalBusiness', config.medicalEntityType],
-      '@id': medicalEntityId,
-      name: `${config.name} | AutaMedica`,
-      url: canonicalUrl,
-      description,
-      image: `${baseOrigin}${config.imagePath}`,
-      medicalSpecialty: config.specialties,
-      availableService: {
-        '@id': serviceId,
-      },
-      areaServed: {
-        '@type': 'Country',
-        name: 'Argentina',
-      },
-      isPartOf: {
-        '@id': `${baseOrigin}/#website`,
-      },
+      areaServed: [
+        { '@type': 'Country', name: 'Argentina' },
+        { '@type': 'Country', name: 'Brasil' },
+      ],
     },
     {
       '@type': 'Service',
       '@id': serviceId,
-      name: `${config.name} - Servicio principal`,
+      name: config.name,
       serviceType: config.serviceType,
       description: config.summary,
-      provider: {
-        '@id': medicalEntityId,
-      },
+      image: new URL(config.imagePath, `${baseOrigin}/`).toString(),
+      provider: { '@id': organizationId },
       audience: {
         '@type': 'Audience',
         audienceType: config.audienceType,
       },
-      areaServed: {
-        '@type': 'Country',
-        name: 'Argentina',
-      },
+      areaServed: [
+        { '@type': 'Country', name: 'Argentina' },
+        { '@type': 'Country', name: 'Brasil' },
+      ],
       availableChannel: {
         '@type': 'ServiceChannel',
         serviceUrl: canonicalUrl,
@@ -149,21 +113,10 @@ const jsonLd = {
       url: canonicalUrl,
       name: title,
       description,
-      inLanguage: 'es-AR',
-      breadcrumb: {
-        '@id': `${canonicalUrl}#breadcrumb`,
-      },
-      about: [
-        {
-          '@id': medicalEntityId,
-        },
-        {
-          '@id': serviceId,
-        },
-      ],
-      mainEntity: {
-        '@id': serviceId,
-      },
+      inLanguage: locale,
+      breadcrumb: { '@id': `${canonicalUrl}#breadcrumb` },
+      about: { '@id': serviceId },
+      mainEntity: { '@id': serviceId },
     },
     breadcrumbList,
   ],

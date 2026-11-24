@@ -10,7 +10,9 @@ if [ "$CHANGED_FILES" -gt 100 ]; then
   exit 0
 fi
 
-# 1. SEO parity — verifica que sitemap y pages estén sincronizados
+# 1. SEO assets + contract — generate and validate before pushing
+echo "🖼️ Generando y validando assets SEO..."
+pnpm seo:generate:assets || exit 1
 echo "🔎 Validando paridad SEO..."
 pnpm seo:validate:parity || exit 1
 pnpm seo:validate:assets || exit 1

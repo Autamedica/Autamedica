@@ -5,21 +5,23 @@ ROOT_DIR="$(cd "$(dirname -- "$0")/../.." && pwd)"
 WEB_PUBLIC="$ROOT_DIR/apps/web/public"
 WEB_APP_PUBLIC="$ROOT_DIR/apps/web-app/public"
 SEO_DIR="$WEB_PUBLIC/images/seo"
-LOGO_PATH="$WEB_PUBLIC/autamedica-logo.png"
+# Present in the web public tree; ImageMagick detects its actual file format.
+LOGO_PATH="$WEB_PUBLIC/images/brand/logo_bioceramic.jpg"
 
 FONT_BOLD="${FONT_BOLD:-DejaVu-Sans-Bold}"
 FONT_REG="${FONT_REG:-DejaVu-Sans}"
+MAGICK_BIN="$(command -v magick || command -v convert || true)"
+IDENTIFY_BIN="$(command -v identify || true)"
 
-mkdir -p "$SEO_DIR"
-mkdir -p "$WEB_APP_PUBLIC/images/seo"
+mkdir -p "$SEO_DIR" "$WEB_APP_PUBLIC/images/seo"
 
-if ! command -v magick >/dev/null 2>&1; then
-  echo "❌ ImageMagick (magick) no esta instalado."
+if [[ -z "$MAGICK_BIN" || -z "$IDENTIFY_BIN" ]]; then
+  echo "❌ ImageMagick (magick/convert + identify) no está instalado."
   exit 1
 fi
 
-if [[ ! -f "$LOGO_PATH" ]]; then
-  echo "❌ No existe logo base: $LOGO_PATH"
+if [[ ! -s "$LOGO_PATH" ]]; then
+  echo "❌ No existe el logo base: $LOGO_PATH"
   exit 1
 fi
 
@@ -27,28 +29,32 @@ generate_card() {
   local out="$1"
   local title="$2"
   local subtitle="$3"
-  local accent="$4"
+  local accent="${4:-#0EA5E9}"
 
-  magick -size 1200x630 gradient:'#0f172a-#020617' \
-    \( -size 1200x630 radial-gradient:'#33415566-#000000dd' \) -compose over -composite \
-    -fill "${accent}26" -draw 'roundrectangle 72,70 1128,560 30,30' \
-    -fill '#0b1220cc' -draw 'roundrectangle 86,84 1114,546 26,26' \
-    \( "$LOGO_PATH" -resize 120x120 \) -gravity northwest -geometry +120+116 -composite \
-    -font "$FONT_BOLD" -pointsize 78 -fill '#f8fafc' -gravity northwest -annotate +270+182 "$title" \
-    -font "$FONT_REG" -pointsize 34 -fill '#cbd5e1' -gravity northwest -annotate +272+256 "$subtitle" \
-    -stroke "$accent" -strokewidth 5 -draw 'line 270,314 980,314' \
-    -font "$FONT_REG" -pointsize 26 -fill '#94a3b8' -gravity southwest -annotate +120+54 'www.autamedica.com' \
+  "$MAGICK_BIN" -size 1200x630 gradient:'#f8fcff-#e8f6fd' \
+    \( -size 1200x630 radial-gradient:'#d8f1fc-#ffffff00' \) -compose over -composite \
+    -fill '#ffffff' -draw 'roundrectangle 72,70 1128,560 34,34' \
+    -stroke '#d5eaf5' -strokewidth 2 -fill none -draw 'roundrectangle 72,70 1128,560 34,34' \
+    -stroke none -fill "$accent" -draw 'roundrectangle 72,70 92,560 10,10' \
+    \( "$LOGO_PATH" -resize 120x120 \) -gravity northwest -geometry +125+112 -composite \
+    -font "$FONT_BOLD" -pointsize 72 -fill '#0b2239' -gravity northwest -annotate +280+130 "$title" \
+    -font "$FONT_REG" -pointsize 34 -fill '#416176' -gravity northwest -annotate +130+280 "$subtitle" \
+    -stroke "$accent" -strokewidth 5 -draw 'line 130,420 570,420' \
+    -font "$FONT_REG" -pointsize 27 -fill '#52758a' -gravity southwest -annotate +130+55 'www.autamedica.com' \
     "$out"
 }
 
-echo "🖼️  Generando imagenes SEO 1200x630..."
+echo "🧩 Generando iconos PWA cuadrados..."
+"$MAGICK_BIN" "$LOGO_PATH" -strip -resize 192x192^ -gravity center -extent 192x192 "$WEB_PUBLIC/pwa-icon-192.png"
+"$MAGICK_BIN" "$LOGO_PATH" -strip -resize 512x512^ -gravity center -extent 512x512 "$WEB_PUBLIC/pwa-icon-512.png"
 
-generate_card "$SEO_DIR/og-main.png" "AutaMedica" "Telemedicina sin fricciones" '#10b981'
-generate_card "$SEO_DIR/twitter-main.png" "AutaMedica" "Agenda inmediata. Receta digital. Seguimiento continuo." '#22d3ee'
-generate_card "$SEO_DIR/og-patients.png" "Portal de Pacientes" "Turnos, historial y prevencion en una sola experiencia." '#10b981'
-generate_card "$SEO_DIR/og-doctors.png" "Portal para Medicos" "Agenda clinica y teleconsulta con foco operativo." '#3b82f6'
-generate_card "$SEO_DIR/og-companies.png" "Portal de Empresas" "Salud ocupacional y continuidad para equipos corporativos." '#f59e0b'
-generate_card "$SEO_DIR/og-platform.png" "AutaMedica Platform" "Entrada unificada para pacientes, medicos y empresas." '#14b8a6'
+echo "🖼️ Generando imágenes SEO 1200x630..."
+generate_card "$SEO_DIR/og-main.png" "AutaMedica" "Telemedicina y atención médica digital" '#0EA5E9'
+generate_card "$SEO_DIR/twitter-main.png" "AutaMedica" "Consulta online, receta digital y seguimiento clínico" '#0284C7'
+generate_card "$SEO_DIR/og-patients.png" "Portal de Pacientes" "Consultas online, continuidad e historial clínico" '#0EA5E9'
+generate_card "$SEO_DIR/og-doctors.png" "Portal para Médicos" "Agenda, teleconsulta y gestión clínica" '#0284C7'
+generate_card "$SEO_DIR/og-companies.png" "Portal de Empresas" "Salud para equipos y continuidad operativa" '#0EA5E9'
+generate_card "$SEO_DIR/og-platform.png" "AutaMedica Platform" "Una experiencia conectada para pacientes y profesionales" '#0284C7'
 
 cp "$SEO_DIR/og-main.png" "$WEB_PUBLIC/og-image.png"
 cp "$SEO_DIR/twitter-main.png" "$WEB_PUBLIC/twitter-image.png"
@@ -57,8 +63,7 @@ cp "$SEO_DIR/twitter-main.png" "$WEB_APP_PUBLIC/twitter-image.png"
 cp "$SEO_DIR/og-main.png" "$WEB_APP_PUBLIC/images/seo/og-main.png"
 cp "$SEO_DIR/twitter-main.png" "$WEB_APP_PUBLIC/images/seo/twitter-main.png"
 
-echo "✅ Imagenes generadas:"
-identify \
+for asset in \
   "$SEO_DIR/og-main.png" \
   "$SEO_DIR/twitter-main.png" \
   "$SEO_DIR/og-patients.png" \
@@ -67,5 +72,15 @@ identify \
   "$SEO_DIR/og-platform.png" \
   "$WEB_PUBLIC/og-image.png" \
   "$WEB_PUBLIC/twitter-image.png" \
-  "$WEB_APP_PUBLIC/og-image.png" \
-  "$WEB_APP_PUBLIC/twitter-image.png"
+  "$WEB_PUBLIC/pwa-icon-192.png" \
+  "$WEB_PUBLIC/pwa-icon-512.png"; do
+  actual="$("$IDENTIFY_BIN" -format '%wx%h' "$asset")"
+  expected="1200x630"
+  [[ "$asset" == *"pwa-icon-192.png" ]] && expected="192x192"
+  [[ "$asset" == *"pwa-icon-512.png" ]] && expected="512x512"
+  if [[ "$actual" != "$expected" ]]; then
+    echo "❌ Dimensión incorrecta para $asset: $actual (esperado $expected)"
+    exit 1
+  fi
+  echo "✅ $asset ($actual)"
+done
