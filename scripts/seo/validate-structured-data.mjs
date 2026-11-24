@@ -17,6 +17,8 @@ function requireCondition(condition, message) {
 }
 
 requireCondition(seoMeta.includes('hreflangAlternates?:'), 'SeoMeta must accept explicit hreflangAlternates.');
+requireCondition((seoMeta.match(/<link rel="canonical"/g) ?? []).length === 1, 'SeoMeta must render exactly one canonical link.');
+requireCondition(seoMeta.includes('const canonicalUrl'), 'SeoMeta must compute a canonical URL for every rendered route.');
 requireCondition(seoMeta.includes('validHreflangAlternates.map'), 'SeoMeta must emit only explicitly validated hreflang alternates.');
 requireCondition(!/hreflang="(?:es|pt|x-default)"/.test(seoMeta), 'SeoMeta must not publish a false default ES/PT language cluster.');
 requireCondition(seoMeta.includes("url.hostname === 'www.autamedica.com'"), 'Hreflang targets must use the canonical public host.');
@@ -26,6 +28,8 @@ requireCondition(globalSchema.includes("'@type': 'Organization'"), 'Global JSON-
 requireCondition(globalSchema.includes("'@type': 'WebSite'"), 'Global JSON-LD must describe the website.');
 requireCondition(globalSchema.includes("'@type': 'SoftwareApplication'"), 'Global JSON-LD must describe the application.');
 requireCondition(globalSchema.includes('/images/seo/og-main.png'), 'Global JSON-LD must reference the generated PNG asset.');
+requireCondition(globalSchema.includes('/images/brand/logo_bioceramic.jpg'), 'Global JSON-LD must reference the correctly typed JPEG logo.');
+requireCondition(!globalSchema.includes('/images/brand/logo_bioceramic.png'), 'Global JSON-LD must not reference JPEG bytes using a PNG extension.');
 requireCondition(!/aggregateRating|ratingValue|ratingCount/.test(globalSchema), 'Remove unsupported aggregate ratings from JSON-LD.');
 requireCondition(!/offers:\s*\{[\s\S]*?price:\s*['"]0['"]/.test(globalSchema), 'Do not mark the whole application as a free offer.');
 
