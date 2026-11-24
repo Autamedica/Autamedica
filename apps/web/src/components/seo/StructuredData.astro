@@ -61,16 +61,12 @@ const jsonLd = {
       '@id': `${baseUrl}/#medical-organization`,
       name: 'AutaMedica',
       url: `${baseUrl}/`,
-      image: `${baseUrl}/images/seo/og-main.webp`,
+      image: `${baseUrl}/images/seo/og-main.png`,
       medicalSpecialty: ['Telemedicine', 'PrimaryCare', 'PreventiveMedicine', 'MentalHealth', 'Cardiology', 'Dermatology'],
       areaServed: [
         { '@type': 'Country', 'name': 'Argentina' },
         { '@type': 'Country', 'name': 'Brasil' },
-        { '@type': 'Country', 'name': 'Colombia' },
-        { '@type': 'Country', 'name': 'Peru' },
-        { '@type': 'Country', 'name': 'Mexico' },
-        { '@type': 'Country', 'name': 'Ecuador' },
-        { '@type': 'Country', 'name': 'Chile' }
+        { '@type': 'Country', 'name': 'Brasil' }
       ],
       availableService: {
         '@type': 'Service',
@@ -92,7 +88,7 @@ const jsonLd = {
       '@type': 'SoftwareApplication',
       '@id': `${baseUrl}/#application`,
       name: 'AutaMedica',
-      operatingSystem: 'Web, iOS, Android',
+      operatingSystem: 'Web, Android',
       applicationCategory: 'HealthApplication',
       url: `${baseUrl}/`,
       author: {
@@ -101,17 +97,8 @@ const jsonLd = {
       brand: {
         '@id': `${baseUrl}/#organization`
       },
-      offers: {
-        '@type': 'Offer',
-        price: '0',
-        priceCurrency: 'ARS',
-        availability: 'https://schema.org/InStock'
-      },
-      aggregateRating: {
-        '@type': 'AggregateRating',
-        ratingValue: '4.8',
-        ratingCount: '250'
-      }
+      applicationSubCategory: 'Telemedicine and digital health',
+      availableLanguage: ['es-AR', 'pt-BR']
     }
   ]
 };
