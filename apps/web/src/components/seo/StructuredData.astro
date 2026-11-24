@@ -56,31 +56,26 @@ const jsonLd = {
       inLanguage: ['es-AR', 'pt-BR']
     },
     {
-      '@type': 'MedicalOrganization',
-      '@id': `${baseUrl}/#medical-organization`,
-      name: 'AutaMedica',
-      url: `${baseUrl}/`,
+      '@type': 'Service',
+      '@id': `${baseUrl}/#telemedicine-service`,
+      name: 'Plataforma de telemedicina AutaMedica',
+      serviceType: 'Plataforma digital para telemedicina y coordinación clínica',
+      url: `${baseUrl}/platform`,
       image: `${baseUrl}/images/seo/og-main.png`,
-      medicalSpecialty: ['Telemedicine', 'PrimaryCare', 'PreventiveMedicine', 'MentalHealth', 'Cardiology', 'Dermatology'],
+      provider: {
+        '@id': `${baseUrl}/#organization`
+      },
       areaServed: [
         { '@type': 'Country', 'name': 'Argentina' },
         { '@type': 'Country', 'name': 'Brasil' }
       ],
-      availableService: {
-        '@type': 'Service',
-        name: 'Telemedicina sin fricciones',
-        serviceType: 'Atención médica virtual 24/7',
-        url: `${baseUrl}/platform`,
-        provider: {
-          '@id': `${baseUrl}/#organization`
-        }
+      availableChannel: {
+        '@type': 'ServiceChannel',
+        serviceUrl: `${baseUrl}/platform`
       },
       isPartOf: {
-        '@id': `${baseUrl}/#website`,
-      },
-      founder: {
-        '@id': `${baseUrl}/#founder`,
-      },
+        '@id': `${baseUrl}/#website`
+      }
     },
     {
       '@type': 'SoftwareApplication',

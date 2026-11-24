@@ -29,6 +29,9 @@ requireCondition(globalSchema.includes("'@type': 'WebSite'"), 'Global JSON-LD mu
 requireCondition(globalSchema.includes("'@type': 'SoftwareApplication'"), 'Global JSON-LD must describe the application.');
 requireCondition(globalSchema.includes('/images/seo/og-main.png'), 'Global JSON-LD must reference the generated PNG asset.');
 requireCondition(globalSchema.includes('/images/brand/logo_bioceramic.jpg'), 'Global JSON-LD must reference the correctly typed JPEG logo.');
+requireCondition(!/MedicalOrganization|MedicalBusiness/.test(globalSchema), 'Global platform JSON-LD must not claim a medical facility or medical organization type.');
+requireCondition(!/24\/7|24 horas|24hs/i.test(globalSchema), 'Global JSON-LD must not claim continuous medical availability without verified coverage.');
+requireCondition(globalSchema.includes("'@type': 'Service'"), 'Global JSON-LD must describe the telemedicine platform as a service.');
 requireCondition(!globalSchema.includes('/images/brand/logo_bioceramic.png'), 'Global JSON-LD must not reference JPEG bytes using a PNG extension.');
 requireCondition(!/aggregateRating|ratingValue|ratingCount/.test(globalSchema), 'Remove unsupported aggregate ratings from JSON-LD.');
 requireCondition(!/offers:\s*\{[\s\S]*?price:\s*['"]0['"]/.test(globalSchema), 'Do not mark the whole application as a free offer.');
