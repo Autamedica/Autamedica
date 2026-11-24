@@ -1,5 +1,7 @@
 'use client';
 
+import { type ChangeEvent, useRef, useState } from 'react';
+import { fetchApi } from '@/lib/api-client';
 import { usePatientProfilePage } from '@/hooks/patients/usePatientProfilePage';
 import { usePatientSession } from '@/hooks/patients/usePatientSession';
 import type { UsePatientSessionResult } from '@/hooks/patients/usePatientSession';
@@ -7,7 +9,7 @@ import {
   Activity,
   AlertCircle,
   BadgeCheck,
-
+  Camera,
   Droplets,
   Hash,
   HeartPulse,
@@ -26,8 +28,9 @@ import { maskOfficialAddress } from '@/lib/patients/services/renaper-display-pri
 import { MetricCard } from '@/components/shared/MetricCard';
 import { CrossModuleCard } from '@/components/shared/CrossModuleCard';
 import {
-  GENDER_OPTIONS, BLOOD_TYPE_OPTIONS,
+  BLOOD_TYPE_OPTIONS,
   getCompletionTone,
+  getGenderOptions,
 } from './profile-constants';
 
 function AuthenticatedPatientProfilePage({
@@ -75,6 +78,67 @@ function AuthenticatedPatientProfilePage({
   } = usePatientProfilePage(session);
   const isPortuguese = session.patient?.careCountry === 'BR'
     || (typeof navigator !== 'undefined' && navigator.language.toLowerCase().startsWith('pt'));
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const avatarUrl = uploadedAvatarUrl ?? session.profile?.avatarUrl ?? null;
+  const avatarInitials = displayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('') || 'P';
+
+  const handleAvatarUpload = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setAvatarError(null);
+
+    if (!['image/png', 'image/webp', 'image/jpeg'].includes(file.type)) {
+      setAvatarError(
+        isPortuguese
+          ? 'Formato não suportado. Use PNG, WebP ou JPEG.'
+          : 'Formato no compatible. Usá PNG, WebP o JPEG.',
+      );
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setAvatarError(
+        isPortuguese
+          ? 'A foto não pode ultrapassar 2 MB.'
+          : 'La foto no puede superar los 2 MB.',
+      );
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const image = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (typeof reader.result === 'string') resolve(reader.result);
+          else reject(new Error('invalid_image_read'));
+        };
+        reader.onerror = () => reject(new Error('invalid_image_read'));
+        reader.readAsDataURL(file);
+      });
+      const result = await fetchApi<{ avatarUrl: string }>('/api/patients/profile/photo', {
+        body: { image },
+      });
+      setUploadedAvatarUrl(result.avatarUrl);
+      await session.refresh().catch(() => null);
+    } catch {
+      setAvatarError(
+        isPortuguese
+          ? 'Não foi possível atualizar sua foto de perfil.'
+          : 'No pudimos actualizar tu foto de perfil.',
+      );
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
   const dateLocale = isPortuguese ? 'pt-BR' : 'es-AR';
   const formatPatientDate = (value: string | Date | null | undefined) => {
     if (!value) return isPortuguese ? 'Sem data' : 'Sin fecha';
@@ -105,8 +169,48 @@ function AuthenticatedPatientProfilePage({
             <Sparkles className="h-3.5 w-3.5" />
             {isPortuguese ? 'Perfil unificado' : 'Perfil unificado'}
           </div>
-          <h1 className="text-4xl lg:text-5xl text-white mb-4 leading-tight">{displayName}</h1>
-          <p className="text-lg text-white/60">{isPortuguese ? 'Última atualização: ' : 'Última actualización: '}{formatPatientDate(lastUpdatedAt as string | Date | null)}</p>
+          <div className="flex flex-wrap items-center gap-5">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                aria-label={isPortuguese ? 'Alterar foto de perfil' : 'Cambiar foto de perfil'}
+                className="group relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-white/40 bg-white/15 text-2xl font-bold text-white shadow-md transition hover:border-white disabled:cursor-not-allowed"
+              >
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={displayName}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span>{avatarInitials}</span>
+                )}
+                <span className="absolute inset-0 flex items-center justify-center bg-slate-900/45 opacity-0 transition group-hover:opacity-100">
+                  {uploadingAvatar ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-white" />
+                  ) : (
+                    <Camera className="h-5 w-5 text-white" />
+                  )}
+                </span>
+              </button>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleAvatarUpload}
+                className="hidden"
+              />
+            </div>
+            <div>
+              <h1 className="text-4xl lg:text-5xl text-white mb-2 leading-tight">{displayName}</h1>
+              <p className="text-lg text-white/60">{isPortuguese ? 'Última atualização: ' : 'Última actualización: '}{formatPatientDate(lastUpdatedAt as string | Date | null)}</p>
+              {avatarError ? (
+                <p className="mt-2 text-sm font-medium text-rose-100">{avatarError}</p>
+              ) : null}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -177,7 +281,9 @@ function AuthenticatedPatientProfilePage({
                     {reportsLoading
                       ? (isPortuguese ? 'Sincronizando...' : 'Sincronizando...')
                       : reportsCount > 0
-                        ? `${reportsCount} informe(s), ${aiGeneratedReportsCount} generado(s) con IA. Último: ${formatPatientDate(latestReport?.dateRecorded ?? null)}.`
+                        ? (isPortuguese
+                          ? `${reportsCount} relatório(s), ${aiGeneratedReportsCount} gerado(s) com IA. Último: ${formatPatientDate(latestReport?.dateRecorded ?? null)}.`
+                          : `${reportsCount} informe(s), ${aiGeneratedReportsCount} generado(s) con IA. Último: ${formatPatientDate(latestReport?.dateRecorded ?? null)}.`)
                         : (isPortuguese ? 'Nenhum relatório carregado.' : 'Sin informes cargados.')}
                   </p>
                 </div>
@@ -294,7 +400,7 @@ function AuthenticatedPatientProfilePage({
                         icon={<UserCircle2 className="h-4 w-4" />}
                         disabled={!!session.patient?.gender}
                       >
-                        {GENDER_OPTIONS.map((option) => (
+                        {getGenderOptions(isPortuguese ? 'pt' : 'es').map((option) => (
                           <option key={option.value} value={option.value}>
                             {option.label}
                           </option>

@@ -65,10 +65,11 @@ fun PatientCommunityScreen(
                     )
                 }
                 items(state.groups) { group ->
+                    val groupName = group.nameRes?.let { stringResource(it) } ?: group.name
                     FilterChip(
                         selected = state.selectedGroupId == group.id,
                         onClick = { viewModel.selectGroup(group.id) },
-                        label = { Text(group.name) }
+                        label = { Text(groupName) }
                     )
                 }
             }
@@ -96,17 +97,20 @@ fun PatientCommunityScreen(
 
 @Composable
 private fun PostCard(post: CommunityPost) {
+    val resolvedTitle = post.titleRes?.let { stringResource(it) } ?: post.title
+    val resolvedContent = post.contentRes?.let { stringResource(it) } ?: post.content
+    val resolvedAuthor = post.authorRes?.let { stringResource(it) } ?: post.author
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = post.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(text = resolvedTitle, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
-            Text(text = post.content, style = MaterialTheme.typography.bodyMedium)
+            Text(text = resolvedContent, style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = stringResource(R.string.community_author_format, post.author), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                Text(text = stringResource(R.string.community_author_format, resolvedAuthor), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
                 Icon(Icons.Default.FavoriteBorder, contentDescription = stringResource(R.string.community_like_cd), modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(text = post.likeCount.toString(), style = MaterialTheme.typography.bodySmall)

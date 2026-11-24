@@ -11,6 +11,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -621,15 +623,23 @@ private fun UploadDocumentDialog(
                     "document" to stringResource(R.string.clinical_docs_chip_document),
                 )
 
-                LazyRow(
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    items(types) { (key, label) ->
+                    types.forEach { (key, label) ->
                         FilterChip(
                             selected = selectedType == key,
                             onClick = { if (!isUploading) selectedType = key },
-                            label = { Text(label) },
+                            label = {
+                                Text(
+                                    text = label,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                )
+                            },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = PortalPatientsSoft,
                                 selectedLabelColor = PortalPatients,

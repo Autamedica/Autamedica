@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="es">
     <string name="app_name">AutaMedica</string>
     <string name="login_title">Iniciar Sesion</string>
     <string name="login_email_label">Correo electronico</string>
@@ -217,6 +217,9 @@
     <string name="rx_download_pdf">Descargar Receta (PDF)</string>
     <string name="rx_emergency_same">SAME 107</string>
     <string name="rx_emergency_samu">SAME 107</string>
+    <string name="rx_posology_every_hours">Cada %1$s hs</string>
+    <string name="rx_posology_duration_days">%1$s días</string>
+    <string name="rx_doctor_fallback">Dr. Médico Tratante</string>
     <string name="rx_filter_active">Activas</string>
     <string name="rx_filter_all">Todas</string>
     <string name="rx_filter_completed">Completadas</string>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="es">
     <!-- Patients Screen (Mis Pacientes) -->
     <string name="patients_screen_title">Mis Pacientes</string>
     <string name="patients_search_cd">Buscar</string>
@@ -175,6 +175,16 @@
     <string name="community_dialog_content_label">Contá tu experiencia...</string>
     <string name="community_dialog_cancel_btn">Cancelar</string>
     <string name="community_dialog_submit_btn">Publicar</string>
+    <string name="community_group_reproductive">Salud Reproductiva</string>
+    <string name="community_group_nutrition">Nutrición</string>
+    <string name="community_group_mental_health">Salud Mental</string>
+    <string name="community_post_1_title">Mi experiencia</string>
+    <string name="community_post_1_content">Quería compartir cómo me fue en la última consulta...</string>
+    <string name="community_post_1_author">Anónimo</string>
+    <string name="community_post_2_title">Dudas sobre medicamentos</string>
+    <string name="community_post_2_content">¿Alguien sabe si el nuevo medicamento da sueño?</string>
+    <string name="community_post_2_author">María</string>
+    <string name="community_author_user">Usuario</string>
     <string name="patient_detail_error_auth">No se pudo validar tu sesión. Ingresa nuevamente.</string>
     <string name="patient_detail_error_invalid_reference">El identificador del paciente no es válido.</string>
     <string name="patient_detail_error_not_assigned">Este paciente no está vinculado a tu cuenta médica.</string>

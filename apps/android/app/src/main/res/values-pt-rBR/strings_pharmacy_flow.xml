@@ -31,10 +31,10 @@
     <string name="pharmacy_flow_assigned_hint">O médico aceitou. Preparando a videochamada.</string>
     <string name="pharmacy_flow_active_request">Solicitação ativa · %1$s</string>
     <string name="pharmacy_flow_country_fallback">país selecionado</string>
-    <string name="pharmacy_flow_checking_capacity">Consultando médicos no %1$s...</string>
-    <string name="pharmacy_flow_waiting_capacity">Aguardando um médico no %1$s.</string>
+    <string name="pharmacy_flow_checking_capacity">Consultando médicos disponíveis (%1$s)...</string>
+    <string name="pharmacy_flow_waiting_capacity">Aguardando um médico disponível (%1$s).</string>
     <string name="pharmacy_flow_request_registered">Sua solicitação já está na fila. Não é necessário enviá-la novamente.</string>
-    <string name="pharmacy_flow_online_count">%1$d médicos disponíveis no %2$s. Sua solicitação continua na fila.</string>
+    <string name="pharmacy_flow_online_count">%1$d médicos disponíveis (%2$s). Sua solicitação continua na fila.</string>
     <string name="pharmacy_flow_queue_position">Posição na fila</string>
     <string name="pharmacy_flow_estimated_time">Tempo estimado</string>
     <string name="pharmacy_flow_cancelling">Cancelando...</string>

@@ -181,7 +181,10 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   const freeConsults = patient?.freeConsultationsRemaining ?? 0
   const getWalletFabText = () => {
     if (freeConsults > 0) {
-      return `${freeConsults} ${freeConsults === 1 ? 'consulta' : 'consultas'} ${dict.patientPortal.metrics.freeConsultations.toLowerCase()}`
+      if (freeConsults === 1) {
+        return locale === 'pt' ? '1 consulta gratuita' : '1 consulta gratuita'
+      }
+      return `${freeConsults} ${dict.patientPortal.metrics.freeConsultations.toLowerCase()}`
     }
     const balanceCents = walletSummary?.balance.available_credit_cents ?? 0
     return formatWalletBalance(balanceCents, locale)
@@ -839,7 +842,9 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                {!anamnesisCompleted ? 'Completar ahora' : dict.patientPortal.metrics.bookAppointment}
+                {!anamnesisCompleted
+                  ? (locale === 'pt' ? 'Completar agora' : 'Completar ahora')
+                  : dict.patientPortal.metrics.bookAppointment}
                 <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
               </motion.a>
             </div>

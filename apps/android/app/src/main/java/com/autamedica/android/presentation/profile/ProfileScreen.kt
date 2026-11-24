@@ -181,6 +181,11 @@ fun ProfileScreen(
                         .padding(horizontal = 16.dp, vertical = 18.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
+                    val launchAvatarPicker = rememberAvatarPickerLauncher(
+                        onPicked = viewModel::uploadAvatar,
+                        onError = viewModel::onAvatarError,
+                    )
+
                     user?.let {
                         ProfileHeroCard(
                             user = it,
@@ -190,6 +195,7 @@ fun ProfileScreen(
                             profileDisplayName = profileDisplayName,
                             doctorProfile = doctorProfile,
                             onNavigateToDoctorSignature = onNavigateToDoctorSignature,
+                            onPickAvatar = launchAvatarPicker,
                         )
                     }
 
@@ -253,7 +259,9 @@ private fun ProfileHeroCard(
     profileDisplayName: String,
     doctorProfile: DoctorProfile?,
     onNavigateToDoctorSignature: () -> Unit,
+    onPickAvatar: () -> Unit,
 ) {
+    val initials = profileDisplayName.trim().firstOrNull()?.uppercase() ?: "A"
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -273,18 +281,15 @@ private fun ProfileHeroCard(
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Surface(
-                        modifier = Modifier.size(74.dp),
-                        shape = CircleShape,
-                        color = AuSurfaceHover,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = null,
-                            modifier = Modifier.padding(18.dp),
-                            tint = accentColor,
-                        )
-                    }
+                    ProfileAvatarBadge(
+                        avatarUrl = user.avatarUrl,
+                        initials = initials,
+                        accentColor = accentColor,
+                        isUploading = uiState.isUploadingAvatar,
+                        size = 74.dp,
+                        contentDescription = stringResource(R.string.profile_change_avatar_cd),
+                        onClick = onPickAvatar,
+                    )
 
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
@@ -312,6 +317,14 @@ private fun ProfileHeroCard(
                         )
                     }
                 }
+            }
+
+            uiState.avatarError?.let { errorMsg ->
+                Text(
+                    text = errorMsg,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AuDanger,
+                )
             }
 
             doctorProfile?.let { doctor ->

@@ -130,10 +130,13 @@
     <string name="patient_wallet_topup_button">Recarregar saldo</string>
     <string name="patient_deletion_title">Exclusão de conta e dados</string>
     <string name="patient_deletion_law_argentina">Seu direito à exclusão de dados é protegido pela Lei 25.326 de Proteção de Dados Pessoais (Argentina) e pela LGPD (Brasil).</string>
-    <string name="patient_deletion_retention_warning">Retenção legal obrigatória: De acordo com a Lei 26.529 (Direitos do Paciente), certos registros médicos anonimizados devem ser conservados pelo prazo legal mínimo obligatorio de 10 anos.</string>
+    <string name="patient_deletion_retention_warning">Retenção legal obrigatória: De acordo com a Lei 26.529 (Direitos do Paciente), certos registros médicos anonimizados devem ser conservados pelo prazo legal mínimo obrigatório de 10 anos.</string>
     <string name="patient_deletion_processing_time">Prazo de processamento: Até 30 dias úteis a partir da confirmação da solicitação.</string>
     <string name="patient_deletion_request_button">Solicitar exclusão de conta</string>
     <string name="patient_deletion_mailto_url" formatted="false">mailto:contacto@autamedica.com?subject=Solicita%C3%A7%C3%A3o%20de%20exclus%C3%A3o%20de%20conta</string>
     <string name="patient_logout_dialog_title">Encerrar sessão</string>
     <string name="patient_logout_dialog_message">Tem certeza de que deseja encerrar a sessão na AutaMedica?</string>
+    <string name="profile_change_avatar_cd">Alterar foto de perfil</string>
+    <string name="profile_avatar_too_large">A imagem não pode ultrapassar 2 MB.</string>
+    <string name="profile_avatar_invalid_type">Formato não suportado. Use PNG, JPEG ou WebP.</string>
 </resources>
