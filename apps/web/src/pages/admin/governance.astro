@@ -1,5 +1,6 @@
 ---
 import Layout from '@/layouts/Layout.astro';
+import AdminLogoutButton from '@/components/admin/AdminLogoutButton.astro';
 import { OperationalGovernanceCenter } from '@/components/admin/OperationalGovernanceCenter';
 import { resolveAdminRole } from '@/lib/admin/auth';
 const title='Centro de Gobernanza Operativa | AutaMedica';
@@ -11,7 +12,7 @@ if(!role)return Astro.redirect('/admin/unauthorized');
 ---
 <Layout title={title} description={description}>
  <div class="min-h-screen bg-slate-50">
-  <header class="border-b border-slate-200 bg-white px-4 py-4"><div class="mx-auto flex max-w-7xl items-center justify-between gap-3"><div><a href="/admin" class="text-sm text-sky-700">← Admin</a><h1 class="text-xl font-semibold text-slate-950">Centro de Gobernanza Operativa</h1><p class="text-xs text-slate-500">Rol activo: {role}</p></div><a href="/admin/finance" class="rounded-md border px-3 py-2 text-sm font-medium">Finance Hub</a></div></header>
+  <header class="border-b border-slate-200 bg-white px-4 py-4"><div class="mx-auto flex max-w-7xl items-center justify-between gap-3"><div><a href="/admin" class="text-sm text-sky-700">← Admin</a><h1 class="text-xl font-semibold text-slate-950">Centro de Gobernanza Operativa</h1><p class="text-xs text-slate-500">Rol activo: {role}</p></div><div class="flex items-center gap-2"><a href="/admin/finance" class="rounded-md border px-3 py-2 text-sm font-medium">Finance Hub</a><AdminLogoutButton /></div></div></header>
   <OperationalGovernanceCenter client:load />
  </div>
 </Layout>

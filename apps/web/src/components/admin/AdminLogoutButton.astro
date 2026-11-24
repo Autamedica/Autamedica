@@ -1,0 +1,37 @@
+---
+interface Props {
+  idleTimeoutMinutes?: number;
+}
+
+const { idleTimeoutMinutes = 30 } = Astro.props;
+---
+
+<a
+  href="/auth/logout"
+  data-admin-logout
+  class="inline-flex items-center rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 transition-colors hover:border-rose-300 hover:bg-rose-100 hover:text-rose-900"
+>
+  Cerrar sesión
+</a>
+
+<script is:inline define:vars={{ idleTimeoutMinutes }}>
+  (() => {
+    if (window.__auAdminIdleGuardInitialized) return;
+    window.__auAdminIdleGuardInitialized = true;
+
+    const timeoutMs = Math.max(5, Math.min(480, Number(idleTimeoutMinutes) || 30)) * 60 * 1000;
+    let timerId = null;
+
+    function resetTimer() {
+      if (timerId !== null) clearTimeout(timerId);
+      timerId = setTimeout(() => {
+        window.location.href = '/auth/logout?reason=session_timeout';
+      }, timeoutMs);
+    }
+
+    ['click', 'keydown', 'mousemove', 'touchstart', 'scroll'].forEach((evt) => {
+      window.addEventListener(evt, resetTimer, { passive: true });
+    });
+    resetTimer();
+  })();
+</script>
