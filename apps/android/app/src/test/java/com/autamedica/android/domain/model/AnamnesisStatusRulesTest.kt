@@ -64,6 +64,24 @@ class AnamnesisStatusRulesTest {
         ).isEqualTo(ANAMNESIS_STATUS_COMPLETED)
     }
 
+    @Test
+    fun `portuguese status and read only helpers translate all states cleanly`() {
+        assertThat(anamnesisDisplayStatus(null, isPortuguese = true)).isEqualTo("Sem dados")
+        assertThat(anamnesisDisplayStatus(summary(status = ANAMNESIS_STATUS_DRAFT), isPortuguese = true)).isEqualTo("Rascunho")
+        assertThat(anamnesisDisplayStatus(summary(status = ANAMNESIS_STATUS_NOT_STARTED), isPortuguese = true)).isEqualTo("Não iniciada")
+        assertThat(anamnesisDisplayStatus(summary(status = ANAMNESIS_STATUS_IN_PROGRESS), isPortuguese = true)).isEqualTo("Em andamento")
+        assertThat(anamnesisDisplayStatus(summary(status = ANAMNESIS_STATUS_COMPLETED), isPortuguese = true)).isEqualTo("Concluída")
+        assertThat(anamnesisDisplayStatus(summary(status = ANAMNESIS_STATUS_UNDER_REVIEW), isPortuguese = true)).isEqualTo("Em revisão")
+        assertThat(anamnesisDisplayStatus(summary(status = ANAMNESIS_STATUS_APPROVED), isPortuguese = true)).isEqualTo("Aprovada")
+
+        assertThat(anamnesisReadOnlyReason(summary(status = ANAMNESIS_STATUS_COMPLETED), isPortuguese = true))
+            .isEqualTo("A ficha médica já foi concluída.")
+        assertThat(anamnesisReadOnlyReason(summary(status = ANAMNESIS_STATUS_UNDER_REVIEW), isPortuguese = true))
+            .isEqualTo("A anamnese já foi enviada e está em revisão. Não são permitidas alterações.")
+        assertThat(anamnesisReadOnlyReason(summary(status = ANAMNESIS_STATUS_APPROVED), isPortuguese = true))
+            .isEqualTo("A ficha médica já foi aprovada pela equipe médica.")
+    }
+
     private fun summary(
         status: String,
         locked: Boolean = false,

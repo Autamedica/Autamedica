@@ -27,34 +27,63 @@ fun isAnamnesisSummaryReadOnly(summary: AnamnesisSummary?): Boolean {
     return summary.locked || normalizeAnamnesisStatus(summary.status) in readOnlyStatuses
 }
 
-fun anamnesisReadOnlyReason(summary: AnamnesisSummary?): String? {
+fun anamnesisReadOnlyReason(summary: AnamnesisSummary?): String? =
+    anamnesisReadOnlyReason(summary, isPortuguese = false)
+
+fun anamnesisReadOnlyReason(summary: AnamnesisSummary?, isPortuguese: Boolean): String? {
     if (summary == null) return null
 
     return when (normalizeAnamnesisStatus(summary.status)) {
         ANAMNESIS_STATUS_APPROVED ->
-            "La ficha médica ya fue aprobada por el equipo médico."
+            if (isPortuguese) {
+                "A ficha médica já foi aprovada pela equipe médica."
+            } else {
+                "La ficha médica ya fue aprobada por el equipo médico."
+            }
         ANAMNESIS_STATUS_UNDER_REVIEW ->
-            "La anamnesis ya fue enviada y esta en revision. No se permiten cambios."
+            if (isPortuguese) {
+                "A anamnese já foi enviada e está em revisão. Não são permitidas alterações."
+            } else {
+                "La anamnesis ya fue enviada y esta en revision. No se permiten cambios."
+            }
         ANAMNESIS_STATUS_COMPLETED ->
-            "La ficha médica ya fue completada."
+            if (isPortuguese) {
+                "A ficha médica já foi concluída."
+            } else {
+                "La ficha médica ya fue completada."
+            }
         else -> if (summary.locked) {
-            "La ficha médica se encuentra cerrada para edición."
+            if (isPortuguese) {
+                "A ficha médica está fechada para edição."
+            } else {
+                "La ficha médica se encuentra cerrada para edición."
+            }
         } else {
             null
         }
     }
 }
 
-fun anamnesisDisplayStatus(summary: AnamnesisSummary?): String = when {
-    summary == null -> "Sin datos"
-    normalizeAnamnesisStatus(summary.status) == ANAMNESIS_STATUS_APPROVED -> "Aprobada"
-    normalizeAnamnesisStatus(summary.status) == ANAMNESIS_STATUS_UNDER_REVIEW -> "En revision"
-    normalizeAnamnesisStatus(summary.status) == ANAMNESIS_STATUS_COMPLETED -> "Completada"
-    normalizeAnamnesisStatus(summary.status) == ANAMNESIS_STATUS_DRAFT -> "Borrador"
-    normalizeAnamnesisStatus(summary.status) == ANAMNESIS_STATUS_NOT_STARTED -> "Sin iniciar"
-    normalizeAnamnesisStatus(summary.status) == ANAMNESIS_STATUS_IN_PROGRESS -> "En progreso"
-    summary.locked -> "Bloqueada"
-    else -> "En progreso"
+fun anamnesisDisplayStatus(summary: AnamnesisSummary?): String =
+    anamnesisDisplayStatus(summary, isPortuguese = false)
+
+fun anamnesisDisplayStatus(summary: AnamnesisSummary?, isPortuguese: Boolean): String = when {
+    summary == null -> if (isPortuguese) "Sem dados" else "Sin datos"
+    normalizeAnamnesisStatus(summary.status) == ANAMNESIS_STATUS_APPROVED -> "Aprobada".let {
+        if (isPortuguese) "Aprovada" else it
+    }
+    normalizeAnamnesisStatus(summary.status) == ANAMNESIS_STATUS_UNDER_REVIEW ->
+        if (isPortuguese) "Em revisão" else "En revision"
+    normalizeAnamnesisStatus(summary.status) == ANAMNESIS_STATUS_COMPLETED ->
+        if (isPortuguese) "Concluída" else "Completada"
+    normalizeAnamnesisStatus(summary.status) == ANAMNESIS_STATUS_DRAFT ->
+        if (isPortuguese) "Rascunho" else "Borrador"
+    normalizeAnamnesisStatus(summary.status) == ANAMNESIS_STATUS_NOT_STARTED ->
+        if (isPortuguese) "Não iniciada" else "Sin iniciar"
+    normalizeAnamnesisStatus(summary.status) == ANAMNESIS_STATUS_IN_PROGRESS ->
+        if (isPortuguese) "Em andamento" else "En progreso"
+    summary.locked -> if (isPortuguese) "Bloqueada" else "Bloqueada"
+    else -> if (isPortuguese) "Em andamento" else "En progreso"
 }
 
 fun deriveEditableAnamnesisStatus(
