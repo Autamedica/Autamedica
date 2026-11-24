@@ -13,6 +13,15 @@ const EDITABLE_ARRAYS = [
 
 type EditableArrayKey = (typeof EDITABLE_ARRAYS)[number];
 
+function isProfileSchemaPending(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as { code?: string; message?: string; details?: string };
+  const text = [candidate.message, candidate.details].filter(Boolean).join(' ').toLowerCase();
+  return candidate.code === '42703'
+    || candidate.code === 'PGRST204'
+    || (text.includes('column') && text.includes('does not exist'));
+}
+
 function jsonResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -86,6 +95,9 @@ export const GET: APIRoute = async ({ request, locals }) => {
       },
     });
   } catch (error) {
+    if (isProfileSchemaPending(error)) {
+      return jsonResponse({ error: 'public_profile_schema_pending' }, 503);
+    }
     logger.error('[api/doctors/public-profile] GET failed', error);
     return jsonResponse({ error: 'internal_error' }, 500);
   }
@@ -167,6 +179,9 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
 
     return jsonResponse({ data: updated });
   } catch (error) {
+    if (isProfileSchemaPending(error)) {
+      return jsonResponse({ error: 'public_profile_schema_pending' }, 503);
+    }
     logger.error('[api/doctors/public-profile] PATCH failed', error);
     return jsonResponse({ error: 'internal_error' }, 500);
   }
