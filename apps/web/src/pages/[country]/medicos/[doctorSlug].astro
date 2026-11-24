@@ -36,7 +36,7 @@ function stringValue(value: unknown): string {
 
 
 function slugify(value: string): string {
-  return value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
 function publicAvatarUrl(value: unknown): string {
@@ -104,7 +104,12 @@ if (profile) {
   }
 }
 const testimonials = toVerifiedTestimonials(profile?.testimonials);
-const showTestimonials = Boolean(profile && shouldShowTestimonials(profile, { [country]: testimonialsEnabled }));
+const testimonialFlags: Partial<Record<'AR' | 'BR', boolean>> = country === 'AR'
+  ? { AR: testimonialsEnabled }
+  : country === 'BR'
+    ? { BR: testimonialsEnabled }
+    : {};
+const showTestimonials = Boolean(profile && shouldShowTestimonials(profile, testimonialFlags));
 const consultationPath = '/consulta-medica-online?doctor_id=' + encodeURIComponent(doctorId ?? '') + '&care_country=' + country;
 const consultationHref = consultationPath;
 
@@ -170,10 +175,10 @@ const physicianJsonLd = profile && canonical ? {
             {subspecialty && <p class="subspecialty">{subspecialty}</p>}
           </div>
         </div>
-        {sections.verification && (
-          <div class="credentials" aria-label={isPortuguese ? 'Registro profissional validado' : 'Matrícula profesional validada'}>
-            <span>{isPortuguese ? 'Registro validado' : 'Matrícula validada'}</span>
-            <span class="credential-list">{licenses.join(' · ')}</span>
+        {(sections.verification || rqeNumber) && (
+          <div class="credentials" aria-label={isPortuguese ? 'Registro profissional' : 'Matrícula profesional'}>
+            {sections.verification && <span>{isPortuguese ? 'Registro validado' : 'Matrícula validada'}</span>}
+            {licenses.length > 0 && <span class="credential-list">{licenses.join(' · ')}</span>}
             {rqeNumber && <span class="credential-list">RQE {rqeNumber}</span>}
           </div>
         )}
