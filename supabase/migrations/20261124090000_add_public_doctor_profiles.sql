@@ -48,6 +48,7 @@ AS $function$
 BEGIN
   IF NEW.public_profile_enabled IS DISTINCT FROM OLD.public_profile_enabled THEN
     NEW.public_profile_updated_at := now();
+    NEW.public_profile_updated_by := COALESCE(NEW.public_profile_updated_by, auth.uid());
     IF NEW.public_profile_enabled IS TRUE THEN
       NEW.public_profile_published_at := now();
     END IF;
