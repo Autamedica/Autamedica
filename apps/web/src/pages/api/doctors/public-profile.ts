@@ -5,6 +5,8 @@ import { logger } from '@autamedica/shared';
 
 const CONSENT_VERSION = 'public-doctor-profile-v1';
 const EDITABLE_ARRAYS = [
+  'education',
+  'certifications',
   'clinical_focus_areas',
   'professional_experience',
   'academic_activity',
@@ -37,7 +39,7 @@ function parseLines(value: unknown, maxItems: number, maxLength: number): string
 async function getDoctor(admin: any, userId: string) {
   return admin
     .from('doctors')
-    .select('id,care_country,specialty,subspecialty,bio,years_experience,education,certifications,clinical_focus_areas,professional_experience,academic_activity,public_profile_enabled,public_profile_consent_confirmed_at,public_profile_consent_version')
+    .select('id,care_country,specialty,subspecialty,bio,years_experience,education,certifications,clinical_focus_areas,professional_experience,academic_activity,public_profile_enabled,public_profile_consent_confirmed_at,public_profile_consent_version,profile:profiles!inner(first_name,last_name)')
     .eq('user_id', userId)
     .maybeSingle();
 }
@@ -56,6 +58,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
       data: {
         id: data.id,
         care_country: data.care_country,
+        first_name: data.profile?.first_name ?? null,
+        last_name: data.profile?.last_name ?? null,
         specialty: data.specialty,
         subspecialty: data.subspecialty,
         bio: data.bio,
@@ -93,6 +97,8 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
 
     const patch: Record<string, unknown> = {};
     const limits: Record<EditableArrayKey, { maxItems: number; maxLength: number }> = {
+      education: { maxItems: 30, maxLength: 240 },
+      certifications: { maxItems: 30, maxLength: 240 },
       clinical_focus_areas: { maxItems: 20, maxLength: 120 },
       professional_experience: { maxItems: 30, maxLength: 240 },
       academic_activity: { maxItems: 30, maxLength: 240 },
