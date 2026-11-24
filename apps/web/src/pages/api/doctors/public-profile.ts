@@ -1,0 +1,188 @@
+import type { APIRoute } from 'astro';
+import { createAstroAdminClient } from '@/lib/supabase';
+import { DOCTOR_ROLES, isAuthed, withAuthRole } from '@/lib/api-auth';
+import { logger } from '@autamedica/shared';
+
+const EDITABLE_ARRAYS = [
+  'education',
+  'certifications',
+  'clinical_focus_areas',
+  'professional_experience',
+  'academic_activity',
+] as const;
+
+type EditableArrayKey = (typeof EDITABLE_ARRAYS)[number];
+
+function isProfileSchemaPending(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as { code?: string; message?: string; details?: string };
+  const text = [candidate.message, candidate.details].filter(Boolean).join(' ').toLowerCase();
+  return candidate.code === '42703'
+    || candidate.code === 'PGRST204'
+    || (text.includes('column') && text.includes('does not exist'));
+}
+
+function jsonResponse(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'private, no-store' },
+  });
+}
+
+function parseLines(value: unknown, maxItems: number, maxLength: number): string[] | null {
+  if (typeof value === 'string') {
+    const entries = value.split('\n').map((entry) => entry.trim()).filter(Boolean);
+    if (entries.length > maxItems || entries.some((entry) => entry.length > maxLength)) return null;
+    return entries;
+  }
+  if (Array.isArray(value)) {
+    if (value.length > maxItems || value.some((entry) => typeof entry !== 'string' || entry.trim().length > maxLength)) {
+      return null;
+    }
+    return value.map((entry) => String(entry).trim()).filter(Boolean);
+  }
+  return null;
+}
+
+// Supabase's generated Database types predate the additive migration on this branch.
+// The route uses a server-only admin client and a strictly allowlisted column set.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getDoctor(admin: any, userId: string) {
+  return admin
+    .from('doctors')
+    .select('id,care_country,specialty,subspecialty,bio,years_experience,education,certifications,clinical_focus_areas,professional_experience,academic_activity,public_profile_enabled,public_profile_published_at,public_profile_updated_at')
+    .eq('user_id', userId)
+    .maybeSingle();
+}
+
+export const GET: APIRoute = async ({ request, locals }) => {
+  const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
+  if (!isAuthed(auth)) return auth;
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin = createAstroAdminClient(locals.runtime?.env) as any;
+    const { data, error } = await getDoctor(admin, auth.user.id);
+    if (error) throw error;
+    if (!data) return jsonResponse({ error: 'doctor_profile_not_found' }, 404);
+
+    const { data: profile, error: profileError } = await admin
+      .from('profiles')
+      .select('first_name,last_name,avatar_url')
+      .eq('user_id', auth.user.id)
+      .maybeSingle();
+    if (profileError) throw profileError;
+
+    return jsonResponse({
+      data: {
+        id: data.id,
+        care_country: data.care_country,
+        first_name: profile?.first_name ?? null,
+        last_name: profile?.last_name ?? null,
+        avatar_url: profile?.avatar_url ?? null,
+        specialty: data.specialty,
+        subspecialty: data.subspecialty,
+        bio: data.bio,
+        years_experience: data.years_experience,
+        education: data.education,
+        certifications: data.certifications,
+        clinical_focus_areas: data.clinical_focus_areas,
+        professional_experience: data.professional_experience,
+        academic_activity: data.academic_activity,
+        public_profile_enabled: data.public_profile_enabled,
+        public_profile_published_at: data.public_profile_published_at,
+        public_profile_updated_at: data.public_profile_updated_at,
+      },
+    });
+  } catch (error) {
+    if (isProfileSchemaPending(error)) {
+      return jsonResponse({ error: 'public_profile_schema_pending' }, 503);
+    }
+    logger.error('[api/doctors/public-profile] GET failed', error);
+    return jsonResponse({ error: 'internal_error' }, 500);
+  }
+};
+
+export const PATCH: APIRoute = async ({ request, locals }) => {
+  const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
+  if (!isAuthed(auth)) return auth;
+
+  try {
+    const body: unknown = await request.json().catch(() => null);
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return jsonResponse({ error: 'invalid_body' }, 400);
+    }
+    const input = body as Record<string, unknown>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin = createAstroAdminClient(locals.runtime?.env) as any;
+    const { data: doctor, error: doctorError } = await getDoctor(admin, auth.user.id);
+    if (doctorError) throw doctorError;
+    if (!doctor) return jsonResponse({ error: 'doctor_profile_not_found' }, 404);
+
+    const patch: Record<string, unknown> = {};
+    const limits: Record<EditableArrayKey, { maxItems: number; maxLength: number }> = {
+      education: { maxItems: 30, maxLength: 240 },
+      certifications: { maxItems: 30, maxLength: 240 },
+      clinical_focus_areas: { maxItems: 20, maxLength: 120 },
+      professional_experience: { maxItems: 30, maxLength: 240 },
+      academic_activity: { maxItems: 30, maxLength: 240 },
+    };
+
+    if ('bio' in input) {
+      if (input.bio !== null && typeof input.bio !== 'string') {
+        return jsonResponse({ error: 'invalid_bio' }, 400);
+      }
+      const bio = typeof input.bio === 'string' ? input.bio.trim() : null;
+      if (bio && bio.length > 2000) return jsonResponse({ error: 'invalid_bio' }, 400);
+      patch.bio = bio;
+    }
+
+    if ('years_experience' in input) {
+      const years = input.years_experience;
+      if (years === null || years === '') {
+        patch.years_experience = null;
+      } else if (
+        typeof years !== 'number'
+        || !Number.isInteger(years)
+        || years < 0
+        || years > 70
+      ) {
+        return jsonResponse({ error: 'invalid_years_experience' }, 400);
+      } else {
+        patch.years_experience = years;
+      }
+    }
+
+    for (const key of EDITABLE_ARRAYS) {
+      if (key in input) {
+        const parsed = parseLines(input[key], limits[key].maxItems, limits[key].maxLength);
+        if (!parsed) return jsonResponse({ error: `invalid_${key}` }, 400);
+        patch[key] = parsed;
+      }
+    }
+
+    if (typeof input.public_profile_enabled === 'boolean') {
+      patch.public_profile_enabled = input.public_profile_enabled;
+      patch.public_profile_updated_by = auth.user.id;
+    }
+
+    if (!Object.keys(patch).length) return jsonResponse({ error: 'no_editable_fields' }, 400);
+
+    const { data: updated, error: updateError } = await admin
+      .from('doctors')
+      .update(patch)
+      .eq('id', doctor.id)
+      .eq('user_id', auth.user.id)
+      .select('id,public_profile_enabled,public_profile_published_at,public_profile_updated_at,bio,years_experience,education,certifications,clinical_focus_areas,professional_experience,academic_activity')
+      .single();
+    if (updateError) throw updateError;
+
+    return jsonResponse({ data: updated });
+  } catch (error) {
+    if (isProfileSchemaPending(error)) {
+      return jsonResponse({ error: 'public_profile_schema_pending' }, 503);
+    }
+    logger.error('[api/doctors/public-profile] PATCH failed', error);
+    return jsonResponse({ error: 'internal_error' }, 500);
+  }
+};
