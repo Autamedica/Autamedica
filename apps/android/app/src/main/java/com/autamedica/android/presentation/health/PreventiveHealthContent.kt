@@ -7,6 +7,11 @@ enum class PreventiveGender(
     Male("male", "Masculino"),
     Female("female", "Femenino");
 
+    fun localizedLabel(isPortuguese: Boolean): String = when (this) {
+        Male -> "Masculino"
+        Female -> if (isPortuguese) "Feminino" else "Femenino"
+    }
+
     companion object {
         fun fromKey(key: String?): PreventiveGender? = entries.firstOrNull { it.key == key }
     }
@@ -15,8 +20,8 @@ enum class PreventiveGender(
 fun normalizePreventiveGender(raw: String?): PreventiveGender? {
     val normalized = raw?.trim()?.lowercase() ?: return null
     return when (normalized) {
-        "female", "f", "mujer", "femenino" -> PreventiveGender.Female
-        "male", "m", "hombre", "masculino" -> PreventiveGender.Male
+        "female", "f", "mujer", "femenino", "feminino", "mulher" -> PreventiveGender.Female
+        "male", "m", "hombre", "masculino", "homem" -> PreventiveGender.Male
         else -> null
     }
 }
@@ -27,13 +32,28 @@ enum class PreventiveCategory(val label: String) {
     Metabolic("Metabolico"),
     Bone("Salud Osea"),
     Preventive("Preventivo General"),
-    Other("Otros"),
+    Other("Otros");
+
+    fun localizedLabel(isPortuguese: Boolean): String = when (this) {
+        Cardiovascular -> "Cardiovascular"
+        Cancer -> if (isPortuguese) "Rastreamento de Câncer" else "Detección de Cáncer"
+        Metabolic -> "Metabólico"
+        Bone -> if (isPortuguese) "Saúde Óssea" else "Salud Ósea"
+        Preventive -> if (isPortuguese) "Preventivo Geral" else "Preventivo General"
+        Other -> if (isPortuguese) "Outros" else "Otros"
+    }
 }
 
 enum class PreventiveCoverage(val label: String) {
     Total("100%"),
     Partial("Parcial"),
-    Variable("Variable"),
+    Variable("Variable");
+
+    fun localizedLabel(isPortuguese: Boolean): String = when (this) {
+        Total -> "100%"
+        Partial -> "Parcial"
+        Variable -> if (isPortuguese) "Variável" else "Variable"
+    }
 }
 
 enum class PreventiveUrgency {
@@ -553,3 +573,302 @@ fun getNextPreventiveMilestone(
                 )
     }
 }
+
+private data class PreventiveScreeningTranslationPt(
+    val name: String,
+    val shortName: String,
+    val description: String,
+    val frequency: String,
+    val benefits: List<String>,
+    val specialCase: String? = null,
+)
+
+private val screeningTranslationsPt: Map<String, PreventiveScreeningTranslationPt> = mapOf(
+    "blood-pressure" to PreventiveScreeningTranslationPt(
+        name = "Controle de Pressão Arterial",
+        shortName = "Pressão Arterial",
+        description = "Medição da pressão arterial para detectar hipertensão.",
+        frequency = "Anual",
+        benefits = listOf(
+            "Detecta hipertensão antes que cause danos.",
+            "Ajuda a prevenir infartos e AVC.",
+            "É um exame simples e rápido.",
+        ),
+        specialCase = "Pode ser indicado com maior frequência se houver fatores de risco.",
+    ),
+    "glucose-female" to PreventiveScreeningTranslationPt(
+        name = "Exame de Glicemia em Jejum",
+        shortName = "Glicemia",
+        description = "Medição de açúcar no sangue para detectar diabetes.",
+        frequency = "A cada 3 anos",
+        benefits = listOf(
+            "Detecta diabetes precocemente.",
+            "Previne complicações graves.",
+            "Permite controle com alimentação e medicação.",
+        ),
+        specialCase = "Pode ser antecipado a partir dos 35 anos em caso de sobrepeso ou obesidade.",
+    ),
+    "glucose-male" to PreventiveScreeningTranslationPt(
+        name = "Exame de Glicemia em Jejum",
+        shortName = "Glicemia",
+        description = "Medição de açúcar no sangue para detectar diabetes.",
+        frequency = "A cada 3 anos",
+        benefits = listOf(
+            "Detecta diabetes precocemente.",
+            "Previne complicações graves.",
+            "Permite controle com alimentação e medicação.",
+        ),
+        specialCase = "Pode ser antecipado a partir dos 25 anos em caso de sobrepeso ou obesidade.",
+    ),
+    "cholesterol-female" to PreventiveScreeningTranslationPt(
+        name = "Perfil Lipídico (Colesterol)",
+        shortName = "Colesterol",
+        description = "Análise de colesterol e triglicerídeos.",
+        frequency = "A cada 5 anos",
+        benefits = listOf(
+            "Previne doenças cardiovasculares.",
+            "Detecta risco de infartos.",
+            "Permite tratamento preventivo.",
+        ),
+        specialCase = "Pode ser antecipado a partir dos 35 anos se houver fatores de risco.",
+    ),
+    "cholesterol-male" to PreventiveScreeningTranslationPt(
+        name = "Perfil Lipídico (Colesterol)",
+        shortName = "Colesterol",
+        description = "Análise de colesterol e triglicerídeos.",
+        frequency = "A cada 5 anos",
+        benefits = listOf(
+            "Previne doenças cardiovasculares.",
+            "Detecta risco de infartos.",
+            "Permite tratamento preventivo.",
+        ),
+        specialCase = "Pode ser antecipado a partir dos 25 anos se houver fatores de risco.",
+    ),
+    "pap-test" to PreventiveScreeningTranslationPt(
+        name = "Papanicolau (Preventivo)",
+        shortName = "Papanicolau",
+        description = "Exame para detectar câncer do colo do útero.",
+        frequency = "A cada 3 anos",
+        benefits = listOf(
+            "Detecta lesões no colo do útero de forma precoce.",
+            "Aumenta as chances de cura se houver alteração.",
+            "É um procedimento rápido.",
+        ),
+        specialCase = "Costuma ser indicado a cada 3 anos após dois exames anuais negativos.",
+    ),
+    "hpv-test" to PreventiveScreeningTranslationPt(
+        name = "Teste de HPV",
+        shortName = "HPV",
+        description = "Detecção do Papilomavírus Humano.",
+        frequency = "A cada 5 anos",
+        benefits = listOf(
+            "Detecta o vírus antes que cause lesões.",
+            "Pode complementar ou substituir o Papanicolau.",
+            "Oferece maior precisão diagnóstica.",
+        ),
+        specialCase = "O uso depende da indicação médica e do protocolo de rastreamento.",
+    ),
+    "mammography" to PreventiveScreeningTranslationPt(
+        name = "Mamografia",
+        shortName = "Mamografia",
+        description = "Radiografia das mamas para detectar câncer de mama.",
+        frequency = "A cada 2 anos",
+        benefits = listOf(
+            "Detecta câncer de mama em estágios iniciais.",
+            "Reduz a mortalidade na faixa etária indicada.",
+            "Possui cobertura pelos programas de saúde.",
+        ),
+        specialCase = "Pode ser indicada antes se houver histórico familiar ou risco elevado.",
+    ),
+    "breast-ultrasound" to PreventiveScreeningTranslationPt(
+        name = "Ultrassonografia Mamária",
+        shortName = "USG Mamária",
+        description = "Complemento à mamografia em mamas densas ou histórico familiar.",
+        frequency = "Conforme critério médico",
+        benefits = listOf(
+            "Complementa a mamografia.",
+            "É útil em mamas densas.",
+            "Não utiliza radiação.",
+        ),
+        specialCase = "Costuma ser indicada como complemento e não como substituição.",
+    ),
+    "colonoscopy" to PreventiveScreeningTranslationPt(
+        name = "Colonoscopia",
+        shortName = "Colonoscopia",
+        description = "Exame do cólon para detectar câncer colorretal.",
+        frequency = "A cada 10 anos",
+        benefits = listOf(
+            "Detecta e previne o câncer de cólon.",
+            "Permite remover pólipos durante o exame.",
+            "Tem alta eficácia diagnóstica.",
+        ),
+        specialCase = "É indicada mais cedo se houver histórico familiar.",
+    ),
+    "fobt" to PreventiveScreeningTranslationPt(
+        name = "Pesquisa de Sangue Oculto nas Fezes",
+        shortName = "Sangue Oculto",
+        description = "Análise de fezes para detectar sangramento intestinal.",
+        frequency = "Anual",
+        benefits = listOf(
+            "É uma alternativa não invasiva.",
+            "Detecta sangramento intestinal precocemente.",
+            "Tem baixo custo e fácil realização.",
+        ),
+        specialCase = "Costuma ser utilizada quando não é realizada colonoscopia.",
+    ),
+    "psa" to PreventiveScreeningTranslationPt(
+        name = "PSA (Antígeno Prostático)",
+        shortName = "PSA",
+        description = "Exame de sangue para rastreamento do câncer de próstata.",
+        frequency = "Anual",
+        benefits = listOf(
+            "Detecta câncer de próstata precocemente.",
+            "Melhora a taxa de cura quando diagnosticado no início.",
+            "É um exame simples.",
+        ),
+        specialCase = "Pode ser antecipado a partir dos 45 anos se houver histórico familiar.",
+    ),
+    "rectal-exam" to PreventiveScreeningTranslationPt(
+        name = "Toque Retal",
+        shortName = "Toque Retal",
+        description = "Exame físico da próstata.",
+        frequency = "Anual",
+        benefits = listOf(
+            "Complementa o exame de PSA.",
+            "Detecta alterações na próstata.",
+            "Permite avaliação direta da glândula.",
+        ),
+        specialCase = "É indicado em conjunto com o PSA conforme avaliação médica.",
+    ),
+    "bone-density-female" to PreventiveScreeningTranslationPt(
+        name = "Densitometria Óssea",
+        shortName = "Densitometria",
+        description = "Medição da densidade óssea para detectar osteoporose.",
+        frequency = "A cada 2 anos",
+        benefits = listOf(
+            "Detecta osteoporose precocemente.",
+            "Ajuda a prevenir fraturas.",
+            "Permite tratamento preventivo.",
+        ),
+        specialCase = "Pode ser indicada antes dos 65 anos se houver fatores de risco.",
+    ),
+    "bone-density-male" to PreventiveScreeningTranslationPt(
+        name = "Densitometria Óssea",
+        shortName = "Densitometria",
+        description = "Medição da densidade óssea para detectar osteoporose.",
+        frequency = "A cada 2 anos",
+        benefits = listOf(
+            "Detecta osteoporose precocemente.",
+            "Ajuda a prevenir fraturas.",
+            "Permite tratamento preventivo.",
+        ),
+        specialCase = "Pode ser indicada antes se houve fraturas ou uso prolongado de corticoides.",
+    ),
+    "lung-ct" to PreventiveScreeningTranslationPt(
+        name = "Tomografia de Tórax de Baixa Dose",
+        shortName = "TC de Tórax",
+        description = "Tomografia para detectar câncer de pulmão em fumantes.",
+        frequency = "Anual",
+        benefits = listOf(
+            "Detecta câncer de pulmão precocemente.",
+            "Reduz a mortalidade em fumantes de alto risco.",
+            "Utiliza baixa dose de radiação.",
+        ),
+        specialCase = "Considerada para pessoas com tabagismo intenso ou ex-fumantes recentes.",
+    ),
+    "eye-exam" to PreventiveScreeningTranslationPt(
+        name = "Exame Oftalmológico e Glaucoma",
+        shortName = "Exame de Vista",
+        description = "Avaliação oftalmológica completa.",
+        frequency = "A cada 2 a 4 anos",
+        benefits = listOf(
+            "Detecta glaucoma precocemente.",
+            "Ajuda a prevenir perda de visão.",
+            "Corrige alterações visuais.",
+        ),
+        specialCase = "Pode ser anual se houver histórico familiar ou diabetes.",
+    ),
+    "dental-checkup" to PreventiveScreeningTranslationPt(
+        name = "Check-up Odontológico",
+        shortName = "Odontologia",
+        description = "Avaliação odontológica e limpeza.",
+        frequency = "A cada 6 meses",
+        benefits = listOf(
+            "Previne cáries e doença periodontal.",
+            "Detecta alterações precocemente.",
+            "Contribui para a saúde geral.",
+        ),
+        specialCase = null,
+    ),
+    "skin-exam" to PreventiveScreeningTranslationPt(
+        name = "Check-up Dermatológico",
+        shortName = "Exame de Pele",
+        description = "Avaliação de pintas e manchas na pele.",
+        frequency = "Anual",
+        benefits = listOf(
+            "Detecta melanoma precocemente.",
+            "Ajuda a prevenir o câncer de pele.",
+            "É um exame simples e rápido.",
+        ),
+        specialCase = "Pode ser mais frequente em pele clara ou com muitas pintas.",
+    ),
+    "flu-vaccine" to PreventiveScreeningTranslationPt(
+        name = "Vacina contra Gripe (Influenza)",
+        shortName = "Antigripal",
+        description = "Vacina anual contra a gripe.",
+        frequency = "Anual",
+        benefits = listOf(
+            "Previne complicações graves da gripe.",
+            "Reduz hospitalizações.",
+            "Protege grupos de risco.",
+        ),
+        specialCase = "Também é indicada para gestantes e grupos prioritários.",
+    ),
+    "pneumococcal-vaccine" to PreventiveScreeningTranslationPt(
+        name = "Vacina Pneumocócica",
+        shortName = "Pneumocócica",
+        description = "Vacina contra pneumonia bacteriana.",
+        frequency = "Dose única",
+        benefits = listOf(
+            "Previne pneumonia grave.",
+            "Oferece proteção duradoura.",
+            "É especialmente importante em idosos.",
+        ),
+        specialCase = "O esquema pode variar conforme indicação médica.",
+    ),
+)
+
+private val preventiveEducationItemsPt = listOf(
+    PreventiveEducationItem(
+        title = "Vacinas em dia",
+        description = "Confira antigripal, pneumocócica e outros esquemas de acordo com sua idade e fatores de risco.",
+    ),
+    PreventiveEducationItem(
+        title = "Rastreamento por idade e sexo",
+        description = "Use a calculadora para identificar exames como Papanicolau, mamografia, colonoscopia ou PSA.",
+    ),
+    PreventiveEducationItem(
+        title = "Fatores de risco",
+        description = "Histórico familiar, tabagismo, obesidade ou menopausa precoce podem antecipar exames.",
+    ),
+    PreventiveEducationItem(
+        title = "Acompanhamento contínuo",
+        description = "Agende com seu médico os exames sugeridos e mantenha a rotina para detectar alterações cedo.",
+    ),
+)
+
+fun PreventiveScreening.localized(isPortuguese: Boolean): PreventiveScreening {
+    if (!isPortuguese) return this
+    val pt = screeningTranslationsPt[id] ?: return this
+    return copy(
+        name = pt.name,
+        shortName = pt.shortName,
+        description = pt.description,
+        frequency = pt.frequency,
+        benefits = pt.benefits,
+        specialCase = pt.specialCase,
+    )
+}
+
+fun getPreventiveEducationItems(isPortuguese: Boolean): List<PreventiveEducationItem> =
+    if (isPortuguese) preventiveEducationItemsPt else preventiveEducationItems

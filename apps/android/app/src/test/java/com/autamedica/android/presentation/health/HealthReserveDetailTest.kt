@@ -115,4 +115,31 @@ class HealthReserveDetailTest {
         assertThat(formatted).contains("15.000")
         assertThat(formatted).contains("$")
     }
+
+    @Test
+    fun `portuguese localization provides pt-BR plans, categories, and BRL formatting`() {
+        val ptPlans = localizedReservePlans(isPortuguese = true)
+        assertThat(ptPlans.map { it.name }).containsExactly("Gratuito", "Cuidado", "Familiar").inOrder()
+        assertThat(ptPlans[1].badgeText).isEqualTo("Mais Escolhido")
+        assertThat(ptPlans[1].summaryText).doesNotContain("usás")
+        assertThat(ptPlans[1].summaryText).doesNotContain("acumulás")
+
+        assertThat(formatLocalizedMonthlyPlanPrice(ptPlans[0], isPortuguese = true)).isEqualTo("Grátis")
+        assertThat(formatLocalizedMonthlyPlanPrice(ptPlans[0], isPortuguese = true, forModal = true))
+            .isEqualTo("Grátis para sempre")
+        assertThat(formatLocalizedMonthlyPlanPrice(ptPlans[1], isPortuguese = true)).isEqualTo("R$ 49,90 / mês")
+        assertThat(formatLocalizedMonthlyPlanPrice(ptPlans[2], isPortuguese = true)).isEqualTo("R$ 119,90 / mês")
+
+        val ptCategories = localizedBenefitCategories(isPortuguese = true)
+        assertThat(ptCategories.map { it.title }).containsExactly(
+            "Consultas com Especialistas",
+            "Exames e Laboratórios",
+            "Farmácia e Medicamentos",
+        ).inOrder()
+
+        val refFormatted = formatLocalizedReferenceAmount(15_000, isPortuguese = true)
+        assertThat(refFormatted).contains("R$")
+        assertThat(refFormatted).contains("150")
+        assertThat(refFormatted).doesNotContain("15.000")
+    }
 }
