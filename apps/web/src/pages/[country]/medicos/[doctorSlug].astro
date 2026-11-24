@@ -78,7 +78,6 @@ const yearsExperience = Number.isFinite(profile?.years_experience) ? Number(prof
 const sections = profile
   ? getVisibleProfileSections(profile)
   : { practice: false, education: false, experience: false, academic: false, verification: false };
-const verified = credentials.verified;
 const title = profile
   ? `${name} · ${specialty}`
   : (isPortuguese ? 'Perfil profissional não disponível' : 'Perfil profesional no disponible');
