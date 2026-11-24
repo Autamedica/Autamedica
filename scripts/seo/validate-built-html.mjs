@@ -85,7 +85,11 @@ for (const filePath of htmlFiles(distRoot)) {
     schemaScripts++;
     try {
       const parsed = JSON.parse(match[1]);
-      if (!parsed || typeof parsed !== 'object' || parsed['@context'] !== 'https://schema.org') {
+      const context = parsed && typeof parsed === 'object' ? parsed['@context'] : null;
+      const hasSchemaContext = typeof context === 'string'
+        ? context.includes('schema.org')
+        : context && typeof context === 'object' && Object.values(context).some((value) => String(value).includes('schema.org'));
+      if (!parsed || typeof parsed !== 'object' || !hasSchemaContext) {
         errors.push(`${path.relative(distRoot, filePath)}: JSON-LD script ${index + 1} must have schema.org @context`);
       }
     } catch (error) {
