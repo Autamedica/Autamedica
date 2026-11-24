@@ -42,9 +42,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.autamedica.android.R
+import com.autamedica.android.presentation.health.healthText
 import com.autamedica.android.presentation.theme.AuSurfaceHover
 
 @Composable
@@ -58,6 +61,17 @@ fun HealthReserveCard(
     onViewDetailsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val collapsedClickLabel = healthText(
+        es = "Ver planes y Reserva de Salud de AutaMedica",
+        pt = "Ver planos e Reserva de Saúde da AutaMedica",
+    )
+    val reservePillLabel = stringResource(R.string.health_reserve_plans_pill)
+    val reserveShortLabel = stringResource(R.string.health_reserve_badge)
+    val closeBannerDesc = healthText(
+        es = "Cerrar banner de Reserva de Salud",
+        pt = "Fechar banner da Reserva de Saúde",
+    )
+
     if (!isVisible) {
         // Collapsed Sleek Pill (48dp min touch target)
         Surface(
@@ -69,7 +83,7 @@ fun HealthReserveCard(
                 .sizeIn(minHeight = 48.dp)
                 .clip(RoundedCornerShape(999.dp))
                 .clickable(
-                    onClickLabel = "Ver planes y Reserva de Salud de AutaMedica",
+                    onClickLabel = collapsedClickLabel,
                     onClick = { onToggleVisibility(true) },
                 ),
         ) {
@@ -79,13 +93,13 @@ fun HealthReserveCard(
             ) {
                 Icon(
                     imageVector = Icons.Outlined.AutoAwesome,
-                    contentDescription = "Reserva de Salud",
+                    contentDescription = reservePillLabel,
                     modifier = Modifier.size(16.dp),
                     tint = Color(0xFF0284C7),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Reserva de Salud y Planes",
+                    text = reservePillLabel,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF0F172A),
@@ -130,7 +144,7 @@ fun HealthReserveCard(
                         )
                         Spacer(modifier = Modifier.width(5.dp))
                         Text(
-                            text = "RESERVA DE SALUD",
+                            text = reserveShortLabel,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFE2E8F0),
@@ -145,7 +159,7 @@ fun HealthReserveCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Cerrar banner de Reserva de Salud",
+                        contentDescription = closeBannerDesc,
                         tint = Color.White.copy(alpha = 0.7f),
                         modifier = Modifier.size(20.dp),
                     )
@@ -155,14 +169,14 @@ fun HealthReserveCard(
             // Title & Value Proposition
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    text = "Reserva de Salud AutaMedica",
+                    text = stringResource(R.string.health_reserve_title),
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Light,
                     color = Color.White,
                     letterSpacing = (-0.3).sp,
                 )
                 Text(
-                    text = "1 consulta mensual + 22 créditos acumulables",
+                    text = stringResource(R.string.health_reserve_subtitle),
                     fontSize = 13.sp,
                     color = Color(0xFFCBD5E1),
                     lineHeight = 19.sp,
@@ -187,7 +201,7 @@ fun HealthReserveCard(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "SALDO DISPONIBLE",
+                            text = stringResource(R.string.health_reserve_balance_available),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF94A3B8),
@@ -212,7 +226,7 @@ fun HealthReserveCard(
                             color = Color.White,
                         )
                         Text(
-                            text = "AUTA Créditos",
+                            text = healthText(es = "AUTA Créditos", pt = "Créditos AUTA"),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFF38BDF8),
@@ -226,7 +240,7 @@ fun HealthReserveCard(
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Text(
-                                text = "Capacidad acumulada",
+                                text = stringResource(R.string.health_reserve_capacity_accumulated),
                                 fontSize = 11.sp,
                                 color = Color(0xFF94A3B8),
                             )
@@ -274,7 +288,7 @@ fun HealthReserveCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = "Plan Cuidado",
+                        text = stringResource(R.string.health_reserve_cuidado_plan),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
@@ -285,7 +299,7 @@ fun HealthReserveCard(
                         border = BorderStroke(1.dp, Color(0x6606B6D4)),
                     ) {
                         Text(
-                            text = "Pix o Tarjeta",
+                            text = healthText(es = "Pix o Tarjeta", pt = "Pix ou Cartão"),
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF67E8F9),
@@ -299,7 +313,11 @@ fun HealthReserveCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    listOf("Especialistas y farmacia", "Acumulación mensual", "Sin vencimiento").forEach { tag ->
+                    listOf(
+                        stringResource(R.string.health_reserve_tag_specialists),
+                        stringResource(R.string.health_reserve_tag_accrual),
+                        stringResource(R.string.health_reserve_tag_no_expiration),
+                    ).forEach { tag ->
                         Surface(
                             shape = RoundedCornerShape(999.dp),
                             color = Color(0x14FFFFFF),
@@ -339,7 +357,7 @@ fun HealthReserveCard(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Activar Plan Cuidado",
+                            text = healthText(es = "Activar Plan Cuidado", pt = "Ativar Plano Cuidado"),
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
                         )
@@ -359,7 +377,7 @@ fun HealthReserveCard(
                         ),
                     ) {
                         Text(
-                            text = "Detalles",
+                            text = stringResource(R.string.health_reserve_view_details),
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 13.sp,
                         )
@@ -399,14 +417,17 @@ fun HealthReserveCard(
                                 modifier = Modifier.size(14.dp),
                             )
                             Text(
-                                text = "Catálogo Red",
+                                text = stringResource(R.string.health_reserve_catalog_title),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.White,
                             )
                         }
                         Text(
-                            text = "Especialistas y farmacia.",
+                            text = healthText(
+                                es = "Especialistas y farmacia.",
+                                pt = "Especialistas e farmácia.",
+                            ),
                             fontSize = 10.sp,
                             color = Color(0xFF94A3B8),
                             lineHeight = 14.sp,
@@ -435,14 +456,17 @@ fun HealthReserveCard(
                                 modifier = Modifier.size(14.dp),
                             )
                             Text(
-                                text = "Movimientos",
+                                text = stringResource(R.string.health_reserve_history_title),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.White,
                             )
                         }
                         Text(
-                            text = "Historial de créditos.",
+                            text = healthText(
+                                es = "Historial de créditos.",
+                                pt = "Histórico de créditos.",
+                            ),
                             fontSize = 10.sp,
                             color = Color(0xFF94A3B8),
                             lineHeight = 14.sp,

@@ -50,4 +50,39 @@ class PreventiveHealthContentTest {
         assertThat(getScreeningsStartingAtAge(50, PreventiveGender.Female).map { it.id })
             .containsAtLeast("mammography", "colonoscopy")
     }
+
+    @Test
+    fun `normalize preventive gender accepts portuguese inputs`() {
+        assertThat(normalizePreventiveGender("Feminino")).isEqualTo(PreventiveGender.Female)
+        assertThat(normalizePreventiveGender("mulher")).isEqualTo(PreventiveGender.Female)
+        assertThat(normalizePreventiveGender("homem")).isEqualTo(PreventiveGender.Male)
+    }
+
+    @Test
+    fun `portuguese localization translates categories, screenings, and education items`() {
+        assertThat(PreventiveGender.Female.localizedLabel(isPortuguese = true)).isEqualTo("Feminino")
+        assertThat(PreventiveCategory.Cancer.localizedLabel(isPortuguese = true)).isEqualTo("Rastreamento de Câncer")
+        assertThat(PreventiveCategory.Bone.localizedLabel(isPortuguese = true)).isEqualTo("Saúde Óssea")
+        assertThat(PreventiveCoverage.Variable.localizedLabel(isPortuguese = true)).isEqualTo("Variável")
+
+        val allScreenings = getRecommendedPreventiveScreenings(65, PreventiveGender.Female) +
+            getRecommendedPreventiveScreenings(65, PreventiveGender.Male)
+        allScreenings.distinctBy { it.id }.forEach { screening ->
+            val pt = screening.localized(isPortuguese = true)
+            assertThat(pt.description).doesNotContain("Medicion")
+            assertThat(pt.description).doesNotContain("Analisis")
+            assertThat(pt.frequency).doesNotContain("anos")
+        }
+
+        val papPt = getRecommendedPreventiveScreenings(35, PreventiveGender.Female)
+            .first { it.id == "pap-test" }
+            .localized(isPortuguese = true)
+        assertThat(papPt.name).isEqualTo("Papanicolau (Preventivo)")
+        assertThat(papPt.frequency).isEqualTo("A cada 3 anos")
+
+        val eduPt = getPreventiveEducationItems(isPortuguese = true)
+        assertThat(eduPt).hasSize(4)
+        assertThat(eduPt.first().title).isEqualTo("Vacinas em dia")
+        assertThat(eduPt.joinToString(" ") { it.title + " " + it.description }).doesNotContain("chequeos")
+    }
 }

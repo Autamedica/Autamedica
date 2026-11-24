@@ -237,6 +237,112 @@ fun formatArs(amount: Int): String {
 fun getPlanByTier(tierKey: String): ReservePlan =
     defaultReservePlans.find { it.tierKey == tierKey.lowercase() } ?: defaultReservePlans.first()
 
+private val ptReservePlans: List<ReservePlan> = listOf(
+    defaultReservePlans[0].copy(
+        name = "Gratuito",
+        summaryText = "Acesso livre à plataforma de telemedicina e receitas digitais para consultas avulsas.",
+        features = listOf(
+            PlanFeature("Prontuário clínico digital no seu celular", true),
+            PlanFeature("Receita médica com assinatura eletrônica", true),
+            PlanFeature("Pagamento individual por consulta avulsa", true),
+            PlanFeature("1 consulta médica mensal incluída", false),
+            PlanFeature("Reserva de créditos acumulativos", false),
+            PlanFeature("Prioridade no plantão virtual 24/7", false),
+        ),
+    ),
+    defaultReservePlans[1].copy(
+        name = "Cuidado",
+        badgeText = "Mais Escolhido",
+        summaryText = "1 teleconsulta médica mensal incluída e Reserva de Saúde: se você não usar sua consulta, acumula créditos para especialistas, laboratórios e farmácia.",
+        features = listOf(
+            PlanFeature("1 teleconsulta clínica mensal", true),
+            PlanFeature("Use ou Acumule: +22 créditos/mês sem uso", true),
+            PlanFeature("Resgate em especialistas, laboratórios e farmácia", true),
+            PlanFeature("Receitas e pedidos eletrônicos ilimitados", true),
+            PlanFeature("Prioridade de atendimento no plantão 24/7", true),
+            PlanFeature("Pagamento simples via Pix ou Cartão de crédito", true),
+        ),
+    ),
+    defaultReservePlans[2].copy(
+        name = "Familiar",
+        badgeText = "Cobertura Compartilhada",
+        summaryText = "Proteção médica para até 4 membros do grupo familiar com reserva unificada e acúmulo compartilhado.",
+        features = listOf(
+            PlanFeature("Cobertura integral para até 4 integrantes", true),
+            PlanFeature("Consultas mensais para todo o grupo familiar", true),
+            PlanFeature("Reserva unificada: acumulem juntos todo mês", true),
+            PlanFeature("Resgate flexível para qualquer membro", true),
+            PlanFeature("Prontuário separado por familiar", true),
+            PlanFeature("Assistência médica prioritária contínua", true),
+        ),
+    ),
+)
+
+private val ptBenefitCategories: List<BenefitCategoryItem> = listOf(
+    defaultBenefitCategories[0].copy(
+        title = "Consultas com Especialistas",
+        description = "Cardiologia, dermatologia, ortopedia, ginecologia e mais de 20 especialidades na rede.",
+        examples = "Videoconsultas de 30 minutos ou consultas presenciais sem coparticipação.",
+    ),
+    defaultBenefitCategories[1].copy(
+        title = "Exames e Laboratórios",
+        description = "Painéis completos de rotina preventiva e análises clínicas em laboratórios credenciados.",
+        examples = "Hemograma completo, perfil lipídico, glicemia e urina tipo 1.",
+    ),
+    defaultBenefitCategories[2].copy(
+        title = "Farmácia e Medicamentos",
+        description = "Vouchers diretos para medicamentos prescritos de uso contínuo e tratamentos crônicos.",
+        examples = "Anti-hipertensivos, hipoglicemiantes e medicamentos ambulatoriais essenciais.",
+    ),
+)
+
+internal fun localizedReservePlans(isPortuguese: Boolean): List<ReservePlan> =
+    if (isPortuguese) ptReservePlans else defaultReservePlans
+
+internal fun localizedBenefitCategories(isPortuguese: Boolean): List<BenefitCategoryItem> =
+    if (isPortuguese) ptBenefitCategories else defaultBenefitCategories
+
+internal fun getLocalizedPlanByTier(tierKey: String, isPortuguese: Boolean): ReservePlan {
+    val plans = localizedReservePlans(isPortuguese)
+    return plans.find { it.tierKey == tierKey.lowercase() } ?: plans.first()
+}
+
+internal fun formatLocalizedCredits(credits: Int, isPortuguese: Boolean): String =
+    if (isPortuguese) {
+        NumberFormat.getNumberInstance(Locale("pt", "BR")).format(credits)
+    } else {
+        formatCredits(credits)
+    }
+
+internal fun formatLocalizedReferenceAmount(amountArs: Int, isPortuguese: Boolean): String {
+    if (!isPortuguese) return formatArs(amountArs)
+    val format = NumberFormat.getCurrencyInstance(Locale("pt", "BR"))
+    format.maximumFractionDigits = 0
+    return format.format(amountArs / 100.0)
+}
+
+internal fun formatLocalizedMonthlyPlanPrice(
+    plan: ReservePlan,
+    isPortuguese: Boolean,
+    forModal: Boolean = false,
+): String {
+    if (!isPortuguese) {
+        return if (plan.priceMonthlyArs > 0) {
+            "${formatArs(plan.priceMonthlyArs)} / mes"
+        } else if (forModal) {
+            "Gratis para siempre"
+        } else {
+            "Gratis"
+        }
+    }
+    return when {
+        plan.priceMonthlyArs <= 0 -> if (forModal) "Grátis para sempre" else "Grátis"
+        plan.tierKey == "cuidado" -> "R$ 49,90 / mês"
+        plan.tierKey == "familiar" -> "R$ 119,90 / mês"
+        else -> "${formatLocalizedReferenceAmount(plan.priceMonthlyArs, true)} / mês"
+    }
+}
+
 // ── Main Screen Composable ────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -257,7 +363,10 @@ fun HealthReserveDetailScreen(
     var activationSuccessMessage by remember { mutableStateOf<String?>(null) }
     var simulatedMonths by remember { mutableIntStateOf(3) }
 
-    val currentPlan = getPlanByTier(activeTier)
+    val isPortuguese = isPortugueseUi()
+    val plans = localizedReservePlans(isPortuguese)
+    val categories = localizedBenefitCategories(isPortuguese)
+    val currentPlan = getLocalizedPlanByTier(activeTier, isPortuguese)
     val progressFraction = calculateProgressFraction(currentCredits, currentMaxCap)
 
     // BackHandler: cierra modal de activación si está abierto, o regresa a Inicio
@@ -286,13 +395,16 @@ fun HealthReserveDetailScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Reserva de Salud",
+                            text = healthText("Reserva de Salud", "Reserva de Saúde"),
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
                         )
                         Text(
-                            text = "Planes Transparentes & Beneficios Acumulables",
+                            text = healthText(
+                                es = "Planes Transparentes & Beneficios Acumulables",
+                                pt = "Planos Transparentes & Benefícios Acumuláveis",
+                            ),
                             fontSize = 11.sp,
                             color = AuTextSecondary,
                         )
@@ -305,7 +417,7 @@ fun HealthReserveDetailScreen(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Regresar al inicio",
+                            contentDescription = healthText("Regresar al inicio", "Voltar ao início"),
                             tint = AuTextPrimary,
                         )
                     }
@@ -345,7 +457,7 @@ fun HealthReserveDetailScreen(
                             Spacer(Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "¡Plan actualizado!",
+                                    text = healthText("¡Plan actualizado!", "Plano atualizado!"),
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White,
@@ -362,7 +474,7 @@ fun HealthReserveDetailScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.Close,
-                                    contentDescription = "Cerrar",
+                                    contentDescription = healthText("Cerrar", "Fechar"),
                                     tint = Color.White.copy(alpha = 0.7f),
                                     modifier = Modifier.size(18.dp),
                                 )
@@ -408,7 +520,7 @@ fun HealthReserveDetailScreen(
                                     )
                                     Spacer(Modifier.width(5.dp))
                                     Text(
-                                        text = "RESERVA DE SALUD",
+                                        text = healthText("RESERVA DE SALUD", "RESERVA DE SAÚDE"),
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF38BDF8),
@@ -422,7 +534,7 @@ fun HealthReserveDetailScreen(
                                 color = currentPlan.color.copy(alpha = 0.15f),
                             ) {
                                 Text(
-                                    text = "Plan ${currentPlan.name}",
+                                    text = if (isPortuguese) "Plano ${currentPlan.name}" else "Plan ${currentPlan.name}",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = currentPlan.color,
@@ -431,7 +543,7 @@ fun HealthReserveDetailScreen(
                             }
                         }
 
-                        // Contador de créditos y equivalente ARS
+                        // Contador de créditos y equivalente ARS/BRL
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -440,14 +552,17 @@ fun HealthReserveDetailScreen(
                             ) {
                                 Column {
                                     Text(
-                                        text = formatCredits(currentCredits),
+                                        text = formatLocalizedCredits(currentCredits, isPortuguese),
                                         fontSize = 42.sp,
                                         fontWeight = FontWeight.Light,
                                         color = Color.White,
                                         letterSpacing = (-1).sp,
                                     )
                                     Text(
-                                        text = "AUTA Créditos disponibles",
+                                        text = healthText(
+                                            es = "AUTA Créditos disponibles",
+                                            pt = "Créditos AUTA disponíveis",
+                                        ),
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = Color(0xFF94A3B8),
@@ -457,13 +572,16 @@ fun HealthReserveDetailScreen(
                                 Column(horizontalAlignment = Alignment.End) {
                                     val estimatedArs = calculateEstimatedArs(currentCredits)
                                     Text(
-                                        text = formatArs(estimatedArs),
+                                        text = formatLocalizedReferenceAmount(estimatedArs, isPortuguese),
                                         fontSize = 18.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF38BDF8),
                                     )
                                     Text(
-                                        text = "equiv. estimado en red",
+                                        text = healthText(
+                                            es = "equiv. estimado en red",
+                                            pt = "equiv. estimado na rede",
+                                        ),
                                         fontSize = 11.sp,
                                         color = Color(0xFF64748B),
                                     )
@@ -489,12 +607,16 @@ fun HealthReserveDetailScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
                                 Text(
-                                    text = "0 créditos",
+                                    text = healthText("0 créditos", "0 créditos"),
                                     fontSize = 11.sp,
                                     color = Color(0xFF64748B),
                                 )
                                 Text(
-                                    text = "Tope acumulable: ${formatCredits(currentMaxCap)} pts",
+                                    text = if (isPortuguese) {
+                                        "Limite acumulável: ${formatLocalizedCredits(currentMaxCap, true)} pts"
+                                    } else {
+                                        "Tope acumulable: ${formatCredits(currentMaxCap)} pts"
+                                    },
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = Color(0xFF94A3B8),
@@ -510,7 +632,10 @@ fun HealthReserveDetailScreen(
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text(
-                                text = "💡 Si estás sano y no usás tu consulta del mes, tu dinero no se pierde: se transforma en créditos de salud para especialistas, análisis clínicos y farmacia.",
+                                text = healthText(
+                                    es = "💡 Si estás sano y no usás tu consulta del mes, tu dinero no se pierde: se transforma en créditos de salud para especialistas, análisis clínicos y farmacia.",
+                                    pt = "💡 Se estiver saudável e não usar sua consulta do mês, seu valor não se perde: vira créditos de saúde para especialistas, exames e farmácia.",
+                                ),
                                 fontSize = 12.sp,
                                 color = Color(0xFFCBD5E1),
                                 lineHeight = 17.sp,
@@ -525,21 +650,27 @@ fun HealthReserveDetailScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "¿Dónde podés usar tus créditos?",
+                        text = healthText(
+                            es = "¿Dónde podés usar tus créditos?",
+                            pt = "Onde você pode usar seus créditos?",
+                        ),
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = AuTextPrimary,
                     )
                     Text(
-                        text = "Canjeá directamente en la red de prestadores sin copagos sorpresa.",
+                        text = healthText(
+                            es = "Canjeá directamente en la red de prestadores sin copagos sorpresa.",
+                            pt = "Resgate direto na rede credenciada sem copagamentos surpresa.",
+                        ),
                         fontSize = 13.sp,
                         color = AuTextSecondary,
                     )
                 }
             }
 
-            items(defaultBenefitCategories.size) { index ->
-                val category = defaultBenefitCategories[index]
+            items(categories.size) { index ->
+                val category = categories[index]
                 val hasEnoughCredits = currentCredits >= category.creditsCost
                 BenefitCategoryCard(
                     category = category,
@@ -569,14 +700,20 @@ fun HealthReserveDetailScreen(
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                text = "Simulador: ¿Cuánto podés acumular?",
+                                text = healthText(
+                                    es = "Simulador: ¿Cuánto podés acumular?",
+                                    pt = "Simulador: quanto você pode acumular?",
+                                ),
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = AuTextPrimary,
                             )
                         }
                         Text(
-                            text = "Elegí el tiempo de meses saludables sin consultas para proyectar tus créditos acumulados:",
+                            text = healthText(
+                                es = "Elegí el tiempo de meses saludables sin consultas para proyectar tus créditos acumulados:",
+                                pt = "Escolha a quantidade de meses saudáveis sem consultas para projetar seus créditos acumulados:",
+                            ),
                             fontSize = 12.sp,
                             color = AuTextSecondary,
                             lineHeight = 17.sp,
@@ -594,7 +731,11 @@ fun HealthReserveDetailScreen(
                                     onClick = { simulatedMonths = months },
                                     label = {
                                         Text(
-                                            text = if (months == 1) "1 mes" else "$months meses",
+                                            text = if (months == 1) {
+                                                healthText("1 mes", "1 mês")
+                                            } else {
+                                                "$months meses"
+                                            },
                                             fontSize = 12.sp,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                         )
@@ -631,13 +772,21 @@ fun HealthReserveDetailScreen(
                             ) {
                                 Column {
                                     Text(
-                                        text = "+$projectedCredits AUTA Créditos",
+                                        text = if (isPortuguese) {
+                                            "+$projectedCredits Créditos AUTA"
+                                        } else {
+                                            "+$projectedCredits AUTA Créditos"
+                                        },
                                         fontSize = 17.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White,
                                     )
                                     Text(
-                                        text = "Equivalente estimado: ${formatArs(projectedArs)}",
+                                        text = if (isPortuguese) {
+                                            "Equivalente estimado: ${formatLocalizedReferenceAmount(projectedArs, true)}"
+                                        } else {
+                                            "Equivalente estimado: ${formatArs(projectedArs)}"
+                                        },
                                         fontSize = 12.sp,
                                         color = Color(0xFF38BDF8),
                                     )
@@ -648,10 +797,10 @@ fun HealthReserveDetailScreen(
                                 ) {
                                     Text(
                                         text = when {
-                                            projectedCredits >= 100 -> "Especialistas desbloqueados"
-                                            projectedCredits >= 60 -> "Check-up desbloqueado"
-                                            projectedCredits >= 55 -> "Farmacia desbloqueada"
-                                            else -> "Acumulación inicial"
+                                            projectedCredits >= 100 -> healthText("Especialistas desbloqueados", "Especialistas liberados")
+                                            projectedCredits >= 60 -> healthText("Check-up desbloqueado", "Check-up liberado")
+                                            projectedCredits >= 55 -> healthText("Farmacia desbloqueada", "Farmácia liberada")
+                                            else -> healthText("Acumulación inicial", "Acúmulo inicial")
                                         },
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
@@ -669,21 +818,24 @@ fun HealthReserveDetailScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = "Comparador de Planes",
+                        text = healthText("Comparador de Planes", "Comparador de Planos"),
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = AuTextPrimary,
                     )
                     Text(
-                        text = "Transparencia total. Cambiá o cancelá tu suscripción cuando lo decidas.",
+                        text = healthText(
+                            es = "Transparencia total. Cambiá o cancelá tu suscripción cuando lo decidas.",
+                            pt = "Transparência total. Altere ou cancele sua assinatura quando quiser.",
+                        ),
                         fontSize = 13.sp,
                         color = AuTextSecondary,
                     )
                 }
             }
 
-            items(defaultReservePlans.size) { index ->
-                val plan = defaultReservePlans[index]
+            items(plans.size) { index ->
+                val plan = plans[index]
                 val isCurrentPlan = plan.tierKey == activeTier
                 DetailedPlanCard(
                     plan = plan,
@@ -709,27 +861,42 @@ fun HealthReserveDetailScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Text(
-                            text = "Preguntas Frecuentes",
+                            text = healthText("Preguntas Frecuentes", "Perguntas Frequentes"),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
                         )
 
                         FaqAccordionItem(
-                            question = "¿Qué sucede si no uso mi consulta en el mes?",
-                            answer = "Si tenés el Plan Cuidado o Familiar, sumás automáticamente 22 AUTA Créditos a tu Reserva de Salud para canjear más adelante en especialistas, análisis clínicos o farmacia.",
+                            question = healthText(
+                                es = "¿Qué sucede si no uso mi consulta en el mes?",
+                                pt = "O que acontece se eu não usar minha consulta no mês?",
+                            ),
+                            answer = healthText(
+                                es = "Si tenés el Plan Cuidado o Familiar, sumás automáticamente 22 AUTA Créditos a tu Reserva de Salud para canjear más adelante en especialistas, análisis clínicos o farmacia.",
+                                pt = "Se você tem o Plano Cuidado ou Familiar, soma automaticamente 22 Créditos AUTA à sua Reserva de Saúde para resgatar depois em especialistas, exames ou farmácia.",
+                            ),
                         )
                         FaqAccordionItem(
-                            question = "¿Los créditos vencen?",
-                            answer = "Tienen una vigencia de hasta 24 meses mientras mantengas tu suscripción activa, permitiéndote acumular hasta el tope fijado por tu plan.",
+                            question = healthText("¿Los créditos vencen?", "Os créditos vencem?"),
+                            answer = healthText(
+                                es = "Tienen una vigencia de hasta 24 meses mientras mantengas tu suscripción activa, permitiéndote acumular hasta el tope fijado por tu plan.",
+                                pt = "Eles têm validade de até 24 meses enquanto você mantiver sua assinatura ativa, permitindo acumular até o limite do seu plano.",
+                            ),
                         )
                         FaqAccordionItem(
-                            question = "¿Cómo canjeo mis créditos?",
-                            answer = "Directamente desde la app: seleccionás el servicio deseado en la red conveniada, generás tu voucher digital e ingresás a la consulta o presentás el código en farmacia.",
+                            question = healthText("¿Cómo canjeo mis créditos?", "Como resgato meus créditos?"),
+                            answer = healthText(
+                                es = "Directamente desde la app: seleccionás el servicio deseado en la red conveniada, generás tu voucher digital e ingresás a la consulta o presentás el código en farmacia.",
+                                pt = "Diretamente pelo app: escolha o serviço desejado na rede credenciada, gere seu voucher digital e acesse a consulta ou apresente o código na farmácia.",
+                            ),
                         )
                         FaqAccordionItem(
-                            question = "¿Puedo cancelar mi plan cuando quiera?",
-                            answer = "Sí, 100% online y en cualquier momento sin períodos mínimos de permanencia ni penalizaciones.",
+                            question = healthText("¿Puedo cancelar mi plan cuando quiera?", "Posso cancelar meu plano quando quiser?"),
+                            answer = healthText(
+                                es = "Sí, 100% online y en cualquier momento sin períodos mínimos de permanencia ni penalizaciones.",
+                                pt = "Sim, 100% online e a qualquer momento, sem fidelidade mínima nem multas.",
+                            ),
                         )
                     }
                 }
@@ -738,7 +905,10 @@ fun HealthReserveDetailScreen(
             // Disclaimer Legal
             item {
                 Text(
-                    text = "AutaMedica es una plataforma tecnológica de telemedicina y programa de beneficios en red conveniada. No es una empresa de medicina prepaga ni aseguradora.",
+                    text = healthText(
+                        es = "AutaMedica es una plataforma tecnológica de telemedicina y programa de beneficios en red conveniada. No es una empresa de medicina prepaga ni aseguradora.",
+                        pt = "A AutaMedica é uma plataforma tecnológica de telemedicina e programa de benefícios em rede credenciada. Não é operadora de plano de saúde nem seguradora.",
+                    ),
                     fontSize = 11.sp,
                     color = AuTextTertiary,
                     textAlign = TextAlign.Center,
@@ -781,13 +951,21 @@ fun HealthReserveDetailScreen(
                 ) {
                     Column {
                         Text(
-                            text = "Activar Plan ${planToActivate.name}",
+                            text = if (isPortuguese) {
+                                "Ativar Plano ${planToActivate.name}"
+                            } else {
+                                "Activar Plan ${planToActivate.name}"
+                            },
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
                         )
                         Text(
-                            text = if (planToActivate.priceMonthlyArs > 0) "${formatArs(planToActivate.priceMonthlyArs)} / mes" else "Gratis para siempre",
+                            text = formatLocalizedMonthlyPlanPrice(
+                                plan = planToActivate,
+                                isPortuguese = isPortuguese,
+                                forModal = true,
+                            ),
                             fontSize = 14.sp,
                             color = Color(0xFF38BDF8),
                             fontWeight = FontWeight.SemiBold,
@@ -799,7 +977,7 @@ fun HealthReserveDetailScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Close,
-                            contentDescription = "Cerrar modal",
+                            contentDescription = healthText("Cerrar modal", "Fechar modal"),
                             tint = Color.White.copy(alpha = 0.7f),
                         )
                     }
@@ -817,7 +995,7 @@ fun HealthReserveDetailScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
-                            text = "Beneficios incluidos:",
+                            text = healthText("Beneficios incluidos:", "Benefícios incluídos:"),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF94A3B8),
@@ -845,7 +1023,7 @@ fun HealthReserveDetailScreen(
                 if (planToActivate.priceMonthlyArs > 0) {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            text = "Método de pago:",
+                            text = healthText("Método de pago:", "Forma de pagamento:"),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFF94A3B8),
@@ -872,7 +1050,7 @@ fun HealthReserveDetailScreen(
                                     )
                                     Spacer(Modifier.width(6.dp))
                                     Text(
-                                        text = "Pix / Transferencia",
+                                        text = healthText("Pix / Transferencia", "Pix / Transferência"),
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = Color.White,
@@ -898,7 +1076,7 @@ fun HealthReserveDetailScreen(
                                     )
                                     Spacer(Modifier.width(6.dp))
                                     Text(
-                                        text = "Tarjeta Déb./Créd.",
+                                        text = healthText("Tarjeta Déb./Créd.", "Cartão Déb./Créd."),
                                         fontSize = 12.sp,
                                         color = Color(0xFFCBD5E1),
                                     )
@@ -930,10 +1108,18 @@ fun HealthReserveDetailScreen(
                             strokeWidth = 2.dp,
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("Activando plan...", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text(
+                            text = healthText("Activando plan...", "Ativando plano..."),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                        )
                     } else {
                         Text(
-                            text = if (onActivatePlan == null) "Activación no disponible" else if (planToActivate.priceMonthlyArs > 0) "Confirmar y Activar" else "Confirmar Plan Gratuito",
+                            text = when {
+                                onActivatePlan == null -> healthText("Activación no disponible", "Ativação indisponível")
+                                planToActivate.priceMonthlyArs > 0 -> healthText("Confirmar y Activar", "Confirmar e Ativar")
+                                else -> healthText("Confirmar Plan Gratuito", "Confirmar Plano Gratuito")
+                            },
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
                         )
@@ -941,7 +1127,10 @@ fun HealthReserveDetailScreen(
                 }
 
                 Text(
-                    text = "Podés cancelar o cambiar tu plan en cualquier momento sin penalizaciones.",
+                    text = healthText(
+                        es = "Podés cancelar o cambiar tu plan en cualquier momento sin penalizaciones.",
+                        pt = "Você pode cancelar ou alterar seu plano a qualquer momento sem multas.",
+                    ),
                     fontSize = 11.sp,
                     color = Color(0xFF64748B),
                     textAlign = TextAlign.Center,
@@ -962,6 +1151,7 @@ private fun BenefitCategoryCard(
     currentCredits: Int,
     hasEnoughCredits: Boolean,
 ) {
+    val isPortuguese = isPortugueseUi()
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = AuSurface,
@@ -1001,7 +1191,11 @@ private fun BenefitCategoryCard(
                             color = AuTextPrimary,
                         )
                         Text(
-                            text = "Valor particular ref.: ${formatArs(category.referenceMarketPriceArs)}",
+                            text = if (isPortuguese) {
+                                "Valor particular ref.: ${formatLocalizedReferenceAmount(category.referenceMarketPriceArs, true)}"
+                            } else {
+                                "Valor particular ref.: ${formatArs(category.referenceMarketPriceArs)}"
+                            },
                             fontSize = 11.sp,
                             color = AuTextTertiary,
                         )
@@ -1060,7 +1254,7 @@ private fun BenefitCategoryCard(
                             )
                             Spacer(Modifier.width(4.dp))
                             Text(
-                                text = "Alcanza con tu saldo",
+                                text = healthText("Alcanza con tu saldo", "Disponível no seu saldo"),
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF34D399),
@@ -1074,7 +1268,7 @@ private fun BenefitCategoryCard(
                         color = AuSurfaceHover,
                     ) {
                         Text(
-                            text = "Faltan $missingCredits pts",
+                            text = healthText("Faltan $missingCredits pts", "Faltam $missingCredits pts"),
                             fontSize = 10.sp,
                             color = AuTextTertiary,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
@@ -1092,6 +1286,7 @@ private fun DetailedPlanCard(
     isCurrentPlan: Boolean,
     onSelect: () -> Unit,
 ) {
+    val isPortuguese = isPortugueseUi()
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = if (isCurrentPlan) AuSurfaceHover else AuSurface,
@@ -1150,7 +1345,7 @@ private fun DetailedPlanCard(
                         }
                     }
                     Text(
-                        text = if (plan.priceMonthlyArs > 0) "${formatArs(plan.priceMonthlyArs)} / mes" else "Gratis",
+                        text = formatLocalizedMonthlyPlanPrice(plan = plan, isPortuguese = isPortuguese),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = if (plan.priceMonthlyArs > 0) plan.color else AuTextSecondary,
@@ -1163,7 +1358,7 @@ private fun DetailedPlanCard(
                         color = plan.color.copy(alpha = 0.15f),
                     ) {
                         Text(
-                            text = "Plan Activo",
+                            text = healthText("Plan Activo", "Plano Ativo"),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = plan.color,
@@ -1211,7 +1406,11 @@ private fun DetailedPlanCard(
                     colors = ButtonDefaults.buttonColors(containerColor = plan.color),
                 ) {
                     Text(
-                        text = if (plan.priceMonthlyArs > 0) "Activar Plan ${plan.name}" else "Elegir Plan Gratuito",
+                        text = if (plan.priceMonthlyArs > 0) {
+                            if (isPortuguese) "Ativar Plano ${plan.name}" else "Activar Plan ${plan.name}"
+                        } else {
+                            healthText("Elegir Plan Gratuito", "Escolher Plano Gratuito")
+                        },
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                     )
@@ -1232,7 +1431,7 @@ private fun DetailedPlanCard(
                     border = BorderStroke(1.dp, plan.color.copy(alpha = 0.4f)),
                 ) {
                     Text(
-                        text = "Tu membresía actual",
+                        text = healthText("Tu membresía actual", "Sua assinatura atual"),
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 13.sp,
                         color = plan.color,
