@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   getPublicProfileCredentials,
+  getPublicProfileHeadline,
+  getPublicProfilePath,
   getVisibleProfileSections,
+  shouldShowConsultationCta,
   isTestimonialsEnabled,
   shouldShowTestimonials,
   toVerifiedTestimonials,
@@ -63,10 +66,45 @@ describe('public doctor profile view model', () => {
     });
   });
 
+  it('supports a published editorial profile with consultations off and no clinical practice', () => {
+    const profile = {
+      care_country: 'AR' as const,
+      accepting_consultations: false,
+      public_headline: 'Fundador de AutaMedica · Salud digital y telemedicina',
+      specialty: 'Medicina General',
+      bio: null,
+      clinical_focus_areas: [],
+      licenses: [{ license_type: 'MN', license_number: '006402' }],
+    };
+
+    expect(shouldShowConsultationCta(profile)).toBe(false);
+    expect(getPublicProfileHeadline(profile)).toBe('Fundador de AutaMedica · Salud digital y telemedicina');
+    expect(getVisibleProfileSections(profile).practice).toBe(false);
+    expect(getVisibleProfileSections(profile).verification).toBe(false);
+    expect(getPublicProfileCredentials(profile)).toEqual({ licenses: [], rqe: '', verified: false });
+    expect(profile.specialty).toBe('Medicina General');
+    expect(getPublicProfileHeadline({ care_country: 'AR', accepting_consultations: false, specialty: 'Medicina General' })).toBe('');
+  });
+
+  it('builds public profile URLs from the doctor regulatory care_country', () => {
+    expect(getPublicProfilePath('AR', 'ana-perez-123')).toBe('/ar/medicos/ana-perez-123');
+    expect(getPublicProfilePath('BR', 'ana-perez-123')).toBe('/br/medicos/ana-perez-123');
+  });
+
+  it('falls back to specialty for an accepting doctor without a custom headline', () => {
+    expect(getPublicProfileHeadline({
+      care_country: 'AR',
+      accepting_consultations: true,
+      public_headline: '  ',
+      specialty: 'Cardiología',
+    })).toBe('Cardiología');
+    expect(shouldShowConsultationCta({ care_country: 'AR' })).toBe(true);
+  });
+
   it('renders optional sections only when real content exists', () => {
     expect(getVisibleProfileSections({
       care_country: 'BR',
-      bio: 'Cardiologia clínica.',
+      bio: 'Cardiología clínica.',
       years_experience: 12,
       education: [{ degree: 'Medicina', university: 'UFRGS', year: '2010' }],
       certifications: [],

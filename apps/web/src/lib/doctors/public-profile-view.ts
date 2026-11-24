@@ -5,6 +5,9 @@ export type PublicLicense = {
 
 export type PublicProfileViewData = {
   care_country: 'AR' | 'BR';
+  accepting_consultations?: boolean;
+  public_headline?: string | null;
+  specialty?: string | null;
   bio?: string | null;
   years_experience?: number | null;
   education?: unknown;
@@ -67,11 +70,30 @@ export function toStringEntries(value: unknown): string[] {
   });
 }
 
+export function shouldShowConsultationCta(profile: PublicProfileViewData): boolean {
+  return profile.accepting_consultations !== false;
+}
+
+export function getPublicProfilePath(careCountry: 'AR' | 'BR', slug: string): string {
+  return '/' + careCountry.toLowerCase() + '/medicos/' + slug;
+}
+
+export function getPublicProfileHeadline(profile: PublicProfileViewData): string {
+  const headline = typeof profile.public_headline === 'string' ? profile.public_headline.trim() : '';
+  if (headline) return headline;
+  return shouldShowConsultationCta(profile) && typeof profile.specialty === 'string'
+    ? profile.specialty.trim()
+    : '';
+}
+
 export function getPublicProfileCredentials(profile: PublicProfileViewData): {
   licenses: string[];
   rqe: string;
   verified: boolean;
 } {
+  if (!shouldShowConsultationCta(profile)) {
+    return { licenses: [], rqe: '', verified: false };
+  }
   const source = objectEntries(profile.licenses);
   const licenses = source.flatMap((entry): string[] => {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return [];

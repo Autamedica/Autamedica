@@ -50,7 +50,7 @@ function parseLines(value: unknown, maxItems: number, maxLength: number): string
 async function getDoctor(admin: any, userId: string) {
   return admin
     .from('doctors')
-    .select('id,care_country,specialty,subspecialty,bio,years_experience,education,certifications,clinical_focus_areas,professional_experience,academic_activity,public_profile_enabled,public_profile_published_at,public_profile_updated_at')
+    .select('id,care_country,specialty,subspecialty,bio,years_experience,education,certifications,clinical_focus_areas,professional_experience,academic_activity,accepting_consultations,public_headline,public_profile_enabled,public_profile_published_at,public_profile_updated_at')
     .eq('user_id', userId)
     .maybeSingle();
 }
@@ -89,6 +89,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
         clinical_focus_areas: data.clinical_focus_areas,
         professional_experience: data.professional_experience,
         academic_activity: data.academic_activity,
+        accepting_consultations: data.accepting_consultations,
+        public_headline: data.public_headline,
         public_profile_enabled: data.public_profile_enabled,
         public_profile_published_at: data.public_profile_published_at,
         public_profile_updated_at: data.public_profile_updated_at,
@@ -120,6 +122,23 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
     if (!doctor) return jsonResponse({ error: 'doctor_profile_not_found' }, 404);
 
     const patch: Record<string, unknown> = {};
+
+    if ('public_headline' in input) {
+      if (input.public_headline !== null && typeof input.public_headline !== 'string') {
+        return jsonResponse({ error: 'invalid_public_headline' }, 400);
+      }
+      const headline = typeof input.public_headline === 'string' ? input.public_headline.trim() : null;
+      if (headline && headline.length > 180) return jsonResponse({ error: 'invalid_public_headline' }, 400);
+      patch.public_headline = headline;
+    }
+
+    if ('accepting_consultations' in input) {
+      if (typeof input.accepting_consultations !== 'boolean') {
+        return jsonResponse({ error: 'invalid_accepting_consultations' }, 400);
+      }
+      patch.accepting_consultations = input.accepting_consultations;
+    }
+
     const limits: Record<EditableArrayKey, { maxItems: number; maxLength: number }> = {
       education: { maxItems: 30, maxLength: 240 },
       certifications: { maxItems: 30, maxLength: 240 },
@@ -173,7 +192,7 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
       .update(patch)
       .eq('id', doctor.id)
       .eq('user_id', auth.user.id)
-      .select('id,public_profile_enabled,public_profile_published_at,public_profile_updated_at,bio,years_experience,education,certifications,clinical_focus_areas,professional_experience,academic_activity')
+      .select('id,accepting_consultations,public_headline,public_profile_enabled,public_profile_published_at,public_profile_updated_at,bio,years_experience,education,certifications,clinical_focus_areas,professional_experience,academic_activity')
       .single();
     if (updateError) throw updateError;
 

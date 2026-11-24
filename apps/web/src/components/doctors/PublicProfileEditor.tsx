@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { CheckCircle2, ExternalLink, Loader2, Save } from 'lucide-react'
+import { getPublicProfilePath } from '@/lib/doctors/public-profile-view'
 
 type PublicProfileEditorData = {
   id: string
@@ -16,6 +17,8 @@ type PublicProfileEditorData = {
   clinical_focus_areas?: unknown
   professional_experience?: unknown
   academic_activity?: unknown
+  accepting_consultations: boolean
+  public_headline?: string | null
   public_profile_enabled: boolean
   public_profile_published_at?: string | null
   public_profile_updated_at?: string | null
@@ -29,6 +32,8 @@ type EditorForm = {
   clinical_focus_areas: string
   professional_experience: string
   academic_activity: string
+  accepting_consultations: boolean
+  public_headline: string
   public_profile_enabled: boolean
 }
 
@@ -74,6 +79,8 @@ export function PublicProfileEditor() {
     clinical_focus_areas: '',
     professional_experience: '',
     academic_activity: '',
+    accepting_consultations: true,
+    public_headline: '',
     public_profile_enabled: false,
   })
   const [loading, setLoading] = useState(true)
@@ -96,6 +103,8 @@ export function PublicProfileEditor() {
       }
       const data = payload.data as PublicProfileEditorData
       setProfile(data)
+      // The profile's regulatory country is the stable locale for this editor.
+      setIsPortuguese(data.care_country === 'BR')
       setForm({
         bio: data.bio ?? '',
         years_experience: data.years_experience == null ? '' : String(data.years_experience),
@@ -104,6 +113,8 @@ export function PublicProfileEditor() {
         clinical_focus_areas: entriesToText(data.clinical_focus_areas),
         professional_experience: entriesToText(data.professional_experience),
         academic_activity: entriesToText(data.academic_activity),
+        accepting_consultations: data.accepting_consultations !== false,
+        public_headline: data.public_headline ?? '',
         public_profile_enabled: Boolean(data.public_profile_enabled),
       })
     } catch (cause) {
@@ -114,14 +125,14 @@ export function PublicProfileEditor() {
   }, [])
 
   useEffect(() => {
-    setIsPortuguese(document.documentElement.lang.toLowerCase().startsWith('pt'))
     void load()
   }, [load])
 
   const previewPath = useMemo(() => {
     if (!profile) return ''
     const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ')
-    return '/' + profile.care_country.toLowerCase() + '/medicos/' + (slugify(fullName) || 'perfil') + '-' + profile.id
+    const slug = (slugify(fullName) || 'perfil') + '-' + profile.id
+    return getPublicProfilePath(profile.care_country, slug)
   }, [profile])
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -144,6 +155,8 @@ export function PublicProfileEditor() {
           clinical_focus_areas: toLines(form.clinical_focus_areas),
           professional_experience: toLines(form.professional_experience),
           academic_activity: toLines(form.academic_activity),
+          accepting_consultations: form.accepting_consultations,
+          public_headline: form.public_headline.trim() || null,
           public_profile_enabled: form.public_profile_enabled,
         }),
       })
@@ -172,6 +185,10 @@ export function PublicProfileEditor() {
     focus: isPortuguese ? 'Áreas de atuação' : 'Áreas de atención',
     experience: isPortuguese ? 'Trajetória profissional' : 'Trayectoria profesional',
     academic: isPortuguese ? 'Atividade acadêmica e reconhecimentos' : 'Actividad académica y reconocimientos',
+    headline: isPortuguese ? 'Título público / função' : 'Subtítulo / rol público',
+    headlinePlaceholder: isPortuguese ? 'Ex.: Fundador da AutaMedica · Saúde digital e telemedicina' : 'Ej.: Fundador de AutaMedica · Salud digital y telemedicina',
+    accepting: isPortuguese ? 'Aceitando consultas agora' : 'Aceptando consultas ahora',
+    acceptingHint: isPortuguese ? 'Desative se não estiver atendendo pacientes. O perfil continua publicado.' : 'Desactivá esta opción cuando no estés atendiendo pacientes. El perfil seguirá publicado.',
     hint: isPortuguese
       ? 'Um item por linha. Seções sem conteúdo não aparecem na página pública.'
       : 'Un dato por línea. Las secciones sin contenido no aparecen en la página pública.',
@@ -242,6 +259,28 @@ export function PublicProfileEditor() {
         ) : (
           <form onSubmit={save} className="mt-6 space-y-4">
             <p className="text-sm leading-6 text-am-surface-600">{copy.hint}</p>
+
+            <label className="block border-t border-am-surface-200 py-4 text-sm font-semibold text-am-surface-800">
+              {copy.headline}
+              <input
+                type="text"
+                maxLength={180}
+                value={form.public_headline}
+                onChange={(event) => setForm((current) => ({ ...current, public_headline: event.target.value }))}
+                placeholder={copy.headlinePlaceholder}
+                className="mt-2 block w-full rounded-xl border border-am-surface-300 bg-white px-3.5 py-2.5 text-sm font-normal text-am-surface-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+              />
+            </label>
+
+            <label className="flex items-start gap-3 border-t border-am-surface-200 py-4 text-sm font-semibold leading-6 text-am-surface-800">
+              <input
+                type="checkbox"
+                checked={form.accepting_consultations}
+                onChange={(event) => setForm((current) => ({ ...current, accepting_consultations: event.target.checked }))}
+                className="mt-1 h-4 w-4 rounded border-am-surface-300 accent-sky-600"
+              />
+              <span>{copy.accepting}<span className="mt-1 block text-sm font-normal text-am-surface-500">{copy.acceptingHint}</span></span>
+            </label>
 
             <label className="block border-t border-am-surface-200 py-4 text-sm font-semibold text-am-surface-800">
               {copy.years}

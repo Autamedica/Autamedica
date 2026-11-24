@@ -1,7 +1,7 @@
 ---
 import Layout from '@/layouts/Layout.astro';
 import { createAstroAdminClient } from '@/lib/supabase';
-import { getPublicProfileCredentials, getVisibleProfileSections, shouldShowTestimonials, toEditorialEntries, toStringEntries, toVerifiedTestimonials } from '@/lib/doctors/public-profile-view';
+import { getPublicProfileCredentials, getPublicProfileHeadline, getVisibleProfileSections, shouldShowConsultationCta, shouldShowTestimonials, toEditorialEntries, toStringEntries, toVerifiedTestimonials } from '@/lib/doctors/public-profile-view';
 
 export const prerender = false;
 Astro.response.headers.set('Cache-Control', 'no-store');
@@ -13,6 +13,8 @@ type PublicProfile = {
   last_name?: string | null;
   avatar_url?: string | null;
   specialty?: string | null;
+  public_headline?: string | null;
+  accepting_consultations?: boolean;
   subspecialty?: string | null;
   bio?: string | null;
   years_experience?: number | null;
@@ -61,8 +63,8 @@ const country = String(Astro.params.country ?? '').toUpperCase();
 const slug = String(Astro.params.doctorSlug ?? '');
 const idMatch = slug.match(/([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i);
 const doctorId = idMatch?.[1] ?? null;
-const locale = Astro.locals.locale ?? 'es';
-const isPortuguese = locale === 'pt';
+// Public profile language follows the route jurisdiction, including 404 responses.
+const isPortuguese = country === 'BR';
 let profile: PublicProfile | null = null;
 
 if ((country === 'AR' || country === 'BR') && doctorId) {
@@ -112,10 +114,12 @@ const testimonialFlags: Partial<Record<'AR' | 'BR', boolean>> = country === 'AR'
 const showTestimonials = Boolean(profile && shouldShowTestimonials(profile, testimonialFlags));
 const consultationPath = '/consulta-medica-online?doctor_id=' + encodeURIComponent(doctorId ?? '') + '&care_country=' + country;
 const consultationHref = consultationPath;
+const acceptingConsultations = profile ? shouldShowConsultationCta(profile) : false;
 
 if (!profile) Astro.response.status = 404;
-const specialty = stringValue(profile?.specialty);
-const subspecialty = stringValue(profile?.subspecialty);
+const specialty = acceptingConsultations ? stringValue(profile?.specialty) : '';
+const publicHeadline = profile ? getPublicProfileHeadline(profile) : '';
+const subspecialty = acceptingConsultations ? stringValue(profile?.subspecialty) : '';
 const bio = stringValue(profile?.bio);
 const clinicalFocusAreas = toStringEntries(profile?.clinical_focus_areas);
 const education = toEditorialEntries(profile?.education);
@@ -132,15 +136,15 @@ const sections = profile
   ? getVisibleProfileSections(profile)
   : { practice: false, education: false, experience: false, academic: false, verification: false };
 const title = profile
-  ? `${name} · ${specialty}`
+  ? `${name} · ${publicHeadline || (acceptingConsultations ? specialty : (isPortuguese ? 'Perfil profissional' : 'Perfil profesional'))}`
   : (isPortuguese ? 'Perfil profissional não disponível' : 'Perfil profesional no disponible');
 const description = profile
-  ? (bio || (isPortuguese
-      ? `${specialty} · Registro profissional validado em AutaMedica.`
-      : `${specialty} · Matrícula profesional validada en AutaMedica.`)).slice(0, 160)
+  ? (bio || (acceptingConsultations
+      ? (isPortuguese ? `${publicHeadline || specialty} · Registro profissional validado em AutaMedica.` : `${publicHeadline || specialty} · Matrícula profesional validada en AutaMedica.`)
+      : (publicHeadline || (isPortuguese ? 'Perfil público na AutaMedica.' : 'Perfil público en AutaMedica.')))).slice(0, 160)
   : (isPortuguese ? 'Este perfil profissional não está disponível.' : 'Este perfil profesional no está disponible.');
 const canonical = profile && canonicalSlug ? 'https://www.autamedica.com/' + country.toLowerCase() + '/medicos/' + canonicalSlug : undefined;
-const physicianJsonLd = profile && canonical ? {
+const profileJsonLd = profile && canonical ? (acceptingConsultations ? {
   '@context': 'https://schema.org',
   '@type': 'Physician',
   name,
@@ -152,7 +156,14 @@ const physicianJsonLd = profile && canonical ? {
     ...licenses.map((license) => ({ '@type': 'PropertyValue', name: license.split(' ')[0], value: license })),
     ...(rqeNumber ? [{ '@type': 'PropertyValue', name: 'RQE', value: rqeNumber }] : []),
   ],
-} : null;
+} : {
+  '@context': 'https://schema.org',
+  '@type': 'ProfilePage',
+  name: title,
+  url: canonical,
+  description,
+  mainEntity: { '@type': 'Person', name, jobTitle: publicHeadline || undefined },
+}) : null;
 ---
 
 <Layout
@@ -161,7 +172,7 @@ const physicianJsonLd = profile && canonical ? {
   canonical={profile ? canonical : undefined}
   robots={profile ? 'index, follow' : 'noindex, nofollow'}
 >
-  {physicianJsonLd && <script type="application/ld+json" set:html={JSON.stringify(physicianJsonLd).replace(/</g, '\\u003c')} />}
+  {profileJsonLd && <script type="application/ld+json" set:html={JSON.stringify(profileJsonLd).replace(/</g, '\\u003c')} />}
   {profile ? (
     <main class="public-profile">
       <header class="profile-header">
@@ -171,7 +182,7 @@ const physicianJsonLd = profile && canonical ? {
           <div class="identity-copy">
             <p class="eyebrow">{isPortuguese ? 'PERFIL PROFISSIONAL' : 'PERFIL PROFESIONAL'}</p>
             <h1>{name}</h1>
-            <p class="specialty">{specialty}</p>
+            {publicHeadline && <p class="specialty">{publicHeadline}</p>}
             {subspecialty && <p class="subspecialty">{subspecialty}</p>}
           </div>
         </div>
@@ -182,7 +193,7 @@ const physicianJsonLd = profile && canonical ? {
             {rqeNumber && <span class="credential-list">RQE {rqeNumber}</span>}
           </div>
         )}
-        <a class="profile-cta" href={consultationHref}>{isPortuguese ? 'Iniciar atendimento' : 'Solicitar consulta'}</a>
+        {acceptingConsultations && <a class="profile-cta" href={consultationHref}>{isPortuguese ? 'Iniciar atendimento' : 'Solicitar consulta'}</a>}
         <div class="header-rule"></div>
       </header>
 
@@ -283,7 +294,7 @@ const physicianJsonLd = profile && canonical ? {
 
         <footer class="profile-footer">
           <p>{isPortuguese ? 'Perfil profissional publicado em AutaMedica.' : 'Perfil profesional publicado en AutaMedica.'}</p>
-          <a href={consultationHref}>{isPortuguese ? 'Iniciar atendimento com este médico' : 'Iniciar consulta con este médico'}</a>
+          {acceptingConsultations && <a href={consultationHref}>{isPortuguese ? 'Iniciar atendimento com este médico' : 'Iniciar consulta con este médico'}</a>}
         </footer>
       </div>
     </main>
