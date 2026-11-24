@@ -9,7 +9,7 @@
         "http://127.0.0.1:8788/platform"
       ],
       "numberOfRuns": 3,
-      "startServerCommand": "cd apps/web && pnpm exec wrangler pages dev dist --ip 127.0.0.1 --port 8788",
+      "startServerCommand": "pnpm dlx wrangler@4.59.1 pages dev apps/web/dist --ip 127.0.0.1 --port 8788",
       "startServerReadyPattern": "Ready on",
       "startServerReadyTimeout": 120000,
       "settings": {
