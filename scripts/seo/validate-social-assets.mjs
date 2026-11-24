@@ -16,6 +16,11 @@ const requiredAssets = [
   'apps/web/public/twitter-image.png',
 ];
 const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const requiredLogoAssets = [
+  'apps/web/public/logo_bioceramic.jpg',
+  'apps/web/public/images/brand/logo_bioceramic.jpg',
+];
+
 const expectedWidth = 1200;
 const expectedHeight = 630;
 const errors = [];
@@ -48,4 +53,23 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(`✅ SEO social asset validation passed (${requiredAssets.length} images).`);
+for (const relativePath of requiredLogoAssets) {
+  const absolutePath = path.join(projectRoot, relativePath);
+  if (!fs.existsSync(absolutePath)) {
+    errors.push(`Missing correctly typed JPEG logo: ${relativePath}`);
+    continue;
+  }
+  const buffer = fs.readFileSync(absolutePath);
+  if (buffer.length < 3 || buffer[0] !== 0xff || buffer[1] !== 0xd8 || buffer[2] !== 0xff) {
+    errors.push(`Logo path does not contain JPEG bytes: ${relativePath}`);
+    continue;
+  }
+  console.log(`✅ JPEG logo OK: ${relativePath} (${buffer.length} bytes)`);
+}
+
+if (errors.length > 0) {
+  for (const error of errors) console.error(`❌ ${error}`);
+  process.exit(1);
+}
+
+console.log(`✅ SEO social asset validation passed (${requiredAssets.length} PNGs + ${requiredLogoAssets.length} JPEG logos).`);
