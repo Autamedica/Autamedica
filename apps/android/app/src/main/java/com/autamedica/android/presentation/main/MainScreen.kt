@@ -146,6 +146,7 @@ fun MainScreen(
     onNavigateToCommunity: () -> Unit = {},
     onNavigateToContinuityStatus: () -> Unit = {},
     onNavigateToDoctorSignature: () -> Unit = {},
+    onNavigateToDoctorOnboarding: () -> Unit = {},
     onNavigateToDoctorPrescriptions: () -> Unit = {},
     onNavigateToDoctorCertificates: () -> Unit = {},
     onNavigateToDoctorMedicalOrders: () -> Unit = {},
@@ -357,6 +358,7 @@ fun MainScreen(
                                 selectedTab = DoctorBottomNavPolicy.clampTab(target)
                             },
                             onNavigateToDoctorSignature = onNavigateToDoctorSignature,
+                            onNavigateToDoctorOnboarding = onNavigateToDoctorOnboarding,
                             onNavigateToDoctorPrescriptions = {
                                 doctorDocSegment = DoctorDocumentSegment.PRESCRIPTIONS
                                 selectedTab = DoctorBottomNavPolicy.TAB_PRESCRIPTIONS

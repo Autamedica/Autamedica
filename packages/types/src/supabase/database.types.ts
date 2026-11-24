@@ -10427,6 +10427,81 @@ export type Database = {
           },
         ]
       }
+      patient_document_submissions: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          document_type: string
+          file_name: string
+          file_size_bytes: number
+          id: string
+          mime_type: string
+          notes: string | null
+          patient_id: string
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by_doctor_id: string | null
+          storage_bucket: string
+          storage_path: string
+          title: string
+          updated_at: string
+          uploaded_by_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          document_type?: string
+          file_name: string
+          file_size_bytes: number
+          id?: string
+          mime_type: string
+          notes?: string | null
+          patient_id: string
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by_doctor_id?: string | null
+          storage_bucket?: string
+          storage_path: string
+          title: string
+          updated_at?: string
+          uploaded_by_user_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          document_type?: string
+          file_name?: string
+          file_size_bytes?: number
+          id?: string
+          mime_type?: string
+          notes?: string | null
+          patient_id?: string
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by_doctor_id?: string | null
+          storage_bucket?: string
+          storage_path?: string
+          title?: string
+          updated_at?: string
+          uploaded_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_document_submissions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_document_submissions_reviewed_by_doctor_id_fkey"
+            columns: ["reviewed_by_doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_derived_alerts: {
         Row: {
           acknowledged_at: string | null

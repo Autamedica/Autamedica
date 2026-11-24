@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="doctor_onboarding_title">Solicitação profissional</string>
+    <string name="doctor_onboarding_subtitle">Verificação de registro médico</string>
+    <string name="doctor_onboarding_back">Voltar</string>
+    <string name="doctor_onboarding_review_notice">Após enviar os seus dados, a nossa equipa clínica verificará o seu registro antes de ativar o atendimento aos pacientes e o plantão médico.</string>
+    <string name="doctor_onboarding_country_label">País de atuação</string>
+    <string name="doctor_onboarding_country_ar">Argentina (AR)</string>
+    <string name="doctor_onboarding_country_br">Brasil (BR)</string>
+    <string name="doctor_onboarding_personal_section">Dados pessoais</string>
+    <string name="doctor_onboarding_first_name">Nome</string>
+    <string name="doctor_onboarding_last_name">Sobrenome</string>
+    <string name="doctor_onboarding_phone">Telefone (opcional)</string>
+    <string name="doctor_onboarding_credentials_section">Credenciais profissionais</string>
+    <string name="doctor_onboarding_license_type_label">Tipo de matrícula</string>
+    <string name="doctor_onboarding_license_mn">MN (Nacional)</string>
+    <string name="doctor_onboarding_license_mp">MP (Provincial)</string>
+    <string name="doctor_onboarding_license_number_ar">Número de matrícula</string>
+    <string name="doctor_onboarding_jurisdiction">Jurisdição / Província (opcional)</string>
+    <string name="doctor_onboarding_license_crm_badge">Registro CRM (CFM)</string>
+    <string name="doctor_onboarding_license_number_br">Número do CRM</string>
+    <string name="doctor_onboarding_uf_label">UF do CRM</string>
+    <string name="doctor_onboarding_cpf_optional">CPF (opcional)</string>
+    <string name="doctor_onboarding_specialty">Especialidade médica</string>
+    <string name="doctor_onboarding_submit">Enviar solicitação profissional</string>
+    <string name="doctor_onboarding_submitting">Enviando solicitação…</string>
+    <string name="doctor_onboarding_success_title">Solicitação enviada para análise</string>
+    <string name="doctor_onboarding_success_body">As suas credenciais foram registadas como pendentes de aprovação administrativa. Iremos notificá-lo quando a sua conta médica for ativada.</string>
+    <string name="doctor_onboarding_success_cta">Voltar ao início</string>
+    <string name="doctor_approval_cta_complete">Completar solicitação profissional</string>
+    <string name="doctor_approval_cta_edit">Editar dados da solicitação</string>
+    <string name="doctor_approval_incomplete_body">Complete os seus dados profissionais e registro para enviar a sua solicitação para análise administrativa.</string>
+    <string name="doctor_approval_submitted_body">A sua solicitação com o registro %1$s está em análise administrativa. Avisaremos quando for aprovada.</string>
+</resources>

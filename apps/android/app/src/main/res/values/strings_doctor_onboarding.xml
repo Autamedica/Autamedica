@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="es">
+    <string name="doctor_onboarding_title">Solicitud profesional</string>
+    <string name="doctor_onboarding_subtitle">Verificación de matrícula médica</string>
+    <string name="doctor_onboarding_back">Volver</string>
+    <string name="doctor_onboarding_review_notice">Después de enviar tus datos, nuestro equipo clínico verificará tu matrícula antes de habilitar la atención a pacientes y la guardia médica.</string>
+    <string name="doctor_onboarding_country_label">País donde ejercés</string>
+    <string name="doctor_onboarding_country_ar">Argentina (AR)</string>
+    <string name="doctor_onboarding_country_br">Brasil (BR)</string>
+    <string name="doctor_onboarding_personal_section">Datos personales</string>
+    <string name="doctor_onboarding_first_name">Nombre</string>
+    <string name="doctor_onboarding_last_name">Apellido</string>
+    <string name="doctor_onboarding_phone">Teléfono (opcional)</string>
+    <string name="doctor_onboarding_credentials_section">Credenciales profesionales</string>
+    <string name="doctor_onboarding_license_type_label">Tipo de matrícula</string>
+    <string name="doctor_onboarding_license_mn">MN (Nacional)</string>
+    <string name="doctor_onboarding_license_mp">MP (Provincial)</string>
+    <string name="doctor_onboarding_license_number_ar">Número de matrícula</string>
+    <string name="doctor_onboarding_jurisdiction">Jurisdicción / Provincia (opcional)</string>
+    <string name="doctor_onboarding_license_crm_badge">Matrícula CRM (CFM)</string>
+    <string name="doctor_onboarding_license_number_br">Número de CRM</string>
+    <string name="doctor_onboarding_uf_label">UF del CRM</string>
+    <string name="doctor_onboarding_cpf_optional">CPF (opcional)</string>
+    <string name="doctor_onboarding_specialty">Especialidad médica</string>
+    <string name="doctor_onboarding_submit">Enviar solicitud profesional</string>
+    <string name="doctor_onboarding_submitting">Enviando solicitud…</string>
+    <string name="doctor_onboarding_success_title">Solicitud enviada para revisión</string>
+    <string name="doctor_onboarding_success_body">Tus credenciales quedaron registradas en estado pendiente de aprobación administrativa. Te notificaremos cuando tu cuenta médica esté habilitada.</string>
+    <string name="doctor_onboarding_success_cta">Volver al inicio</string>
+    <string name="doctor_approval_cta_complete">Completar solicitud profesional</string>
+    <string name="doctor_approval_cta_edit">Editar datos de solicitud</string>
+    <string name="doctor_approval_incomplete_body">Completá tus datos profesionales y matrícula para enviar tu solicitud a revisión administrativa.</string>
+    <string name="doctor_approval_submitted_body">Tu solicitud con matrícula %1$s está en revisión administrativa. Te avisaremos al aprobarse.</string>
+</resources>

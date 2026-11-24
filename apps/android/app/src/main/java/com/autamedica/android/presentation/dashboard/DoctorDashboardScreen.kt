@@ -92,6 +92,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -114,6 +115,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.autamedica.android.R
@@ -187,6 +191,7 @@ fun DoctorDashboardScreen(
     onNavigateToVideoCall: (appointmentId: String) -> Unit,
     onNavigateToTab: (Int) -> Unit = {},
     onNavigateToDoctorSignature: () -> Unit = {},
+    onNavigateToDoctorOnboarding: () -> Unit = {},
     onNavigateToDoctorPrescriptions: () -> Unit = {},
     onNavigateToDoctorCertificates: () -> Unit = {},
     onNavigateToDoctorMedicalOrders: () -> Unit = {},
@@ -339,6 +344,32 @@ fun DoctorDashboardScreen(
                 }
 
                 uiState.guardApproved != true -> {
+                    val lifecycleOwner = LocalLifecycleOwner.current
+                    var pausedWhilePending by remember { mutableStateOf(false) }
+                    DisposableEffect(lifecycleOwner, uiState.guardApproved, uiState.isLoading) {
+                        val observer = LifecycleEventObserver { _, event ->
+                            if (event == Lifecycle.Event.ON_PAUSE) {
+                                pausedWhilePending = true
+                            } else if (
+                                event == Lifecycle.Event.ON_RESUME &&
+                                pausedWhilePending &&
+                                uiState.guardApproved == false &&
+                                !uiState.isLoading
+                            ) {
+                                pausedWhilePending = false
+                                viewModel.refresh()
+                            }
+                        }
+                        lifecycleOwner.lifecycle.addObserver(observer)
+                        onDispose {
+                            lifecycleOwner.lifecycle.removeObserver(observer)
+                        }
+                    }
+
+                    val submittedLicense = uiState.doctorProfile?.licenseNumber
+                        ?.trim()
+                        ?.takeUnless { it.isBlank() || it.uppercase().startsWith("PENDING") }
+
                     // A registered doctor is not automatically an approved
                     // clinical practitioner. Keep profile/onboarding navigation
                     // accessible, but no appointments, patient charts, queue
@@ -361,15 +392,39 @@ fun DoctorDashboardScreen(
                                 fontWeight = FontWeight.Bold,
                             )
                             Text(
-                                text = if (uiState.guardApproved == null)
-                                    stringResource(R.string.ui_doctor_approval_checking_body)
-                                else
-                                    stringResource(R.string.ui_doctor_approval_pending_body),
+                                text = when {
+                                    uiState.guardApproved == null ->
+                                        stringResource(R.string.ui_doctor_approval_checking_body)
+                                    submittedLicense != null ->
+                                        stringResource(R.string.doctor_approval_submitted_body, submittedLicense)
+                                    else ->
+                                        stringResource(R.string.doctor_approval_incomplete_body)
+                                },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Slate500,
                             )
-                            Button(onClick = viewModel::refresh) {
-                                Text(stringResource(R.string.ui_doctor_approval_refresh))
+                            if (uiState.guardApproved == false) {
+                                Button(
+                                    onClick = onNavigateToDoctorOnboarding,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(
+                                        stringResource(
+                                            if (submittedLicense != null) R.string.doctor_approval_cta_edit
+                                            else R.string.doctor_approval_cta_complete
+                                        )
+                                    )
+                                }
+                                OutlinedButton(
+                                    onClick = viewModel::refresh,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(stringResource(R.string.ui_doctor_approval_refresh))
+                                }
+                            } else {
+                                Button(onClick = viewModel::refresh) {
+                                    Text(stringResource(R.string.ui_doctor_approval_refresh))
+                                }
                             }
                         }
                     }
