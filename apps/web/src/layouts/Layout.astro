@@ -46,15 +46,16 @@ const { publicSupabaseUrl, publicSupabaseAnonKey, publicSentryDsn } = resolvePub
 );
 
 const devPortal = import.meta.env.DEV ? Astro.url.searchParams.get('portal') : null;
+const normalizedPathname = Astro.url.pathname.replace(/\/+$/, '') || '/';
 const isPatientHost =
   Astro.url.hostname === 'paciente.autamedica.com' ||
   Astro.url.hostname === 'patients.autamedica.com' ||
-  Astro.url.pathname.startsWith('/patients') ||
+  normalizedPathname.startsWith('/patients/') ||
   devPortal === 'patient';
 const isDoctorHost =
   Astro.url.hostname === 'doctor.autamedica.com' ||
   Astro.url.hostname === 'doctors.autamedica.com' ||
-  Astro.url.pathname.startsWith('/doctors') ||
+  normalizedPathname.startsWith('/doctors/') ||
   devPortal === 'doctor';
 
 
