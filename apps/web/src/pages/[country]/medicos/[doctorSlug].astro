@@ -1,6 +1,7 @@
 ---
 import Layout from '@/layouts/Layout.astro';
 import { createAstroAdminClient } from '@/lib/supabase';
+import { getPublicProfileCredentials, getVisibleProfileSections, toEditorialEntries, toStringEntries } from '@/lib/doctors/public-profile-view';
 
 export const prerender = false;
 
@@ -26,74 +27,8 @@ type PublicProfile = {
   licenses?: unknown;
 };
 
-type EditorialEntry = {
-  title: string;
-  institution?: string;
-  period?: string;
-  detail?: string;
-};
-
 function stringValue(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
-}
-
-function firstString(record: Record<string, unknown>, keys: string[]): string {
-  for (const key of keys) {
-    const value = stringValue(record[key]);
-    if (value) return value;
-  }
-  return '';
-}
-
-function editorialEntries(value: unknown): EditorialEntry[] {
-  const entries = Array.isArray(value) ? value : value && typeof value === 'object' ? [value] : [];
-  return entries.flatMap((item): EditorialEntry[] => {
-    if (typeof item === 'string') {
-      const title = item.trim();
-      return title ? [{ title }] : [];
-    }
-    if (!item || typeof item !== 'object' || Array.isArray(item)) return [];
-
-    const record = item as Record<string, unknown>;
-    const title = firstString(record, ['title', 'name', 'degree', 'program', 'position', 'role', 'course']);
-    const institution = firstString(record, ['institution', 'university', 'organization', 'hospital', 'employer', 'issuer']);
-    const period = firstString(record, ['period', 'year', 'date', 'dates']);
-    const detail = firstString(record, ['description', 'detail', 'specialty', 'focus']);
-    if (!title && !institution && !detail) return [];
-    return [{ title: title || institution || detail, institution: institution || undefined, period: period || undefined, detail: detail || undefined }];
-  });
-}
-
-function stringEntries(value: unknown): string[] {
-  const entries = Array.isArray(value) ? value : value && typeof value === 'object' ? [value] : [];
-  return entries.flatMap((item): string[] => {
-    if (typeof item === 'string' && item.trim()) return [item.trim()];
-    if (item && typeof item === 'object' && !Array.isArray(item)) {
-      const record = item as Record<string, unknown>;
-      const value = firstString(record, ['title', 'name', 'label', 'focus', 'description']);
-      return value ? [value] : [];
-    }
-    return [];
-  });
-}
-
-function humanizeLicense(profile: PublicProfile): string[] {
-  if (!Array.isArray(profile.licenses)) return [];
-  return profile.licenses.flatMap((entry): string[] => {
-    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return [];
-    const row = entry as Record<string, unknown>;
-    const type = stringValue(row.license_type).toUpperCase();
-    const number = stringValue(row.license_number);
-    if (!number) return [];
-    if (profile.care_country === 'BR' && type === 'CRM') {
-      const uf = stringValue(profile.uf_brazil).toUpperCase();
-      return [uf ? `CRM/${uf} ${number}` : `CRM ${number}`];
-    }
-    if (profile.care_country === 'AR' && (type === 'MN' || type === 'MP')) {
-      return [`${type} ${number}`];
-    }
-    return [];
-  });
 }
 
 function renderSectionHeading(es: string, pt: string, isPortuguese: boolean): string {
@@ -129,19 +64,21 @@ const name = profile
 const specialty = stringValue(profile?.specialty);
 const subspecialty = stringValue(profile?.subspecialty);
 const bio = stringValue(profile?.bio);
-const clinicalFocusAreas = stringEntries(profile?.clinical_focus_areas);
-const education = editorialEntries(profile?.education);
-const certifications = editorialEntries(profile?.certifications);
-const experience = editorialEntries(profile?.professional_experience);
-const academicActivity = editorialEntries(profile?.academic_activity);
-const licenses = profile ? humanizeLicense(profile) : [];
-const rqeNumber = profile?.care_country === 'BR' ? stringValue(profile.rqe_number) : '';
+const clinicalFocusAreas = toStringEntries(profile?.clinical_focus_areas);
+const education = toEditorialEntries(profile?.education);
+const certifications = toEditorialEntries(profile?.certifications);
+const experience = toEditorialEntries(profile?.professional_experience);
+const academicActivity = toEditorialEntries(profile?.academic_activity);
+const credentials = profile
+  ? getPublicProfileCredentials(profile)
+  : { licenses: [], rqe: '', verified: false };
+const licenses = credentials.licenses;
+const rqeNumber = credentials.rqe;
 const yearsExperience = Number.isFinite(profile?.years_experience) ? Number(profile?.years_experience) : 0;
-const practiceContent = Boolean(bio || clinicalFocusAreas.length);
-const educationContent = education.length > 0 || certifications.length > 0;
-const experienceContent = yearsExperience > 0 || experience.length > 0;
-const academicContent = academicActivity.length > 0;
-const verified = Boolean(profile && licenses.length > 0);
+const sections = profile
+  ? getVisibleProfileSections(profile)
+  : { practice: false, education: false, experience: false, academic: false, verification: false };
+const verified = credentials.verified;
 const title = profile
   ? `${name} · ${specialty}`
   : (isPortuguese ? 'Perfil profissional não disponível' : 'Perfil profesional no disponible');
@@ -167,7 +104,7 @@ const canonical = `https://www.autamedica.com${Astro.url.pathname}`;
         <h1>{name}</h1>
         <p class="specialty">{specialty}</p>
         {subspecialty && <p class="subspecialty">{subspecialty}</p>}
-        {verified && (
+        {sections.verification && (
           <div class="credentials" aria-label={isPortuguese ? 'Registro profissional validado' : 'Matrícula profesional validada'}>
             <span>{isPortuguese ? 'Registro validado' : 'Matrícula validada'}</span>
             <span class="credential-list">{licenses.join(' · ')}</span>
@@ -178,7 +115,7 @@ const canonical = `https://www.autamedica.com${Astro.url.pathname}`;
       </header>
 
       <div class="profile-content">
-        {practiceContent && (
+        {sections.practice && (
           <section class="profile-section" aria-labelledby="practice-heading">
             <h2 id="practice-heading">{renderSectionHeading('Práctica clínica', 'Prática clínica', isPortuguese)}</h2>
             {bio && <p class="body-copy">{bio}</p>}
@@ -190,7 +127,7 @@ const canonical = `https://www.autamedica.com${Astro.url.pathname}`;
           </section>
         )}
 
-        {educationContent && (
+        {sections.education && (
           <section class="profile-section" aria-labelledby="education-heading">
             <h2 id="education-heading">{renderSectionHeading('Formación', 'Formação', isPortuguese)}</h2>
             {education.map((entry) => (
@@ -216,7 +153,7 @@ const canonical = `https://www.autamedica.com${Astro.url.pathname}`;
           </section>
         )}
 
-        {experienceContent && (
+        {sections.experience && (
           <section class="profile-section" aria-labelledby="experience-heading">
             <h2 id="experience-heading">{renderSectionHeading('Trayectoria', 'Trajetória', isPortuguese)}</h2>
             {yearsExperience > 0 && (
@@ -235,7 +172,7 @@ const canonical = `https://www.autamedica.com${Astro.url.pathname}`;
           </section>
         )}
 
-        {academicContent && (
+        {sections.academic && (
           <section class="profile-section" aria-labelledby="academic-heading">
             <h2 id="academic-heading">{renderSectionHeading('Actividad académica', 'Atuação acadêmica', isPortuguese)}</h2>
             {academicActivity.map((entry) => (
