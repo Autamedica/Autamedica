@@ -614,9 +614,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return context.redirect(canonicalUrl.toString(), 308);
   }
 
-  // Admin host enforcement: route admin subdomain / pages.dev alias to real /admin portal
+  // Admin host enforcement: route browser navigation on admin subdomain / pages.dev alias to real /admin portal.
+  // Keep /api/* and /_astro/* unredirected so API endpoints return proper 401/JSON responses instead of 302.
   if (
     import.meta.env.PROD &&
+    pathname !== "/api" &&
+    !pathname.startsWith("/api/") &&
+    !pathname.startsWith("/_astro/") &&
     (requestUrl.hostname === "admin.autamedica.com" ||
       requestUrl.hostname.startsWith("autamedica-admin-"))
   ) {
