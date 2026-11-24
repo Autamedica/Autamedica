@@ -56,7 +56,7 @@ export function LiveMedicalPresenceRadar({
         ))}
 
         <div className="am-radar-core absolute left-1/2 top-1/2 z-20 flex h-[70px] w-[70px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-sky-500/35 bg-white shadow-[0_8px_24px_rgba(14,165,233,0.16)]">
-          <img src="/logo_bioceramic.png" alt="AutaMedica" width={44} height={44} className="h-11 w-11 object-contain" />
+          <img src="/logo_bioceramic.jpg" alt="AutaMedica" width={44} height={44} className="h-11 w-11 object-contain" />
         </div>
       </div>
 
