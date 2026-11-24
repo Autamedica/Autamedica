@@ -33,6 +33,46 @@ import javax.inject.Singleton
 
 private const val DOCUMENT_BUCKET = "medical-documents"
 private val SIGNED_URL_TTL = Duration.parse("3600s")
+internal const val MAX_DOCUMENT_SIZE_BYTES = 25L * 1024L * 1024L
+internal val ALLOWED_DOCUMENT_MIME_TYPES = setOf(
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+)
+
+internal fun normalizeDocumentMimeType(mimeType: String, fileName: String): String {
+    val raw = mimeType.trim().lowercase().substringBefore(';').trim()
+    val inferred = when {
+        raw == "image/jpg" -> "image/jpeg"
+        raw in ALLOWED_DOCUMENT_MIME_TYPES -> raw
+        raw.isBlank() || raw == "application/octet-stream" -> {
+            val lowerName = fileName.trim().lowercase()
+            when {
+                lowerName.endsWith(".pdf") -> "application/pdf"
+                lowerName.endsWith(".png") -> "image/png"
+                lowerName.endsWith(".webp") -> "image/webp"
+                lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") -> "image/jpeg"
+                else -> raw
+            }
+        }
+        else -> raw
+    }
+    require(inferred in ALLOWED_DOCUMENT_MIME_TYPES) {
+        "Formato no compatible. Usá PDF, JPG, PNG o WEBP."
+    }
+    return inferred
+}
+
+internal fun mapToSubmissionDocumentType(requestedType: String): String {
+    return when (requestedType.trim().lowercase()) {
+        "lab_result", "laboratorio", "analisis" -> "lab_result"
+        "imaging", "imagen", "imagenologia", "radiografia", "resonancia" -> "imaging"
+        "prescription", "receta" -> "prescription"
+        "report", "informe" -> "report"
+        else -> "other"
+    }
+}
 
 @Singleton
 class ClinicalDocumentRepositoryImpl @Inject constructor(
@@ -44,6 +84,44 @@ class ClinicalDocumentRepositoryImpl @Inject constructor(
         val userId = resolveAuthenticatedUserId()
         val patientId = resolvePatientId(userId)
 
+        val submissionDocs = fetchPatientSubmissions(userId, patientId)
+        val recordDocs = runCatching { fetchClinicianMedicalRecords(userId, patientId) }
+            .getOrElse { emptyList() }
+
+        (submissionDocs + recordDocs)
+            .distinctBy { it.id }
+            .sortedByDescending { it.dateRecorded }
+    }.onFailure {
+        SecureLog.error("[ClinicalDocuments] Failed fetching documents", it)
+    }
+
+    private suspend fun fetchPatientSubmissions(userId: String, patientId: String): List<ClinicalDocument> {
+        val rows = supabaseClient.postgrest
+            .from("patient_document_submissions")
+            .select(Columns.ALL) {
+                filter {
+                    eq("patient_id", patientId)
+                    exact("deleted_at", null)
+                }
+                order("created_at", Order.DESCENDING)
+            }
+            .decodeList<PatientDocumentSubmissionRowDto>()
+
+        return rows.map { row ->
+            val signedUrl = row.storagePath
+                .takeIf { it.startsWith("$userId/") }
+                ?.let { path ->
+                    runCatching {
+                        supabaseClient.storage.from(row.storageBucket)
+                            .createSignedUrl(path, expiresIn = SIGNED_URL_TTL)
+                    }.getOrNull()
+                }
+                .orEmpty()
+            row.toDomain(signedUrl)
+        }
+    }
+
+    private suspend fun fetchClinicianMedicalRecords(userId: String, patientId: String): List<ClinicalDocument> {
         val rows = supabaseClient.postgrest
             .from("medical_records")
             .select(Columns.ALL) {
@@ -55,7 +133,7 @@ class ClinicalDocumentRepositoryImpl @Inject constructor(
             }
             .decodeList<MedicalRecordRowDto>()
 
-        rows.mapNotNull { row ->
+        return rows.mapNotNull { row ->
             val document = row.toDomain() ?: return@mapNotNull null
             // Never return a persisted public/expired URL. Re-sign only an object
             // whose path is scoped to the authenticated owner in the private bucket.
@@ -66,8 +144,6 @@ class ClinicalDocumentRepositoryImpl @Inject constructor(
                 .createSignedUrl(storagePath, expiresIn = SIGNED_URL_TTL)
             document.copy(fileUrl = signedUrl)
         }
-    }.onFailure {
-        SecureLog.error("[ClinicalDocuments] Failed fetching documents", it)
     }
 
     override suspend fun uploadDocument(
@@ -80,6 +156,9 @@ class ClinicalDocumentRepositoryImpl @Inject constructor(
         val userId = resolveAuthenticatedUserId()
         val patientId = resolvePatientId(userId)
         val sanitizedFileName = fileName.trim().replace("\\s+".toRegex(), "_")
+            .ifBlank { "estudio_${System.currentTimeMillis()}" }
+            .take(255)
+        val normalizedMimeType = normalizeDocumentMimeType(mimeType, sanitizedFileName)
         val timestamp = System.currentTimeMillis()
         val storagePath = "$userId/${timestamp}_$sanitizedFileName"
 
@@ -87,75 +166,45 @@ class ClinicalDocumentRepositoryImpl @Inject constructor(
             inputStream.readBytes()
         }
         val fileSize = bytes.size.toLong()
+        require(fileSize > 0L) { "El archivo seleccionado está vacío." }
+        require(fileSize <= MAX_DOCUMENT_SIZE_BYTES) {
+            "El archivo supera el límite máximo permitido (25 MB)."
+        }
 
         // The production bucket is private and its RLS path is scoped to auth.uid().
         supabaseClient.storage.from(DOCUMENT_BUCKET).upload(storagePath, bytes) {
             upsert = true
         }
-        val bucketUsed = DOCUMENT_BUCKET
-        val fileUrl = supabaseClient.storage.from(DOCUMENT_BUCKET)
-            .createSignedUrl(storagePath, expiresIn = SIGNED_URL_TTL)
 
-        val attachmentsPayload = buildJsonArray {
-            add(
-                buildJsonObject {
-                    put("name", JsonPrimitive(sanitizedFileName))
-                    put("file_name", JsonPrimitive(sanitizedFileName))
-                    put("url", JsonPrimitive(fileUrl))
-                    put("file_url", JsonPrimitive(fileUrl))
-                    put("path", JsonPrimitive(storagePath))
-                    put("bucket", JsonPrimitive(bucketUsed))
-                    put("size", JsonPrimitive(fileSize))
-                    put("file_size", JsonPrimitive(fileSize))
-                    put("mime_type", JsonPrimitive(mimeType))
-                    put("type", JsonPrimitive(mimeType))
-                }
+        try {
+            val normalizedTitle = title.trim().ifBlank { sanitizedFileName }.take(200)
+            val insertDto = CreatePatientDocumentSubmissionDto(
+                patientId = patientId,
+                uploadedByUserId = userId,
+                title = normalizedTitle,
+                documentType = mapToSubmissionDocumentType(type),
+                storageBucket = DOCUMENT_BUCKET,
+                storagePath = storagePath,
+                fileName = sanitizedFileName,
+                mimeType = normalizedMimeType,
+                fileSizeBytes = fileSize,
             )
+
+            val inserted = supabaseClient.postgrest
+                .from("patient_document_submissions")
+                .insert(insertDto) {
+                    select()
+                }
+                .decodeSingle<PatientDocumentSubmissionRowDto>()
+
+            val fileUrl = supabaseClient.storage.from(DOCUMENT_BUCKET)
+                .createSignedUrl(storagePath, expiresIn = SIGNED_URL_TTL)
+
+            inserted.toDomain(fileUrl)
+        } catch (e: Throwable) {
+            runCatching { supabaseClient.storage.from(DOCUMENT_BUCKET).delete(storagePath) }
+            throw e
         }
-
-        val contentPayload = buildJsonObject {
-            put("title", JsonPrimitive(title))
-            put("file_url", JsonPrimitive(fileUrl))
-            put("file_name", JsonPrimitive(sanitizedFileName))
-            put("file_size", JsonPrimitive(fileSize))
-            put("mime_type", JsonPrimitive(mimeType))
-            put("bucket", JsonPrimitive(bucketUsed))
-            put("storage_path", JsonPrimitive(storagePath))
-            put("uploaded_by", JsonPrimitive("patient"))
-            put("attachments", attachmentsPayload)
-        }
-
-        val nowIso = OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-
-        // 2. Insert into medical_records
-        val insertDto = CreateMedicalRecordDto(
-            patientId = patientId,
-            type = mapToValidRecordType(type),
-            title = title,
-            content = contentPayload,
-            attachments = attachmentsPayload,
-            visibility = "patient",
-            createdAt = nowIso,
-            updatedAt = nowIso,
-        )
-
-        val inserted = supabaseClient.postgrest
-            .from("medical_records")
-            .insert(insertDto) {
-                select()
-            }
-            .decodeSingle<MedicalRecordRowDto>()
-
-        ClinicalDocument(
-            id = inserted.id,
-            title = title,
-            type = type,
-            fileUrl = fileUrl,
-            fileName = sanitizedFileName,
-            fileSize = fileSize,
-            dateRecorded = inserted.createdAt ?: nowIso,
-            mimeType = mimeType,
-        )
     }.onFailure {
         SecureLog.error("[ClinicalDocuments] Failed uploading document", it)
     }
@@ -177,28 +226,46 @@ class ClinicalDocumentRepositoryImpl @Inject constructor(
             ?: throw IllegalStateException("No patient profile found for authenticated user")
     }
 
-    private fun mapToValidRecordType(requestedType: String): String {
-        return when (requestedType.lowercase()) {
-            "lab_result", "laboratorio", "analisis" -> "lab_result"
-            "imaging", "imagen", "imagenologia", "radiografia", "resonancia" -> "imaging"
-            else -> "procedure"
-        }
-    }
-
     @Serializable
     private data class RecordIdDto(val id: String)
 
     @Serializable
-    private data class CreateMedicalRecordDto(
+    private data class CreatePatientDocumentSubmissionDto(
         @SerialName("patient_id") val patientId: String,
-        val type: String,
+        @SerialName("uploaded_by_user_id") val uploadedByUserId: String,
         val title: String,
-        val content: JsonObject,
-        val attachments: JsonArray? = null,
-        val visibility: String = "patient",
-        @SerialName("created_at") val createdAt: String? = null,
-        @SerialName("updated_at") val updatedAt: String? = null,
+        @SerialName("document_type") val documentType: String,
+        @SerialName("storage_bucket") val storageBucket: String = DOCUMENT_BUCKET,
+        @SerialName("storage_path") val storagePath: String,
+        @SerialName("file_name") val fileName: String,
+        @SerialName("mime_type") val mimeType: String,
+        @SerialName("file_size_bytes") val fileSizeBytes: Long,
     )
+
+    @Serializable
+    private data class PatientDocumentSubmissionRowDto(
+        val id: String,
+        @SerialName("patient_id") val patientId: String? = null,
+        val title: String = "",
+        @SerialName("document_type") val documentType: String = "other",
+        @SerialName("storage_bucket") val storageBucket: String = DOCUMENT_BUCKET,
+        @SerialName("storage_path") val storagePath: String = "",
+        @SerialName("file_name") val fileName: String = "documento.pdf",
+        @SerialName("mime_type") val mimeType: String = "application/pdf",
+        @SerialName("file_size_bytes") val fileSizeBytes: Long = 0L,
+        @SerialName("created_at") val createdAt: String? = null,
+    ) {
+        fun toDomain(signedUrl: String): ClinicalDocument = ClinicalDocument(
+            id = id,
+            title = title.ifBlank { fileName },
+            type = documentType,
+            fileUrl = signedUrl,
+            fileName = fileName,
+            fileSize = fileSizeBytes,
+            dateRecorded = createdAt.orEmpty(),
+            mimeType = mimeType,
+        )
+    }
 
     @Serializable
     private data class MedicalRecordRowDto(

@@ -63,6 +63,7 @@ export interface DoctorProfileInput {
   licenseNumber: string
   specialty: string
   licenseType?: string | null
+  careCountry?: 'AR' | 'BR' | null
   ufBrazil?: string | null
   rqeNumber?: string | null
   cpf?: string | null
@@ -89,6 +90,7 @@ export interface DoctorProfileInput {
   signatureUrl?: string | null
   stampUrl?: string | null
   active?: boolean
+  allowActiveOverride?: boolean
   fullName?: string | null
 }
 
@@ -105,7 +107,21 @@ export const doctorProfileService = {
     admin: AdminClient,
     input: DoctorProfileInput,
   ): Promise<{ id: string }> {
-    const isActive = input.active ?? true
+    const existing = await doctorProfileRepo.findExistingDoctorStatus(admin, input.userId)
+    const isActive =
+      input.allowActiveOverride === true && typeof input.active === 'boolean'
+        ? input.active
+        : (existing?.active ?? false)
+
+    const normalizedLicenseType = input.licenseType?.trim().toUpperCase() || null
+    const resolvedCareCountry: 'AR' | 'BR' | undefined =
+      input.careCountry === 'AR' || input.careCountry === 'BR'
+        ? input.careCountry
+        : normalizedLicenseType === 'CRM'
+          ? 'BR'
+          : normalizedLicenseType === 'MN' || normalizedLicenseType === 'MP'
+            ? 'AR'
+            : undefined
 
     const doctorData: Database['public']['Tables']['doctors']['Insert'] = {
       user_id: input.userId,
@@ -115,6 +131,7 @@ export const doctorProfileService = {
       active: isActive,
     }
 
+    setIfDefined(doctorData, 'care_country', resolvedCareCountry)
     setIfDefined(doctorData, 'subspecialty', input.subspecialty)
     setIfDefined(doctorData, 'years_experience', input.yearsExperience)
     setIfDefined(doctorData, 'education', input.education)
@@ -131,7 +148,7 @@ export const doctorProfileService = {
     setIfDefined(doctorData, 'payout_cbu', input.payoutCbu)
     setIfDefined(doctorData, 'payout_alias', input.payoutAlias)
     setIfDefined(doctorData as any, 'payout_pix_key', input.payoutPixKey) // eslint-disable-line @typescript-eslint/no-explicit-any
-    setIfDefined(doctorData as any, 'license_type', input.licenseType) // eslint-disable-line @typescript-eslint/no-explicit-any
+    setIfDefined(doctorData as any, 'license_type', normalizedLicenseType ?? input.licenseType) // eslint-disable-line @typescript-eslint/no-explicit-any
     setIfDefined(doctorData as any, 'uf_brazil', input.ufBrazil) // eslint-disable-line @typescript-eslint/no-explicit-any
     setIfDefined(doctorData as any, 'rqe_number', input.rqeNumber) // eslint-disable-line @typescript-eslint/no-explicit-any
     setIfDefined(doctorData as any, 'cpf', input.cpf) // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -141,6 +158,26 @@ export const doctorProfileService = {
     setIfDefined(doctorData as any, 'stamp_url', input.stampUrl) // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const result = await doctorProfileRepo.upsertDoctor(admin, doctorData)
+
+    const trimmedLicense = input.licenseNumber.trim()
+    if (!/^PENDING(-|$)/i.test(trimmedLicense)) {
+      const effectiveLicenseType =
+        normalizedLicenseType ?? (resolvedCareCountry === 'BR' ? 'CRM' : 'MN')
+      const normalizedUf =
+        effectiveLicenseType === 'CRM' ? (input.ufBrazil?.trim().toUpperCase() || null) : null
+
+      await doctorProfileRepo.ensurePendingLicense(admin, {
+        doctorId: result.id,
+        licenseNumber: trimmedLicense,
+        licenseType: effectiveLicenseType,
+        province: input.enrollmentJurisdiction ?? null,
+        ufBrazil: normalizedUf,
+      })
+
+      if (resolvedCareCountry === 'AR') {
+        await doctorProfileRepo.markArValidationPendingReview(admin, input.userId)
+      }
+    }
 
     const profilePatch: {
       first_name?: string | null

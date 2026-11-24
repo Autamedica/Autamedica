@@ -21,7 +21,7 @@ const OnboardingCompleteSchema = z.object({
 
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
-    const auth = await withAuthRole(request, DOCTOR_ROLES)
+    const auth = await withAuthRole(request, DOCTOR_ROLES, locals)
     if (!isAuthed(auth)) return auth
 
     const raw = (await request.json().catch(() => ({}))) as unknown

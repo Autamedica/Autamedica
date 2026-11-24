@@ -216,6 +216,11 @@ fun AppNavHost(
                         launchSingleTop = true
                     }
                 },
+                onNavigateToDoctorOnboarding = {
+                    navController.navigate(Route.DoctorOnboarding) {
+                        launchSingleTop = true
+                    }
+                },
                 onNavigateToDoctorPrescriptions = {
                     navController.navigate(Route.DoctorPrescriptions)
                 },
@@ -483,6 +488,13 @@ fun AppNavHost(
         composable<Route.DoctorSignature> {
             com.autamedica.android.presentation.doctors.signature.DoctorSignatureScreen(
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<Route.DoctorOnboarding> {
+            com.autamedica.android.presentation.doctors.onboarding.DoctorOnboardingScreen(
+                onBack = { navController.popBackStack() },
+                onOnboardingSubmitted = { navController.popBackStack() },
             )
         }
 

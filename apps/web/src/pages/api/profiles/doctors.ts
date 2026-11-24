@@ -57,10 +57,28 @@ export const POST: APIRoute = async ({ request, locals }) => {
       : (typeof body.full_name === 'string' ? body.full_name : null)
 
     const admin = createAstroAdminClient(locals.runtime?.env)
+    const { data: callerProfile } = await admin
+      .from('profiles')
+      .select('role')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    const isAdminCaller = ['admin', 'platform_admin', 'organization_admin'].includes(
+      callerProfile?.role ?? '',
+    )
+
+    if (!isAdminCaller && /^PENDING(-|$)/i.test(license_number.trim())) {
+      return badRequest('valid license_number is required')
+    }
+
+    const rawCareCountry = optionalString(body, 'care_country')?.toUpperCase()
+    const careCountry = rawCareCountry === 'AR' || rawCareCountry === 'BR' ? rawCareCountry : undefined
+
     const result = await doctorProfileService.createOrUpdate(admin, {
       userId: user.id,
       licenseNumber: license_number.trim(),
       specialty: specialty.trim(),
+      careCountry,
       licenseType: optionalString(body, 'license_type'),
       ufBrazil: optionalString(body, 'uf_brazil'),
       rqeNumber: optionalString(body, 'rqe_number'),
@@ -89,7 +107,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       payoutPixKey: optionalString(body, 'payout_pix_key'),
       signatureUrl: optionalString(body, 'signature_url'),
       stampUrl: optionalString(body, 'stamp_url'),
-      active: typeof body.active === 'boolean' ? body.active : undefined,
+      active: isAdminCaller && typeof body.active === 'boolean' ? body.active : undefined,
+      allowActiveOverride: isAdminCaller,
       fullName,
     })
 
