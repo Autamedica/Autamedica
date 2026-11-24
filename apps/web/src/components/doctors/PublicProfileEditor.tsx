@@ -7,6 +7,7 @@ type PublicProfileEditorData = {
   id: string
   first_name?: string | null
   last_name?: string | null
+  avatar_url?: string | null
   care_country: 'AR' | 'BR'
   education?: unknown
   certifications?: unknown
@@ -167,8 +168,8 @@ export function PublicProfileEditor() {
       : 'Un dato por línea. Las secciones sin contenido no aparecen en la página pública.',
     publish: isPortuguese ? 'Publicar meu perfil' : 'Publicar mi perfil',
     consent: isPortuguese
-      ? 'Confirmo que autorizo a publicação na internet das informações profissionais que incluí neste perfil. Posso desativá-lo a qualquer momento.'
-      : 'Confirmo que autorizo la publicación en internet de la información profesional que incluí en este perfil. Puedo desactivarlo en cualquier momento.',
+      ? 'Confirmo que autorizo a publicação na internet das informações profissionais e da foto de perfil que incluí neste perfil, quando houver. Posso desativá-lo a qualquer momento.'
+      : 'Confirmo que autorizo la publicación en internet de la información profesional y de la foto de perfil que incluí en este perfil, cuando exista. Puedo desactivarlo en cualquier momento.',
     save: isPortuguese ? 'Salvar alterações' : 'Guardar cambios',
     saving: isPortuguese ? 'Salvando…' : 'Guardando…',
     saved: isPortuguese ? 'Alterações salvas.' : 'Cambios guardados.',
