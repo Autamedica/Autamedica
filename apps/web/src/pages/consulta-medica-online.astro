@@ -7,6 +7,13 @@ import Footer from '../components/Footer.astro';
 
 const title = "AutaMedica | Consulta Médica Online Certificada";
 const description = "Atención médica profesional inmediata. Conecta con médicos especialistas certificados mediante videoconsulta segura. Receta digital y seguimiento clínico integral.";
+const selectedDoctorId = Astro.url.searchParams.get('doctor_id') ?? '';
+const selectedCareCountry = (Astro.url.searchParams.get('care_country') ?? '').toUpperCase();
+const validDoctorId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(selectedDoctorId);
+const returnPath = validDoctorId && (selectedCareCountry === 'AR' || selectedCareCountry === 'BR')
+  ? '/consulta-medica-online?doctor_id=' + encodeURIComponent(selectedDoctorId) + '&care_country=' + selectedCareCountry
+  : '/consulta-medica-online';
+const registerHref = '/auth/register?role=patient&returnTo=' + encodeURIComponent(returnPath);
 
 const faqs = [
   { q: "¿Cómo se garantiza la calidad de la atención?", a: "Todos los profesionales de AutaMedica son médicos matriculados con especialidades validadas ante los organismos de salud correspondientes. Realizamos auditorías periódicas de los protocolos clínicos aplicados." },
@@ -34,7 +41,7 @@ const faqs = [
             AutaMedica conecta la excelencia clínica con la agilidad de la tecnología digital. Obtenga su consulta, diagnóstico y receta en minutos.
           </p>
           <div class="flex flex-wrap gap-4">
-            <a href="/auth/register" class="btn-institutional">
+            <a href={registerHref} class="btn-institutional">
               Agendar Consulta
             </a>
             <a href="/especialidades" class="btn-outline">
@@ -164,7 +171,7 @@ const faqs = [
       title="Su salud es nuestra prioridad principal."
       subtitle="Acceda hoy mismo a la red de atención médica digital más confiable de la región."
       buttonLabel="Iniciar mi Consulta"
-      buttonHref="/auth/register"
+      buttonHref={registerHref}
     />
   </main>
 
