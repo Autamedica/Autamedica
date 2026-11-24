@@ -15,6 +15,7 @@ export type PublicProfileViewData = {
   uf_brazil?: string | null;
   rqe_number?: string | null;
   licenses?: unknown;
+  testimonials?: unknown;
 };
 
 export type EditorialEntry = {
@@ -115,4 +116,38 @@ export function getVisibleProfileSections(profile: PublicProfileViewData): {
     academic: toEditorialEntries(profile.academic_activity).length > 0,
     verification: getPublicProfileCredentials(profile).verified,
   };
+}
+
+
+export type PublicTestimonial = {
+  comment: string;
+  created_at?: string;
+};
+
+export function toVerifiedTestimonials(value: unknown): PublicTestimonial[] {
+  return objectEntries(value).flatMap((item): PublicTestimonial[] => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return [];
+    const record = item as Record<string, unknown>;
+    const comment = typeof record.comment === 'string' ? record.comment.trim() : '';
+    if (!comment) return [];
+    return [{
+      comment,
+      created_at: typeof record.created_at === 'string' ? record.created_at : undefined,
+    }];
+  });
+}
+
+export function isTestimonialsEnabled(
+  country: 'AR' | 'BR',
+  flags: Partial<Record<'AR' | 'BR', boolean>>,
+): boolean {
+  return flags[country] === true;
+}
+
+export function shouldShowTestimonials(
+  profile: PublicProfileViewData,
+  flags: Partial<Record<'AR' | 'BR', boolean>>,
+): boolean {
+  return isTestimonialsEnabled(profile.care_country, flags)
+    && toVerifiedTestimonials(profile.testimonials).length > 0;
 }
