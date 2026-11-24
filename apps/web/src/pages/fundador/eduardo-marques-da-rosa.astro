@@ -1,0 +1,139 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+
+const title = 'Eduardo Marques da Rosa | Fundador de AutaMedica';
+const description =
+  'Eduardo Marques da Rosa fundó AutaMedica y lleva adelante el producto y la operación entre Argentina y Brasil.';
+const canonical = 'https://www.autamedica.com/fundador/eduardo-marques-da-rosa';
+const linkedInUrl = 'https://www.linkedin.com/in/eduardo-marques-b00739249/';
+
+const personSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  '@id': canonical + '#person',
+  name: 'Eduardo Marques da Rosa',
+  jobTitle: 'Fundador de AutaMedica',
+  url: canonical,
+  sameAs: [linkedInUrl],
+  worksFor: {
+    '@type': 'Organization',
+    name: 'AutaMedica',
+    url: 'https://www.autamedica.com',
+  },
+};
+---
+
+<Layout title={title} description={description}>
+  <Navbar localeOverride="es" showLanguageSwitcher={false} />
+
+  <main class="founder-page">
+    <article class="founder-profile" aria-labelledby="founder-name">
+      <header class="founder-heading">
+        <p class="founder-eyebrow">AutaMedica</p>
+        <h1 id="founder-name">Eduardo Marques da Rosa</h1>
+        <p class="founder-role">Fundador de AutaMedica</p>
+      </header>
+
+      <div class="founder-copy">
+        <p>
+          Eduardo Marques da Rosa fundó AutaMedica y lleva adelante el producto y la operación entre Argentina y Brasil.
+        </p>
+
+        <p>
+          Arrancó el proyecto a partir de un problema que veía todos los días en los dos países: resolver una consulta simple, renovar una receta o presentar un certificado médico todavía cuesta horas de espera y demasiado papel, sobre todo fuera de las grandes capitales.
+        </p>
+
+        <p>
+          Con formación en la Facultad de Medicina de la UBA y trabajando entre Buenos Aires y Rio Grande do Sul, construyó la plataforma desde el código hasta la calle. Está detrás de la aplicación web y Android, de las recetas digitales y certificados con validación por QR, y de los acuerdos directos con farmacias e instituciones de cada país.
+        </p>
+      </div>
+
+      <footer class="founder-contact">
+        <span>Contacto institucional</span>
+        <span aria-hidden="true">·</span>
+        <a href={linkedInUrl} target="_blank" rel="me noopener noreferrer">LinkedIn</a>
+      </footer>
+    </article>
+  </main>
+
+  <Footer localeOverride="es" />
+  <script type="application/ld+json" set:html={JSON.stringify(personSchema)} />
+</Layout>
+
+<style>
+  .founder-page {
+    min-height: 72vh;
+    padding: clamp(8rem, 14vh, 11rem) 1.5rem 6rem;
+    background: var(--au-bg);
+    color: var(--au-text-primary);
+  }
+
+  .founder-profile {
+    width: min(100%, 760px);
+    margin: 0 auto;
+  }
+
+  .founder-heading {
+    padding-bottom: 2.25rem;
+    border-bottom: 1px solid var(--au-border);
+  }
+
+  .founder-eyebrow {
+    margin: 0 0 1rem;
+    color: var(--au-accent);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .founder-heading h1 {
+    margin: 0;
+    color: var(--au-text-primary);
+    font-size: clamp(2.25rem, 6vw, 4rem);
+    font-weight: 650;
+    letter-spacing: -0.045em;
+    line-height: 1.08;
+  }
+
+  .founder-role {
+    margin: 1rem 0 0;
+    color: var(--au-text-secondary);
+    font-size: 1.125rem;
+  }
+
+  .founder-copy {
+    padding: 2rem 0 1rem;
+  }
+
+  .founder-copy p {
+    margin: 0 0 1.4rem;
+    color: var(--au-text-secondary);
+    font-size: clamp(1.05rem, 2vw, 1.2rem);
+    line-height: 1.85;
+  }
+
+  .founder-contact {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--au-border);
+    color: var(--au-text-secondary);
+    font-size: 0.9rem;
+  }
+
+  .founder-contact a {
+    color: var(--au-accent);
+    font-weight: 650;
+    text-decoration: none;
+  }
+
+  .founder-contact a:hover {
+    color: var(--au-accent-hover, #0284c7);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+</style>
