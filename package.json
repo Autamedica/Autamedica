@@ -141,7 +141,8 @@
     "newsletter:sync-audience:apply": "pnpm -C apps/newsletter-worker sync-audience:apply",
     "e2e:patients": "node scripts/e2e/patients-login.mjs",
     "seo:generate:assets": "bash scripts/seo/generate-social-images.sh",
-    "seo:validate:structured-data": "node scripts/seo/validate-structured-data.mjs"
+    "seo:validate:structured-data": "node scripts/seo/validate-structured-data.mjs",
+    "seo:validate:built": "node scripts/seo/validate-built-html.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.1",
