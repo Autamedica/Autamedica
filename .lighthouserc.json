@@ -24,7 +24,8 @@
         "categories:seo": [
           "error",
           {
-            "minScore": 1
+            "minScore": 1,
+            "aggregationMethod": "pessimistic"
           }
         ]
       }
