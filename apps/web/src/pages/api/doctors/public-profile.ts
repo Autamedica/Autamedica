@@ -139,7 +139,7 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
       .update(patch)
       .eq('id', doctor.id)
       .eq('user_id', auth.user.id)
-      .select('id,public_profile_enabled,public_profile_consent_confirmed_at,public_profile_consent_version,clinical_focus_areas,professional_experience,academic_activity')
+      .select('id,public_profile_enabled,public_profile_consent_confirmed_at,public_profile_consent_version,education,certifications,clinical_focus_areas,professional_experience,academic_activity')
       .single();
     if (updateError) throw updateError;
 
