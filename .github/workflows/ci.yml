@@ -52,7 +52,7 @@ jobs:
     if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]'
     name: Build
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - uses: ./.github/actions/setup-pnpm
@@ -79,6 +79,16 @@ jobs:
           pnpm seo:validate:parity
           pnpm seo:validate:assets
           pnpm seo:validate:structured-data
+      - name: Lighthouse SEO 100/100 — 3 runs per critical route
+        run: pnpm dlx @lhci/cli@0.16.1 autorun
+      - name: Upload Lighthouse SEO reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: lighthouse-seo-reports
+          path: .lighthouseci/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Build web
         run: pnpm --filter @autamedica/web build
         env:
