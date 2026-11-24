@@ -46,9 +46,8 @@ function firstString(record: Record<string, unknown>, keys: string[]): string {
 }
 
 function editorialEntries(value: unknown): EditorialEntry[] {
-  if (!Array.isArray(value)) return [];
-
-  return value.flatMap((item): EditorialEntry[] => {
+  const entries = Array.isArray(value) ? value : value && typeof value === 'object' ? [value] : [];
+  return entries.flatMap((item): EditorialEntry[] => {
     if (typeof item === 'string') {
       const title = item.trim();
       return title ? [{ title }] : [];
@@ -66,8 +65,8 @@ function editorialEntries(value: unknown): EditorialEntry[] {
 }
 
 function stringEntries(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((item): string[] => {
+  const entries = Array.isArray(value) ? value : value && typeof value === 'object' ? [value] : [];
+  return entries.flatMap((item): string[] => {
     if (typeof item === 'string' && item.trim()) return [item.trim()];
     if (item && typeof item === 'object' && !Array.isArray(item)) {
       const record = item as Record<string, unknown>;
