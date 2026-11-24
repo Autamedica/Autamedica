@@ -4,39 +4,83 @@ import com.autamedica.android.data.repository.DoctorOnboardingClient
 import com.autamedica.android.data.repository.DoctorOnboardingException
 import com.autamedica.android.data.repository.DoctorOnboardingSubmission
 import com.autamedica.android.domain.model.DoctorProfile
+import com.autamedica.android.domain.model.DoctorStats
+import com.autamedica.android.domain.model.PatientDetail
+import com.autamedica.android.domain.model.PatientSummary
 import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.DoctorRepository
+import com.autamedica.android.domain.repository.UserRegistrationResult
 import com.google.common.truth.Truth.assertThat
-import io.mockk.coEvery
-import io.mockk.coVerify
+import io.github.jan.supabase.SupabaseClient
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.serialization.json.Json
+import okhttp3.OkHttpClient
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
-@OptIn(ExperimentalCoroutinesApi::class)
-class DoctorOnboardingViewModelTest {
-
-    private val testDispatcher = StandardTestDispatcher()
-
-    private val sampleUser = User(
+private class FakeOnboardingAuthRepo(
+    private val currentUser: User? = User(
         id = "user-1",
         email = "doc@autamedica.com",
         firstName = "María",
         lastName = "Gómez",
         phone = "+5491112345678",
         role = UserRole.DOCTOR,
-    )
+    ),
+) : AuthRepository {
+    override fun observeSession(): Flow<User?> = flowOf(currentUser)
+    override suspend fun login(email: String, password: String, selectedRole: UserRole?): Result<User> =
+        Result.success(currentUser!!)
+    override suspend fun loginWithGoogle(idToken: String, selectedRole: UserRole?): Result<User> =
+        Result.success(currentUser!!)
+    override suspend fun register(email: String, password: String, selectedRole: UserRole): Result<UserRegistrationResult> =
+        Result.success(UserRegistrationResult(user = currentUser, requiresEmailConfirmation = false))
+    override suspend fun logout() {}
+    override suspend fun getCurrentUser(): User? = currentUser
+}
+
+private class FakeOnboardingDoctorRepo(
+    private val profile: DoctorProfile? = null,
+) : DoctorRepository {
+    override suspend fun getDoctorProfile(userId: String): Result<DoctorProfile> =
+        profile?.let { Result.success(it) } ?: Result.failure(NoSuchElementException("missing"))
+    override suspend fun getDoctorStats(doctorId: String): Result<DoctorStats> = Result.success(DoctorStats())
+    override suspend fun getDoctorPatients(doctorId: String): Result<List<PatientSummary>> = Result.success(emptyList())
+    override suspend fun getPatientDetail(doctorId: String, patientId: String): Result<PatientDetail> =
+        Result.failure(NotImplementedError())
+}
+
+private class FakeDoctorOnboardingClient(
+    private val outcome: Result<String> = Result.success("doc-42"),
+) : DoctorOnboardingClient(
+    supabaseClient = mockk<SupabaseClient>(relaxed = true),
+    sharedHttp = OkHttpClient(),
+    json = Json { ignoreUnknownKeys = true },
+) {
+    val calls = mutableListOf<DoctorOnboardingSubmission>()
+
+    override suspend fun submitOnboarding(submission: DoctorOnboardingSubmission): Result<String> {
+        calls += submission
+        return outcome
+    }
+}
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class DoctorOnboardingViewModelTest {
+
+    private val testDispatcher = StandardTestDispatcher()
 
     @Before
     fun setup() {
@@ -48,22 +92,11 @@ class DoctorOnboardingViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun fakeAuthRepository(user: User? = sampleUser): AuthRepository = mockk {
-        coEvery { observeSession() } returns flowOf(user)
-        coEvery { getCurrentUser() } returns user
-    }
-
-    private fun fakeDoctorRepository(profile: DoctorProfile?): DoctorRepository = mockk {
-        coEvery { getDoctorProfile(any()) } returns (
-            profile?.let { Result.success(it) } ?: Result.failure(NoSuchElementException("missing"))
-        )
-    }
-
     @Test
     fun `initial load strips PENDING placeholder license and General placeholder specialty`() = runTest {
         val viewModel = DoctorOnboardingViewModel(
-            authRepository = fakeAuthRepository(),
-            doctorRepository = fakeDoctorRepository(
+            authRepository = FakeOnboardingAuthRepo(),
+            doctorRepository = FakeOnboardingDoctorRepo(
                 DoctorProfile(
                     id = "doc-1",
                     userId = "user-1",
@@ -72,7 +105,7 @@ class DoctorOnboardingViewModelTest {
                     active = false,
                 )
             ),
-            onboardingClient = mockk(relaxed = true),
+            onboardingClient = FakeDoctorOnboardingClient(),
         )
 
         advanceUntilIdle()
@@ -90,9 +123,9 @@ class DoctorOnboardingViewModelTest {
     @Test
     fun `switching country between AR and BR updates licenseType cleanly`() = runTest {
         val viewModel = DoctorOnboardingViewModel(
-            authRepository = fakeAuthRepository(),
-            doctorRepository = fakeDoctorRepository(null),
-            onboardingClient = mockk(relaxed = true),
+            authRepository = FakeOnboardingAuthRepo(),
+            doctorRepository = FakeOnboardingDoctorRepo(),
+            onboardingClient = FakeDoctorOnboardingClient(),
         )
         advanceUntilIdle()
 
@@ -110,10 +143,10 @@ class DoctorOnboardingViewModelTest {
 
     @Test
     fun `submitting with blank or PENDING license fails validation without calling client`() = runTest {
-        val client = mockk<DoctorOnboardingClient>(relaxed = true)
+        val client = FakeDoctorOnboardingClient()
         val viewModel = DoctorOnboardingViewModel(
-            authRepository = fakeAuthRepository(),
-            doctorRepository = fakeDoctorRepository(null),
+            authRepository = FakeOnboardingAuthRepo(),
+            doctorRepository = FakeOnboardingDoctorRepo(),
             onboardingClient = client,
         )
         advanceUntilIdle()
@@ -126,17 +159,15 @@ class DoctorOnboardingViewModelTest {
         val state = viewModel.uiState.value
         assertThat(state.submittedSuccess).isFalse()
         assertThat(state.error).isNotNull()
-        coVerify(exactly = 0) { client.submitOnboarding(any()) }
+        assertThat(client.calls).isEmpty()
     }
 
     @Test
     fun `submitting valid AR onboarding transitions submittedSuccess to true`() = runTest {
-        val client = mockk<DoctorOnboardingClient>()
-        coEvery { client.submitOnboarding(any()) } returns Result.success("doc-42")
-
+        val client = FakeDoctorOnboardingClient(Result.success("doc-42"))
         val viewModel = DoctorOnboardingViewModel(
-            authRepository = fakeAuthRepository(),
-            doctorRepository = fakeDoctorRepository(null),
+            authRepository = FakeOnboardingAuthRepo(),
+            doctorRepository = FakeOnboardingDoctorRepo(),
             onboardingClient = client,
         )
         advanceUntilIdle()
@@ -152,28 +183,21 @@ class DoctorOnboardingViewModelTest {
         val state = viewModel.uiState.value
         assertThat(state.submittedSuccess).isTrue()
         assertThat(state.error).isNull()
-        coVerify(exactly = 1) {
-            client.submitOnboarding(
-                match {
-                    it.careCountry == "AR" &&
-                        it.licenseType == "MN" &&
-                        it.licenseNumber == "145890" &&
-                        it.specialty == "Clínica Médica"
-                }
-            )
-        }
+        assertThat(client.calls).hasSize(1)
+        assertThat(client.calls.single().careCountry).isEqualTo("AR")
+        assertThat(client.calls.single().licenseType).isEqualTo("MN")
+        assertThat(client.calls.single().licenseNumber).isEqualTo("145890")
+        assertThat(client.calls.single().specialty).isEqualTo("Clínica Médica")
     }
 
     @Test
     fun `submitting duplicate license 409 sets duplicate license error message`() = runTest {
-        val client = mockk<DoctorOnboardingClient>()
-        coEvery { client.submitOnboarding(any()) } returns Result.failure(
-            DoctorOnboardingException(409, "license_number_already_exists")
+        val client = FakeDoctorOnboardingClient(
+            Result.failure(DoctorOnboardingException(409, "license_number_already_exists"))
         )
-
         val viewModel = DoctorOnboardingViewModel(
-            authRepository = fakeAuthRepository(),
-            doctorRepository = fakeDoctorRepository(null),
+            authRepository = FakeOnboardingAuthRepo(),
+            doctorRepository = FakeOnboardingDoctorRepo(),
             onboardingClient = client,
         )
         advanceUntilIdle()
