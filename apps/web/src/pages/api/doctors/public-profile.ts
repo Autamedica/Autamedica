@@ -110,6 +110,31 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
       academic_activity: { maxItems: 30, maxLength: 240 },
     };
 
+    if ('bio' in input) {
+      if (input.bio !== null && typeof input.bio !== 'string') {
+        return jsonResponse({ error: 'invalid_bio' }, 400);
+      }
+      const bio = typeof input.bio === 'string' ? input.bio.trim() : null;
+      if (bio && bio.length > 2000) return jsonResponse({ error: 'invalid_bio' }, 400);
+      patch.bio = bio;
+    }
+
+    if ('years_experience' in input) {
+      const years = input.years_experience;
+      if (years === null || years === '') {
+        patch.years_experience = null;
+      } else if (
+        typeof years !== 'number'
+        || !Number.isInteger(years)
+        || years < 0
+        || years > 70
+      ) {
+        return jsonResponse({ error: 'invalid_years_experience' }, 400);
+      } else {
+        patch.years_experience = years;
+      }
+    }
+
     for (const key of EDITABLE_ARRAYS) {
       if (key in input) {
         const parsed = parseLines(input[key], limits[key].maxItems, limits[key].maxLength);
@@ -145,7 +170,7 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
       .update(patch)
       .eq('id', doctor.id)
       .eq('user_id', auth.user.id)
-      .select('id,public_profile_enabled,public_profile_consent_confirmed_at,public_profile_consent_version,education,certifications,clinical_focus_areas,professional_experience,academic_activity')
+      .select('id,public_profile_enabled,public_profile_consent_confirmed_at,public_profile_consent_version,bio,years_experience,education,certifications,clinical_focus_areas,professional_experience,academic_activity')
       .single();
     if (updateError) throw updateError;
 
