@@ -2,6 +2,7 @@
 import Layout from '@/layouts/Layout.astro';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { getPublicProfileCredentials, getVisibleProfileSections, shouldShowTestimonials, toEditorialEntries, toStringEntries, toVerifiedTestimonials } from '@/lib/doctors/public-profile-view';
+import { logger } from '@autamedica/shared';
 
 export const prerender = false;
 Astro.response.headers.set('Cache-Control', 'no-store');
@@ -71,11 +72,14 @@ if ((country === 'AR' || country === 'BR') && doctorId) {
       rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
     };
     const { data, error } = await admin.rpc('get_public_doctor_profile', { p_doctor_id: doctorId });
-    if (!error && data && typeof data === 'object' && !Array.isArray(data)) {
+    if (error) {
+      logger.error('[medicos/doctorSlug] get_public_doctor_profile RPC failed', { doctorId, country, error });
+    } else if (data && typeof data === 'object' && !Array.isArray(data)) {
       const candidate = data as PublicProfile;
       if (candidate.id === doctorId && candidate.care_country === country) profile = candidate;
     }
-  } catch {
+  } catch (err) {
+    logger.error('[medicos/doctorSlug] get_public_doctor_profile threw', { doctorId, country, error: err });
     // Fail closed if the safe read model or database is unavailable.
   }
 }
