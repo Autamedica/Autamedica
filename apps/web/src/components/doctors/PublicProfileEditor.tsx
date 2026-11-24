@@ -28,8 +28,8 @@ type EditorForm = {
 }
 
 function entriesToText(value: unknown): string {
-  if (!Array.isArray(value)) return ''
-  return value.flatMap((item) => {
+  const entries = Array.isArray(value) ? value : value && typeof value === 'object' ? [value] : []
+  return entries.flatMap((item) => {
     if (typeof item === 'string') return item.trim() ? [item.trim()] : []
     if (item && typeof item === 'object' && !Array.isArray(item)) {
       const record = item as Record<string, unknown>
