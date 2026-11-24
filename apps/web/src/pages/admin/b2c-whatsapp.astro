@@ -1,5 +1,6 @@
 ---
 import Layout from '@/layouts/Layout.astro';
+import AdminLogoutButton from '@/components/admin/AdminLogoutButton.astro';
 import { B2CWhatsAppDashboardUI } from '@/components/admin/B2CWhatsAppDashboardUI';
 import { resolveAdminRole } from '@/lib/admin/auth';
 const session = Astro.locals.session;
@@ -10,7 +11,10 @@ if (!role) return Astro.redirect('/admin/unauthorized');
 <Layout title="B2C WhatsApp | AutaMedica Admin" description="CRM B2C Argentina">
   <div class="min-h-screen bg-slate-50 px-4 py-6">
     <main class="mx-auto max-w-6xl">
-      <a href="/admin" class="text-sm underline">Admin</a>
+      <div class="mb-4 flex items-center justify-between">
+        <a href="/admin" class="text-sm underline">Admin</a>
+        <AdminLogoutButton />
+      </div>
       <B2CWhatsAppDashboardUI client:load />
     </main>
   </div>

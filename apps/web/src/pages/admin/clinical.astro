@@ -1,5 +1,6 @@
 ---
 import Layout from '@/layouts/Layout.astro';
+import AdminLogoutButton from '@/components/admin/AdminLogoutButton.astro';
 import { CEEDSDashboard } from '@/components/admin/CEEDSDashboard';
 import { ClinicalIntelligenceDashboard } from '@/components/admin/ClinicalIntelligenceDashboard';
 import { resolveAdminRole } from '@/lib/admin/auth';
@@ -38,6 +39,7 @@ if (!role) {
             <a href="/admin/patients" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-amber-400 hover:text-amber-700">Pacientes</a>
             <a href="/admin/clinical" class="rounded-md border border-rose-400 bg-rose-50 px-3 py-2 font-semibold text-rose-700">Inteligencia Clínica</a>
             <a href="/admin/finance" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-stone-400 hover:text-stone-900">Finanzas</a>
+            <AdminLogoutButton />
           </nav>
         </div>
       </div>

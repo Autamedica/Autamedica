@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { ADMIN_LAST_ACTIVE_COOKIE } from '../../lib/admin/session-timeout';
 import { resolvePublicSupabaseEnv } from '../../lib/runtime-env';
 import { isProduction } from '../../lib/auth-utils';
 import { createSupabaseCookieClient, type CookieMethodsServer } from '../../lib/supabase';
@@ -38,6 +39,15 @@ export const GET: APIRoute = async ({ request, cookies, redirect, locals }) => {
   const supabase = createSupabaseCookieClient(publicSupabaseUrl, publicSupabaseAnonKey, cookieMethods);
 
   await supabase.auth.signOut();
+
+  cookies.set(ADMIN_LAST_ACTIVE_COOKIE, '', {
+    domain: isProduction() ? '.autamedica.com' : undefined,
+    path: '/',
+    maxAge: 0,
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: isProduction(),
+  } as Parameters<typeof cookies.set>[2]);
 
   return redirect('/auth/login');
 };

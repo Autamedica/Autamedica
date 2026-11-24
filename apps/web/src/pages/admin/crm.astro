@@ -1,5 +1,6 @@
 ---
 import Layout from '@/layouts/Layout.astro';
+import AdminLogoutButton from '@/components/admin/AdminLogoutButton.astro';
 import { CrmDashboardUI } from '@/components/admin/CrmDashboardUI';
 import { resolveAdminRole } from '@/lib/admin/auth';
 
@@ -33,6 +34,7 @@ if (!isLocalDevBypass && !role) {
             <h1 class="text-xl font-semibold text-gray-900">Admin / CRM</h1>
             <a class="text-sm text-emerald-700 underline" href="/admin/b2c-whatsapp">B2C WhatsApp Argentina</a>
           </div>
+          <AdminLogoutButton />
         </div>
       </div>
     </header>
