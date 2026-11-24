@@ -42,7 +42,7 @@ function parseLines(value: unknown, maxItems: number, maxLength: number): string
 async function getDoctor(admin: any, userId: string) {
   return admin
     .from('doctors')
-    .select('id,care_country,specialty,subspecialty,bio,years_experience,education,certifications,clinical_focus_areas,professional_experience,academic_activity,public_profile_enabled,public_profile_consent_confirmed_at,public_profile_consent_version,profile:profiles!inner(first_name,last_name,avatar_url)')
+    .select('id,care_country,specialty,subspecialty,bio,years_experience,education,certifications,clinical_focus_areas,professional_experience,academic_activity,public_profile_enabled,public_profile_consent_confirmed_at,public_profile_consent_version')
     .eq('user_id', userId)
     .maybeSingle();
 }
@@ -58,13 +58,20 @@ export const GET: APIRoute = async ({ request, locals }) => {
     if (error) throw error;
     if (!data) return jsonResponse({ error: 'doctor_profile_not_found' }, 404);
 
+    const { data: profile, error: profileError } = await admin
+      .from('profiles')
+      .select('first_name,last_name,avatar_url')
+      .eq('user_id', auth.user.id)
+      .maybeSingle();
+    if (profileError) throw profileError;
+
     return jsonResponse({
       data: {
         id: data.id,
         care_country: data.care_country,
-        first_name: data.profile?.first_name ?? null,
-        last_name: data.profile?.last_name ?? null,
-        avatar_url: data.profile?.avatar_url ?? null,
+        first_name: profile?.first_name ?? null,
+        last_name: profile?.last_name ?? null,
+        avatar_url: profile?.avatar_url ?? null,
         specialty: data.specialty,
         subspecialty: data.subspecialty,
         bio: data.bio,
