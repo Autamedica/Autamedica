@@ -36,7 +36,7 @@ function parseLines(value: unknown, maxItems: number, maxLength: number): string
   return null;
 }
 
-async function getDoctor(admin: any, userId: string) {
+// Supabase's generated Database types predate the additive migration on this branch.\n// The route uses a server-only admin client and a strictly allowlisted column set.\n// eslint-disable-next-line @typescript-eslint/no-explicit-any\nasync function getDoctor(admin: any, userId: string) {
   return admin
     .from('doctors')
     .select('id,care_country,specialty,subspecialty,bio,years_experience,education,certifications,clinical_focus_areas,professional_experience,academic_activity,public_profile_enabled,public_profile_consent_confirmed_at,public_profile_consent_version,profile:profiles!inner(first_name,last_name)')
@@ -49,7 +49,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   if (!isAuthed(auth)) return auth;
 
   try {
-    const admin = createAstroAdminClient(locals.runtime?.env) as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any\n    const admin = createAstroAdminClient(locals.runtime?.env) as any;
     const { data, error } = await getDoctor(admin, auth.user.id);
     if (error) throw error;
     if (!data) return jsonResponse({ error: 'doctor_profile_not_found' }, 404);
