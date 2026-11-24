@@ -18,6 +18,17 @@ import {
 
 type Client = SupabaseClient;
 
+function isMissingAccountingRelationError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as { code?: string; message?: string; details?: string };
+  const text = [candidate.message, candidate.details].filter(Boolean).join(' ').toLowerCase();
+  return (
+    candidate.code === '42P01' ||
+    candidate.code === 'PGRST205' ||
+    (text.includes('relation') && text.includes('does not exist'))
+  );
+}
+
 // ── Tax Calculation Helpers ──
 
 export function suggestMonotributoCategory(annualIncomeInCents: number): MonotributoCategory | null {
@@ -90,7 +101,15 @@ export function compareRegimes(annualIncome: number, annualExpenses: number, ann
 
 export const accountingService = {
   async getFiscalProfile(supabase: Client, doctorId: string): Promise<DoctorFiscalProfile | null> {
-    return accountingRepo.getFiscalProfile(supabase, doctorId);
+    try {
+      return await accountingRepo.getFiscalProfile(supabase, doctorId);
+    } catch (error) {
+      if (isMissingAccountingRelationError(error)) {
+        logger.warn('[accountingService] Fiscal profile table unavailable; returning null', { doctorId });
+        return null;
+      }
+      throw error;
+    }
   },
 
   async saveFiscalProfile(supabase: Client, doctorId: string, profile: Partial<DoctorFiscalProfile>): Promise<DoctorFiscalProfile> {
@@ -98,43 +117,76 @@ export const accountingService = {
   },
 
   async getMonthlyDashboard(supabase: Client, doctorId: string, year: number, month: number) {
-    const [profile, income, expenses, obligations, summary] = await Promise.all([
-      accountingRepo.getFiscalProfile(supabase, doctorId),
-      accountingRepo.listIncome(supabase, doctorId, year, month),
-      accountingRepo.listExpenses(supabase, doctorId, year, month),
-      accountingRepo.listObligations(supabase, doctorId, year, month),
-      accountingRepo.getSummary(supabase, doctorId, year, month),
-    ]);
+    try {
+      const [profile, income, expenses, obligations, summary] = await Promise.all([
+        accountingRepo.getFiscalProfile(supabase, doctorId),
+        accountingRepo.listIncome(supabase, doctorId, year, month),
+        accountingRepo.listExpenses(supabase, doctorId, year, month),
+        accountingRepo.listObligations(supabase, doctorId, year, month),
+        accountingRepo.getSummary(supabase, doctorId, year, month),
+      ]);
 
-    return { profile, income, expenses, obligations, summary };
+      return { profile, income, expenses, obligations, summary };
+    } catch (error) {
+      if (isMissingAccountingRelationError(error)) {
+        logger.warn('[accountingService] Accounting tables unavailable; returning empty monthly dashboard', {
+          doctorId,
+          year,
+          month,
+        });
+        return { profile: null, income: [], expenses: [], obligations: [], summary: null };
+      }
+      throw error;
+    }
   },
 
   async getAnnualOverview(supabase: Client, doctorId: string, year: number) {
-    const [profile, summaries, obligations] = await Promise.all([
-      accountingRepo.getFiscalProfile(supabase, doctorId),
-      accountingRepo.getAnnualSummaries(supabase, doctorId, year),
-      accountingRepo.listObligations(supabase, doctorId, year),
-    ]);
+    try {
+      const [profile, summaries, obligations] = await Promise.all([
+        accountingRepo.getFiscalProfile(supabase, doctorId),
+        accountingRepo.getAnnualSummaries(supabase, doctorId, year),
+        accountingRepo.listObligations(supabase, doctorId, year),
+      ]);
 
-    const totalIncome = summaries.reduce((sum, s) => sum + s.totalIncome, 0);
-    const totalExpenses = summaries.reduce((sum, s) => sum + s.totalExpenses, 0);
-    const totalObligationsPaid = obligations.filter(o => o.paid).reduce((sum, o) => sum + (o.paidAmount ?? o.amount), 0);
-    const totalObligationsPending = obligations.filter(o => !o.paid).reduce((sum, o) => sum + o.amount, 0);
-    const overdue = obligations.filter(o => o.status === 'overdue');
+      const totalIncome = summaries.reduce((sum, s) => sum + s.totalIncome, 0);
+      const totalExpenses = summaries.reduce((sum, s) => sum + s.totalExpenses, 0);
+      const totalObligationsPaid = obligations.filter(o => o.paid).reduce((sum, o) => sum + (o.paidAmount ?? o.amount), 0);
+      const totalObligationsPending = obligations.filter(o => !o.paid).reduce((sum, o) => sum + o.amount, 0);
+      const overdue = obligations.filter(o => o.status === 'overdue');
 
-    const comparison = compareRegimes(totalIncome, totalExpenses, 0);
+      const comparison = compareRegimes(totalIncome, totalExpenses, 0);
 
-    return {
-      profile,
-      summaries,
-      totalIncome,
-      totalExpenses,
-      netResult: totalIncome - totalExpenses,
-      totalObligationsPaid,
-      totalObligationsPending,
-      overdueCount: overdue.length,
-      regimeComparison: comparison,
-    };
+      return {
+        profile,
+        summaries,
+        totalIncome,
+        totalExpenses,
+        netResult: totalIncome - totalExpenses,
+        totalObligationsPaid,
+        totalObligationsPending,
+        overdueCount: overdue.length,
+        regimeComparison: comparison,
+      };
+    } catch (error) {
+      if (isMissingAccountingRelationError(error)) {
+        logger.warn('[accountingService] Accounting tables unavailable; returning empty annual overview', {
+          doctorId,
+          year,
+        });
+        return {
+          profile: null,
+          summaries: [],
+          totalIncome: 0,
+          totalExpenses: 0,
+          netResult: 0,
+          totalObligationsPaid: 0,
+          totalObligationsPending: 0,
+          overdueCount: 0,
+          regimeComparison: compareRegimes(0, 0, 0),
+        };
+      }
+      throw error;
+    }
   },
 
   async recalculateSummary(supabase: Client, doctorId: string, year: number, month: number): Promise<FiscalSummary | null> {

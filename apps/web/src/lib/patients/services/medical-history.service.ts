@@ -377,6 +377,12 @@ async function listPatientCertificatesAndOrders(
   };
 }
 
+function safeTimestamp(value: string | null | undefined): number {
+  if (!value) return 0;
+  const ms = new Date(value).getTime();
+  return Number.isFinite(ms) ? ms : 0;
+}
+
 function mergeTimelineRecords(
   primary: MedicalRecord[],
   secondary: MedicalRecord[],
@@ -390,7 +396,7 @@ function mergeTimelineRecords(
   }
 
   return [...byId.values()].sort(
-    (left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime(),
+    (left, right) => safeTimestamp(right.created_at) - safeTimestamp(left.created_at),
   );
 }
 
@@ -432,10 +438,16 @@ export const medicalHistoryService = {
           .from("anamnesis")
           .select("*")
           .eq("patient_id", patientId)
-          .then(({ data, error }) => {
-            if (error) logger.error("[medicalHistoryService] anamnesis failed", error);
-            return data ?? [];
-          }),
+          .then(
+            ({ data, error }) => {
+              if (error) logger.error("[medicalHistoryService] anamnesis failed", error);
+              return data ?? [];
+            },
+            (error: unknown) => {
+              logger.error("[medicalHistoryService] anamnesis threw", error);
+              return [];
+            },
+          ),
       ]);
 
     const coreRecords = corePrescriptions ?? [];
@@ -446,7 +458,7 @@ export const medicalHistoryService = {
       const sourceId = record.id.replace(/^memed-/, "");
       return (!vendorId || !memedIds.has(vendorId)) && !coreIds.has(sourceId);
     });
-    const prescriptions = [...coreRecords, ...uniqueMemed].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const prescriptions = [...coreRecords, ...uniqueMemed].sort((a, b) => safeTimestamp(b.created_at) - safeTimestamp(a.created_at));
     const effectiveMedications = prescriptions.length > 0 ? prescriptions : medications;
 
     return {

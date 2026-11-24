@@ -147,7 +147,9 @@ export default function MedicalHistoryPage() {
   const { prescriptions, certificates, orders, loading, error } = useMedicalHistory(patient?.id)
   const [activeTab, setActiveTab] = useState<'prescriptions' | 'certificates' | 'orders'>('prescriptions')
   const patientCountry = (patient as unknown as { careCountry?: string; care_country?: string } | null)?.careCountry ?? (patient as unknown as { care_country?: string } | null)?.care_country
-  const isPortuguese = patientCountry === 'BR' || (typeof navigator !== 'undefined' && navigator.language.toLowerCase().startsWith('pt'))
+  const isPortuguese = patientCountry
+    ? patientCountry === 'BR'
+    : (typeof navigator !== 'undefined' && navigator.language.toLowerCase().startsWith('pt'))
   const locale = isPortuguese ? 'pt-BR' : 'es-AR'
   const [selectedPrescription, setSelectedPrescription] = useState<PatientPrescription | null>(null)
 

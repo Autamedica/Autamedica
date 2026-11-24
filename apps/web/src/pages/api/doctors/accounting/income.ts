@@ -10,9 +10,9 @@ import { accountingRepo } from '@/lib/doctors/lib/repos/accounting.repo';
 import { accountingService } from '@/lib/doctors/services/accounting.service';
 import { doctorsRepo } from '@/lib/doctors/lib/repos/doctors';
 
-export const GET: APIRoute = async ({ request }) => {
+export const GET: APIRoute = async ({ request, locals }) => {
   try {
-    const auth = await withAuthRole(request, DOCTOR_ROLES);
+    const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
     if (!isAuthed(auth)) return auth;
     const { supabase } = auth;
 
@@ -24,6 +24,10 @@ export const GET: APIRoute = async ({ request }) => {
     const monthParam = url.searchParams.get('month');
     const month = monthParam ? parseInt(monthParam, 10) : undefined;
 
+    if (!Number.isInteger(year) || year < 2020 || year > 2030 || (month !== undefined && (!Number.isInteger(month) || month < 1 || month > 12))) {
+      return badRequest('invalid_period');
+    }
+
     const income = await accountingRepo.listIncome(supabase, doctorId, year, month);
     return jsonOk({ income });
   } catch (err) {
@@ -32,9 +36,9 @@ export const GET: APIRoute = async ({ request }) => {
   }
 };
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   try {
-    const auth = await withAuthRole(request, DOCTOR_ROLES);
+    const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
     if (!isAuthed(auth)) return auth;
     const { supabase } = auth;
 
@@ -44,7 +48,10 @@ export const POST: APIRoute = async ({ request }) => {
     const profile = await accountingService.getFiscalProfile(supabase, doctorId);
     if (!profile) return badRequest('fiscal_profile_required');
 
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return badRequest('invalid_body');
+    }
     if (!body.grossAmount || !body.source || !body.periodYear || !body.periodMonth) {
       return badRequest('missing_required_fields');
     }

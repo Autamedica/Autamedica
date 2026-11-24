@@ -9,9 +9,9 @@ import { jsonOk, badRequest, internalError } from '@/lib/api-helpers';
 import { accountingService } from '@/lib/doctors/services/accounting.service';
 import { doctorsRepo } from '@/lib/doctors/lib/repos/doctors';
 
-export const GET: APIRoute = async ({ request }) => {
+export const GET: APIRoute = async ({ request, locals }) => {
   try {
-    const auth = await withAuthRole(request, DOCTOR_ROLES);
+    const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
     if (!isAuthed(auth)) return auth;
     const { supabase } = auth;
 
@@ -23,7 +23,7 @@ export const GET: APIRoute = async ({ request }) => {
     const monthParam = url.searchParams.get('month');
     const month = monthParam ? parseInt(monthParam, 10) : new Date().getMonth() + 1;
 
-    if (year < 2020 || year > 2030 || month < 1 || month > 12) {
+    if (!Number.isInteger(year) || !Number.isInteger(month) || year < 2020 || year > 2030 || month < 1 || month > 12) {
       return badRequest('invalid_period');
     }
 

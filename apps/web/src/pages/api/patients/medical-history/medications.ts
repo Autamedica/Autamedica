@@ -1,9 +1,9 @@
 import type { APIRoute } from 'astro'
-import { createServerClientFromRequest } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
+import { createAstroServerClientFromRequest } from '@/lib/supabase'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { medicalHistoryService } from '@/lib/patients/services/medical-history.service'
-import { jsonOk, unauthorized, badRequest, internalError } from '@/lib/api-helpers'
+import { jsonOk, unauthorized, badRequest, forbidden, internalError } from '@/lib/api-helpers'
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const context = await resolvePatientContext(request, locals)
@@ -20,7 +20,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!body.name?.trim()) return badRequest('name is required')
 
   try {
-    const supabase = createServerClientFromRequest(request)
+    const supabase = createAstroServerClientFromRequest(request, locals.runtime?.env)
     const inserted = await medicalHistoryService.addMedication(
       supabase,
       context.patientId,
@@ -29,6 +29,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     )
     return jsonOk(inserted, 201)
   } catch (err) {
+    const code = err && typeof err === 'object' && 'code' in err ? (err as { code?: string }).code : undefined
+    if (code === '42501') {
+      logger.warn('[medical-history/medications/POST] RLS restricted', { patientId: context.patientId })
+      return forbidden('clinical_write_restricted')
+    }
     logger.error('[medical-history/medications/POST]', err)
     return internalError()
   }

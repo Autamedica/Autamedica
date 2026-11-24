@@ -47,13 +47,21 @@ import com.autamedica.android.presentation.common.DocumentViewerSource
 import com.autamedica.android.presentation.common.InAppDocumentViewerDialog
 import com.autamedica.android.domain.model.CertificateType
 import com.autamedica.android.domain.model.MedicalCertificate
+import com.autamedica.android.domain.model.RegulatoryJurisdiction
+import com.autamedica.android.domain.model.RegulatoryJurisdictionCopy
+import com.autamedica.android.domain.model.resolveRegulatoryJurisdiction
 import com.autamedica.android.presentation.prescriptions.components.QrCodeView
 import com.autamedica.android.presentation.theme.*
 
 @Composable
-fun getCertificateTypeDisplayName(type: CertificateType): String {
+fun getCertificateTypeDisplayName(
+    type: CertificateType,
+    jurisdiction: RegulatoryJurisdiction = RegulatoryJurisdiction.GENERIC,
+): String {
     return when (type) {
-        CertificateType.REPOSO_LABORAL -> stringResource(R.string.cert_type_reposo_laboral)
+        CertificateType.REPOSO_LABORAL -> stringResource(
+            RegulatoryJurisdictionCopy.certificateWorkLeaveLabelRes(jurisdiction)
+        )
         CertificateType.REPOSO_ESCOLAR -> stringResource(R.string.cert_type_reposo_escolar)
         CertificateType.APTITUD_FISICA -> stringResource(R.string.cert_type_aptitud_fisica)
         CertificateType.CONSTANCIA_ATENCION -> stringResource(R.string.cert_type_constancia_atencion)
@@ -493,13 +501,17 @@ private fun DoctorCertificateCard(
                 color = AuSurfaceHover,
                 modifier = Modifier.fillMaxWidth()
             ) {
+                val certJurisdiction = resolveRegulatoryJurisdiction(
+                    countryCode = certificate.countryCode,
+                    doctorLicense = certificate.doctorLicense,
+                )
                 Row(
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = getCertificateTypeDisplayName(certificate.certificateType),
+                        text = getCertificateTypeDisplayName(certificate.certificateType, certJurisdiction),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
                         color = PortalDoctors
@@ -528,8 +540,12 @@ private fun DoctorCertificateCard(
                     overflow = TextOverflow.Ellipsis
                 )
             } else if (certificate.hideDiagnosis) {
+                val certJurisdiction = resolveRegulatoryJurisdiction(
+                    countryCode = certificate.countryCode,
+                    doctorLicense = certificate.doctorLicense,
+                )
                 Text(
-                    text = stringResource(R.string.cert_diagnosis_reserved),
+                    text = stringResource(RegulatoryJurisdictionCopy.certificateDiagnosisReservedRes(certJurisdiction)),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuTextTertiary
                 )

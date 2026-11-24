@@ -960,8 +960,15 @@ private fun PrescriptionDetailBottomSheet(
                             modifier = Modifier.size(16.dp),
                         )
                         Spacer(modifier = Modifier.width(6.dp))
+                        val rxJurisdiction = com.autamedica.android.domain.model.resolveRegulatoryJurisdiction(
+                            countryCode = prescription.countryCode,
+                            doctorLicense = prescription.doctorLicense,
+                        )
                         Text(
-                            text = stringResource(R.string.prescriptions_official_validation),
+                            text = stringResource(
+                                com.autamedica.android.domain.model.RegulatoryJurisdictionCopy
+                                    .prescriptionOfficialValidationRes(rxJurisdiction)
+                            ),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFF1E293B),
@@ -1866,8 +1873,15 @@ private fun CertificateDetailBottomSheet(
                             tint = Color(0xFF16A34A),
                             modifier = Modifier.size(16.dp),
                         )
+                        val certJurisdiction = com.autamedica.android.domain.model.resolveRegulatoryJurisdiction(
+                            countryCode = certificate.countryCode,
+                            doctorLicense = certificate.doctorLicense,
+                        )
                         Text(
-                            text = stringResource(R.string.prescriptions_official_validation),
+                            text = stringResource(
+                                com.autamedica.android.domain.model.RegulatoryJurisdictionCopy
+                                    .prescriptionOfficialValidationRes(certJurisdiction)
+                            ),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFF1E293B),
@@ -2022,8 +2036,15 @@ private fun CertificateDetailBottomSheet(
                             Spacer(modifier = Modifier.height(6.dp))
                         }
 
+                        val certDiagJurisdiction = com.autamedica.android.domain.model.resolveRegulatoryJurisdiction(
+                            countryCode = certificate.countryCode,
+                            doctorLicense = certificate.doctorLicense,
+                        )
                         val diagText = when {
-                            certificate.hideDiagnosis -> stringResource(R.string.prescriptions_cert_diagnosis_reserved)
+                            certificate.hideDiagnosis -> stringResource(
+                                com.autamedica.android.domain.model.RegulatoryJurisdictionCopy
+                                    .certificateDiagnosisReservedRes(certDiagJurisdiction)
+                            )
                             !certificate.diagnosis.isNullOrBlank() -> certificate.diagnosis
                             else -> stringResource(R.string.prescriptions_cert_default_condition)
                         }
@@ -2079,7 +2100,14 @@ private fun CertificateDetailBottomSheet(
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF0F172A),
                         )
-                        val licenseText = certificate.doctorLicense?.takeIf { it.isNotBlank() } ?: stringResource(R.string.prescriptions_cert_license_verified)
+                        val certFooterJurisdiction = com.autamedica.android.domain.model.resolveRegulatoryJurisdiction(
+                            countryCode = certificate.countryCode,
+                            doctorLicense = certificate.doctorLicense,
+                        )
+                        val licenseText = certificate.doctorLicense?.takeIf { it.isNotBlank() } ?: stringResource(
+                            com.autamedica.android.domain.model.RegulatoryJurisdictionCopy
+                                .certificateLicenseVerifiedRes(certFooterJurisdiction)
+                        )
                         Text(
                             text = stringResource(R.string.prescriptions_license_format, licenseText),
                             style = MaterialTheme.typography.bodySmall,

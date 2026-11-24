@@ -1,14 +1,14 @@
 import type { APIRoute } from 'astro';
 import { logger } from '@autamedica/shared';
 import { withAuthRole, PATIENT_ROLES, isAuthed } from '@/lib/api-auth';
-import { jsonOk, badRequest, forbidden, internalError } from '@/lib/api-helpers';
+import { jsonOk, badRequest, forbidden, notFound, internalError } from '@/lib/api-helpers';
 
-export const GET: APIRoute = async ({ request, params }) => {
+export const GET: APIRoute = async ({ request, params, locals }) => {
   const prescriptionId = params.id;
   if (!prescriptionId) return badRequest('missing_prescription_id');
 
   try {
-    const auth = await withAuthRole(request, PATIENT_ROLES);
+    const auth = await withAuthRole(request, PATIENT_ROLES, locals);
     if (!isAuthed(auth)) return auth;
     const { user, supabase } = auth;
 
@@ -16,7 +16,7 @@ export const GET: APIRoute = async ({ request, params }) => {
       .from('patients')
       .select('id')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (!patient) return forbidden('not_a_patient');
 
@@ -24,9 +24,10 @@ export const GET: APIRoute = async ({ request, params }) => {
       .from('prescriptions')
       .select('id, status, patient_id')
       .eq('id', prescriptionId)
-      .single();
+      .maybeSingle();
 
-    if (!prescription?.patient_id || prescription.patient_id !== patient.id) {
+    if (!prescription) return notFound('prescription_not_found');
+    if (prescription.patient_id !== patient.id) {
       return forbidden('prescription_not_yours');
     }
 
@@ -47,22 +48,24 @@ export const GET: APIRoute = async ({ request, params }) => {
       return jsonOk({ prescription_status: prescription.status, dispensation: null, events: [] });
     }
 
-    const [{ data: events }, { data: pharmacy }] = await Promise.all([
+    const [{ data: events }, pharmacyResult] = await Promise.all([
       supabase
         .from('dispensation_events')
         .select('id, dispense_status, dispensed_medication, dispensed_formulation, dispensed_quantity, substitution_type, pharmacy_notes, dispensed_at')
         .eq('order_id', order.id)
         .order('dispensed_at', { ascending: false }),
-      supabase
-        .from('pharmacies')
-        .select('name')
-        .eq('id', order.pharmacy_id)
-        .single(),
+      order.pharmacy_id
+        ? supabase
+            .from('pharmacies')
+            .select('name')
+            .eq('id', order.pharmacy_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
     ]);
 
     return jsonOk({
       prescription_status: prescription.status,
-      dispensation: { ...order, pharmacy_name: pharmacy?.name ?? null },
+      dispensation: { ...order, pharmacy_name: pharmacyResult.data?.name ?? null },
       events: events ?? [],
     });
   } catch (err) {

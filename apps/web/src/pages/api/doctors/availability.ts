@@ -16,7 +16,7 @@ import { createAstroAdminClient } from '@/lib/supabase'
 import { doctorAvailabilityService } from '@/lib/doctors/services/doctor-availability.service'
 
 export const GET: APIRoute = async ({ request, locals }) => {
-  const auth = await withAuthRole(request, DOCTOR_ROLES)
+  const auth = await withAuthRole(request, DOCTOR_ROLES, locals)
   if (!isAuthed(auth)) return auth
 
   const context = await resolveDoctorContext(request, locals)
@@ -33,7 +33,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
 }
 
 export const PUT: APIRoute = async ({ request, locals }) => {
-  const auth = await withAuthRole(request, DOCTOR_ROLES)
+  const auth = await withAuthRole(request, DOCTOR_ROLES, locals)
   if (!isAuthed(auth)) return auth
 
   const context = await resolveDoctorContext(request, locals)
@@ -57,7 +57,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  const auth = await withAuthRole(request, DOCTOR_ROLES)
+  const auth = await withAuthRole(request, DOCTOR_ROLES, locals)
   if (!isAuthed(auth)) return auth
 
   const context = await resolveDoctorContext(request, locals)
@@ -88,7 +88,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 }
 
 export const DELETE: APIRoute = async ({ request, locals }) => {
-  const auth = await withAuthRole(request, DOCTOR_ROLES)
+  const auth = await withAuthRole(request, DOCTOR_ROLES, locals)
   if (!isAuthed(auth)) return auth
 
   const context = await resolveDoctorContext(request, locals)

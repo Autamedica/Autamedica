@@ -8,9 +8,9 @@ import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth';
 import { jsonOk, badRequest, internalError } from '@/lib/api-helpers';
 import { compareRegimes } from '@/lib/doctors/services/accounting.service';
 
-export const GET: APIRoute = async ({ request }) => {
+export const GET: APIRoute = async ({ request, locals }) => {
   try {
-    const auth = await withAuthRole(request, DOCTOR_ROLES);
+    const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
     if (!isAuthed(auth)) return auth;
 
     const url = new URL(request.url);
@@ -18,7 +18,7 @@ export const GET: APIRoute = async ({ request }) => {
     const annualExpenses = parseInt(url.searchParams.get('annualExpenses') ?? '0', 10);
     const annualIvaCredito = parseInt(url.searchParams.get('annualIvaCredito') ?? '0', 10);
 
-    if (annualIncome <= 0) return badRequest('annualIncome_required');
+    if (!Number.isFinite(annualIncome) || annualIncome <= 0) return badRequest('annualIncome_required');
 
     const comparison = compareRegimes(annualIncome, annualExpenses, annualIvaCredito);
     return jsonOk(comparison);

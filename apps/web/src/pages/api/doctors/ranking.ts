@@ -7,7 +7,7 @@ import { rankingService } from '@/lib/doctors/services/ranking.service';
 
 export const GET: APIRoute = async ({ request, locals }) => {
   try {
-    const auth = await withAuthRole(request, DOCTOR_ROLES);
+    const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
     if (!isAuthed(auth)) return auth;
 
     const admin = createAstroAdminClient(locals.runtime?.env);

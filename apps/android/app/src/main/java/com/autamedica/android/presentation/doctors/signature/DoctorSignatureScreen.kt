@@ -23,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.R
+import com.autamedica.android.domain.model.RegulatoryJurisdictionCopy
+import com.autamedica.android.domain.model.resolveRegulatoryJurisdiction
 
 /**
  * Professional license validation only.
@@ -51,6 +54,17 @@ fun DoctorSignatureScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     var dni by remember { mutableStateOf("") }
     var licenseNumber by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        viewModel.loadDoctorJurisdiction()
+    }
+
+    val jurisdiction = resolveRegulatoryJurisdiction(
+        countryCode = state.careCountry,
+        licenseType = state.licenseType,
+        ufBrazil = state.ufBrazil,
+        doctorLicense = licenseNumber,
+    )
 
     Scaffold(
         topBar = {
@@ -97,7 +111,7 @@ fun DoctorSignatureScreen(
                     when {
                         state.isLoading -> stringResource(R.string.signature_verifying)
                         state.sisaValidated -> stringResource(R.string.signature_status_verified_button)
-                        else -> stringResource(R.string.signature_button_verify)
+                        else -> stringResource(RegulatoryJurisdictionCopy.signatureVerifyButtonRes(jurisdiction))
                     },
                 )
             }
@@ -106,7 +120,7 @@ fun DoctorSignatureScreen(
                 state.sisaValidated -> Text(
                     state.validationMessageRes?.let { stringResource(it) }
                         ?: state.validationMessage
-                        ?: stringResource(R.string.signature_status_sisa_verified),
+                        ?: stringResource(RegulatoryJurisdictionCopy.signatureVerifiedStatusRes(jurisdiction)),
                     color = Color(0xFF00C853),
                 )
                 state.errorMessageRes != null -> Text(
