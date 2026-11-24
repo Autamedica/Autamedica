@@ -25,8 +25,23 @@ const requiredLogoAssets = [
   'apps/web/public/images/brand/logo_bioceramic.jpg',
 ];
 
+const callLayoutPath = 'apps/web/src/layouts/CallLayout.astro';
+
 const expectedWidth = 1200;
 const expectedHeight = 630;
+
+const callLayoutSource = fs.readFileSync(path.join(projectRoot, callLayoutPath), 'utf8');
+for (const contract of [
+  ['og:image', 'content="https://www.autamedica.com/images/seo/og-main.png"'],
+  ['og:image MIME', 'content="image/png"'],
+  ['twitter:image', 'content="https://www.autamedica.com/images/seo/og-main.png"'],
+  ['JPEG favicon MIME', 'rel="icon" type="image/jpeg" href="/logo_bioceramic.jpg"'],
+  ['Apple touch icon', 'rel="apple-touch-icon" href="/pwa-icon-192.png"'],
+]) {
+  if (!callLayoutSource.includes(contract[1])) {
+    errors.push(`CallLayout metadata contract failed (${contract[0]}): expected ${contract[1]}`);
+  }
+}
 const errors = [];
 
 for (const relativePath of requiredAssets) {
