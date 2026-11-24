@@ -10,6 +10,7 @@ type PublicProfile = {
   care_country: 'AR' | 'BR';
   first_name?: string | null;
   last_name?: string | null;
+  avatar_url?: string | null;
   specialty?: string | null;
   subspecialty?: string | null;
   bio?: string | null;
@@ -99,10 +100,15 @@ const canonical = `https://www.autamedica.com${Astro.url.pathname}`;
     <main class="public-profile">
       <header class="profile-header">
         <a class="brand" href="/" aria-label="AutaMedica">AutaMedica</a>
-        <p class="eyebrow">{isPortuguese ? 'PERFIL PROFISSIONAL' : 'PERFIL PROFESIONAL'}</p>
-        <h1>{name}</h1>
-        <p class="specialty">{specialty}</p>
-        {subspecialty && <p class="subspecialty">{subspecialty}</p>}
+        <div class="identity">
+          {profile.avatar_url && <img class="avatar" src={profile.avatar_url} alt={isPortuguese ? 'Foto profissional' : 'Foto profesional'} loading="eager" />}
+          <div class="identity-copy">
+            <p class="eyebrow">{isPortuguese ? 'PERFIL PROFISSIONAL' : 'PERFIL PROFESIONAL'}</p>
+            <h1>{name}</h1>
+            <p class="specialty">{specialty}</p>
+            {subspecialty && <p class="subspecialty">{subspecialty}</p>}
+          </div>
+        </div>
         {sections.verification && (
           <div class="credentials" aria-label={isPortuguese ? 'Registro profissional validado' : 'Matrícula profesional validada'}>
             <span>{isPortuguese ? 'Registro validado' : 'Matrícula validada'}</span>
@@ -110,6 +116,7 @@ const canonical = `https://www.autamedica.com${Astro.url.pathname}`;
             {rqeNumber && <span class="credential-list">{isPortuguese ? 'RQE informado' : 'RQE informado'} · {rqeNumber}</span>}
           </div>
         )}
+        <a class="profile-cta" href="/consulta-medica-online">{isPortuguese ? 'Iniciar atendimento' : 'Solicitar consulta'}</a>
         <div class="header-rule"></div>
       </header>
 
@@ -234,8 +241,43 @@ const canonical = `https://www.autamedica.com${Astro.url.pathname}`;
     padding: 0 0 48px;
   }
 
+  .identity {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    margin-top: 48px;
+  }
+
+  .identity-copy { min-width: 0; }
+
+  .avatar {
+    width: 104px;
+    height: 104px;
+    flex: 0 0 104px;
+    object-fit: cover;
+    border-radius: 8px;
+    background: #F2F4F7;
+  }
+
+  .profile-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 28px;
+    padding: 11px 18px;
+    border-radius: 6px;
+    background: var(--profile-accent);
+    color: white;
+    font-size: 14px;
+    font-weight: 650;
+    text-decoration: none;
+    transition: background .15s ease;
+  }
+
+  .profile-cta:hover { background: #0284C7; }
+
   .eyebrow {
-    margin: 54px 0 14px;
+    margin: 0 0 14px;
     color: #687386;
     font-size: 11px;
     font-weight: 700;
@@ -436,9 +478,17 @@ const canonical = `https://www.autamedica.com${Astro.url.pathname}`;
       width: min(100% - 32px, 980px);
       padding-top: 24px;
     }
-    .eyebrow {
-      margin-top: 42px;
+    .identity {
+      align-items: flex-start;
+      gap: 16px;
+      margin-top: 40px;
     }
+    .avatar {
+      width: 76px;
+      height: 76px;
+      flex-basis: 76px;
+    }
+    .profile-header h1 { font-size: clamp(30px, 8vw, 42px); }
     .profile-header {
       padding-bottom: 34px;
     }
