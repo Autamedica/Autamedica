@@ -438,14 +438,16 @@ export const medicalHistoryService = {
           .from("anamnesis")
           .select("*")
           .eq("patient_id", patientId)
-          .then(({ data, error }) => {
-            if (error) logger.error("[medicalHistoryService] anamnesis failed", error);
-            return data ?? [];
-          })
-          .catch((error: unknown) => {
-            logger.error("[medicalHistoryService] anamnesis threw", error);
-            return [];
-          }),
+          .then(
+            ({ data, error }) => {
+              if (error) logger.error("[medicalHistoryService] anamnesis failed", error);
+              return data ?? [];
+            },
+            (error: unknown) => {
+              logger.error("[medicalHistoryService] anamnesis threw", error);
+              return [];
+            },
+          ),
       ]);
 
     const coreRecords = corePrescriptions ?? [];
@@ -456,7 +458,7 @@ export const medicalHistoryService = {
       const sourceId = record.id.replace(/^memed-/, "");
       return (!vendorId || !memedIds.has(vendorId)) && !coreIds.has(sourceId);
     });
-    const prescriptions = [...coreRecords, ...uniqueMemed].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const prescriptions = [...coreRecords, ...uniqueMemed].sort((a, b) => safeTimestamp(b.created_at) - safeTimestamp(a.created_at));
     const effectiveMedications = prescriptions.length > 0 ? prescriptions : medications;
 
     return {
