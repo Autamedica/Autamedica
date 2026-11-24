@@ -19,6 +19,9 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -182,14 +185,8 @@ class DoctorRepositoryImpl @Inject constructor(
             .decodeList<IdDto>()
             .size
 
-        // Total unique patients
-        val totalPatients = supabaseClient.postgrest
-            .from("doctor_patient")
-            .select(Columns.list("patient_id")) {
-                filter { eq("doctor_id", doctorId) }
-            }
-            .decodeList<PatientIdDto>()
-            .size
+        // Total unique patients across doctor_patient, active patient_care_team, and appointments
+        val totalPatients = resolveDoctorPatientIds(doctorId).size
 
         DoctorStats(
             todayAppointments = todayAppointments.size,
@@ -204,17 +201,10 @@ class DoctorRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getDoctorPatients(doctorId: String): Result<List<PatientSummary>> = runCatching {
-        // Get patient IDs linked to this doctor
-        val patientLinks = supabaseClient.postgrest
-            .from("doctor_patient")
-            .select(Columns.list("patient_id")) {
-                filter { eq("doctor_id", doctorId) }
-            }
-            .decodeList<PatientIdDto>()
+        // Unified patient IDs across doctor_patient, patient_care_team, and non-cancelled appointments
+        val patientIds = resolveDoctorPatientIds(doctorId)
 
-        if (patientLinks.isEmpty()) return@runCatching emptyList()
-
-        val patientIds = patientLinks.map { it.patientId }
+        if (patientIds.isEmpty()) return@runCatching emptyList()
 
         // Get patient details with profile info
         val patients = supabaseClient.postgrest
@@ -293,25 +283,18 @@ class DoctorRepositoryImpl @Inject constructor(
             throw InvalidPatientReferenceException()
         }
 
-        // Require the exact doctor-patient relationship before reading clinical identity.
-        // This mirrors the patient list and prevents a route ID from widening access.
-        val relationship = supabaseClient.postgrest
-            .from("doctor_patient")
-            .select(Columns.list("patient_id")) {
-                filter {
-                    eq("doctor_id", doctorId)
-                    eq("patient_id", patientId)
-                }
-            }
-            .decodeList<PatientIdDto>()
-            .firstOrNull() ?: throw PatientNotAssignedException()
+        // Require an authorized doctor-patient relationship across doctor_patient,
+        // active patient_care_team, or non-cancelled appointments.
+        if (!hasDoctorPatientRelationship(doctorId, patientId)) {
+            throw PatientNotAssignedException()
+        }
 
         // RLS remains the authority. Decode a list so an RLS-filtered/missing row
         // is classified as not found or unauthorized rather than a decoder crash.
         val patient = supabaseClient.postgrest
             .from("patients")
             .select(Columns.ALL) {
-                filter { eq("id", relationship.patientId) }
+                filter { eq("id", patientId) }
             }
             .decodeList<PatientFullDto>()
             .firstOrNull() ?: throw PatientNotFoundOrUnauthorizedException()
@@ -582,6 +565,156 @@ class DoctorRepositoryImpl @Inject constructor(
     }.onFailure {
         SecureLog.error("[DoctorRepo] Failed resolving patient summaries", it)
     }
+
+    private suspend fun <T> querySourceSafely(
+        sourceName: String,
+        block: suspend () -> T,
+    ): Result<T> = try {
+        Result.success(block())
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        SecureLog.warn("[DoctorRepo] Querying $sourceName failed: ${e.message}")
+        Result.failure(e)
+    }
+
+    private suspend fun resolveDoctorPatientIds(doctorId: String): List<String> = coroutineScope {
+        val doctorPatientDeferred = async {
+            querySourceSafely("doctor_patient") {
+                supabaseClient.postgrest
+                    .from("doctor_patient")
+                    .select(Columns.list("patient_id")) {
+                        filter { eq("doctor_id", doctorId) }
+                    }
+                    .decodeList<NullablePatientIdDto>()
+                    .map { it.patientId }
+            }
+        }
+        val careTeamDeferred = async {
+            querySourceSafely("patient_care_team") {
+                supabaseClient.postgrest
+                    .from("patient_care_team")
+                    .select(Columns.list("patient_id")) {
+                        filter {
+                            eq("doctor_id", doctorId)
+                            eq("active", true)
+                        }
+                    }
+                    .decodeList<NullablePatientIdDto>()
+                    .map { it.patientId }
+            }
+        }
+        val appointmentsDeferred = async {
+            querySourceSafely("appointments") {
+                supabaseClient.postgrest
+                    .from("appointments")
+                    .select(Columns.list("patient_id")) {
+                        filter {
+                            eq("doctor_id", doctorId)
+                            neq("status", "cancelled")
+                        }
+                    }
+                    .decodeList<NullablePatientIdDto>()
+                    .map { it.patientId }
+            }
+        }
+
+        val results = listOf(
+            doctorPatientDeferred.await(),
+            careTeamDeferred.await(),
+            appointmentsDeferred.await(),
+        )
+        if (results.all { it.isFailure }) {
+            throw results.firstNotNullOf { it.exceptionOrNull() }
+        }
+
+        mergeDoctorPatientIds(
+            results[0].getOrDefault(emptyList()),
+            results[1].getOrDefault(emptyList()),
+            results[2].getOrDefault(emptyList()),
+        )
+    }
+
+    private suspend fun hasDoctorPatientRelationship(
+        doctorId: String,
+        patientId: String,
+    ): Boolean = coroutineScope {
+        val doctorPatientDeferred = async {
+            querySourceSafely("doctor_patient") {
+                supabaseClient.postgrest
+                    .from("doctor_patient")
+                    .select(Columns.list("patient_id")) {
+                        filter {
+                            eq("doctor_id", doctorId)
+                            eq("patient_id", patientId)
+                        }
+                        limit(1)
+                    }
+                    .decodeList<NullablePatientIdDto>()
+                    .any { !it.patientId.isNullOrBlank() }
+            }
+        }
+        val careTeamDeferred = async {
+            querySourceSafely("patient_care_team") {
+                supabaseClient.postgrest
+                    .from("patient_care_team")
+                    .select(Columns.list("patient_id")) {
+                        filter {
+                            eq("doctor_id", doctorId)
+                            eq("patient_id", patientId)
+                            eq("active", true)
+                        }
+                        limit(1)
+                    }
+                    .decodeList<NullablePatientIdDto>()
+                    .any { !it.patientId.isNullOrBlank() }
+            }
+        }
+        val appointmentsDeferred = async {
+            querySourceSafely("appointments") {
+                supabaseClient.postgrest
+                    .from("appointments")
+                    .select(Columns.list("patient_id")) {
+                        filter {
+                            eq("doctor_id", doctorId)
+                            eq("patient_id", patientId)
+                            neq("status", "cancelled")
+                        }
+                        limit(1)
+                    }
+                    .decodeList<NullablePatientIdDto>()
+                    .any { !it.patientId.isNullOrBlank() }
+            }
+        }
+
+        val results = listOf(
+            doctorPatientDeferred.await(),
+            careTeamDeferred.await(),
+            appointmentsDeferred.await(),
+        )
+        if (results.all { it.isFailure }) {
+            throw results.firstNotNullOf { it.exceptionOrNull() }
+        }
+
+        results.any { it.getOrDefault(false) }
+    }
+}
+
+/**
+ * Normalizes, filters non-blank, and deduplicates patient IDs across relationship sources
+ * while preserving encounter order.
+ */
+internal fun mergeDoctorPatientIds(vararg sources: Iterable<String?>): List<String> {
+    val merged = LinkedHashSet<String>()
+    for (source in sources) {
+        for (rawId in source) {
+            val cleanId = rawId?.trim().orEmpty()
+            if (cleanId.isNotEmpty()) {
+                merged.add(cleanId)
+            }
+        }
+    }
+    return merged.toList()
 }
 
 // ── DTOs ────────────────────────────────────────────────────────────────────
@@ -658,8 +791,8 @@ private data class AppointmentStatusDto(
 private data class IdDto(val id: String)
 
 @Serializable
-private data class PatientIdDto(
-    @SerialName("patient_id") val patientId: String,
+private data class NullablePatientIdDto(
+    @SerialName("patient_id") val patientId: String? = null,
 )
 
 @Serializable

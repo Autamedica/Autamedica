@@ -78,6 +78,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.R
+import com.autamedica.android.presentation.health.healthText
 
 // ── Design Tokens AutaMedica ──
 private val DeepSlate = Color(0xFF0F172A)
@@ -125,6 +126,19 @@ fun ContinuityStatusScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .statusBarsPadding()
+                            .padding(8.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.continuity_back_cd),
+                            tint = DeepSlate,
+                        )
+                    }
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -141,6 +155,12 @@ fun ContinuityStatusScreen(
                         )
                     }
                 }
+            } else if (uiState.error != null && uiState.request == null) {
+                ContinuityErrorState(
+                    message = uiState.error!!,
+                    onRetry = viewModel::fetchStatus,
+                    onBack = onBack,
+                )
             } else if (uiState.status == "none" || uiState.request == null) {
                 // ── ESTADO VACÍO CLÍNICO IMPECABLE ──
                 EmptyContinuityState(
@@ -1100,6 +1120,86 @@ private fun EmptyContinuityState(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(R.string.continuity_empty_request_btn))
+            }
+
+            OutlinedButton(
+                onClick = onBack,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(0.85f),
+            ) {
+                Text(stringResource(R.string.continuity_empty_back_btn))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContinuityErrorState(
+    message: String,
+    onRetry: () -> Unit,
+    onBack: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = RoseSoft,
+                border = BorderStroke(1.dp, Color(0x33EF4444)),
+                modifier = Modifier.size(72.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = RosePrimary,
+                        modifier = Modifier.size(34.dp),
+                    )
+                }
+            }
+
+            Text(
+                text = healthText(
+                    "No pudimos sincronizar tu estado clínico",
+                    "Não foi possível sincronizar seu estado clínico",
+                ),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = DeepSlate,
+                textAlign = TextAlign.Center,
+            )
+
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF64748B),
+                textAlign = TextAlign.Center,
+                lineHeight = 20.sp,
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = onRetry,
+                colors = ButtonDefaults.buttonColors(containerColor = SkyPrimary),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(0.85f),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(healthText("Reintentar", "Tentar novamente"))
             }
 
             OutlinedButton(
