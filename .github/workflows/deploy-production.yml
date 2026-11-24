@@ -255,6 +255,15 @@ jobs:
       - name: Build workspace packages
         run: pnpm build:packages:core
 
+      - name: Prepare and validate SEO social assets
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+          pnpm seo:generate:assets
+          pnpm seo:validate:parity
+          pnpm seo:validate:assets
+          pnpm seo:validate:structured-data
+
       - name: Build web
         run: pnpm --filter @autamedica/web build
         env:
