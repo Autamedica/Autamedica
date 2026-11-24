@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { CheckCircle2, ExternalLink, Loader2, Save } from 'lucide-react'
 
 type PublicProfileEditorData = {
@@ -76,12 +76,7 @@ export function PublicProfileEditor() {
   const [saved, setSaved] = useState(false)
   const [isPortuguese, setIsPortuguese] = useState(false)
 
-  useEffect(() => {
-    setIsPortuguese(document.documentElement.lang.toLowerCase().startsWith('pt'))
-    void load()
-  }, [])
-
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -108,7 +103,12 @@ export function PublicProfileEditor() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    setIsPortuguese(document.documentElement.lang.toLowerCase().startsWith('pt'))
+    void load()
+  }, [load])
 
   const previewPath = useMemo(() => {
     if (!profile) return ''
