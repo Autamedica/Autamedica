@@ -10,6 +10,8 @@ const seoMeta = read('apps/web/src/components/seo/SeoMeta.astro');
 const globalSchema = read('apps/web/src/components/seo/StructuredData.astro');
 const verticalSchema = read('apps/web/src/components/seo/VerticalStructuredData.astro');
 const physicianPage = read('apps/web/src/pages/[country]/medicos/[doctorSlug].astro');
+const medicalOnlinePage = read('apps/web/src/pages/medico-online.astro');
+const navigation = read('apps/web/src/components/Navbar.astro');
 const errors = [];
 
 function requireCondition(condition, message) {
@@ -17,6 +19,9 @@ function requireCondition(condition, message) {
 }
 
 requireCondition(seoMeta.includes('hreflangAlternates?:'), 'SeoMeta must accept explicit hreflangAlternates.');
+requireCondition(medicalOnlinePage.includes('localeOverride="es"'), 'Spanish-only /medico-online content must force the matching Spanish document locale.');
+requireCondition(medicalOnlinePage.includes('<Navbar localeOverride="es" showLanguageSwitcher={false} />'), 'Spanish-only /medico-online navigation must not render a Portuguese switcher without a translated route.');
+requireCondition(navigation.includes('showLanguageSwitcher && <LanguageSwitcher'), 'Navbar must support hiding the language switcher on single-locale pages.');
 requireCondition((seoMeta.match(/<link rel="canonical"/g) ?? []).length === 1, 'SeoMeta must render exactly one canonical link.');
 requireCondition(seoMeta.includes('const canonicalUrl'), 'SeoMeta must compute a canonical URL for every rendered route.');
 requireCondition(seoMeta.includes('validHreflangAlternates.map'), 'SeoMeta must emit only explicitly validated hreflang alternates.');

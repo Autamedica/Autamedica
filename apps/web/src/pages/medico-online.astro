@@ -51,6 +51,7 @@ const pageSchema = {
 ---
 
 <Layout
+  localeOverride="es"
   title="Médico Online en Argentina | AutaMedica"
   description="Consultá con un médico online para orientación clínica, seguimiento, recetas digitales y derivación cuando haga falta."
   canonical={canonicalUrl}
@@ -58,7 +59,7 @@ const pageSchema = {
   robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
 >
   <script type="application/ld+json" is:inline set:html={JSON.stringify(pageSchema)} />
-  <Navbar />
+  <Navbar localeOverride="es" showLanguageSwitcher={false} />
   <main>
     <section class="seo-hero" style="text-align:left;">
       <div class="seo-container">

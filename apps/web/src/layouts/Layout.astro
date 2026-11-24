@@ -18,6 +18,7 @@ import PWAUpdatePrompt from '../components/PWAUpdatePrompt.astro';
 
 
 interface Props {
+  localeOverride?: 'es' | 'pt';
   title?: string;
   description?: string;
   canonical?: string;
@@ -27,7 +28,7 @@ interface Props {
   robots?: string;
 }
 
-const locale = Astro.locals.locale ?? 'es';
+const locale = Astro.props.localeOverride ?? Astro.locals.locale ?? 'es';
 const { t } = getI18n(locale);
 
 const {

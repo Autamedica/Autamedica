@@ -3,7 +3,13 @@ import AccountMenu from "./ui/AccountMenu";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { getI18n } from "../i18n/index";
 
-const locale = Astro.locals.locale ?? "es";
+interface Props {
+  localeOverride?: "es" | "pt";
+  showLanguageSwitcher?: boolean;
+}
+
+const { localeOverride, showLanguageSwitcher = true } = Astro.props;
+const locale = localeOverride ?? Astro.locals.locale ?? "es";
 const { t } = getI18n(locale);
 
 type MegaNavItem = {
@@ -159,7 +165,7 @@ const megaNav: MegaNavItem[] = [
     </ul>
 
     <div class="navbar-actions">
-      <LanguageSwitcher currentLocale={locale} client:load />
+      {showLanguageSwitcher && <LanguageSwitcher currentLocale={locale} client:load />}
       <AccountMenu locale={locale} client:load />
     </div>
 
