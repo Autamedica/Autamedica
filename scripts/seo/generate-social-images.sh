@@ -8,8 +8,8 @@ SEO_DIR="$WEB_PUBLIC/images/seo"
 # Present in the web public tree; ImageMagick detects its actual file format.
 LOGO_PATH="$WEB_PUBLIC/images/brand/logo_bioceramic.png"
 
-FONT_BOLD="\${FONT_BOLD:-DejaVu-Sans-Bold}"
-FONT_REG="\${FONT_REG:-DejaVu-Sans}"
+FONT_BOLD="${FONT_BOLD:-DejaVu-Sans-Bold}"
+FONT_REG="${FONT_REG:-DejaVu-Sans}"
 MAGICK_BIN="$(command -v magick || command -v convert || true)"
 IDENTIFY_BIN="$(command -v identify || true)"
 
@@ -29,7 +29,7 @@ generate_card() {
   local out="$1"
   local title="$2"
   local subtitle="$3"
-  local accent="\${4:-#0EA5E9}"
+  local accent="${4:-#0EA5E9}"
 
   "$MAGICK_BIN" -size 1200x630 gradient:'#f8fcff-#e8f6fd' \
     \( -size 1200x630 radial-gradient:'#d8f1fc-#ffffff00' \) -compose over -composite \
