@@ -70,6 +70,11 @@ BEGIN
 END;
 $function$;
 
+REVOKE ALL ON FUNCTION public.audit_doctor_public_profile_visibility()
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.audit_doctor_public_profile_visibility()
+  TO service_role;
+
 DROP TRIGGER IF EXISTS trg_audit_doctor_public_profile_visibility ON public.doctors;
 CREATE TRIGGER trg_audit_doctor_public_profile_visibility
   BEFORE UPDATE OF public_profile_enabled ON public.doctors
