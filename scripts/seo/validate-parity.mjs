@@ -7,6 +7,14 @@ const projectRoot = process.cwd();
 const sitemapSourcePath = path.join(projectRoot, 'apps/web/src/pages/sitemap.xml.ts');
 const pagesRoot = path.join(projectRoot, 'apps/web/src/pages');
 
+const criticalCanonicalRoutes = [
+  { path: '/', canonical: 'https://www.autamedica.com/' },
+  { path: '/patients', canonical: 'https://www.autamedica.com/patients' },
+  { path: '/doctors', canonical: 'https://www.autamedica.com/doctors' },
+  { path: '/companies', canonical: 'https://www.autamedica.com/companies' },
+  { path: '/platform', canonical: 'https://www.autamedica.com/platform' },
+];
+
 if (!fs.existsSync(sitemapSourcePath)) {
   console.error('❌ Missing sitemap source: apps/web/src/pages/sitemap.xml.ts');
   process.exit(1);
@@ -71,6 +79,22 @@ for (const [, routePath] of routeMatches) {
   }
 
   console.log(`✅ Sitemap parity OK: ${routePath} -> ${path.relative(projectRoot, pageFile)}`);
+}
+
+for (const { path: routePath, canonical } of criticalCanonicalRoutes) {
+  const pageFile = resolvePageFile(routePath);
+  if (!pageFile) {
+    console.error(`❌ Critical canonical route has no page source: ${routePath}`);
+    hasErrors = true;
+    continue;
+  }
+  const source = fs.readFileSync(pageFile, 'utf-8');
+  if (!source.includes(`canonical="${canonical}"`)) {
+    console.error(`❌ Critical route must declare canonical ${canonical} in ${path.relative(projectRoot, pageFile)}`);
+    hasErrors = true;
+    continue;
+  }
+  console.log(`✅ Canonical host OK: ${routePath} -> ${canonical}`);
 }
 
 const robotsPath = path.join(pagesRoot, 'robots.txt.ts');
