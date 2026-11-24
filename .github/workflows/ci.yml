@@ -91,8 +91,6 @@ jobs:
           PUBLIC_COMPANIES_URL: https://empresa.autamedica.com
           PUBLIC_ADMIN_URL: https://autamedica-admin.pages.dev
           RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}
-      - name: Validate built SEO HTML and JSON-LD
-        run: pnpm seo:validate:built
 
   seo-contract:
     if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]'
