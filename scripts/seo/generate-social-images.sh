@@ -44,6 +44,10 @@ generate_card() {
     "$out"
 }
 
+echo "🧩 Generando iconos PWA cuadrados..."
+"$MAGICK_BIN" "$LOGO_PATH" -strip -resize 192x192^ -gravity center -extent 192x192 "$WEB_PUBLIC/pwa-icon-192.png"
+"$MAGICK_BIN" "$LOGO_PATH" -strip -resize 512x512^ -gravity center -extent 512x512 "$WEB_PUBLIC/pwa-icon-512.png"
+
 echo "🖼️ Generando imágenes SEO 1200x630..."
 generate_card "$SEO_DIR/og-main.png" "AutaMedica" "Telemedicina y atención médica digital" '#0EA5E9'
 generate_card "$SEO_DIR/twitter-main.png" "AutaMedica" "Consulta online, receta digital y seguimiento clínico" '#0284C7'
@@ -67,10 +71,15 @@ for asset in \
   "$SEO_DIR/og-companies.png" \
   "$SEO_DIR/og-platform.png" \
   "$WEB_PUBLIC/og-image.png" \
-  "$WEB_PUBLIC/twitter-image.png"; do
+  "$WEB_PUBLIC/twitter-image.png" \
+  "$WEB_PUBLIC/pwa-icon-192.png" \
+  "$WEB_PUBLIC/pwa-icon-512.png"; do
   actual="$("$IDENTIFY_BIN" -format '%wx%h' "$asset")"
-  if [[ "$actual" != "1200x630" ]]; then
-    echo "❌ Dimensión incorrecta para $asset: $actual (esperado 1200x630)"
+  expected="1200x630"
+  [[ "$asset" == *"pwa-icon-192.png" ]] && expected="192x192"
+  [[ "$asset" == *"pwa-icon-512.png" ]] && expected="512x512"
+  if [[ "$actual" != "$expected" ]]; then
+    echo "❌ Dimensión incorrecta para $asset: $actual (esperado $expected)"
     exit 1
   fi
   echo "✅ $asset ($actual)"
