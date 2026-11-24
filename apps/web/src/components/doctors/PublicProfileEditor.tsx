@@ -17,8 +17,8 @@ type PublicProfileEditorData = {
   professional_experience?: unknown
   academic_activity?: unknown
   public_profile_enabled: boolean
-  public_profile_consent_confirmed_at?: string | null
-  public_profile_consent_version?: string | null
+  public_profile_published_at?: string | null
+  public_profile_updated_at?: string | null
 }
 
 type EditorForm = {
@@ -76,7 +76,6 @@ export function PublicProfileEditor() {
     academic_activity: '',
     public_profile_enabled: false,
   })
-  const [consentAcknowledged, setConsentAcknowledged] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -146,14 +145,12 @@ export function PublicProfileEditor() {
           professional_experience: toLines(form.professional_experience),
           academic_activity: toLines(form.academic_activity),
           public_profile_enabled: form.public_profile_enabled,
-          consentAcknowledged,
         }),
       })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload?.error || 'profile_save_failed')
 
       setProfile((current) => current ? { ...current, ...payload.data } : current)
-      setConsentAcknowledged(false)
       setSaved(true)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'profile_save_failed')
@@ -179,9 +176,6 @@ export function PublicProfileEditor() {
       ? 'Um item por linha. Seções sem conteúdo não aparecem na página pública.'
       : 'Un dato por línea. Las secciones sin contenido no aparecen en la página pública.',
     publish: isPortuguese ? 'Publicar meu perfil' : 'Publicar mi perfil',
-    consent: isPortuguese
-      ? 'Confirmo que autorizo a publicação na internet das informações profissionais e da foto de perfil que incluí neste perfil, quando houver. Posso desativá-lo a qualquer momento.'
-      : 'Confirmo que autorizo la publicación en internet de la información profesional y de la foto de perfil que incluí en este perfil, cuando exista. Puedo desactivarlo en cualquier momento.',
     save: isPortuguese ? 'Salvar alterações' : 'Guardar cambios',
     saving: isPortuguese ? 'Salvando…' : 'Guardando…',
     saved: isPortuguese ? 'Alterações salvas.' : 'Cambios guardados.',
@@ -289,27 +283,15 @@ export function PublicProfileEditor() {
                 />
                 <span>{copy.publish}</span>
               </label>
-              {form.public_profile_enabled && !profile.public_profile_consent_confirmed_at && (
-                <label className="mt-3 flex items-start gap-3 text-sm leading-6 text-am-surface-600">
-                  <input
-                    type="checkbox"
-                    required
-                    checked={consentAcknowledged}
-                    onChange={(event) => setConsentAcknowledged(event.target.checked)}
-                    className="mt-1 h-4 w-4 rounded border-am-surface-300 accent-sky-600"
-                  />
-                  <span>{copy.consent}</span>
-                </label>
-              )}
             </div>
 
-            {error && <p role="alert" className="text-sm text-red-700">{error === 'public_profile_consent_required' ? copy.consent : copy.error}</p>}
+            {error && <p role="alert" className="text-sm text-red-700">{copy.error}</p>}
             {saved && <p role="status" className="flex items-center gap-2 text-sm text-sky-700"><CheckCircle2 className="h-4 w-4" />{copy.saved}</p>}
 
             <div className="flex flex-wrap items-center gap-4 pt-2">
               <button
                 type="submit"
-                disabled={saving || (form.public_profile_enabled && !profile.public_profile_consent_confirmed_at && !consentAcknowledged)}
+                disabled={saving}
                 className="inline-flex items-center gap-2 rounded-lg bg-[#0EA5E9] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0284C7] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
