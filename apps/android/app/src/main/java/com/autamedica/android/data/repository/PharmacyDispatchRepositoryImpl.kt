@@ -11,6 +11,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.logging.HttpLoggingInterceptor
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import com.autamedica.android.di.IoDispatcher
 import com.autamedica.android.domain.model.DispatchClaimResult
@@ -683,7 +684,11 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 
     override fun observePatientRequest(requestId: String): kotlinx.coroutines.flow.Flow<PharmacyDispatchRequest> = kotlinx.coroutines.flow.callbackFlow {
         val isAuthenticated = authRepository.getCurrentUser() != null
-        val channel = if (isAuthenticated) supabaseClient.channel("dispatch_request_$requestId") else null
+        val channel = if (isAuthenticated) {
+            supabaseClient.channel("dispatch_request_${requestId}_${UUID.randomUUID()}")
+        } else {
+            null
+        }
         val changeFlow = channel?.postgresChangeFlow<PostgresAction>(
             schema = "public",
         ) {
@@ -735,13 +740,17 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             }
         }
 
-        channel?.subscribe()
+        if (channel != null) {
+            runCatching { channel.subscribe() }.onFailure {
+                SecureLog.warn("[PharmacyDispatch] Realtime subscribe failed, relying on polling: ${it.message}")
+            }
+        }
 
         awaitClose {
             realtimeJob?.cancel()
             pollJob.cancel()
             if (channel != null) {
-                launch { supabaseClient.realtime.removeChannel(channel) }
+                scope.launch { runCatching { supabaseClient.realtime.removeChannel(channel) } }
             }
         }
     }
@@ -878,7 +887,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 var changeFlow: Flow<PostgresAction>? = null
                 try {
                     try {
-                        val channel = supabaseClient.channel("doctor_duty_realtime")
+                        val channel = supabaseClient.channel("doctor_duty_realtime_${UUID.randomUUID()}")
                         activeChannel = channel
                         val changes = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
                             table = "doctor_duty_status"
@@ -935,7 +944,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                     SecureLog.error("[PharmacyDispatch] Active doctors polling failed", error)
                 } finally {
                     activeChannel?.let { channel ->
-                        runCatching { supabaseClient.realtime.removeChannel(channel) }
+                        scope.launch { runCatching { supabaseClient.realtime.removeChannel(channel) } }
                     }
                 }
             }
@@ -984,12 +993,14 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             var activeChannel: RealtimeChannel? = null
             try {
                 loadSearchingRequests()
-                val channel = supabaseClient.channel("pharmacy-dispatch-doctor-offers")
+                val channel = supabaseClient.channel("pharmacy-dispatch-doctor-offers-${UUID.randomUUID()}")
                 activeChannel = channel
                 val changeFlow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
                     table = "dispatch_offers"
                 }
-                channel.subscribe()
+                runCatching { channel.subscribe() }.onFailure {
+                    SecureLog.warn("[PharmacyDispatch] Realtime subscribe failed, relying on polling: ${it.message}")
+                }
                 val realtimeJob = scope.launch {
                     changeFlow.collect {
                         if (supabaseClient.currentAuthenticatedUserIdOrNull() == sessionUserId) {
@@ -1015,7 +1026,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
                 SecureLog.error("[PharmacyDispatch] Failed subscribing to searching queue", error)
             } finally {
                 activeChannel?.let { channel ->
-                    runCatching { supabaseClient.realtime.removeChannel(channel) }
+                    scope.launch { runCatching { supabaseClient.realtime.removeChannel(channel) } }
                 }
                 if (supabaseClient.currentAuthenticatedUserIdOrNull() != sessionUserId) {
                     _searchingRequests.value = emptyList()

@@ -56,7 +56,7 @@
     <string name="appointments_select_doctor_title">Seleccionar Profesional</string>
     <string name="appointments_doctor_available_singular">%d disponible</string>
     <string name="appointments_doctor_available_plural">%d disponibles</string>
-    <string name="appointments_doctor_fee">Arancel: $%s</string>
+    <string name="appointments_doctor_fee">Arancel: %s</string>
     <string name="appointments_past_appointments">Consultas anteriores (%d)</string>
     <string name="appointments_hide">Ocultar</string>
     <string name="appointments_show">Mostrar</string>

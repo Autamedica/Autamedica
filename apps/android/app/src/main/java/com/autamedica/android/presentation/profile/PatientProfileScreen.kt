@@ -245,6 +245,8 @@ fun PatientProfileScreen(
     if (uiState.isTopupDialogOpen) {
         WalletTopupDialog(
             currency = uiState.walletCurrency,
+            isLoading = uiState.isTopupLoading,
+            errorMessage = uiState.topupError,
             onDismiss = { viewModel.setTopupDialogVisible(false) },
             onConfirmTopup = { amount ->
                 viewModel.topupWallet(amount)
@@ -381,10 +383,18 @@ private fun PatientInfoCard(
                     label = stringResource(R.string.patient_profile_label_birth_date),
                     value = snapshot?.birthDate?.takeIf { it.isNotBlank() } ?: notRegisteredFem,
                 )
+                val genderDisplay = when (snapshot?.gender?.trim()?.lowercase()) {
+                    "male", "masculino", "m" -> stringResource(R.string.patient_profile_gender_male)
+                    "female", "femenino", "feminino", "f" -> stringResource(R.string.patient_profile_gender_female)
+                    "other", "otro", "outro", "non_binary" -> stringResource(R.string.patient_profile_gender_other)
+                    "prefer_not_to_say" -> stringResource(R.string.patient_profile_gender_prefer_not_to_say)
+                    null, "" -> notRegistered
+                    else -> snapshot.gender
+                }
                 ProfileInfoRow(
                     icon = Icons.Outlined.Wc,
                     label = stringResource(R.string.patient_profile_label_gender),
-                    value = snapshot?.gender?.takeIf { it.isNotBlank() } ?: notRegistered,
+                    value = genderDisplay,
                 )
             }
         }
