@@ -78,7 +78,7 @@ function stringEntries(value: unknown): string[] {
   });
 }
 
-function humanizeLicense(profile: PublicProfile, locale: string): string[] {
+function humanizeLicense(profile: PublicProfile): string[] {
   if (!Array.isArray(profile.licenses)) return [];
   return profile.licenses.flatMap((entry): string[] => {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return [];
@@ -135,7 +135,7 @@ const education = editorialEntries(profile?.education);
 const certifications = editorialEntries(profile?.certifications);
 const experience = editorialEntries(profile?.professional_experience);
 const academicActivity = editorialEntries(profile?.academic_activity);
-const licenses = profile ? humanizeLicense(profile, locale) : [];
+const licenses = profile ? humanizeLicense(profile) : [];
 const rqeNumber = profile?.care_country === 'BR' ? stringValue(profile.rqe_number) : '';
 const yearsExperience = Number.isFinite(profile?.years_experience) ? Number(profile?.years_experience) : 0;
 const practiceContent = Boolean(bio || clinicalFocusAreas.length);
@@ -172,7 +172,7 @@ const canonical = `https://www.autamedica.com${Astro.url.pathname}`;
           <div class="credentials" aria-label={isPortuguese ? 'Registro profissional validado' : 'Matrícula profesional validada'}>
             <span>{isPortuguese ? 'Registro validado' : 'Matrícula validada'}</span>
             <span class="credential-list">{licenses.join(' · ')}</span>
-            {rqeNumber && <span class="credential-list">RQE {rqeNumber}</span>}
+            {rqeNumber && <span class="credential-list">{isPortuguese ? 'RQE informado' : 'RQE informado'} · {rqeNumber}</span>}
           </div>
         )}
         <div class="header-rule"></div>
