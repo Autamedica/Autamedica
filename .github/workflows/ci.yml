@@ -71,6 +71,14 @@ jobs:
         run: pnpm --filter @autamedica/web check
       - name: Build workspace packages
         run: pnpm build:packages:core
+      - name: Prepare SEO assets for the web build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+          pnpm seo:generate:assets
+          pnpm seo:validate:parity
+          pnpm seo:validate:assets
+          pnpm seo:validate:structured-data
       - name: Build web
         run: pnpm --filter @autamedica/web build
         env:
@@ -83,6 +91,8 @@ jobs:
           PUBLIC_COMPANIES_URL: https://empresa.autamedica.com
           PUBLIC_ADMIN_URL: https://autamedica-admin.pages.dev
           RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}
+      - name: Validate built SEO HTML and JSON-LD
+        run: pnpm seo:validate:built
 
   seo-contract:
     if: github.event.pull_request.draft != true && github.actor != 'coderabbitai[bot]' && github.actor != 'circleci-app[bot]' && github.actor != 'dependabot[bot]'
