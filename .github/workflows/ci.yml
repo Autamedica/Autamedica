@@ -101,6 +101,7 @@ jobs:
           name: lighthouse-seo-reports
           path: .lighthouseci/
           if-no-files-found: ignore
+          include-hidden-files: true
           retention-days: 14
 
   seo-contract:
@@ -115,6 +116,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
           cache-actions: "true"
+      - name: Verify public portal landing access policy
+        run: pnpm --filter @autamedica/web exec vitest run src/middleware.test.ts
       - name: Install ImageMagick for reproducible social assets
         run: |
           sudo apt-get update

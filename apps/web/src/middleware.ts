@@ -72,6 +72,13 @@ const PUBLIC_ROUTES = [
   "/api/preanamnesis",
 ];
 
+// Public marketing landings. Their nested portal routes remain protected.
+const PUBLIC_PORTAL_LANDING_ROUTES = new Set([
+  "/patients",
+  "/doctors",
+  "/companies",
+]);
+
 // Static showcase pages are prerendered at build time and should bypass
 // request-header-dependent middleware logic entirely.
 const STATIC_BUILD_BYPASS_ROUTES = new Set(["/design-system", "/showcase"]);
@@ -307,6 +314,8 @@ function normalizePath(pathname: string): string {
 
 function isProtectedPath(pathname: string): boolean {
   const normalizedPath = normalizePath(pathname);
+
+  if (PUBLIC_PORTAL_LANDING_ROUTES.has(normalizedPath)) return false;
 
   return PROTECTED_ROUTES.some((route) => {
     const normalizedRoute = normalizePath(route);
@@ -709,8 +718,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
     !isAuthRoute &&
     !isPortalHostRoot &&
     !isRootWithSession &&
-    PUBLIC_ROUTES.some(
-      (route) => pathname === route || pathname.startsWith(`${route}/`),
+    (
+      PUBLIC_PORTAL_LANDING_ROUTES.has(normalizePath(pathname)) ||
+      PUBLIC_ROUTES.some(
+        (route) => pathname === route || pathname.startsWith(`${route}/`),
+      )
     )
   ) {
     return secureNext();

@@ -44,6 +44,12 @@ const PUBLIC_ROUTES = [
   '/api/health',
 ];
 
+const PUBLIC_PORTAL_LANDING_ROUTES = new Set([
+  "/patients",
+  "/doctors",
+  "/companies",
+]);
+
 const ROLE_REDIRECTS: Record<string, string> = {
   patient: '/patients',
   doctor: '/doctors',
@@ -93,6 +99,7 @@ function normalizePath(pathname: string): string {
 
 function isProtectedPath(pathname: string): boolean {
   const normalizedPath = normalizePath(pathname);
+  if (PUBLIC_PORTAL_LANDING_ROUTES.has(normalizedPath)) return false;
   return PROTECTED_ROUTES.some((route) => {
     const normalizedRoute = normalizePath(route);
     return normalizedPath === normalizedRoute || normalizedPath.startsWith(`${normalizedRoute}/`);
@@ -100,7 +107,9 @@ function isProtectedPath(pathname: string): boolean {
 }
 
 function isPublicPath(pathname: string): boolean {
-  return PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(`${route}/`));
+  const normalizedPath = normalizePath(pathname);
+  return PUBLIC_PORTAL_LANDING_ROUTES.has(normalizedPath) ||
+    PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(`${route}/`));
 }
 
 function isAuthRoute(pathname: string): boolean {
@@ -156,16 +165,31 @@ describe('isProtectedPath', () => {
     expect(isProtectedPath('/admin/users')).toBe(true);
   });
 
-  it('marks /patients as protected', () => {
-    expect(isProtectedPath('/patients')).toBe(true);
+  it('keeps the /patients landing public', () => {
+    expect(isProtectedPath('/patients')).toBe(false);
+    expect(isProtectedPath('/patients/')).toBe(false);
+  });
+
+  it('keeps nested patient clinical routes protected', () => {
+    expect(isProtectedPath('/patients/appointments')).toBe(true);
   });
 
   it('marks /doctors/profile as protected', () => {
     expect(isProtectedPath('/doctors/profile')).toBe(true);
   });
 
-  it('marks /companies as protected', () => {
-    expect(isProtectedPath('/companies')).toBe(true);
+  it('keeps the /companies landing public', () => {
+    expect(isProtectedPath('/companies')).toBe(false);
+    expect(isProtectedPath('/companies/')).toBe(false);
+  });
+
+  it('keeps nested company routes protected', () => {
+    expect(isProtectedPath('/companies/reports')).toBe(true);
+  });
+
+  it('keeps the /doctors landing public', () => {
+    expect(isProtectedPath('/doctors')).toBe(false);
+    expect(isProtectedPath('/doctors/')).toBe(false);
   });
 
   it('marks /settings as protected', () => {
@@ -210,6 +234,12 @@ describe('isPublicPath', () => {
     expect(isPublicPath('/auth/reset-password')).toBe(true);
   });
 
+  it.each(['/patients', '/patients/', '/doctors', '/doctors/', '/companies', '/companies/'])(
+    'marks public portal landing %s as public', (pathname) => {
+      expect(isPublicPath(pathname)).toBe(true);
+    },
+  );
+
   it('marks /api/health as public', () => {
     expect(isPublicPath('/api/health')).toBe(true);
   });
@@ -221,6 +251,12 @@ describe('isPublicPath', () => {
   it('does not mark /admin as public', () => {
     expect(isPublicPath('/admin')).toBe(false);
   });
+
+  it.each(['/patients/appointments', '/doctors/profile', '/companies/reports'])(
+    'does not expose nested portal route %s as public', (pathname) => {
+      expect(isPublicPath(pathname)).toBe(false);
+    },
+  );
 });
 
 describe('isAuthRoute', () => {
