@@ -71,7 +71,7 @@ class PreventiveHealthContentTest {
             val pt = screening.localized(isPortuguese = true)
             assertThat(pt.description).doesNotContain("Medicion")
             assertThat(pt.description).doesNotContain("Analisis")
-            assertThat(pt.frequency).doesNotContain("anos")
+            assertThat(pt.frequency).doesNotContain("Cada ")
         }
 
         val papPt = getRecommendedPreventiveScreenings(35, PreventiveGender.Female)
