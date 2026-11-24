@@ -1,10 +1,12 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { CheckCircle2, ExternalLink, Loader2, Save } from 'lucide-react'
 
 type PublicProfileEditorData = {
   id: string
+  first_name?: string | null
+  last_name?: string | null
   care_country: 'AR' | 'BR'
   specialty?: string | null
   subspecialty?: string | null
@@ -44,6 +46,8 @@ function toLines(value: string): string[] {
 export function PublicProfileEditor() {
   const [profile, setProfile] = useState<PublicProfileEditorData | null>(null)
   const [form, setForm] = useState<EditorForm>({
+    education: '',
+    certifications: '',
     clinical_focus_areas: '',
     professional_experience: '',
     academic_activity: '',
@@ -76,6 +80,8 @@ export function PublicProfileEditor() {
       const data = payload.data as PublicProfileEditorData
       setProfile(data)
       setForm({
+        education: lines(data.education),
+        certifications: lines(data.certifications),
         clinical_focus_areas: lines(data.clinical_focus_areas),
         professional_experience: lines(data.professional_experience),
         academic_activity: lines(data.academic_activity),
@@ -90,10 +96,12 @@ export function PublicProfileEditor() {
 
   const previewPath = useMemo(() => {
     if (!profile) return ''
-    return `/${profile.care_country.toLowerCase()}/medicos/perfil-${profile.id}`
+    const name = [profile.first_name, profile.last_name].filter(Boolean).join(' ')
+    const slug = name.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    return `/${profile.care_country.toLowerCase()}/medicos/${slug || 'perfil'}-${profile.id}`
   }, [profile])
 
-  async function save(event: React.FormEvent<HTMLFormElement>) {
+  async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!profile) return
     setSaving(true)
@@ -105,6 +113,8 @@ export function PublicProfileEditor() {
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({
+          education: toLines(form.education),
+          certifications: toLines(form.certifications),
           clinical_focus_areas: toLines(form.clinical_focus_areas),
           professional_experience: toLines(form.professional_experience),
           academic_activity: toLines(form.academic_activity),
@@ -133,6 +143,8 @@ export function PublicProfileEditor() {
       ? 'Apresente sua prática e trajetória com informações profissionais que você escolhe compartilhar.'
       : 'Presentá tu práctica y trayectoria con información profesional que elegís compartir.',
     loading: isPortuguese ? 'Carregando perfil…' : 'Cargando perfil…',
+    education: isPortuguese ? 'Formação acadêmica' : 'Formación académica',
+    certifications: isPortuguese ? 'Residência e pós-graduação' : 'Residencia y posgrados',
     focus: isPortuguese ? 'Áreas de atuação' : 'Áreas de atención',
     experience: isPortuguese ? 'Trajetória profissional' : 'Trayectoria profesional',
     academic: isPortuguese ? 'Atividade acadêmica' : 'Actividad académica',
@@ -173,7 +185,7 @@ export function PublicProfileEditor() {
 
             <details className="group border-t border-am-surface-200 py-4">
               <summary className="cursor-pointer list-none text-sm font-semibold text-am-surface-800 marker:hidden">
-                {copy.focus}
+                {copy.education}
                 <span className="float-right text-am-surface-400 group-open:rotate-180">⌄</span>
               </summary>
               <textarea
@@ -192,11 +204,11 @@ export function PublicProfileEditor() {
                 <span className="float-right text-am-surface-400 group-open:rotate-180">⌄</span>
               </summary>
               <textarea
-                value={form.professional_experience}
-                onChange={(event) => setForm((current) => ({ ...current, professional_experience: event.target.value }))}
-                rows={4}
+                value={form.certifications}
+                onChange={(event) => setForm((current) => ({ ...current, certifications: event.target.value }))}
+                rows={3}
                 maxLength={7200}
-                placeholder={isPortuguese ? 'Uma instituição ou função por linha' : 'Una institución o función por línea'}
+                placeholder={isPortuguese ? 'Uma residência ou pós-graduação por linha' : 'Una residencia o posgrado por línea'}
                 className="mt-3 w-full rounded-xl border border-am-surface-300 bg-white px-3.5 py-3 text-sm text-am-surface-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
               />
             </details>
@@ -207,11 +219,11 @@ export function PublicProfileEditor() {
                 <span className="float-right text-am-surface-400 group-open:rotate-180">⌄</span>
               </summary>
               <textarea
-                value={form.academic_activity}
-                onChange={(event) => setForm((current) => ({ ...current, academic_activity: event.target.value }))}
-                rows={4}
-                maxLength={7200}
-                placeholder={isPortuguese ? 'Uma publicação, atividade docente ou reconhecimento por linha' : 'Una publicación, actividad docente o reconocimiento por línea'}
+                value={form.clinical_focus_areas}
+                onChange={(event) => setForm((current) => ({ ...current, clinical_focus_areas: event.target.value }))}
+                rows={3}
+                maxLength={2400}
+                placeholder={isPortuguese ? 'Ex.: cardiologia preventiva\\nHipertensão arterial' : 'Ej.: Cardiología preventiva\\nHipertensión arterial'}
                 className="mt-3 w-full rounded-xl border border-am-surface-300 bg-white px-3.5 py-3 text-sm text-am-surface-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
               />
             </details>
