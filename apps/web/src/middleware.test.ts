@@ -380,3 +380,18 @@ describe('Memed CSP directives in middleware.ts', () => {
     }
   });
 });
+
+describe('Admin host enforcement in middleware.ts', () => {
+  it('excludes /api/* and /_astro/* from admin host 302 redirect', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const source = fs.readFileSync(path.resolve(__dirname, 'middleware.ts'), 'utf8');
+    const match = source.match(
+      /\/\/ Admin host enforcement:[\s\S]*?return context\.redirect\(targetUrl\.toString\(\), 302\);/,
+    );
+    expect(match).not.toBeNull();
+    const block = match?.[0] ?? '';
+    expect(block).toContain('!pathname.startsWith("/api/")');
+    expect(block).toContain('!pathname.startsWith("/_astro/")');
+  });
+});
