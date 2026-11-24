@@ -26,7 +26,10 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const specialty = url.searchParams.get('specialty')
 
     if (userId) {
-      const doctor = await doctorBackendService.getDoctorByUserId(userId, runtimeEnv)
+      const isSelfLookup = userId === auth.user.id
+      const doctor = await doctorBackendService.getDoctorByUserId(userId, runtimeEnv, {
+        includeInactive: isSelfLookup,
+      })
       return jsonOk(doctor)
     }
 

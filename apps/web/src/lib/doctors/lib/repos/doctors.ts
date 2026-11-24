@@ -37,7 +37,7 @@ const DOCTOR_WITH_PROFILE_SELECT = `
   active,
   created_at,
   updated_at,
-  profile:profiles!inner(
+  profile:profiles!doctors_user_id_fkey(
     user_id,
     first_name,
     last_name,
@@ -73,7 +73,7 @@ const DOCTOR_WITH_PROFILE_LEGACY_SELECT = `
   active,
   created_at,
   updated_at,
-  profile:profiles!inner(
+  profile:profiles!doctors_user_id_fkey(
     user_id,
     first_name,
     last_name,
@@ -99,14 +99,19 @@ const LICENSE_PROFILE_COLUMNS = [
   'sss_last_checked_at',
   'especialidad_registrada',
   'matricula_nacional',
+  'signature_url',
+  'stamp_url',
 ] as const
 
-function isMissingLicenseProfileColumn(error: SupabaseSelectResult<unknown>['error']): boolean {
+export function isRecoverableDoctorProfileColumnError(
+  error: SupabaseSelectResult<unknown>['error'],
+): boolean {
   if (!error) return false
 
   const text = [error.message, error.details, error.hint].filter(Boolean).join(' ').toLowerCase()
   return (
     error.code === '42703' ||
+    error.code === 'PGRST204' ||
     LICENSE_PROFILE_COLUMNS.some((column) => text.includes(column))
   )
 }
@@ -118,7 +123,7 @@ async function runDoctorProfileSelect<T>(
 ): Promise<T | null> {
   const result = await primary()
 
-  if (!isMissingLicenseProfileColumn(result.error)) {
+  if (!isRecoverableDoctorProfileColumnError(result.error)) {
     if (result.error) {
       logger.error(`[doctorsRepo] ${scope} failed`, result.error)
       throw result.error
@@ -151,21 +156,26 @@ export const doctorsRepo = {
   async findByUserId(
     userId: string,
     client: DoctorsClient = getBrowserSupabaseClient(),
+    options?: { includeInactive?: boolean },
   ): Promise<DoctorWithProfile | null> {
     const data = await runDoctorProfileSelect(
       'findByUserId',
-      () => client
-        .from('doctors')
-        .select(DOCTOR_WITH_PROFILE_SELECT)
-        .eq('user_id', userId)
-        .eq('active', true)
-        .maybeSingle(),
-      () => client
-        .from('doctors')
-        .select(DOCTOR_WITH_PROFILE_LEGACY_SELECT)
-        .eq('user_id', userId)
-        .eq('active', true)
-        .maybeSingle(),
+      () => {
+        let query = client
+          .from('doctors')
+          .select(DOCTOR_WITH_PROFILE_SELECT)
+          .eq('user_id', userId)
+        if (!options?.includeInactive) query = query.eq('active', true)
+        return query.maybeSingle()
+      },
+      () => {
+        let query = client
+          .from('doctors')
+          .select(DOCTOR_WITH_PROFILE_LEGACY_SELECT)
+          .eq('user_id', userId)
+        if (!options?.includeInactive) query = query.eq('active', true)
+        return query.maybeSingle()
+      },
     )
 
     return data ? toCamel<DoctorWithProfile>(data) : null

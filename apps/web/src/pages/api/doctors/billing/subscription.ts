@@ -20,7 +20,7 @@ const VALID_SLUGS: PlanSlug[] = ['basico', 'pro', 'premium'];
 
 export const GET: APIRoute = async ({ request, locals }) => {
   try {
-    const auth = await withAuthRole(request, DOCTOR_ROLES);
+    const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
     if (!isAuthed(auth)) return auth;
 
     const doctorId = await doctorsRepo.resolveIdByUserId(auth.user.id, auth.supabase);
@@ -37,7 +37,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
-    const auth = await withAuthRole(request, DOCTOR_ROLES);
+    const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
     if (!isAuthed(auth)) return auth;
 
     const doctorId = await doctorsRepo.resolveIdByUserId(auth.user.id, auth.supabase);
@@ -70,7 +70,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
 export const DELETE: APIRoute = async ({ request, locals }) => {
   try {
-    const auth = await withAuthRole(request, DOCTOR_ROLES);
+    const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
     if (!isAuthed(auth)) return auth;
 
     const doctorId = await doctorsRepo.resolveIdByUserId(auth.user.id, auth.supabase);

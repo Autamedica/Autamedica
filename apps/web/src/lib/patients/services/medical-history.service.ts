@@ -377,6 +377,12 @@ async function listPatientCertificatesAndOrders(
   };
 }
 
+function safeTimestamp(value: string | null | undefined): number {
+  if (!value) return 0;
+  const ms = new Date(value).getTime();
+  return Number.isFinite(ms) ? ms : 0;
+}
+
 function mergeTimelineRecords(
   primary: MedicalRecord[],
   secondary: MedicalRecord[],
@@ -390,7 +396,7 @@ function mergeTimelineRecords(
   }
 
   return [...byId.values()].sort(
-    (left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime(),
+    (left, right) => safeTimestamp(right.created_at) - safeTimestamp(left.created_at),
   );
 }
 
@@ -435,6 +441,10 @@ export const medicalHistoryService = {
           .then(({ data, error }) => {
             if (error) logger.error("[medicalHistoryService] anamnesis failed", error);
             return data ?? [];
+          })
+          .catch((error: unknown) => {
+            logger.error("[medicalHistoryService] anamnesis threw", error);
+            return [];
           }),
       ]);
 

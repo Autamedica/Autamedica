@@ -2,7 +2,7 @@
  * Backend Service: Doctor business logic.
  * Orchestrates repository access for API Controllers.
  */
-import { createDoctorRepositoryAdapter } from '@/lib/doctors/lib/repos/doctors'
+import { createDoctorRepositoryAdapter, doctorsRepo } from '@/lib/doctors/lib/repos/doctors'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
 import type { DoctorWithProfile } from '@autamedica/types'
@@ -23,10 +23,11 @@ export const doctorBackendService = {
   async getDoctorByUserId(
     userId: string,
     runtimeEnv?: RuntimeEnv,
+    options?: { includeInactive?: boolean },
   ): Promise<DoctorWithProfile | null> {
     try {
-      const repo = createDoctorRepositoryAdapter(createAstroAdminClient(runtimeEnv))
-      return await repo.findByUserId(userId)
+      const admin = createAstroAdminClient(runtimeEnv)
+      return await doctorsRepo.findByUserId(userId, admin, options)
     } catch (error) {
       logger.error('[doctorBackendService] getDoctorByUserId failed', { userId, error })
       throw error

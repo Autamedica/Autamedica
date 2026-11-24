@@ -82,8 +82,15 @@ fun CreatePrescriptionScreen(
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
                         )
+                        val headerJurisdiction = com.autamedica.android.domain.model.resolveRegulatoryJurisdiction(
+                            countryCode = uiState.doctorEligibility?.countryCode,
+                            doctorLicense = uiState.doctorEligibility?.doctorLicense,
+                        )
                         Text(
-                            text = stringResource(R.string.doctor_create_rx_subtitle),
+                            text = stringResource(
+                                com.autamedica.android.domain.model.RegulatoryJurisdictionCopy
+                                    .prescriptionCreateSubtitleRes(headerJurisdiction)
+                            ),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextTertiary,
                         )
@@ -368,6 +375,10 @@ fun CreatePrescriptionScreen(
 private fun DoctorRegulatoryBanner(eligibility: com.autamedica.android.domain.model.DoctorEligibility?) {
     val isEligible = eligibility?.isEligible ?: true
     val license = eligibility?.doctorLicense ?: stringResource(R.string.doctor_create_rx_regulatory_registered)
+    val jurisdiction = com.autamedica.android.domain.model.resolveRegulatoryJurisdiction(
+        countryCode = eligibility?.countryCode,
+        doctorLicense = eligibility?.doctorLicense,
+    )
 
     Surface(
         shape = RoundedCornerShape(12.dp),
@@ -388,7 +399,14 @@ private fun DoctorRegulatoryBanner(eligibility: com.autamedica.android.domain.mo
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (isEligible) stringResource(R.string.doctor_create_rx_regulatory_eligible_title) else stringResource(R.string.doctor_create_rx_regulatory_not_eligible_title),
+                    text = if (isEligible) {
+                        stringResource(
+                            com.autamedica.android.domain.model.RegulatoryJurisdictionCopy
+                                .prescriptionEligibleTitleRes(jurisdiction)
+                        )
+                    } else {
+                        stringResource(R.string.doctor_create_rx_regulatory_not_eligible_title)
+                    },
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = if (isEligible) AuSuccess else PortalPatientsAction
@@ -397,7 +415,10 @@ private fun DoctorRegulatoryBanner(eligibility: com.autamedica.android.domain.mo
                     text = if (isEligible) {
                         stringResource(R.string.doctor_create_rx_regulatory_license_info, license)
                     } else {
-                        eligibility?.reason ?: stringResource(R.string.doctor_create_rx_regulatory_fallback_reason)
+                        eligibility?.reason ?: stringResource(
+                            com.autamedica.android.domain.model.RegulatoryJurisdictionCopy
+                                .prescriptionFallbackReasonRes(jurisdiction)
+                        )
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="reg_signature_button_verify_ar">Validar matrícula no SISA/REFEPS</string>
+    <string name="reg_signature_button_verify_br">Validar CRM no CFM</string>
+    <string name="reg_signature_button_verify_generic">Validar registro profissional</string>
+
+    <string name="reg_signature_verified_ar">Matrícula verificada no SISA/REFEPS (Argentina)</string>
+    <string name="reg_signature_verified_br">CRM regular e ativo no CFM</string>
+    <string name="reg_signature_verified_generic">Registro profissional verificado</string>
+
+    <string name="reg_signature_must_validate_ar">É necessário validar a matrícula no SISA/REFEPS antes de salvar</string>
+    <string name="reg_signature_must_validate_br">É necessário validar o CRM junto ao CFM antes de salvar</string>
+    <string name="reg_signature_must_validate_generic">É necessário validar o registro profissional antes de salvar</string>
+
+    <string name="reg_cert_work_leave_ar">Afastamento laboral (Argentina)</string>
+    <string name="reg_cert_work_leave_br">Afastamento do Trabalho (CLT/Servidor)</string>
+    <string name="reg_cert_work_leave_generic">Afastamento laboral</string>
+
+    <string name="reg_cert_diagnosis_reserved_ar">🔒 Diagnóstico preservado (Sigilo médico · Lei 27.553)</string>
+    <string name="reg_cert_diagnosis_reserved_br">🔒 Diagnóstico preservado (Sigilo Médico · CFM)</string>
+    <string name="reg_cert_diagnosis_reserved_generic">🔒 Diagnóstico preservado (Sigilo médico)</string>
+
+    <string name="reg_cert_hide_diagnosis_subtitle_ar">Garantia de sigilo médico e confidencialidade perante empregadores (Lei 27.553)</string>
+    <string name="reg_cert_hide_diagnosis_subtitle_br">Garantia de sigilo médico perante o empregador (Resolução CFM nº 1.658/2002)</string>
+    <string name="reg_cert_hide_diagnosis_subtitle_generic">Garantia de sigilo médico e confidencialidade</string>
+
+    <string name="reg_cert_license_required_ar">Requer matrícula ativa no SISA/REFEPS para emissão oficial.</string>
+    <string name="reg_cert_license_required_br">Requer CRM ativo e validado no CFM para emissão oficial.</string>
+    <string name="reg_cert_license_required_generic">Requer registro profissional ativo para emissão oficial.</string>
+
+    <string name="reg_rx_create_subtitle_ar">Receita eletrônica conforme Decreto 63/2024 e Lei 27.553 (Argentina)</string>
+    <string name="reg_rx_create_subtitle_br">CFM Resolução nº 2.299/2021 e nº 2.381/2024 · ANVISA RDC nº 1.000/2025</string>
+    <string name="reg_rx_create_subtitle_generic">Emissão de receita digital verificada</string>
+
+    <string name="reg_rx_eligible_title_ar">Prescritor habilitado · SISA/REFEPS</string>
+    <string name="reg_rx_eligible_title_br">Profissional habilitado · CRM/CFM</string>
+    <string name="reg_rx_eligible_title_generic">Prescritor habilitado</string>
+
+    <string name="reg_rx_fallback_reason_ar">Verifique a sua matrícula nacional ou provincial no SISA/REFEPS.</string>
+    <string name="reg_rx_fallback_reason_br">Verifique o seu CRM e a validação no CFM no perfil profissional.</string>
+    <string name="reg_rx_fallback_reason_generic">Verifique o seu registro profissional no perfil para habilitar a emissão.</string>
+
+    <string name="reg_rx_official_validation_ar">Validação oficial Decreto 63/2024 · SISA/REFEPS</string>
+    <string name="reg_rx_official_validation_br">Validação oficial CFM nº 2.314/2022 / ICP-Brasil</string>
+    <string name="reg_rx_official_validation_generic">Documento clínico com verificação profissional</string>
+
+    <string name="reg_cert_license_verified_ar">Verificada no SISA/REFEPS</string>
+    <string name="reg_cert_license_verified_br">Verificada no CFM / ICP-Brasil</string>
+    <string name="reg_cert_license_verified_generic">Registro profissional verificado</string>
+</resources>
