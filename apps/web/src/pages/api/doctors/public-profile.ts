@@ -3,7 +3,6 @@ import { createAstroAdminClient } from '@/lib/supabase';
 import { DOCTOR_ROLES, isAuthed, withAuthRole } from '@/lib/api-auth';
 import { logger } from '@autamedica/shared';
 
-const CONSENT_VERSION = 'public-doctor-profile-v1';
 const EDITABLE_ARRAYS = [
   'education',
   'certifications',
@@ -42,7 +41,7 @@ function parseLines(value: unknown, maxItems: number, maxLength: number): string
 async function getDoctor(admin: any, userId: string) {
   return admin
     .from('doctors')
-    .select('id,care_country,specialty,subspecialty,bio,years_experience,education,certifications,clinical_focus_areas,professional_experience,academic_activity,public_profile_enabled,public_profile_consent_confirmed_at,public_profile_consent_version')
+    .select('id,care_country,specialty,subspecialty,bio,years_experience,education,certifications,clinical_focus_areas,professional_experience,academic_activity,public_profile_enabled,public_profile_published_at,public_profile_updated_at')
     .eq('user_id', userId)
     .maybeSingle();
 }
@@ -82,8 +81,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
         professional_experience: data.professional_experience,
         academic_activity: data.academic_activity,
         public_profile_enabled: data.public_profile_enabled,
-        public_profile_consent_confirmed_at: data.public_profile_consent_confirmed_at,
-        public_profile_consent_version: data.public_profile_consent_version,
+        public_profile_published_at: data.public_profile_published_at,
+        public_profile_updated_at: data.public_profile_updated_at,
       },
     });
   } catch (error) {
@@ -151,23 +150,8 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
     }
 
     if (typeof input.public_profile_enabled === 'boolean') {
-      if (input.public_profile_enabled) {
-        const acknowledged = input.consentAcknowledged === true;
-        const previouslyConfirmed = Boolean(
-          doctor.public_profile_consent_confirmed_at
-          && doctor.public_profile_consent_version,
-        );
-        if (!acknowledged && !previouslyConfirmed) {
-          return jsonResponse({ error: 'public_profile_consent_required' }, 400);
-        }
-        patch.public_profile_enabled = true;
-        if (acknowledged) {
-          patch.public_profile_consent_confirmed_at = new Date().toISOString();
-          patch.public_profile_consent_version = CONSENT_VERSION;
-        }
-      } else {
-        patch.public_profile_enabled = false;
-      }
+      patch.public_profile_enabled = input.public_profile_enabled;
+      patch.public_profile_updated_by = auth.user.id;
     }
 
     if (!Object.keys(patch).length) return jsonResponse({ error: 'no_editable_fields' }, 400);
@@ -177,7 +161,7 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
       .update(patch)
       .eq('id', doctor.id)
       .eq('user_id', auth.user.id)
-      .select('id,public_profile_enabled,public_profile_consent_confirmed_at,public_profile_consent_version,bio,years_experience,education,certifications,clinical_focus_areas,professional_experience,academic_activity')
+      .select('id,public_profile_enabled,public_profile_published_at,public_profile_updated_at,bio,years_experience,education,certifications,clinical_focus_areas,professional_experience,academic_activity')
       .single();
     if (updateError) throw updateError;
 
