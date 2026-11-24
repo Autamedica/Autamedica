@@ -161,7 +161,7 @@ const physicianJsonLd = profile && canonical ? {
   canonical={profile ? canonical : undefined}
   robots={profile ? 'index, follow' : 'noindex, nofollow'}
 >
-  {physicianJsonLd && <script type="application/ld+json" set:html={JSON.stringify(physicianJsonLd)} />}
+  {physicianJsonLd && <script type="application/ld+json" set:html={JSON.stringify(physicianJsonLd).replace(/</g, '\\u003c')} />}
   {profile ? (
     <main class="public-profile">
       <header class="profile-header">
