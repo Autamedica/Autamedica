@@ -9,6 +9,8 @@ type PublicProfileEditorData = {
   last_name?: string | null
   avatar_url?: string | null
   care_country: 'AR' | 'BR'
+  bio?: string | null
+  years_experience?: number | null
   education?: unknown
   certifications?: unknown
   clinical_focus_areas?: unknown
@@ -20,6 +22,8 @@ type PublicProfileEditorData = {
 }
 
 type EditorForm = {
+  bio: string
+  years_experience: string
   education: string
   certifications: string
   clinical_focus_areas: string
@@ -63,6 +67,8 @@ function slugify(value: string): string {
 export function PublicProfileEditor() {
   const [profile, setProfile] = useState<PublicProfileEditorData | null>(null)
   const [form, setForm] = useState<EditorForm>({
+    bio: '',
+    years_experience: '',
     education: '',
     certifications: '',
     clinical_focus_areas: '',
@@ -92,6 +98,8 @@ export function PublicProfileEditor() {
       const data = payload.data as PublicProfileEditorData
       setProfile(data)
       setForm({
+        bio: data.bio ?? '',
+        years_experience: data.years_experience == null ? '' : String(data.years_experience),
         education: entriesToText(data.education),
         certifications: entriesToText(data.certifications),
         clinical_focus_areas: entriesToText(data.clinical_focus_areas),
@@ -130,6 +138,8 @@ export function PublicProfileEditor() {
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({
+          bio: form.bio,
+          years_experience: form.years_experience === '' ? null : Number(form.years_experience),
           education: toLines(form.education),
           certifications: toLines(form.certifications),
           clinical_focus_areas: toLines(form.clinical_focus_areas),
@@ -158,6 +168,8 @@ export function PublicProfileEditor() {
       ? 'Apresente sua prática e trajetória com informações profissionais que você escolhe compartilhar.'
       : 'Presentá tu práctica y trayectoria con información profesional que elegís compartir.',
     loading: isPortuguese ? 'Carregando perfil…' : 'Cargando perfil…',
+    bio: isPortuguese ? 'Apresentação clínica' : 'Presentación clínica',
+    years: isPortuguese ? 'Anos de exercício' : 'Años de ejercicio',
     education: isPortuguese ? 'Formação acadêmica' : 'Formación académica',
     certifications: isPortuguese ? 'Residência e pós-graduação' : 'Residencia y posgrados',
     focus: isPortuguese ? 'Áreas de atuação' : 'Áreas de atención',
@@ -179,6 +191,12 @@ export function PublicProfileEditor() {
   }
 
   const fields = [
+    {
+      key: 'bio' as const,
+      label: copy.bio,
+      rows: 5,
+      placeholder: isPortuguese ? 'Conte brevemente sobre sua prática clínica' : 'Contá brevemente cómo es tu práctica clínica',
+    },
     {
       key: 'education' as const,
       label: copy.education,
@@ -231,6 +249,19 @@ export function PublicProfileEditor() {
           <form onSubmit={save} className="mt-6 space-y-4">
             <p className="text-sm leading-6 text-am-surface-600">{copy.hint}</p>
 
+            <label className="block border-t border-am-surface-200 py-4 text-sm font-semibold text-am-surface-800">
+              {copy.years}
+              <input
+                type="number"
+                min={0}
+                max={70}
+                step={1}
+                value={form.years_experience}
+                onChange={(event) => setForm((current) => ({ ...current, years_experience: event.target.value }))}
+                className="mt-2 block w-32 rounded-xl border border-am-surface-300 bg-white px-3.5 py-2.5 text-sm font-normal text-am-surface-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+              />
+            </label>
+
             {fields.map((field) => (
               <details key={field.key} className="group border-t border-am-surface-200 py-4">
                 <summary className="cursor-pointer list-none text-sm font-semibold text-am-surface-800 marker:hidden">
@@ -241,7 +272,7 @@ export function PublicProfileEditor() {
                   value={form[field.key]}
                   onChange={(event) => setForm((current) => ({ ...current, [field.key]: event.target.value }))}
                   rows={field.rows}
-                  maxLength={field.key === 'clinical_focus_areas' ? 2400 : 7200}
+                  maxLength={field.key === 'clinical_focus_areas' ? 2400 : field.key === 'bio' ? 2000 : 7200}
                   placeholder={field.placeholder}
                   className="mt-3 w-full rounded-xl border border-am-surface-300 bg-white px-3.5 py-3 text-sm text-am-surface-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                 />
