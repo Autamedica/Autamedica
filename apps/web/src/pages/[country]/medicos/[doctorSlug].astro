@@ -1,0 +1,518 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { createAstroAdminClient } from '@/lib/supabase';
+
+export const prerender = false;
+
+type PublicProfile = {
+  id: string;
+  care_country: 'AR' | 'BR';
+  first_name?: string | null;
+  last_name?: string | null;
+  specialty?: string | null;
+  subspecialty?: string | null;
+  bio?: string | null;
+  years_experience?: number | null;
+  education?: unknown;
+  certifications?: unknown;
+  clinical_focus_areas?: unknown;
+  professional_experience?: unknown;
+  academic_activity?: unknown;
+  languages?: unknown;
+  license_type?: string | null;
+  rqe_number?: string | null;
+  uf_brazil?: string | null;
+  enrollment_jurisdiction?: string | null;
+  licenses?: unknown;
+};
+
+type EditorialEntry = {
+  title: string;
+  institution?: string;
+  period?: string;
+  detail?: string;
+};
+
+function stringValue(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function firstString(record: Record<string, unknown>, keys: string[]): string {
+  for (const key of keys) {
+    const value = stringValue(record[key]);
+    if (value) return value;
+  }
+  return '';
+}
+
+function editorialEntries(value: unknown): EditorialEntry[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item): EditorialEntry[] => {
+    if (typeof item === 'string') {
+      const title = item.trim();
+      return title ? [{ title }] : [];
+    }
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return [];
+
+    const record = item as Record<string, unknown>;
+    const title = firstString(record, ['title', 'name', 'degree', 'program', 'position', 'role', 'course']);
+    const institution = firstString(record, ['institution', 'university', 'organization', 'hospital', 'employer', 'issuer']);
+    const period = firstString(record, ['period', 'year', 'date', 'dates']);
+    const detail = firstString(record, ['description', 'detail', 'specialty', 'focus']);
+    if (!title && !institution && !detail) return [];
+    return [{ title: title || institution || detail, institution: institution || undefined, period: period || undefined, detail: detail || undefined }];
+  });
+}
+
+function stringEntries(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item): string[] => {
+    if (typeof item === 'string' && item.trim()) return [item.trim()];
+    if (item && typeof item === 'object' && !Array.isArray(item)) {
+      const record = item as Record<string, unknown>;
+      const value = firstString(record, ['title', 'name', 'label', 'focus', 'description']);
+      return value ? [value] : [];
+    }
+    return [];
+  });
+}
+
+function humanizeLicense(profile: PublicProfile, locale: string): string[] {
+  if (!Array.isArray(profile.licenses)) return [];
+  return profile.licenses.flatMap((entry): string[] => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return [];
+    const row = entry as Record<string, unknown>;
+    const type = stringValue(row.license_type).toUpperCase();
+    const number = stringValue(row.license_number);
+    if (!number) return [];
+    if (profile.care_country === 'BR' && type === 'CRM') {
+      const uf = stringValue(profile.uf_brazil).toUpperCase();
+      return [uf ? `CRM/${uf} ${number}` : `CRM ${number}`];
+    }
+    if (profile.care_country === 'AR' && (type === 'MN' || type === 'MP')) {
+      return [`${type} ${number}`];
+    }
+    return [];
+  });
+}
+
+function renderSectionHeading(es: string, pt: string, isPortuguese: boolean): string {
+  return isPortuguese ? pt : es;
+}
+
+const country = String(Astro.params.country ?? '').toUpperCase();
+const slug = String(Astro.params.doctorSlug ?? '');
+const idMatch = slug.match(/([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i);
+const doctorId = idMatch?.[1] ?? null;
+const locale = Astro.locals.locale ?? 'es';
+const isPortuguese = locale === 'pt';
+let profile: PublicProfile | null = null;
+
+if ((country === 'AR' || country === 'BR') && doctorId) {
+  try {
+    const admin = createAstroAdminClient(Astro.locals.runtime?.env) as unknown as {
+      rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+    };
+    const { data, error } = await admin.rpc('get_public_doctor_profile', { p_doctor_id: doctorId });
+    if (!error && data && typeof data === 'object' && !Array.isArray(data)) {
+      const candidate = data as PublicProfile;
+      if (candidate.id === doctorId && candidate.care_country === country) profile = candidate;
+    }
+  } catch {
+    // Fail closed if the safe read model or database is unavailable.
+  }
+}
+
+const name = profile
+  ? [stringValue(profile.first_name), stringValue(profile.last_name)].filter(Boolean).join(' ')
+  : '';
+const specialty = stringValue(profile?.specialty);
+const subspecialty = stringValue(profile?.subspecialty);
+const bio = stringValue(profile?.bio);
+const clinicalFocusAreas = stringEntries(profile?.clinical_focus_areas);
+const education = editorialEntries(profile?.education);
+const certifications = editorialEntries(profile?.certifications);
+const experience = editorialEntries(profile?.professional_experience);
+const academicActivity = editorialEntries(profile?.academic_activity);
+const licenses = profile ? humanizeLicense(profile, locale) : [];
+const rqeNumber = profile?.care_country === 'BR' ? stringValue(profile.rqe_number) : '';
+const yearsExperience = Number.isFinite(profile?.years_experience) ? Number(profile?.years_experience) : 0;
+const practiceContent = Boolean(bio || clinicalFocusAreas.length);
+const educationContent = education.length > 0 || certifications.length > 0;
+const experienceContent = yearsExperience > 0 || experience.length > 0;
+const academicContent = academicActivity.length > 0;
+const verified = Boolean(profile && licenses.length > 0);
+const title = profile
+  ? `${name} · ${specialty}`
+  : (isPortuguese ? 'Perfil profissional não disponível' : 'Perfil profesional no disponible');
+const description = profile
+  ? (bio || (isPortuguese
+      ? `${specialty} · Registro profissional validado em AutaMedica.`
+      : `${specialty} · Matrícula profesional validada en AutaMedica.`)).slice(0, 160)
+  : (isPortuguese ? 'Este perfil profissional não está disponível.' : 'Este perfil profesional no está disponible.');
+const canonical = `https://www.autamedica.com${Astro.url.pathname}`;
+---
+
+<Layout
+  title={title}
+  description={description}
+  canonical={profile ? canonical : undefined}
+  robots={profile ? 'index, follow' : 'noindex, nofollow'}
+>
+  {profile ? (
+    <main class="public-profile">
+      <header class="profile-header">
+        <a class="brand" href="/" aria-label="AutaMedica">AutaMedica</a>
+        <p class="eyebrow">{isPortuguese ? 'PERFIL PROFISSIONAL' : 'PERFIL PROFESIONAL'}</p>
+        <h1>{name}</h1>
+        <p class="specialty">{specialty}</p>
+        {subspecialty && <p class="subspecialty">{subspecialty}</p>}
+        {verified && (
+          <div class="credentials" aria-label={isPortuguese ? 'Registro profissional validado' : 'Matrícula profesional validada'}>
+            <span>{isPortuguese ? 'Registro validado' : 'Matrícula validada'}</span>
+            <span class="credential-list">{licenses.join(' · ')}</span>
+            {rqeNumber && <span class="credential-list">RQE {rqeNumber}</span>}
+          </div>
+        )}
+        <div class="header-rule"></div>
+      </header>
+
+      <div class="profile-content">
+        {practiceContent && (
+          <section class="profile-section" aria-labelledby="practice-heading">
+            <h2 id="practice-heading">{renderSectionHeading('Práctica clínica', 'Prática clínica', isPortuguese)}</h2>
+            {bio && <p class="body-copy">{bio}</p>}
+            {clinicalFocusAreas.length > 0 && (
+              <ul class="plain-list">
+                {clinicalFocusAreas.map((area) => <li>{area}</li>)}
+              </ul>
+            )}
+          </section>
+        )}
+
+        {educationContent && (
+          <section class="profile-section" aria-labelledby="education-heading">
+            <h2 id="education-heading">{renderSectionHeading('Formación', 'Formação', isPortuguese)}</h2>
+            {education.map((entry) => (
+              <article class="entry">
+                <h3>{entry.title}</h3>
+                {entry.institution && <p>{entry.institution}</p>}
+                {entry.period && <span>{entry.period}</span>}
+                {entry.detail && <p>{entry.detail}</p>}
+              </article>
+            ))}
+            {certifications.length > 0 && (
+              <div class="entry-group">
+                <h3>{isPortuguese ? 'Especializações e certificações' : 'Especializaciones y certificaciones'}</h3>
+                {certifications.map((entry) => (
+                  <article class="entry compact">
+                    <p class="entry-title">{entry.title}</p>
+                    {entry.institution && <p>{entry.institution}</p>}
+                    {entry.period && <span>{entry.period}</span>}
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {experienceContent && (
+          <section class="profile-section" aria-labelledby="experience-heading">
+            <h2 id="experience-heading">{renderSectionHeading('Trayectoria', 'Trajetória', isPortuguese)}</h2>
+            {yearsExperience > 0 && (
+              <p class="experience-years">
+                {isPortuguese ? `${yearsExperience} anos de exercício profissional` : `${yearsExperience} años de ejercicio profesional`}
+              </p>
+            )}
+            {experience.map((entry) => (
+              <article class="entry">
+                <h3>{entry.title}</h3>
+                {entry.institution && <p>{entry.institution}</p>}
+                {entry.period && <span>{entry.period}</span>}
+                {entry.detail && <p>{entry.detail}</p>}
+              </article>
+            ))}
+          </section>
+        )}
+
+        {academicContent && (
+          <section class="profile-section" aria-labelledby="academic-heading">
+            <h2 id="academic-heading">{renderSectionHeading('Actividad académica', 'Atuação acadêmica', isPortuguese)}</h2>
+            {academicActivity.map((entry) => (
+              <article class="entry">
+                <h3>{entry.title}</h3>
+                {entry.institution && <p>{entry.institution}</p>}
+                {entry.period && <span>{entry.period}</span>}
+                {entry.detail && <p>{entry.detail}</p>}
+              </article>
+            ))}
+          </section>
+        )}
+
+        {verified && (
+          <section class="profile-section verification" aria-labelledby="verification-heading">
+            <h2 id="verification-heading">{renderSectionHeading('Verificación profesional', 'Validação profissional', isPortuguese)}</h2>
+            <p>
+              {isPortuguese
+                ? 'AutaMedica confirmou o registro profissional para a jurisdição de atendimento deste médico.'
+                : 'AutaMedica confirmó la matrícula profesional para la jurisdicción de atención de este médico.'}
+            </p>
+          </section>
+        )}
+
+        <footer class="profile-footer">
+          <p>{isPortuguese ? 'Perfil profissional publicado em AutaMedica.' : 'Perfil profesional publicado en AutaMedica.'}</p>
+          <a href="/consulta-medica-online">{isPortuguese ? 'Conhecer a telemedicina AutaMedica' : 'Conocer la telemedicina de AutaMedica'}</a>
+        </footer>
+      </div>
+    </main>
+  ) : (
+    <main class="profile-unavailable">
+      <a class="brand" href="/">AutaMedica</a>
+      <h1>{isPortuguese ? 'Perfil profissional não disponível' : 'Perfil profesional no disponible'}</h1>
+      <p>{isPortuguese ? 'O perfil pode estar desativado ou o registro ainda não estar confirmado.' : 'El perfil puede estar desactivado o la matrícula todavía no estar confirmada.'}</p>
+      <a href="/">{isPortuguese ? 'Voltar ao início' : 'Volver al inicio'}</a>
+    </main>
+  )}
+</Layout>
+
+<style>
+  .public-profile {
+    --profile-accent: #0EA5E9;
+    width: min(100% - 48px, 980px);
+    margin: 0 auto;
+    padding: 38px 0 84px;
+    color: #172033;
+  }
+
+  .brand {
+    display: inline-block;
+    color: #172033;
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -0.055em;
+    text-decoration: none;
+  }
+
+  .profile-header {
+    padding: 0 0 48px;
+  }
+
+  .eyebrow {
+    margin: 54px 0 14px;
+    color: #687386;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+  }
+
+  .profile-header h1 {
+    max-width: 780px;
+    margin: 0;
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: clamp(36px, 6vw, 58px);
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+    color: #101828;
+  }
+
+  .specialty {
+    margin: 16px 0 0;
+    color: #263449;
+    font-size: clamp(18px, 2.5vw, 22px);
+    font-weight: 600;
+  }
+
+  .subspecialty {
+    margin: 6px 0 0;
+    color: #667085;
+    font-size: 15px;
+  }
+
+  .credentials {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    margin-top: 22px;
+    color: #4B5563;
+    font-size: 13px;
+  }
+
+  .credentials > span:first-child {
+    color: var(--profile-accent);
+    font-weight: 700;
+  }
+
+  .credential-list {
+    color: #475467;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .header-rule {
+    height: 1px;
+    margin-top: 38px;
+    background: #E4E7EC;
+  }
+
+  .profile-content {
+    max-width: 760px;
+  }
+
+  .profile-section {
+    padding: 28px 0 32px;
+    border-bottom: 1px solid #EAECF0;
+  }
+
+  .profile-section:first-child {
+    padding-top: 0;
+  }
+
+  .profile-section h2 {
+    margin: 0 0 18px;
+    color: #101828;
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+  }
+
+  .body-copy {
+    margin: 0;
+    color: #344054;
+    font-size: 16px;
+    line-height: 1.8;
+    white-space: pre-line;
+  }
+
+  .plain-list {
+    margin: 18px 0 0;
+    padding-left: 20px;
+    color: #344054;
+    line-height: 1.85;
+  }
+
+  .entry {
+    margin: 0 0 20px;
+  }
+
+  .entry:last-child {
+    margin-bottom: 0;
+  }
+
+  .entry h3,
+  .entry-title {
+    margin: 0;
+    color: #253348;
+    font-size: 15px;
+    font-weight: 650;
+  }
+
+  .entry p {
+    margin: 5px 0 0;
+    color: #667085;
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  .entry span {
+    display: inline-block;
+    margin-top: 5px;
+    color: #98A2B3;
+    font-size: 12px;
+  }
+
+  .entry-group {
+    margin-top: 26px;
+  }
+
+  .entry-group > h3 {
+    margin: 0 0 16px;
+    color: #475467;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .experience-years {
+    margin: 0 0 18px;
+    color: var(--profile-accent);
+    font-size: 15px;
+    font-weight: 650;
+  }
+
+  .verification p {
+    margin: 0;
+    color: #475467;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .profile-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 24px;
+    padding: 28px 0 0;
+  }
+
+  .profile-footer p {
+    margin: 0;
+    color: #98A2B3;
+    font-size: 12px;
+  }
+
+  .profile-footer a,
+  .profile-unavailable > a:last-child {
+    color: var(--profile-accent);
+    font-size: 13px;
+    font-weight: 650;
+    text-decoration: none;
+  }
+
+  .profile-footer a:hover,
+  .profile-unavailable > a:last-child:hover {
+    text-decoration: underline;
+  }
+
+  .profile-unavailable {
+    width: min(100% - 48px, 720px);
+    margin: 0 auto;
+    padding: 48px 0 96px;
+  }
+
+  .profile-unavailable h1 {
+    margin: 72px 0 12px;
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: clamp(30px, 5vw, 44px);
+    font-weight: 600;
+  }
+
+  .profile-unavailable p {
+    margin: 0 0 24px;
+    color: #667085;
+    line-height: 1.7;
+  }
+
+  @media (max-width: 640px) {
+    .public-profile {
+      width: min(100% - 32px, 980px);
+      padding-top: 24px;
+    }
+    .eyebrow {
+      margin-top: 42px;
+    }
+    .profile-header {
+      padding-bottom: 34px;
+    }
+    .profile-section {
+      padding: 24px 0 26px;
+    }
+    .profile-footer {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+  }
+</style>
