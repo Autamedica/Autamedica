@@ -6,6 +6,8 @@ import com.autamedica.android.domain.model.PatientSummary
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.DoctorRepository
 import com.autamedica.android.logging.SecureLog
+import com.autamedica.android.presentation.health.isPortugueseRuntime
+import com.autamedica.android.presentation.health.localizedCopy
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -55,13 +57,18 @@ class PatientsViewModel @Inject constructor(
 
     private fun loadPatients() {
         viewModelScope.launch {
+            val isPt = isPortugueseRuntime()
             val user = authRepository.getCurrentUser()
             if (user == null) {
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         isRefreshing = false,
-                        error = "Error de autenticacion",
+                        error = localizedCopy(
+                            "Error de autenticacion",
+                            "Erro de autenticação",
+                            isPt,
+                        ),
                     )
                 }
                 return@launch
@@ -85,7 +92,11 @@ class PatientsViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             isRefreshing = false,
-                            error = "Error al cargar pacientes",
+                            error = localizedCopy(
+                                "Error al cargar pacientes",
+                                "Erro ao carregar pacientes",
+                                isPt,
+                            ),
                         )
                     }
                 }
@@ -95,7 +106,11 @@ class PatientsViewModel @Inject constructor(
                     it.copy(
                         isLoading = false,
                         isRefreshing = false,
-                        error = "No se pudo identificar al doctor",
+                        error = localizedCopy(
+                            "No se pudo identificar al doctor",
+                            "Não foi possível identificar o médico",
+                            isPt,
+                        ),
                     )
                 }
             }

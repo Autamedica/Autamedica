@@ -23,6 +23,7 @@ import kotlinx.serialization.json.buildJsonObject
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -32,6 +33,8 @@ class FollowupRepositoryImpl @Inject constructor(
     private val supabaseClient: SupabaseClient,
     private val securePreferences: SecurePreferences,
 ) : FollowupRepository {
+
+    private val resolvedPatientIdCache = ConcurrentHashMap<String, String>()
 
     override suspend fun getActiveFollowupsForPatient(patientId: String): Result<List<AppointmentFollowup>> =
         withContext(ioDispatcher) {
@@ -146,6 +149,8 @@ class FollowupRepositoryImpl @Inject constructor(
                 ?: throw IllegalStateException("No authenticated user ID found")
         }
 
+        resolvedPatientIdCache[target]?.let { return it }
+
         // If target corresponds to auth.users.id, resolve to patients.id
         val resolvedFromUserId = try {
             supabaseClient.postgrest["patients"]
@@ -157,7 +162,12 @@ class FollowupRepositoryImpl @Inject constructor(
             null
         }
 
-        return resolvedFromUserId ?: target
+        if (!resolvedFromUserId.isNullOrBlank()) {
+            resolvedPatientIdCache[target] = resolvedFromUserId
+            return resolvedFromUserId
+        }
+
+        return target
     }
 }
 

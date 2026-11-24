@@ -22,6 +22,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import java.util.Locale
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ContinuityStatusViewModelTest {
@@ -190,6 +191,95 @@ class ContinuityStatusViewModelTest {
         assertThat(viewModel.openWhatsAppFollowup("1")).isTrue()
         assertThat(viewModel.openWhatsAppAudioAnamnesis()).isTrue()
     }
+
+    @Test
+    fun `fetchStatus skips active followups query when pending check-in exists`() = runTest {
+        fakeFollowupRepository.pendingCheckIn = AppointmentFollowup(
+            id = "fup_pending_only",
+            patientId = "patient_uuid_123",
+            doctorId = "doc_789",
+            recipientPhone = "5491122334455",
+            message = "Control",
+            scheduledFor = "2026-09-09T10:00:00Z",
+            status = FollowupStatus.SENT,
+            dedupeKey = "dedupe_pending",
+        )
+
+        val viewModel = ContinuityStatusViewModel(fakeFollowupRepository, fakeAuthRepository, fakeWhatsAppBridge)
+
+        assertThat(fakeFollowupRepository.getPendingCalls).isEqualTo(1)
+        assertThat(fakeFollowupRepository.getActiveCalls).isEqualTo(0)
+        assertThat(viewModel.uiState.value.request?.id).isEqualTo("fup_pending_only")
+    }
+
+    @Test
+    fun `fetchStatus falls back to active followups when no pending check-in exists`() = runTest {
+        fakeFollowupRepository.pendingCheckIn = null
+        fakeFollowupRepository.activeFollowups = listOf(
+            AppointmentFollowup(
+                id = "fup_active_01",
+                patientId = "patient_uuid_123",
+                doctorId = "doc_789",
+                recipientPhone = "5491122334455",
+                message = "Seguimiento activo",
+                scheduledFor = "2026-09-10T10:00:00Z",
+                status = FollowupStatus.RESPONDED,
+                dedupeKey = "dedupe_active",
+                response = "better",
+            ),
+        )
+
+        val viewModel = ContinuityStatusViewModel(fakeFollowupRepository, fakeAuthRepository, fakeWhatsAppBridge)
+
+        assertThat(fakeFollowupRepository.getPendingCalls).isEqualTo(1)
+        assertThat(fakeFollowupRepository.getActiveCalls).isEqualTo(1)
+        val state = viewModel.uiState.value
+        assertThat(state.isLoading).isFalse()
+        assertThat(state.status).isEqualTo("resolved")
+        assertThat(state.request?.id).isEqualTo("fup_active_01")
+    }
+
+    @Test
+    fun `fetchStatus exposes error state when both followup queries fail`() = runTest {
+        fakeFollowupRepository.pendingFailure = RuntimeException("timeout")
+        fakeFollowupRepository.activeFailure = RuntimeException("timeout")
+
+        val viewModel = ContinuityStatusViewModel(fakeFollowupRepository, fakeAuthRepository, fakeWhatsAppBridge)
+
+        val state = viewModel.uiState.value
+        assertThat(state.isLoading).isFalse()
+        assertThat(state.request).isNull()
+        assertThat(state.error).isNotNull()
+    }
+
+    @Test
+    fun `fetchStatus localizes clinical copy and CFM license in pt-BR`() = runTest {
+        val previousLocale = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale("pt", "BR"))
+            fakeFollowupRepository.pendingCheckIn = AppointmentFollowup(
+                id = "fup_pt_01",
+                patientId = "patient_uuid_123",
+                doctorId = "doc_789",
+                recipientPhone = "5555999999999",
+                eventType = "appointment.followup_48h",
+                message = "Controle pós-consulta",
+                scheduledFor = "2026-09-11T10:00:00Z",
+                status = FollowupStatus.SENT,
+                dedupeKey = "dedupe_pt",
+            )
+
+            val viewModel = ContinuityStatusViewModel(fakeFollowupRepository, fakeAuthRepository, fakeWhatsAppBridge)
+            val request = viewModel.uiState.value.request
+            assertThat(request).isNotNull()
+            assertThat(request?.assignedDoctor?.licenseNumber).isEqualTo("Registro CFM verificado")
+            assertThat(request?.assignedDoctor?.licenseNumber).doesNotContain("SISA")
+            assertThat(request?.intent).isEqualTo("Acompanhamento clínico pós-consulta 48 h")
+            assertThat(request?.medication?.name).isEqualTo("Tratamento prescrito")
+        } finally {
+            Locale.setDefault(previousLocale)
+        }
+    }
 }
 
 // ── Fakes ──
@@ -197,16 +287,25 @@ class ContinuityStatusViewModelTest {
 private class FakeFollowupRepository : FollowupRepository {
     var pendingCheckIn: AppointmentFollowup? = null
     var activeFollowups: List<AppointmentFollowup> = emptyList()
+    var pendingFailure: Throwable? = null
+    var activeFailure: Throwable? = null
+
+    var getPendingCalls: Int = 0
+    var getActiveCalls: Int = 0
 
     var lastSubmittedFollowupId: String? = null
     var lastSubmittedEvolution: String? = null
     var lastSubmittedNotes: String? = null
 
     override suspend fun getActiveFollowupsForPatient(patientId: String): Result<List<AppointmentFollowup>> {
+        getActiveCalls += 1
+        activeFailure?.let { return Result.failure(it) }
         return Result.success(activeFollowups)
     }
 
     override suspend fun getPendingCheckIn(patientId: String): Result<AppointmentFollowup?> {
+        getPendingCalls += 1
+        pendingFailure?.let { return Result.failure(it) }
         return Result.success(pendingCheckIn)
     }
 

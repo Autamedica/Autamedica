@@ -9,13 +9,18 @@ import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.FollowupRepository
 import com.autamedica.android.logging.SecureLog
 import com.autamedica.android.util.WhatsAppBridge
+import com.autamedica.android.presentation.common.UiErrorMapper
+import com.autamedica.android.presentation.health.isPortugueseRuntime
+import com.autamedica.android.presentation.health.localizedCopy
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import com.autamedica.android.presentation.common.UiErrorMapper
+import kotlinx.coroutines.withTimeout
 import javax.inject.Inject
 
 data class Medication(
@@ -76,9 +81,11 @@ class ContinuityStatusViewModel @Inject constructor(
 
     fun fetchStatus() {
         viewModelScope.launch {
+            val isPt = isPortugueseRuntime()
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
-                val user = authRepository.observeSession().firstOrNull()
+                val user = authRepository.getCurrentUser()
+                    ?: authRepository.observeSession().firstOrNull()
                 if (user == null) {
                     _uiState.update {
                         it.copy(
@@ -91,14 +98,28 @@ class ContinuityStatusViewModel @Inject constructor(
                     return@launch
                 }
 
-                // 1. Check for pending 48h check-in first
-                val pendingResult = followupRepository.getPendingCheckIn(user.id)
+                val (pendingResult, activeResult) = withTimeout(12_000L) {
+                    // 1. Check for pending 48h check-in first
+                    val pending = followupRepository.getPendingCheckIn(user.id)
+                    val pendingItem = pending.getOrNull()
+
+                    // 2. Fetch active followups history only when needed
+                    val active = if (pendingItem == null) {
+                        followupRepository.getActiveFollowupsForPatient(user.id)
+                    } else {
+                        null
+                    }
+                    pending to active
+                }
+
+                if (pendingResult.isFailure && (activeResult == null || activeResult.isFailure)) {
+                    throw (activeResult?.exceptionOrNull()
+                        ?: pendingResult.exceptionOrNull()
+                        ?: IllegalStateException("Failed to fetch followups"))
+                }
+
                 val pendingFollowup = pendingResult.getOrNull()
-
-                // 2. Fetch active followups history
-                val activeResult = followupRepository.getActiveFollowupsForPatient(user.id)
-                val activeFollowups = activeResult.getOrNull().orEmpty()
-
+                val activeFollowups = activeResult?.getOrNull().orEmpty()
                 val targetFollowup = pendingFollowup ?: activeFollowups.firstOrNull()
 
                 if (targetFollowup != null) {
@@ -110,33 +131,41 @@ class ContinuityStatusViewModel @Inject constructor(
                         else -> "acknowledged"
                     }
 
-                    val doctorName = targetFollowup.doctorName?.trim()?.ifBlank { null } ?: "Médico Tratante"
+                    val doctorName = targetFollowup.doctorName?.trim()?.ifBlank { null }
+                        ?: localizedCopy("Médico Tratante", "Médico Responsável", isPt)
                     val request = ContinuityRequest(
                         id = targetFollowup.id,
                         intent = if (targetFollowup.eventType == "appointment.followup_48h") {
-                            "Seguimiento clínico post-consulta 48h (Línea 4)"
+                            localizedCopy(
+                                "Seguimiento clínico post-consulta 48h (Línea 4)",
+                                "Acompanhamento clínico pós-consulta 48 h",
+                                isPt,
+                            )
                         } else {
                             targetFollowup.message
                         },
                         triageStatus = triage,
                         riskOfInterruption = "moderate",
                         medication = Medication(
-                            name = targetFollowup.metadata?.get("medication_name") ?: "Tratamiento prescripto",
-                            dose = targetFollowup.metadata?.get("medication_dose") ?: "Según pauta médica",
-                            frequency = targetFollowup.metadata?.get("medication_freq") ?: "Cada 24 horas (Mañana)",
+                            name = targetFollowup.metadata?.get("medication_name")
+                                ?: localizedCopy("Tratamiento prescripto", "Tratamento prescrito", isPt),
+                            dose = targetFollowup.metadata?.get("medication_dose")
+                                ?: localizedCopy("Según pauta médica", "Conforme prescrição médica", isPt),
+                            frequency = targetFollowup.metadata?.get("medication_freq")
+                                ?: localizedCopy("Cada 24 horas (Mañana)", "A cada 24 horas (Manhã)", isPt),
                             daysRemaining = 4,
                             isTakenToday = false,
                         ),
                         assignedDoctor = AssignedDoctorInfo(
                             name = doctorName,
-                            specialty = "Telemedicina & Continuidad",
-                            licenseNumber = "Matrícula SISA Verificada",
+                            specialty = localizedCopy("Telemedicina & Continuidad", "Telemedicina e Continuidade", isPt),
+                            licenseNumber = localizedCopy("Matrícula SISA Verificada", "Registro CFM verificado", isPt),
                         ),
                         createdAt = targetFollowup.scheduledFor,
                         acknowledgedAt = targetFollowup.sentAt,
                         inProgressAt = null,
                         resolvedAt = if (targetFollowup.status == FollowupStatus.RESPONDED) targetFollowup.sentAt else null,
-                        resolutionDeadline = "En las próximas 24 horas hábiles",
+                        resolutionDeadline = localizedCopy("En las próximas 24 horas hábiles", "Nas próximas 24 horas úteis", isPt),
                         adherenceScore = 88,
                         dosesTakenInCycle = 26,
                         totalDosesInCycle = 30,
@@ -162,9 +191,35 @@ class ContinuityStatusViewModel @Inject constructor(
                         )
                     }
                 }
+            } catch (e: TimeoutCancellationException) {
+                SecureLog.warn("[ContinuityStatusViewModel] Timed out loading status", e)
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = localizedCopy(
+                            "La sincronización tardó demasiado. Tocá Reintentar para volver a consultar.",
+                            "A sincronização demorou demais. Toque em Tentar novamente.",
+                            isPt,
+                        ),
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 SecureLog.error("[ContinuityStatusViewModel] Failed to load status", e)
-                _uiState.update { it.copy(isLoading = false, error = UiErrorMapper.map(e, "No se pudo cargar el estado de continuidad")) }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = UiErrorMapper.map(
+                            e,
+                            localizedCopy(
+                                "No se pudo cargar el estado de continuidad",
+                                "Não foi possível carregar o estado de continuidade",
+                                isPt,
+                            ),
+                        ),
+                    )
+                }
             }
         }
     }
@@ -188,10 +243,15 @@ class ContinuityStatusViewModel @Inject constructor(
             adherenceScore = newScore,
         )
 
+        val isPt = isPortugueseRuntime()
         _uiState.update {
             it.copy(
                 request = updatedRequest,
-                feedbackMessage = "Toma registrada con éxito. Score de adherencia actualizado a $newScore%.",
+                feedbackMessage = localizedCopy(
+                    "Toma registrada con éxito. Score de adherencia actualizado a $newScore%.",
+                    "Dose registrada com sucesso. Score de adesão atualizado para $newScore%.",
+                    isPt,
+                ),
             )
         }
     }
@@ -203,6 +263,7 @@ class ContinuityStatusViewModel @Inject constructor(
      */
     fun submitPostConsultationCheckIn(state: String) {
         val currentRequest = _uiState.value.request ?: return
+        val isPt = isPortugueseRuntime()
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmittingCheckIn = true) }
 
@@ -218,10 +279,26 @@ class ContinuityStatusViewModel @Inject constructor(
             )
 
             val feedback = when (normalizedKey) {
-                "better" -> "¡Excelente! Tu reporte de mejoría fue guardado en tu historia clínica."
-                "stable" -> "Evolución estable registrada. Mantené tu esquema terapéutico habitual."
-                "worse" -> "Alerta clínica prioritaria activada. Tu médico tratante ha sido notificado."
-                else -> "Estado registrado correctamente."
+                "better" -> localizedCopy(
+                    "¡Excelente! Tu reporte de mejoría fue guardado en tu historia clínica.",
+                    "Excelente! Seu relato de melhora foi salvo no seu prontuário.",
+                    isPt,
+                )
+                "stable" -> localizedCopy(
+                    "Evolución estable registrada. Mantené tu esquema terapéutico habitual.",
+                    "Evolução estável registrada. Mantenha seu esquema terapêutico habitual.",
+                    isPt,
+                )
+                "worse" -> localizedCopy(
+                    "Alerta clínica prioritaria activada. Tu médico tratante ha sido notificado.",
+                    "Alerta clínico prioritário ativado. Seu médico responsável foi notificado.",
+                    isPt,
+                )
+                else -> localizedCopy(
+                    "Estado registrado correctamente.",
+                    "Estado registrado com sucesso.",
+                    isPt,
+                )
             }
 
             // 2. Persist to Supabase
@@ -256,6 +333,7 @@ class ContinuityStatusViewModel @Inject constructor(
     }
 
     fun requestNewContinuity() {
+        val isPt = isPortugueseRuntime()
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             _uiState.update {
@@ -264,26 +342,34 @@ class ContinuityStatusViewModel @Inject constructor(
                     status = "active",
                     request = ContinuityRequest(
                         id = "req_cont_${System.currentTimeMillis() % 10000}",
-                        intent = "Solicitud de seguimiento y renovación de receta",
+                        intent = localizedCopy(
+                            "Solicitud de seguimiento y renovación de receta",
+                            "Solicitação de acompanhamento e renovação de receita",
+                            isPt,
+                        ),
                         triageStatus = "pending",
                         riskOfInterruption = "moderate",
                         medication = Medication(
-                            name = "Tratamiento en revisión",
-                            dose = "Según indicación médica",
-                            frequency = "A determinar por profesional",
+                            name = localizedCopy("Tratamiento en revisión", "Tratamento em revisão", isPt),
+                            dose = localizedCopy("Según indicación médica", "Conforme orientação médica", isPt),
+                            frequency = localizedCopy("A determinar por profesional", "A definir pelo profissional", isPt),
                             daysRemaining = 3,
                             isTakenToday = false,
                         ),
                         assignedDoctor = null,
-                        createdAt = "Hoy, recién",
+                        createdAt = localizedCopy("Hoy, recién", "Hoje, agora", isPt),
                         acknowledgedAt = null,
                         resolvedAt = null,
-                        resolutionDeadline = "En las próximas 24 horas hábiles",
+                        resolutionDeadline = localizedCopy("En las próximas 24 horas hábiles", "Nas próximas 24 horas úteis", isPt),
                         adherenceScore = 85,
                         dosesTakenInCycle = 25,
                         totalDosesInCycle = 30,
                     ),
-                    feedbackMessage = "Nueva solicitud de continuidad generada con éxito.",
+                    feedbackMessage = localizedCopy(
+                        "Nueva solicitud de continuidad generada con éxito.",
+                        "Nova solicitação de continuidade gerada com sucesso.",
+                        isPt,
+                    ),
                 )
             }
         }
