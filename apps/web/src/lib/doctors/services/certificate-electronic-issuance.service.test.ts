@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { assertElectronicCertificateEligible, issueElectronicCertificate, type ElectronicCertificateSource } from './certificate-electronic-issuance.service';
+import { assertElectronicCertificateEligible, formatCertificateCareModality, issueElectronicCertificate, type ElectronicCertificateSource } from './certificate-electronic-issuance.service';
 import { certificateAssetPath, assertCertificateImage } from './certificate-electronic-assets';
 
 const source = (): ElectronicCertificateSource => ({
@@ -14,6 +14,9 @@ const source = (): ElectronicCertificateSource => ({
 });
 
 describe('Argentine electronic certificate boundaries', () => {
+  it.each([['telemedicine', 'Telemedicina'], ['consultation', 'Consulta'], ['follow_up', 'Seguimiento'], ['emergency', 'Emergencia'], [null, null]])('maps recorded appointment type %s', (value, expected) => {
+    expect(formatCertificateCareModality(value)).toBe(expected);
+  });
   it('accepts a validated Argentine doctor with both assets and consistent inclusive dates', () => {
     expect(() => assertElectronicCertificateEligible(source())).not.toThrow();
   });

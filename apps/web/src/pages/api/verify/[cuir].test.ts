@@ -152,6 +152,9 @@ describe('public prescription verification must fail closed until trusted signin
       country_code: 'AR',
       created_at: '2026-11-06T11:00:00Z',
       qr_code_content: 'SAFE-PUBLIC-VERIFY-CODE',
+      days_of_rest: 5,
+      start_date: '2026-11-20',
+      end_date: '2026-11-24',
     };
 
     const result = await verify();
@@ -160,9 +163,11 @@ describe('public prescription verification must fail closed until trusted signin
       valid: true,
       documentType: 'certificate',
       prescription: null,
-      certificate: { cuir: 'TEST-DOCUMENT-CUIR', signatureMethod: 'ac_external', pdfUrl: null },
+      certificate: { cuir: 'TEST-DOCUMENT-CUIR', signatureMethod: 'ac_external', pdfUrl: null, daysOfRest: 5, startDate: '2026-11-20', endDate: '2026-11-24', verificationStatus: 'valid' },
     });
     expect(JSON.stringify(result.body)).not.toContain('private.example.invalid');
+    expect(JSON.stringify(result.body)).not.toContain('private-patient-uuid');
+    expect(JSON.stringify(result.body)).not.toContain('diagnosis');
   });
 
   it('returns invalid for missing prescriptions and certificates', async () => {

@@ -17,6 +17,7 @@ export interface MedicalCertificatePdfInput {
   diagnosis?: string | null;
   hideDiagnosis?: boolean;
   countryCode?: 'AR' | 'BR';
+  careModality?: string | null;
   cid10Code?: string | null;
   cidPatientRequested?: boolean;
   cidConsentRecordedAt?: string | null;
@@ -158,6 +159,7 @@ export function generateMedicalCertificatePdf(
   }
   if (input.treatment && !isBrazil) field('Tratamiento indicado', input.treatment);
   const restHours = Number(input.restHours ?? 0);
+  if (!isBrazil && mode !== 'draft' && input.careModality?.trim()) field('Modalidad de atención', input.careModality);
   field(isBrazil ? 'Afastamento indicado' : 'Reposo indicado',
     isBrazil
       ? restHours > 0

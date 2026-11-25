@@ -2,6 +2,12 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { generateMedicalCertificatePdf } from './pdf-medical-certificate.service';
 import { certificateAssetPath, certificateSha256, assertCertificateImage } from './certificate-electronic-assets';
 
+export function formatCertificateCareModality(appointmentType: unknown): string | null {
+  if (typeof appointmentType !== 'string' || !appointmentType.trim()) return null;
+  const labels: Record<string, string> = { telemedicine: 'Telemedicina', consultation: 'Consulta', follow_up: 'Seguimiento', emergency: 'Emergencia' };
+  return labels[appointmentType] ?? appointmentType.trim();
+}
+
 export const ELECTRONIC_CONFIRMATION = 'Confirmo el contenido clínico y autorizo aplicar mi firma y sello a este certificado mediante firma electrónica.';
 
 type Row = Record<string, unknown>;
@@ -113,12 +119,14 @@ export async function issueElectronicCertificate(
   assertElectronicCertificateEligible(source);
   const { certificate: cert, doctor, profile, patient, patientProfile } = source;
   if (doctor.user_id !== userId) throw new Error('certificate_not_owned');
+  let careModality: string | null = null;
   if (cert.appointment_id) {
-    const { data, error } = await admin.from('appointments').select('id')
+    const { data, error } = await admin.from('appointments').select('id,type')
       .eq('id', cert.appointment_id).eq('doctor_id', doctor.id)
       .eq('patient_id', cert.patient_id).maybeSingle();
     if (error) throw error;
     if (!data) throw new Error('certificate_appointment_mismatch');
+    careModality = formatCertificateCareModality(data.type);
   }
   const loadAsset = async (type: 'signature' | 'stamp'): Promise<Uint8Array> => {
     const value = doctor[`${type}_image_url`] || doctor[`${type}_url`];
@@ -136,6 +144,7 @@ export async function issueElectronicCertificate(
     patientName: name(patientProfile), patientDni: String(patient.dni),
     doctorName: name(profile), doctorLicense: String(doctor.license_number),
     jurisdiction: String(doctor.enrollment_jurisdiction ?? ''),
+    careModality,
     diagnosis: cert.diagnosis as string | null, hideDiagnosis: cert.hide_diagnosis === true,
     treatment: cert.treatment as string | null, observations: cert.observations as string | null,
     daysOfRest: Number(cert.days_of_rest), startDate: String(cert.start_date),

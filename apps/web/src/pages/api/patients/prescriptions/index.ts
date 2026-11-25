@@ -17,7 +17,8 @@ interface ClinicalDataShape {
 interface PrescriptionRow {
   id: string; status: string; cuir: string | null; signed_pdf_url: string | null;
   qr_code_content: string | null; clinical_data: unknown; doctor_id: string;
-  vendor_id?: string | null; vendor_name?: string | null; signature_method?: string | null; created_at: string;
+  vendor_id?: string | null; vendor_name?: string | null; signature_method?: string | null;
+  country_code?: string | null; created_at: string;
 }
 interface MemedRow {
   id: string; doctor_id: string; patient_id: string; memed_id: string; status: string;
@@ -75,7 +76,11 @@ function memedAccessCode(value: unknown, depth = 0): string | null {
   }
   return null;
 }
-function mapCore(row: PrescriptionRow, doctorName: string): PatientPrescriptionDTO & { provider: string } {
+export function supportsPatientPdfDownload(row: Pick<PrescriptionRow, 'status' | 'signature_method' | 'country_code'>): boolean {
+  return row.status === 'active' && (row.signature_method === 'ac_external' || (row.country_code === 'AR' && row.signature_method === 'electronic_simple'));
+}
+
+export function mapCore(row: PrescriptionRow, doctorName: string): PatientPrescriptionDTO & { provider: string } {
   const clinical = asObject(row.clinical_data) as ClinicalDataShape;
   const primaryMed = clinical.medications?.[0];
   const primaryItem = clinical.items?.[0];
@@ -87,7 +92,7 @@ function mapCore(row: PrescriptionRow, doctorName: string): PatientPrescriptionD
     instructions: clinical.instructions ?? primaryMed?.instructions ?? primaryItem?.instructions ?? '',
     status: row.status,
     cuir: row.cuir,
-    signedPdfUrl: row.status === 'active' && row.signature_method === 'ac_external' ? `/api/doctors/prescriptions/${encodeURIComponent(row.id)}/pdf` : null,
+    signedPdfUrl: supportsPatientPdfDownload(row) ? `/api/doctors/prescriptions/${encodeURIComponent(row.id)}/pdf` : null,
     prescribedDate: row.created_at,
     expiresAt: null,
     doctorName,
@@ -114,7 +119,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
     const [coreResult, memedResult] = await Promise.all([
       admin.from('prescriptions')
-        .select('id,status,cuir,signed_pdf_url,qr_code_content,clinical_data,doctor_id,vendor_id,vendor_name,signature_method,created_at')
+        .select('id,status,cuir,signed_pdf_url,qr_code_content,clinical_data,doctor_id,vendor_id,vendor_name,signature_method,country_code,created_at')
         .eq('patient_id', context.patientId)
         .neq('status', 'draft')
         .order('created_at', { ascending: false }),
