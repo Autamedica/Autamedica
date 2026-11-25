@@ -49,9 +49,10 @@ export const GET: APIRoute = async ({ request, locals }) => {
       walletCurrency: storedWallet?.currency,
     })
 
-    if (!resolved.ok && resolved.error !== 'billing_currency_unresolved') {
+    const resolutionError = !resolved.ok && 'error' in resolved ? resolved.error : null
+    if (resolutionError && resolutionError !== 'billing_currency_unresolved') {
       return new Response(
-        JSON.stringify({ success: false, error: resolved.error }),
+        JSON.stringify({ success: false, error: resolutionError }),
         { status: 409, headers: { 'Content-Type': 'application/json' } },
       )
     }
@@ -82,7 +83,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
         available_credit_cents: 0,
         locked_credit_cents: 0,
         total_credit_cents: 0,
-        currency: resolved.ok ? resolved.currency : null,
+        currency: resolved.ok && 'currency' in resolved ? resolved.currency : null,
       },
       movements: movements ?? [],
     })

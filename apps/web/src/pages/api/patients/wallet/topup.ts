@@ -70,9 +70,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
       walletCurrency: storedWallet?.currency,
     })
 
-    if (!resolved.ok) {
+    if (!resolved.ok || !('currency' in resolved)) {
+      const errorCode = 'error' in resolved ? resolved.error : 'billing_currency_unresolved'
       return new Response(
-        JSON.stringify({ success: false, error: resolved.error }),
+        JSON.stringify({ success: false, error: errorCode }),
         { status: 409, headers: { 'Content-Type': 'application/json' } },
       )
     }
