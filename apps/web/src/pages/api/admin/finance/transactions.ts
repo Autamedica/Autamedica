@@ -3,6 +3,8 @@ import { logger } from '@autamedica/shared';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { internalError, jsonOk, unauthorized } from '@/lib/api-helpers';
 
+export const prerender = false;
+
 async function assertAdmin(
   request: Request,
   admin: ReturnType<typeof createAstroAdminClient>,
@@ -52,40 +54,13 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const search = url.searchParams.get('q') || '';
     const statusFilter = url.searchParams.get('status') || '';
 
-    // Query appointment_payments with sub-joins
+    // Query flat rows and hydrate patient/doctor/earning maps cleanly in parallel
+    // so PostgREST relationship ambiguity never throws 500.
     let query = admin
       .from('appointment_payments')
-      .select(`
-        id,
-        appointment_id,
-        gross_amount,
-        currency,
-        status,
-        provider,
-        provider_payment_id,
-        metadata,
-        paid_at,
-        created_at,
-        patient:patients(
-          id,
-          profile:profiles(first_name, last_name, email)
-        ),
-        doctor:doctors(
-          id,
-          payout_cbu,
-          payout_alias,
-          profile:profiles(first_name, last_name, email)
-        ),
-        earning:doctor_earnings(
-          id,
-          net_amount,
-          platform_fee_amount,
-          processor_fee_amount,
-          status,
-          paid_at
-        )
-      `)
-      .order('created_at', { ascending: false });
+      .select('id, appointment_id, patient_id, doctor_id, gross_amount, currency, status, provider, provider_payment_id, metadata, paid_at, created_at')
+      .order('created_at', { ascending: false })
+      .limit(500);
 
     if (statusFilter) {
       query = query.eq('status', statusFilter);
@@ -94,25 +69,74 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const { data: rawPayments, error } = await query;
     if (error) throw error;
 
+    const basePayments = rawPayments || [];
+    const paymentIds = basePayments.map((p: any) => p.id).filter(Boolean);
+    const patientIds = [...new Set(basePayments.map((p: any) => p.patient_id).filter(Boolean))];
+    const doctorIds = [...new Set(basePayments.map((p: any) => p.doctor_id).filter(Boolean))];
+
+    const [
+      { data: patientsRows, error: patientsErr },
+      { data: doctorsRows, error: doctorsErr },
+      { data: earningsRows, error: earningsErr },
+    ] = await Promise.all([
+      patientIds.length
+        ? admin.from('patients').select('id, user_id').in('id', patientIds)
+        : Promise.resolve({ data: [], error: null }),
+      doctorIds.length
+        ? admin.from('doctors').select('id, user_id, payout_cbu, payout_alias').in('id', doctorIds)
+        : Promise.resolve({ data: [], error: null }),
+      paymentIds.length
+        ? admin
+            .from('doctor_earnings')
+            .select('id, appointment_payment_id, net_amount, platform_fee_amount, processor_fee_amount, status, paid_at')
+            .in('appointment_payment_id', paymentIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+
+    if (patientsErr) throw patientsErr;
+    if (doctorsErr) throw doctorsErr;
+    if (earningsErr) throw earningsErr;
+
+    const userIds = [
+      ...new Set([
+        ...(patientsRows || []).map((row: any) => row.user_id).filter(Boolean),
+        ...(doctorsRows || []).map((row: any) => row.user_id).filter(Boolean),
+      ]),
+    ];
+
+    const { data: profilesRows, error: profilesErr } = userIds.length
+      ? await admin.from('profiles').select('user_id, first_name, last_name, email').in('user_id', userIds)
+      : { data: [], error: null };
+    if (profilesErr) throw profilesErr;
+
+    const patientById = new Map<string, any>((patientsRows || []).map((row: any) => [row.id, row]));
+    const doctorById = new Map<string, any>((doctorsRows || []).map((row: any) => [row.id, row]));
+    const profileByUserId = new Map<string, any>((profilesRows || []).map((row: any) => [row.user_id, row]));
+    const earningByPaymentId = new Map<string, any>((earningsRows || []).map((row: any) => [row.appointment_payment_id, row]));
+
     // Filter by search query if present
-    let payments = rawPayments || [];
+    let payments = basePayments;
     if (search) {
       const lower = search.toLowerCase();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       payments = payments.filter((p: any) => {
-        const patientName = `${p.patient?.profile?.first_name || ''} ${p.patient?.profile?.last_name || ''}`.toLowerCase();
-        const doctorName = `${p.doctor?.profile?.first_name || ''} ${p.doctor?.profile?.last_name || ''}`.toLowerCase();
+        const pat = patientById.get(p.patient_id);
+        const doc = doctorById.get(p.doctor_id);
+        const patProfile = pat?.user_id ? profileByUserId.get(pat.user_id) : null;
+        const docProfile = doc?.user_id ? profileByUserId.get(doc.user_id) : null;
+        const patientName = `${patProfile?.first_name || ''} ${patProfile?.last_name || ''}`.toLowerCase();
+        const doctorName = `${docProfile?.first_name || ''} ${docProfile?.last_name || ''}`.toLowerCase();
         const paymentId = (p.provider_payment_id || '').toLowerCase();
         return patientName.includes(lower) || doctorName.includes(lower) || paymentId.includes(lower);
       });
     }
 
     // Format list for frontend
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const formatted = payments.map((p: any) => {
-      const patProfile = p.patient?.profile;
-      const docProfile = p.doctor?.profile;
-      const earn = Array.isArray(p.earning) ? p.earning[0] : p.earning;
+      const pat = patientById.get(p.patient_id);
+      const doc = doctorById.get(p.doctor_id);
+      const patProfile = pat?.user_id ? profileByUserId.get(pat.user_id) : null;
+      const docProfile = doc?.user_id ? profileByUserId.get(doc.user_id) : null;
+      const earn = earningByPaymentId.get(p.id) ?? null;
 
       return {
         id: p.id,
@@ -127,16 +151,16 @@ export const GET: APIRoute = async ({ request, locals }) => {
         paidAt: p.paid_at,
         createdAt: p.created_at,
         patient: {
-          id: p.patient?.id || '',
-          name: patProfile ? `${patProfile.first_name} ${patProfile.last_name}` : 'Paciente Desconocido',
+          id: pat?.id || p.patient_id || '',
+          name: patProfile ? `${patProfile.first_name || ''} ${patProfile.last_name || ''}`.trim() || 'Paciente Desconocido' : 'Paciente Desconocido',
           email: patProfile?.email || '',
         },
         doctor: {
-          id: p.doctor?.id || '',
-          name: docProfile ? `${docProfile.first_name} ${docProfile.last_name}` : 'Médico Desconocido',
+          id: doc?.id || p.doctor_id || '',
+          name: docProfile ? `${docProfile.first_name || ''} ${docProfile.last_name || ''}`.trim() || 'Médico Desconocido' : 'Médico Desconocido',
           email: docProfile?.email || '',
-          cbu: p.doctor?.payout_cbu || null,
-          alias: p.doctor?.payout_alias || null,
+          cbu: doc?.payout_cbu || null,
+          alias: doc?.payout_alias || null,
         },
         earning: earn ? {
           id: earn.id,

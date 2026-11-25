@@ -3,6 +3,8 @@ import { logger } from '@autamedica/shared';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { internalError, jsonOk, unauthorized } from '@/lib/api-helpers';
 
+export const prerender = false;
+
 async function assertAdmin(
   request: Request,
   admin: ReturnType<typeof createAstroAdminClient>,
@@ -71,9 +73,9 @@ export const GET: APIRoute = async ({ request, locals }) => {
       grossApproved: 0, grossRefunded: 0, grossPending: 0,
       platformFees: 0, processorFees: 0, pendingPayouts: 0, paidPayouts: 0,
     });
-    const totalsFor = (currency: string): CurrencyTotals => {
-      if (!['ARS', 'BRL'].includes(currency)) throw new Error('unsupported_finance_currency');
-      return byCurrency[currency] ?? (byCurrency[currency] = emptyTotals());
+    const totalsFor = (currency: string | null | undefined): CurrencyTotals => {
+      const normalized = String(currency ?? '').trim().toUpperCase() || 'UNKNOWN';
+      return byCurrency[normalized] ?? (byCurrency[normalized] = emptyTotals());
     };
 
     for (const payment of payments ?? []) {

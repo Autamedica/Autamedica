@@ -6,6 +6,8 @@ import { createAstroAdminClient } from '@/lib/supabase'
 import { getRuntimeEnvValue } from '@/lib/runtime-env'
 import { classifyPspEvidence, type LocalPspPayment, type PspPaymentEvidence } from '@/lib/payments/psp-reconciliation'
 
+export const prerender = false
+
 type BucketName = 'missing_reference' | 'invalid_reference' | 'psp_consistent' | 'psp_mismatch' | 'psp_pending' | 'provider_unavailable'
 type Counter = { total: number; byBucket: Record<BucketName, number> }
 const makeCounter = (): Counter => ({

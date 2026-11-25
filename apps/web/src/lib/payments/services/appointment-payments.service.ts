@@ -12,6 +12,7 @@ import {
   calculatePlatformFeeAmount,
 } from '@/lib/payments/constants'
 import { centsToMajorUnit, majorUnitToCents } from '@/lib/payments/money'
+import { getMercadoPagoMarketToken, type BillingCurrency } from '@/lib/payments/billing-currency'
 import { careEpisodesService } from '@/lib/clinical-safety/services/care-episodes.service'
 import { getOperationalPaymentSwitches } from '@/lib/payments/operational-switches'
 
@@ -103,8 +104,12 @@ function assertWebhookRuntimeConfigured(): void {
   getAppUrl()
 }
 
-async function mpFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = getMercadoPagoToken()
+async function mpFetch<T>(
+  path: string,
+  options: RequestInit = {},
+  overrideToken?: string,
+): Promise<T> {
+  const token = overrideToken ?? getMercadoPagoToken()
   const res = await fetch(`${MERCADOPAGO_API}${path}`, {
     ...options,
     headers: {
@@ -896,42 +901,63 @@ export const appointmentPaymentsService = {
     patientId: string,
     amountCents: number,
     patientEmail: string,
+    currency: BillingCurrency,
+    runtimeEnv?: Record<string, unknown>,
   ): Promise<{
     preferenceId: string
     checkoutUrl: string
   }> {
     assertWebhookRuntimeConfigured()
 
+    const token = getMercadoPagoMarketToken(
+      currency,
+      (name) =>
+        (runtimeEnv?.[name] as string | undefined)
+        ?? getRuntimeEnvValue(name)
+        ?? (import.meta.env as Record<string, string | undefined> | undefined)?.[name],
+    )
+    if (!token) {
+      throw new Error(currency === 'BRL' ? 'mercadopago_br_token_missing' : 'mercadopago_ar_token_missing')
+    }
+
     const appUrl = getAppUrl()
     const amount = centsToMajorUnit(amountCents)
-    const mpResponse = await mpFetch<MercadoPagoPreferenceResponse>('/checkout/preferences', {
-      method: 'POST',
-      body: JSON.stringify({
-        items: [{
-          title: 'AutaMedica - Carga de Saldo',
-          description: `Carga de credito virtual en billetera para consultas medicas en AutaMedica`,
-          quantity: 1,
-          unit_price: amount,
-          currency_id: APPOINTMENT_PAYMENT_CURRENCY,
-        }],
-        payer: {
-          email: patientEmail,
-        },
-        back_urls: {
-          success: `${appUrl}/patients/appointments?payment=success&type=wallet_topup`,
-          failure: `${appUrl}/patients/appointments?payment=failure&type=wallet_topup`,
-          pending: `${appUrl}/patients/appointments?payment=pending&type=wallet_topup`,
-        },
-        auto_return: 'approved',
-        statement_descriptor: MERCADOPAGO_STATEMENT_DESCRIPTOR,
-        notification_url: `${appUrl}/api/payments/mercadopago/webhook`,
-        metadata: {
-          type: 'wallet_topup',
-          patient_id: patientId,
-          amount_cents: amountCents,
-        },
-      }),
-    })
+    const isBrazil = currency === 'BRL'
+    const mpResponse = await mpFetch<MercadoPagoPreferenceResponse>(
+      '/checkout/preferences',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          items: [{
+            title: isBrazil ? 'AutaMedica - Adicionar Saldo' : 'AutaMedica - Carga de Saldo',
+            description: isBrazil
+              ? 'Crédito virtual na carteira para consultas médicas na AutaMedica'
+              : 'Carga de credito virtual en billetera para consultas medicas en AutaMedica',
+            quantity: 1,
+            unit_price: amount,
+            currency_id: currency,
+          }],
+          payer: {
+            email: patientEmail,
+          },
+          back_urls: {
+            success: `${appUrl}/patients/appointments?payment=success&type=wallet_topup`,
+            failure: `${appUrl}/patients/appointments?payment=failure&type=wallet_topup`,
+            pending: `${appUrl}/patients/appointments?payment=pending&type=wallet_topup`,
+          },
+          auto_return: 'approved',
+          statement_descriptor: MERCADOPAGO_STATEMENT_DESCRIPTOR,
+          notification_url: `${appUrl}/api/payments/mercadopago/webhook`,
+          metadata: {
+            type: 'wallet_topup',
+            patient_id: patientId,
+            amount_cents: amountCents,
+            currency,
+          },
+        }),
+      },
+      token,
+    )
 
     return {
       preferenceId: mpResponse.id,

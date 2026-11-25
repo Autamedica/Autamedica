@@ -79,6 +79,7 @@ export function FinanceAdminDashboard() {
   const [refundError, setRefundError] = useState<string | null>(null);
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const isDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
   const bypassParam = isDev ? '?dev_admin=1' : '';
@@ -105,6 +106,7 @@ export function FinanceAdminDashboard() {
 
   const fetchData = async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       // 1. Fetch summary
       const sumRes = await fetchApi<{ success: boolean; summary: SummaryData }>(`/api/admin/finance/summary${bypassParam}`);
@@ -120,6 +122,7 @@ export function FinanceAdminDashboard() {
       }
     } catch (err) {
       console.error('[FinanceAdminDashboard] Error fetching financial data:', err);
+      setFetchError(err instanceof Error ? err.message : 'No se pudieron cargar los datos financieros.');
     } finally {
       setLoading(false);
     }
@@ -225,6 +228,11 @@ export function FinanceAdminDashboard() {
 
   return (
     <div className="space-y-8">
+      {fetchError && (
+        <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          {fetchError}
+        </div>
+      )}
       <PaymentGovernancePanel />
       <ReferralCommissionPayouts />
       <AIGovernanceWorkbench />
@@ -695,9 +703,11 @@ function ReferralCommissionPayouts() {
 
   const load = async () => {
     try {
-      const response = await fetch('/api/admin/finance/pharmacy-payments?view=commissions');
-      const payload = await response.json();
-      if (!response.ok || !payload.success) throw new Error(payload.error ?? 'No se pudieron cargar las comisiones');
+      const response = await fetch('/api/admin/finance/pharmacy-payments?view=commissions', {
+        credentials: 'include',
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.success) throw new Error(payload?.error ?? 'No se pudieron cargar las comisiones');
       setRows(payload.data ?? []);
       setError('');
     } catch (err) {
@@ -718,11 +728,12 @@ function ReferralCommissionPayouts() {
     try {
       const response = await fetch('/api/admin/finance/pharmacy-payments', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ commissionId: id, paymentReference }),
       });
-      const payload = await response.json();
-      if (!response.ok || !payload.success) throw new Error(payload.error ?? 'No se pudo liquidar la comisión');
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.success) throw new Error(payload?.error ?? 'No se pudo liquidar la comisión');
       setSuccess('Comisión liquidada y referencia registrada.');
       setReferences(current => ({ ...current, [id]: '' }));
       await load();

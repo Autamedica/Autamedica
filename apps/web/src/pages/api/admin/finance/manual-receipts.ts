@@ -5,6 +5,8 @@ import { badRequest, conflict, forbidden, internalError, jsonOk } from '@/lib/ap
 import { createAstroAdminClient } from '@/lib/supabase';
 import { logger } from '@autamedica/shared';
 
+export const prerender = false;
+
 const scope = ['admin', 'platform_admin'] as const;
 const receiptSchema = z.object({
   country_code: z.enum(['BR', 'AR']),

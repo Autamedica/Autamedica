@@ -4,6 +4,8 @@ import { createAstroAdminClient } from '@/lib/supabase';
 import { internalError, jsonOk } from '@/lib/api-helpers';
 import { logger } from '@autamedica/shared';
 
+export const prerender = false;
+
 /** Aggregate counters for attendance review. Never returns patient identifiers. */
 export const GET: APIRoute = async ({ request, locals }) => {
   const auth = await withAuthRole(request, ['platform_admin','admin'], locals);
