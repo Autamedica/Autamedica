@@ -3,6 +3,7 @@ import { logger } from '@autamedica/shared'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { getRuntimeEnvValue } from '@/lib/runtime-env'
 import { badRequest, internalError, jsonOk, unauthorized } from '@/lib/api-helpers'
+export const prerender = false
 type RefundActor = { ok: boolean; userId?: string; role?: string }
 async function assertAdmin(request: Request, admin: ReturnType<typeof createAstroAdminClient>, locals?: any): Promise<RefundActor> {
   if (locals?.session?.user) {

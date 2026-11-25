@@ -48,7 +48,7 @@ type PatientWalletSummary = {
     available_credit_cents: number
     locked_credit_cents: number
     total_credit_cents: number
-    currency: string
+    currency: string | null
   }
 }
 
@@ -61,14 +61,23 @@ interface HealthReserveData {
   subscription_status: string
 }
 
-function formatWalletBalance(cents: number | null | undefined, locale?: Locale): string {
+function normalizeWalletCurrency(currency: string | null | undefined): 'BRL' | 'ARS' | null {
+  const normalized = currency?.trim().toUpperCase()
+  return normalized === 'BRL' || normalized === 'ARS' ? normalized : null
+}
+
+function formatWalletBalance(
+  cents: number | null | undefined,
+  walletCurrency: string | null | undefined,
+): string {
+  const currencyCode = normalizeWalletCurrency(walletCurrency)
+  if (!currencyCode) return '—'
   const amount = cents ? cents / 100 : 0
-  const currencyCode = locale === 'pt' ? 'BRL' : 'ARS'
-  const numberLocale = locale === 'pt' ? 'pt-BR' : 'es-AR'
+  const numberLocale = currencyCode === 'BRL' ? 'pt-BR' : 'es-AR'
   return new Intl.NumberFormat(numberLocale, {
     style: 'currency',
     currency: currencyCode,
-    maximumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(amount)
 }
 
@@ -151,6 +160,14 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
 
   const handleTopup = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!walletCurrency) {
+      setTopupError(
+        locale === 'pt'
+          ? 'Complete seu CPF ou país de atendimento no Perfil antes de adicionar saldo.'
+          : 'Completá tu DNI o país de atención en Perfil antes de cargar saldo.',
+      )
+      return
+    }
     const parsed = parseFloat(topupAmount)
     if (isNaN(parsed) || parsed <= 0) return
 
@@ -160,7 +177,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
     try {
       const response = await fetchApi<{ checkoutUrl: string }>('/api/patients/wallet/topup', {
         method: 'POST',
-        body: JSON.stringify({ amountArs: parsed }),
+        body: { amount: parsed },
       })
 
       if (response.checkoutUrl) {
@@ -176,6 +193,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
     }
   }
 
+  const walletCurrency = normalizeWalletCurrency(walletSummary?.balance.currency)
   const firstName = getFirstName(profile, user)
   const greeting = hasHydrated ? getGreeting(dict) : (dict.patientPortal.greetings.hello ?? 'Hola')
   const freeConsults = patient?.freeConsultationsRemaining ?? 0
@@ -187,7 +205,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
       return `${freeConsults} ${dict.patientPortal.metrics.freeConsultations.toLowerCase()}`
     }
     const balanceCents = walletSummary?.balance.available_credit_cents ?? 0
-    return formatWalletBalance(balanceCents, locale)
+    return formatWalletBalance(balanceCents, walletCurrency)
   }
   const dateLocale = locale === 'pt' ? 'pt-BR' : 'es-AR'
 
@@ -450,7 +468,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                             <span className="text-xs font-semibold text-stone-600">{dict.patientPortal.wallet.balanceAvailable}</span>
                           </div>
                           <span className="text-sm font-bold text-stone-900">
-                            {formatWalletBalance(walletSummary.balance.available_credit_cents, locale)}
+                            {formatWalletBalance(walletSummary.balance.available_credit_cents, walletCurrency)}
                           </span>
                         </div>
 
@@ -1171,32 +1189,44 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
           {/* Modal Content */}
           <div className="relative w-full max-w-md overflow-hidden rounded-[28px] border border-neutral-100 bg-white p-6 shadow-2xl transition-all">
             <h3 className="text-xl font-bold tracking-tight text-neutral-900 mb-2">
-              Cargar Saldo AutaMedica
+              {walletCurrency === 'BRL' ? 'Adicionar Saldo AutaMedica' : 'Cargar Saldo AutaMedica'}
             </h3>
             <p className="text-sm text-neutral-500 mb-6">
-              Ingresá el monto y elegí el medio de pago en el siguiente paso.
+              {walletCurrency === 'BRL'
+                ? 'Informe o valor e escolha o meio de pagamento na próxima etapa.'
+                : 'Ingresá el monto y elegí el medio de pago en el siguiente paso.'}
             </p>
 
             <form onSubmit={handleTopup} className="space-y-4">
-              <div>
-                <label htmlFor="topupAmount" className="block text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-2">
-                  Monto a cargar (ARS)
-                </label>
-                <div className="relative rounded-2xl border border-neutral-200 focus-within:border-sky-500 focus-within:ring-1 focus-within:ring-sky-500 overflow-hidden bg-stone-50/50">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-semibold">$</span>
-                  <input
-                    type="number"
-                    id="topupAmount"
-                    value={topupAmount}
-                    onChange={(e) => setTopupAmount(e.target.value)}
-                    placeholder="Monto"
-                    min="1"
-                    required
-                    disabled={topupLoading}
-                    className="w-full pl-8 pr-4 py-3 bg-transparent text-stone-900 placeholder-neutral-400 focus:outline-none font-semibold text-lg"
-                  />
+              {!walletCurrency ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                  {locale === 'pt'
+                    ? 'Não foi possível verificar a moeda da carteira. Complete seu CPF ou país de atendimento em Perfil antes de adicionar saldo.'
+                    : 'No se pudo verificar la moneda de la billetera. Completá tu DNI o país de atención en Perfil antes de cargar saldo.'}
                 </div>
-              </div>
+              ) : (
+                <div>
+                  <label htmlFor="topupAmount" className="block text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-2">
+                    {walletCurrency === 'BRL' ? 'Valor para adicionar (BRL)' : 'Monto a cargar (ARS)'}
+                  </label>
+                  <div className="relative rounded-2xl border border-neutral-200 focus-within:border-sky-500 focus-within:ring-1 focus-within:ring-sky-500 overflow-hidden bg-stone-50/50">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-semibold">
+                      {walletCurrency === 'BRL' ? 'R$' : '$'}
+                    </span>
+                    <input
+                      type="number"
+                      id="topupAmount"
+                      value={topupAmount}
+                      onChange={(e) => setTopupAmount(e.target.value)}
+                      placeholder={walletCurrency === 'BRL' ? 'Valor' : 'Monto'}
+                      min="1"
+                      required
+                      disabled={topupLoading}
+                      className="w-full pl-11 pr-4 py-3 bg-transparent text-stone-900 placeholder-neutral-400 focus:outline-none font-semibold text-lg"
+                    />
+                  </div>
+                </div>
+              )}
 
               {topupError && (
                 <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-600">
@@ -1211,20 +1241,20 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   disabled={topupLoading}
                   className="flex-1 rounded-full border border-neutral-200 py-3 text-sm font-semibold text-stone-600 hover:bg-stone-50 disabled:opacity-50 transition-colors"
                 >
-                  Cancelar
+                  {walletCurrency === 'BRL' ? 'Cancelar' : 'Cancelar'}
                 </button>
                 <button
                   type="submit"
-                  disabled={topupLoading}
-                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-sky-700 py-3 text-sm font-semibold text-white hover:bg-sky-800 disabled:opacity-70 active:scale-[0.98] transition-all shadow-sm"
+                  disabled={topupLoading || !walletCurrency}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-sky-700 py-3 text-sm font-semibold text-white hover:bg-sky-800 disabled:opacity-50 active:scale-[0.98] transition-all shadow-sm"
                 >
                   {topupLoading ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Iniciando...
+                      {walletCurrency === 'BRL' ? 'Iniciando...' : 'Iniciando...'}
                     </>
                   ) : (
-                    'Cargar'
+                    walletCurrency === 'BRL' ? 'Adicionar' : 'Cargar'
                   )}
                 </button>
               </div>

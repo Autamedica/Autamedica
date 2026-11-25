@@ -45,9 +45,17 @@ export function PaymentGovernancePanel(){
  const [pharmacyPayments,setPharmacyPayments]=useState<PharmacyPayment[]>([])
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
+ const readJson = async (url: string, init?: RequestInit) => {
+  const res = await fetch(url, { credentials: 'include', ...init })
+  return res.json().catch(() => ({ success: false, error: `HTTP ${res.status}` }))
+}
  const load=async()=>{
   try{
-   const [s,a,p]=await Promise.all([fetch('/api/admin/payments/toggle').then(r=>r.json()),fetch('/api/admin/approvals?status=pending').then(r=>r.json()),fetch('/api/admin/finance/pharmacy-payments').then(r=>r.json())])
+   const [s,a,p]=await Promise.all([
+    readJson('/api/admin/payments/toggle'),
+    readJson('/api/admin/approvals?status=pending'),
+    readJson('/api/admin/finance/pharmacy-payments'),
+   ])
    if(!s.success) throw s.error??s
    if(!a.success) throw a.error??a
    if(!p.success) throw p.error??p
@@ -59,8 +67,8 @@ export function PaymentGovernancePanel(){
  const toggle=async(key:SwitchKey,enabled:boolean)=>{
   const reason=window.prompt('Describí la causa concreta del cambio (mínimo 12 caracteres):')?.trim()??''
   if(reason.length<12)return
-  const r=await fetch('/api/admin/payments/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key,enabled,reason})})
-  const j=await r.json(); if(!r.ok||!j.success){setError(errorMessage(j?.error??j));return}
+  const r=await fetch('/api/admin/payments/toggle',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({key,enabled,reason})})
+  const j=await r.json().catch(()=>null); if(!r.ok||!j?.success){setError(errorMessage(j?.error??j??`HTTP ${r.status}`));return}
   setNotice('Interruptor actualizado y auditoría registrada.')
   await load()
  }
@@ -69,10 +77,10 @@ export function PaymentGovernancePanel(){
   if(reason.length<10)return
   const evidence_reference=`MANUAL_OVERRIDE_${paymentId}`
   if(!window.confirm(`¿Registrar la excepción administrativa ${evidence_reference} y liberar el despacho elegible?`))return
-  const r=await fetch('/api/admin/finance/pharmacy-payments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'manual_approve',payment_id:paymentId,reason,evidence_reference})})
+  const r=await fetch('/api/admin/finance/pharmacy-payments',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'manual_approve',payment_id:paymentId,reason,evidence_reference})})
   const j=await r.json().catch(()=>null)
   const result=j?.data??j
-  if(!r.ok||!j?.success){setError(errorMessage(j?.error??j));await load();return}
+  if(!r.ok||!j?.success){setError(errorMessage(j?.error??j??`HTTP ${r.status}`));await load();return}
   if(result?.status==='approved_pending_dispatch_resolution'){
    setNotice('Cobro aprobado. El despacho requiere una decisión en la Bandeja de Autorizaciones; no vuelvas a validar este pago.')
   } else {
@@ -83,8 +91,8 @@ export function PaymentGovernancePanel(){
  const decide=async(decisionId:string,status:'APPROVED'|'REJECTED',resolutionAction?:'reopen'|'refund')=>{
   const notes=window.prompt('Motivo de la decisión administrativa (obligatorio):')
   if(!notes?.trim())return
-  const r=await fetch('/api/admin/approvals',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:decisionId,decision:status,notes:notes.trim(),...(resolutionAction ? { resolution_action: resolutionAction } : {})})})
-  const j=await r.json().catch(()=>null); if(!r.ok||!j?.success){setError(errorMessage(j?.error??j));return}
+  const r=await fetch('/api/admin/approvals',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:decisionId,decision:status,notes:notes.trim(),...(resolutionAction ? { resolution_action: resolutionAction } : {})})})
+  const j=await r.json().catch(()=>null); if(!r.ok||!j?.success){setError(errorMessage(j?.error??j??`HTTP ${r.status}`));return}
   await load()
  }
  return <section className="space-y-6 rounded-xl border border-slate-200 bg-white p-5">

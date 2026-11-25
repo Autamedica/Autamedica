@@ -3,6 +3,8 @@ import { logger } from '@autamedica/shared';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { badRequest, internalError, jsonOk, unauthorized } from '@/lib/api-helpers';
 
+export const prerender = false;
+
 async function assertAdmin(
   request: Request,
   admin: ReturnType<typeof createAstroAdminClient>,

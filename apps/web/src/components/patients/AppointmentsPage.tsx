@@ -21,11 +21,15 @@ import type { AppointmentType } from '@/lib/patients/types/appointment'
 
 type AppointmentsPageMode = 'all' | 'telemedicine'
 
-function formatAppointmentMoney(amountCents: number | null | undefined, currency: string | undefined): string {
-  if (amountCents == null || amountCents <= 0) return 'Valor a confirmar'
-  const currencyCode = currency === 'BRL' ? 'BRL' : 'ARS'
-  const locale = currencyCode === 'BRL' ? 'pt-BR' : 'es-AR'
-  return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode, maximumFractionDigits: 2 }).format(amountCents / 100)
+function formatAppointmentMoney(
+  amountCents: number | null | undefined,
+  currency: string | null | undefined,
+  allowZero = false,
+): string {
+  if (!currency || (currency !== 'BRL' && currency !== 'ARS')) return '—'
+  if (amountCents == null || (!allowZero && amountCents <= 0)) return 'Valor a confirmar'
+  const locale = currency === 'BRL' ? 'pt-BR' : 'es-AR'
+  return new Intl.NumberFormat(locale, { style: 'currency', currency, maximumFractionDigits: 2 }).format(amountCents / 100)
 }
 
 type PatientWalletSummary = {
@@ -33,7 +37,7 @@ type PatientWalletSummary = {
     available_credit_cents: number
     locked_credit_cents: number
     total_credit_cents: number
-    currency: string
+    currency: string | null
   }
 }
 
@@ -74,7 +78,9 @@ export default function AppointmentsPage({
   const [reviewTarget, setReviewTarget] = useState<AppointmentWithDoctor | null>(null)
   const [_patientProfileId, setPatientProfileId] = useState<string | null>(null)
   const [walletSummary, setWalletSummary] = useState<PatientWalletSummary | null>(null)
-  const currency = walletSummary?.balance.currency ?? 'ARS'
+  const rawWalletCurrency = walletSummary?.balance.currency?.trim().toUpperCase()
+  const currency: 'BRL' | 'ARS' | null =
+    rawWalletCurrency === 'BRL' || rawWalletCurrency === 'ARS' ? rawWalletCurrency : null
   const dateLocale = currency === 'BRL' ? 'pt-BR' : 'es-AR'
   const [paymentMessage, setPaymentMessage] = useState<string | null>(null)
   const [payingAppointmentId, setPayingAppointmentId] = useState<string | null>(null)
@@ -330,6 +336,10 @@ export default function AppointmentsPage({
 
   const handleTopup = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!currency) {
+      setTopupError('Completá tu país o documento (CPF/DNI) en Perfil antes de cargar saldo.')
+      return
+    }
     const amount = parseFloat(topupAmount)
     if (isNaN(amount) || amount <= 0) {
       setTopupError('Ingresá un monto válido mayor a 0.')
@@ -450,7 +460,9 @@ export default function AppointmentsPage({
                         Saldo AutaMedica
                       </p>
                       <h3 className="mt-1 text-xl font-bold tracking-tight text-neutral-900">
-                        $0,00 disponibles
+                        {currency
+                          ? `${formatAppointmentMoney(0, currency, true)} disponibles`
+                          : 'Moneda de billetera pendiente'}
                       </h3>
                       <p className="mt-1 max-w-xl text-sm leading-relaxed text-neutral-500">
                         Cargá saldo para agendar turnos al instante.
@@ -713,32 +725,40 @@ export default function AppointmentsPage({
           {/* Modal Content */}
           <div className="relative w-full max-w-md overflow-hidden rounded-[28px] border border-neutral-100 bg-white p-6 shadow-2xl transition-all">
             <h3 className="text-xl font-bold tracking-tight text-neutral-900 mb-2">
-              Cargar Saldo AutaMedica
+              {currency === 'BRL' ? 'Adicionar Saldo AutaMedica' : 'Cargar Saldo AutaMedica'}
             </h3>
             <p className="text-sm text-neutral-500 mb-6">
-              Ingresá el monto y elegí el medio de pago en el siguiente paso.
+              {currency === 'BRL'
+                ? 'Informe o valor e escolha o meio de pagamento na próxima etapa.'
+                : 'Ingresá el monto y elegí el medio de pago en el siguiente paso.'}
             </p>
 
             <form onSubmit={handleTopup} className="space-y-4">
-              <div>
-                <label htmlFor="topupAmount" className="block text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-2">
-                  Monto a cargar ({currency})
-                </label>
-                <div className="relative rounded-2xl border border-neutral-200 focus-within:border-sky-500 focus-within:ring-1 focus-within:ring-sky-500 overflow-hidden bg-stone-50/50">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-semibold">{currency === 'BRL' ? 'R$' : '$'}</span>
-                  <input
-                    type="number"
-                    id="topupAmount"
-                    value={topupAmount}
-                    onChange={(e) => setTopupAmount(e.target.value)}
-                    placeholder="Monto"
-                    min="1"
-                    required
-                    disabled={topupLoading}
-                    className="w-full pl-8 pr-4 py-3 bg-transparent text-stone-900 placeholder-neutral-400 focus:outline-none font-semibold text-lg"
-                  />
+              {!currency ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                  No se pudo verificar la moneda de la billetera. Completá tu documento (CPF/DNI) o país en Perfil antes de cargar saldo.
                 </div>
-              </div>
+              ) : (
+                <div>
+                  <label htmlFor="topupAmount" className="block text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-2">
+                    {currency === 'BRL' ? 'Valor para adicionar (BRL)' : `Monto a cargar (${currency})`}
+                  </label>
+                  <div className="relative rounded-2xl border border-neutral-200 focus-within:border-sky-500 focus-within:ring-1 focus-within:ring-sky-500 overflow-hidden bg-stone-50/50">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-semibold">{currency === 'BRL' ? 'R$' : '$'}</span>
+                    <input
+                      type="number"
+                      id="topupAmount"
+                      value={topupAmount}
+                      onChange={(e) => setTopupAmount(e.target.value)}
+                      placeholder={currency === 'BRL' ? 'Valor' : 'Monto'}
+                      min="1"
+                      required
+                      disabled={topupLoading}
+                      className="w-full pl-11 pr-4 py-3 bg-transparent text-stone-900 placeholder-neutral-400 focus:outline-none font-semibold text-lg"
+                    />
+                  </div>
+                </div>
+              )}
 
               {topupError && (
                 <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-600">
@@ -757,8 +777,8 @@ export default function AppointmentsPage({
                 </button>
                 <button
                   type="submit"
-                  disabled={topupLoading}
-                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-stone-950 py-3 text-sm font-semibold text-white hover:bg-stone-800 disabled:opacity-70 active:scale-[0.98] transition-all shadow-sm"
+                  disabled={topupLoading || !currency}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-stone-950 py-3 text-sm font-semibold text-white hover:bg-stone-800 disabled:opacity-50 active:scale-[0.98] transition-all shadow-sm"
                 >
                   {topupLoading ? (
                     <>
@@ -766,7 +786,7 @@ export default function AppointmentsPage({
                       Iniciando...
                     </>
                   ) : (
-                    'Cargar'
+                    currency === 'BRL' ? 'Adicionar' : 'Cargar'
                   )}
                 </button>
               </div>
