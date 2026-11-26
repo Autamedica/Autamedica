@@ -23,6 +23,7 @@ data class Prescription(
     val patientDni: String? = null,
     val items: List<PrescriptionItem> = emptyList(),
     val providerId: String? = null,
+    val accessCode: String? = null,
 ) {
     /**
      * Determines whether this prescription is currently active and valid.

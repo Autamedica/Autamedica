@@ -3,6 +3,7 @@
  * Never claim the browser callback or an unsigned PDF proves pharmaceutical validity.
  */
 import type { APIRoute } from 'astro';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { DOCTOR_ROLES, isAuthed, withAuthRole } from '@/lib/api-auth';
 import { badRequest, forbidden, internalError, jsonOk } from '@/lib/api-helpers';
 import { createAstroAdminClient } from '@/lib/supabase';
@@ -230,10 +231,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
       } catch (error) {
         if (!(error instanceof Error) || !error.message.endsWith(':404')) throw error;
       }
+      const nowIso = new Date().toISOString();
       const { error: cancelError } = await admin.from('prescriptions')
-        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+        .update({ status: 'cancelled', updated_at: nowIso })
         .eq('id', existing.id);
       if (cancelError) throw cancelError;
+      const { error: memedDeleteError } = await (admin as unknown as SupabaseClient)
+        .from('memed_prescriptions')
+        .update({ status: 'deleted', updated_at: nowIso })
+        .eq('doctor_id', doctor.id)
+        .eq('patient_id', patientId)
+        .eq('memed_id', prescriptionId);
+      if (memedDeleteError) throw memedDeleteError;
       return privateJsonOk({ status: 'cancelled' });
     }
 

@@ -68,6 +68,17 @@ function findMemedDocumentUrl(value: unknown, depth = 0): string | null {
   return null;
 }
 
+function isMemedGuestDeliveryEligible(row: {
+  pdf_signature_verified?: boolean | null;
+  provider_data?: unknown;
+}): boolean {
+  if (row.pdf_signature_verified === true) return true;
+  const provider = row.provider_data && typeof row.provider_data === 'object' && !Array.isArray(row.provider_data)
+    ? (row.provider_data as Record<string, unknown>)
+    : {};
+  return provider.provider_reported_signed === true && provider.patient_delivery_eligible === true;
+}
+
 export const GET: APIRoute = async ({ params, locals, request }) => {
   const id = params.id?.trim()
   if (!id) return notFound('missing_request_id')
@@ -226,13 +237,13 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       const startedAt = String(requestRecord.call_started_at ?? requestRecord.created_at)
       const [{ data: memedRows }, { data: coreRows }, { data: certificates }] = await Promise.all([
         dispatchAdmin.from('memed_prescriptions')
-          .select('id,memed_id,status,provider_data,digital_link_data,created_at')
+          .select('id,memed_id,status,pdf_signature_verified,provider_data,digital_link_data,created_at')
           .eq('patient_id', requestRecord.patient_id)
           .eq('doctor_id', requestRecord.assigned_doctor_id)
           .gte('created_at', startedAt)
           .order('created_at', { ascending: false }),
         dispatchAdmin.from('prescriptions')
-          .select('id,status,cuir,clinical_data,signed_pdf_url,signature_method,created_at,vendor_name')
+          .select('id,status,country_code,cuir,clinical_data,signed_pdf_url,signature_method,created_at,vendor_name')
           .eq('patient_id', requestRecord.patient_id)
           .eq('doctor_id', requestRecord.assigned_doctor_id)
           .gte('created_at', startedAt)
@@ -246,7 +257,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       ])
       const tokenSuffix = candidateGuestToken ? `?token=${encodeURIComponent(candidateGuestToken)}` : ''
       for (const row of memedRows ?? []) {
-        if (row.status === 'deleted' || !findMemedDocumentUrl(row.digital_link_data)) continue
+        if (row.status === 'deleted' || !isMemedGuestDeliveryEligible(row) || !findMemedDocumentUrl(row.digital_link_data)) continue
         const provider = row.provider_data && typeof row.provider_data === 'object' ? row.provider_data as Record<string, unknown> : {}
         const linkData = row.digital_link_data
         const label = String(provider.medication_name ?? provider.nome ?? provider.title ?? 'Receita digital Memed')
@@ -259,7 +270,8 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
         })
       }
       for (const row of coreRows ?? []) {
-        if (row.status !== 'active' || row.signature_method !== 'ac_external') continue
+        const isArgentineElectronic = row.country_code === 'AR' && row.signature_method === 'electronic_simple';
+        if (row.status !== 'active' || (row.signature_method !== 'ac_external' && !isArgentineElectronic)) continue
         const clinical = row.clinical_data && typeof row.clinical_data === 'object' ? row.clinical_data as Record<string, unknown> : {}
         const items = Array.isArray(clinical.items) ? clinical.items as Array<Record<string, unknown>> : []
         const title = String(clinical.medication_name ?? items[0]?.commercialName ?? items[0]?.genericName ?? 'Receta médica')
@@ -362,14 +374,14 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
     if (offerError) return internalError()
     if (activeOffer) return conflict('doctor_offer_still_active')
 
-    if (ownerAuthorized) {
+    if (ownerAuthorized && context?.careCountry) {
       const { data, error } = await admin
         .from('pharmacy_dispatch_requests')
         .update({ status: 'cancelled' })
         .eq('id', id)
-        .eq('patient_id', context!.patientId)
-        .eq('requested_by_user_id', context!.userId)
-        .eq('care_country', context!.careCountry!)
+        .eq('patient_id', context.patientId)
+        .eq('requested_by_user_id', context.userId)
+        .eq('care_country', context.careCountry)
         .in('status', ['searching', 'expired'])
         .select('id')
         .maybeSingle()

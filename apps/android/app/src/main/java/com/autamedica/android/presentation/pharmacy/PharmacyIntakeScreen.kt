@@ -58,6 +58,8 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -650,32 +652,73 @@ private fun PharmacyWaitingRoomView(
                     color = AuTextPrimary,
                 )
                 uiState.documents.forEach { document ->
+                    val clipboardManager = LocalClipboardManager.current
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = AuSurface,
                         border = BorderStroke(1.dp, AuBorder),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Row(
+                        Column(
                             modifier = Modifier.fillMaxWidth().padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(document.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                                Text(document.provider, style = MaterialTheme.typography.bodySmall, color = AuTextSecondary)
-                            }
-                            Button(onClick = {
-                                runCatching {
-                                    context.startActivity(
-                                        android.content.Intent(
-                                            android.content.Intent.ACTION_VIEW,
-                                            android.net.Uri.parse(document.downloadUrl),
-                                        ),
-                                    )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(document.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                    Text(document.provider, style = MaterialTheme.typography.bodySmall, color = AuTextSecondary)
                                 }
-                            }) {
-                                Text("Abrir PDF")
+                                Button(onClick = {
+                                    runCatching {
+                                        context.startActivity(
+                                            android.content.Intent(
+                                                android.content.Intent.ACTION_VIEW,
+                                                android.net.Uri.parse(document.downloadUrl),
+                                            ),
+                                        )
+                                    }
+                                }) {
+                                    Text("Abrir PDF")
+                                }
+                            }
+                            document.verificationCode?.takeIf { it.isNotBlank() }?.let { code ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        text = if (uiState.careCountry == "BR") "Código de verificação: $code" else "Código de verificación: $code",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = AuTextSecondary,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    TextButton(onClick = { clipboardManager.setText(AnnotatedString(code)) }) {
+                                        Text("Copiar")
+                                    }
+                                }
+                            }
+                            document.accessCode?.takeIf { it.isNotBlank() }?.let { code ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        text = if (uiState.careCountry == "BR") "Código de desbloqueio: $code" else "Código de desbloqueo: $code",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = AuTextPrimary,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    TextButton(onClick = { clipboardManager.setText(AnnotatedString(code)) }) {
+                                        Text("Copiar")
+                                    }
+                                }
                             }
                         }
                     }

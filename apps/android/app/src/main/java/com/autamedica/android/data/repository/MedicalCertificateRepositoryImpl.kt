@@ -351,7 +351,15 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             request.endDate?.let { put("end_date", it) }
             request.diagnosis?.let { put("diagnosis", it) }
             put("hide_diagnosis", request.hideDiagnosis || resolvedCountry == "BR")
-            request.cid10Code?.takeIf { it.isNotBlank() }?.let { put("cid10_code", it) }
+            val trimmedCid10 = request.cid10Code?.trim()?.takeIf { it.isNotEmpty() }
+            if (trimmedCid10 != null) {
+                put("cid10_code", trimmedCid10)
+                if (resolvedCountry == "BR") {
+                    put("cid_requested_by_patient", true)
+                    put("cid_consent_recorded_at", now)
+                    put("cid_consent_recorded_by", userId)
+                }
+            }
             request.observations?.let { put("observations", it) }
             put("country_code", resolvedCountry)
             put("created_at", now)

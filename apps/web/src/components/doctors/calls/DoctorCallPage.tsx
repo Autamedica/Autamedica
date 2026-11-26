@@ -708,12 +708,12 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             auxiliaryControls={
               hasClinicalPatientId ? (
                 <>
-                  {isBrazilianDispatch ? (
+                  {isBrazilianDoctor ? (
                     <CallAuxiliaryButton icon={<Pill className="h-5 w-5 md:h-5.5 md:w-5.5" />}
-                      label={isBrazilianDispatch ? 'Receita digital' : 'Receta digital'} onClick={() => setShowMemedWidget(true)} />
+                      label="Receita digital" onClick={() => setShowMemedWidget(true)} />
                   ) : (
                     <CallAuxiliaryButton icon={<Pill className="h-5 w-5 md:h-5.5 md:w-5.5" />}
-                      label={isBrazilianDoctor ? 'Receita' : 'Receta'} onClick={() => setShowPrescriptionModal(true)} />
+                      label="Receta" onClick={() => setShowPrescriptionModal(true)} />
                   )}
                   {!isBrazilianDispatch && (
                     <CallAuxiliaryButton icon={<FileText className="h-5 w-5 md:h-5.5 md:w-5.5" />}
@@ -799,20 +799,34 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
         />
       </div>
 
-      {showMemedWidget && isBrazilianDispatch && context?.patient?.id && context.dispatchTriage?.dispatchRequestId && (
+      {showMemedWidget && isBrazilianDoctor && context?.patient?.id && (
         <MemedPrescriptionWidget
           patientId={context.patient.id}
-          requestId={context.dispatchTriage.dispatchRequestId}
+          requestId={context.dispatchTriage?.dispatchRequestId}
           onPrescriptionSaved={async (prescriptionId) => {
             await fetchApi('/api/doctors/prescriptions/memed-event', {
               method: 'POST',
-              body: { action: 'issued', patientId: context.patient?.id, requestId: context.dispatchTriage?.dispatchRequestId, prescriptionId },
+              body: {
+                action: 'issued',
+                patientId: context.patient?.id,
+                ...(context.dispatchTriage?.dispatchRequestId
+                  ? { requestId: context.dispatchTriage.dispatchRequestId }
+                  : {}),
+                prescriptionId,
+              },
             })
           }}
           onPrescriptionDeleted={async (prescriptionId) => {
             await fetchApi('/api/doctors/prescriptions/memed-event', {
               method: 'POST',
-              body: { action: 'deleted', patientId: context.patient?.id, requestId: context.dispatchTriage?.dispatchRequestId, prescriptionId },
+              body: {
+                action: 'deleted',
+                patientId: context.patient?.id,
+                ...(context.dispatchTriage?.dispatchRequestId
+                  ? { requestId: context.dispatchTriage.dispatchRequestId }
+                  : {}),
+                prescriptionId,
+              },
             })
           }}
           onClose={() => setShowMemedWidget(false)}

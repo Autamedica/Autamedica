@@ -99,5 +99,6 @@ data class CreateCertificateRequest(
     val observations: String? = null,
     val countryCode: String = "",
     val cid10Code: String? = null,
+    val cidRequestedByPatient: Boolean = false,
     val restHours: Int = 0,
 )

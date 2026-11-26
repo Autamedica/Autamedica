@@ -103,17 +103,29 @@ class PrescriptionRepositoryImpl @Inject constructor(
             )
         }
 
-        val memed = memedRows.map { row ->
+        val memed = memedRows.mapNotNull { row ->
             val provider = row.providerData as? JsonObject
             val links = row.digitalLinkData as? JsonObject
+            val medications = provider?.get("medications") as? JsonArray
+            val isPureAtestado = (
+                provider?.memedString("document_type") == "atestado" ||
+                    provider?.get("has_atestado")?.jsonPrimitive?.contentOrNull == "true"
+                ) && (medications == null || medications.isEmpty()) &&
+                provider?.memedString("medication_name", "medicationName") == null
+            if (isPureAtestado) return@mapNotNull null
             val clinical = parseClinicalData(provider)
             val documentUrl = links?.memedString("pdf_url", "document_url", "url", "link")
                 ?: provider?.memedString("pdf_url", "document_url", "digital_link", "url")
+            val providerReportedSigned =
+                provider?.get("provider_reported_signed")?.jsonPrimitive?.contentOrNull == "true"
+            val deliveryEligible =
+                provider?.get("patient_delivery_eligible")?.jsonPrimitive?.contentOrNull == "true"
+            val canDownloadPdf = documentUrl != null && providerReportedSigned && deliveryEligible
             Prescription(
                 id = "memed:${row.id}",
                 status = if (row.status == "deleted") "cancelled" else "verified_at_provider",
                 cuir = null,
-                signedPdfUrl = documentUrl?.let { "/api/patients/prescriptions/memed-${row.id}/pdf" },
+                signedPdfUrl = if (canDownloadPdf) "/api/patients/prescriptions/memed-${row.id}/pdf" else null,
                 qrCodeContent = links?.memedString("qr_code", "qrCode"),
                 medicationName = clinical.medicationName.ifBlank { "Prescripción Memed" },
                 dosage = clinical.dosage,
@@ -129,6 +141,7 @@ class PrescriptionRepositoryImpl @Inject constructor(
                 prescribedDate = clinical.prescribedDate ?: row.createdAt,
                 items = clinical.items,
                 providerId = row.memedId,
+                accessCode = links?.memedString("unlock_code", "access_code", "password", "senha"),
             )
         }
 

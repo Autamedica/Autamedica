@@ -287,4 +287,63 @@ describe('Memed event persistence boundary', () => {
       qr_code_content: 'https://receita.memed.com.br/old-qr',
     }));
   });
+
+  it('syncs deleted status to both prescriptions and memed_prescriptions when Memed returns 404', async () => {
+    existing = { id: 'local-rx-1', status: 'signed', clinical_data: {} };
+    mocks.prescription.mockRejectedValue(new Error('memed_prescription_verification_failed:404'));
+    const coreUpdate = vi.fn(() => {
+      const q = { error: null, eq: vi.fn() };
+      q.eq.mockReturnValue(q);
+      return q;
+    });
+    const memedDelUpdate = vi.fn(() => {
+      const q = { error: null, eq: vi.fn() };
+      q.eq.mockReturnValue(q);
+      return q;
+    });
+    mocks.admin.mockReturnValueOnce({
+      from: (table: string) => {
+        const rows: Record<string, unknown> = {
+          doctors: doctor,
+          prescriptions: existing,
+          memed_prescriptions: existingMemed,
+          profiles: { first_name: 'Synthetic', last_name: 'Doctor' },
+          doctor_licenses: [{ license_number: '9236', uf_brazil: 'RS', cfm_evidence_path: 'ci/doctor/evidence.pdf', cfm_review_notes: 'Synthetic CI review evidence', cfm_reviewed_by: '00000000-0000-4000-8000-000000000001', cfm_reviewed_at: '2026-11-12T00:00:00Z', cfm_last_checked_at: '2026-11-12T00:00:00Z' }],
+        };
+        const chain = {
+          select: vi.fn(),
+          eq: vi.fn(),
+          limit: vi.fn(),
+          or: vi.fn(),
+          update: vi.fn((_payload: unknown) => table === 'memed_prescriptions' ? memedDelUpdate() : coreUpdate()),
+          maybeSingle: vi.fn(async () => ({ data: rows[table], error: null })),
+        };
+        chain.select.mockReturnValue(chain);
+        chain.eq.mockReturnValue(chain);
+        chain.or.mockReturnValue(chain);
+        chain.limit.mockResolvedValue({ data: rows[table], error: null });
+        if (table === 'prescriptions') {
+          chain.update = vi.fn(() => coreUpdate());
+        }
+        if (table === 'memed_prescriptions') {
+          chain.update = vi.fn((payload: unknown) => {
+            mocks.memedUpdate(payload);
+            return memedDelUpdate();
+          });
+        }
+        return chain;
+      },
+    });
+    const req = {
+      request: new Request('https://www.autamedica.com/api/doctors/prescriptions/memed-event', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'deleted', patientId, prescriptionId: 'rx-test' }),
+      }),
+      locals: { runtime: { env: { MEMED_RX_ENABLED: 'true', MEMED_PILOT_DOCTOR_ID: 'doctor' } } },
+    } as unknown as Parameters<typeof POST>[0];
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(mocks.memedUpdate).toHaveBeenCalledWith(expect.objectContaining({ status: 'deleted' }));
+  });
 });

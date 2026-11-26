@@ -43,6 +43,31 @@ function findMemedDocumentUrl(value: unknown, depth = 0): string | null {
   return null
 }
 
+function findMemedPdfUrl(value: unknown): string | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const obj = value as Record<string, unknown>
+  const pdf = obj.pdf && typeof obj.pdf === 'object' && !Array.isArray(obj.pdf)
+    ? (obj.pdf as Record<string, unknown>)
+    : null
+  const candidates = [obj.pdf_url, obj.full_pdf_url, pdf?.url, pdf?.link]
+  for (const candidate of candidates) {
+    const safe = safeExternalDocumentUrl(candidate, /(^|[.])memed[.]com(?:[.]br)?$/i)
+    if (safe) return safe
+  }
+  return null
+}
+
+function isMemedGuestDeliveryEligible(row: {
+  pdf_signature_verified?: boolean | null
+  provider_data?: unknown
+}): boolean {
+  if (row.pdf_signature_verified === true) return true
+  const provider = row.provider_data && typeof row.provider_data === 'object' && !Array.isArray(row.provider_data)
+    ? (row.provider_data as Record<string, unknown>)
+    : {}
+  return provider.provider_reported_signed === true && provider.patient_delivery_eligible === true
+}
+
 /** Guest-token/session scoped PDF delivery for a pharmacy dispatch encounter. */
 export const GET: APIRoute = async ({ params, request, locals }) => {
   const dispatchId = params.id?.trim()
@@ -85,12 +110,47 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
     const createdAfter = String(dispatch.call_started_at ?? dispatch.created_at)
     if (kind === 'memed') {
       const { data: row, error } = await admin.from('memed_prescriptions')
-        .select('id,patient_id,doctor_id,memed_id,status,digital_link_data,created_at')
+        .select('id,patient_id,doctor_id,memed_id,status,pdf_signature_verified,provider_data,digital_link_data,created_at')
         .eq('id', recordId).eq('patient_id', dispatch.patient_id)
         .eq('doctor_id', dispatch.assigned_doctor_id).maybeSingle()
       if (error) return internalError()
       if (!row || row.status === 'deleted' || new Date(row.created_at).getTime() < new Date(createdAfter).getTime()) {
         return notFound('document_not_found')
+      }
+      if (!isMemedGuestDeliveryEligible(row)) {
+        return forbidden('memed_signature_unverified')
+      }
+      const pdfUrl = findMemedPdfUrl(row.digital_link_data)
+      if (pdfUrl) {
+        try {
+          const upstream = await fetch(pdfUrl, {
+            method: 'GET',
+            redirect: 'error',
+            signal: AbortSignal.timeout(15_000),
+            headers: { Accept: 'application/pdf' },
+          })
+          if (upstream.ok) {
+            const pdfBytes = new Uint8Array(await upstream.arrayBuffer())
+            const isPdf = pdfBytes.byteLength >= 5
+              && pdfBytes[0] === 0x25 && pdfBytes[1] === 0x50
+              && pdfBytes[2] === 0x44 && pdfBytes[3] === 0x46 && pdfBytes[4] === 0x2d
+            if (isPdf) {
+              const sha256 = await certificateSha256(pdfBytes)
+              return new Response(Uint8Array.from(pdfBytes).buffer, {
+                headers: {
+                  'Content-Type': 'application/pdf',
+                  'Content-Disposition': `inline; filename="receita-memed-${recordId}.pdf"`,
+                  'Cache-Control': 'private, no-store, max-age=0',
+                  'X-Content-Type-Options': 'nosniff',
+                  'X-Content-SHA256': sha256,
+                  'X-Content-Length': String(pdfBytes.byteLength),
+                },
+              })
+            }
+          }
+        } catch {
+          // Fall back to safe provider digital link redirect if direct PDF fetch fails cleanly
+        }
       }
       const link = findMemedDocumentUrl(row.digital_link_data)
       if (!link) return notFound('memed_document_link_unavailable')
@@ -102,12 +162,13 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
 
     if (kind === 'core') {
       const { data: row, error } = await admin.from('prescriptions')
-        .select('id,patient_id,doctor_id,status,cuir,signature_method,created_at')
+        .select('id,patient_id,doctor_id,status,country_code,cuir,signature_method,created_at')
         .eq('id', recordId).eq('patient_id', dispatch.patient_id)
         .eq('doctor_id', dispatch.assigned_doctor_id).maybeSingle()
       if (error) return internalError()
+      const isArgentineElectronic = row?.country_code === 'AR' && row?.signature_method === 'electronic_simple'
       if (row?.status !== 'active' || !row.cuir
-        || row.signature_method !== 'ac_external'
+        || (row.signature_method !== 'ac_external' && !isArgentineElectronic)
         || new Date(row.created_at).getTime() < new Date(createdAfter).getTime()) {
         return notFound('document_not_found')
       }
@@ -128,8 +189,10 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
       const issueMeta = issueEvent?.metadata as Record<string, unknown> | null
       const hash = signatureEvent?.signature_hash
       const path = String(issueMeta?.pdfPath ?? '')
+      const signatureMethodOk = signatureMeta?.method === 'PAdES_AC_EXTERNAL'
+        || (isArgentineElectronic && signatureMeta?.method === 'PAdES_GOVERNANCE_POLICY')
       if (!hash || issueMeta?.signature_hash !== hash
-        || signatureMeta?.method !== 'PAdES_AC_EXTERNAL'
+        || !signatureMethodOk
         || signatureMeta?.document_hash !== hash
         || !path.startsWith(`prescriptions/${row.cuir}/`) || !path.endsWith('.pdf')) {
         return forbidden('prescription_signature_evidence_invalid')

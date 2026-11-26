@@ -67,7 +67,9 @@ type TableChain = {
   eq: ReturnType<typeof vi.fn>
   in: ReturnType<typeof vi.fn>
   gt: ReturnType<typeof vi.fn>
+  gte: ReturnType<typeof vi.fn>
   is: ReturnType<typeof vi.fn>
+  order: ReturnType<typeof vi.fn>
   maybeSingle: ReturnType<typeof vi.fn>
   single: ReturnType<typeof vi.fn>
   update: ReturnType<typeof vi.fn>
@@ -82,7 +84,9 @@ function buildTableChain(data: unknown, error: unknown = null): TableChain {
     eq: vi.fn(),
     in: vi.fn(),
     gt: vi.fn(),
+    gte: vi.fn(),
     is: vi.fn(),
+    order: vi.fn(),
     maybeSingle: vi.fn(),
     single: vi.fn(),
     update: vi.fn(),
@@ -91,7 +95,9 @@ function buildTableChain(data: unknown, error: unknown = null): TableChain {
   chain.eq.mockReturnValue(chain)
   chain.in.mockReturnValue(chain)
   chain.gt.mockReturnValue(chain)
+  chain.gte.mockReturnValue(chain)
   chain.is.mockReturnValue(chain)
+  chain.order.mockReturnValue(chain)
   chain.maybeSingle.mockReturnValue(chain)
   chain.single.mockReturnValue(chain)
   chain.update.mockReturnValue(chain)
@@ -545,6 +551,54 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
     })
     const response = await GET(makeContext({ session: { user: { id: 'doctor-user-1' } } }))
     expect(response.status).toBe(401)
+  })
+
+  it('excluye documentos Memed sin firma reportada o no elegibles para entrega al paciente', async () => {
+    const completedReq = {
+      ...REQUEST_RECORD,
+      status: 'completed',
+      care_country: 'BR',
+      call_started_at: '2026-11-17T00:05:00.000Z',
+    }
+    const brDoctor = { ...DOCTOR_ROW, license_type: 'CRM', care_country: 'BR', uf_brazil: 'RS' }
+    const memedRows = [
+      {
+        id: 'unsigned-1',
+        memed_id: '100',
+        status: 'verified_at_provider',
+        pdf_signature_verified: false,
+        provider_data: { medication_name: 'Rascunho', provider_reported_signed: false, patient_delivery_eligible: false },
+        digital_link_data: { url: 'https://receita.memed.com.br/100' },
+        created_at: '2026-11-17T00:10:00.000Z',
+      },
+      {
+        id: 'signed-2',
+        memed_id: '200',
+        status: 'verified_at_provider',
+        pdf_signature_verified: false,
+        provider_data: { medication_name: 'Dipirona 500mg', provider_reported_signed: true, patient_delivery_eligible: true },
+        digital_link_data: { pdf_url: 'https://documentos.memed.com.br/200.pdf', unlock_code: '9988' },
+        created_at: '2026-11-17T00:12:00.000Z',
+      },
+    ]
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_requests') return buildTableChain(completedReq)
+      if (table === 'doctors') return buildTableChain(brDoctor)
+      if (table === 'profiles') return buildTableChain(PROFILE_ROW)
+      if (table === 'memed_prescriptions') return buildTableChain(memedRows)
+      if (table === 'prescriptions' || table === 'medical_certificates') return buildTableChain([])
+      return buildTableChain(null)
+    })
+    const guestToken = await signGuestToken({ callId: 'req-1', roomId: 'cf-room-1', guestName: 'Carlos Test' }, TEST_SECRET)
+    const response = await GET(makeContext({ url: `http://localhost/api/pharmacy/dispatch/req-1?token=${guestToken}` }))
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.data.documents).toHaveLength(1)
+    expect(body.data.documents[0]).toMatchObject({
+      id: 'memed-signed-2',
+      title: 'Dipirona 500mg',
+      accessCode: '9988',
+    })
   })
 
 })

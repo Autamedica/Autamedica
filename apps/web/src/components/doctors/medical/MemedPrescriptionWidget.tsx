@@ -85,6 +85,7 @@ export function MemedPrescriptionWidget({
         if (response.status === 400 && [
           'memed_doctor_identity_incomplete',
           'memed_doctor_birth_date_required',
+          'memed_doctor_cpf_invalid',
         ].includes(json.error?.message)) {
           if (!cancelled) {
             setIdentityRequired(true);

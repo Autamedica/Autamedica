@@ -309,6 +309,11 @@ function normalizeMemedRows(rows: unknown[], admin: Db): Promise<NormalizedMemed
             vendor_name: "Memed BR",
             vendor_id: asString(row.memed_id),
             signed_pdf_url: patientPrescriptionUrl,
+            access_code:
+              asString(digital.unlock_code) ??
+              asString(digital.access_code) ??
+              asString(digital.password) ??
+              asString(digital.senha),
             cuir: asString(provider.cuir) ?? asString(row.memed_id),
             is_digital_artifact_ready: Boolean(patientPrescriptionUrl),
             source: "memed_br",

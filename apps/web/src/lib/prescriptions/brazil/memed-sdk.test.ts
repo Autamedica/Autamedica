@@ -136,4 +136,17 @@ describe('Memed SDK lifecycle', () => {
     expect(hub.module.hide).toHaveBeenCalledWith('plataforma.prescricao');
   });
 
+  it('extracts the saved full numeric prescription ID in prescricaoExcluida just like prescricaoImpressa', async () => {
+    const sdk = await ready();
+    const onDeleted = vi.fn();
+    sdk.setMemedCallbacks(vi.fn(), onDeleted);
+    events.prescricaoExcluida({
+      prescricao: {
+        prescriptionUuid: 'uuid-should-not-win',
+        documents: [{ type: 'full', status: 'saved', prescription_id: 955 }],
+      },
+    });
+    expect(onDeleted).toHaveBeenCalledWith('955');
+  });
+
 });
