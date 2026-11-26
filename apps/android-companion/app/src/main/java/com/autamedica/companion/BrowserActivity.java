@@ -18,11 +18,40 @@ import java.util.concurrent.TimeUnit;
 
 public final class BrowserActivity extends Activity {
     private static volatile BrowserActivity instance;
+    private static volatile WebSessionManager sessionManager;
     private WebView webView;
     private final Handler main = new Handler(Looper.getMainLooper());
     private static final int FILE_CHOOSER_REQUEST = 18771;
     private android.webkit.ValueCallback<Uri[]> pendingFileChooser;
     private volatile int loadProgress = 0;
+
+    static WebSessionManager getSessionManager(android.content.Context context) {
+        WebSessionManager existing = sessionManager;
+        if (existing != null) return existing;
+        synchronized (BrowserActivity.class) {
+            if (sessionManager == null) {
+                final android.content.Context appCtx = context.getApplicationContext();
+                sessionManager = new WebSessionManager(new WebSessionManager.Backend() {
+                    @Override public void flushCookies() {
+                        CookieManager.getInstance().flush();
+                    }
+
+                    @Override public void putEncrypted(String key, String value) throws Exception {
+                        SecureVault.put(appCtx, key, value);
+                    }
+
+                    @Override public String getEncrypted(String key, String fallback) {
+                        return SecureVault.get(appCtx, key, fallback);
+                    }
+
+                    @Override public void deleteEncrypted(String key) throws Exception {
+                        SecureVault.delete(appCtx, key);
+                    }
+                });
+            }
+            return sessionManager;
+        }
+    }
 
     static boolean isReady() {
         BrowserActivity activity = instance;
@@ -32,6 +61,7 @@ public final class BrowserActivity extends Activity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         instance = this;
+        getSessionManager(this);
 
         // Chromium's WebView DevTools socket is bridged locally with a separate
         // 256-bit authenticated proxy. No public or Wi-Fi CDP listener is created.
@@ -40,8 +70,10 @@ public final class BrowserActivity extends Activity {
         createAndAttachWebView();
 
         String requested = getIntent().getStringExtra("url");
-        String restored = state == null ? SecureVault.get(this, "browser.lastUrl", "https://www.google.com")
-            : state.getString("lastUrl", SecureVault.get(this, "browser.lastUrl", "https://www.google.com"));
+        String defaultRestored = CompanionFeatureFlags.shared().isEnabled(CompanionFeatureFlags.FLAG_SESSION_PERSISTENCE_V2)
+            ? getSessionManager(this).restoreLastUrl("https://www.google.com")
+            : SecureVault.get(this, "browser.lastUrl", "https://www.google.com");
+        String restored = state == null ? defaultRestored : state.getString("lastUrl", defaultRestored);
         webView.loadUrl(isWebUrl(requested) ? requested : restored);
     }
 
@@ -64,6 +96,7 @@ public final class BrowserActivity extends Activity {
                 super.onPageFinished(view, url);
                 loadProgress = 100;
                 persistSession(url);
+                checkHitlGateRecoveryAsync();
             }
 
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -129,11 +162,77 @@ public final class BrowserActivity extends Activity {
     }
 
     private void persistSession(String url) {
+        if (CompanionFeatureFlags.shared().isEnabled(CompanionFeatureFlags.FLAG_SESSION_PERSISTENCE_V2)) {
+            try {
+                getSessionManager(this).recordNavigation(url, System.currentTimeMillis());
+                return;
+            } catch (Exception error) {
+                android.util.Log.w("AutamedicaBrowser", "Could not persist session v2");
+            }
+        }
         CookieManager.getInstance().flush();
         if (isWebUrl(url)) {
             try { SecureVault.put(getApplicationContext(), "browser.lastUrl", url); }
             catch (Exception error) { android.util.Log.w("AutamedicaBrowser", "Could not persist browser URL"); }
         }
+    }
+
+    private void checkHitlGateRecoveryAsync() {
+        CompanionFeatureFlags flags = CompanionFeatureFlags.shared();
+        if (!flags.isEnabled(CompanionFeatureFlags.FLAG_HITL_STATE_MACHINE)
+                || !flags.isEnabled(CompanionFeatureFlags.FLAG_PASSIVE_GATE_DETECTION)) {
+            return;
+        }
+        ExecutionStateMachine.RunContext ctx = ExecutionStateMachine.shared().getContext();
+        if (ctx.state != ExecutionStateMachine.State.AWAITING_USER || webView == null) {
+            return;
+        }
+        webView.evaluateJavascript(PASSIVE_OBSERVATION_JS, raw -> {
+            try {
+                HumanGateDetector.PageObservation obs = parseObservationJson(raw);
+                HumanGateDetector.GateSignal signal = HumanGateDetector.inspect(obs);
+                if (!signal.detected) {
+                    CompanionEventBus.shared().record(
+                        "hitl_gate_cleared",
+                        getPackageName(),
+                        "runId=" + ctx.runId + ";url=" + obs.url,
+                        false
+                    );
+                }
+            } catch (Exception ignored) {}
+        });
+    }
+
+    private static final String PASSIVE_OBSERVATION_JS =
+        "(function(){"
+        + "const pwd=Boolean(document.querySelector('input[type=\"password\"]'));"
+        + "const otp=Boolean(document.querySelector('input[autocomplete=\"one-time-code\"],input[name*=\"otp\" i],input[id*=\"otp\" i],input[name*=\"2fa\" i]'));"
+        + "const txt=(document.body&&document.body.innerText?document.body.innerText:'').slice(0,1500);"
+        + "return JSON.stringify({url:location.href||'',title:document.title||'',text:txt,hasPassword:pwd,hasOtp:otp});"
+        + "})()";
+
+    static HumanGateDetector.PageObservation capturePassiveObservation() throws Exception {
+        String raw = evaluate(PASSIVE_OBSERVATION_JS);
+        return parseObservationJson(raw);
+    }
+
+    private static HumanGateDetector.PageObservation parseObservationJson(String raw) throws Exception {
+        if (raw == null || "null".equals(raw) || raw.trim().isEmpty()) {
+            return new HumanGateDetector.PageObservation("", "", "", false, false, 0);
+        }
+        String unwrapped = raw.trim();
+        if (unwrapped.startsWith("\"")) {
+            unwrapped = new org.json.JSONTokener(unwrapped).nextValue().toString();
+        }
+        org.json.JSONObject obj = new org.json.JSONObject(unwrapped);
+        return new HumanGateDetector.PageObservation(
+            obj.optString("url", ""),
+            obj.optString("title", ""),
+            obj.optString("text", ""),
+            obj.optBoolean("hasPassword", false),
+            obj.optBoolean("hasOtp", false),
+            0
+        );
     }
 
     private static boolean isWebUrl(String value) {

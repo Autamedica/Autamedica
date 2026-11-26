@@ -40,6 +40,35 @@ final class LocalControlServer {
 
     LocalControlServer(AccessibilityControlService service) {
         this.service = service;
+        initRuntimeSubsystems(service);
+    }
+
+    private static void initRuntimeSubsystems(AccessibilityControlService service) {
+        if (service == null) return;
+        final android.content.Context ctx = service.getApplicationContext();
+        CompanionFeatureFlags.shared().attachStorage(new CompanionFeatureFlags.Storage() {
+            private static final String PREFS = "companion_feature_flags";
+
+            @Override public Map<String, Boolean> loadAll() {
+                android.content.SharedPreferences sp = ctx.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE);
+                Map<String, Boolean> out = new HashMap<>();
+                for (Map.Entry<String, ?> entry : sp.getAll().entrySet()) {
+                    if (entry.getValue() instanceof Boolean) {
+                        out.put(entry.getKey(), (Boolean) entry.getValue());
+                    }
+                }
+                return out;
+            }
+
+            @Override public void save(String key, boolean value) {
+                ctx.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE)
+                    .edit()
+                    .putBoolean(key, value)
+                    .apply();
+            }
+        });
+        SqliteExecutionStore store = SqliteExecutionStore.getInstance(ctx);
+        ExecutionStateMachine.shared().attachPersistence(store, store, service.getEventBus());
     }
 
     void start() {
@@ -174,7 +203,7 @@ final class LocalControlServer {
             if ("GET".equals(method) && "/v1/health".equals(path)) {
                 JSONObject result = new JSONObject();
                 result.put("ok", true);
-                result.put("apiVersion", 7);
+                result.put("apiVersion", 8);
                 result.put("versionName", BuildConfig.VERSION_NAME);
                 result.put("engine", "Companion Execution Engine 6.0 (Low-Latency)");
                 result.put("accessibility", true);
@@ -205,7 +234,10 @@ final class LocalControlServer {
                     .put("compose_deep_walk").put("viewport_filter")
                     .put("transactional_snapshot").put("scroll_path").put("scroll_until")
                     .put("ime_action").put("long_press").put("double_tap")
-                    .put("wait_for_text").put("assert_package").put("event_bus"));
+                    .put("wait_for_text").put("assert_package").put("event_bus")
+                    .put("hitl_state_machine").put("sqlite_checkpoints")
+                    .put("passive_gate_detection").put("session_persistence_v2")
+                    .put("feature_flags").put("structured_run_logging"));
                 respondJson(output, 200, result);
             } else if ("GET".equals(method) && "/v1/displays".equals(path)) {
                 JSONObject result = new JSONObject();
@@ -291,6 +323,36 @@ final class LocalControlServer {
                 JSONObject result = new JSONObject();
                 result.put("names", names);
                 respondJson(output, 200, result);
+            } else if ("GET".equals(method) && "/v1/execution/state".equals(path)) {
+                int logLimit = (int) parseLong(query.get("logs"), 25L);
+                respondJson(output, 200, buildExecutionStateJson(logLimit));
+            } else if ("GET".equals(method) && "/v1/browser/gate_check".equals(path)) {
+                HumanGateDetector.PageObservation obs = BrowserActivity.capturePassiveObservation();
+                HumanGateDetector.GateSignal signal = HumanGateDetector.inspect(obs);
+                JSONObject out = new JSONObject();
+                out.put("ok", true);
+                out.put("detected", signal.detected);
+                out.put("kind", signal.kind.name());
+                out.put("matchedRule", signal.matchedRule);
+                out.put("url", signal.url);
+                out.put("summary", signal.summary);
+                respondJson(output, 200, out);
+            } else if ("GET".equals(method) && "/v1/session/status".equals(path)) {
+                WebSessionManager.SessionSnapshot snap = BrowserActivity.getSessionManager(service).getStatus();
+                JSONObject out = new JSONObject();
+                out.put("ok", true);
+                out.put("lastUrl", snap.lastUrl);
+                out.put("lastOrigin", snap.lastOrigin);
+                out.put("lastFlushedAtMs", snap.lastFlushedAtMs);
+                out.put("hasRestorableSession", snap.hasRestorableSession);
+                out.put("trackedOriginsCount", snap.trackedOriginsCount);
+                respondJson(output, 200, out);
+            } else if ("GET".equals(method) && "/v1/config/flags".equals(path)) {
+                JSONObject flagsJson = new JSONObject();
+                for (Map.Entry<String, Boolean> entry : CompanionFeatureFlags.shared().snapshot().entrySet()) {
+                    flagsJson.put(entry.getKey(), entry.getValue());
+                }
+                respondJson(output, 200, new JSONObject().put("ok", true).put("flags", flagsJson));
             } else if ("GET".equals(method) && "/v1/screenshot".equals(path)) {
                 int displayId = (int) parseLong(query.get("display_id"), 0L);
                 float scale = parseFloat(query.get("scale"), 1.0f);
@@ -641,6 +703,36 @@ final class LocalControlServer {
                         respondJson(output, matched ? 200 : 408, state);
                         return;
                     }
+                    case "/v1/execution/transition": {
+                        handleExecutionTransition(output, args);
+                        return;
+                    }
+                    case "/v1/session/flush": {
+                        WebSessionManager mgr = BrowserActivity.getSessionManager(service);
+                        mgr.flushNow(System.currentTimeMillis());
+                        WebSessionManager.SessionSnapshot snap = mgr.getStatus();
+                        respondJson(output, 200, new JSONObject()
+                            .put("ok", true)
+                            .put("lastUrl", snap.lastUrl)
+                            .put("lastFlushedAtMs", snap.lastFlushedAtMs));
+                        return;
+                    }
+                    case "/v1/config/flags": {
+                        JSONObject incoming = args.has("flags") ? args.getJSONObject("flags") : args;
+                        java.util.Iterator<String> keys = incoming.keys();
+                        while (keys.hasNext()) {
+                            String k = keys.next();
+                            if (CompanionFeatureFlags.shared().isKnownFlag(k)) {
+                                CompanionFeatureFlags.shared().setEnabled(k, incoming.getBoolean(k));
+                            }
+                        }
+                        JSONObject updated = new JSONObject();
+                        for (Map.Entry<String, Boolean> entry : CompanionFeatureFlags.shared().snapshot().entrySet()) {
+                            updated.put(entry.getKey(), entry.getValue());
+                        }
+                        respondJson(output, 200, new JSONObject().put("ok", true).put("flags", updated));
+                        return;
+                    }
                     default:
                         respond(output, 404, "application/json", jsonError("unknown endpoint"));
                         return;
@@ -894,6 +986,97 @@ final class LocalControlServer {
             batchOut.put("reason", failReason);
         }
         respondJson(output, allOk ? 200 : 409, batchOut);
+    }
+
+    private void handleExecutionTransition(OutputStream output, JSONObject args) throws Exception {
+        if (!CompanionFeatureFlags.shared().isEnabled(CompanionFeatureFlags.FLAG_HITL_STATE_MACHINE)) {
+            respondJson(output, 409, new JSONObject().put("ok", false).put("reason", "flag_disabled"));
+            return;
+        }
+        String action = args.getString("action").trim().toLowerCase(Locale.ROOT);
+        long nowMs = System.currentTimeMillis();
+        ExecutionStateMachine sm = ExecutionStateMachine.shared();
+        ExecutionStateMachine.RunContext ctx;
+        try {
+            switch (action) {
+                case "start":
+                    ctx = sm.startRun(
+                        args.getString("run_id"),
+                        args.optString("flow_name", "default"),
+                        args.optString("target_url", ""),
+                        args.optInt("step_index", 0),
+                        args.optString("step_action", "init"),
+                        nowMs
+                    );
+                    CompanionRuntimeService.clearUserActionNotification(service);
+                    break;
+                case "step":
+                    ctx = sm.advanceStep(
+                        args.getInt("step_index"),
+                        args.optString("step_action", ""),
+                        args.optString("target_url", ""),
+                        nowMs
+                    );
+                    break;
+                case "pause_user": {
+                    String gateRaw = args.optString("gate_kind", "HUMAN_VERIFICATION").trim().toUpperCase(Locale.ROOT);
+                    HumanGateDetector.GateKind gateKind;
+                    try { gateKind = HumanGateDetector.GateKind.valueOf(gateRaw); }
+                    catch (IllegalArgumentException ignored) { gateKind = HumanGateDetector.GateKind.HUMAN_VERIFICATION; }
+                    String targetUrl = args.optString("target_url", "");
+                    String reason = args.optString("reason", "Acción manual requerida");
+                    ctx = sm.pauseForUser(reason, gateKind, targetUrl, nowMs);
+                    CompanionRuntimeService.notifyUserActionRequired(service, ctx.runId, reason, ctx.targetUrl);
+                    if (args.optBoolean("focus_browser", false) && WebSessionManager.isWebUrl(ctx.targetUrl)) {
+                        service.openBrowser(ctx.targetUrl);
+                    }
+                    break;
+                }
+                case "resume":
+                    ctx = sm.beginResume(nowMs);
+                    CompanionRuntimeService.clearUserActionNotification(service);
+                    break;
+                case "running":
+                    ctx = sm.markRunningAfterResume(nowMs);
+                    break;
+                case "complete":
+                    ctx = sm.complete(nowMs);
+                    CompanionRuntimeService.clearUserActionNotification(service);
+                    break;
+                case "fail":
+                    ctx = sm.fail(args.optString("error_code", "error"), args.optString("error_message", ""), nowMs);
+                    CompanionRuntimeService.clearUserActionNotification(service);
+                    break;
+                case "reset":
+                    ctx = sm.resetToIdle(nowMs);
+                    CompanionRuntimeService.clearUserActionNotification(service);
+                    break;
+                default:
+                    respondJson(output, 400, new JSONObject().put("ok", false).put("error", "unknown transition action: " + action));
+                    return;
+            }
+        } catch (IllegalStateException badState) {
+            respondJson(output, 409, new JSONObject().put("ok", false).put("reason", "invalid_transition").put("error", badState.getMessage()));
+            return;
+        }
+        respondJson(output, 200, buildExecutionStateJson(15).put("context", contextToJson(ctx)));
+    }
+
+    private JSONObject buildExecutionStateJson(int logLimit) throws Exception {
+        ExecutionStateMachine sm = ExecutionStateMachine.shared();
+        ExecutionStateMachine.RunContext ctx = sm.getContext();
+        JSONArray logs = new JSONArray();
+        for (ExecutionStateMachine.LogEntry entry : sm.recentLogs(logLimit)) {
+            logs.put(new JSONObject(entry.toJsonString()));
+        }
+        return new JSONObject()
+            .put("ok", true)
+            .put("context", contextToJson(ctx))
+            .put("recentLogs", logs);
+    }
+
+    private static JSONObject contextToJson(ExecutionStateMachine.RunContext ctx) throws Exception {
+        return new JSONObject(ctx.toJsonString());
     }
 
     private void respondAction(OutputStream output, AccessibilityControlService.ActionResult result) throws Exception {
