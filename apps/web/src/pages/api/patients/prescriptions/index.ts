@@ -12,7 +12,7 @@ interface ClinicalDataShape {
   frequency?: string;
   instructions?: string;
   medications?: Array<{ name?: string; dosage?: string; frequency?: string; instructions?: string }>;
-  items?: Array<{ generic_name?: string; commercialName?: string; dosage?: string; instructions?: string }>;
+  items?: Array<{ generic_name?: string; commercialName?: string; commercial_name?: string; dosage?: string; instructions?: string }>;
 }
 interface PrescriptionRow {
   id: string; status: string; cuir: string | null; signed_pdf_url: string | null;
@@ -86,7 +86,7 @@ export function mapCore(row: PrescriptionRow, doctorName: string): PatientPrescr
   const primaryItem = clinical.items?.[0];
   return {
     id: row.id,
-    medicationName: clinical.medication_name ?? primaryMed?.name ?? primaryItem?.commercialName ?? primaryItem?.generic_name ?? 'Prescripcion medica',
+    medicationName: clinical.medication_name ?? primaryMed?.name ?? primaryItem?.commercial_name ?? primaryItem?.commercialName ?? primaryItem?.generic_name ?? 'Prescripcion medica',
     dosage: clinical.dosage ?? primaryMed?.dosage ?? primaryItem?.dosage ?? '',
     frequency: clinical.frequency ?? primaryMed?.frequency ?? '',
     instructions: clinical.instructions ?? primaryMed?.instructions ?? primaryItem?.instructions ?? '',

@@ -58,6 +58,7 @@ const STATUS_CONFIG: Record<string, StatusConfig> = {
     color: "text-amber-600 border-amber-200 bg-amber-50",
     icon: FileText,
   },
+  active: { label: "Activa", color: "text-emerald-600 border-emerald-200 bg-emerald-50", icon: CheckCircle2 },
   sent: { label: "Emitida", color: "text-am-primary-600 border-am-primary-200 bg-am-primary-50", icon: CheckCircle2 },
   pending_dispensation: {
     label: "Pendiente",

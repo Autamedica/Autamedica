@@ -16,7 +16,10 @@ import type {
   UUID,
 } from "@/lib/doctors/types/medical";
 import type { Database } from "@autamedica/types";
-import { logger } from "@autamedica/shared";
+import { getServerEnvOrDefault, logger } from "@autamedica/shared";
+import { getRuntimeEnvValue } from "@/lib/runtime-env";
+import { FarmalinkClient, resolveFarmalinkConfig } from "@/lib/prescriptions/farmalink.client";
+import { buildFarmalinkBajaRecetaRequest } from "@/lib/prescriptions/farmalink.mapper";
 import { validCpf } from "@/lib/prescriptions/brazil/memed-patient";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -29,6 +32,7 @@ type CorePrescriptionRow = Pick<
   | "updated_at"
   | "doctor_id"
   | "patient_id"
+  | "country_code"
   | "cuir"
   | "status"
   | "clinical_data"
@@ -44,6 +48,7 @@ const DOCTOR_PRESCRIPTION_SELECT = [
   "updated_at",
   "doctor_id",
   "patient_id",
+  "country_code",
   "cuir",
   "status",
   "clinical_data",
@@ -66,6 +71,7 @@ interface PrescriptionContent {
   end_date?: string | null;
   notes?: string | null;
   diagnosis?: string | null;
+  cancellation_reason?: string | null;
   side_effects_warning?: string | null;
   external_patient?: ExternalPrescriptionPatient;
   medications?: Array<{
@@ -107,6 +113,7 @@ export interface DoctorPrescriptionWritePayload {
   end_date?: string | null;
   notes?: string | null;
   diagnosis?: string | null;
+  cancellation_reason?: string | null;
   side_effects_warning?: string | null;
   care_guide_tips?: string | null;
   care_guide_forgotten?: string | null;
@@ -389,6 +396,7 @@ export function mapClinicalStatusToCoreStatus(
     return "expired";
   }
   if (
+    currentStatus === "active" ||
     currentStatus === "sent" ||
     currentStatus === "dispensed_partial" ||
     currentStatus === "dispensed_total"
@@ -396,6 +404,96 @@ export function mapClinicalStatusToCoreStatus(
     return currentStatus;
   }
   return currentStatus === "signed" ? "signed" : "draft";
+}
+
+function readEnvValue(
+  runtimeEnv: Record<string, unknown> | undefined,
+  key: string,
+  fallback?: string,
+): string | undefined {
+  const fromRuntime = runtimeEnv?.[key];
+  if (typeof fromRuntime === "string" && fromRuntime.trim().length > 0) {
+    return fromRuntime.trim();
+  }
+  return getRuntimeEnvValue(key) ?? getServerEnvOrDefault(key, fallback);
+}
+
+async function cancelFarmalinkPrescriptionRemote(
+  supabase: Db,
+  existingRow: CorePrescriptionRow,
+  actorUserId: string,
+  runtimeEnv: Record<string, unknown> | undefined,
+): Promise<{ executed: boolean; referencePayload?: Record<string, unknown> }> {
+  const vendorId = existingRow.vendor_id?.trim();
+  if (existingRow.vendor_name !== "farmalink" || !vendorId) {
+    return { executed: false };
+  }
+
+  const config = resolveFarmalinkConfig(runtimeEnv);
+  if (!config.enabled || config.missing.length > 0) {
+    return { executed: false };
+  }
+
+  const { data: attemptRow } = await (supabase as unknown as SupabaseClient)
+    .from("farmalink_issue_attempts")
+    .select("issue_snapshot")
+    .eq("prescription_id", existingRow.id)
+    .maybeSingle();
+
+  const typedAttempt = attemptRow as { issue_snapshot?: unknown } | null;
+  const snapshotReq = getPrescriptionContent(
+    getPrescriptionContent(typedAttempt?.issue_snapshot).request,
+  );
+  const altaReq = getPrescriptionContent(snapshotReq.altaRecetaElectRq);
+  const infoCabecera = getPrescriptionContent(altaReq.infoCabeceraRq);
+  const recElectronica = getPrescriptionContent(altaReq.recElectronica);
+  const afiliado = getPrescriptionContent(recElectronica.afiliado);
+  const credencial = getPrescriptionContent(afiliado.credencial);
+
+  const idOrganizacion = asString(infoCabecera.idOrganizacion)
+    ?? readEnvValue(runtimeEnv, "FARMALINK_ORG_ID", "182")
+    ?? "182";
+  const tipoOrganizacion = asString(infoCabecera.tipoOrganizacion)
+    ?? readEnvValue(runtimeEnv, "FARMALINK_ORG_TYPE", "NMD")
+    ?? "NMD";
+  const rawCodEntidad = credencial.codEntidad
+    ?? readEnvValue(runtimeEnv, "FARMALINK_HOMOLOGATION_COD_ENTIDAD", "7110")
+    ?? "7110";
+  const codEntidad = Number(rawCodEntidad);
+  const pan = asString(credencial.pan)
+    ?? readEnvValue(runtimeEnv, "FARMALINK_HOMOLOGATION_CREDENCIAL", "20123456786")
+    ?? "20123456786";
+
+  const bajaRequest = buildFarmalinkBajaRecetaRequest({
+    idOrganizacion,
+    tipoOrganizacion,
+    codEntidad: Number.isFinite(codEntidad) && codEntidad > 0 ? codEntidad : 7110,
+    pan,
+    nroRecElectronica: vendorId,
+  });
+
+  try {
+    const client = FarmalinkClient.fromEnv(runtimeEnv);
+    const response = await client.bajaReceta(bajaRequest);
+    await supabase.from("prescription_audit_events").insert({
+      prescription_id: existingRow.id,
+      event_type: "ACT_FARMALINK_BAJA",
+      user_id: actorUserId,
+      metadata: {
+        provider: "farmalink",
+        vendor_id: vendorId,
+        response: (response ?? null) as Database["public"]["Tables"]["prescription_audit_events"]["Insert"]["metadata"],
+      },
+    });
+    return { executed: true, referencePayload: { vendor_id: vendorId } };
+  } catch (err) {
+    logger.error("[doctorPrescriptionBackendService] Farmalink bajaReceta failed", {
+      prescriptionId: existingRow.id,
+      vendorId,
+      err,
+    });
+    throw new Error("farmalink_baja_failed");
+  }
 }
 
 export function mapCoreRowToPrescription(row: CorePrescriptionRow): Prescription {
@@ -511,6 +609,9 @@ function buildClinicalDataFromPayload(
     diagnosis: payload.diagnosis ?? null,
     ...(externalPatient ? { external_patient: externalPatient } : {}),
     notes: payload.notes ?? null,
+    ...(payload.cancellation_reason !== undefined
+      ? { cancellation_reason: payload.cancellation_reason }
+      : {}),
     side_effects_warning: payload.side_effects_warning ?? null,
     care_guide_tips: payload.care_guide_tips ?? current?.care_guide_tips ?? null,
     care_guide_forgotten: payload.care_guide_forgotten ?? current?.care_guide_forgotten ?? null,
@@ -697,6 +798,7 @@ export const doctorPrescriptionBackendService = {
     context: DoctorContext,
     prescriptionId: UUID,
     updates: Partial<DoctorPrescriptionWritePayload>,
+    runtimeEnv?: Record<string, unknown>,
   ): Promise<Prescription | null> {
     const { data: existing, error: existingError } = await supabase
       .from("prescriptions")
@@ -811,6 +913,7 @@ export const doctorPrescriptionBackendService = {
       end_date: updates.end_date ?? currentPrescription.end_date,
       notes: updates.notes ?? currentPrescription.notes,
       diagnosis: updates.diagnosis ?? currentPrescription.diagnosis ?? null,
+      cancellation_reason: updates.cancellation_reason ?? null,
       side_effects_warning:
         updates.side_effects_warning ?? currentPrescription.side_effects_warning,
     };
@@ -827,13 +930,27 @@ export const doctorPrescriptionBackendService = {
       existingRow.status,
     );
 
+    const isCancelling = nextCoreStatus === "cancelled" && existingRow.status !== "cancelled";
+    const isFarmalinkLocked = existingRow.vendor_name === "farmalink";
+    if (isCancelling && isFarmalinkLocked && (existingRow.country_code ?? "AR") === "AR") {
+      await cancelFarmalinkPrescriptionRemote(supabase, existingRow, context.userId, runtimeEnv);
+    }
+
+    // Farmalink-committed prescriptions freeze clinical_data via DB trigger; only transition status on cancellation.
+    const updatePayload = isFarmalinkLocked
+      ? {
+          status: nextCoreStatus,
+          updated_at: new Date().toISOString(),
+        }
+      : {
+          status: nextCoreStatus,
+          clinical_data: clinicalData,
+          updated_at: new Date().toISOString(),
+        };
+
     const { data, error } = await supabase
       .from("prescriptions")
-      .update({
-        status: nextCoreStatus,
-        clinical_data: clinicalData,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq("id", prescriptionId)
       .select(DOCTOR_PRESCRIPTION_SELECT)
       .single();
@@ -841,6 +958,19 @@ export const doctorPrescriptionBackendService = {
     if (error) {
       logger.error("[doctorPrescriptionBackendService] update failed", { prescriptionId, error });
       throw error;
+    }
+
+    if (isCancelling) {
+      await supabase.from("prescription_audit_events").insert({
+        prescription_id: prescriptionId,
+        event_type: "cancelled",
+        user_id: context.userId,
+        metadata: {
+          reason: updates.cancellation_reason ?? null,
+          vendor_name: existingRow.vendor_name ?? null,
+          vendor_id: existingRow.vendor_id ?? null,
+        },
+      });
     }
 
     return mapCoreRowToPrescription(data as unknown as CorePrescriptionRow);

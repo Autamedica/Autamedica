@@ -5,12 +5,16 @@ import { createAstroAdminClient } from '@/lib/supabase';
 import { forbidden, internalError, jsonOk, notFound, unauthorized } from '@/lib/api-helpers';
 import type { PatientPrescriptionDTO } from '@/lib/doctors/types/prescription-core.dto';
 
+import { supportsPatientPdfDownload } from './index';
+
 interface ClinicalDataShape {
   medication_name?: string;
   dosage?: string;
   frequency?: string;
   instructions?: string;
   items?: Array<{
+    commercialName?: string;
+    commercial_name?: string;
     generic_name?: string;
     dosage?: string;
     instructions?: string;
@@ -26,6 +30,9 @@ interface ClinicalDataShape {
 interface PrescriptionRow {
   id: string;
   status: string;
+  country_code: string | null;
+  signature_method: string | null;
+  vendor_name: string | null;
   cuir: string | null;
   signed_pdf_url: string | null;
   qr_code_content: string | null;
@@ -48,11 +55,17 @@ function mapRowToPatientDTO(row: PrescriptionRow, doctorName: string): PatientPr
   const primaryItem = clinical.items?.[0];
   const isDigitalReady = Boolean(row.cuir && (row.qr_code_content || row.signed_pdf_url));
 
+  const downloadUrl = supportsPatientPdfDownload(row)
+    ? `/api/doctors/prescriptions/${encodeURIComponent(row.id)}/pdf`
+    : null;
+
   return {
     id: row.id,
     medicationName:
       clinical.medication_name ??
       primaryMed?.name ??
+      primaryItem?.commercial_name ??
+      primaryItem?.commercialName ??
       primaryItem?.generic_name ??
       'Prescripcion medica',
     dosage: clinical.dosage ?? primaryMed?.dosage ?? primaryItem?.dosage ?? '',
@@ -60,7 +73,7 @@ function mapRowToPatientDTO(row: PrescriptionRow, doctorName: string): PatientPr
     instructions: clinical.instructions ?? primaryMed?.instructions ?? primaryItem?.instructions ?? '',
     status: row.status,
     cuir: row.cuir,
-    signedPdfUrl: row.signed_pdf_url,
+    signedPdfUrl: downloadUrl,
     prescribedDate: row.created_at,
     expiresAt: null,
     doctorName,
@@ -80,7 +93,7 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
 
     const { data: row, error: rxError } = await admin
       .from('prescriptions')
-      .select('id, status, cuir, signed_pdf_url, qr_code_content, clinical_data, doctor_id, patient_id, created_at')
+      .select('id, status, country_code, signature_method, vendor_name, cuir, signed_pdf_url, qr_code_content, clinical_data, doctor_id, patient_id, created_at')
       .eq('id', prescriptionId)
       .maybeSingle();
 
@@ -91,6 +104,9 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
 
     if (!row) return notFound('prescription_not_found');
     if (row.patient_id !== context.patientId) return forbidden('prescription_not_yours');
+    if (row.status === 'draft' && row.vendor_name?.toLowerCase() !== 'memed') {
+      return notFound('prescription_not_found');
+    }
 
     const { data: doctor } = await admin
       .from('doctors')

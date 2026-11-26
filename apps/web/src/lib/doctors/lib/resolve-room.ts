@@ -94,8 +94,8 @@ async function resolvePharmacyDispatchRoom(
 
     // New dispatches have a visit-scoped UUID. Legacy requests without a
     // linked record remain triage-only and must never be used for documents.
-    const patientId = isClinicalPatientId(dispatch.patient_id)
-      ? dispatch.patient_id!
+    const patientId = isClinicalPatientId(dispatch.patient_id) && dispatch.patient_id
+      ? dispatch.patient_id
       : `dispatch:${dispatch.id}`;
     return {
       patientId,
@@ -241,27 +241,53 @@ export async function doctorHasPatientAccess(
   doctorId: string,
   patientId: string,
 ): Promise<boolean> {
-  const [{ data: careTeam, error: careTeamError }, { data: appointment, error: appointmentError }] =
-    await Promise.all([
-      admin
-        .from('patient_care_team')
-        .select('id')
-        .eq('doctor_id', doctorId)
-        .eq('patient_id', patientId)
-        .eq('active', true)
-        .limit(1)
-        .maybeSingle(),
-      admin
-        .from('appointments')
-        .select('id')
-        .eq('doctor_id', doctorId)
-        .eq('patient_id', patientId)
-        .limit(1)
-        .maybeSingle(),
-    ]);
+  const [
+    { data: careTeam, error: careTeamError },
+    { data: appointment, error: appointmentError },
+    { data: doctorPatient, error: doctorPatientError },
+    { data: dispatch, error: dispatchError },
+  ] = await Promise.all([
+    admin
+      .from('patient_care_team')
+      .select('id')
+      .eq('doctor_id', doctorId)
+      .eq('patient_id', patientId)
+      .eq('active', true)
+      .limit(1)
+      .maybeSingle(),
+    admin
+      .from('appointments')
+      .select('id')
+      .eq('doctor_id', doctorId)
+      .eq('patient_id', patientId)
+      .limit(1)
+      .maybeSingle(),
+    admin
+      .from('doctor_patient')
+      .select('id')
+      .eq('doctor_id', doctorId)
+      .eq('patient_id', patientId)
+      .limit(1)
+      .maybeSingle(),
+    admin
+      .from('pharmacy_dispatch_requests')
+      .select('id')
+      .eq('assigned_doctor_id', doctorId)
+      .eq('patient_id', patientId)
+      .in('status', ['matched', 'in_call', 'transferring', 'transferred', 'completed'])
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
   if (careTeamError) throw careTeamError;
   if (appointmentError) throw appointmentError;
+  if (doctorPatientError) throw doctorPatientError;
+  if (dispatchError) throw dispatchError;
 
-  return Boolean((careTeam as { id: string } | null)?.id || (appointment as { id: string } | null)?.id);
+  return Boolean(
+    (careTeam as { id: string } | null)?.id
+      || (appointment as { id: string } | null)?.id
+      || (doctorPatient as { id: string } | null)?.id
+      || (dispatch as { id: string } | null)?.id,
+  );
 }

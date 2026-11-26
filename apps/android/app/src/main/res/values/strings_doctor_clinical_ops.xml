@@ -161,7 +161,7 @@
     <string name="in_call_patient_link_required">Vincule la ficha clínica del paciente para emitir documentos.</string>
     <string name="in_call_country_mismatch">El país de atención debe coincidir con la matrícula profesional.</string>
     <string name="in_call_tab_prescription">Receta digital</string>
-    <string name="in_call_tab_certificate">Atestado médico</string>
+    <string name="in_call_tab_certificate">Certificado médico</string>
     <string name="in_call_certificate_draft_saved">Borrador preparado</string>
     <string name="in_call_prescription_issued">Receta emitida en AutaMedica</string>
     <string name="in_call_document_reference">Código de verificación: %1$s</string>

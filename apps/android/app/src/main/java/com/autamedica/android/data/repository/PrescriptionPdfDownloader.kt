@@ -93,7 +93,7 @@ class PrescriptionPdfDownloader @Inject constructor(
                     check(directory.isDirectory || directory.mkdirs()) {
                         "prescription_pdf_cache_unavailable"
                     }
-                    val safeName = endpointPath.substringAfterLast('/').replace(
+                    val safeName = prescriptionId.replace(
                         Regex("[^A-Za-z0-9_-]"),
                         "_",
                     )
