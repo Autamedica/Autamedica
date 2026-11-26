@@ -3,6 +3,7 @@
  * Never claim the browser callback or an unsigned PDF proves pharmaceutical validity.
  */
 import type { APIRoute } from 'astro';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { DOCTOR_ROLES, isAuthed, withAuthRole } from '@/lib/api-auth';
 import { badRequest, forbidden, internalError, jsonOk } from '@/lib/api-helpers';
 import { createAstroAdminClient } from '@/lib/supabase';
