@@ -67,7 +67,9 @@ type TableChain = {
   eq: ReturnType<typeof vi.fn>
   in: ReturnType<typeof vi.fn>
   gt: ReturnType<typeof vi.fn>
+  gte: ReturnType<typeof vi.fn>
   is: ReturnType<typeof vi.fn>
+  order: ReturnType<typeof vi.fn>
   maybeSingle: ReturnType<typeof vi.fn>
   single: ReturnType<typeof vi.fn>
   update: ReturnType<typeof vi.fn>
@@ -82,7 +84,9 @@ function buildTableChain(data: unknown, error: unknown = null): TableChain {
     eq: vi.fn(),
     in: vi.fn(),
     gt: vi.fn(),
+    gte: vi.fn(),
     is: vi.fn(),
+    order: vi.fn(),
     maybeSingle: vi.fn(),
     single: vi.fn(),
     update: vi.fn(),
@@ -91,7 +95,9 @@ function buildTableChain(data: unknown, error: unknown = null): TableChain {
   chain.eq.mockReturnValue(chain)
   chain.in.mockReturnValue(chain)
   chain.gt.mockReturnValue(chain)
+  chain.gte.mockReturnValue(chain)
   chain.is.mockReturnValue(chain)
+  chain.order.mockReturnValue(chain)
   chain.maybeSingle.mockReturnValue(chain)
   chain.single.mockReturnValue(chain)
   chain.update.mockReturnValue(chain)

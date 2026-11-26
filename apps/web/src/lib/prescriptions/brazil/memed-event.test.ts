@@ -307,6 +307,7 @@ describe('Memed event persistence boundary', () => {
           doctors: doctor,
           prescriptions: existing,
           memed_prescriptions: existingMemed,
+          profiles: { first_name: 'Synthetic', last_name: 'Doctor' },
           doctor_licenses: [{ license_number: '9236', uf_brazil: 'RS', cfm_evidence_path: 'ci/doctor/evidence.pdf', cfm_review_notes: 'Synthetic CI review evidence', cfm_reviewed_by: '00000000-0000-4000-8000-000000000001', cfm_reviewed_at: '2026-11-12T00:00:00Z', cfm_last_checked_at: '2026-11-12T00:00:00Z' }],
         };
         const chain = {
