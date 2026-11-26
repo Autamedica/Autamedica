@@ -36,6 +36,7 @@ const {
   primaryCta,
   secondaryCta,
 } = Astro.props;
+const isPt = (Astro.locals.locale ?? 'es') === 'pt';
 ---
 
 <section class="portal-shell" style={`--portal-accent: ${accent};`}>
@@ -51,7 +52,7 @@ const {
       </div>
     </header>
 
-    <section class="stats" aria-label="Indicadores del portal">
+    <section class="stats" aria-label={isPt ? 'Indicadores do portal' : 'Indicadores del portal'}>
       {stats.map((item) => (
         <article class="stat-card">
           <p class="stat-value">{item.value}</p>
@@ -60,7 +61,7 @@ const {
       ))}
     </section>
 
-    <section class="pillars" aria-label="Pilares del portal">
+    <section class="pillars" aria-label={isPt ? 'Pilares do portal' : 'Pilares del portal'}>
       {pillars.map((pillar) => (
         <article class="pillar-card">
           <h2>{pillar.title}</h2>

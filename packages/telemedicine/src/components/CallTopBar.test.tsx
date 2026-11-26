@@ -59,4 +59,26 @@ describe('CallTopBar', () => {
     const { container } = render(<CallTopBar {...baseProps} showControls={false} />)
     expect(container.innerHTML).toBe('')
   })
+
+  it('keeps the duration timer visible on mobile and desktop when connected', () => {
+    render(<CallTopBar {...baseProps} durationSeconds={135} />)
+    const timer = screen.getByTestId('call-duration-timer')
+    expect(timer.textContent).toContain('02:15')
+    expect(timer.className).toContain('bg-black/40')
+    expect(timer.parentElement?.className).not.toContain('hidden')
+  })
+
+  it('switches timer styling to amber warning at 25 minutes', () => {
+    render(<CallTopBar {...baseProps} formattedDuration="25:00" durationSeconds={1500} />)
+    const timer = screen.getByTestId('call-duration-timer')
+    expect(timer.className).toContain('text-amber-200')
+    expect(timer.getAttribute('title')).toContain('30 min')
+  })
+
+  it('switches timer styling to red alert at 30 minutes and supports formatted fallback', () => {
+    render(<CallTopBar {...baseProps} formattedDuration="30:00" />)
+    const timer = screen.getByTestId('call-duration-timer')
+    expect(timer.className).toContain('text-red-200')
+    expect(timer.getAttribute('title')).toContain('30 minutos')
+  })
 })

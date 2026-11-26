@@ -395,3 +395,18 @@ describe('Admin host enforcement in middleware.ts', () => {
     expect(block).toContain('!pathname.startsWith("/_astro/")');
   });
 });
+
+describe('Locale cookie domain scoping in middleware.ts', () => {
+  it('persists au-locale across .autamedica.com subdomains in production', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const source = fs.readFileSync(path.resolve(__dirname, 'middleware.ts'), 'utf8');
+    const match = source.match(
+      /\/\/ ── LOCALE DETECTION ──[\s\S]*?\/\/ ── FIN LOCALE DETECTION ──/,
+    );
+    expect(match).not.toBeNull();
+    const block = match?.[0] ?? '';
+    expect(block).toContain('domain: domainOverride');
+    expect(block).toContain('".autamedica.com"');
+  });
+});

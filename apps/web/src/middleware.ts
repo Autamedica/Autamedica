@@ -721,7 +721,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
     // Persistir en cookie solo si no coincide (evita escribir en cada request)
     const savedLocale = rawCookies?.match(/au-locale=([^;]+)/)?.[1]?.trim();
     if (savedLocale !== locale) {
+      const reqHostname = requestUrl.hostname;
+      const domainOverride =
+        isProduction() && (reqHostname === "autamedica.com" || reqHostname.endsWith(".autamedica.com"))
+          ? ".autamedica.com"
+          : undefined;
       context.cookies.set(LOCALE_COOKIE, locale, {
+        domain: domainOverride,
         path: "/",
         maxAge: 60 * 60 * 24 * 365, // 1 ano
         sameSite: "lax",

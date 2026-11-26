@@ -7,6 +7,7 @@ import Footer from '../../components/Footer.astro';
 import { buildRoleAuthPath } from '../../lib/auth-flow';
 import { getI18n } from '../../i18n/index';
 const locale = Astro.locals.locale ?? 'es';
+const isPt = locale === 'pt';
 const { t } = getI18n(locale);
 
 const pageTitle = t('portals.companies.title');
@@ -31,25 +32,50 @@ const pageDescription = t('portals.companies.description');
     title={t('portals.companies.title')}
     subtitle={t('portals.companies.description')}
     accent="var(--portal-companies)"
-    stats={[
-      { value: '24/7', label: 'Monitoreo en tiempo real' },
-      { value: '1-2', label: 'Clics para acciones clave' },
-      { value: '<200ms', label: 'Meta de INP p75' },
-    ]}
-    pillars={[
-      {
-        title: 'Control de Crisis',
-        description: 'Monitoreo en tiempo real de incidentes sanitarios, estado de instalaciones y personal disponible.',
-      },
-      {
-        title: 'Marketplace Médico',
-        description: 'Gestión integral de contratación de profesionales médicos con seguimiento de aplicaciones y conversión.',
-      },
-      {
-        title: 'Rendimiento optimizado',
-        description: 'Islands React solo en componentes interactivos; servidor renderiza el resto para reducir carga de JS.',
-      },
-    ]}
+    stats={
+      isPt
+        ? [
+            { value: '24/7', label: 'Monitoramento em tempo real' },
+            { value: '1-2', label: 'Cliques para ações principais' },
+            { value: '<200ms', label: 'Meta de INP p75' },
+          ]
+        : [
+            { value: '24/7', label: 'Monitoreo en tiempo real' },
+            { value: '1-2', label: 'Clics para acciones clave' },
+            { value: '<200ms', label: 'Meta de INP p75' },
+          ]
+    }
+    pillars={
+      isPt
+        ? [
+            {
+              title: 'Controle de Crise',
+              description: 'Monitoramento em tempo real de incidentes sanitários, estado das unidades e equipe disponível.',
+            },
+            {
+              title: 'Marketplace Médico',
+              description: 'Gestão integral de contratação de profissionais médicos com acompanhamento de candidaturas e conversão.',
+            },
+            {
+              title: 'Desempenho otimizado',
+              description: 'Islands React apenas em componentes interativos; o servidor renderiza o restante para reduzir a carga de JS.',
+            },
+          ]
+        : [
+            {
+              title: 'Control de Crisis',
+              description: 'Monitoreo en tiempo real de incidentes sanitarios, estado de instalaciones y personal disponible.',
+            },
+            {
+              title: 'Marketplace Médico',
+              description: 'Gestión integral de contratación de profesionales médicos con seguimiento de aplicaciones y conversión.',
+            },
+            {
+              title: 'Rendimiento optimizado',
+              description: 'Islands React solo en componentes interactivos; servidor renderiza el resto para reducir carga de JS.',
+            },
+          ]
+    }
     primaryCta={{
       href: buildRoleAuthPath('register', 'company_admin'),
       label: t('auth.createAccount'),
@@ -64,10 +90,10 @@ const pageDescription = t('portals.companies.description');
     vertical="companies" 
     intent="company_demo" 
     formId="company_interest"
-    title="AutaMedica para Empresas"
-    subtitle="Solicitá una demo personalizada para ver cómo podemos ayudar a optimizar la salud laboral y el marketplace médico de tu organización."
-    buttonLabel="Solicitar Demo"
-    placeholder="email@empresa.com"
+    title={isPt ? 'AutaMedica para Empresas' : 'AutaMedica para Empresas'}
+    subtitle={isPt ? 'Solicite uma demonstração personalizada para ver como otimizar a saúde ocupacional e a rede médica da sua organização.' : 'Solicitá una demo personalizada para ver cómo podemos ayudar a optimizar la salud laboral y el marketplace médico de tu organización.'}
+    buttonLabel={isPt ? 'Solicitar Demo' : 'Solicitar Demo'}
+    placeholder={isPt ? 'email@empresa.com.br' : 'email@empresa.com'}
   />
 
   <Footer />

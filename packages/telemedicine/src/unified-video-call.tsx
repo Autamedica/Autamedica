@@ -92,7 +92,7 @@ export function UnifiedVideoCall({
   persistCallStatus: persistCallStatusOverride,
   callService: callServiceOverride,
   className = '',
-  theme = userType === 'doctor' ? 'doctor' : 'patient',
+  theme: _theme = userType === 'doctor' ? 'doctor' : 'patient',
   autoStart = false,
   runtime,
   auxiliaryControls,
@@ -216,7 +216,7 @@ export function UnifiedVideoCall({
   )
   /* ── Extracted hooks ── */
   const { controlsVisible, resetControlsTimer } = useAutoHideControls({ isInRoom })
-  const { formattedDuration } = useCallDuration(isCallEstablished)
+  const { elapsedSeconds, formattedDuration } = useCallDuration(isCallEstablished)
   const { audioLevel, greenRoomChecks } = useGreenRoom({ warmUpResult, isInRoom })
   const { emitDebug, logCallEvent } = useCallDebugger({
     callId, roomId, userId, userType, callServiceOverride,
@@ -916,6 +916,7 @@ export function UnifiedVideoCall({
           phase={sessionPhase}
           qualityLevel={qualityLevel}
           formattedDuration={formattedDuration}
+          durationSeconds={elapsedSeconds}
           participantCount={totalParticipants}
           isRecording={recordingState.isRecording}
           showControls={controlsVisible}

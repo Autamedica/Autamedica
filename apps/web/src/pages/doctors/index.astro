@@ -7,6 +7,7 @@ import Footer from '../../components/Footer.astro';
 import { buildRoleAuthPath } from '../../lib/auth-flow';
 import { getI18n } from '../../i18n/index';
 const locale = Astro.locals.locale ?? 'es';
+const isPt = locale === 'pt';
 const { t } = getI18n(locale);
 
 const pageTitle = t('portals.doctors.title');
@@ -31,25 +32,50 @@ const pageDescription = t('portals.doctors.description');
     title={t('portals.doctors.title')}
     subtitle={t('portals.doctors.description')}
     accent="var(--portal-doctors)"
-    stats={[
-      { value: 'HD', label: 'Teleconsulta integrada' },
-      { value: '1-2', label: 'Clics para acciones clave' },
-      { value: '<200ms', label: 'Meta de INP p75' },
-    ]}
-    pillars={[
-      {
-        title: 'Flujo clinico principal',
-        description: 'Acceso directo a agenda, videollamada y notas sin navegar multiples pantallas.',
-      },
-      {
-        title: 'Contexto del paciente',
-        description: 'Informacion relevante priorizada para reducir tiempos de decision durante la consulta.',
-      },
-      {
-        title: 'Rendimiento controlado',
-        description: 'Islands React solo en widgets interactivos; resto server-rendered para reducir JS inicial.',
-      },
-    ]}
+    stats={
+      isPt
+        ? [
+            { value: 'HD', label: 'Teleconsulta integrada' },
+            { value: '1-2', label: 'Cliques para ações principais' },
+            { value: '<200ms', label: 'Meta de INP p75' },
+          ]
+        : [
+            { value: 'HD', label: 'Teleconsulta integrada' },
+            { value: '1-2', label: 'Clics para acciones clave' },
+            { value: '<200ms', label: 'Meta de INP p75' },
+          ]
+    }
+    pillars={
+      isPt
+        ? [
+            {
+              title: 'Fluxo clínico principal',
+              description: 'Acesso direto à agenda, videochamada e evoluções sem navegar em múltiplas telas.',
+            },
+            {
+              title: 'Contexto do paciente',
+              description: 'Informações relevantes priorizadas para reduzir o tempo de decisão durante a consulta.',
+            },
+            {
+              title: 'Desempenho controlado',
+              description: 'Islands React apenas em componentes interativos; o restante renderizado no servidor para reduzir JS inicial.',
+            },
+          ]
+        : [
+            {
+              title: 'Flujo clinico principal',
+              description: 'Acceso directo a agenda, videollamada y notas sin navegar multiples pantallas.',
+            },
+            {
+              title: 'Contexto del paciente',
+              description: 'Informacion relevante priorizada para reducir tiempos de decision durante la consulta.',
+            },
+            {
+              title: 'Rendimiento controlado',
+              description: 'Islands React solo en widgets interactivos; resto server-rendered para reducir JS inicial.',
+            },
+          ]
+    }
     primaryCta={{
       href: buildRoleAuthPath('register', 'doctor'),
       label: t('auth.createAccount'),
@@ -64,10 +90,10 @@ const pageDescription = t('portals.doctors.description');
     vertical="doctors" 
     intent="doctor_onboarding" 
     formId="doctor_interest"
-    title="¿Sos profesional de la salud?"
-    subtitle="Dejanos tu email para recibir información sobre cómo integrar AutaMedica en tu práctica privada y acceder a las herramientas de IA clínica."
-    buttonLabel="Quiero saber más"
-    placeholder="tu@email.com"
+    title={isPt ? 'Você é profissional da saúde?' : '¿Sos profesional de la salud?'}
+    subtitle={isPt ? 'Deixe seu e-mail para saber como integrar a AutaMedica na sua prática clínica e acessar ferramentas de IA médica.' : 'Dejanos tu email para recibir información sobre cómo integrar AutaMedica en tu práctica privada y acceder a las herramientas de IA clínica.'}
+    buttonLabel={isPt ? 'Quero saber mais' : 'Quiero saber más'}
+    placeholder={isPt ? 'seu@email.com' : 'tu@email.com'}
   />
 
   <Footer />

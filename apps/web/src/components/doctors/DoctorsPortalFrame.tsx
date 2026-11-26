@@ -410,7 +410,7 @@ export function DoctorsPortalFrame({
       },
       {
         href: "/doctors/prescriptions",
-        label: isBrazilianPortal ? "Receitas / Atestados" : "Recetas / Atestados",
+        label: isBrazilianPortal ? "Receitas / Atestados" : "Recetas / Certificados",
         icon: Pill,
         key: "prescriptions",
       },
@@ -636,12 +636,12 @@ export function DoctorsPortalFrame({
           type="button"
           aria-label="Cerrar navegación"
           onClick={() => setMobileMenuOpen(false)}
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-[45] bg-black/40 backdrop-blur-sm md:hidden"
         />
       ) : null}
 
       {/* ── Header ── */}
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-3 py-3 backdrop-blur-xl sm:px-4 md:px-8">
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 px-3 py-3 backdrop-blur-xl sm:px-4 md:px-8">
         <div className="flex items-center justify-between gap-3">
           <a href="/" className="flex items-center gap-3">
             <img

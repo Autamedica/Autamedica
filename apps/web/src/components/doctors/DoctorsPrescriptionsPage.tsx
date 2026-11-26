@@ -213,7 +213,7 @@ const CERT_TYPE_LABELS: Record<string, string> = {
   aptitud_fisica: "Aptitud Física",
   constancia_atencion: "Constancia de Atención",
   tratamiento: "Tratamiento Prolongado",
-  otro: "Atestado Médico",
+  otro: "Certificado Médico",
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -382,11 +382,15 @@ export function DoctorsPrescriptionsPage() {
         setCertificates(json.data);
       }
     } catch {
-      setCertError("No se pudieron cargar los atestados médicos.");
+      setCertError(
+        certificateCountry === "BR" || doctorCountry === "BR"
+          ? "Não foi possível carregar os atestados médicos."
+          : "No se pudieron cargar los certificados médicos.",
+      );
     } finally {
       setCertLoading(false);
     }
-  }, [selectedPatientId]);
+  }, [selectedPatientId, certificateCountry, doctorCountry]);
 
   useEffect(() => {
     if (selectedPatientId) {
@@ -641,7 +645,7 @@ export function DoctorsPrescriptionsPage() {
               className="inline-flex items-center gap-2 rounded-xl bg-am-primary-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-am-primary-700 active:scale-[0.97]"
             >
               <FileText className="h-4 w-4" />
-              Preparar atestado
+              {certificateCountry === "BR" || doctorCountry === "BR" ? "Preparar atestado" : "Preparar certificado"}
             </button>
           </div>
         </motion.div>
@@ -767,7 +771,7 @@ export function DoctorsPrescriptionsPage() {
                 className="inline-flex items-center gap-2 rounded-xl border border-neutral-300 bg-white px-5 py-2.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50"
               >
                 <FileText className="h-4 w-4" />
-                Preparar atestado
+                {certificateCountry === "BR" || doctorCountry === "BR" ? "Preparar atestado" : "Preparar certificado"}
               </button>
             </div>
           </motion.div>
@@ -776,7 +780,7 @@ export function DoctorsPrescriptionsPage() {
         {/* ── Content when patient selected ── */}
         {selectedPatientId && (
           <>
-            {/* Document Mode Selector: Recetas vs Atestados */}
+            {/* Document Mode Selector: Recetas vs Certificados / Atestados */}
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 pb-4">
               <div className="flex gap-2">
                 <button
@@ -811,7 +815,7 @@ export function DoctorsPrescriptionsPage() {
                   }`}
                 >
                   <FileText className="h-4 w-4" />
-                  Atestados Médicos
+                  {certificateCountry === "BR" || doctorCountry === "BR" ? "Atestados Médicos" : "Certificados Médicos"}
                   <span
                     className={`ml-1 rounded-full px-2 py-0.5 text-xs ${
                       docMode === "certificates"
@@ -840,7 +844,7 @@ export function DoctorsPrescriptionsPage() {
                     className="inline-flex items-center gap-1.5 rounded-xl bg-am-primary-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-am-primary-700 transition"
                   >
                     <Plus className="h-3.5 w-3.5" />
-                    Preparar atestado
+                    {certificateCountry === "BR" || doctorCountry === "BR" ? "Preparar atestado" : "Preparar certificado"}
                   </button>
                 </div>
               )}
@@ -1121,7 +1125,7 @@ export function DoctorsPrescriptionsPage() {
                   <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 px-6 py-16 text-center">
                     <FileCheck className="mb-4 h-12 w-12 text-neutral-300" />
                     <p className="text-lg font-medium text-neutral-600">
-                      No hay atestados emitidos
+                      {certificateCountry === "BR" || doctorCountry === "BR" ? "No hay atestados emitidos" : "No hay certificados emitidos"}
                     </p>
                     <p className="mt-1 text-sm text-neutral-400">
                       Emití reposos laborales, escolares o certificados de aptitud física para este
@@ -1133,7 +1137,7 @@ export function DoctorsPrescriptionsPage() {
                       className="mt-4 inline-flex items-center gap-2 rounded-xl bg-am-primary-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-am-primary-700 shadow-sm"
                     >
                       <Plus className="h-4 w-4" />
-                      Preparar atestado
+                      {certificateCountry === "BR" || doctorCountry === "BR" ? "Preparar atestado" : "Preparar certificado"}
                     </button>
                   </div>
                 )}
@@ -1153,8 +1157,12 @@ export function DoctorsPrescriptionsPage() {
                         cert.status === "draft" || cert.status === "signed"
                           ? `/api/doctors/certificates/${encodeURIComponent(cert.id)}/pdf`
                           : undefined;
+                      const isBrCert = certificateCountry === "BR" || doctorCountry === "BR";
                       const typeLabel =
-                        CERT_TYPE_LABELS[cert.certificate_type] || "Atestado Médico";
+                        cert.certificate_type === "otro" && isBrCert
+                          ? "Atestado Médico"
+                          : CERT_TYPE_LABELS[cert.certificate_type] ||
+                            (isBrCert ? "Atestado Médico" : "Certificado Médico");
                       return (
                         <div
                           key={cert.id}
@@ -1337,14 +1345,15 @@ export function DoctorsPrescriptionsPage() {
           role="alert"
           className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900"
         >
-          Não foi possível determinar a jurisdição do médico. Verifique o CRM/UF ou a matrícula
-          antes de criar o atestado.
+          {doctorCountry === "BR"
+            ? "Não foi possível determinar a jurisdição do médico. Verifique o CRM/UF antes de criar o atestado."
+            : "No fue posible determinar la jurisdicción del médico. Verificá la matrícula y el país antes de crear el certificado."}
           <button
             type="button"
             onClick={() => setShowCertificateModal(false)}
             className="ml-3 underline"
           >
-            Fechar
+            {doctorCountry === "BR" ? "Fechar" : "Cerrar"}
           </button>
         </div>
       )}
@@ -1414,7 +1423,11 @@ export function DoctorsPrescriptionsPage() {
                 };
               } | null;
               if (!response.ok || envelope?.success !== true) {
-                throw new Error("Falha ao registrar receita digital.");
+                throw new Error(
+                  doctorCountry === "BR"
+                    ? "Falha ao registrar receita digital."
+                    : "No se pudo registrar la receta digital.",
+                );
               }
               const url = envelope.data?.fullDocumentUrl || envelope.data?.digitalLinkUrl;
               if (url) {
@@ -1437,7 +1450,13 @@ export function DoctorsPrescriptionsPage() {
                   prescriptionId,
                 }),
               });
-              if (!response.ok) throw new Error("Falha ao sincronizar exclusão da receita.");
+              if (!response.ok) {
+                throw new Error(
+                  doctorCountry === "BR"
+                    ? "Falha ao sincronizar exclusão da receita."
+                    : "No se pudo sincronizar la eliminación de la receta.",
+                );
+              }
               refresh();
             }}
             onClose={() => setShowMemedWidget(false)}

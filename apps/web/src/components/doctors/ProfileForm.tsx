@@ -726,14 +726,14 @@ export function ProfileForm() {
               )}
               <div>
                 <label htmlFor="professionalAddress" className="block text-sm font-medium text-am-surface-700 mb-1.5">
-                  Domicilio Profesional / Consultório
+                  {country === 'brasil' ? 'Endereço do consultório' : 'Domicilio Profesional / Consultorio'}
                 </label>
                 <input
                   type="text"
                   id="professionalAddress"
                   value={professionalAddress}
                   onChange={(e) => setProfessionalAddress(e.target.value)}
-                  placeholder="Dirección del consultorio / Endereço"
+                  placeholder={country === 'brasil' ? 'Endereço do consultório' : 'Dirección del consultorio'}
                   className={inputClass}
                   disabled={isSubmitting}
                 />
