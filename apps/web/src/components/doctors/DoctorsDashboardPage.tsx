@@ -594,20 +594,20 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
 
           <a
             href="/doctors/prescriptions?document=certificate"
-            aria-label={isBrazilianDoctor ? "Novo atestado" : "Nuevo atestado"}
+            aria-label={isBrazilianDoctor ? "Novo atestado" : "Nuevo certificado"}
             className="group flex min-h-[148px] min-w-0 flex-col rounded-2xl border border-sky-100 bg-[#E8F5FD] p-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200 active:translate-y-0 sm:min-h-[160px] sm:p-4"
           >
             <span className="mb-3 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#D5ECFC] text-[#087FB9]">
               <FileCheck aria-hidden="true" className="h-6 w-6" strokeWidth={2.2} />
             </span>
             <span className="block text-lg font-bold leading-tight tracking-tight text-[#123F5A] sm:text-xl">
-              {isBrazilianDoctor ? "Atestado" : "Atestado"}
+              {isBrazilianDoctor ? "Atestado" : "Certificado"}
             </span>
             <span className="mt-1 block text-xs leading-relaxed text-[#405B6C] sm:text-sm">
               {isBrazilianDoctor ? "Criar e enviar" : "Crear y enviar"}
             </span>
             <span className="mt-auto flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#087FB9] px-3 py-2 text-sm font-semibold text-white shadow-sm transition-colors group-hover:bg-[#066FA5]">
-              <span>{isBrazilianDoctor ? "Novo atestado" : "Nuevo atestado"}</span>
+              <span>{isBrazilianDoctor ? "Novo atestado" : "Nuevo certificado"}</span>
               <ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1" />
             </span>
           </a>

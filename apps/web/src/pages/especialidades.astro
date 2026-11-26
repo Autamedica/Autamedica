@@ -4,88 +4,167 @@ import Navbar from '../components/Navbar.astro';
 import CTAFinal from '../components/CTAFinal.astro';
 import Footer from '../components/Footer.astro';
 
-const specialties = [
-  {
-    id: 'general',
-    name: 'Medicina Clínica y General',
-    tagline: 'Atención primaria integral.',
-    description: 'Nuestra primera línea de atención para diagnósticos iniciales, chequeos preventivos de laboratorio, triaje clínico y seguimiento continuo.',
-    href: '/medico-clinico-online',
-    icon: 'Stethoscope'
-  },
-  {
-    id: 'psychiatry',
-    name: 'Psiquiatría',
-    tagline: 'Salud mental y medicina farmacológica.',
-    description: 'Evaluación diagnóstica médica, abordaje de ansiedad, depresión, insomnio y TDAH en adultos, y seguimiento farmacológico con recetas oficiales.',
-    href: '/psiquiatra-online',
-    icon: 'BrainCircuit'
-  },
-  {
-    id: 'psy',
-    name: 'Psicología',
-    tagline: 'Salud mental y bienestar.',
-    description: 'Sesiones privadas con especialistas en manejo de ansiedad, depresión, estrés y acompañamiento terapéutico continuo.',
-    href: '/psicologo-online',
-    icon: 'Brain'
-  },
-  {
-    id: 'derma',
-    name: 'Dermatología',
-    tagline: 'Excelencia en salud cutánea.',
-    description: 'Evaluación profesional de lesiones, acné, afecciones crónicas y consultas de prevención oncológica de la piel.',
-    href: '/dermatologo-online',
-    icon: 'Sparkles'
-  },
-  {
-    id: 'cardio',
-    name: 'Cardiología',
-    tagline: 'Cuidado cardiovascular avanzado.',
-    description: 'Control de hipertensión, evaluación de riesgo coronario y seguimiento de patologías cardíacas crónicas.',
-    href: '/cardiologo-online',
-    icon: 'Heart'
-  },
-  {
-    id: 'pedia',
-    name: 'Pediatría',
-    tagline: 'Atención especializada infantil.',
-    description: 'Consultas de desarrollo, fiebre infantil, orientación vacunal y seguimiento integral para la salud de los más pequeños.',
-    href: '/pediatra-online',
-    icon: 'Baby'
-  },
-  {
-    id: 'gastro',
-    name: 'Gastroenterología',
-    tagline: 'Especialistas en salud digestiva.',
-    description: 'Tratamiento de reflujo gastroesofágico, gastritis, colon irritable, intolerancias y revisión experta de endoscopias.',
-    href: '/gastroenterologo-online',
-    icon: 'Activity'
-  },
-  {
-    id: 'neuro',
-    name: 'Neurología',
-    tagline: 'Diagnóstico neurológico preciso.',
-    description: 'Atención especializada en migrañas, cefaleas, temblores, epilepsia controlada y revisión de neuroimágenes.',
-    href: '/neurologo-online',
-    icon: 'Zap'
-  }
-];
+const locale = Astro.locals.locale ?? 'es';
+const isPt = locale === 'pt';
+
+const specialties = isPt
+  ? [
+      {
+        id: 'general',
+        name: 'Clínica Médica e Geral',
+        tagline: 'Atenção primária integral.',
+        description: 'Nossa primeira linha de cuidado para diagnósticos iniciais, check-ups laboratoriais preventivos, triagem clínica e acompanhamento contínuo.',
+        href: '/medico-clinico-online',
+        icon: 'Stethoscope',
+      },
+      {
+        id: 'psychiatry',
+        name: 'Psiquiatria',
+        tagline: 'Saúde mental e medicina farmacológica.',
+        description: 'Avaliação diagnóstica médica, manejo de ansiedade, depressão, insônia e TDAH em adultos, e acompanhamento farmacológico com receitas digitais.',
+        href: '/psiquiatra-online',
+        icon: 'BrainCircuit',
+      },
+      {
+        id: 'psy',
+        name: 'Psicologia',
+        tagline: 'Saúde mental e bem-estar.',
+        description: 'Sessões privadas com especialistas no manejo de ansiedade, depressão, estresse e acompanhamento terapêutico contínuo.',
+        href: '/psicologo-online',
+        icon: 'Brain',
+      },
+      {
+        id: 'derma',
+        name: 'Dermatologia',
+        tagline: 'Excelência em saúde da pele.',
+        description: 'Avaliação profissional de lesões, acne, condições crônicas e consultas preventivas em saúde cutânea.',
+        href: '/dermatologo-online',
+        icon: 'Sparkles',
+      },
+      {
+        id: 'cardio',
+        name: 'Cardiologia',
+        tagline: 'Cuidado cardiovascular avançado.',
+        description: 'Controle da hipertensão, avaliação de risco coronariano e acompanhamento de doenças cardíacas crônicas.',
+        href: '/cardiologo-online',
+        icon: 'Heart',
+      },
+      {
+        id: 'pedia',
+        name: 'Pediatria',
+        tagline: 'Atenção especializada infantil.',
+        description: 'Consultas de desenvolvimento, febre infantil, orientação vacinal e acompanhamento integral da saúde das crianças.',
+        href: '/pediatra-online',
+        icon: 'Baby',
+      },
+      {
+        id: 'gastro',
+        name: 'Gastroenterologia',
+        tagline: 'Especialistas em saúde digestiva.',
+        description: 'Tratamento de refluxo gastroesofágico, gastrite, síndrome do intestino irritável, intolerâncias e revisão de endoscopias.',
+        href: '/gastroenterologo-online',
+        icon: 'Activity',
+      },
+      {
+        id: 'neuro',
+        name: 'Neurologia',
+        tagline: 'Diagnóstico neurológico preciso.',
+        description: 'Atendimento especializado em enxaquecas, cefaleias, tremores, epilepsia controlada e revisão de neuroimagens.',
+        href: '/neurologo-online',
+        icon: 'Zap',
+      },
+    ]
+  : [
+      {
+        id: 'general',
+        name: 'Medicina Clínica y General',
+        tagline: 'Atención primaria integral.',
+        description: 'Nuestra primera línea de atención para diagnósticos iniciales, chequeos preventivos de laboratorio, triaje clínico y seguimiento continuo.',
+        href: '/medico-clinico-online',
+        icon: 'Stethoscope',
+      },
+      {
+        id: 'psychiatry',
+        name: 'Psiquiatría',
+        tagline: 'Salud mental y medicina farmacológica.',
+        description: 'Evaluación diagnóstica médica, abordaje de ansiedad, depresión, insomnio y TDAH en adultos, y seguimiento farmacológico con recetas oficiales.',
+        href: '/psiquiatra-online',
+        icon: 'BrainCircuit',
+      },
+      {
+        id: 'psy',
+        name: 'Psicología',
+        tagline: 'Salud mental y bienestar.',
+        description: 'Sesiones privadas con especialistas en manejo de ansiedad, depresión, estrés y acompañamiento terapéutico continuo.',
+        href: '/psicologo-online',
+        icon: 'Brain',
+      },
+      {
+        id: 'derma',
+        name: 'Dermatología',
+        tagline: 'Excelencia en salud cutánea.',
+        description: 'Evaluación profesional de lesiones, acné, afecciones crónicas y consultas de prevención oncológica de la piel.',
+        href: '/dermatologo-online',
+        icon: 'Sparkles',
+      },
+      {
+        id: 'cardio',
+        name: 'Cardiología',
+        tagline: 'Cuidado cardiovascular avanzado.',
+        description: 'Control de hipertensión, evaluación de riesgo coronario y seguimiento de patologías cardíacas crónicas.',
+        href: '/cardiologo-online',
+        icon: 'Heart',
+      },
+      {
+        id: 'pedia',
+        name: 'Pediatría',
+        tagline: 'Atención especializada infantil.',
+        description: 'Consultas de desarrollo, fiebre infantil, orientación vacunal y seguimiento integral para la salud de los más pequeños.',
+        href: '/pediatra-online',
+        icon: 'Baby',
+      },
+      {
+        id: 'gastro',
+        name: 'Gastroenterología',
+        tagline: 'Especialistas en salud digestiva.',
+        description: 'Tratamiento de reflujo gastroesofágico, gastritis, colon irritable, intolerancias y revisión experta de endoscopias.',
+        href: '/gastroenterologo-online',
+        icon: 'Activity',
+      },
+      {
+        id: 'neuro',
+        name: 'Neurología',
+        tagline: 'Diagnóstico neurológico preciso.',
+        description: 'Atención especializada en migrañas, cefaleas, temblores, epilepsia controlada y revisión de neuroimágenes.',
+        href: '/neurologo-online',
+        icon: 'Zap',
+      },
+    ];
 ---
 
-<Layout title="AutaMedica | Especialidades Médicas y Cuerpo Profesional" description="Directorio institucional de especialidades médicas. Médicos certificados en Medicina General, Psicología, Dermatología y más especialidades de alta complejidad.">
+<Layout
+  title={isPt ? 'AutaMedica | Especialidades Médicas e Corpo Clínico' : 'AutaMedica | Especialidades Médicas y Cuerpo Profesional'}
+  description={isPt ? 'Diretório institucional de especialidades médicas. Médicos certificados em Clínica Médica, Psicologia, Dermatologia e outras especialidades.' : 'Directorio institucional de especialidades médicas. Médicos certificados en Medicina General, Psicología, Dermatología y más especialidades de alta complejidad.'}
+>
   <Navbar />
   
   <main class="bg-white text-neutral-900 pt-32 pb-20">
     <!-- Institutional Header -->
     <header class="container mx-auto px-6 py-20 text-left border-b border-neutral-100">
       <div class="max-w-4xl">
-        <span class="text-[var(--au-accent)] font-bold text-xs uppercase tracking-widest mb-6 block">Directorio Médico Oficial</span>
+        <span class="text-[var(--au-accent)] font-bold text-xs uppercase tracking-widest mb-6 block">
+          {isPt ? 'Diretório Médico Oficial' : 'Directorio Médico Oficial'}
+        </span>
         <h1 class="text-5xl md:text-7xl font-serif font-medium leading-tight tracking-tight text-neutral-950 mb-8">
-          Excelencia clínica en <br/> 
-          <span class="text-neutral-500 italic">múltiples disciplinas.</span>
+          {isPt ? 'Excelência clínica em ' : 'Excelencia clínica en '} <br/> 
+          <span class="text-neutral-500 italic">
+            {isPt ? 'múltiplas disciplinas.' : 'múltiples disciplinas.'}
+          </span>
         </h1>
         <p class="text-xl text-neutral-600 max-w-2xl font-light leading-relaxed">
-          Cada departamento de AutaMedica está liderado por profesionales certificados, garantizando un estándar uniforme de calidad asistencial en toda nuestra red.
+          {isPt
+            ? 'Cada departamento da AutaMedica é liderado por profissionais certificados, garantindo um padrão uniforme de qualidade assistencial em toda a nossa rede.'
+            : 'Cada departamento de AutaMedica está liderado por profesionales certificados, garantizando un estándar uniforme de calidad asistencial en toda nuestra red.'}
         </p>
       </div>
     </header>
@@ -132,19 +211,31 @@ const specialties = [
     <section class="py-32 bg-neutral-50 border-y border-neutral-100">
       <div class="container mx-auto px-6">
         <div class="max-w-3xl mx-auto text-center">
-          <h2 class="text-4xl font-serif font-bold mb-12">Calidad médica sin compromisos.</h2>
+          <h2 class="text-4xl font-serif font-bold mb-12">
+            {isPt ? 'Qualidade médica sem concessões.' : 'Calidad médica sin compromisos.'}
+          </h2>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
             <div>
               <div class="text-3xl font-serif font-bold text-neutral-900 mb-2">100%</div>
-              <p class="text-xs uppercase tracking-widest text-neutral-400 font-bold">Médicos Matriculados</p>
+              <p class="text-xs uppercase tracking-widest text-neutral-400 font-bold">
+                {isPt ? 'Médicos Registrados' : 'Médicos Matriculados'}
+              </p>
             </div>
             <div>
-              <div class="text-3xl font-serif font-bold text-neutral-900 mb-2">Auditado</div>
-              <p class="text-xs uppercase tracking-widest text-neutral-400 font-bold">Protocolos Clínicos</p>
+              <div class="text-3xl font-serif font-bold text-neutral-900 mb-2">
+                {isPt ? 'Auditado' : 'Auditado'}
+              </div>
+              <p class="text-xs uppercase tracking-widest text-neutral-400 font-bold">
+                {isPt ? 'Protocolos Clínicos' : 'Protocolos Clínicos'}
+              </p>
             </div>
             <div>
-              <div class="text-3xl font-serif font-bold text-neutral-900 mb-2">Encriptado</div>
-              <p class="text-xs uppercase tracking-widest text-neutral-400 font-bold">Historial Médico</p>
+              <div class="text-3xl font-serif font-bold text-neutral-900 mb-2">
+                {isPt ? 'Criptografado' : 'Encriptado'}
+              </div>
+              <p class="text-xs uppercase tracking-widest text-neutral-400 font-bold">
+                {isPt ? 'Prontuário Médico' : 'Historial Médico'}
+              </p>
             </div>
           </div>
         </div>
@@ -152,9 +243,9 @@ const specialties = [
     </section>
 
     <CTAFinal
-      title="Atención profesional a su alcance."
-      subtitle="Elija la especialidad que necesita y conecte con un profesional certificado ahora."
-      buttonLabel="Ver todos los Médicos"
+      title={isPt ? 'Atendimento profissional ao seu alcance.' : 'Atención profesional a su alcance.'}
+      subtitle={isPt ? 'Escolha a especialidade de que precisa e conecte-se com um profissional certificado agora.' : 'Elija la especialidad que necesita y conecte con un profesional certificado ahora.'}
+      buttonLabel={isPt ? 'Ver todos os Médicos' : 'Ver todos los Médicos'}
       buttonHref="/patients"
     />
   </main>

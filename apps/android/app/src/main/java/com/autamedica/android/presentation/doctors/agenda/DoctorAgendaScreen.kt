@@ -272,7 +272,8 @@ fun DoctorAgendaScreen(
 
                     else -> {
                         LazyColumn(
-                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 120.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
                             // 1. Editor de Disponibilidad Semanal
@@ -432,6 +433,10 @@ fun DoctorAgendaScreen(
                                         }
                                     }
                                 }
+                            }
+
+                            item {
+                                Spacer(modifier = Modifier.height(16.dp))
                             }
                         }
                     }

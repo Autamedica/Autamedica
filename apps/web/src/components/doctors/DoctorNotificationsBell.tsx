@@ -100,6 +100,8 @@ export default function DoctorNotificationsBell() {
         onClick={() => setIsOpen((current) => !current)}
         className="relative rounded-full p-2.5 transition-colors hover:bg-neutral-100"
         aria-label="Notificaciones"
+        aria-expanded={isOpen}
+        aria-controls="doctor-notifications-panel"
       >
         <Bell className="h-4 w-4 text-neutral-400" strokeWidth={1.5} />
         {unreadCount > 0 ? (
@@ -114,11 +116,16 @@ export default function DoctorNotificationsBell() {
           <button
             type="button"
             aria-label="Cerrar notificaciones"
-            className="fixed inset-0 z-30 cursor-default"
+            className="fixed inset-0 z-40 cursor-default"
             onClick={() => setIsOpen(false)}
           />
 
-          <section className="absolute right-0 top-12 z-40 w-[min(92vw,388px)] overflow-hidden rounded-[26px] border border-neutral-200 bg-white shadow-2xl">
+          <section
+            id="doctor-notifications-panel"
+            role="dialog"
+            aria-label="Notificaciones"
+            className="absolute right-0 top-12 z-50 w-[min(92vw,388px)] overflow-hidden rounded-[26px] border border-neutral-200 bg-white shadow-2xl"
+          >
             <header className="flex items-center justify-between border-b border-neutral-200 px-4 py-4">
               <div>
                 <p className="text-[13px] font-semibold text-neutral-900">

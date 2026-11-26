@@ -17,7 +17,7 @@ import { useDoctorAppointments } from '@/hooks/doctors/useDoctorAppointments'
 import { useStartCall } from '@/hooks/doctors/useStartCall'
 import { selectDoctorPatientAppointmentInsights } from '@/lib/doctors/queries/doctor-appointments.selectors'
 import { Calendar, Clock, Video, Phone, Users, FileText, RefreshCw, Search, Activity, UserCheck, UserPlus, ChevronRight, MessageSquare, X } from 'lucide-react'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { getDisplayName, getInitials, getAvatarColor } from '@/lib/doctors/lib/utils'
 import { PatientChat } from './PatientChat'
 
@@ -117,6 +117,9 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
   const [pulseItems, setPulseItems] = useState<{name: string, email: string, joinedAt: string}[]>([])
   const [pulseLoading, setPulseLoading] = useState(false)
   const [chatPatient, setChatPatient] = useState<{ id: string; name: string } | null>(null)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [syncMessage, setSyncMessage] = useState<string | null>(null)
+  const syncTimerRef = useRef<number | null>(null)
   const { user } = useAuthenticatedUser()
   const { doctor } = useCurrentDoctor(user?.id)
   const doctorCountry = (doctor as (NonNullable<typeof doctor> & { care_country?: string }) | null)
@@ -124,6 +127,35 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
   const dateLocale = doctorCountry === 'BR' ? 'pt-BR' : 'es-AR'
 
   const { patients, loading, error, refetch } = useRealPatients()
+
+  useEffect(() => {
+    return () => {
+      if (syncTimerRef.current !== null) {
+        window.clearTimeout(syncTimerRef.current)
+      }
+    }
+  }, [])
+
+  const handleSync = async () => {
+    if (isSyncing) return
+    setIsSyncing(true)
+    setSyncMessage(null)
+    if (syncTimerRef.current !== null) {
+      window.clearTimeout(syncTimerRef.current)
+      syncTimerRef.current = null
+    }
+    try {
+      await Promise.resolve(refetch())
+      setSyncMessage('Sincronizado')
+      syncTimerRef.current = window.setTimeout(() => {
+        setSyncMessage(null)
+      }, 2500)
+    } catch {
+      setSyncMessage('Error al sincronizar')
+    } finally {
+      setIsSyncing(false)
+    }
+  }
 
   useEffect(() => {
     // El pulso se carga siempre, independientemente de si hay pacientes o no
@@ -251,13 +283,27 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
             <p className="text-sm text-muted-foreground">{patients.length} pacientes asignados</p>
           </div>
         </div>
-        <button
-          onClick={() => refetch()}
-          className="flex items-center gap-2 self-start rounded-lg border border-muted px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all active:scale-95"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Sincronizar
-        </button>
+        <div className="flex items-center gap-2 self-start">
+          {syncMessage && (
+            <span
+              role="status"
+              aria-live="polite"
+              className="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700"
+            >
+              {syncMessage}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => void handleSync()}
+            disabled={isSyncing}
+            aria-busy={isSyncing}
+            className="flex items-center gap-2 rounded-lg border border-muted px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all active:scale-95 disabled:opacity-60 disabled:cursor-wait"
+          >
+            <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+            {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
+          </button>
+        </div>
       </div>
 
       {/* Community Pulse Banner - Visible Siempre */}

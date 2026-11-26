@@ -35,16 +35,46 @@ export interface CallTopBarProps {
   phase: CallSessionPhase
   qualityLevel: StreamQualityLevel
   formattedDuration: string
+  durationSeconds?: number
   participantCount: number
   isRecording: boolean
   showControls: boolean
   runtime?: CallSessionRuntime
 }
 
+const CALL_LIMIT_WARNING_SECONDS = 25 * 60
+const CALL_LIMIT_MAX_SECONDS = 30 * 60
+
+function parseFormattedDurationSeconds(formattedDuration: string): number {
+  const parts = formattedDuration.split(':').map((part) => Number.parseInt(part, 10))
+  if (parts.some((part) => Number.isNaN(part) || part < 0)) return 0
+  if (parts.length === 2) return parts[0] * 60 + parts[1]
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2]
+  return 0
+}
+
 export function CallTopBar({
-  phase, qualityLevel, formattedDuration, participantCount, isRecording, showControls, runtime,
+  phase, qualityLevel, formattedDuration, durationSeconds, participantCount, isRecording, showControls, runtime,
 }: CallTopBarProps) {
   const isConnected = phase === 'media-live'
+  const effectiveDurationSeconds = durationSeconds ?? parseFormattedDurationSeconds(formattedDuration)
+  const isLimitReached = effectiveDurationSeconds >= CALL_LIMIT_MAX_SECONDS
+  const isLimitWarning = !isLimitReached && effectiveDurationSeconds >= CALL_LIMIT_WARNING_SECONDS
+  const timerPillClasses = isLimitReached
+    ? 'bg-red-500/25 text-red-200 ring-1 ring-red-400/40'
+    : isLimitWarning
+      ? 'bg-amber-500/25 text-amber-200 ring-1 ring-amber-400/40'
+      : 'bg-black/40 text-white'
+  const timerIconClasses = isLimitReached
+    ? 'text-red-300'
+    : isLimitWarning
+      ? 'text-amber-300'
+      : 'text-slate-400'
+  const timerTitle = isLimitReached
+    ? 'Límite de 30 minutos alcanzado'
+    : isLimitWarning
+      ? 'Menos de 5 minutos para el límite de 30 min'
+      : 'Duración máxima de consulta: 30 min'
   const connectionDotColor = isConnected
     ? 'bg-emerald-400'
     : phase === 'peer-ready' ? 'bg-cyan-400'
@@ -105,7 +135,7 @@ export function CallTopBar({
               )}
             </div>
 
-            <div className="hidden shrink-0 items-center gap-1.5 sm:flex sm:gap-2">
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
               <AnimatePresence>
                 {isRecording && (
                   <motion.div
@@ -125,12 +155,17 @@ export function CallTopBar({
                 )}
               </AnimatePresence>
               {isConnected && (
-                <div className="flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1.5 text-xs text-white backdrop-blur-xl">
-                  <Clock className="h-3.5 w-3.5 text-slate-400" />
+                <div
+                  data-testid="call-duration-timer"
+                  title={timerTitle}
+                  className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs backdrop-blur-xl sm:px-3 ${timerPillClasses}`}
+                >
+                  <Clock className={`h-3.5 w-3.5 shrink-0 ${timerIconClasses}`} />
                   <span className="font-mono tabular-nums">{formattedDuration}</span>
+                  <span className="hidden font-mono text-[10px] opacity-70 sm:inline">/ 30:00</span>
                 </div>
               )}
-              <div className="flex items-center gap-1.5 rounded-full bg-black/40 px-2.5 py-1.5 text-xs text-white backdrop-blur-xl sm:px-3">
+              <div className="hidden items-center gap-1.5 rounded-full bg-black/40 px-2.5 py-1.5 text-xs text-white backdrop-blur-xl sm:flex sm:px-3">
                 <Users className="h-3.5 w-3.5 text-slate-400" />
                 <span>{participantCount}</span>
               </div>

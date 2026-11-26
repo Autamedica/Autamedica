@@ -53,7 +53,7 @@ const CERTIFICATE_TYPES = [
   { id: "aptitud_fisica", label: "Aptitud Física", desc: "Apto para actividad deportiva / escolar" },
   { id: "constancia_atencion", label: "Constancia de Atención", desc: "Certifica día y horario de consulta" },
   { id: "tratamiento", label: "Tratamiento Médico", desc: "Certificación de esquema terapéutico" },
-  { id: "otro", label: "Otro Certificado", desc: "Atestado de propósito general" },
+  { id: "otro", label: "Otro Certificado", desc: "Certificado de propósito general" },
 ];
 
 const QUICK_REST_CHIPS = [
@@ -252,14 +252,24 @@ export function CertificateCreateModal({
 
       const json = await res.json();
       if (!res.ok || json.success === false) {
-        throw new Error(json.error?.message || json.error || "Error al emitir el atestado");
+        throw new Error(
+          json.error?.message ||
+            json.error ||
+            (countryCode === "BR" ? "Error al emitir el atestado" : "Error al emitir el certificado"),
+        );
       }
 
       const cert = json.data ?? json;
       setSuccessCert(cert);
       if (onCreated) onCreated(cert);
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Error inesperado al emitir el atestado");
+      setErrorMsg(
+        err instanceof Error
+          ? err.message
+          : countryCode === "BR"
+            ? "Error inesperado al emitir el atestado"
+            : "Error inesperado al emitir el certificado",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -458,11 +468,15 @@ export function CertificateCreateModal({
               {/* Certificate Type */}
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wider text-slate-400 mb-1.5">
-                  Tipo de Atestado
+                  {countryCode === "BR" ? "Tipo de Atestado" : "Tipo de Certificado"}
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {CERTIFICATE_TYPES.map((t) => {
                     const isSelected = certType === t.id;
+                    const desc =
+                      t.id === "otro" && countryCode === "BR"
+                        ? "Atestado de propósito general"
+                        : t.desc;
                     return (
                       <button
                         key={t.id}
@@ -477,7 +491,7 @@ export function CertificateCreateModal({
                         <span className={`text-xs font-bold ${isSelected ? "text-am-primary-400" : "text-white"}`}>
                           {t.label}
                         </span>
-                        <span className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">{t.desc}</span>
+                        <span className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">{desc}</span>
                       </button>
                     );
                   })}
