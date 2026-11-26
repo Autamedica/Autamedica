@@ -1,11 +1,38 @@
 #!/usr/bin/env node
 import readline from "node:readline";
+import { execFile } from "node:child_process";
+import { readFile, unlink } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { promisify } from "node:util";
 import { chromium } from "playwright-core";
 
-const BASE = process.env.AUTAMEDICA_ANDROID_URL || "http://127.0.0.1:18765";
-const CDP = process.env.AUTAMEDICA_CDP_URL || "http://127.0.0.1:18766";
+const execFileAsync = promisify(execFile);
+const VDISPLAY_SCRIPT = process.env.AUTAMEDICA_VDISPLAY_SCRIPT || "/root/Autamedica-src/apps/android/e2e/virtual_display.py";
+const FLOWSTORE_SCRIPT = process.env.AUTAMEDICA_FLOWSTORE_SCRIPT || "/root/Autamedica-src/apps/android/e2e/smart_agent.py";
+
+const DEFAULT_CANDIDATE_BASES = [
+  process.env.AUTAMEDICA_ANDROID_URL,
+  "http://127.0.0.1:18775",
+  "http://127.0.0.1:18765"
+].filter((v, i, arr) => Boolean(v) && arr.indexOf(v) === i);
+const EXPLICIT_CDP = process.env.AUTAMEDICA_CDP_URL || "";
 const TOKEN = process.env.AUTAMEDICA_ANDROID_TOKEN || "";
 const PROTOCOL = "2024-11-05";
+
+let activeBase = DEFAULT_CANDIDATE_BASES[0] || "http://127.0.0.1:18775";
+
+function pairedCdpUrl(baseUrl) {
+  if (EXPLICIT_CDP && baseUrl === process.env.AUTAMEDICA_ANDROID_URL) return EXPLICIT_CDP;
+  try {
+    const u = new URL(baseUrl);
+    const port = Number(u.port || 18765);
+    u.port = String(port + 1);
+    return u.toString().replace(/\/$/, "");
+  } catch {
+    return EXPLICIT_CDP || "http://127.0.0.1:18766";
+  }
+}
 
 if (!TOKEN || TOKEN.length < 64) {
   process.stderr.write("AUTAMEDICA_ANDROID_TOKEN (256-bit token) is required.\n");
@@ -20,19 +47,47 @@ const attachedPages = new WeakSet();
 
 const tools = [
   { name: "android_status", description: "Estado de Autamedica Companion, accesibilidad y puertos locales.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
-  { name: "android_get_ui_tree", description: "Lee el árbol de accesibilidad Android; los campos de contraseña se ocultan.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
-  { name: "android_screenshot", description: "Captura la pantalla completa del Xiaomi.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_displays", description: "Lista todas las pantallas Android (física 0 y pantallas virtuales secundarias) con resolución y app activa en cada una.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_get_ui_tree", description: "Lee el árbol de accesibilidad Android profundo (hasta 24 niveles / 1200 nodos); soporta display_id opcional para pantallas virtuales.", inputSchema: { type: "object", properties: { display_id: { type: "integer", minimum: 0 } }, additionalProperties: false } },
+  { name: "android_get_ui_compact", description: "Devuelve snapshot transaccional (snapshotId, generation, package) con elementos semánticos; soporta display_id y viewport_only opcional para podar elementos fuera de pantalla.", inputSchema: { type: "object", properties: { display_id: { type: "integer", minimum: 0 }, viewport_only: { type: "boolean" } }, additionalProperties: false } },
+  { name: "android_set_text", description: "Inyecta texto directo en un nodo Android por path o ref+snapshot_id sin abrir teclado (~15 ms), con soporte opcional display_id.", inputSchema: { type: "object", properties: { path: { type: "string" }, ref: { type: "string" }, snapshot_id: { type: "string" }, display_id: { type: "integer", minimum: 0 }, expected_package: { type: "string" }, strict_generation: { type: "boolean" }, text: { type: "string" } }, required: ["text"], additionalProperties: false } },
+  { name: "android_screenshot", description: "Captura rápida de pantalla Android (por defecto WebP escalado 0.5x para baja latencia y 6x menos tokens; soporta display_id, format=webp|jpeg|png, scale=0.25..1, quality, fresh).", inputSchema: { type: "object", properties: { display_id: { type: "integer", minimum: 0 }, format: { type: "string", enum: ["webp", "jpeg", "png"] }, scale: { type: "number", minimum: 0.25, maximum: 1 }, quality: { type: "integer", minimum: 30, maximum: 100 }, fresh: { type: "boolean" } }, additionalProperties: false } },
   { name: "android_open_app", description: "Abre una aplicación Android por package name.", inputSchema: { type: "object", properties: { package: { type: "string" } }, required: ["package"], additionalProperties: false } },
-  { name: "android_tap", description: "Toca una coordenada de pantalla Android.", inputSchema: { type: "object", properties: { x: { type: "number" }, y: { type: "number" } }, required: ["x", "y"], additionalProperties: false } },
-  { name: "android_click_element", description: "Pulsa un nodo Android por su path del árbol UI.", inputSchema: { type: "object", properties: { path: { type: "string" } }, required: ["path"], additionalProperties: false } },
+  { name: "android_tap", description: "Toca una coordenada de pantalla Android (con guardia opcional expected_package).", inputSchema: { type: "object", properties: { x: { type: "number" }, y: { type: "number" }, expected_package: { type: "string" } }, required: ["x", "y"], additionalProperties: false } },
+  { name: "android_click_element", description: "Pulsa un nodo Android por path o por ref+snapshot_id con soporte opcional display_id y guardia expected_package.", inputSchema: { type: "object", properties: { path: { type: "string" }, ref: { type: "string" }, snapshot_id: { type: "string" }, display_id: { type: "integer", minimum: 0 }, expected_package: { type: "string" }, strict_generation: { type: "boolean" } }, additionalProperties: false } },
+  { name: "android_click_text", description: "Busca y pulsa un elemento Android por texto, descripción o view_id con espera reactiva y guardia expected_package.", inputSchema: { type: "object", properties: { text: { type: "string" }, view_id: { type: "string" }, expected_package: { type: "string" }, timeout_ms: { type: "integer", minimum: 0, maximum: 15000 } }, additionalProperties: false } },
+  { name: "android_scroll", description: "Hace scroll semántico (forward/backward/down/up/left/right) en un contenedor específico por path/ref o en el contenedor principal.", inputSchema: { type: "object", properties: { direction: { type: "string", enum: ["forward", "backward", "down", "up", "left", "right"] }, path: { type: "string" }, ref: { type: "string" }, snapshot_id: { type: "string" }, expected_package: { type: "string" } }, additionalProperties: false } },
+  { name: "android_scroll_until", description: "Hace scroll nativo en bucle dentro del dispositivo hasta encontrar text o view_id en una sola llamada HTTP (opcionalmente hace click atómico).", inputSchema: { type: "object", properties: { text: { type: "string" }, view_id: { type: "string" }, path: { type: "string" }, ref: { type: "string" }, snapshot_id: { type: "string" }, direction: { type: "string", enum: ["forward", "backward", "down", "up", "left", "right"] }, max_scrolls: { type: "integer", minimum: 1, maximum: 25 }, delay_ms: { type: "integer", minimum: 50, maximum: 2000 }, click: { type: "boolean" }, expected_package: { type: "string" } }, additionalProperties: false } },
+  { name: "android_ime_action", description: "Ejecuta ACTION_IME_ENTER (Enviar/Buscar/Listo) sobre el campo enfocado o un nodo por path/ref sin abrir teclado.", inputSchema: { type: "object", properties: { path: { type: "string" }, ref: { type: "string" }, snapshot_id: { type: "string" }, expected_package: { type: "string" }, strict_generation: { type: "boolean" } }, additionalProperties: false } },
+  { name: "android_long_press", description: "Ejecuta pulsación prolongada (ACTION_LONG_CLICK o gesto) sobre path/ref o coordenadas (x, y).", inputSchema: { type: "object", properties: { path: { type: "string" }, ref: { type: "string" }, snapshot_id: { type: "string" }, x: { type: "number" }, y: { type: "number" }, duration_ms: { type: "integer", minimum: 400, maximum: 3000 }, expected_package: { type: "string" } }, additionalProperties: false } },
+  { name: "android_double_tap", description: "Ejecuta doble toque sobre path/ref o coordenadas (x, y).", inputSchema: { type: "object", properties: { path: { type: "string" }, ref: { type: "string" }, snapshot_id: { type: "string" }, x: { type: "number" }, y: { type: "number" }, interval_ms: { type: "integer", minimum: 40, maximum: 250 }, expected_package: { type: "string" } }, additionalProperties: false } },
+  { name: "android_assert_package", description: "Verifica que la app en primer plano coincida con package (esperando reactivamente si timeout_ms > 0).", inputSchema: { type: "object", properties: { package: { type: "string" }, timeout_ms: { type: "integer", minimum: 0, maximum: 15000 } }, required: ["package"], additionalProperties: false } },
+  { name: "android_events_recent", description: "Lee eventos recientes del Event Bus reactivo (window_state_changed, window_content_changed, view_scrolled, toast, notification_posted).", inputSchema: { type: "object", properties: { since_seq: { type: "integer", minimum: 0 }, limit: { type: "integer", minimum: 1, maximum: 250 }, types: { type: "string" }, package: { type: "string" } }, additionalProperties: false } },
+  { name: "android_events_wait", description: "Espera reactivamente (sin polling) a que ocurra un evento de accesibilidad o notificación en el Event Bus.", inputSchema: { type: "object", properties: { since_seq: { type: "integer", minimum: 0 }, types: { type: "array", items: { type: "string" } }, package: { type: "string" }, text: { type: "string" }, timeout_ms: { type: "integer", minimum: 100, maximum: 30000 } }, additionalProperties: false } },
+  { name: "android_get_clipboard", description: "Lee el texto actual del portapapeles de Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_set_clipboard", description: "Copia un texto al portapapeles de Android.", inputSchema: { type: "object", properties: { text: { type: "string" } }, required: ["text"], additionalProperties: false } },
+  { name: "android_paste", description: "Pega texto en el campo Android enfocado usando el portapapeles.", inputSchema: { type: "object", properties: { text: { type: "string" } }, additionalProperties: false } },
+  { name: "android_recent_notifications", description: "Devuelve las notificaciones recientes capturadas por NotificationListenerService.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "android_type", description: "Escribe en el campo Android que tenga el foco.", inputSchema: { type: "object", properties: { text: { type: "string" } }, required: ["text"], additionalProperties: false } },
   { name: "android_swipe", description: "Ejecuta un gesto Android.", inputSchema: { type: "object", properties: { x1: { type: "number" }, y1: { type: "number" }, x2: { type: "number" }, y2: { type: "number" }, duration_ms: { type: "integer", minimum: 50, maximum: 5000 } }, required: ["x1", "y1", "x2", "y2"], additionalProperties: false } },
-  { name: "android_back", description: "Ejecuta Atrás en Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
-  { name: "android_home", description: "Vuelve al inicio de Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_back", description: "Ejecuta Atrás en Android (con guardia opcional expected_package para evitar cerrar otra app o Termux).", inputSchema: { type: "object", properties: { expected_package: { type: "string" } }, additionalProperties: false } },
+  { name: "android_home", description: "Vuelve al inicio de Android (con guardia opcional expected_package).", inputSchema: { type: "object", properties: { expected_package: { type: "string" } }, additionalProperties: false } },
+  { name: "android_recents", description: "Abre apps recientes en Android.", inputSchema: { type: "object", properties: { expected_package: { type: "string" } }, additionalProperties: false } },
+  { name: "android_notifications", description: "Despliega la barra de notificaciones en Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_runtime", description: "Inicia o detiene el Foreground Service de Autamedica Companion (PARTIAL_WAKE_LOCK para automatización con pantalla apagada en MIUI).", inputSchema: { type: "object", properties: { action: { type: "string", enum: ["start", "stop"] } }, required: ["action"], additionalProperties: false } },
+  { name: "android_list_packages", description: "Lista las aplicaciones instaladas y lanzables en Android.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_device_info", description: "Devuelve batería, carga, screen_off_timeout, stay_on_while_plugged_in y resolución de pantalla.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "android_batch", description: "Ejecuta hasta 60 acciones Android en una sola llamada HTTP (open, assert_package, wait_for_text, tap, click, click_text, set_text, scroll, scroll_until, ime_action, long_press, double_tap, paste, type, swipe, back, home, recents, sleep, ui, ui_compact) con guardia transaccional expected_package y snapshot_id.", inputSchema: { type: "object", properties: { steps: { type: "array", items: { type: "object" } }, expected_package: { type: "string" }, snapshot_id: { type: "string" }, strict_generation: { type: "boolean" } }, required: ["steps"], additionalProperties: false } },
   { name: "android_open_url", description: "Abre un enlace web o esquema de aplicación en Android.", inputSchema: { type: "object", properties: { url: { type: "string" } }, required: ["url"], additionalProperties: false } },
 
   { name: "browser_status", description: "Comprueba conexión CDP, motor Chromium/WebView, pestañas, URL y título.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "browser_navigate", description: "Abre el navegador Companion y navega a cualquier sitio HTTP/HTTPS con Internet.", inputSchema: { type: "object", properties: { url: { type: "string" }, wait_until: { type: "string", enum: ["load", "domcontentloaded", "networkidle", "commit"] } }, required: ["url"], additionalProperties: false } },
+  { name: "browser_state", description: "Devuelve estado rápido del WebView (ready, url, title, progress, canGoBack, canGoForward) vía Tier-1 HTTP sin requerir Playwright.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "browser_wait", description: "Espera en el dispositivo a que cargue el documento o aparezca un selector CSS o texto en el WebView (Tier-1 HTTP).", inputSchema: { type: "object", properties: { selector: { type: "string" }, text: { type: "string" }, timeout_ms: { type: "integer", minimum: 200, maximum: 20000 } }, additionalProperties: false } },
+  { name: "browser_back", description: "Navega hacia atrás en el historial del WebView Companion.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "browser_forward", description: "Navega hacia adelante en el historial del WebView Companion.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "browser_snapshot", description: "Extrae en una sola llamada los controles DOM interactivos visibles (ref, selector, label, value, checked) del WebView.", inputSchema: { type: "object", properties: { include_hidden: { type: "boolean" } }, additionalProperties: false } },
+  { name: "web_fetch_clean", description: "Tier 0 sin navegador: descarga una URL por HTTP y devuelve texto semántico/JSON y enlaces en milisegundos.", inputSchema: { type: "object", properties: { url: { type: "string" }, max_chars: { type: "integer", minimum: 500, maximum: 50000 } }, required: ["url"], additionalProperties: false } },
   { name: "browser_click", description: "Playwright locator(selector).click() con auto-wait y comprobación de visibilidad.", inputSchema: { type: "object", properties: { selector: { type: "string" }, timeout_ms: { type: "integer", minimum: 500, maximum: 60000 } }, required: ["selector"], additionalProperties: false } },
   { name: "browser_fill", description: "Playwright locator(selector).fill(value), con eventos input/change.", inputSchema: { type: "object", properties: { selector: { type: "string" }, value: { type: "string" }, timeout_ms: { type: "integer", minimum: 500, maximum: 60000 } }, required: ["selector", "value"], additionalProperties: false } },
   { name: "browser_get_text", description: "Obtiene el texto renderizado de la página o de un selector CSS.", inputSchema: { type: "object", properties: { selector: { type: "string" } }, additionalProperties: false } },
@@ -50,20 +105,48 @@ const tools = [
   { name: "vault_read_secret", description: "Lee un secreto de la bóveda Android cifrada cuando la tarea lo necesita.", inputSchema: { type: "object", properties: { name: { type: "string" } }, required: ["name"], additionalProperties: false } },
   { name: "vault_delete_secret", description: "Elimina un secreto de la bóveda cifrada; el token de conexión está protegido.", inputSchema: { type: "object", properties: { name: { type: "string" } }, required: ["name"], additionalProperties: false } },
 
-  { name: "android_wait_for_text", description: "Espera texto visible en el árbol de accesibilidad Android.", inputSchema: { type: "object", properties: { text: { type: "string" }, timeout_ms: { type: "integer", minimum: 500, maximum: 15000 } }, required: ["text"], additionalProperties: false } }
+  { name: "android_wait_for_text", description: "Espera texto o view_id visible en Android usando el Event Bus reactivo (sin polling) y guardia opcional expected_package.", inputSchema: { type: "object", properties: { text: { type: "string" }, view_id: { type: "string" }, expected_package: { type: "string" }, timeout_ms: { type: "integer", minimum: 200, maximum: 20000 } }, additionalProperties: false } },
+
+  { name: "vdisplay_adb_pair", description: "Empareja Depuración Inalámbrica local del teléfono una sola vez (host:puerto + código de 6 dígitos).", inputSchema: { type: "object", properties: { host_port: { type: "string" }, code: { type: "string" } }, required: ["host_port", "code"], additionalProperties: false } },
+  { name: "vdisplay_adb_connect", description: "Conecta ADB inalámbrico local (ej. 127.0.0.1:41234) para controlar la segunda pantalla virtual.", inputSchema: { type: "object", properties: { host_port: { type: "string" } }, required: ["host_port"], additionalProperties: false } },
+  { name: "vdisplay_status", description: "Devuelve estado de conexión ADB local, pantallas activas y display virtual secundario.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "vdisplay_create", description: "Crea una segunda pantalla virtual aislada vía ADB (overlay_display_devices) para operar apps sin tocar la pantalla principal.", inputSchema: { type: "object", properties: { width: { type: "integer", minimum: 360, maximum: 2160 }, height: { type: "integer", minimum: 640, maximum: 3840 }, density: { type: "integer", minimum: 120, maximum: 640 }, secure: { type: "boolean" }, own_content_only: { type: "boolean" } }, additionalProperties: false } },
+  { name: "vdisplay_destroy", description: "Elimina la segunda pantalla virtual y restaura el teléfono a una sola pantalla.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "vdisplay_launch_app", description: "Lanza una aplicación Android directamente dentro de la segunda pantalla virtual (am start --display <id>).", inputSchema: { type: "object", properties: { package: { type: "string" }, display_id: { type: "integer", minimum: 1 } }, required: ["package"], additionalProperties: false } },
+  { name: "vdisplay_tap", description: "Envía un toque aislado únicamente a la segunda pantalla virtual (input -d <id> tap).", inputSchema: { type: "object", properties: { x: { type: "integer" }, y: { type: "integer" }, display_id: { type: "integer", minimum: 1 } }, required: ["x", "y"], additionalProperties: false } },
+  { name: "vdisplay_swipe", description: "Envía un gesto swipe aislado a la segunda pantalla virtual (input -d <id> swipe).", inputSchema: { type: "object", properties: { x1: { type: "integer" }, y1: { type: "integer" }, x2: { type: "integer" }, y2: { type: "integer" }, duration_ms: { type: "integer", minimum: 50, maximum: 5000 }, display_id: { type: "integer", minimum: 1 } }, required: ["x1", "y1", "x2", "y2"], additionalProperties: false } },
+  { name: "vdisplay_text", description: "Escribe texto en el campo enfocado de la segunda pantalla virtual (input -d <id> text).", inputSchema: { type: "object", properties: { text: { type: "string" }, display_id: { type: "integer", minimum: 1 } }, required: ["text"], additionalProperties: false } },
+  { name: "vdisplay_keyevent", description: "Envía una tecla (ej. KEYCODE_BACK, KEYCODE_ENTER) aislada a la segunda pantalla virtual.", inputSchema: { type: "object", properties: { keycode: { type: "string" }, display_id: { type: "integer", minimum: 1 } }, required: ["keycode"], additionalProperties: false } },
+  { name: "vdisplay_screenshot", description: "Captura PNG de la segunda pantalla virtual vía ADB screencap -d <id>.", inputSchema: { type: "object", properties: { display_id: { type: "integer", minimum: 1 } }, additionalProperties: false } },
+
+  { name: "flow_list", description: "Lista los flujos codificados guardados en FlowStore (recetas determinísticas con self-healing y métricas de ejecución).", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "flow_get", description: "Devuelve la definición JSON completa de un flujo guardado en FlowStore.", inputSchema: { type: "object", properties: { name: { type: "string" } }, required: ["name"], additionalProperties: false } },
+  { name: "flow_save", description: "Guarda o actualiza una receta de flujo en FlowStore (name, target, tier, description, defaults, steps).", inputSchema: { type: "object", properties: { name: { type: "string" }, target: { type: "string" }, tier: { type: "integer", enum: [1, 2] }, description: { type: "string" }, defaults: { type: "object" }, read_only: { type: "boolean" }, steps: { type: "array", items: { type: "object" } } }, required: ["name", "target", "steps"], additionalProperties: false } },
+  { name: "flow_replay", description: "Ejecuta de forma determinística un flujo guardado de FlowStore con overrides de variables y self-healing semántico.", inputSchema: { type: "object", properties: { name: { type: "string" }, overrides: { type: "object" }, return_to_termux: { type: "boolean" } }, required: ["name"], additionalProperties: false } }
 ];
 
 async function request(path, options = {}) {
-  const response = await fetch(BASE + path, {
-    ...options,
-    headers: { Authorization: "Bearer " + TOKEN, ...(options.headers || {}) },
-    signal: AbortSignal.timeout(20000)
-  });
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error("Android Companion HTTP " + response.status + ": " + message.slice(0, 500));
+  const candidates = [activeBase, ...DEFAULT_CANDIDATE_BASES.filter(b => b !== activeBase)];
+  let lastNetworkError = null;
+  for (const base of candidates) {
+    try {
+      const response = await fetch(base + path, {
+        ...options,
+        headers: { Authorization: "Bearer " + TOKEN, ...(options.headers || {}) },
+        signal: AbortSignal.timeout(25000)
+      });
+      activeBase = base;
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error("Android Companion HTTP " + response.status + ": " + message.slice(0, 500));
+      }
+      return response;
+    } catch (err) {
+      if (String(err?.message || "").startsWith("Android Companion HTTP ")) throw err;
+      lastNetworkError = err;
+    }
   }
-  return response;
+  throw lastNetworkError || new Error("Android Companion no responde en puertos " + candidates.join(", "));
 }
 
 async function post(path, args) {
@@ -129,7 +212,8 @@ async function ensureBrowser(timeoutMs = 20000) {
     let lastError;
     while (Date.now() < deadline) {
       try {
-        browser = await chromium.connectOverCDP(CDP, {
+        const cdpEndpoint = pairedCdpUrl(activeBase);
+        browser = await chromium.connectOverCDP(cdpEndpoint, {
           headers: { Authorization: "Bearer " + TOKEN },
           timeout: Math.min(10000, Math.max(1500, deadline - Date.now()))
         });
@@ -144,7 +228,7 @@ async function ensureBrowser(timeoutMs = 20000) {
         await new Promise(resolve => setTimeout(resolve, 350));
       }
     }
-    throw new Error("CDP no disponible en " + CDP + ". Abrí Autamedica Companion y activá Accesibilidad. Último error: " + String(lastError?.message || lastError));
+    throw new Error("CDP no disponible en " + pairedCdpUrl(activeBase) + ". Abrí Autamedica Companion y activá Accesibilidad. Último error: " + String(lastError?.message || lastError));
   })();
   try { return await connecting; }
   finally { connecting = null; }
@@ -168,15 +252,76 @@ function requireHttpUrl(value) {
   return url.toString();
 }
 
+async function runVDisplay(cliArgs) {
+  const { stdout, stderr } = await execFileAsync("python3", ["-u", VDISPLAY_SCRIPT, ...cliArgs], { timeout: 30000 });
+  const text = (stdout || stderr || "{}").trim();
+  return text;
+}
+
+async function runFlowStore(cliArgs) {
+  const { stdout, stderr } = await execFileAsync("python3", ["-u", FLOWSTORE_SCRIPT, ...cliArgs], { timeout: 60000 });
+  return (stdout || stderr || "{}").trim();
+}
+
 async function callTool(name, args) {
   switch (name) {
     case "android_status":
       return [{ type: "text", text: JSON.stringify(await (await request("/v1/health")).json()) }];
-    case "android_get_ui_tree":
-      return [{ type: "text", text: JSON.stringify(await (await request("/v1/ui")).json()) }];
+    case "android_displays":
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/displays")).json()) }];
+    case "android_get_ui_tree": {
+      const qs = args.display_id ? `?display_id=${Number(args.display_id)}` : "";
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/ui" + qs)).json()) }];
+    }
+    case "android_get_ui_compact": {
+      const params = new URLSearchParams();
+      if (args.display_id) params.set("display_id", String(Number(args.display_id)));
+      if (args.viewport_only) params.set("viewport_only", "1");
+      const qs = params.toString() ? "?" + params.toString() : "";
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/ui/compact" + qs)).json()) }];
+    }
+    case "android_set_text":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/set_text", args)) }];
+    case "browser_state":
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/browser/state")).json()) }];
+    case "browser_wait":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/browser/wait", args)) }];
+    case "browser_back":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/browser/back", {})) }];
+    case "browser_forward":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/browser/forward", {})) }];
+    case "browser_snapshot": {
+      const qs = args.include_hidden ? "?all=1" : "";
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/browser/snapshot" + qs)).json()) }];
+    }
+    case "web_fetch_clean": {
+      const targetUrl = requireHttpUrl(args.url);
+      const maxChars = Math.max(500, Math.min(50000, Number(args.max_chars || 16000)));
+      const resp = await fetch(targetUrl, { signal: AbortSignal.timeout(12000), headers: { "User-Agent": "Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile" } });
+      const ctype = resp.headers.get("content-type") || "";
+      const raw = await resp.text();
+      if (ctype.includes("application/json")) {
+        return [{ type: "text", text: raw.slice(0, maxChars) }];
+      }
+      const clean = raw
+        .replace(/<(script|style|noscript|svg)[^>]*>[\s\S]*?<\/\1>/gi, "\n")
+        .replace(/<\/?(p|div|li|tr|h[1-6]|br|section|article)[^>]*>/gi, "\n")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/[ \t]+/g, " ")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+      return [{ type: "text", text: JSON.stringify({ url: resp.url, status: resp.status, text: clean.slice(0, maxChars) }) }];
+    }
     case "android_screenshot": {
-      const response = await request("/v1/screenshot");
-      return [{ type: "image", data: Buffer.from(await response.arrayBuffer()).toString("base64"), mimeType: "image/png" }];
+      const params = new URLSearchParams();
+      if (args.display_id) params.set("display_id", String(Number(args.display_id)));
+      params.set("format", String(args.format || "webp"));
+      params.set("scale", String(args.scale !== undefined ? Number(args.scale) : 0.5));
+      params.set("quality", String(args.quality !== undefined ? Number(args.quality) : 75));
+      if (args.fresh) params.set("fresh", "1");
+      const response = await request("/v1/screenshot?" + params.toString());
+      const ctype = (response.headers.get("content-type") || "image/png").split(";")[0].trim();
+      return [{ type: "image", data: Buffer.from(await response.arrayBuffer()).toString("base64"), mimeType: ctype }];
     }
     case "android_open_app":
       return [{ type: "text", text: JSON.stringify(await post("/v1/open", args)) }];
@@ -184,17 +329,69 @@ async function callTool(name, args) {
       return [{ type: "text", text: JSON.stringify(await post("/v1/tap", args)) }];
     case "android_click_element":
       return [{ type: "text", text: JSON.stringify(await post("/v1/click", args)) }];
+    case "android_click_text":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/click_text", args)) }];
+    case "android_scroll":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/scroll", args)) }];
+    case "android_scroll_until":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/scroll_until", args)) }];
+    case "android_ime_action":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/ime_action", args)) }];
+    case "android_long_press":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/long_press", args)) }];
+    case "android_double_tap":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/double_tap", args)) }];
+    case "android_assert_package":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/assert_package", args)) }];
+    case "android_events_recent": {
+      const qs = new URLSearchParams();
+      if (args.since_seq !== undefined) qs.set("since_seq", String(args.since_seq));
+      if (args.limit !== undefined) qs.set("limit", String(args.limit));
+      if (args.types) qs.set("types", String(args.types));
+      if (args.package) qs.set("package", String(args.package));
+      const suffix = qs.toString() ? "?" + qs.toString() : "";
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/events/recent" + suffix)).json()) }];
+    }
+    case "android_events_wait":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/events/wait", args)) }];
+    case "android_get_clipboard":
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/clipboard")).json()) }];
+    case "android_set_clipboard":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/clipboard", args)) }];
+    case "android_paste":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/paste", args)) }];
+    case "android_recent_notifications":
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/notifications/recent")).json()) }];
     case "android_type":
       return [{ type: "text", text: JSON.stringify(await post("/v1/type", args)) }];
     case "android_swipe":
       return [{ type: "text", text: JSON.stringify(await post("/v1/swipe", args)) }];
     case "android_back":
-      return [{ type: "text", text: JSON.stringify(await post("/v1/back", {})) }];
+      return [{ type: "text", text: JSON.stringify(await post("/v1/back", args)) }];
     case "android_home":
-      return [{ type: "text", text: JSON.stringify(await post("/v1/home", {})) }];
+      return [{ type: "text", text: JSON.stringify(await post("/v1/home", args)) }];
+    case "android_recents":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/recents", args)) }];
+    case "android_notifications":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/notifications", {})) }];
+    case "android_runtime": {
+      const endpoint = args.action === "stop" ? "/v1/runtime/stop" : "/v1/runtime/start";
+      return [{ type: "text", text: JSON.stringify(await post(endpoint, {})) }];
+    }
+    case "android_list_packages":
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/packages")).json()) }];
+    case "android_device_info":
+      return [{ type: "text", text: JSON.stringify(await (await request("/v1/device")).json()) }];
+    case "android_batch":
+      return [{ type: "text", text: JSON.stringify(await post("/v1/batch", args)) }];
     case "android_open_url":
       return [{ type: "text", text: JSON.stringify(await post("/v1/url", args)) }];
     case "android_wait_for_text": {
+      try {
+        return [{ type: "text", text: JSON.stringify(await post("/v1/wait_for_text", args)) }];
+      } catch (err) {
+        if (!String(err?.message || "").includes("HTTP 404")) throw err;
+      }
       const needle = String(args.text || "").toLocaleLowerCase();
       const timeout = Math.max(500, Math.min(15000, Number(args.timeout_ms || 8000)));
       const end = Date.now() + timeout;
@@ -213,9 +410,14 @@ async function callTool(name, args) {
       if (!browser?.isConnected()) {
         await post("/v1/browser/navigate", { url });
       }
-      const page = await ensurePage();
-      await page.goto(url, { waitUntil, timeout: 60000 });
-      return [{ type: "text", text: JSON.stringify({ url: page.url(), title: await page.title(), browser: "Chromium WebView via CDP" }) }];
+      try {
+        const page = await ensurePage();
+        await page.goto(url, { waitUntil, timeout: 60000 });
+        return [{ type: "text", text: JSON.stringify({ url: page.url(), title: await page.title(), browser: "Chromium WebView via CDP" }) }];
+      } catch {
+        const state = await post("/v1/browser/wait", { timeout_ms: 10000 }).catch(() => ({ ok: true, url }));
+        return [{ type: "text", text: JSON.stringify({ ...state, browser: "Chromium WebView via Tier-1 HTTP fallback" }) }];
+      }
     }
     case "browser_status": {
       const b = await ensureBrowser(5000);
@@ -228,14 +430,26 @@ async function callTool(name, args) {
       }) }];
     }
     case "browser_click": {
-      const page = await ensurePage();
-      await page.locator(args.selector).click({ timeout: Number(args.timeout_ms || 15000) });
-      return [{ type: "text", text: JSON.stringify({ clicked: args.selector, url: page.url() }) }];
+      try {
+        const page = await ensurePage();
+        await page.locator(args.selector).click({ timeout: Number(args.timeout_ms || 15000) });
+        return [{ type: "text", text: JSON.stringify({ clicked: args.selector, url: page.url() }) }];
+      } catch (cdpErr) {
+        const fallback = await post("/v1/browser/click", { selector: args.selector });
+        if (fallback.ok) return [{ type: "text", text: JSON.stringify({ clicked: args.selector, mode: "tier1_http" }) }];
+        throw cdpErr;
+      }
     }
     case "browser_fill": {
-      const page = await ensurePage();
-      await page.locator(args.selector).fill(args.value, { timeout: Number(args.timeout_ms || 15000) });
-      return [{ type: "text", text: JSON.stringify({ filled: args.selector }) }];
+      try {
+        const page = await ensurePage();
+        await page.locator(args.selector).fill(args.value, { timeout: Number(args.timeout_ms || 15000) });
+        return [{ type: "text", text: JSON.stringify({ filled: args.selector }) }];
+      } catch (cdpErr) {
+        const fallback = await post("/v1/browser/fill", { selector: args.selector, value: args.value });
+        if (fallback.ok) return [{ type: "text", text: JSON.stringify({ filled: args.selector, mode: "tier1_http" }) }];
+        throw cdpErr;
+      }
     }
     case "browser_get_text": {
       const page = await ensurePage();
@@ -244,14 +458,24 @@ async function callTool(name, args) {
       return [{ type: "text", text: text.slice(0, 30000) }];
     }
     case "browser_get_url": {
-      const page = await ensurePage();
-      return [{ type: "text", text: JSON.stringify({ url: redactUrl(page.url()), title: await page.title() }) }];
+      try {
+        const page = await ensurePage();
+        return [{ type: "text", text: JSON.stringify({ url: redactUrl(page.url()), title: await page.title() }) }];
+      } catch {
+        const st = await (await request("/v1/browser/state")).json();
+        return [{ type: "text", text: JSON.stringify({ url: redactUrl(st.url || ""), title: st.title || "", mode: "tier1_http" }) }];
+      }
     }
     case "browser_evaluate": {
-      const page = await ensurePage();
       if (String(args.script || "").length > 12000) throw new Error("JavaScript excede 12.000 caracteres.");
-      const value = await page.evaluate(source => (0, eval)(source), args.script);
-      return [{ type: "text", text: JSON.stringify(value === undefined ? null : value).slice(0, 30000) }];
+      try {
+        const page = await ensurePage();
+        const value = await page.evaluate(source => (0, eval)(source), args.script);
+        return [{ type: "text", text: JSON.stringify(value === undefined ? null : value).slice(0, 30000) }];
+      } catch {
+        const res = await post("/v1/browser/evaluate", { script: args.script });
+        return [{ type: "text", text: String(res.value ?? "null").slice(0, 30000) }];
+      }
     }
     case "browser_screenshot": {
       const page = await ensurePage();
@@ -278,9 +502,14 @@ async function callTool(name, args) {
       return [{ type: "text", text: JSON.stringify(events) }];
     }
     case "browser_reload": {
-      const page = await ensurePage();
-      await page.reload({ waitUntil: "domcontentloaded", timeout: 60000 });
-      return [{ type: "text", text: JSON.stringify({ reloaded: true, url: redactUrl(page.url()) }) }];
+      try {
+        const page = await ensurePage();
+        await page.reload({ waitUntil: "domcontentloaded", timeout: 60000 });
+        return [{ type: "text", text: JSON.stringify({ reloaded: true, url: redactUrl(page.url()) }) }];
+      } catch {
+        const res = await post("/v1/browser/reload", {});
+        return [{ type: "text", text: JSON.stringify({ reloaded: Boolean(res.ok), mode: "tier1_http" }) }];
+      }
     }
     case "browser_cdp_send": {
       const page = await ensurePage();
@@ -318,6 +547,91 @@ async function callTool(name, args) {
       return [{ type: "text", text: JSON.stringify(await post("/v1/vault/get", args)) }];
     case "vault_delete_secret":
       return [{ type: "text", text: JSON.stringify(await post("/v1/vault/delete", args)) }];
+    case "vdisplay_adb_pair":
+      return [{ type: "text", text: await runVDisplay(["pair", String(args.host_port), String(args.code)]) }];
+    case "vdisplay_adb_connect":
+      return [{ type: "text", text: await runVDisplay(["connect", String(args.host_port)]) }];
+    case "vdisplay_status":
+      return [{ type: "text", text: await runVDisplay(["status"]) }];
+    case "vdisplay_create": {
+      const cli = ["create"];
+      if (args.width) cli.push("--width", String(args.width));
+      if (args.height) cli.push("--height", String(args.height));
+      if (args.density) cli.push("--density", String(args.density));
+      if (args.secure === false) cli.push("--no-secure");
+      if (args.own_content_only === false) cli.push("--no-own-content");
+      return [{ type: "text", text: await runVDisplay(cli) }];
+    }
+    case "vdisplay_destroy":
+      return [{ type: "text", text: await runVDisplay(["destroy"]) }];
+    case "vdisplay_launch_app": {
+      const cli = ["launch", String(args.package)];
+      if (args.display_id) cli.push("--display-id", String(args.display_id));
+      return [{ type: "text", text: await runVDisplay(cli) }];
+    }
+    case "vdisplay_tap": {
+      const cli = ["tap", String(args.x), String(args.y)];
+      if (args.display_id) cli.push("--display-id", String(args.display_id));
+      return [{ type: "text", text: await runVDisplay(cli) }];
+    }
+    case "vdisplay_swipe": {
+      const py = [
+        "-c",
+        "import json,sys; sys.path.insert(0,'/root/Autamedica-src/apps/android/e2e'); from virtual_display import VirtualDisplayController; "
+        + "a=json.loads(sys.argv[1]); print(json.dumps(VirtualDisplayController().swipe(a['x1'],a['y1'],a['x2'],a['y2'],a.get('duration_ms',300),a.get('display_id'))))",
+        JSON.stringify(args)
+      ];
+      const { stdout } = await execFileAsync("python3", py, { timeout: 20000 });
+      return [{ type: "text", text: stdout.trim() }];
+    }
+    case "vdisplay_text": {
+      const py = [
+        "-c",
+        "import json,sys; sys.path.insert(0,'/root/Autamedica-src/apps/android/e2e'); from virtual_display import VirtualDisplayController; "
+        + "a=json.loads(sys.argv[1]); print(json.dumps(VirtualDisplayController().text(a['text'],a.get('display_id'))))",
+        JSON.stringify(args)
+      ];
+      const { stdout } = await execFileAsync("python3", py, { timeout: 20000 });
+      return [{ type: "text", text: stdout.trim() }];
+    }
+    case "vdisplay_keyevent": {
+      const py = [
+        "-c",
+        "import json,sys; sys.path.insert(0,'/root/Autamedica-src/apps/android/e2e'); from virtual_display import VirtualDisplayController; "
+        + "a=json.loads(sys.argv[1]); print(json.dumps(VirtualDisplayController().keyevent(a['keycode'],a.get('display_id'))))",
+        JSON.stringify(args)
+      ];
+      const { stdout } = await execFileAsync("python3", py, { timeout: 20000 });
+      return [{ type: "text", text: stdout.trim() }];
+    }
+    case "vdisplay_screenshot": {
+      const tmp = path.join(os.tmpdir(), `vdisplay-${Date.now()}.png`);
+      try {
+        const cli = ["screenshot", tmp];
+        if (args.display_id) cli.push("--display-id", String(args.display_id));
+        await runVDisplay(cli);
+        const buf = await readFile(tmp);
+        return [{ type: "image", data: buf.toString("base64"), mimeType: "image/png" }];
+      } finally {
+        await unlink(tmp).catch(() => {});
+      }
+    }
+    case "flow_list":
+      return [{ type: "text", text: await runFlowStore(["list"]) }];
+    case "flow_get":
+      return [{ type: "text", text: await runFlowStore(["show", String(args.name)]) }];
+    case "flow_save":
+      return [{ type: "text", text: await runFlowStore(["save", JSON.stringify(args)]) }];
+    case "flow_replay": {
+      const cli = ["replay", String(args.name)];
+      if (args.overrides && typeof args.overrides === "object") {
+        for (const [k, v] of Object.entries(args.overrides)) {
+          cli.push("--var", `${k}=${v}`);
+        }
+      }
+      if (args.return_to_termux) cli.push("--return-to-termux");
+      return [{ type: "text", text: await runFlowStore(cli) }];
+    }
     default:
       throw new Error("Unknown tool: " + name);
   }
@@ -340,7 +654,7 @@ for await (const line of rl) {
       send({ jsonrpc: "2.0", id, result: {
         protocolVersion: PROTOCOL,
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: "autamedica-android", version: "0.2.0" }
+        serverInfo: { name: "autamedica-android", version: "0.6.0" }
       }});
     } else if (message.method === "ping") {
       send({ jsonrpc: "2.0", id, result: {} });

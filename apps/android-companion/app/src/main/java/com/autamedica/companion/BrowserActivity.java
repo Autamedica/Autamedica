@@ -18,35 +18,85 @@ import java.util.concurrent.TimeUnit;
 
 public final class BrowserActivity extends Activity {
     private static volatile BrowserActivity instance;
+    private static volatile WebSessionManager sessionManager;
     private WebView webView;
     private final Handler main = new Handler(Looper.getMainLooper());
     private static final int FILE_CHOOSER_REQUEST = 18771;
     private android.webkit.ValueCallback<Uri[]> pendingFileChooser;
+    private volatile int loadProgress = 0;
+
+    static WebSessionManager getSessionManager(android.content.Context context) {
+        WebSessionManager existing = sessionManager;
+        if (existing != null) return existing;
+        synchronized (BrowserActivity.class) {
+            if (sessionManager == null) {
+                final android.content.Context appCtx = context.getApplicationContext();
+                sessionManager = new WebSessionManager(new WebSessionManager.Backend() {
+                    @Override public void flushCookies() {
+                        CookieManager.getInstance().flush();
+                    }
+
+                    @Override public void putEncrypted(String key, String value) throws Exception {
+                        SecureVault.put(appCtx, key, value);
+                    }
+
+                    @Override public String getEncrypted(String key, String fallback) {
+                        return SecureVault.get(appCtx, key, fallback);
+                    }
+
+                    @Override public void deleteEncrypted(String key) throws Exception {
+                        SecureVault.delete(appCtx, key);
+                    }
+                });
+            }
+            return sessionManager;
+        }
+    }
+
+    static boolean isReady() {
+        BrowserActivity activity = instance;
+        return activity != null && activity.webView != null;
+    }
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         instance = this;
+        getSessionManager(this);
 
         // Chromium's WebView DevTools socket is bridged locally with a separate
         // 256-bit authenticated proxy. No public or Wi-Fi CDP listener is created.
         WebView.setWebContentsDebuggingEnabled(true);
 
-        webView = new WebView(this);
-        webView.getSettings().setJavaScriptEnabled(true);
-        webView.getSettings().setDomStorageEnabled(true);
-        webView.getSettings().setDatabaseEnabled(true);
-        webView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
-        webView.getSettings().setSupportMultipleWindows(true);
-        webView.getSettings().setAllowFileAccess(false);
-        webView.getSettings().setAllowContentAccess(true);
-        webView.getSettings().setSafeBrowsingEnabled(true);
-        webView.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, true);
+        createAndAttachWebView();
+
+        String requested = getIntent().getStringExtra("url");
+        String defaultRestored = CompanionFeatureFlags.shared().isEnabled(CompanionFeatureFlags.FLAG_SESSION_PERSISTENCE_V2)
+            ? getSessionManager(this).restoreLastUrl("https://www.google.com")
+            : SecureVault.get(this, "browser.lastUrl", "https://www.google.com");
+        String restored = state == null ? defaultRestored : state.getString("lastUrl", defaultRestored);
+        webView.loadUrl(isWebUrl(requested) ? requested : restored);
+    }
+
+    private void createAndAttachWebView() {
+        loadProgress = 0;
+        WebView created = new WebView(this);
+        created.getSettings().setJavaScriptEnabled(true);
+        created.getSettings().setDomStorageEnabled(true);
+        created.getSettings().setDatabaseEnabled(true);
+        created.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
+        created.getSettings().setSupportMultipleWindows(true);
+        created.getSettings().setAllowFileAccess(false);
+        created.getSettings().setAllowContentAccess(true);
+        created.getSettings().setSafeBrowsingEnabled(true);
+        created.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, true);
         CookieManager.getInstance().setAcceptCookie(true);
-        CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
-        webView.setWebViewClient(new WebViewClient() {
+        CookieManager.getInstance().setAcceptThirdPartyCookies(created, true);
+        created.setWebViewClient(new WebViewClient() {
             @Override public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+                loadProgress = 100;
                 persistSession(url);
+                checkHitlGateRecoveryAsync();
             }
 
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -56,13 +106,30 @@ public final class BrowserActivity extends Activity {
 
             @Override public boolean onRenderProcessGone(WebView view, android.webkit.RenderProcessGoneDetail detail) {
                 if (view == webView) {
+                    android.util.Log.w("AutamedicaBrowser", "WebView renderer gone (didCrash=" + detail.didCrash() + "); recreating WebView");
                     String last = SecureVault.get(BrowserActivity.this, "browser.lastUrl", "https://www.google.com");
-                    view.post(() -> view.loadUrl(last));
+                    try {
+                        if (view.getParent() instanceof ViewGroup) {
+                            ((ViewGroup) view.getParent()).removeView(view);
+                        }
+                        view.destroy();
+                    } catch (Exception ignored) {}
+                    webView = null;
+                    main.post(() -> {
+                        if (!isFinishing() && !isDestroyed()) {
+                            createAndAttachWebView();
+                            if (webView != null) webView.loadUrl(last);
+                        }
+                    });
                 }
                 return true;
             }
         });
-        webView.setWebChromeClient(new WebChromeClient() {
+        created.setWebChromeClient(new WebChromeClient() {
+            @Override public void onProgressChanged(WebView view, int newProgress) {
+                loadProgress = newProgress;
+            }
+
             @Override public boolean onShowFileChooser(WebView view,
                     android.webkit.ValueCallback<Uri[]> callback, FileChooserParams params) {
                 if (pendingFileChooser != null) pendingFileChooser.onReceiveValue(null);
@@ -88,22 +155,84 @@ public final class BrowserActivity extends Activity {
                 return false;
             }
         });
-        webView.setLayoutParams(new ViewGroup.LayoutParams(
+        created.setLayoutParams(new ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        setContentView(webView);
-
-        String requested = getIntent().getStringExtra("url");
-        String restored = state == null ? SecureVault.get(this, "browser.lastUrl", "https://www.google.com")
-            : state.getString("lastUrl", SecureVault.get(this, "browser.lastUrl", "https://www.google.com"));
-        webView.loadUrl(isWebUrl(requested) ? requested : restored);
+        webView = created;
+        setContentView(created);
     }
 
     private void persistSession(String url) {
+        if (CompanionFeatureFlags.shared().isEnabled(CompanionFeatureFlags.FLAG_SESSION_PERSISTENCE_V2)) {
+            try {
+                getSessionManager(this).recordNavigation(url, System.currentTimeMillis());
+                return;
+            } catch (Exception error) {
+                android.util.Log.w("AutamedicaBrowser", "Could not persist session v2");
+            }
+        }
         CookieManager.getInstance().flush();
         if (isWebUrl(url)) {
             try { SecureVault.put(getApplicationContext(), "browser.lastUrl", url); }
             catch (Exception error) { android.util.Log.w("AutamedicaBrowser", "Could not persist browser URL"); }
         }
+    }
+
+    private void checkHitlGateRecoveryAsync() {
+        CompanionFeatureFlags flags = CompanionFeatureFlags.shared();
+        if (!flags.isEnabled(CompanionFeatureFlags.FLAG_HITL_STATE_MACHINE)
+                || !flags.isEnabled(CompanionFeatureFlags.FLAG_PASSIVE_GATE_DETECTION)) {
+            return;
+        }
+        ExecutionStateMachine.RunContext ctx = ExecutionStateMachine.shared().getContext();
+        if (ctx.state != ExecutionStateMachine.State.AWAITING_USER || webView == null) {
+            return;
+        }
+        webView.evaluateJavascript(PASSIVE_OBSERVATION_JS, raw -> {
+            try {
+                HumanGateDetector.PageObservation obs = parseObservationJson(raw);
+                HumanGateDetector.GateSignal signal = HumanGateDetector.inspect(obs);
+                if (!signal.detected) {
+                    CompanionEventBus.shared().record(
+                        "hitl_gate_cleared",
+                        getPackageName(),
+                        "runId=" + ctx.runId + ";url=" + obs.url,
+                        false
+                    );
+                }
+            } catch (Exception ignored) {}
+        });
+    }
+
+    private static final String PASSIVE_OBSERVATION_JS =
+        "(function(){"
+        + "const pwd=Boolean(document.querySelector('input[type=\"password\"]'));"
+        + "const otp=Boolean(document.querySelector('input[autocomplete=\"one-time-code\"],input[name*=\"otp\" i],input[id*=\"otp\" i],input[name*=\"2fa\" i]'));"
+        + "const txt=(document.body&&document.body.innerText?document.body.innerText:'').slice(0,1500);"
+        + "return JSON.stringify({url:location.href||'',title:document.title||'',text:txt,hasPassword:pwd,hasOtp:otp});"
+        + "})()";
+
+    static HumanGateDetector.PageObservation capturePassiveObservation() throws Exception {
+        String raw = evaluate(PASSIVE_OBSERVATION_JS);
+        return parseObservationJson(raw);
+    }
+
+    private static HumanGateDetector.PageObservation parseObservationJson(String raw) throws Exception {
+        if (raw == null || "null".equals(raw) || raw.trim().isEmpty()) {
+            return new HumanGateDetector.PageObservation("", "", "", false, false, 0);
+        }
+        String unwrapped = raw.trim();
+        if (unwrapped.startsWith("\"")) {
+            unwrapped = new org.json.JSONTokener(unwrapped).nextValue().toString();
+        }
+        org.json.JSONObject obj = new org.json.JSONObject(unwrapped);
+        return new HumanGateDetector.PageObservation(
+            obj.optString("url", ""),
+            obj.optString("title", ""),
+            obj.optString("text", ""),
+            obj.optBoolean("hasPassword", false),
+            obj.optBoolean("hasOtp", false),
+            0
+        );
     }
 
     private static boolean isWebUrl(String value) {
@@ -163,6 +292,63 @@ public final class BrowserActivity extends Activity {
             return true;
         });
         return result.get(15, TimeUnit.SECONDS);
+    }
+
+    public static org.json.JSONObject getState() throws Exception {
+        org.json.JSONObject out = new org.json.JSONObject();
+        BrowserActivity a = instance;
+        if (a == null || a.webView == null) {
+            out.put("ok", true);
+            out.put("ready", false);
+            out.put("url", "");
+            out.put("title", "");
+            out.put("progress", 0);
+            out.put("canGoBack", false);
+            out.put("canGoForward", false);
+            return out;
+        }
+        return a.onMain(() -> {
+            org.json.JSONObject s = new org.json.JSONObject();
+            s.put("ok", true);
+            s.put("ready", a.webView != null);
+            s.put("url", a.webView != null && a.webView.getUrl() != null ? a.webView.getUrl() : "");
+            s.put("title", a.webView != null && a.webView.getTitle() != null ? a.webView.getTitle() : "");
+            s.put("progress", a.loadProgress);
+            s.put("canGoBack", a.webView != null && a.webView.canGoBack());
+            s.put("canGoForward", a.webView != null && a.webView.canGoForward());
+            return s;
+        });
+    }
+
+    public static boolean goBack() throws Exception {
+        BrowserActivity a = require();
+        return a.onMain(() -> {
+            if (a.webView.canGoBack()) {
+                a.webView.goBack();
+                return true;
+            }
+            return false;
+        });
+    }
+
+    public static boolean goForward() throws Exception {
+        BrowserActivity a = require();
+        return a.onMain(() -> {
+            if (a.webView.canGoForward()) {
+                a.webView.goForward();
+                return true;
+            }
+            return false;
+        });
+    }
+
+    public static boolean reloadPage() throws Exception {
+        BrowserActivity a = require();
+        return a.onMain(() -> {
+            a.loadProgress = 0;
+            a.webView.reload();
+            return true;
+        });
     }
 
     private static BrowserActivity require() {

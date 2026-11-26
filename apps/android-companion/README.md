@@ -83,21 +83,23 @@ codex mcp list
 
 Reiniciar Codex para cargar el servidor MCP.
 
-## Herramientas MCP
+## Herramientas MCP (Execution Engine 4.0)
 
-Android:
+Android (nativo + batch transaccional + Event Bus reactivo):
 - `android_status`
 - `android_get_ui_tree`
-- `android_screenshot`
-- `android_open_app`
-- `android_tap`
-- `android_click_element`
-- `android_type`
-- `android_swipe`
-- `android_back`
-- `android_home`
-- `android_open_url`
-- `android_wait_for_text`
+- `android_get_ui_compact` *(devuelve `snapshotId`, `generation`, `package` y `ref` por nodo)*
+- `android_click_element` *(soporta `path` o `ref + snapshot_id + expected_package`)*
+- `android_click_text` *(espera reactiva + `expected_package`)*
+- `android_set_text` *(inyección directa sin teclado por `path` o `ref + snapshot_id + expected_package`)*
+- `android_scroll` *(soporta `path`/`ref` + `forward|backward|down|up|left|right`)*
+- `android_scroll_until` *(bucle nativo on-device en 1 sola llamada HTTP, con `click` atómico opcional)*
+- `android_ime_action` *(`ACTION_IME_ENTER` API 30+ sin teclado)*
+- `android_long_press` / `android_double_tap` *(por `path`/`ref` o coordenadas)*
+- `android_assert_package` / `android_wait_for_text` *(reactivo sobre Event Bus)*
+- `android_events_recent` / `android_events_wait` *(Event Bus de accesibilidad y notificaciones)*
+- `android_batch` *(hasta 60 pasos con `expected_package` y `snapshot_id` transaccional)*
+- `android_screenshot`, `android_open_app`, `android_tap`, `android_type`, `android_paste`, `android_swipe`, `android_back`, `android_home`, `android_recents`, `android_notifications`, `android_open_url`, `android_list_packages`, `android_device_info`, `android_recent_notifications`
 
 Playwright/CDP:
 - `browser_status`

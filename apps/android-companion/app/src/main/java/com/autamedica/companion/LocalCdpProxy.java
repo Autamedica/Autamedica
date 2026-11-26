@@ -19,7 +19,7 @@ import java.util.concurrent.Executors;
 
 /** Authenticated TCP-to-abstract-socket relay for this app's Chromium WebView CDP endpoint. */
 final class LocalCdpProxy {
-    static final int PORT = 18766;
+    static final int PORT = BuildConfig.CDP_PORT;
     private static final int MAX_HEADER = 64 * 1024;
     private final Context context;
     private final String socketName = "webview_devtools_remote_" + Process.myPid();
@@ -35,14 +35,27 @@ final class LocalCdpProxy {
         if (running) return;
         running = true;
         Thread thread = new Thread(() -> {
-            try {
-                listener = new ServerSocket(PORT, 32, InetAddress.getByName("127.0.0.1"));
-                while (running) {
-                    Socket socket = listener.accept();
-                    clients.execute(() -> handle(socket));
+            while (running) {
+                try {
+                    ServerSocket candidate = new ServerSocket();
+                    candidate.setReuseAddress(true);
+                    candidate.bind(new java.net.InetSocketAddress(InetAddress.getByName("127.0.0.1"), PORT), 32);
+                    listener = candidate;
+                    while (running) {
+                        Socket socket = candidate.accept();
+                        clients.execute(() -> handle(socket));
+                    }
+                } catch (Exception error) {
+                    if (running) {
+                        android.util.Log.e("AutamedicaCDP", "CDP proxy listener failed; retrying", error);
+                        try { Thread.sleep(1500); }
+                        catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); break; }
+                    }
+                } finally {
+                    ServerSocket current = listener;
+                    listener = null;
+                    if (current != null) try { current.close(); } catch (Exception ignored) {}
                 }
-            } catch (Exception error) {
-                if (running) android.util.Log.e("AutamedicaCDP", "CDP proxy stopped", error);
             }
         }, "autamedica-cdp-listener");
         thread.setDaemon(true);
@@ -53,6 +66,23 @@ final class LocalCdpProxy {
         running = false;
         try { if (listener != null) listener.close(); } catch (Exception ignored) {}
         clients.shutdownNow();
+    }
+
+    boolean isListening() {
+        ServerSocket current = listener;
+        return running && current != null && !current.isClosed();
+    }
+
+    boolean isWebViewSocketAvailable() {
+        LocalSocket probe = new LocalSocket();
+        try {
+            probe.connect(new LocalSocketAddress(socketName, LocalSocketAddress.Namespace.ABSTRACT));
+            return true;
+        } catch (Exception unavailable) {
+            return false;
+        } finally {
+            try { probe.close(); } catch (Exception ignored) {}
+        }
     }
 
     private void handle(Socket client) {
@@ -145,16 +175,31 @@ final class LocalCdpProxy {
             supplied.getBytes(StandardCharsets.UTF_8));
     }
 
-    private static String sanitizeRequest(String header, boolean websocket) {
+    static String sanitizeRequest(String header, boolean websocket) {
         String[] lines = header.split("\\r\\n");
         StringBuilder out = new StringBuilder();
-        for (String line : lines) {
+        boolean sawHost = false;
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
             if (line.isEmpty()) continue;
+            if (i == 0) {
+                out.append(line).append("\r\n");
+                continue;
+            }
             String lower = line.toLowerCase(Locale.ROOT);
             if (lower.startsWith("authorization:")) continue;
             if (!websocket && lower.startsWith("connection:")) continue;
             if (lower.startsWith("accept-encoding:")) continue;
+            if (lower.startsWith("host:")) {
+                // Chromium 125+ WebView DevTools rejects non-localhost Host headers on abstract sockets.
+                out.append("Host: localhost\r\n");
+                sawHost = true;
+                continue;
+            }
             out.append(line).append("\r\n");
+        }
+        if (!sawHost) {
+            out.append("Host: localhost\r\n");
         }
         if (!websocket) {
             out.append("Accept-Encoding: identity\r\n");

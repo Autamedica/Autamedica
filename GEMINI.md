@@ -982,3 +982,39 @@ Basado en el cruce de datos históricos y comportamiento del algoritmo de YouTub
 
 - **Shorts:** Descartar el CTR de impresiones. Evaluar únicamente **"Mostrado en el feed"** y **"Eligieron mirar frente a deslizaron"** (Target > 65%).
 - **Videos Largos:** Evaluar CTR de impresiones tradicionales (>6%) y **Tiempo medio de visualización** (>2 minutos).
+
+
+---
+
+## 21. AutaMedica Android Companion MCP (Control principal del Xiaomi)
+
+Cuando una tarea requiera inspeccionar o controlar el Android/Xiaomi vinculado, usar primero el servidor MCP `autamedica_android`. No utilizar Remote Desktop Commander como sustituto del teléfono: ese conector controla el escritorio Windows y es independiente del Android.
+
+### Flujo obligatorio
+
+1. Consultar `android_status` y confirmar el listener autenticado.
+2. Inspeccionar la pantalla con `android_get_ui_tree` y/o `android_screenshot`.
+3. Para abrir aplicaciones nativas, usar `android_open_app`; para interacciones, `android_tap`, `android_click_element`, `android_type`, `android_swipe`, `android_back` y `android_home`.
+4. Verificar cada cambio con un nuevo árbol UI o captura. Una respuesta HTTP exitosa por sí sola no prueba que la app haya quedado en primer plano.
+5. Para esperar contenido, usar `android_wait_for_text`.
+
+### Navegación y herramientas
+
+- Aplicaciones nativas: priorizar el servicio AccessibilityService de AutaMedica Companion.
+- WebView/CDP: utilizar las herramientas `browser_*` cuando la tarea requiera específicamente automatización de páginas web. El navegador no es requisito para controlar aplicaciones nativas.
+- Bóveda: utilizar `vault_*` sin imprimir tokens, contraseñas, cookies ni headers de autorización.
+
+### Reglas de operación
+
+- Codex y Gemini comparten el mismo launcher MCP local, token del Companion y servicio Android; no instalar un segundo servidor ni crear tokens duplicados.
+- No usar Shizuku/rish como dependencia del Companion. ADB se reserva a instalación, actualización y depuración inicial.
+- No cerrar sesiones existentes de Termux, Proot, tmux ni Codex durante diagnósticos.
+- No afirmar que una app se abrió si el árbol UI continúa mostrando la aplicación anterior.
+- Antes de enviar mensajes, realizar pagos, cambiar cuentas o borrar datos, presentar la acción y solicitar confirmación.
+- Si el MCP no está disponible, inspeccionar `gemini mcp list` y `~/.gemini/settings.json`; no cambiar silenciosamente a otro conector.
+
+### Lanzamiento de Gemini
+
+- Instalación compartida del Companion MCP: `bash apps/android-companion/tools/gemini/install-gemini-companion.sh`.
+- Sesión directa: `bash gemini.sh`.
+- Sesión tmux independiente: `bash gemini.sh --tmux` (sesión `autamedica-gemini`).

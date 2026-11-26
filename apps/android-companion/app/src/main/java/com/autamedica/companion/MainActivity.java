@@ -31,7 +31,9 @@ public final class MainActivity extends Activity {
             if (statusView != null) {
                 boolean connected = AccessibilityControlService.isConnected();
                 statusView.setText(connected
-                    ? "Accesibilidad: ACTIVA\nControl Android: 127.0.0.1:18765\nChromium CDP: 127.0.0.1:18766\nInternet: habilitado\nSesiones web: perfil persistente"
+                    ? "Accesibilidad: ACTIVA\nControl Android: 127.0.0.1:" + BuildConfig.CONTROL_PORT
+                        + "\nChromium CDP: 127.0.0.1:" + BuildConfig.CDP_PORT
+                        + "\nInternet: habilitado\nSesiones web: perfil persistente"
                     : "Accesibilidad: pendiente de autorización\nActivá el servicio para iniciar el control local.");
             }
             handler.postDelayed(this, 1500);
@@ -71,7 +73,12 @@ public final class MainActivity extends Activity {
 
         Button runBackground = new Button(this);
         runBackground.setText("Mantener navegador activo con pantalla apagada");
-        runBackground.setOnClickListener(v -> startBackgroundRuntime());
+        runBackground.setOnClickListener(v -> {
+            Intent browser = new Intent(this, BrowserActivity.class);
+            browser.putExtra("url", SecureVault.get(this, "browser.lastUrl", "https://www.google.com"));
+            startActivity(browser);
+            startBackgroundRuntime();
+        });
         root.addView(runBackground, matchWrap());
 
         Button stopBackground = new Button(this);

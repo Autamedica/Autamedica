@@ -1,0 +1,55 @@
+name: Gemini CLI Android Companion
+
+on:
+  pull_request:
+    branches: [main, codex/repair-android-companion]
+    paths:
+      - "gemini.sh"
+      - "GEMINI.md"
+      - "apps/android-companion/tools/gemini/**"
+      - "docs/GEMINI_CLI_ANDROID_COMPANION.md"
+      - ".github/workflows/gemini-cli-companion.yml"
+  push:
+    branches: [main, feat/gemini-cli-android-companion]
+    paths:
+      - "gemini.sh"
+      - "GEMINI.md"
+      - "apps/android-companion/tools/gemini/**"
+      - "docs/GEMINI_CLI_ANDROID_COMPANION.md"
+      - ".github/workflows/gemini-cli-companion.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate shell scripts
+        run: |
+          bash -n gemini.sh
+          bash -n apps/android-companion/tools/gemini/install-gemini-companion.sh
+
+      - name: Test safe Gemini settings merge
+        run: python apps/android-companion/tools/gemini/test-gemini-settings.py
+
+      - name: Install official Gemini CLI package
+        run: npm install --global @google/gemini-cli
+
+      - name: Verify Gemini CLI
+        run: gemini --version
+

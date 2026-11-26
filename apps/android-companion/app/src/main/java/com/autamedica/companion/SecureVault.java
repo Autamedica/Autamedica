@@ -9,13 +9,13 @@ import android.util.Base64;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
-import java.security.SecureRandom;
+import java.util.concurrent.ConcurrentHashMap;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 
-/** AES-256-GCM vault with a non-exportable Android Keystore key. */
+/** AES-256-GCM vault with a non-exportable Android Keystore key and hot read cache. */
 final class SecureVault {
     private static final String KEYSTORE = "AndroidKeyStore";
     private static final String ALIAS = "autamedica.companion.vault.aes.v1";
@@ -23,6 +23,8 @@ final class SecureVault {
     private static final String PREFIX = "v1:";
     private static final int IV_BYTES = 12;
     private static final int TAG_BITS = 128;
+    private static final ConcurrentHashMap<String, String> MEMORY_CACHE = new ConcurrentHashMap<>();
+    private static volatile SecretKey cachedSecretKey;
 
     private SecureVault() {}
 
@@ -35,9 +37,19 @@ final class SecureVault {
         output.put(cipher.getIV());
         output.put(encrypted);
         prefs(context).edit().putString(name, PREFIX + Base64.encodeToString(output.array(), Base64.NO_WRAP)).commit();
+        MEMORY_CACHE.put(name, value);
     }
 
-    static synchronized String get(Context context, String name, String fallback) {
+    static String get(Context context, String name, String fallback) {
+        if (name == null) return fallback;
+        String cached = MEMORY_CACHE.get(name);
+        if (cached != null) return cached;
+        return getUncached(context, name, fallback);
+    }
+
+    private static synchronized String getUncached(Context context, String name, String fallback) {
+        String cached = MEMORY_CACHE.get(name);
+        if (cached != null) return cached;
         try {
             validateName(name);
             String stored = prefs(context).getString(name, null);
@@ -51,7 +63,9 @@ final class SecureVault {
             input.get(ciphertext);
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.DECRYPT_MODE, getOrCreateKey(), new GCMParameterSpec(TAG_BITS, iv));
-            return new String(cipher.doFinal(ciphertext), StandardCharsets.UTF_8);
+            String plaintext = new String(cipher.doFinal(ciphertext), StandardCharsets.UTF_8);
+            MEMORY_CACHE.put(name, plaintext);
+            return plaintext;
         } catch (Exception error) {
             android.util.Log.e("AutamedicaVault", "Unable to decrypt vault entry", error);
             return fallback;
@@ -61,6 +75,7 @@ final class SecureVault {
     static synchronized void delete(Context context, String name) throws Exception {
         validateName(name);
         prefs(context).edit().remove(name).commit();
+        MEMORY_CACHE.remove(name);
     }
 
     static synchronized java.util.Set<String> names(Context context) {
@@ -77,10 +92,16 @@ final class SecureVault {
     }
 
     private static SecretKey getOrCreateKey() throws Exception {
+        SecretKey existingCached = cachedSecretKey;
+        if (existingCached != null) return existingCached;
+
         KeyStore keyStore = KeyStore.getInstance(KEYSTORE);
         keyStore.load(null);
         java.security.Key existing = keyStore.getKey(ALIAS, null);
-        if (existing instanceof SecretKey) return (SecretKey) existing;
+        if (existing instanceof SecretKey) {
+            cachedSecretKey = (SecretKey) existing;
+            return cachedSecretKey;
+        }
 
         KeyGenerator generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, KEYSTORE);
         generator.init(new KeyGenParameterSpec.Builder(
@@ -91,6 +112,7 @@ final class SecureVault {
             .setKeySize(256)
             .setRandomizedEncryptionRequired(true)
             .build());
-        return generator.generateKey();
+        cachedSecretKey = generator.generateKey();
+        return cachedSecretKey;
     }
 }

@@ -2,15 +2,23 @@ name: Android Companion CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, 'feat/android-companion-v1', 'codex/repair-android-companion', 'feat/gemini-cli-android-companion']
     paths:
       - 'apps/android-companion/**'
       - '.github/workflows/android-companion.yml'
+      - 'gemini.sh'
+      - 'GEMINI.md'
+      - 'apps/android-companion/tools/gemini/**'
+      - 'docs/GEMINI_CLI_ANDROID_COMPANION.md'
   push:
-    branches: [main, 'feat/android-companion-v1']
+    branches: [main, 'feat/android-companion-v1', 'codex/repair-android-companion', 'feat/gemini-cli-android-companion']
     paths:
       - 'apps/android-companion/**'
       - '.github/workflows/android-companion.yml'
+      - 'gemini.sh'
+      - 'GEMINI.md'
+      - 'apps/android-companion/tools/gemini/**'
+      - 'docs/GEMINI_CLI_ANDROID_COMPANION.md'
   workflow_dispatch:
 
 permissions:
@@ -36,14 +44,19 @@ jobs:
           gradle-version: '8.9'
       - name: Assemble debug APK
         working-directory: apps/android-companion
-        run: gradle --no-daemon --stacktrace :app:assembleDebug
+        run: gradle --no-daemon --stacktrace :app:assembleDebug :app:assembleRepair
       - name: Verify APK
         run: |
           test -s apps/android-companion/app/build/outputs/apk/debug/app-debug.apk
           sha256sum apps/android-companion/app/build/outputs/apk/debug/app-debug.apk
+          test -s apps/android-companion/app/build/outputs/apk/repair/app-repair.apk
+          sha256sum apps/android-companion/app/build/outputs/apk/repair/app-repair.apk
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Validate MCP and Debian installer
         working-directory: apps/android-companion/tools/mcp
         run: |
@@ -51,9 +64,20 @@ jobs:
           bash -n install-termux.sh
           npm install --omit=optional --no-audit --no-fund
           node --input-type=module -e "import('playwright-core').then(m => { if (!m.chromium?.connectOverCDP) process.exit(1); console.log('Playwright Core CDP client OK'); })"
+      - name: Validate Gemini CLI launcher and shared Companion MCP
+        if: hashFiles('gemini.sh', 'apps/android-companion/tools/gemini/install-gemini-companion.sh', 'apps/android-companion/tools/gemini/test-gemini-settings.py') != ''
+        working-directory: .
+        run: |
+          bash -n gemini.sh
+          bash -n apps/android-companion/tools/gemini/install-gemini-companion.sh
+          python apps/android-companion/tools/gemini/test-gemini-settings.py
+          npm install --global @google/gemini-cli
+          gemini --version
       - uses: actions/upload-artifact@v4
         with:
-          name: autamedica-android-companion-debug
-          path: apps/android-companion/app/build/outputs/apk/debug/app-debug.apk
+          name: autamedica-android-companion-repair
+          path: |
+            apps/android-companion/app/build/outputs/apk/debug/app-debug.apk
+            apps/android-companion/app/build/outputs/apk/repair/app-repair.apk
           if-no-files-found: error
           retention-days: 14
