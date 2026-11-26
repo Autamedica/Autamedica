@@ -52,7 +52,7 @@ jobs:
               [[ ! -f "$fn_dir/index.ts" ]] && continue
               fn=$(basename "$fn_dir")
               echo "Deploying Edge Function: $fn"
-              supabase functions deploy "$fn" --project-ref "${SUPABASE_PROJECT_ID}"
+              supabase functions deploy "$fn" --yes --project-ref "${SUPABASE_PROJECT_ID}"
             done
           else
             if [[ ! "${FUNCTION_NAME}" =~ ^[a-z0-9-]+$ ]]; then
@@ -64,7 +64,7 @@ jobs:
               exit 1
             fi
             echo "Deploying Edge Function: ${FUNCTION_NAME}"
-            supabase functions deploy "${FUNCTION_NAME}" --project-ref "${SUPABASE_PROJECT_ID}"
+            supabase functions deploy "${FUNCTION_NAME}" --yes --project-ref "${SUPABASE_PROJECT_ID}"
           fi
 
           if [[ "${SYNC_MEMED_SECRETS}" == "true" ]]; then
