@@ -66,8 +66,16 @@ export const DoctorPrescriptionCreateSchema = DoctorPrescriptionCreateBaseSchema
     message: 'patient_id or external_patient is required',
   })
 
+const DoctorPrescriptionUpdateStatusSchema = z
+  .enum(['activa', 'completada', 'cancelada', 'pausada', 'cancelled'])
+  .transform((value) => (value === 'cancelled' ? 'cancelada' : value))
+
 export const DoctorPrescriptionUpdateSchema = DoctorPrescriptionCreateBaseSchema
-  .omit({ patient_id: true, external_patient: true })
+  .omit({ patient_id: true, external_patient: true, status: true })
+  .extend({
+    status: DoctorPrescriptionUpdateStatusSchema.optional(),
+    cancellation_reason: OptionalNullableText(1000),
+  })
   .partial()
   .refine((value) => Object.keys(value).length > 0, {
     message: 'at least one field is required',

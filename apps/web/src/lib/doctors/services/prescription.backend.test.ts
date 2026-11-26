@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import { __testables } from "./prescription.backend";
 
 describe("doctor prescription backend mappings", () => {
-  it("preserves issuance state when a signed or sent prescription remains clinically active", () => {
+  it("preserves issuance state when a signed, active, or sent prescription remains clinically active", () => {
     expect(__testables.mapClinicalStatusToCoreStatus("activa", "signed")).toBe("signed");
+    expect(__testables.mapClinicalStatusToCoreStatus("activa", "active" as never)).toBe("active");
     expect(__testables.mapClinicalStatusToCoreStatus("activa", "sent")).toBe("sent");
   });
 

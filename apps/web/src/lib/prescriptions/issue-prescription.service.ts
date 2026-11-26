@@ -740,8 +740,11 @@ export async function issuePrescription(
       : doctor.license_type === 'MN' || doctor.license_type === 'MP' ? 'AR'
         : null;
   
-  const farmalinkEnabled = runtimeEnv?.FARMALINK_ENABLED === 'true';
-  const requireExternalAc = runtimeEnv?.FARMALINK_REQUIRE_EXTERNAL_AC !== 'false';
+  const farmalinkEnabled = resolveFarmalinkConfig(runtimeEnv).enabled;
+  const requireExternalAcRaw = runtimeEnv?.FARMALINK_REQUIRE_EXTERNAL_AC
+    ?? getRuntimeEnvValue('FARMALINK_REQUIRE_EXTERNAL_AC')
+    ?? getServerEnvOrDefault('FARMALINK_REQUIRE_EXTERNAL_AC', 'true');
+  const requireExternalAc = String(requireExternalAcRaw).trim().toLowerCase() !== 'false';
   const issuanceGate = checkDirectPrescriptionIssuance({
     prescriptionCountry,
     doctorCountry,
@@ -1026,7 +1029,7 @@ export async function issuePrescription(
         prescriber: {
           name: doctorName,
           crm: doctor.license_number,
-          uf: doctor.uf_brazil!,
+          uf: doctor.uf_brazil ?? '',
           rqe: (doctor as { rqe_number?: string }).rqe_number || undefined,
           cpf: String(doctor.cpf).replace(/\D/g, ''),
           specialty: doctor.specialty || undefined,
@@ -1301,30 +1304,32 @@ export async function issuePrescription(
     });
   }
 
-  // 10. Create dispensation order
-  const todayDate = now.split('T')[0];
-  const expiryDate = expiresAt.split('T')[0];
-  const { error: orderError } = await supabase.from('dispensation_orders').insert({
-    prescription_id: prescriptionId,
-    patient_id: rx.patient_id,
-    doctor_id: rx.doctor_id,
-    prescription_type: 'standard',
-    medication: medicationName,
-    formulation: item.presentation || item.dosage || 'No especificada',
-    quantity_units: item.quantity ?? 1,
-    duration_days: validityDays,
-    dispense_window_start: todayDate,
-    dispense_window_end: expiryDate,
-    clinical_semaphore: isControlledSubstance ? 'yellow' : 'green',
-    semaphore_reasons: controlledSemaphoreReasons,
-    requires_clarification: false,
-    internal_notes: isControlledSubstance
-      ? `Medicacion controlada (${substanceCategory}). Requiere validacion farmaceutica especifica.`
-      : null,
-  });
+  // 10. Create dispensation order (skip when commitFarmalinkArtifact already inserted one)
+  if (!externalRegistration?.attemptId) {
+    const todayDate = now.split('T')[0];
+    const expiryDate = expiresAt.split('T')[0];
+    const { error: orderError } = await supabase.from('dispensation_orders').insert({
+      prescription_id: prescriptionId,
+      patient_id: rx.patient_id,
+      doctor_id: rx.doctor_id,
+      prescription_type: 'standard',
+      medication: medicationName,
+      formulation: item.presentation || item.dosage || 'No especificada',
+      quantity_units: item.quantity ?? 1,
+      duration_days: validityDays,
+      dispense_window_start: todayDate,
+      dispense_window_end: expiryDate,
+      clinical_semaphore: isControlledSubstance ? 'yellow' : 'green',
+      semaphore_reasons: controlledSemaphoreReasons,
+      requires_clarification: false,
+      internal_notes: isControlledSubstance
+        ? `Medicacion controlada (${substanceCategory}). Requiere validacion farmaceutica especifica.`
+        : null,
+    });
 
-  if (orderError) {
-    logger.warn('[issuePrescription] Dispensation order creation failed', orderError);
+    if (orderError) {
+      logger.warn('[issuePrescription] Dispensation order creation failed', orderError);
+    }
   }
 
   logger.info('[issuePrescription] Complete', { prescriptionId, cuir: artifacts.cuir });

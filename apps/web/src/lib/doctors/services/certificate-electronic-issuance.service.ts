@@ -79,7 +79,7 @@ export function assertElectronicCertificateEligible(source: ElectronicCertificat
   }
   if (cert.status !== 'draft') throw new Error('certificate_not_draft');
   if (doctor.active !== true || profile.active !== true || profile.deleted_at !== null ||
-      profile.role !== 'doctor' || profile.sss_validation_status !== 'valid') {
+      profile.role !== 'doctor' || !['valid', 'exempt'].includes(String(profile.sss_validation_status ?? ''))) {
     throw new Error('certificate_doctor_not_validated');
   }
   if (!name(profile) || !String(doctor.license_number ?? '').trim() ||

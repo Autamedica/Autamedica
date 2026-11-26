@@ -28,6 +28,11 @@ describe('Argentine electronic certificate boundaries', () => {
     const input = source(); input.doctor.license_type = 'CRM';
     expect(() => assertElectronicCertificateEligible(input)).toThrow('argentina_only');
   });
+  it('accepts an exempt doctor alongside validated assets and inclusive dates', () => {
+    const input = source();
+    input.profile.sss_validation_status = 'exempt';
+    expect(() => assertElectronicCertificateEligible(input)).not.toThrow();
+  });
   it.each(['pending', 'pending_review', 'invalid'])('blocks unvalidated doctor: %s', state => {
     const input = source(); input.profile.sss_validation_status = state;
     expect(() => assertElectronicCertificateEligible(input)).toThrow('not_validated');

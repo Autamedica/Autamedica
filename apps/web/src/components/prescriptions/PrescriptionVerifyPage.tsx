@@ -12,10 +12,11 @@ interface VerifyResult {
     cuir: string;
     status: string;
     countryCode?: string;
-    medication: string;
-    dosage: string;
-    quantity: number;
-    diagnosis: string;
+    medication?: string | null;
+    dosage?: string | null;
+    quantity?: number | null;
+    diagnosis?: string | null;
+    signatureLabel?: string | null;
     prescriberName: string;
     prescriberLicense: string;
     patientName: string;
@@ -56,6 +57,7 @@ const CERT_TYPE_LABELS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   draft: { label: 'Borrador', color: 'bg-gray-100 text-gray-700' },
+  active: { label: 'Activa / Vigente', color: 'bg-emerald-100 text-emerald-700' },
   signed: { label: 'Firmada / Válida', color: 'bg-blue-100 text-blue-700' },
   sent: { label: 'Emitida', color: 'bg-sky-100 text-sky-700' },
   dispensed_partial: { label: 'Parcialmente dispensada', color: 'bg-amber-100 text-amber-700' },
@@ -302,17 +304,30 @@ export function PrescriptionVerifyPage({ cuir }: { cuir: string }) {
           </div>
 
           {/* Medication */}
-          <div className="bg-blue-50 rounded-xl p-4">
-            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-1">Medicamento</p>
-            <p className="text-base font-bold text-slate-900">{rx.medication}</p>
-            <p className="text-sm text-slate-600 mt-1">{rx.dosage} — {rx.quantity} unidades</p>
-          </div>
+          {rx.medication && (
+            <div className="bg-blue-50 rounded-xl p-4">
+              <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-1">Medicamento</p>
+              <p className="text-base font-bold text-slate-900">{rx.medication}</p>
+              {(rx.dosage || rx.quantity) && (
+                <p className="text-sm text-slate-600 mt-1">
+                  {[rx.dosage, rx.quantity ? `${rx.quantity} unidades` : null].filter(Boolean).join(' — ')}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Diagnosis */}
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Diagnostico</p>
-            <p className="text-sm text-slate-700">{rx.diagnosis}</p>
-          </div>
+          {rx.diagnosis && (
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Diagnostico</p>
+              <p className="text-sm text-slate-700">{rx.diagnosis}</p>
+            </div>
+          )}
+
+          {/* Signature policy scope */}
+          {rx.signatureLabel && (
+            <p className="text-xs text-slate-500">{rx.signatureLabel}</p>
+          )}
 
           {/* Prescriber */}
           <div className="border-t border-slate-100 pt-4">

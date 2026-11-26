@@ -5,10 +5,12 @@ const mocks = vi.hoisted(() => ({
   rx: null as Record<string, unknown> | null,
   cert: null as Record<string, unknown> | null,
   from: vi.fn(),
+  storageFrom: vi.fn(),
 }));
 vi.mock('@/lib/supabase', () => ({
   createAstroAdminClient: () => ({
     from: mocks.from,
+    storage: { from: mocks.storageFrom },
   }),
 }));
 vi.mock('@autamedica/shared', () => ({
@@ -81,7 +83,7 @@ describe('public prescription verification must fail closed until trusted signin
   it('fails closed if the CUIR row disappears before signature verification', async () => {
     mocks.rx = { id: 'legacy-test' };
     let lookupCount = 0;
-    mocks.from.mockImplementation((table: string) => ({
+    mocks.from.mockImplementation((_table: string) => ({
       select: () => ({
         eq: () => ({
           maybeSingle: async () => {
@@ -173,5 +175,109 @@ describe('public prescription verification must fail closed until trusted signin
   it('returns invalid for missing prescriptions and certificates', async () => {
     const result = await verify();
     expect(result.body).toMatchObject({ valid: false, prescription: null, certificate: null });
+  });
+
+  it('verifies an active AR electronic_simple prescription when governance audit evidence and PDF hash match without leaking PHI', async () => {
+    const pdfBytes = new Uint8Array([37, 80, 68, 70, 45, 49, 46, 52]); // %PDF-1.4
+    const digest = await crypto.subtle.digest('SHA-256', pdfBytes);
+    const pdfHash = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+    const pdfPath = `prescriptions/TEST-DOCUMENT-CUIR/${pdfHash}.pdf`;
+
+    mocks.rx = {
+      id: 'rx-ar-1',
+      doctor_id: 'doc-1',
+      patient_id: 'pat-private-uuid',
+      status: 'active',
+      cuir: 'TEST-DOCUMENT-CUIR',
+      country_code: 'AR',
+      signed_pdf_url: 'https://storage.example.invalid/signed.pdf',
+      signature_method: 'electronic_simple',
+      vendor_name: 'farmalink',
+      vendor_id: '9600000002992',
+      is_controlled_substance: false,
+      created_at: '2026-11-26T10:00:00Z',
+    };
+
+    const sigEvent = {
+      signature_hash: pdfHash,
+      timestamp: '2026-11-26T10:01:00Z',
+      metadata: { method: 'PAdES_GOVERNANCE_POLICY', document_hash: pdfHash },
+    };
+    const issueEvent = {
+      signature_hash: pdfHash,
+      metadata: { pdfPath, signature_hash: pdfHash },
+    };
+
+    mocks.storageFrom.mockReturnValue({
+      download: vi.fn().mockResolvedValue({
+        data: { arrayBuffer: async () => pdfBytes.buffer },
+        error: null,
+      }),
+    });
+    mocks.from.mockImplementation((table: string) => {
+      if (table === 'prescriptions') {
+        return {
+          select: () => ({
+            eq: () => ({ maybeSingle: async () => ({ data: mocks.rx, error: null }) }),
+          }),
+        };
+      }
+      if (table === 'prescription_audit_events') {
+        let requestedType = '';
+        const chain: Record<string, unknown> = {
+          select: () => chain,
+          eq: (_col: string, val: unknown) => {
+            if (val === 'ACT_DIGITAL_SIGNATURE' || val === 'issued') requestedType = String(val);
+            return chain;
+          },
+          order: () => chain,
+          limit: () => chain,
+          maybeSingle: async () => ({
+            data: requestedType === 'ACT_DIGITAL_SIGNATURE' ? sigEvent : issueEvent,
+            error: null,
+          }),
+        };
+        return chain;
+      }
+      if (table === 'doctors') {
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({
+                data: { user_id: 'doc-user', license_number: '12345', specialty: 'Clínica Médica', license_type: 'MN', uf_brazil: null },
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === 'profiles') {
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({ data: { first_name: 'Ana', last_name: 'Pérez' }, error: null }),
+            }),
+          }),
+        };
+      }
+      return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) };
+    });
+
+    const result = await verify();
+    expect(result.status).toBe(200);
+    expect(result.body).toMatchObject({
+      valid: true,
+      documentType: 'prescription',
+      prescription: {
+        cuir: 'TEST-DOCUMENT-CUIR',
+        status: 'active',
+        countryCode: 'AR',
+        signatureMethod: 'electronic_simple',
+        patientName: 'Datos reservados',
+        pdfUrl: null,
+      },
+      certificate: null,
+    });
+    expect(JSON.stringify(result.body)).not.toContain('pat-private-uuid');
   });
 });

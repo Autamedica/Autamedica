@@ -230,7 +230,8 @@ fun CreatePrescriptionScreen(
                 )
             }
 
-            if (uiState.items.size < 3) {
+            val maxMedicationItems = if (uiState.doctorEligibility?.countryCode.equals("BR", ignoreCase = true)) 3 else 1
+            if (uiState.items.size < maxMedicationItems) {
                 OutlinedButton(
                     onClick = { viewModel.onAddMedicationItem() },
                     modifier = Modifier.fillMaxWidth(),
@@ -245,6 +246,12 @@ fun CreatePrescriptionScreen(
                         fontWeight = FontWeight.SemiBold
                     )
                 }
+            } else if (maxMedicationItems == 1) {
+                Text(
+                    text = "Farmalink AR admite 1 medicamento por receta electrónica.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AuTextSecondary,
+                )
             }
 
             // 4. Clinical Diagnosis Section (CIE-10)

@@ -1971,7 +1971,18 @@ class VideoCallViewModel @Inject constructor(
             }.onSuccess { certificate ->
                 val cuir = certificate.cuir.ifBlank { certificate.id.take(8) }
                 val restText = if (effectiveRest > 0) "$effectiveRest días de reposo" else "Sin reposo"
-                val chatMsg = if ((_uiState.value.patientCareCountryCode ?: _uiState.value.doctorCountryCode) == "BR") "📋 Rascunho de atestado médico preparado. Código de validação: $cuir. Assinatura médica pendente." else "📋 Borrador de atestado preparado: ${type.displayName} ($restText). Código de verificación: $cuir. Firma médica pendiente."
+                val isSignedCert = certificate.isActive || certificate.status.equals("signed", ignoreCase = true)
+                val targetCountry = _uiState.value.patientCareCountryCode ?: _uiState.value.doctorCountryCode
+                val chatMsg = when {
+                    targetCountry == "BR" && isSignedCert ->
+                        "📋 Atestado médico emitido. Código de validação: $cuir."
+                    targetCountry == "BR" ->
+                        "📋 Rascunho de atestado médico preparado. Código de validação: $cuir. Assinatura médica pendente."
+                    isSignedCert ->
+                        "📋 Certificado médico emitido: ${type.displayName} ($restText). Código de verificación: $cuir."
+                    else ->
+                        "📋 Borrador de certificado preparado: ${type.displayName} ($restText). Código de verificación: $cuir. Firma médica pendiente."
+                }
                 engine.sendChatMessage(chatMsg)
                 val localMsg = ChatMessage(
                     id = "local-cert-${System.currentTimeMillis()}",

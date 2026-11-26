@@ -74,6 +74,7 @@ function mapLegacyStatusToCore(
   issuanceStatus: string | null | undefined,
   clinicalStatus: PrescriptionStatus,
 ): CoreStatus {
+  if (issuanceStatus === 'active') return 'active' as CoreStatus;
   if (issuanceStatus === 'sent') return 'sent';
   if (issuanceStatus === 'signed') return 'signed';
   if (issuanceStatus === 'dispensed_partial') return 'dispensed_partial';

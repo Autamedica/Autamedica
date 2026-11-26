@@ -130,8 +130,12 @@ export const GET: APIRoute = async ({ params, locals }) => {
     if (prescriptionError) return internalError();
 
     // The CUIR row can disappear between the lookup and signature-evidence read.
+    const isArgentineGovernancePades =
+      prescription?.country_code === 'AR' && prescription?.signature_method === 'electronic_simple';
+    const signatureMethodAllowed =
+      prescription?.signature_method === 'ac_external' || isArgentineGovernancePades;
     if (prescription?.status !== 'active' || !prescription?.signed_pdf_url ||
-        prescription?.signature_method !== 'ac_external' || prescription?.cuir !== cuir) {
+        !signatureMethodAllowed || prescription?.cuir !== cuir) {
       return jsonOk({
         valid: false, reason: 'prescription_signature_unverified',
         documentType: 'prescription', prescription: null, certificate: null,
@@ -175,8 +179,11 @@ export const GET: APIRoute = async ({ params, locals }) => {
     const signatureMetadata = signatureEvent.metadata as Record<string, unknown> | null;
     const issueMetadata = issueEvent.metadata as Record<string, unknown> | null;
     const pdfPath = String(issueMetadata?.pdfPath ?? '');
+    const signatureEvidenceMethodOk =
+      signatureMetadata?.method === 'PAdES_AC_EXTERNAL'
+      || (isArgentineGovernancePades && signatureMetadata?.method === 'PAdES_GOVERNANCE_POLICY');
     if (!pdfPath.startsWith(`prescriptions/${cuir}/`) || !pdfPath.endsWith('.pdf') ||
-        signatureMetadata?.method !== 'PAdES_AC_EXTERNAL' ||
+        !signatureEvidenceMethodOk ||
         signatureMetadata?.document_hash !== signatureEvent.signature_hash ||
         issueMetadata?.signature_hash !== signatureEvent.signature_hash) {
       return jsonOk({
@@ -230,9 +237,11 @@ export const GET: APIRoute = async ({ params, locals }) => {
         prescriberLicense,
         patientName: 'Datos reservados',
         issuedAt: signatureEvent.timestamp,
-        signatureMethod: 'ac_external',
-        signatureLabel: 'PAdES registrada; integridad del PDF confirmada',
-        pdfUrl: `/api/doctors/prescriptions/${prescription.id}/pdf`,
+        signatureMethod: prescription.signature_method,
+        signatureLabel: prescription.signature_method === 'ac_external'
+          ? 'PAdES registrada; integridad del PDF confirmada'
+          : 'Receta electrónica AR registrada en Farmalink; integridad del PDF confirmada',
+        pdfUrl: null,
         qrContent: prescription.cuir,
       },
       certificate: null,

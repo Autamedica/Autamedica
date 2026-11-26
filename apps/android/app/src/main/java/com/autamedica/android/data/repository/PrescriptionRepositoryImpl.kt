@@ -251,7 +251,14 @@ class PrescriptionRepositoryImpl @Inject constructor(
     override suspend fun createPrescription(request: CreatePrescriptionRequest): Result<Prescription> = runCatching {
         require(request.patientId.isNotBlank()) { "ID de paciente requerido" }
         require(request.items.isNotEmpty()) { "Debe especificar al menos un medicamento" }
-        require(request.items.size <= 3) { "Máximo 3 medicamentos por receta según normativa" }
+        val maxItems = if (request.countryCode.equals("AR", ignoreCase = true)) 1 else 3
+        require(request.items.size <= maxItems) {
+            if (maxItems == 1) {
+                "En Argentina Farmalink admite 1 medicamento por receta. Emite cada medicamento en una receta separada."
+            } else {
+                "Máximo $maxItems medicamentos por receta según normativa"
+            }
+        }
         require(request.diagnosis.isNotBlank()) { "Diagnóstico clínico requerido" }
         require(InCallDocumentPolicy.canUseNativePrescriptionIssuer(request.countryCode)) {
             "La emisión de recetas BR requiere Memed; no se puede utilizar el emisor Android genérico"
@@ -305,7 +312,9 @@ class PrescriptionRepositoryImpl @Inject constructor(
                 add(buildJsonObject {
                     put("name", item.medicationName)
                     put("generic_name", item.genericName.ifBlank { item.medicationName })
+                    put("commercial_name", item.medicationName)
                     put("trade_name", item.medicationName)
+                    put("quantity", 1)
                     put("dosage", item.dosage)
                     put("frequency", item.frequency)
                     put("duration", item.duration)
@@ -350,7 +359,21 @@ class PrescriptionRepositoryImpl @Inject constructor(
         val responseObj = Json.parseToJsonElement(responseText) as? JsonObject
             ?: throw IllegalStateException("El servicio de recetas devolvió una respuesta inválida")
         if (responseObj["success"]?.jsonPrimitive?.contentOrNull != "true") {
-            throw IllegalStateException("El servicio de recetas no confirmó el registro")
+            val errorObj = responseObj["error"]
+            val errorCode = responseObj["code"]?.jsonPrimitive?.contentOrNull
+                ?: (errorObj as? JsonObject)?.get("code")?.jsonPrimitive?.contentOrNull
+                ?: (errorObj as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull
+            val friendlyMessage = when (errorCode) {
+                "REFEPS_REQUIRED" -> "Complete su código REFEPS en el perfil médico para emitir recetas en Argentina."
+                "DOCTOR_COUNTRY_MISMATCH", "ARGENTINE_LICENSE_REQUIRED" -> "La matrícula y país del profesional no habilitan esta emisión."
+                "br_patient_cpf_required" -> "Se requiere un CPF válido del paciente para emitir en Brasil."
+                "farmalink_rejected" -> "Farmalink rechazó la solicitud de alta de receta."
+                "farmalink_missing_config", "farmalink_governance_disabled" -> "La emisión vía Farmalink no está habilitada en el servidor."
+                "farmalink_pending_reconciliation" -> "Emisión pendiente de conciliación con Farmalink; no reintente sin verificar."
+                null -> "El servicio de recetas no confirmó el registro"
+                else -> "El servicio de recetas rechazó la emisión ($errorCode)"
+            }
+            throw IllegalStateException(friendlyMessage)
         }
         val targetObj = responseObj["data"] as? JsonObject
             ?: throw IllegalStateException("El servicio de recetas no devolvió un documento")
@@ -397,39 +420,46 @@ class PrescriptionRepositoryImpl @Inject constructor(
         SecureLog.error("[Prescriptions] Failed creating prescription", it)
     }
 
-    override suspend fun cancelPrescription(prescriptionId: String, reason: String): Result<Unit> = runCatching {
-        require(reason.isNotBlank()) { "Motivo clínico de cancelación obligatorio" }
-
-        val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
-            ?: throw IllegalStateException("No authenticated user ID found")
-
-        val now = Instant.now().toString()
-
-        val updatePayload = buildJsonObject {
-            put("status", "cancelled")
-            put("updated_at", now)
-        }
-
-        supabaseClient.postgrest
-            .from("prescriptions")
-            .update(updatePayload) {
-                filter { eq("id", prescriptionId) }
-            }
-
+    override suspend fun cancelPrescription(prescriptionId: String, reason: String): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
-            val auditPayload = buildJsonObject {
-                put("id", UUID.randomUUID().toString())
-                put("prescription_id", prescriptionId)
-                put("event_type", "cancelled")
-                put("user_id", userId)
-                put("timestamp", now)
-                put("user_agent", "AutaMedica-Android/1.2.7")
+            val trimmedReason = reason.trim()
+            require(trimmedReason.isNotBlank()) { "Motivo clínico de cancelación obligatorio" }
+            require(prescriptionId.isNotBlank()) { "Identificador de receta inválido" }
+
+            val accessToken = supabaseClient.auth.currentSessionOrNull()?.accessToken
+                ?: throw IllegalStateException("Sesión autenticada requerida")
+            val baseUrl = BuildConfig.WEB_API_URL.trimEnd('/')
+            val url = "$baseUrl/api/doctors/prescriptions/${java.net.URLEncoder.encode(prescriptionId, "UTF-8")}"
+            val payload = buildJsonObject {
+                put("status", "cancelada")
+                put("cancellation_reason", trimmedReason)
+            }.toString()
+
+            val req = Request.Builder()
+                .url(url)
+                .header("Authorization", "Bearer $accessToken")
+                .header("Origin", baseUrl)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .patch(payload.toRequestBody("application/json; charset=utf-8".toMediaType()))
+                .build()
+
+            eventualHttpClient.newCall(req).execute().use { resp ->
+                val raw = resp.body?.string().orEmpty()
+                if (!resp.isSuccessful) {
+                    val root = runCatching { Json.parseToJsonElement(raw).jsonObject }.getOrNull()
+                    val errorObj = root?.get("error")
+                    val message = (errorObj as? JsonObject)?.get("message")?.jsonPrimitive?.contentOrNull
+                        ?: (errorObj as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull
+                        ?: root?.get("message")?.jsonPrimitive?.contentOrNull
+                        ?: "No se pudo cancelar la receta (HTTP ${resp.code})"
+                    throw IllegalStateException(message)
+                }
             }
-            supabaseClient.postgrest.from("prescription_audit_events").insert(auditPayload)
+            Unit
+        }.onFailure {
+            SecureLog.error("[Prescriptions] Failed cancelling prescription $prescriptionId", it)
         }
-        Unit
-    }.onFailure {
-        SecureLog.error("[Prescriptions] Failed cancelling prescription $prescriptionId", it)
     }
 
     override suspend fun getEligiblePatients(): Result<List<PrescriptionPatientItem>> = runCatching {

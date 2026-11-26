@@ -61,6 +61,7 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
       context,
       prescriptionId as never,
       validated.data as never,
+      locals?.runtime?.env as unknown as Record<string, unknown> | undefined,
     );
 
     if (!updated) return notFound("prescription_not_found");
@@ -71,6 +72,9 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
     }
     if (error instanceof Error && error.message === "forbidden_prescription_update") {
       return forbidden("forbidden_prescription_update");
+    }
+    if (error instanceof Error && error.message === "farmalink_baja_failed") {
+      return badRequest("No se pudo anular la receta en Farmalink. Intente nuevamente.");
     }
     if (error instanceof Error && error.message === "strict_prescription_missing_required_fields") {
       return badRequest(
