@@ -434,14 +434,15 @@ async function cancelFarmalinkPrescriptionRemote(
     return { executed: false };
   }
 
-  const { data: attemptRow } = await supabase
+  const { data: attemptRow } = await (supabase as unknown as SupabaseClient)
     .from("farmalink_issue_attempts")
     .select("issue_snapshot")
     .eq("prescription_id", existingRow.id)
     .maybeSingle();
 
+  const typedAttempt = attemptRow as { issue_snapshot?: unknown } | null;
   const snapshotReq = getPrescriptionContent(
-    getPrescriptionContent(attemptRow?.issue_snapshot).request,
+    getPrescriptionContent(typedAttempt?.issue_snapshot).request,
   );
   const altaReq = getPrescriptionContent(snapshotReq.altaRecetaElectRq);
   const infoCabecera = getPrescriptionContent(altaReq.infoCabeceraRq);
@@ -481,7 +482,7 @@ async function cancelFarmalinkPrescriptionRemote(
       metadata: {
         provider: "farmalink",
         vendor_id: vendorId,
-        response: response ?? null,
+        response: (response ?? null) as Database["public"]["Tables"]["prescription_audit_events"]["Insert"]["metadata"],
       },
     });
     return { executed: true, referencePayload: { vendor_id: vendorId } };

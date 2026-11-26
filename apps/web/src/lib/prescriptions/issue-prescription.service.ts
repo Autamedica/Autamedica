@@ -740,11 +740,8 @@ export async function issuePrescription(
       : doctor.license_type === 'MN' || doctor.license_type === 'MP' ? 'AR'
         : null;
   
-  const farmalinkEnabled = resolveFarmalinkConfig(runtimeEnv).enabled;
-  const requireExternalAcRaw = runtimeEnv?.FARMALINK_REQUIRE_EXTERNAL_AC
-    ?? getRuntimeEnvValue('FARMALINK_REQUIRE_EXTERNAL_AC')
-    ?? getServerEnvOrDefault('FARMALINK_REQUIRE_EXTERNAL_AC', 'true');
-  const requireExternalAc = String(requireExternalAcRaw).trim().toLowerCase() !== 'false';
+  const farmalinkEnabled = runtimeEnv?.FARMALINK_ENABLED === 'true';
+  const requireExternalAc = runtimeEnv?.FARMALINK_REQUIRE_EXTERNAL_AC !== 'false';
   const issuanceGate = checkDirectPrescriptionIssuance({
     prescriptionCountry,
     doctorCountry,

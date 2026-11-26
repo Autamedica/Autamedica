@@ -12,7 +12,7 @@ interface ClinicalDataShape {
   frequency?: string;
   instructions?: string;
   medications?: Array<{ name?: string; dosage?: string; frequency?: string; instructions?: string }>;
-  items?: Array<{ generic_name?: string; commercialName?: string; dosage?: string; instructions?: string }>;
+  items?: Array<{ generic_name?: string; commercialName?: string; commercial_name?: string; dosage?: string; instructions?: string }>;
 }
 interface PrescriptionRow {
   id: string; status: string; cuir: string | null; signed_pdf_url: string | null;
