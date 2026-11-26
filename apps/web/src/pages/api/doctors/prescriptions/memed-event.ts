@@ -230,10 +230,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
       } catch (error) {
         if (!(error instanceof Error) || !error.message.endsWith(':404')) throw error;
       }
+      const nowIso = new Date().toISOString();
       const { error: cancelError } = await admin.from('prescriptions')
-        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+        .update({ status: 'cancelled', updated_at: nowIso })
         .eq('id', existing.id);
       if (cancelError) throw cancelError;
+      const { error: memedDeleteError } = await (admin as unknown as SupabaseClient)
+        .from('memed_prescriptions')
+        .update({ status: 'deleted', updated_at: nowIso })
+        .eq('doctor_id', doctor.id)
+        .eq('patient_id', patientId)
+        .eq('memed_id', prescriptionId);
+      if (memedDeleteError) throw memedDeleteError;
       return privateJsonOk({ status: 'cancelled' });
     }
 

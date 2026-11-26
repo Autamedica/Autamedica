@@ -136,10 +136,9 @@ export function ensureMemedScript(token: string, scriptUrl: string, userId: stri
             if (id && activeOnIssued) activeOnIssued(id);
           });
           hub.event.add('prescricaoExcluida', (data) => {
-            const prescription = (data.prescricao ?? data) as Record<string, unknown>;
-            const id = prescription.prescriptionUuid ?? prescription.id ?? data.id;
-            if (id !== undefined && id !== null && activeOnDeleted) {
-              activeOnDeleted(String(id));
+            const id = issuedPrescriptionId(data);
+            if (id && activeOnDeleted) {
+              activeOnDeleted(id);
             }
           });
           eventListenersRegistered = true;

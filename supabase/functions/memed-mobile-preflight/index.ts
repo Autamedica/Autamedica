@@ -67,12 +67,27 @@ export async function handler(req: Request): Promise<Response> {
       return reply({code: 'PILOT_DOCTOR_REQUIRED'}, 403, cors);
     }
     const {data: licenses, error: licenseError} = await db.from('doctor_licenses')
-      .select('license_number, uf_brazil, status, cfm_validation_status')
+      .select('license_number, uf_brazil, status, cfm_validation_status, cfm_evidence_path, cfm_review_notes, cfm_reviewed_by, cfm_reviewed_at, cfm_last_checked_at')
       .eq('doctor_id', doctor.id).eq('license_type', 'CRM').limit(20);
-    if (licenseError || !verifiedBrazilLicense(doctor, licenses ?? [])) {
+    const digits = (value: unknown) => String(value ?? '').replace(/\D/g, '');
+    const hasFullCfmEvidence = !licenseError && (licenses ?? []).some((row) =>
+      row.status === 'active'
+      && row.cfm_validation_status === 'valid'
+      && digits(row.license_number) === digits(doctor.license_number)
+      && row.uf_brazil?.toUpperCase() === doctor.uf_brazil?.toUpperCase()
+      && Boolean(row.cfm_evidence_path?.trim())
+      && (row.cfm_review_notes?.trim().length ?? 0) >= 10
+      && Boolean(row.cfm_reviewed_by && row.cfm_reviewed_at && row.cfm_last_checked_at),
+    );
+    if (!hasFullCfmEvidence || !verifiedBrazilLicense(doctor, licenses ?? [])) {
       return reply({code: 'CFM_LICENSE_NOT_VERIFIED'}, 403, cors);
     }
     let patientId: string | null = null;
+    let guestDispatch: {
+      patient_cpf?: string | null;
+      lgpd_consent?: boolean | null;
+      care_country?: string | null;
+    } | null = null;
     if (appointmentId) {
       const {data: appointment, error: apptError} = await db.from('appointments')
         .select('doctor_id, patient_id, status, start_time, end_time, type')
@@ -84,7 +99,7 @@ export async function handler(req: Request): Promise<Response> {
       patientId = appointment.patient_id;
     } else if (requestId) {
       const {data: dispatch, error: dispatchError} = await db.from('pharmacy_dispatch_requests')
-        .select('assigned_doctor_id, patient_id, status, call_started_at')
+        .select('assigned_doctor_id, patient_id, status, call_started_at, patient_cpf, lgpd_consent, care_country')
         .eq('id', requestId).maybeSingle();
       const callStarted = dispatch?.call_started_at ? Date.parse(dispatch.call_started_at) : NaN;
       if (dispatchError || !dispatch || dispatch.assigned_doctor_id !== doctor.id ||
@@ -94,21 +109,68 @@ export async function handler(req: Request): Promise<Response> {
         return reply({code: 'CLINICAL_ENCOUNTER_REQUIRED'}, 403, cors);
       }
       patientId = dispatch.patient_id;
+      guestDispatch = dispatch;
     }
     if (!patientId) return reply({code: 'CLINICAL_ENCOUNTER_REQUIRED'}, 403, cors);
     const {data: patient, error: patientError} = await db.from('patients')
       .select('id, user_id, active, care_country, lgpd_consent, lgpd_consent_date, cpf, birth_date, gender')
       .eq('id', patientId).maybeSingle();
-    if (patientError || patient?.active !== true || patient.care_country !== 'BR' ||
-      patient.lgpd_consent !== true || !patient.lgpd_consent_date || !patient.user_id) {
+    if (patientError || patient?.active !== true || patient.care_country !== 'BR') {
       return reply({code: 'BRAZIL_PATIENT_CONSENT_REQUIRED'}, 403, cors);
     }
-    const {data: patientProfile, error: patientProfileError} = await db.from('profiles')
-      .select('active').eq('user_id', patient.user_id).maybeSingle();
-    if (patientProfileError || patientProfile?.active !== true) {
-      return reply({code: 'PATIENT_ACCOUNT_INACTIVE'}, 403, cors);
+
+    const {data: privateIdentity, error: privateIdentityError} = await db.from('patient_private_identities')
+      .select('document_type, document_number, birth_date, gender, consent_at, consent_scope')
+      .eq('patient_id', patientId)
+      .eq('doctor_id', doctor.id)
+      .maybeSingle();
+    if (privateIdentityError) {
+      return reply({code: 'MEMED_MOBILE_PREFLIGHT_ERROR'}, 500, cors);
     }
-    if (!validBrazilPatientIdentity(patient.cpf, patient.birth_date, patient.gender, Date.now())) {
+
+    let effectiveCpf: unknown = patient.cpf;
+    let effectiveBirthDate: unknown = patient.birth_date;
+    let effectiveGender: unknown = patient.gender;
+
+    if (privateIdentity) {
+      if (!privateIdentity.consent_at || privateIdentity.consent_scope !== 'prescription_issuance_and_delivery') {
+        return reply({code: 'BRAZIL_PATIENT_CONSENT_REQUIRED'}, 403, cors);
+      }
+      effectiveCpf = privateIdentity.document_type === 'CPF' ? privateIdentity.document_number : '';
+      effectiveBirthDate = privateIdentity.birth_date ?? effectiveBirthDate;
+      effectiveGender = privateIdentity.gender ?? effectiveGender;
+    } else if (!patient.user_id) {
+      let resolvedGuest = guestDispatch;
+      if (!resolvedGuest) {
+        const recent = new Date(Date.now() - 24 * 60 * 60_000).toISOString();
+        const {data: recentDispatch} = await db.from('pharmacy_dispatch_requests')
+          .select('patient_cpf, lgpd_consent, care_country')
+          .eq('patient_id', patientId)
+          .eq('assigned_doctor_id', doctor.id)
+          .in('status', ['in_call', 'completed'])
+          .gte('call_started_at', recent)
+          .order('call_started_at', {ascending: false})
+          .limit(1)
+          .maybeSingle();
+        resolvedGuest = recentDispatch;
+      }
+      const consentOk = resolvedGuest?.lgpd_consent === true || (patient.lgpd_consent === true && Boolean(patient.lgpd_consent_date));
+      if (!consentOk) {
+        return reply({code: 'BRAZIL_PATIENT_CONSENT_REQUIRED'}, 403, cors);
+      }
+      effectiveCpf = resolvedGuest?.patient_cpf ?? patient.cpf;
+    } else {
+      if (patient.lgpd_consent !== true || !patient.lgpd_consent_date) {
+        return reply({code: 'BRAZIL_PATIENT_CONSENT_REQUIRED'}, 403, cors);
+      }
+      const {data: patientProfile, error: patientProfileError} = await db.from('profiles')
+        .select('active').eq('user_id', patient.user_id).maybeSingle();
+      if (patientProfileError || patientProfile?.active !== true) {
+        return reply({code: 'PATIENT_ACCOUNT_INACTIVE'}, 403, cors);
+      }
+    }
+
+    if (!validBrazilPatientIdentity(effectiveCpf, effectiveBirthDate, effectiveGender, Date.now())) {
       return reply({code: 'PATIENT_IDENTITY_INCOMPLETE'}, 403, cors);
     }
     return reply({

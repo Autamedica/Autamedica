@@ -473,12 +473,23 @@ class DoctorPrescriptionsViewModel @Inject constructor(
                 )
             }
 
+            val resolvedCountry = state.doctorEligibility?.countryCode?.takeIf { it.isNotBlank() } ?: "AR"
+            if (resolvedCountry.equals("BR", ignoreCase = true)) {
+                _uiState.update {
+                    it.copy(
+                        isSubmitting = false,
+                        createError = "No Brasil, receitas digitais devem ser emitidas via Memed durante a consulta.",
+                    )
+                }
+                return@launch
+            }
+
             val request = CreatePrescriptionRequest(
                 patientId = effectivePatientId,
                 items = domainItems,
                 diagnosis = if (state.diagnosisCode != null) "${state.diagnosisCode} - ${state.diagnosis.trim()}" else state.diagnosis.trim(),
                 notes = state.notes.trim().takeIf { it.isNotEmpty() },
-                countryCode = "AR",
+                countryCode = resolvedCountry,
             )
 
             prescriptionRepository.createPrescription(request)

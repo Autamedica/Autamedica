@@ -22,6 +22,7 @@ interface PrescriptionRow {
 }
 interface MemedRow {
   id: string; doctor_id: string; patient_id: string; memed_id: string; status: string;
+  pdf_signature_verified?: boolean | null;
   provider_data: unknown; digital_link_data: unknown; created_at: string;
 }
 
@@ -136,7 +137,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     if (memedResult.error || !authenticated?.rpc) {
       if (memedResult.error) logger.warn('[patients/prescriptions] scoped Memed RPC unavailable; using patient-scoped service query');
       const fallback = await admin.from('memed_prescriptions')
-        .select('id,doctor_id,patient_id,memed_id,status,provider_data,digital_link_data,created_at')
+        .select('id,doctor_id,patient_id,memed_id,status,pdf_signature_verified,provider_data,digital_link_data,created_at')
         .eq('patient_id', context.patientId).neq('status', 'deleted')
         .order('created_at', { ascending: false });
       if (fallback.error) logger.warn('[patients/prescriptions] Memed fallback query failed', { code: fallback.error.code });
@@ -179,12 +180,23 @@ export const GET: APIRoute = async ({ request, locals }) => {
       .map((row) => row.vendor_id).filter((id): id is string => Boolean(id)));
     const coreIds = new Set(visibleCoreRows.map((row) => row.id));
     const memedDtos = memedRows
-      .filter((row) => row.status !== 'deleted' && !coreMemedIds.has(row.memed_id) && !coreIds.has(row.id))
+      .filter((row) => {
+        if (row.status === 'deleted' || coreMemedIds.has(row.memed_id) || coreIds.has(row.id)) return false;
+        const provider = asObject(row.provider_data);
+        const medications = Array.isArray(provider.medications) ? provider.medications : [];
+        const isPureAtestado = (provider.document_type === 'atestado' || provider.has_atestado === true)
+          && medications.length === 0
+          && !asText(provider.medication_name)
+          && !asText(provider.medicationName);
+        return !isPureAtestado;
+      })
       .map((row) => {
         const provider = asObject(row.provider_data);
         const digitalData = asObject(row.digital_link_data);
         const providerPdfUrl = memedLink(digitalData.pdf) ?? memedLink(digitalData.digital) ?? memedLink(row.digital_link_data);
-        const patientPdfUrl = providerPdfUrl
+        const deliveryEligible = row.pdf_signature_verified === true
+          || (provider.provider_reported_signed === true && provider.patient_delivery_eligible === true);
+        const patientPdfUrl = providerPdfUrl && deliveryEligible
           ? `/api/patients/prescriptions/${encodeURIComponent(`memed-${row.id}`)}/pdf`
           : null;
         return {

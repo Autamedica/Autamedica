@@ -1,6 +1,11 @@
 package com.autamedica.android.presentation.videocall
 
 import android.Manifest
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
+import android.os.Message
+import androidx.browser.customtabs.CustomTabsIntent
 import com.autamedica.android.BuildConfig
 import androidx.activity.compose.BackHandler
 import android.webkit.CookieManager
@@ -844,6 +849,61 @@ private fun Context.hasTelemedicineMediaPermissions(): Boolean {
     return cameraGranted && audioGranted
 }
 
+private val ICP_OAUTH_HOSTS = listOf(
+    "vidaas.com.br",
+    "birdid.com.br",
+    "safeweb.com.br",
+    "certisign.com.br",
+    "soluti.com.br",
+    "validcertificadora.com.br",
+    "serasaexperian.com.br",
+    "iti.gov.br",
+    "gov.br",
+)
+
+private val ICP_APP_SCHEMES = setOf("vidaas", "birdid", "safeid", "serasaid")
+
+private fun isExternalIcpOAuthHost(host: String): Boolean {
+    val normalized = host.lowercase()
+    return ICP_OAUTH_HOSTS.any { normalized == it || normalized.endsWith(".$it") }
+}
+
+private fun isMemedTrustedInWebViewHost(host: String): Boolean {
+    val normalized = host.lowercase()
+    return normalized == "doctor.autamedica.com" ||
+        normalized == "autamedica.com" ||
+        normalized == "www.autamedica.com" ||
+        normalized == "partners.memed.com.br" ||
+        normalized == "integrations.memed.com.br" ||
+        normalized == "accounts.google.com" ||
+        normalized.endsWith(".google.com") ||
+        normalized.endsWith(".gstatic.com") ||
+        normalized.endsWith(".googleapis.com") ||
+        normalized == "memed.com.br" ||
+        normalized.endsWith(".memed.com.br")
+}
+
+private fun launchExternalIcpOAuth(context: Context, uri: Uri) {
+    if (uri.scheme.equals("https", ignoreCase = true)) {
+        try {
+            CustomTabsIntent.Builder()
+                .setShowTitle(true)
+                .build()
+                .launchUrl(context, uri)
+            return
+        } catch (_: ActivityNotFoundException) {
+            // Fall through to generic external browser/app handler.
+        } catch (_: SecurityException) {
+            // Fall through to generic external browser/app handler.
+        }
+    }
+    runCatching {
+        context.startActivity(
+            Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    }
+}
+
 /**
  * Full-screen prescription surface layered above the active call. The call's
  * WebRTC engine and lifecycle remain mounted underneath this view.
@@ -863,6 +923,11 @@ private fun MemedInCallWebView(
 
     DisposableEffect(Unit) {
         onDispose {
+            runCatching {
+                val cookies = CookieManager.getInstance()
+                cookies.removeSessionCookies(null)
+                cookies.flush()
+            }
             webViewRef.value?.let { webView ->
                 webView.stopLoading()
                 webView.loadUrl("about:blank")
@@ -905,37 +970,73 @@ private fun MemedInCallWebView(
                     webViewRef.value = this
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
-                    settings.javaScriptCanOpenWindowsAutomatically = false
-                    settings.setSupportMultipleWindows(false)
+                    settings.javaScriptCanOpenWindowsAutomatically = true
+                    settings.setSupportMultipleWindows(true)
                     settings.allowFileAccess = false
                     settings.allowContentAccess = false
                     settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
                     CookieManager.getInstance().setAcceptCookie(true)
                     CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
-                    webChromeClient = WebChromeClient()
+                    webChromeClient = object : WebChromeClient() {
+                        override fun onCreateWindow(
+                            view: WebView?,
+                            isDialog: Boolean,
+                            isUserGesture: Boolean,
+                            resultMsg: Message?,
+                        ): Boolean {
+                            val hostWebView = view ?: return false
+                            val transport = resultMsg?.obj as? WebView.WebViewTransport ?: return false
+                            val popupWebView = WebView(hostWebView.context)
+                            popupWebView.webViewClient = object : WebViewClient() {
+                                override fun shouldOverrideUrlLoading(
+                                    popup: WebView,
+                                    request: WebResourceRequest,
+                                ): Boolean {
+                                    val target = request.url
+                                    val scheme = target.scheme?.lowercase().orEmpty()
+                                    if (scheme == "autamedica" && target.host == "return") {
+                                        onClose()
+                                    } else if (scheme in ICP_APP_SCHEMES) {
+                                        launchExternalIcpOAuth(viewContext, target)
+                                    } else if (scheme == "https") {
+                                        val host = target.host?.lowercase().orEmpty()
+                                        if (isExternalIcpOAuthHost(host)) {
+                                            launchExternalIcpOAuth(viewContext, target)
+                                        } else if (isMemedTrustedInWebViewHost(host)) {
+                                            hostWebView.loadUrl(target.toString())
+                                        }
+                                    }
+                                    popup.destroy()
+                                    return true
+                                }
+                            }
+                            transport.webView = popupWebView
+                            resultMsg.sendToTarget()
+                            return true
+                        }
+                    }
                     webViewClient = object : WebViewClient() {
                         override fun shouldOverrideUrlLoading(
                             view: WebView,
                             request: WebResourceRequest,
                         ): Boolean {
                             val target = request.url
-                            if (target.scheme == "autamedica" && target.host == "return") {
+                            val scheme = target.scheme?.lowercase().orEmpty()
+                            if (scheme == "autamedica" && target.host == "return") {
                                 onClose()
                                 return true
                             }
-                            if (target.scheme != "https") return true
+                            if (scheme in ICP_APP_SCHEMES) {
+                                launchExternalIcpOAuth(viewContext, target)
+                                return true
+                            }
+                            if (scheme != "https") return true
                             val host = target.host?.lowercase() ?: return true
-                            val trustedHost = host == "doctor.autamedica.com" ||
-                                host == "autamedica.com" ||
-                                host == "www.autamedica.com" ||
-                                host == "partners.memed.com.br" ||
-                                host == "integrations.memed.com.br" ||
-                                host == "accounts.google.com" ||
-                                host.endsWith(".google.com") ||
-                                host.endsWith(".gstatic.com") ||
-                                host.endsWith(".googleapis.com") ||
-                                host == "memed.com.br" || host.endsWith(".memed.com.br")
-                            return !trustedHost
+                            if (isExternalIcpOAuthHost(host)) {
+                                launchExternalIcpOAuth(viewContext, target)
+                                return true
+                            }
+                            return !isMemedTrustedInWebViewHost(host)
                         }
 
                         override fun onReceivedSslError(

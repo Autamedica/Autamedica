@@ -40,13 +40,16 @@ export const GET: APIRoute = async ({request, locals}) => {
       return forbidden('memed_pilot_doctor_required');
     }
     const {data: licenses, error: licenseError} = await admin.from('doctor_licenses')
-      .select('license_number, uf_brazil, status, cfm_validation_status')
+      .select('license_number, uf_brazil, status, cfm_validation_status, cfm_evidence_path, cfm_review_notes, cfm_reviewed_by, cfm_reviewed_at, cfm_last_checked_at')
       .eq('doctor_id', doctor.id).eq('license_type', 'CRM').limit(20);
     const digits = (v: unknown) => String(v ?? '').replace(/\D/g, '');
     const validLicense = !licenseError && licenses?.some(lic =>
       lic.status === 'active' && lic.cfm_validation_status === 'valid' &&
       digits(lic.license_number) === digits(doctor.license_number) &&
-      lic.uf_brazil?.toUpperCase() === doctor.uf_brazil?.toUpperCase());
+      lic.uf_brazil?.toUpperCase() === doctor.uf_brazil?.toUpperCase() &&
+      Boolean(lic.cfm_evidence_path?.trim()) &&
+      (lic.cfm_review_notes?.trim().length ?? 0) >= 10 &&
+      Boolean(lic.cfm_reviewed_by && lic.cfm_reviewed_at && lic.cfm_last_checked_at));
     if (!validLicense) return forbidden('verified_crm_required');
     let patientId: string | null = null;
     if (isAppointment) {
@@ -82,7 +85,22 @@ export const GET: APIRoute = async ({request, locals}) => {
     response.headers.set('Cache-Control', 'private, no-store');
     response.headers.set('Referrer-Policy', 'no-referrer');
     return response;
-  } catch {
+  } catch (err) {
+    const code = err instanceof Error ? err.message : '';
+    if ([
+      'doctor_patient_access_required',
+      'clinical_encounter_required',
+      'memed_patient_country_required',
+      'memed_patient_consent_required',
+    ].includes(code)) {
+      return forbidden(code);
+    }
+    if ([
+      'memed_patient_identity_incomplete',
+      'memed_patient_demographics_invalid',
+    ].includes(code)) {
+      return badRequest(code);
+    }
     return internalError('memed_mobile_context_unavailable');
   }
 };
