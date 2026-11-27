@@ -2,6 +2,7 @@ package com.autamedica.android.presentation.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.autamedica.android.R
 import com.autamedica.android.logging.SecureLog
 import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.repository.AuthRepository
@@ -24,6 +25,7 @@ data class LoginUiState(
     val isLoading: Boolean = false,
     val isGoogleLoading: Boolean = false,
     val error: String? = null,
+    val errorResId: Int? = null,
     val isCheckingSession: Boolean = true,
     val loggedInUser: User? = null,
 )
@@ -65,15 +67,15 @@ class LoginViewModel @Inject constructor(
     }
 
     fun onRoleChange(role: com.autamedica.android.domain.model.UserRole) {
-        _uiState.update { it.copy(selectedRole = role, error = null) }
+        _uiState.update { it.copy(selectedRole = role, error = null, errorResId = null) }
     }
 
     fun onEmailChange(email: String) {
-        _uiState.update { it.copy(email = email, error = null) }
+        _uiState.update { it.copy(email = email, error = null, errorResId = null) }
     }
 
     fun onPasswordChange(password: String) {
-        _uiState.update { it.copy(password = password, error = null) }
+        _uiState.update { it.copy(password = password, error = null, errorResId = null) }
     }
 
     private fun mapErrorMessage(error: Throwable): String {
@@ -116,7 +118,13 @@ class LoginViewModel @Inject constructor(
     }
 
     fun setGoogleLoading(loading: Boolean) {
-        _uiState.update { it.copy(isGoogleLoading = loading, error = if (loading) null else it.error) }
+        _uiState.update {
+            it.copy(
+                isGoogleLoading = loading,
+                error = if (loading) null else it.error,
+                errorResId = if (loading) null else it.errorResId,
+            )
+        }
     }
 
     fun onLogin() {
@@ -142,7 +150,7 @@ class LoginViewModel @Inject constructor(
         }
         if (state.isLoading || state.isGoogleLoading) return
 
-        _uiState.update { it.copy(isLoading = true, error = null) }
+        _uiState.update { it.copy(isLoading = true, error = null, errorResId = null) }
 
         viewModelScope.launch {
             try {
@@ -179,7 +187,7 @@ class LoginViewModel @Inject constructor(
         val state = _uiState.value
         if (state.isLoading) return
 
-        _uiState.update { it.copy(isGoogleLoading = true, error = null) }
+        _uiState.update { it.copy(isGoogleLoading = true, error = null, errorResId = null) }
 
         viewModelScope.launch {
             try {
@@ -214,20 +222,32 @@ class LoginViewModel @Inject constructor(
 
     fun onGoogleSignInError(error: Throwable) {
         SecureLog.error("[Auth] Google sign-in error", error)
-        SecureLog.error("[Auth] Google sign-in error", error)
-        val friendlyMessage = when {
+        when {
             error is androidx.credentials.exceptions.GetCredentialCancellationException ->
-                "Inicio con Google cancelado o interrumpido. Podés ingresar con tu correo y contraseña."
+                _uiState.update {
+                    it.copy(
+                        isGoogleLoading = false,
+                        error = null,
+                        errorResId = R.string.auth_google_cancelled_hint,
+                    )
+                }
             error is androidx.credentials.exceptions.NoCredentialException ||
                 error.message?.contains("no credential", ignoreCase = true) == true ->
-                "No se encontró ninguna cuenta de Google disponible en este dispositivo. Ingresá con correo y contraseña."
-            else -> mapErrorMessage(error)
-        }
-        _uiState.update {
-            it.copy(
-                isGoogleLoading = false,
-                error = friendlyMessage,
-            )
+                _uiState.update {
+                    it.copy(
+                        isGoogleLoading = false,
+                        error = null,
+                        errorResId = R.string.auth_google_no_account_hint,
+                    )
+                }
+            else ->
+                _uiState.update {
+                    it.copy(
+                        isGoogleLoading = false,
+                        error = mapErrorMessage(error),
+                        errorResId = null,
+                    )
+                }
         }
     }
 

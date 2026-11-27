@@ -174,4 +174,50 @@ class LoginViewModelTest {
 
         assertThat(fakeRepo.lastSelectedRole).isEqualTo(UserRole.DOCTOR)
     }
+
+    @Test
+    fun `onGoogleSignInError maps NoCredentialException to localized string resource`() =
+        runTest(testDispatcher.scheduler) {
+            val viewModel = LoginViewModel(fakeRepo, fakeNotificationRepo)
+            viewModel.setGoogleLoading(true)
+
+            viewModel.onGoogleSignInError(
+                androidx.credentials.exceptions.NoCredentialException("No credentials available"),
+            )
+
+            assertThat(viewModel.uiState.value.isGoogleLoading).isFalse()
+            assertThat(viewModel.uiState.value.error).isNull()
+            assertThat(viewModel.uiState.value.errorResId)
+                .isEqualTo(com.autamedica.android.R.string.auth_google_no_account_hint)
+        }
+
+    @Test
+    fun `onGoogleSignInError maps cancellation to localized string resource`() =
+        runTest(testDispatcher.scheduler) {
+            val viewModel = LoginViewModel(fakeRepo, fakeNotificationRepo)
+            viewModel.setGoogleLoading(true)
+
+            viewModel.onGoogleSignInError(
+                androidx.credentials.exceptions.GetCredentialCancellationException("Cancelled"),
+            )
+
+            assertThat(viewModel.uiState.value.isGoogleLoading).isFalse()
+            assertThat(viewModel.uiState.value.error).isNull()
+            assertThat(viewModel.uiState.value.errorResId)
+                .isEqualTo(com.autamedica.android.R.string.auth_google_cancelled_hint)
+        }
+
+    @Test
+    fun `email change clears localized errorResId`() = runTest(testDispatcher.scheduler) {
+        val viewModel = LoginViewModel(fakeRepo, fakeNotificationRepo)
+        viewModel.onGoogleSignInError(
+            androidx.credentials.exceptions.NoCredentialException("No credentials available"),
+        )
+        assertThat(viewModel.uiState.value.errorResId).isNotNull()
+
+        viewModel.onEmailChange("user@autamedica.com")
+
+        assertThat(viewModel.uiState.value.errorResId).isNull()
+        assertThat(viewModel.uiState.value.error).isNull()
+    }
 }
