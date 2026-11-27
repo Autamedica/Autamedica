@@ -179,3 +179,4 @@ jobs:
           pnpm-version: ${{ env.PNPM_VERSION }}
       - run: pnpm check:policy
       - run: pnpm hardcode:check
+      - run: node scripts/ci/check-boundary-contracts.mjs

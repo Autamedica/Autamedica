@@ -79,4 +79,5 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/doctor_duty_heartbeat_is_not_queue_eligibility.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/doctor_eventual_patient_security.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/doctor_brazil_enablement_authority.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/dispensation_prescriber_session_guard.sql
 

@@ -205,31 +205,35 @@ export async function resolvePatientProfile(
 
   const { data: patientRow, error } = await admin
     .from('patients')
-    .select('user_id')
+    .select('user_id, birth_date, gender')
     .eq('id', patientId)
     .maybeSingle();
 
   if (error) throw error;
 
-
-  const userId = (patientRow as { user_id: string | null } | null)?.user_id;
+  const patient = patientRow as { user_id: string | null; birth_date: string | null; gender: string | null } | null;
+  const userId = patient?.user_id;
   if (!userId) {
-    return { name: 'Paciente', dateOfBirth: null, gender: null };
+    return {
+      name: 'Paciente',
+      dateOfBirth: patient?.birth_date ?? null,
+      gender: patient?.gender ?? null,
+    };
   }
 
   const { data: profileRow } = await admin
     .from('profiles')
-    .select('first_name, last_name, date_of_birth, gender')
+    .select('first_name, last_name')
     .eq('user_id', userId)
     .maybeSingle();
 
-  const profile = profileRow as { first_name: string | null; last_name: string | null; date_of_birth: string | null; gender: string | null } | null;
+  const profile = profileRow as { first_name: string | null; last_name: string | null } | null;
   const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim();
 
   return {
     name: fullName || 'Paciente',
-    dateOfBirth: profile?.date_of_birth ?? null,
-    gender: profile?.gender ?? null,
+    dateOfBirth: patient?.birth_date ?? null,
+    gender: patient?.gender ?? null,
   };
 }
 

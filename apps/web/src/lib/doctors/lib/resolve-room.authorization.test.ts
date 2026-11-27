@@ -108,4 +108,51 @@ describe('doctor room access', () => {
     expect(allowed).toBe(true)
     expect(selectedByTable.doctor_patient).toBe('patient_id')
   })
+
+  it('resolves patient profile demographics from patients without querying missing profile columns', async () => {
+    const { resolvePatientProfile } = await import('./resolve-room')
+    const selectedByTable: Record<string, string> = {}
+
+    const admin = {
+      from(table: string) {
+        const query = {
+          select: (fields: string) => {
+            selectedByTable[table] = fields
+            return query
+          },
+          eq: (_field: string, _value: unknown) => query,
+          maybeSingle: async () => {
+            if (table === 'patients') {
+              return {
+                data: {
+                  user_id: '00000000-0000-4000-8000-000000000099',
+                  birth_date: '1990-05-14',
+                  gender: 'female',
+                },
+                error: null,
+              }
+            }
+            if (table === 'profiles') {
+              return {
+                data: { first_name: 'Maria', last_name: 'Silva' },
+                error: null,
+              }
+            }
+            return { data: null, error: null }
+          },
+        }
+        return query
+      },
+    } as unknown as Parameters<typeof resolvePatientProfile>[0]
+
+    const profile = await resolvePatientProfile(admin, '00000000-0000-4000-8000-000000000001')
+
+    expect(profile).toEqual({
+      name: 'Maria Silva',
+      dateOfBirth: '1990-05-14',
+      gender: 'female',
+    })
+    expect(selectedByTable.patients).toBe('user_id, birth_date, gender')
+    expect(selectedByTable.profiles).toBe('first_name, last_name')
+  })
 })

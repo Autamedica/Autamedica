@@ -62,7 +62,7 @@ export const openclawRepo = {
   async findPatientByPhone(admin: AdminClient, phone: string): Promise<PatientInfo | null> {
     const { data: profiles } = await admin
       .from('profiles')
-      .select('user_id, full_name')
+      .select('user_id, first_name, last_name')
       .eq('phone', phone)
       .limit(1)
 
@@ -77,9 +77,14 @@ export const openclawRepo = {
 
     if (!patients?.length) return null
 
+    const fullName = [profiles[0].first_name, profiles[0].last_name]
+      .filter(Boolean)
+      .join(' ')
+      .trim()
+
     return {
       id: patients[0].id,
-      name: profiles[0].full_name ?? 'Paciente',
+      name: fullName || 'Paciente',
       phone,
     }
   },
@@ -107,7 +112,13 @@ export const openclawRepo = {
 
     if (!data?.length) return []
 
-    return data.map((row: any) => ({
+    return (data as unknown as Array<{
+      id: string
+      start_time: string
+      type: string | null
+      status: string
+      doctor?: { full_name?: string | null } | null
+    }>).map((row) => ({
       id: row.id,
       doctor_name: row.doctor?.full_name ?? 'Dr.',
       start_time: row.start_time,

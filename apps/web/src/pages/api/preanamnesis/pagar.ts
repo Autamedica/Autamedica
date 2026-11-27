@@ -1,11 +1,12 @@
 import type { APIRoute } from 'astro'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createAstroAdminClient } from '@/lib/supabase'
 
 const MERCADOPAGO_API = 'https://api.mercadopago.com'
 const PRECIO_CONSULTA = 15000
 
 function getToken(): string {
-  const env = (import.meta as any).env
+  const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env
   return env?.MERCADOPAGO_ACCESS_TOKEN || ''
 }
 
@@ -21,10 +22,10 @@ export const GET: APIRoute = async ({ url, locals }) => {
       return new Response(JSON.stringify({ error: 'payment_unavailable', message: 'Token no configurado' }), { status: 503, headers: { 'Content-Type': 'application/json' } })
     }
 
-    const supabase = createAstroAdminClient(locals.runtime?.env)
+    const supabase = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient
 
     // Check session exists
-    const { data: session } = await (supabase as any)
+    const { data: session } = await supabase
       .from('preanamnesis_sessions')
       .select('id, status')
       .eq('id', preanamnesisId)
@@ -39,14 +40,14 @@ export const GET: APIRoute = async ({ url, locals }) => {
     }
 
     // Check existing order
-    const { data: existing } = await (supabase as any)
+    const { data: existing } = await supabase
       .from('medical_review_orders')
-      .select('id, status, checkout_url')
+      .select('id, status, payment_url')
       .eq('preanamnesis_id', preanamnesisId)
       .maybeSingle()
 
-    if (existing?.checkout_url && existing?.status !== 'paid') {
-      return new Response(null, { status: 302, headers: { Location: existing.checkout_url } })
+    if (existing?.payment_url && existing?.status !== 'paid') {
+      return new Response(null, { status: 302, headers: { Location: existing.payment_url } })
     }
 
     if (existing?.status === 'paid') {
@@ -56,7 +57,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
     // Create order
     const orderId = existing?.id || `order_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
     if (!existing) {
-      await (supabase as any).from('medical_review_orders').insert({
+      await supabase.from('medical_review_orders').insert({
         id: orderId,
         preanamnesis_id: preanamnesisId,
         status: 'pending_payment',
@@ -100,15 +101,16 @@ export const GET: APIRoute = async ({ url, locals }) => {
     const preference = await mpResp.json() as { id: string; init_point: string }
 
     // Update order
-    await (supabase as any).from('medical_review_orders').update({
+    await supabase.from('medical_review_orders').update({
       provider_preference_id: preference.id,
-      checkout_url: preference.init_point,
+      payment_url: preference.init_point,
       updated_at: new Date().toISOString(),
     }).eq('id', orderId)
 
     // Redirect
     return new Response(null, { status: 302, headers: { Location: preference.init_point } })
-  } catch (e: any) {
-    return new Response(JSON.stringify({ error: 'internal', message: e?.message || 'Unknown' }), { status: 500, headers: { 'Content-Type': 'application/json' } })
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : 'Unknown'
+    return new Response(JSON.stringify({ error: 'internal', message }), { status: 500, headers: { 'Content-Type': 'application/json' } })
   }
 }
