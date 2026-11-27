@@ -50,6 +50,7 @@ fun DashboardScreen(
     onNavigateToTab: (Int) -> Unit = {},
     onNavigateToPatientProfile: () -> Unit = {},
     onNavigateToAnamnesisForm: () -> Unit = {},
+    onNavigateToConsultationReports: () -> Unit = {},
     onNavigateToPreventiveHealth: () -> Unit = {},
     onNavigateToBookAppointment: () -> Unit = {},
     onNavigateToPrescriptions: () -> Unit = {},
@@ -235,7 +236,7 @@ fun DashboardScreen(
                         // 5. Compact Secondary Services (2x2 + BottomSheet for full catalog)
                         item {
                             CompactServicesSection(
-                                onHistoryClick = onNavigateToAnamnesisForm,
+                                onHistoryClick = onNavigateToConsultationReports,
                                 onMentalHealthClick = onNavigateToPsychiatry,
                                 onPreventionClick = onNavigateToPreventiveHealth,
                                 onMoreServicesClick = { showMoreServicesSheet = true },

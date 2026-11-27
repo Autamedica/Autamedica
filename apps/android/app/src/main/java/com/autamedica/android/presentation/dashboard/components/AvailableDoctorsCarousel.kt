@@ -50,8 +50,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.autamedica.android.R
+import com.autamedica.android.domain.model.ClinicalWorkspaceLogic
 import com.autamedica.android.domain.model.DoctorBookingInfo
 import com.autamedica.android.domain.model.DoctorFeeFormatter
+import com.autamedica.android.presentation.health.isPortugueseUi
 import com.autamedica.android.presentation.theme.AuBorder
 import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
@@ -264,7 +266,7 @@ private fun DoctorCard(
                     }
 
                     Text(
-                        text = doctor.specialty,
+                        text = ClinicalWorkspaceLogic.localizeSpecialty(doctor.specialty, isPortugueseUi()),
                         style = MaterialTheme.typography.bodySmall,
                         color = SecondaryDark,
                         fontWeight = FontWeight.SemiBold,

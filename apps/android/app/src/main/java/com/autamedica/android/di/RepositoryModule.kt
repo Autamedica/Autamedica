@@ -52,6 +52,12 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
+    abstract fun bindDoctorPatientWorkspaceRepository(
+        impl: com.autamedica.android.data.repository.DoctorPatientWorkspaceRepositoryImpl,
+    ): com.autamedica.android.domain.repository.DoctorPatientWorkspaceRepository
+
+    @Binds
+    @Singleton
     abstract fun bindNotificationRepository(impl: NotificationRepositoryImpl): NotificationRepository
 
     @Binds

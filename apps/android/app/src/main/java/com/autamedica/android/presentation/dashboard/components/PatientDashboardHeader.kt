@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.autamedica.android.presentation.health.healthText
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBorder
 import com.autamedica.android.presentation.theme.AuSurface
@@ -133,7 +134,10 @@ fun PatientDashboardHeader(
                         .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
                         .clip(RoundedCornerShape(999.dp))
                         .clickable(
-                            onClickLabel = "Ver saldo disponible en billetera",
+                            onClickLabel = healthText(
+                                "Ver saldo disponible en billetera",
+                                "Ver saldo disponível na carteira",
+                            ),
                             onClick = onWalletClick,
                         ),
                 ) {
@@ -143,7 +147,7 @@ fun PatientDashboardHeader(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.AccountBalanceWallet,
-                            contentDescription = "Billetera: $walletText",
+                            contentDescription = healthText("Billetera: $walletText", "Carteira: $walletText"),
                             modifier = Modifier.size(16.dp),
                             tint = Color(0xFF475569),
                         )
@@ -168,7 +172,14 @@ fun PatientDashboardHeader(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Notifications,
-                            contentDescription = if (hasUpcomingAppointment) "Notificaciones, tienes un turno próximo" else "Notificaciones",
+                            contentDescription = if (hasUpcomingAppointment) {
+                                healthText(
+                                    "Notificaciones, tienes un turno próximo",
+                                    "Notificações, você tem uma consulta próxima",
+                                )
+                            } else {
+                                healthText("Notificaciones", "Notificações")
+                            },
                             tint = AuTextSecondary,
                             modifier = Modifier.size(22.dp),
                         )

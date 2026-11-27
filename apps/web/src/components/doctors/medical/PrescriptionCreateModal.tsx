@@ -20,6 +20,15 @@ import { validCpf } from "@/lib/prescriptions/brazil/cpf";
 import { useRealPatients } from "@/hooks/doctors/useRealPatients";
 import type { Prescription, UUID } from "@/types/medical";
 
+interface PrescriptionRenewalPrefill {
+  medicationName?: string;
+  dosage?: string;
+  frequency?: string;
+  duration?: string;
+  diagnosis?: string;
+  instructions?: string;
+}
+
 interface PrescriptionCreateModalProps {
   patientId?: UUID;
   doctorCareCountry?: 'AR' | 'BR';
@@ -39,6 +48,7 @@ interface PrescriptionCreateModalProps {
   ) => Promise<Prescription>;
   updatePrescription: (id: UUID, updates: Partial<Prescription>) => Promise<void>;
   editingPrescription?: Prescription | null;
+  renewalPrefill?: PrescriptionRenewalPrefill | null;
   issuePrescription?: (id: UUID) => Promise<void | { cuir: string; signedPdfUrl: string | null }>;
   submitLabel?: string;
 }
@@ -189,6 +199,7 @@ export function PrescriptionCreateModal({
   addPrescription,
   updatePrescription,
   editingPrescription,
+  renewalPrefill,
   issuePrescription,
   submitLabel,
 }: PrescriptionCreateModalProps) {
@@ -232,12 +243,12 @@ export function PrescriptionCreateModal({
     patient_contact: "",
     patient_birth_date: "",
     patient_gender: "",
-    medication_name: editingPrescription?.medication_name ?? "",
-    dosage: editingPrescription?.dosage ?? "",
-    frequency: editingPrescription?.frequency ?? "",
-    duration: editingPrescription?.duration ?? "",
-    instructions: editingPrescription?.instructions ?? "",
-    diagnosis: editingPrescription?.diagnosis ?? "",
+    medication_name: editingPrescription?.medication_name ?? renewalPrefill?.medicationName ?? "",
+    dosage: editingPrescription?.dosage ?? renewalPrefill?.dosage ?? "",
+    frequency: editingPrescription?.frequency ?? renewalPrefill?.frequency ?? "",
+    duration: editingPrescription?.duration ?? renewalPrefill?.duration ?? "",
+    instructions: editingPrescription?.instructions ?? renewalPrefill?.instructions ?? "",
+    diagnosis: editingPrescription?.diagnosis ?? renewalPrefill?.diagnosis ?? "",
     notes: editingPrescription?.notes ?? "",
     side_effects_warning: editingPrescription?.side_effects_warning ?? "",
     status: editingPrescription?.status ?? ("activa" as Prescription["status"]),

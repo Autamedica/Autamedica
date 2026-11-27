@@ -208,6 +208,9 @@ fun AppNavHost(
                 onNavigateToClinicalDocuments = {
                     navController.navigate(Route.ClinicalDocuments)
                 },
+                onNavigateToConsultationReports = {
+                    navController.navigate(Route.ConsultationReports)
+                },
                 onNavigateToContinuityStatus = {
                     navController.navigate(Route.ContinuityStatus)
                 },
@@ -287,8 +290,8 @@ fun AppNavHost(
                     }
                 },
                 isInPipMode = isInPipMode,
-                onNavigateToCreatePrescription = { patientId ->
-                    navController.navigate(Route.CreatePrescription(patientId))
+                onNavigateToCreatePrescription = { patientId, renewFromId ->
+                    navController.navigate(Route.CreatePrescription(patientId, renewFromId))
                 },
                 onNavigateToCreateCertificate = { patientId ->
                     navController.navigate(Route.CreateCertificate(patientId))
@@ -305,8 +308,8 @@ fun AppNavHost(
                         launchSingleTop = true
                     }
                 },
-                onNavigateToCreatePrescription = { patientId ->
-                    navController.navigate(Route.CreatePrescription(patientId))
+                onNavigateToCreatePrescription = { patientId, renewFromId ->
+                    navController.navigate(Route.CreatePrescription(patientId, renewFromId))
                 },
                 onNavigateToCreateCertificate = { patientId ->
                     navController.navigate(Route.CreateCertificate(patientId))
@@ -402,8 +405,8 @@ fun AppNavHost(
                 onNavigateToDoctorOnDemand = {
                     navController.navigate(Route.DoctorOnDemand)
                 },
-                onNavigateToCreatePrescription = { patientId ->
-                    navController.navigate(Route.CreatePrescription(patientId))
+                onNavigateToCreatePrescription = { patientId, renewFromId ->
+                    navController.navigate(Route.CreatePrescription(patientId, renewFromId))
                 },
                 onNavigateToCreateMedicalOrder = { patientId ->
                     navController.navigate(Route.CreateMedicalOrder(patientId))
@@ -447,6 +450,7 @@ fun AppNavHost(
             val route = backStackEntry.toRoute<Route.CreatePrescription>()
             com.autamedica.android.presentation.doctors.prescriptions.CreatePrescriptionScreen(
                 patientId = route.patientId,
+                renewFromPrescriptionId = route.renewFromPrescriptionId,
                 onBack = { navController.popBackStack() }
             )
         }

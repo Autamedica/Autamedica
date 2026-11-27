@@ -224,7 +224,10 @@ class DoctorPrescriptionsViewModel @Inject constructor(
         }
     }
 
-    fun initCreatePrescription(preselectedPatientId: String = "") {
+    fun initCreatePrescription(
+        preselectedPatientId: String = "",
+        renewFromPrescriptionId: String = "",
+    ) {
         viewModelScope.launch {
             _uiState.update {
                 it.copy(
@@ -258,6 +261,33 @@ class DoctorPrescriptionsViewModel @Inject constructor(
                 .onFailure {
                     _uiState.update { it.copy(isLoadingPatients = false) }
                 }
+
+            if (renewFromPrescriptionId.isNotBlank()) {
+                prescriptionRepository.getPrescriptionById(renewFromPrescriptionId)
+                    .onSuccess { previous ->
+                        val prefilledItems = previous.displayItems
+                            .filter { it.medicationName.isNotBlank() }
+                            .map { item ->
+                                PrescriptionItemFormState(
+                                    medicationName = item.medicationName,
+                                    genericName = item.genericName,
+                                    dosage = item.dosage,
+                                    frequency = item.frequency,
+                                    duration = item.duration,
+                                    instructions = item.instructions,
+                                )
+                            }
+                            .ifEmpty { listOf(PrescriptionItemFormState()) }
+
+                        _uiState.update {
+                            it.copy(
+                                items = prefilledItems,
+                                diagnosis = previous.diagnosis.orEmpty().ifBlank { it.diagnosis },
+                                notes = previous.notes.orEmpty().ifBlank { it.notes },
+                            )
+                        }
+                    }
+            }
 
             loadEligibility()
         }

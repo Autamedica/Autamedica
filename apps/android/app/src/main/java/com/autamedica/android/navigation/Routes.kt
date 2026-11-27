@@ -89,7 +89,10 @@ sealed interface Route {
     data object DoctorPrescriptions : Route
 
     @Serializable
-    data class CreatePrescription(val patientId: String = "") : Route
+    data class CreatePrescription(
+        val patientId: String = "",
+        val renewFromPrescriptionId: String = "",
+    ) : Route
 
     @Serializable
     data object DoctorCertificates : Route

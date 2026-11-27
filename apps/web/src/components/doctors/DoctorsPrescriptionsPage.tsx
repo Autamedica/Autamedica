@@ -300,8 +300,27 @@ export function DoctorsPrescriptionsPage() {
   const [requestedQuickAction, setRequestedQuickAction] = useState<
     "prescriptions" | "certificates" | null
   >(null);
+  const [renewFromId, setRenewFromId] = useState<string | null>(null);
+  const [renewalPrefill, setRenewalPrefill] = useState<{
+    medicationName?: string;
+    dosage?: string;
+    frequency?: string;
+    duration?: string;
+    diagnosis?: string;
+    instructions?: string;
+  } | null>(null);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const paramPatientId = params.get("patientId")?.trim();
+    if (paramPatientId) {
+      setSelectedPatientId(paramPatientId);
+    }
+    const paramRenewFrom = params.get("renewFrom")?.trim();
+    if (paramRenewFrom) {
+      setRenewFromId(paramRenewFrom);
+      setDocMode("prescriptions");
+      return;
+    }
     const mode = params.get("mode");
     if (params.get("document") === "certificate") {
       setDocMode("certificates");
@@ -311,8 +330,37 @@ export function DoctorsPrescriptionsPage() {
     if (mode === "prescriptions" || mode === "certificates") {
       setDocMode(mode);
       if (params.get("new") === "1") setRequestedQuickAction(mode);
+    } else if (params.get("new") === "1" && paramPatientId) {
+      setRequestedQuickAction("prescriptions");
     }
   }, []);
+
+  useEffect(() => {
+    if (!renewFromId || prescriptions.length === 0) return;
+    const source = prescriptions.find((rx) => rx.id === renewFromId);
+    if (!source) return;
+    const clinical = ((source as unknown as Record<string, unknown>).clinical_data ?? {}) as Record<
+      string,
+      unknown
+    >;
+    const items = Array.isArray(clinical.items)
+      ? (clinical.items as Array<Record<string, unknown>>)
+      : [];
+    const first = items[0] ?? {};
+    setRenewalPrefill({
+      medicationName: String(
+        first.generic_name ?? first.commercial_name ?? clinical.medication_name ?? "",
+      ),
+      dosage: String(first.dosage ?? clinical.dosage ?? ""),
+      frequency: String(first.frequency ?? clinical.frequency ?? ""),
+      duration: String(first.duration ?? clinical.duration ?? ""),
+      diagnosis: String(clinical.diagnosis ?? ""),
+      instructions: String(first.instructions ?? clinical.notes ?? ""),
+    });
+    setCreateModalInitialMode("registered");
+    setShowCreateModal(true);
+    setRenewFromId(null);
+  }, [renewFromId, prescriptions]);
 
   useEffect(() => {
     if (!requestedQuickAction) return;
@@ -1317,7 +1365,14 @@ export function DoctorsPrescriptionsPage() {
           }}
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           editingPrescription={editingPrescription as any}
-          submitLabel={editingPrescription ? "Guardar cambios" : "Crear y emitir receta"}
+          renewalPrefill={renewalPrefill}
+          submitLabel={
+            editingPrescription
+              ? "Guardar cambios"
+              : renewalPrefill
+                ? "Renovar y emitir receta"
+                : "Crear y emitir receta"
+          }
         />
       )}
 

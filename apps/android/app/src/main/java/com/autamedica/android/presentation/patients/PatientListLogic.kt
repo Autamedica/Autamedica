@@ -3,7 +3,7 @@ package com.autamedica.android.presentation.patients
 import com.autamedica.android.domain.model.PatientSummary
 import java.time.OffsetDateTime
 
-enum class PatientFilter { ALL, UPCOMING, RECENT }
+enum class PatientFilter { ALL, UPCOMING, RECENT, EXTERNAL }
 
 data class PatientGroups(
     val upcoming: List<PatientSummary> = emptyList(),
@@ -11,6 +11,7 @@ data class PatientGroups(
 ) {
     val isEmpty: Boolean get() = upcoming.isEmpty() && attended.isEmpty()
     val totalSize: Int get() = upcoming.size + attended.size
+    val allItems: List<PatientSummary> get() = upcoming + attended
 }
 
 object PatientListLogic {
@@ -31,7 +32,9 @@ object PatientListLogic {
         val normalized = normalizeText(query).trim()
         if (normalized.isEmpty()) return true
         val fullName = normalizeText("${patient.firstName} ${patient.lastName}")
-        return fullName.contains(normalized)
+        val doc = normalizeText(patient.documentNumber.orEmpty())
+        val contact = normalizeText(patient.contact.orEmpty())
+        return fullName.contains(normalized) || doc.contains(normalized) || contact.contains(normalized)
     }
 
     fun buildResults(
@@ -44,6 +47,9 @@ object PatientListLogic {
             PatientFilter.ALL -> groupAll(visible)
             PatientFilter.UPCOMING -> PatientGroups(upcoming = nextUpcoming(visible))
             PatientFilter.RECENT -> PatientGroups(attended = recentlyAttended(visible))
+            PatientFilter.EXTERNAL -> PatientGroups(
+                attended = visible.filter { it.isExternal }.sortedWith(attendedComparator()),
+            )
         }
     }
 
@@ -57,6 +63,9 @@ object PatientListLogic {
             last != null && !last.isBefore(cutoff)
         }
     }
+
+    fun externalCount(patients: List<PatientSummary>): Int =
+        patients.count { it.isExternal }
 
     private fun groupAll(patients: List<PatientSummary>): PatientGroups {
         val upcoming = nextUpcoming(patients)

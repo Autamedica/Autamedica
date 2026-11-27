@@ -20,6 +20,7 @@ import { Calendar, Clock, Video, Phone, Users, FileText, RefreshCw, Search, Acti
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { getDisplayName, getInitials, getAvatarColor } from '@/lib/doctors/lib/utils'
 import { PatientChat } from './PatientChat'
+import { AddExternalPatientModal } from './AddExternalPatientModal'
 
 interface PatientsPanelProps {
   doctorUserId?: string
@@ -114,6 +115,8 @@ function PatientCardActions({
 
 export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelProps) {
   const [searchTerm, setSearchTerm] = useState('')
+  const [patientFilter, setPatientFilter] = useState<'all' | 'upcoming' | 'external'>('all')
+  const [showAddExternalModal, setShowAddExternalModal] = useState(false)
   const [pulseItems, setPulseItems] = useState<{name: string, email: string, joinedAt: string}[]>([])
   const [pulseLoading, setPulseLoading] = useState(false)
   const [chatPatient, setChatPatient] = useState<{ id: string; name: string } | null>(null)
@@ -190,12 +193,18 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
 
   const filteredPatients = useMemo(() => {
     let result = patients
+    if (patientFilter === 'upcoming') {
+      result = result.filter((p) => nextAppointmentByPatient.has(p.id))
+    } else if (patientFilter === 'external') {
+      result = result.filter((p) => Boolean((p as typeof p & { isExternal?: boolean }).isExternal))
+    }
     if (searchTerm) {
       const s = searchTerm.toLowerCase()
       result = result.filter((p) => {
         const pName = `${p.profile?.first_name ?? ''} ${p.profile?.last_name ?? ''}`.toLowerCase()
         const pEmail = p.profile?.email?.toLowerCase() ?? ''
-        return pName.includes(s) || pEmail.includes(s)
+        const pDni = ((p as typeof p & { dni?: string | null }).dni ?? '').toLowerCase()
+        return pName.includes(s) || pEmail.includes(s) || pDni.includes(s)
       })
     }
 
@@ -224,7 +233,7 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
       const nameB = `${b.profile?.first_name ?? ''} ${b.profile?.last_name ?? ''}`.trim() || b.profile?.email || ''
       return nameA.localeCompare(nameB)
     })
-  }, [patients, searchTerm, nextAppointmentByPatient, completedByPatient])
+  }, [patients, patientFilter, searchTerm, nextAppointmentByPatient, completedByPatient])
 
   const translateGender = (gender: string) => {
     const g = gender.toLowerCase()
@@ -293,6 +302,14 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
               {syncMessage}
             </span>
           )}
+          <button
+            type="button"
+            onClick={() => setShowAddExternalModal(true)}
+            className="flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700"
+          >
+            <UserPlus className="h-4 w-4" />
+            {doctorCountry === 'BR' ? 'Adicionar paciente externo' : 'Agregar paciente externo'}
+          </button>
           <button
             type="button"
             onClick={() => void handleSync()}
@@ -386,15 +403,38 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por nombre o email..."
-          className="pl-9"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      {/* Search & Filters */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder={doctorCountry === 'BR' ? 'Buscar por nome, CPF ou email...' : 'Buscar por nombre, DNI o email...'}
+            className="pl-9"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-1.5">
+          {([
+            { id: 'all', label: 'Todos' },
+            { id: 'upcoming', label: doctorCountry === 'BR' ? 'Próximas' : 'Próximos' },
+            { id: 'external', label: 'Externos' },
+          ] as const).map((chip) => (
+            <button
+              key={chip.id}
+              type="button"
+              onClick={() => setPatientFilter(chip.id)}
+              className={
+                'rounded-full border px-3 py-1.5 text-xs font-semibold transition ' +
+                (patientFilter === chip.id
+                  ? 'border-sky-600 bg-sky-600 text-white'
+                  : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50')
+              }
+            >
+              {chip.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Patient Cards */}
@@ -508,6 +548,17 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
             <PatientChat patientId={chatPatient.id} doctorId={resolvedDoctorUserId} caseId="general_followup" patientName={chatPatient.name} compact />
           </aside>
         </div>
+      )}
+      {showAddExternalModal && (
+        <AddExternalPatientModal
+          isBrazilianDoctor={doctorCountry === 'BR'}
+          onClose={() => setShowAddExternalModal(false)}
+          onCreated={(newPatientId) => {
+            setShowAddExternalModal(false)
+            void refetch()
+            onSelectPatient?.(newPatientId, 'patient-info')
+          }}
+        />
       )}
     </div>
   )

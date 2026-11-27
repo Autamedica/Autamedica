@@ -39,4 +39,7 @@ data class PatientSummary(
     val lastAppointment: String? = null,
     val nextAppointment: String? = null,
     val appointmentCount: Int = 0,
+    val documentNumber: String? = null,
+    val isExternal: Boolean = false,
+    val contact: String? = null,
 )
