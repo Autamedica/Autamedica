@@ -160,7 +160,7 @@ BEGIN
 
   NEW.updated_at := pg_catalog.now();
 
-  IF v_role = 'service_role' OR current_user IN ('postgres', 'supabase_admin') THEN
+  IF v_role = 'service_role' OR (v_role = '' AND session_user IN ('postgres', 'supabase_admin')) THEN
     RETURN NEW;
   END IF;
 

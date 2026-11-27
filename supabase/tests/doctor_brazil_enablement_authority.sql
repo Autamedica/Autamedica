@@ -98,6 +98,7 @@ BEGIN
   END;
 
   EXECUTE 'RESET ROLE';
+  PERFORM set_config('request.jwt.claim.role', 'service_role', true);
 
   -- Admin/service_role can approve capabilities atomically.
   UPDATE public.doctor_brazil_credentials
