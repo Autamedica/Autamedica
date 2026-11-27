@@ -17,7 +17,7 @@ import com.autamedica.android.domain.model.VitalSignEntry
 import com.autamedica.android.domain.repository.DoctorPatientWorkspaceRepository
 import com.autamedica.android.domain.repository.PatientVitalsPayload
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.gotrue.auth
+import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json

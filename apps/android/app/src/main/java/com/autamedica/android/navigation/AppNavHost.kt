@@ -290,8 +290,8 @@ fun AppNavHost(
                     }
                 },
                 isInPipMode = isInPipMode,
-                onNavigateToCreatePrescription = { patientId, renewFromId ->
-                    navController.navigate(Route.CreatePrescription(patientId, renewFromId))
+                onNavigateToCreatePrescription = { patientId ->
+                    navController.navigate(Route.CreatePrescription(patientId))
                 },
                 onNavigateToCreateCertificate = { patientId ->
                     navController.navigate(Route.CreateCertificate(patientId))
@@ -405,8 +405,8 @@ fun AppNavHost(
                 onNavigateToDoctorOnDemand = {
                     navController.navigate(Route.DoctorOnDemand)
                 },
-                onNavigateToCreatePrescription = { patientId, renewFromId ->
-                    navController.navigate(Route.CreatePrescription(patientId, renewFromId))
+                onNavigateToCreatePrescription = { patientId ->
+                    navController.navigate(Route.CreatePrescription(patientId))
                 },
                 onNavigateToCreateMedicalOrder = { patientId ->
                     navController.navigate(Route.CreateMedicalOrder(patientId))

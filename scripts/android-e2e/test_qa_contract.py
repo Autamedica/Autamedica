@@ -180,7 +180,7 @@ class LocaleAndRoleCopyTest(unittest.TestCase):
     def test_anonymous_patient_rows_use_stable_record_ids_without_merging(self) -> None:
         screen = (ROOT / "apps/android/app/src/main/java/com/autamedica/android/presentation/patients/PatientsScreen.kt").read_text()
         helper = (ROOT / "apps/android/app/src/main/java/com/autamedica/android/presentation/patients/PatientReferenceSuffix.kt").read_text()
-        self.assertIn("items(uiState.patients, key = { it.id })", screen)
+        self.assertIn("items(displayedPatients, key = { it.id })", screen)
         self.assertIn("patientReferenceSuffix(patient.id)", screen)
         self.assertIn("takeLast(4)", helper)
 

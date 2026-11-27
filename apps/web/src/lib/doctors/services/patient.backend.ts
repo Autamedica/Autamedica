@@ -97,7 +97,9 @@ export const patientBackendService = {
             dni?: string | null
             isExternal?: boolean
           }
-          const curProfile = existing.profile ?? {}
+          const curProfile = (existing.profile ?? {}) as Partial<
+            NonNullable<PatientWithProfile['profile']>
+          >
           byId.set(pid, {
             ...existing,
             dni: existingRecord.dni ?? row.document_number ?? null,
@@ -111,7 +113,7 @@ export const patientBackendService = {
               phone: curProfile.phone || row.phone || null,
               email: curProfile.email || row.email || null,
             },
-          } as PatientWithProfile)
+          } as unknown as PatientWithProfile)
         } else {
           byId.set(pid, {
             id: pid,
