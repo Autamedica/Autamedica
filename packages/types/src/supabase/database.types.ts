@@ -6759,6 +6759,101 @@ export type Database = {
           },
         ]
       }
+      doctor_brazil_credentials: {
+        Row: {
+          can_issue_controlled_b1: boolean
+          can_issue_rce_ret_rx: boolean
+          can_issue_simple_rx: boolean
+          created_at: string
+          doctor_id: string
+          icp_brasil_status: string
+          icp_evidence_path: string | null
+          icp_expires_at: string | null
+          icp_provider: string | null
+          icp_verified_at: string | null
+          icp_verified_by: string | null
+          last_reviewed_at: string | null
+          last_reviewed_by: string | null
+          memed_link_status: string
+          memed_linked_at: string | null
+          memed_professional_address_synced_at: string | null
+          memed_test_prescription_id: string | null
+          sncr_b1_evidence_path: string | null
+          sncr_b1_status: string
+          sncr_quota_last_confirmed_at: string | null
+          sncr_review_notes: string | null
+          sncr_verified_at: string | null
+          sncr_verified_by: string | null
+          sncr_visa_municipality: string | null
+          sncr_visa_uf: string | null
+          updated_at: string
+        }
+        Insert: {
+          can_issue_controlled_b1?: boolean
+          can_issue_rce_ret_rx?: boolean
+          can_issue_simple_rx?: boolean
+          created_at?: string
+          doctor_id: string
+          icp_brasil_status?: string
+          icp_evidence_path?: string | null
+          icp_expires_at?: string | null
+          icp_provider?: string | null
+          icp_verified_at?: string | null
+          icp_verified_by?: string | null
+          last_reviewed_at?: string | null
+          last_reviewed_by?: string | null
+          memed_link_status?: string
+          memed_linked_at?: string | null
+          memed_professional_address_synced_at?: string | null
+          memed_test_prescription_id?: string | null
+          sncr_b1_evidence_path?: string | null
+          sncr_b1_status?: string
+          sncr_quota_last_confirmed_at?: string | null
+          sncr_review_notes?: string | null
+          sncr_verified_at?: string | null
+          sncr_verified_by?: string | null
+          sncr_visa_municipality?: string | null
+          sncr_visa_uf?: string | null
+          updated_at?: string
+        }
+        Update: {
+          can_issue_controlled_b1?: boolean
+          can_issue_rce_ret_rx?: boolean
+          can_issue_simple_rx?: boolean
+          created_at?: string
+          doctor_id?: string
+          icp_brasil_status?: string
+          icp_evidence_path?: string | null
+          icp_expires_at?: string | null
+          icp_provider?: string | null
+          icp_verified_at?: string | null
+          icp_verified_by?: string | null
+          last_reviewed_at?: string | null
+          last_reviewed_by?: string | null
+          memed_link_status?: string
+          memed_linked_at?: string | null
+          memed_professional_address_synced_at?: string | null
+          memed_test_prescription_id?: string | null
+          sncr_b1_evidence_path?: string | null
+          sncr_b1_status?: string
+          sncr_quota_last_confirmed_at?: string | null
+          sncr_review_notes?: string | null
+          sncr_verified_at?: string | null
+          sncr_verified_by?: string | null
+          sncr_visa_municipality?: string | null
+          sncr_visa_uf?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_brazil_credentials_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: true
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctor_badges: {
         Row: {
           badge: Database["public"]["Enums"]["badge_type"]
@@ -9903,6 +9998,10 @@ export type Database = {
           pdf_sha256: string | null
           pdf_signature_verified: boolean
           provider_data: Json
+          signature_verified_at: string | null
+          sncr_notification_number: string | null
+          sncr_notification_type: string | null
+          sncr_status: string
           status: string
           updated_at: string
         }
@@ -9919,6 +10018,10 @@ export type Database = {
           pdf_sha256?: string | null
           pdf_signature_verified?: boolean
           provider_data?: Json
+          signature_verified_at?: string | null
+          sncr_notification_number?: string | null
+          sncr_notification_type?: string | null
+          sncr_status?: string
           status?: string
           updated_at?: string
         }
@@ -9935,6 +10038,10 @@ export type Database = {
           pdf_sha256?: string | null
           pdf_signature_verified?: boolean
           provider_data?: Json
+          signature_verified_at?: string | null
+          sncr_notification_number?: string | null
+          sncr_notification_type?: string | null
+          sncr_status?: string
           status?: string
           updated_at?: string
         }
@@ -14288,6 +14395,10 @@ export type Database = {
         }[]
       }
       disablelongtransactions: { Args: never; Returns: string }
+      doctor_can_issue_br_rx: {
+        Args: { p_doctor_id: string; p_rx_tier?: string }
+        Returns: boolean
+      }
       doctor_can_chat_with_patient: {
         Args: { target_doctor_id: string; target_patient_id: string }
         Returns: boolean

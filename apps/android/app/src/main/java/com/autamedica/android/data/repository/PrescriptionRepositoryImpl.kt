@@ -20,11 +20,9 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
-import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
-import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -273,9 +271,7 @@ class PrescriptionRepositoryImpl @Inject constructor(
             }
         }
         require(request.diagnosis.isNotBlank()) { "Diagnóstico clínico requerido" }
-        require(InCallDocumentPolicy.canUseNativePrescriptionIssuer(request.countryCode)) {
-            "La emisión de recetas BR requiere Memed; no se puede utilizar el emisor Android genérico"
-        }
+        InCallDocumentPolicy.requireCountry(request.countryCode)
 
         val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
             ?: throw IllegalStateException("No authenticated user ID found")
@@ -367,23 +363,65 @@ class PrescriptionRepositoryImpl @Inject constructor(
 
         // Fail closed: a timeout, non-JSON response or incomplete issuance
         // must not be replaced with a locally signed/issued prescription.
-        val response = supabaseClient.functions("issue-prescription", issuePayload)
-        val responseText = response.bodyAsText()
-        val responseObj = Json.parseToJsonElement(responseText) as? JsonObject
-            ?: throw IllegalStateException("El servicio de recetas devolvió una respuesta inválida")
-        if (responseObj["success"]?.jsonPrimitive?.contentOrNull != "true") {
+        val accessToken = supabaseClient.auth.currentSessionOrNull()?.accessToken
+            ?: throw IllegalStateException("Sesión autenticada requerida para emitir la receta")
+        val endpoint = BuildConfig.SUPABASE_URL.trimEnd('/') + "/functions/v1/issue-prescription"
+        val (httpCode, responseText) = withContext(Dispatchers.IO) {
+            val body = issuePayload.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+            val req = Request.Builder()
+                .url(endpoint)
+                .header("Authorization", "Bearer $accessToken")
+                .header("apikey", BuildConfig.SUPABASE_ANON_KEY)
+                .header("Accept", "application/json")
+                .post(body)
+                .build()
+            eventualHttpClient.newCall(req).execute().use { resp ->
+                resp.code to resp.body?.string().orEmpty()
+            }
+        }
+        val responseObj = runCatching { Json.parseToJsonElement(responseText) as? JsonObject }.getOrNull()
+            ?: throw IllegalStateException("El servicio de recetas devolvió una respuesta inválida (HTTP $httpCode)")
+        if (httpCode !in 200..299 || responseObj["success"]?.jsonPrimitive?.contentOrNull != "true") {
             val errorObj = responseObj["error"]
             val errorCode = responseObj["code"]?.jsonPrimitive?.contentOrNull
+                ?: (errorObj as? JsonObject)?.get("message")?.jsonPrimitive?.contentOrNull
                 ?: (errorObj as? JsonObject)?.get("code")?.jsonPrimitive?.contentOrNull
                 ?: (errorObj as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull
+            val details = responseObj["details"]?.jsonPrimitive?.contentOrNull
+                ?: (errorObj as? JsonObject)?.get("details")?.jsonPrimitive?.contentOrNull
             val friendlyMessage = when (errorCode) {
                 "REFEPS_REQUIRED" -> "Complete su código REFEPS en el perfil médico para emitir recetas en Argentina."
-                "DOCTOR_COUNTRY_MISMATCH", "ARGENTINE_LICENSE_REQUIRED" -> "La matrícula y país del profesional no habilitan esta emisión."
-                "br_patient_cpf_required" -> "Se requiere un CPF válido del paciente para emitir en Brasil."
+                "DOCTOR_COUNTRY_MISMATCH", "ARGENTINE_LICENSE_REQUIRED", "doctor_country_mismatch" ->
+                    "La matrícula y país del profesional no habilitan esta emisión."
+                "br_doctor_cpf_required", "BR_DOCTOR_CPF_REQUIRED" ->
+                    "Registre um CPF válido no seu perfil médico para emitir receitas no Brasil."
+                "br_cfm_license_required", "CRM_UF_REQUIRED" ->
+                    "Valide seu CRM e UF junto ao CFM para emitir receitas no Brasil."
+                "br_special_prescription_provider_required" ->
+                    "Este medicamento ou modelo exige emissão via Memed (ICP-Brasil)."
+                "br_patient_cpf_required" ->
+                    "Se requiere un CPF válido del paciente para emitir en Brasil."
+                "patient_identity_consent_required" ->
+                    "Registre o consentimento LGPD do paciente antes de emitir."
+                "missing_professional_address" ->
+                    "Complete su domicilio profesional en Perfil → Firma digital."
+                "missing_patient_identification", "missing_patient_address" ->
+                    "Faltan datos de identificación o domicilio del paciente."
+                "digital_signature_required", "digital_signature_failed" ->
+                    "Active o renueve su certificado de firma digital profesional antes de emitir."
+                "farmalink_mapping_failed" ->
+                    if (!details.isNullOrBlank()) {
+                        "Faltan datos requeridos para Farmalink ($details). Verificá tu perfil médico y los datos del paciente."
+                    } else {
+                        "Faltan datos requeridos para Farmalink. Verificá tu perfil médico y los datos del paciente."
+                    }
                 "farmalink_rejected" -> "Farmalink rechazó la solicitud de alta de receta."
-                "farmalink_missing_config", "farmalink_governance_disabled" -> "La emisión vía Farmalink no está habilitada en el servidor."
-                "farmalink_pending_reconciliation" -> "Emisión pendiente de conciliación con Farmalink; no reintente sin verificar."
-                null -> "El servicio de recetas no confirmó el registro"
+                "farmalink_registration_failed" -> "No se pudo registrar la receta en Farmalink; intentá nuevamente."
+                "farmalink_missing_config", "farmalink_governance_disabled" ->
+                    "La emisión vía Farmalink no está habilitada en el servidor."
+                "farmalink_pending_reconciliation" ->
+                    "Emisión pendiente de conciliación con Farmalink; no reintente sin verificar."
+                null -> "El servicio de recetas no confirmó el registro (HTTP $httpCode)"
                 else -> "El servicio de recetas rechazó la emisión ($errorCode)"
             }
             throw IllegalStateException(friendlyMessage)

@@ -264,7 +264,7 @@ export async function doctorHasPatientAccess(
       .maybeSingle(),
     admin
       .from('doctor_patient')
-      .select('id')
+      .select('patient_id')
       .eq('doctor_id', doctorId)
       .eq('patient_id', patientId)
       .limit(1)
@@ -287,7 +287,7 @@ export async function doctorHasPatientAccess(
   return Boolean(
     (careTeam as { id: string } | null)?.id
       || (appointment as { id: string } | null)?.id
-      || (doctorPatient as { id: string } | null)?.id
+      || (doctorPatient as { patient_id: string } | null)?.patient_id
       || (dispatch as { id: string } | null)?.id,
   );
 }

@@ -318,7 +318,7 @@ fun DoctorPrescriptionsScreen(
                         isError = uiState.cancellationError != null || uiState.cancellationErrorResId != null,
                         supportingText = {
                             val errText = when {
-                                uiState.cancellationErrorResId != null -> stringResource(uiState.cancellationErrorResId!!)
+                                uiState.cancellationErrorResId != null -> stringResource(uiState.cancellationErrorResId!!, *uiState.cancellationErrorArgs.toTypedArray())
                                 uiState.cancellationError != null -> uiState.cancellationError
                                 else -> null
                             }

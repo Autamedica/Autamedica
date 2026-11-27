@@ -268,6 +268,36 @@ class DoctorPrescriptionsViewModelTest {
         assertThat(state.createdPrescription?.cuir).isNotNull()
         assertThat(successCalled).isTrue()
     }
+
+    @Test
+    fun missingMedicationNameStoresIntegerFormatArgAndBrazilNativeSubmissionProceeds() = runTest {
+        viewModel.initCreatePrescription(samplePatients.first().patientId)
+        viewModel.onSelectPatient(samplePatients.first())
+        viewModel.onSubmitPrescription()
+        assertThat(viewModel.uiState.value.createErrorArgs).containsExactly(1).inOrder()
+
+        fakeRepository.doctorEligibility = DoctorEligibility(
+            isEligible = true,
+            doctorLicense = "CRM-RS 12345",
+            validationStatus = "valid",
+            countryCode = "BR",
+        )
+        viewModel.loadEligibility()
+        viewModel.onMedicationNameChanged(0, "Dipirona 500 mg")
+        viewModel.onDosageChanged(0, "1 comprimido")
+        viewModel.onFrequencyChanged(0, "A cada 8 horas")
+        viewModel.onDiagnosisChanged("Cefaleia", "R51")
+
+        var brSuccess = false
+        viewModel.onSubmitPrescription { created ->
+            brSuccess = true
+            assertThat(created.countryCode).isEqualTo("BR")
+        }
+
+        assertThat(brSuccess).isTrue()
+        assertThat(viewModel.uiState.value.createError).isNull()
+        assertThat(viewModel.uiState.value.createdPrescription?.countryCode).isEqualTo("BR")
+    }
 }
 
 private class FakeDoctorPrescriptionRepository(
@@ -277,6 +307,7 @@ private class FakeDoctorPrescriptionRepository(
 
     var lastCancelledId: String? = null
     var lastCancellationReason: String? = null
+    var doctorEligibility = DoctorEligibility(isEligible = true, doctorLicense = "MN 12345", validationStatus = "valid")
 
     override suspend fun getPatientPrescriptions(): Result<List<Prescription>> =
         Result.success(prescriptions)
@@ -348,5 +379,5 @@ private class FakeDoctorPrescriptionRepository(
         Result.failure(UnsupportedOperationException("PDF download is not exercised by this test"))
 
     override suspend fun getDoctorEligibility(): Result<DoctorEligibility> =
-        Result.success(DoctorEligibility(isEligible = true, doctorLicense = "MN 12345", validationStatus = "valid"))
+        Result.success(doctorEligibility)
 }

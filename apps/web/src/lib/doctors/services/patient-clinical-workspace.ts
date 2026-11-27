@@ -454,7 +454,7 @@ export async function verifyDoctorPatientAccess(
       .maybeSingle(),
     admin
       .from('doctor_patient')
-      .select('id')
+      .select('patient_id')
       .eq('doctor_id', doctorId)
       .eq('patient_id', patientId)
       .limit(1)
@@ -465,6 +465,6 @@ export async function verifyDoctorPatientAccess(
     careTeam.data?.id ||
       appt.data?.id ||
       privateIdentity.data?.id ||
-      legacyRel.data?.id,
+      legacyRel.data?.patient_id,
   );
 }

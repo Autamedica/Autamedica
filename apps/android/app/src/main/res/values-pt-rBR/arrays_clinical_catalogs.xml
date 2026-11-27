@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="rx_dosage_presets">
+        <item>500 mg</item>
+        <item>1 g</item>
+        <item>10 mg</item>
+        <item>20 mg</item>
+        <item>50 mg</item>
+        <item>1 comprimido</item>
+    </string-array>
+
+    <string-array name="rx_frequency_presets">
+        <item>A cada 8 horas</item>
+        <item>A cada 12 horas</item>
+        <item>1x ao dia (em jejum)</item>
+        <item>1x ao dia (após o jantar)</item>
+        <item>A cada 6 horas</item>
+    </string-array>
+
+    <string-array name="rx_duration_presets">
+        <item>Por 5 dias</item>
+        <item>Por 7 dias</item>
+        <item>Por 10 dias</item>
+        <item>Por 14 dias</item>
+        <item>Por 30 dias</item>
+    </string-array>
+
+    <string-array name="order_suggestions_lab">
+        <item>Hemograma completo</item>
+        <item>Glicemia de jejum</item>
+        <item>Perfil lipídico completo</item>
+        <item>TGO / TGP (Função hepática)</item>
+        <item>Ureia e Creatinina</item>
+        <item>Urina tipo I (EAS)</item>
+        <item>TSH e T4 livre</item>
+        <item>Sódio e Potássio séricos</item>
+    </string-array>
+
+    <string-array name="order_suggestions_imaging">
+        <item>Ultrassonografia abdominal total</item>
+        <item>Radiografia de tórax (PA e Perfil)</item>
+        <item>Ultrassonografia de rins e vias urinárias</item>
+        <item>Ressonância magnética de coluna lombar</item>
+        <item>Tomografia computadorizada de tórax sem contraste</item>
+        <item>Mamografia bilateral</item>
+    </string-array>
+
+    <string-array name="order_suggestions_cardiology">
+        <item>Eletrocardiograma (ECG) de 12 derivações</item>
+        <item>Ecocardiograma com Doppler colorido</item>
+        <item>Teste ergométrico em esteira</item>
+        <item>Holter 24 horas</item>
+        <item>MAPA 24 horas</item>
+    </string-array>
+
+    <string-array name="order_suggestions_other">
+        <item>Espirometria com prova broncodilatadora</item>
+        <item>Endoscopia digestiva alta</item>
+        <item>Colonoscopia</item>
+        <item>Audiometria tonal e vocal</item>
+        <item>Polissonografia basal</item>
+    </string-array>
+</resources>

@@ -317,3 +317,105 @@ Deno.test("issue-prescription - legacy AR and BR issuance never fabricate signed
     globalThis.fetch = originalFetch;
   }
 });
+
+Deno.test("issue-prescription - forwards nested Astro jsonFail error code and details cleanly", async () => {
+  DUMMY_ENV();
+  Deno.env.set("AUTAMEDICA_WEB_URL", "https://web.example.com");
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (url.includes("/auth/v1/user")) {
+      return new Response(JSON.stringify({ id: "ar-doctor-user" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (url.includes("/rest/v1/profiles")) {
+      return new Response(JSON.stringify({
+        role: "doctor",
+        active: true,
+        sss_validation_status: "valid",
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    if (url.includes("/rest/v1/doctors")) {
+      return new Response(JSON.stringify({
+        id: "ar-doctor",
+        user_id: "ar-doctor-user",
+        active: true,
+        license_type: "MN",
+        license_number: "123456",
+        care_country: "AR",
+        refeps_id: "REFEPS-123",
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    if (url.includes("/rest/v1/patients")) {
+      return new Response(JSON.stringify({
+        id: "123e4567-e89b-42d3-a456-426614174000",
+        user_id: "pat-user",
+        care_country: "AR",
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    if (url.includes("/rest/v1/doctor_patient")) {
+      return new Response(JSON.stringify({ patient_id: "123e4567-e89b-42d3-a456-426614174000" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (
+      url.includes("/rest/v1/patient_care_team") ||
+      url.includes("/rest/v1/appointments") ||
+      url.includes("/rest/v1/pharmacy_dispatch_requests")
+    ) {
+      return new Response(JSON.stringify(null), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (url.includes("/rest/v1/prescriptions") && init?.method === "POST") {
+      return new Response(JSON.stringify({ id: "draft-rx-1" }), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (url === "https://web.example.com/api/doctors/prescriptions/draft-rx-1/issue") {
+      return new Response(JSON.stringify({
+        success: false,
+        error: {
+          code: "VALIDATION",
+          message: "farmalink_mapping_failed",
+          details: "prescriber.documentNumber",
+        },
+      }), { status: 400, headers: { "Content-Type": "application/json" } });
+    }
+    return originalFetch(input, init);
+  };
+
+  try {
+    const req = new Request("http://localhost/issue-prescription", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer synthetic-token",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        patientId: "123e4567-e89b-42d3-a456-426614174000",
+        countryCode: "AR",
+        diagnosis: "Hipertensión esencial",
+        items: [{ generic_name: "Enalapril 10 mg" }],
+        clinicalData: {
+          diagnosis: "Hipertensión esencial",
+          items: [{ generic_name: "Enalapril 10 mg" }],
+        },
+      }),
+    });
+    const res = await handler(req);
+    assertEquals(res.status, 400);
+    const body = await res.json();
+    assertEquals(body.success, false);
+    assertEquals(body.code, "farmalink_mapping_failed");
+    assertEquals(body.details, "prescriber.documentNumber");
+    assertEquals(body.prescriptionId, "draft-rx-1");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

@@ -10,11 +10,9 @@ import com.autamedica.android.domain.repository.MedicalOrderRepository
 import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
-import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -30,8 +28,10 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.net.URI
 import java.time.Instant
 import java.util.concurrent.TimeUnit
@@ -49,6 +49,11 @@ class MedicalOrderRepositoryImpl @Inject constructor(
         .callTimeout(15, TimeUnit.SECONDS)
         .followRedirects(false)
         .followSslRedirects(false)
+        .build()
+
+    private val functionHttpClient = OkHttpClient.Builder()
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(20, TimeUnit.SECONDS)
         .build()
 
     override suspend fun getMedicalOrderPdfDownloadUrl(order: MedicalOrder): Result<String> = withContext(Dispatchers.IO) {
@@ -257,9 +262,36 @@ class MedicalOrderRepositoryImpl @Inject constructor(
 
         // Only the server may issue an order. Never generate a local CUIR or mark
         // a PostgREST fallback as signed when the issuance function is unavailable.
-        val response = supabaseClient.functions.invoke("issue-medical-order", payload)
-        val root = Json.parseToJsonElement(response.bodyAsText()) as? JsonObject
-            ?: throw IllegalStateException("Respuesta inválida al emitir la orden médica")
+        val accessToken = supabaseClient.auth.currentSessionOrNull()?.accessToken
+            ?: throw IllegalStateException("Sesión autenticada requerida para emitir el pedido médico")
+        val endpoint = BuildConfig.SUPABASE_URL.trimEnd('/') + "/functions/v1/issue-medical-order"
+        val (httpCode, responseText) = withContext(Dispatchers.IO) {
+            val body = payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+            val httpRequest = Request.Builder()
+                .url(endpoint)
+                .header("Authorization", "Bearer $accessToken")
+                .header("apikey", BuildConfig.SUPABASE_ANON_KEY)
+                .header("Accept", "application/json")
+                .post(body)
+                .build()
+            functionHttpClient.newCall(httpRequest).execute().use { resp ->
+                resp.code to resp.body?.string().orEmpty()
+            }
+        }
+
+        val root = runCatching { Json.parseToJsonElement(responseText) as? JsonObject }.getOrNull()
+        if (httpCode !in 200..299 || root == null) {
+            val errCode = root?.get("code")?.jsonPrimitive?.contentOrNull
+            val errMsg = root?.get("error")?.jsonPrimitive?.contentOrNull
+            val friendly = when (errCode) {
+                "FORBIDDEN_PATIENT_ACCESS" -> "El profesional no tiene vínculo clínico activo con este paciente."
+                "DOCTOR_INACTIVE", "FORBIDDEN_ROLE" -> "Tu matrícula médica no está activa para emitir pedidos."
+                "INVALID_STUDY_TYPE" -> "Tipo de estudio inválido."
+                "PRACTICES_REQUIRED" -> "Indicá al menos una práctica o estudio."
+                else -> errMsg ?: errCode ?: "El servicio de pedidos médicos no respondió (HTTP $httpCode)"
+            }
+            throw IllegalStateException(friendly)
+        }
         val data = root["data"] as? JsonObject
             ?: throw IllegalStateException("No se pudo emitir la orden médica")
 

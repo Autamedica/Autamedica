@@ -158,7 +158,7 @@ export type IssuanceError =
   | { code: 'pdf_upload_failed'; details?: string }
   | { code: 'update_failed'; details?: string }
   | { code: 'farmalink_missing_config' }
-  | { code: 'farmalink_mapping_failed' }
+  | { code: 'farmalink_mapping_failed'; details?: string }
   | { code: 'farmalink_registration_failed' }
   | { code: 'farmalink_rejected'; responseCode?: string }
   | { code: 'farmalink_pending_reconciliation' }
@@ -187,6 +187,18 @@ interface IssueDoctor {
   enrollment_entity?: string | null;
   enrollment_jurisdiction?: string | null;
   professional_address?: string | null;
+  dni?: string | null;
+  cuil?: string | null;
+  gender?: string | null;
+  official_birth_date?: string | null;
+  official_cuil?: string | null;
+  official_gender?: string | null;
+  memed_birth_date?: string | null;
+}
+
+function extractDniFromCuil(cuil: string | null | undefined): string | undefined {
+  const digits = String(cuil ?? '').replace(/\D/g, '');
+  return digits.length === 11 ? digits.slice(2, 10) : undefined;
 }
 
 interface IssuePatient {
@@ -396,18 +408,27 @@ function buildFarmalinkPrescriptionMapInput(input: {
       fullName: input.doctorName,
       sex: firstText(
         readString(prescriber, ['sex', 'sexo']),
+        input.doctor.official_gender ?? undefined,
+        input.doctor.gender ?? undefined,
         readEnv(['FARMALINK_PRESCRIBER_SEX']),
       ),
       birthDate: firstText(
         readString(prescriber, ['birthDate', 'birth_date', 'fechaNacimiento', 'fecha_nacimiento']),
+        input.doctor.official_birth_date ?? undefined,
+        input.doctor.memed_birth_date ?? undefined,
         readEnv(['FARMALINK_PRESCRIBER_BIRTH_DATE']),
       ) ?? '',
       documentNumber: firstText(
         readString(prescriber, ['documentNumber', 'document_number', 'numeroDocumento', 'numero_documento', 'dni']),
+        input.doctor.dni ?? undefined,
+        extractDniFromCuil(input.doctor.official_cuil),
+        extractDniFromCuil(input.doctor.cuil),
         readEnv(['FARMALINK_PRESCRIBER_DOCUMENT_NUMBER']),
       ) ?? '',
       cuil: firstText(
         readString(prescriber, ['cuil']),
+        input.doctor.official_cuil ?? undefined,
+        input.doctor.cuil ?? undefined,
         readEnv(['FARMALINK_PRESCRIBER_CUIL']),
       ),
       address: input.doctor.professional_address ?? '',
@@ -493,11 +514,12 @@ async function registerFarmalinkIfEnabled(input: {
       throw new FarmalinkMappingError('affiliate.cuil');
     }
   } catch (error) {
+    const field = error instanceof FarmalinkMappingError ? error.field : undefined;
     logger.error('[issuePrescription] Farmalink mapping failed', {
-      field: error instanceof FarmalinkMappingError ? error.field : undefined,
+      field,
       error: error instanceof Error ? error.message : String(error),
     });
-    return { ok: false, error: { code: 'farmalink_mapping_failed' } };
+    return { ok: false, error: { code: 'farmalink_mapping_failed', details: field } };
   }
 
   // Unique, durable claim is COMMITTED before reaching Farmalink.
@@ -623,7 +645,7 @@ export async function issuePrescription(
   // 1. Resolve and validate doctor
   const { data: doctor } = await supabase
     .from('doctors')
-    .select('id, care_country, license_number, license_type, uf_brazil, rqe_number, cpf, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address, signature_image_url, stamp_image_url, care_guide_template')
+    .select('id, care_country, license_number, license_type, uf_brazil, rqe_number, cpf, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address, signature_image_url, stamp_image_url, care_guide_template, dni, cuil, gender, official_birth_date, official_cuil, official_gender, memed_birth_date')
     .eq('user_id', userId)
     .maybeSingle();
 

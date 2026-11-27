@@ -41,6 +41,7 @@ import com.autamedica.android.domain.model.DoctorEligibility
 import com.autamedica.android.domain.model.MedicalCertificate
 import com.autamedica.android.domain.model.PrescriptionPatientItem
 import com.autamedica.android.presentation.doctors.components.EventualPatientDniSelectorCard
+import com.autamedica.android.presentation.doctors.components.MemedPrescriberWebView
 import com.autamedica.android.presentation.doctors.components.ShareDocumentToPatientButton
 import com.autamedica.android.presentation.prescriptions.components.QrCodeView
 import com.autamedica.android.presentation.theme.*
@@ -70,6 +71,8 @@ fun CreateCertificateScreen(
 
     var patientSearchQuery by remember { mutableStateOf("") }
     var expandedPatientDropdown by remember { mutableStateOf(false) }
+    val isBrazil = uiState.doctorEligibility?.countryCode.equals("BR", ignoreCase = true) ||
+        uiState.doctorEligibility?.doctorLicense?.startsWith("CRM", ignoreCase = true) == true
 
     LaunchedEffect(patientId) {
         viewModel.initCreateCertificate(patientId)
@@ -83,13 +86,17 @@ fun CreateCertificateScreen(
                 title = {
                     Column {
                         Text(
-                            text = stringResource(R.string.cert_create_title),
+                            text = stringResource(
+                                if (isBrazil) R.string.cert_create_title_br else R.string.cert_create_title_ar
+                            ),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
                         )
                         Text(
-                            text = stringResource(R.string.cert_create_legal_basis),
+                            text = stringResource(
+                                if (isBrazil) R.string.cert_create_legal_br else R.string.cert_create_legal_ar
+                            ),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextTertiary,
                         )
@@ -167,7 +174,31 @@ fun CreateCertificateScreen(
                         } else {
                             Icon(Icons.Outlined.HealthAndSafety, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(R.string.cert_create_submit_button), fontWeight = FontWeight.Bold)
+                            Text(
+                                text = stringResource(
+                                    if (isBrazil) R.string.cert_create_submit_br else R.string.cert_create_submit_ar
+                                ),
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
+
+                    if (isBrazil) {
+                        OutlinedButton(
+                            onClick = { viewModel.openMemedForBrazilCertificate() },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, PortalDoctors),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = PortalDoctors),
+                            enabled = !uiState.isSubmitting && !uiState.isOpeningMemed,
+                        ) {
+                            Text(
+                                text = stringResource(
+                                    if (uiState.isOpeningMemed) R.string.cert_create_memed_opening
+                                    else R.string.cert_create_memed_icp_btn
+                                ),
+                                fontWeight = FontWeight.SemiBold,
+                            )
                         }
                     }
                 }
@@ -295,7 +326,10 @@ fun CreateCertificateScreen(
             },
             title = {
                 Text(
-                    text = stringResource(R.string.cert_success_dialog_title),
+                    text = stringResource(
+                        if (created.isActive) R.string.cert_success_dialog_title_signed
+                        else R.string.cert_success_dialog_title
+                    ),
                     fontWeight = FontWeight.Bold,
                     color = AuTextPrimary,
                 )
@@ -306,7 +340,10 @@ fun CreateCertificateScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = stringResource(R.string.cert_success_dialog_body),
+                        text = stringResource(
+                            if (created.isActive) R.string.cert_success_dialog_body_signed
+                            else R.string.cert_success_dialog_body
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextSecondary
                     )
@@ -323,7 +360,10 @@ fun CreateCertificateScreen(
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                text = stringResource(R.string.cert_success_cuir_header),
+                                text = stringResource(
+                                    if (created.isActive) R.string.cert_success_cuir_header_signed
+                                    else R.string.cert_success_cuir_header
+                                ),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AuTextTertiary,
                                 fontWeight = FontWeight.Bold
@@ -334,35 +374,48 @@ fun CreateCertificateScreen(
                                 fontWeight = FontWeight.Bold,
                                 color = PortalDoctors
                             )
-                            IconButton(onClick = {
+                            TextButton(onClick = {
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                 clipboard.setPrimaryClip(ClipData.newPlainText("CUIR", created.cuir))
                                 Toast.makeText(context, context.getString(R.string.cert_toast_cuir_copied), Toast.LENGTH_SHORT).show()
                             }) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp), tint = PortalDoctors)
-                                    Text(stringResource(R.string.clinical_ops_copy), style = MaterialTheme.typography.labelSmall, color = PortalDoctors)
+                                    Text(
+                                        text = stringResource(R.string.clinical_ops_copy),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = PortalDoctors,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                    )
                                 }
                             }
                         }
                     }
 
-                    ShareDocumentToPatientButton(
-                        patient = uiState.selectedPatient,
-                        documentTitle = "Certificado Médico",
-                        cuir = created.cuir,
-                        context = context,
-                    )
+                    if (created.isActive) {
+                        ShareDocumentToPatientButton(
+                            patient = uiState.selectedPatient,
+                            documentTitle = stringResource(R.string.cert_share_doc_title),
+                            cuir = created.cuir,
+                            context = context,
+                        )
+                    }
 
-                    // QR Preview
-                    QrCodeView(
-                        content = created.effectiveQrContent,
-                        modifier = Modifier.size(140.dp),
-                        contentDescription = stringResource(R.string.cert_qr_validation_content_desc),
-                    )
+                    // QR Preview (only when non-empty verification content exists)
+                    if (created.effectiveQrContent.isNotBlank()) {
+                        QrCodeView(
+                            content = created.effectiveQrContent,
+                            modifier = Modifier.size(140.dp),
+                            contentDescription = stringResource(R.string.cert_qr_validation_content_desc),
+                        )
+                    }
 
                     Text(
-                        text = stringResource(R.string.cert_success_dialog_footer),
+                        text = stringResource(
+                            if (created.isActive) R.string.cert_success_dialog_footer_signed
+                            else R.string.cert_success_dialog_footer
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextTertiary
                     )
@@ -377,9 +430,23 @@ fun CreateCertificateScreen(
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = PortalPatientsAction, contentColor = Color.White)
                 ) {
-                    Text(stringResource(R.string.cert_success_back_to_certificates))
+                    Text(
+                        stringResource(
+                            if (created.isActive) R.string.cert_success_back_signed
+                            else R.string.cert_success_back_to_certificates
+                        )
+                    )
                 }
             }
+        )
+    }
+
+    uiState.memedLaunchUrl?.let { launchUrl ->
+        MemedPrescriberWebView(
+            url = launchUrl,
+            sessionTokens = uiState.memedSessionTokens,
+            titleRes = R.string.cert_create_memed_title,
+            onClose = { viewModel.onMemedClosed() },
         )
     }
 }

@@ -124,6 +124,41 @@ describe('issuePrescription Farmalink wiring', () => {
         textoGenerico: 'IBUPROFENO 400 MG',
       });
   });
+
+  it('falls back to doctor DB identity columns when FARMALINK_PRESCRIBER_* env vars are unset', () => {
+    primeRuntimeEnv({
+      FARMALINK_ORG_ID: '182',
+      FARMALINK_IP_ORIGIN: '8.8.8.8',
+      FARMALINK_HOMOLOGATION_COD_ENTIDAD: '7110',
+      FARMALINK_HOMOLOGATION_CREDENCIAL: '20123456786',
+      FARMALINK_DEFAULT_PRODUCT_CODE: '123',
+      FARMALINK_DEFAULT_DRUG_CODE: '1',
+    });
+
+    const mapInput = __testables.buildFarmalinkPrescriptionMapInput({
+      clinicalData: { diagnosis: 'Hipertension esencial' },
+      doctor: {
+        ...doctor,
+        dni: '22333444',
+        official_cuil: '20-22333444-5',
+        official_birth_date: '1979-03-15',
+        official_gender: 'male',
+      },
+      doctorName: 'Dr. Eduardo Marques',
+      item,
+      patient,
+      patientName: 'Maria Gonzalez',
+      now: '2026-05-18T12:00:00.000Z',
+      expiresAt: '2026-06-17T12:00:00.000Z',
+    });
+
+    expect(mapInput.prescriber).toMatchObject({
+      documentNumber: '22333444',
+      cuil: '20-22333444-5',
+      birthDate: '1979-03-15',
+      sex: 'male',
+    });
+  });
 });
 
 describe('Farmalink branded PDF contract', () => {

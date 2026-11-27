@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -39,14 +40,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.R
 import com.autamedica.android.domain.model.COMMON_CIE10_DIAGNOSES
-import com.autamedica.android.domain.model.COMMON_DOSAGE_PRESETS
-import com.autamedica.android.domain.model.COMMON_DURATION_PRESETS
-import com.autamedica.android.domain.model.COMMON_FREQUENCY_PRESETS
 import com.autamedica.android.domain.model.COMMON_MEDICATIONS
 import com.autamedica.android.domain.model.Cie10Item
 import com.autamedica.android.domain.model.Prescription
 import com.autamedica.android.domain.model.PrescriptionPatientItem
 import com.autamedica.android.presentation.doctors.components.EventualPatientDniSelectorCard
+import com.autamedica.android.presentation.doctors.components.MemedPrescriberWebView
 import com.autamedica.android.presentation.doctors.components.ShareDocumentToPatientButton
 import com.autamedica.android.presentation.theme.*
 
@@ -122,7 +121,10 @@ fun CreatePrescriptionScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     val createErrorText = when {
-                        uiState.createErrorResId != null -> stringResource(uiState.createErrorResId!!)
+                        uiState.createErrorResId != null -> stringResource(
+                            uiState.createErrorResId!!,
+                            *uiState.createErrorArgs.toTypedArray(),
+                        )
                         uiState.createError != null -> uiState.createError
                         else -> null
                     }
@@ -170,6 +172,25 @@ fun CreatePrescriptionScreen(
                             Icon(Icons.Outlined.HealthAndSafety, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(stringResource(R.string.doctor_create_rx_submit_button), fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    if (uiState.doctorEligibility?.countryCode.equals("BR", ignoreCase = true)) {
+                        OutlinedButton(
+                            onClick = { viewModel.openMemedForBrazil() },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, PortalDoctors),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = PortalDoctors),
+                            enabled = !uiState.isSubmitting && !uiState.isOpeningMemed,
+                        ) {
+                            Text(
+                                text = stringResource(
+                                    if (uiState.isOpeningMemed) R.string.doctor_create_rx_memed_opening
+                                    else R.string.doctor_create_rx_memed_btn
+                                ),
+                                fontWeight = FontWeight.SemiBold,
+                            )
                         }
                     }
                 }
@@ -249,7 +270,7 @@ fun CreatePrescriptionScreen(
                 }
             } else if (maxMedicationItems == 1) {
                 Text(
-                    text = "Farmalink AR admite 1 medicamento por receta electrónica.",
+                    text = stringResource(R.string.doctor_create_rx_farmalink_single_item_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary,
                 )
@@ -336,14 +357,20 @@ fun CreatePrescriptionScreen(
                                 fontWeight = FontWeight.Bold,
                                 color = PortalDoctors
                             )
-                            IconButton(onClick = {
+                            TextButton(onClick = {
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                 clipboard.setPrimaryClip(ClipData.newPlainText("CUIR", created.cuir ?: created.id))
                                 Toast.makeText(context, context.getString(R.string.doctor_create_rx_cuir_copied_toast), Toast.LENGTH_SHORT).show()
                             }) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp), tint = PortalDoctors)
-                                    Text(stringResource(R.string.doctor_create_rx_copy_cuir), style = MaterialTheme.typography.labelSmall, color = PortalDoctors)
+                                    Text(
+                                        text = stringResource(R.string.doctor_create_rx_copy_cuir),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = PortalDoctors,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                    )
                                 }
                             }
                         }
@@ -351,7 +378,7 @@ fun CreatePrescriptionScreen(
 
                     ShareDocumentToPatientButton(
                         patient = uiState.selectedPatient,
-                        documentTitle = "Receta Digital",
+                        documentTitle = stringResource(R.string.doctor_create_rx_share_title),
                         cuir = created.cuir ?: created.id,
                         context = context,
                     )
@@ -375,6 +402,15 @@ fun CreatePrescriptionScreen(
                     Text(stringResource(R.string.doctor_create_rx_success_button))
                 }
             }
+        )
+    }
+
+    uiState.memedLaunchUrl?.let { launchUrl ->
+        MemedPrescriberWebView(
+            url = launchUrl,
+            sessionTokens = uiState.memedSessionTokens,
+            titleRes = R.string.doctor_create_rx_memed_title,
+            onClose = { viewModel.onMemedClosed() },
         )
     }
 }
@@ -710,7 +746,7 @@ private fun MedicationItemFormCard(
                         .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    COMMON_DOSAGE_PRESETS.take(6).forEach { preset ->
+                    stringArrayResource(R.array.rx_dosage_presets).forEach { preset ->
                         PresetChip(text = preset, onClick = { onDosageChange(preset) })
                     }
                 }
@@ -738,7 +774,7 @@ private fun MedicationItemFormCard(
                         .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    COMMON_FREQUENCY_PRESETS.take(5).forEach { preset ->
+                    stringArrayResource(R.array.rx_frequency_presets).forEach { preset ->
                         PresetChip(text = preset, onClick = { onFrequencyChange(preset) })
                     }
                 }
@@ -766,7 +802,7 @@ private fun MedicationItemFormCard(
                         .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    COMMON_DURATION_PRESETS.take(5).forEach { preset ->
+                    stringArrayResource(R.array.rx_duration_presets).forEach { preset ->
                         PresetChip(text = preset, onClick = { onDurationChange(preset) })
                     }
                 }

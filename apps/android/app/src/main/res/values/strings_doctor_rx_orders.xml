@@ -236,16 +236,23 @@
     <string name="doctor_rx_val_complete_issue_error">No se pudo completar la emisión</string>
 
     <!-- Medical Orders ViewModel Messages -->
-    <string name="doctor_orders_val_load_error">Error al cargar órdenes médicas</string>
+    <string name="doctor_orders_val_load_error">Error al cargar órdenes médicas: %1$s</string>
     <string name="doctor_orders_val_patient_required">Seleccione un paciente elegible</string>
     <string name="doctor_orders_val_practice_required">Ingrese al menos un estudio o práctica médica</string>
     <string name="doctor_orders_val_diagnosis_required">Ingrese el diagnóstico presuntivo / código CIE-10</string>
     <string name="doctor_orders_val_issued_success">Orden médica emitida con éxito (CUIR: %1$s)</string>
     <string name="doctor_orders_val_issued_fallback">Emitida</string>
-    <string name="doctor_orders_val_issue_error">Error al emitir orden médica</string>
+    <string name="doctor_orders_val_issue_error">Error al emitir orden médica: %1$s</string>
     <string name="doctor_orders_val_cancel_reason_required">Debe especificar un motivo de cancelación</string>
     <string name="doctor_orders_val_cancelled_success">Orden médica cancelada</string>
-    <string name="doctor_orders_val_cancel_error">No se pudo cancelar la orden</string>
+    <string name="doctor_orders_val_cancel_error">No se pudo cancelar la orden: %1$s</string>
+
+    <string name="doctor_create_rx_farmalink_single_item_note">Farmalink AR admite 1 medicamento por receta electrónica.</string>
+    <string name="doctor_create_rx_memed_btn">Emitir con Memed (ICP-Brasil)</string>
+    <string name="doctor_create_rx_memed_opening">Abriendo Memed...</string>
+    <string name="doctor_create_rx_memed_select_patient">Seleccioná un paciente antes de abrir Memed.</string>
+    <string name="doctor_create_rx_memed_title">Receta Oficial vía Memed</string>
+    <string name="doctor_create_rx_share_title">Receta Digital</string>
 
     <string name="doctor_orders_card_notes_prefix">Indicaciones: %1$s</string>
     <string name="doctor_orders_card_cuir_prefix">CUIR: %1$s</string>

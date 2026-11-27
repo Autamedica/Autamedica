@@ -106,7 +106,7 @@ export async function resolveMemedPatient(
   }
   const now = new Date();
   const recent = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
-  const [team, visit, dispatch] = await Promise.all([
+  const [team, visit, dispatch, doctorPatient, privateLink] = await Promise.all([
     admin.from('patient_care_team').select('id').eq('doctor_id', doctorId)
       .eq('patient_id', patientId).eq('active', true).limit(1).maybeSingle(),
     admin.from('appointments').select('id').eq('doctor_id', doctorId)
@@ -117,9 +117,19 @@ export async function resolveMemedPatient(
       .eq('assigned_doctor_id', doctorId).eq('patient_id', patientId)
       .in('status', ['in_call', 'completed']).gte('call_started_at', recent)
       .limit(1).maybeSingle(),
+    admin.from('doctor_patient').select('patient_id')
+      .eq('doctor_id', doctorId).eq('patient_id', patientId)
+      .limit(1).maybeSingle(),
+    admin.from('patient_private_identities').select('id')
+      .eq('doctor_id', doctorId).eq('patient_id', patientId)
+      .limit(1).maybeSingle(),
   ]);
-  if (team.error || visit.error || dispatch.error) throw new Error('memed_patient_authorization_unavailable');
-  if (!team.data && !visit.data && !dispatch.data) throw new Error('doctor_patient_access_required');
+  if (team.error || visit.error || dispatch.error || doctorPatient.error || privateLink.error) {
+    throw new Error('memed_patient_authorization_unavailable');
+  }
+  if (!team.data && !visit.data && !dispatch.data && !doctorPatient.data && !privateLink.data) {
+    throw new Error('doctor_patient_access_required');
+  }
   if (demographics) {
     const updatePayload: Record<string, string> = {};
     if (demographics.birthDate !== undefined) {

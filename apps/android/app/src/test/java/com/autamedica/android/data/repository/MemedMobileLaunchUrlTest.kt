@@ -25,6 +25,14 @@ class MemedMobileLaunchUrlTest {
         }
     }
 
+    @Test fun acceptsDirectPatientIdAndRejectsMismatchedKeys() {
+        val patientUrl = "https://doctor.autamedica.com/doctors/prescriptions/memed-mobile?patientId=$appointment"
+        assertEquals(patientUrl, MemedMobileLaunchUrl.validate(patientUrl, appointment, "patientId"))
+        assertThrows(IllegalArgumentException::class.java) {
+            MemedMobileLaunchUrl.validate(patientUrl, appointment, "requestId")
+        }
+    }
+
     @Test fun pharmacyDispatchIsCanonicalWhenBothEncounterIdsExist() {
         assertEquals(
             MemedEncounterTarget("requestId", appointment),

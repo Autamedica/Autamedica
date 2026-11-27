@@ -34,9 +34,14 @@ export function isMemedMobilePilotDoctorAllowed(
 export function validMemedMobileAppointment(input: unknown): input is string {
   return typeof input === 'string' && MEMED_MOBILE_UUID.test(input);
 }
-export function buildMemedMobileLaunchUrl(encounterId: string, queryKey: 'appointmentId'|'requestId' = 'appointmentId'): string {
+export function buildMemedMobileLaunchUrl(
+  encounterId: string,
+  queryKey: 'appointmentId' | 'requestId' | 'patientId' = 'appointmentId',
+): string {
   if (!validMemedMobileAppointment(encounterId)) throw new Error('INVALID_ENCOUNTER_ID');
-  if (queryKey !== 'appointmentId' && queryKey !== 'requestId') throw new Error('INVALID_ENCOUNTER_TYPE');
+  if (queryKey !== 'appointmentId' && queryKey !== 'requestId' && queryKey !== 'patientId') {
+    throw new Error('INVALID_ENCOUNTER_TYPE');
+  }
   const url = new URL(MEMED_MOBILE_URL_BASE);
   url.searchParams.set(queryKey, encounterId);
   return url.toString();

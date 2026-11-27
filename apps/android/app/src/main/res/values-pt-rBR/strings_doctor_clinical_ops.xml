@@ -209,4 +209,23 @@
     <string name="in_call_clinical_ops_title">Utilidade Clínica em Chamada</string>
     <string name="in_call_clinical_ops_status">Chamada ativa • Documentos sujeitos a verificação</string>
     <string name="in_call_chat_send_error">Não foi possível enviar. Verifique a conexão do chat.</string>
+
+    <!-- Jurisdiction-aware Certificate Issuance & Memed ICP-Brasil -->
+    <string name="cert_create_title_ar">Emitir certificado médico eletrônico</string>
+    <string name="cert_create_legal_ar">Assinatura eletrônica verificada · Lei 27.553</string>
+    <string name="cert_create_submit_ar">Assinar e emitir certificado oficial</string>
+    <string name="cert_create_title_br">Preparar atestado (rascunho)</string>
+    <string name="cert_create_legal_br">Referência interna AutaMedica · Para validade oficial assine com Memed ICP-Brasil</string>
+    <string name="cert_create_submit_br">Salvar rascunho sem assinatura</string>
+    <string name="cert_create_memed_icp_btn">Assinar atestado com ICP-Brasil na Memed</string>
+    <string name="cert_create_memed_opening">Abrindo Memed ICP-Brasil...</string>
+    <string name="cert_create_memed_select_patient">Selecione um paciente antes de abrir a Memed.</string>
+    <string name="cert_create_memed_title">Atestado ICP-Brasil via Memed</string>
+    <string name="cert_success_dialog_title_signed">Certificado Emitido com Sucesso!</string>
+    <string name="cert_success_dialog_body_signed">O certificado médico foi assinado eletronicamente e registrado conforme a Lei 27.553.</string>
+    <string name="cert_success_cuir_header_signed">CÓDIGO ÚNICO (CUIR):</string>
+    <string name="cert_success_dialog_footer_signed">Válido perante empregadores, instituições e seguradoras via código QR.</string>
+    <string name="cert_success_back_signed">Ver Meus Certificados</string>
+    <string name="cert_success_signed_cuir">Certificado emitido e assinado: %1$s</string>
+    <string name="cert_share_doc_title">Atestado Médico</string>
 </resources>

@@ -31,6 +31,7 @@ import {
   type CreatedCertificate,
 } from "@/components/doctors/medical/CertificateCreateModal";
 import { MemedPrescriptionWidget } from "@/components/doctors/medical/MemedPrescriptionWidget";
+import { BrazilEnablementPanel } from "@/components/doctors/medical/BrazilEnablementPanel";
 import { useRealPatients } from "@/hooks/doctors/useRealPatients";
 import { usePrescriptionsCore } from "@/hooks/doctors/usePrescriptionsCore";
 import {
@@ -698,6 +699,8 @@ export function DoctorsPrescriptionsPage() {
             </button>
           </div>
         </motion.div>
+
+        {doctorCountry === "BR" && <BrazilEnablementPanel />}
 
         {/* ── Patient Selector ── */}
         <motion.div

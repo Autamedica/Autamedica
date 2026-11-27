@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="rx_dosage_presets">
+        <item>500 mg</item>
+        <item>1 g</item>
+        <item>10 mg</item>
+        <item>20 mg</item>
+        <item>50 mg</item>
+        <item>1 comprimido</item>
+    </string-array>
+
+    <string-array name="rx_frequency_presets">
+        <item>Cada 8 horas</item>
+        <item>Cada 12 horas</item>
+        <item>Cada 24 horas (en ayunas)</item>
+        <item>Cada 24 horas (con la cena)</item>
+        <item>Cada 6 horas</item>
+    </string-array>
+
+    <string-array name="rx_duration_presets">
+        <item>Por 5 días</item>
+        <item>Por 7 días</item>
+        <item>Por 10 días</item>
+        <item>Por 14 días</item>
+        <item>Por 30 días</item>
+    </string-array>
+
+    <string-array name="order_suggestions_lab">
+        <item>Hemograma completo</item>
+        <item>Glucemia en ayunas</item>
+        <item>Perfil lipídico completo</item>
+        <item>Hepatograma</item>
+        <item>Uremia y Creatinina</item>
+        <item>Orina completa</item>
+        <item>TSH y T4 libre</item>
+        <item>Ionograma plasmático</item>
+    </string-array>
+
+    <string-array name="order_suggestions_imaging">
+        <item>Ecografía abdominal completa</item>
+        <item>Radiografía de tórax (Frente y Perfil)</item>
+        <item>Ecografía renal y vesical</item>
+        <item>Resonancia magnética de columna lumbar</item>
+        <item>Tomografía computada de tórax sin contraste</item>
+        <item>Mamografía bilateral</item>
+    </string-array>
+
+    <string-array name="order_suggestions_cardiology">
+        <item>Electrocardiograma (ECG) de 12 derivaciones</item>
+        <item>Ecocardiograma Doppler color</item>
+        <item>Ergometría de 12 derivaciones</item>
+        <item>Holter cardíaco de 24 hs</item>
+        <item>Presurometría (MAPA 24 hs)</item>
+    </string-array>
+
+    <string-array name="order_suggestions_other">
+        <item>Espirometría computarizada</item>
+        <item>Endoscopía digestiva alta</item>
+        <item>Colonoscopía</item>
+        <item>Audiometría tonal</item>
+        <item>Polisomnografía nocturna</item>
+    </string-array>
+</resources>

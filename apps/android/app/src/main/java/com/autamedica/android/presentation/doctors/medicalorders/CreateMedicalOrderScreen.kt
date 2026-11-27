@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -46,41 +47,6 @@ import com.autamedica.android.domain.model.PrescriptionPatientItem
 import com.autamedica.android.presentation.doctors.components.EventualPatientDniSelectorCard
 import com.autamedica.android.domain.model.StudyType
 import com.autamedica.android.presentation.theme.*
-
-private val COMMON_PRACTICE_SUGGESTIONS = mapOf(
-    StudyType.LABORATORY to listOf(
-        "Hemograma completo",
-        "Glucemia en ayunas",
-        "Perfil lipídico completo",
-        "Hepatograma",
-        "Uremia y Creatinina",
-        "Orina completa",
-        "TSH y T4 libre",
-        "Ionograma plasmático",
-    ),
-    StudyType.IMAGING to listOf(
-        "Ecografía abdominal completa",
-        "Radiografía de tórax (Frente y Perfil)",
-        "Ecografía renal y vesical",
-        "Resonancia magnética de columna lumbar",
-        "Tomografía computada de tórax sin contraste",
-        "Mamografía bilateral",
-    ),
-    StudyType.CARDIOLOGY to listOf(
-        "Electrocardiograma (ECG) de 12 derivaciones",
-        "Ecocardiograma Doppler color",
-        "Ergometría de 12 derivaciones",
-        "Holter cardíaco de 24 hs",
-        "Presurometría (MAPA 24 hs)",
-    ),
-    StudyType.OTHER to listOf(
-        "Espirometría computarizada",
-        "Endoscopía digestiva alta",
-        "Colonoscopía",
-        "Audiometría tonal",
-        "Polisomnografía nocturna",
-    ),
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -146,7 +112,10 @@ fun CreateMedicalOrderScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     val errorMessageText = when {
-                        uiState.errorMessageResId != null -> stringResource(uiState.errorMessageResId!!)
+                        uiState.errorMessageResId != null -> stringResource(
+                            uiState.errorMessageResId!!,
+                            *uiState.errorMessageArgs.toTypedArray(),
+                        )
                         uiState.errorMessage != null -> uiState.errorMessage
                         else -> null
                     }
@@ -534,7 +503,12 @@ private fun DynamicPracticesCard(
     onAddPractice: (String) -> Unit,
     onRemovePractice: (Int) -> Unit,
 ) {
-    val suggestions = COMMON_PRACTICE_SUGGESTIONS[studyType] ?: emptyList()
+    val suggestions = when (studyType) {
+        StudyType.LABORATORY -> stringArrayResource(R.array.order_suggestions_lab)
+        StudyType.IMAGING -> stringArrayResource(R.array.order_suggestions_imaging)
+        StudyType.CARDIOLOGY -> stringArrayResource(R.array.order_suggestions_cardiology)
+        StudyType.OTHER -> stringArrayResource(R.array.order_suggestions_other)
+    }
 
     Card(
         shape = RoundedCornerShape(16.dp),
@@ -552,6 +526,7 @@ private fun DynamicPracticesCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Row(
+                    modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -561,13 +536,22 @@ private fun DynamicPracticesCard(
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = AuTextPrimary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
 
                 TextButton(onClick = { onAddPractice("") }) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp), tint = PortalDoctors)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(stringResource(R.string.doctor_create_order_add_practice), color = PortalDoctors, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = stringResource(R.string.doctor_create_order_add_practice),
+                        color = PortalDoctors,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
 

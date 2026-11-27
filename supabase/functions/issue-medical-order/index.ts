@@ -6,6 +6,7 @@ import {
 } from '../_shared/pdf-helpers.ts';
 
 const VALID_STUDY_TYPES = new Set(['laboratory', 'imaging', 'cardiology', 'other']);
+const DOCTOR_ROLES = new Set(['doctor', 'admin', 'platform_admin', 'organization_admin']);
 
 function generateOrderCuir(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -48,7 +49,7 @@ export async function handler(req: Request): Promise<Response> {
       throw profileError;
     }
 
-    if (!profile || profile.role !== 'doctor' || profile.active === false) {
+    if (!profile || !DOCTOR_ROLES.has(String(profile.role ?? '').toLowerCase()) || profile.active === false) {
       return jsonResponse(
         { error: 'User is not an authorized active doctor', code: 'FORBIDDEN_ROLE' },
         403,
@@ -59,7 +60,7 @@ export async function handler(req: Request): Promise<Response> {
     // 2. Verify active doctor record
     const { data: doctor, error: doctorError } = await serviceClient
       .from('doctors')
-      .select('id, user_id, active, license_number, license_jurisdiction, enrollment_jurisdiction, refeps_id, specialty')
+      .select('id, user_id, active, care_country, license_type, license_number, uf_brazil, license_jurisdiction, enrollment_jurisdiction, refeps_id, specialty')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -170,6 +171,61 @@ export async function handler(req: Request): Promise<Response> {
       );
     }
 
+    // Verify doctor-patient clinical relationship before creating/issuing
+    const [teamAccess, apptAccess, doctorPatientAccess, privateIdentityAccess, dispatchAccess] = await Promise.all([
+      serviceClient
+        .from('patient_care_team')
+        .select('id')
+        .eq('doctor_id', doctor.id)
+        .eq('patient_id', patientId)
+        .eq('active', true)
+        .limit(1)
+        .maybeSingle(),
+      serviceClient
+        .from('appointments')
+        .select('id')
+        .eq('doctor_id', doctor.id)
+        .eq('patient_id', patientId)
+        .is('deleted_at', null)
+        .limit(1)
+        .maybeSingle(),
+      serviceClient
+        .from('doctor_patient')
+        .select('patient_id')
+        .eq('doctor_id', doctor.id)
+        .eq('patient_id', patientId)
+        .limit(1)
+        .maybeSingle(),
+      serviceClient
+        .from('patient_private_identities')
+        .select('id')
+        .eq('doctor_id', doctor.id)
+        .eq('patient_id', patientId)
+        .limit(1)
+        .maybeSingle(),
+      serviceClient
+        .from('pharmacy_dispatch_requests')
+        .select('id')
+        .eq('assigned_doctor_id', doctor.id)
+        .eq('patient_id', patientId)
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    if (
+      !teamAccess.data &&
+      !apptAccess.data &&
+      !doctorPatientAccess.data &&
+      !privateIdentityAccess.data &&
+      !dispatchAccess.data
+    ) {
+      return jsonResponse(
+        { error: 'Doctor does not have access to this patient', code: 'FORBIDDEN_PATIENT_ACCESS' },
+        403,
+        corsHeaders,
+      );
+    }
+
     // 4. Insert draft order if orderId wasn't provided
     if (!orderId) {
       const { data: insertedOrder, error: insertError } = await serviceClient
@@ -196,12 +252,12 @@ export async function handler(req: Request): Promise<Response> {
     // 5. Query patient details for PDF header
     const { data: patient } = await serviceClient
       .from('patients')
-      .select('id, user_id, dni, cuil, address, insurance_info')
+      .select('id, user_id, dni, cpf, cuil, address, insurance_info')
       .eq('id', patientId)
       .maybeSingle();
 
     let patientName = 'Paciente';
-    let patientDni = patient?.dni;
+    let patientDni = patient?.dni || patient?.cpf;
     let patientCuil = patient?.cuil;
     let patientAddress = patient?.address;
     let insurancePlan: string | undefined;
@@ -214,17 +270,15 @@ export async function handler(req: Request): Promise<Response> {
     if (patient?.user_id) {
       const { data: patProfile } = await serviceClient
         .from('profiles')
-        .select('first_name, last_name, dni, cuil, address')
+        .select('first_name, last_name')
         .eq('user_id', patient.user_id)
         .maybeSingle();
 
       if (patProfile) {
         patientName = `${patProfile.first_name || ''} ${patProfile.last_name || ''}`.trim() || 'Paciente';
-        patientDni = patientDni || patProfile.dni;
-        patientCuil = patientCuil || patProfile.cuil;
-        patientAddress = patientAddress || patProfile.address;
       }
-    } else if (patient?.id) {
+    }
+    if (patient?.id && (patientName === 'Paciente' || !patientDni)) {
       const { data: privateIdentity } = await serviceClient
         .from('patient_private_identities')
         .select('full_name, document_number')
@@ -233,7 +287,9 @@ export async function handler(req: Request): Promise<Response> {
         .maybeSingle();
 
       if (privateIdentity) {
-        patientName = String(privateIdentity.full_name || '').trim() || 'Paciente';
+        if (patientName === 'Paciente') {
+          patientName = String(privateIdentity.full_name || '').trim() || 'Paciente';
+        }
         patientDni = patientDni || privateIdentity.document_number;
       }
     }
@@ -243,17 +299,22 @@ export async function handler(req: Request): Promise<Response> {
     const qrCodeContent = `https://autamedica.com/orders/${cuir}`;
 
     // 7. Render official PDF
-    const doctorName = `Dr/Dra. ${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Médico';
+    const countryCode: 'AR' | 'BR' = doctor.care_country === 'BR' || doctor.license_type === 'CRM' ? 'BR' : 'AR';
+    const doctorName = `Dr/Dra. ${profile.first_name || ''} ${profile.last_name || ''}`.trim() || (countryCode === 'BR' ? 'Médico(a)' : 'Médico');
     const doctorLicense = doctor.license_number || profile.matricula_nacional || 'S/N';
-    const doctorJurisdiction = doctor.license_jurisdiction || doctor.enrollment_jurisdiction || 'Nacional';
+    const doctorJurisdiction = countryCode === 'BR'
+      ? (doctor.uf_brazil || doctor.license_jurisdiction || doctor.enrollment_jurisdiction || 'BR')
+      : (doctor.license_jurisdiction || doctor.enrollment_jurisdiction || 'Nacional');
 
     const pdfBytes = generateMedicalOrderPdfBytes({
       cuir,
       issuedAt: new Date().toISOString(),
       studyType,
+      countryCode,
       doctor: {
         name: doctorName,
         licenseNumber: doctorLicense,
+        licenseType: doctor.license_type || undefined,
         licenseJurisdiction: doctorJurisdiction,
         refepsId: doctor.refeps_id,
         specialty: doctor.specialty,
@@ -350,4 +411,6 @@ export async function handler(req: Request): Promise<Response> {
   }
 }
 
-Deno.serve(withEdgeSentry('issue-medical-order', handler));
+if (import.meta.main) {
+  Deno.serve(withEdgeSentry('issue-medical-order', handler));
+}

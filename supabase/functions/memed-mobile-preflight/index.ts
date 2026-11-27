@@ -45,9 +45,11 @@ export async function handler(req: Request): Promise<Response> {
     }
     const isAppointment = Object.keys(payload).length === 1 && validMemedMobileAppointment(payload.appointmentId);
     const isDispatch = Object.keys(payload).length === 1 && validMemedMobileAppointment(payload.requestId);
-    if (!isAppointment && !isDispatch) return reply({code: 'INVALID_ENCOUNTER'}, 400, cors);
+    const isPatient = Object.keys(payload).length === 1 && validMemedMobileAppointment(payload.patientId);
+    if (!isAppointment && !isDispatch && !isPatient) return reply({code: 'INVALID_ENCOUNTER'}, 400, cors);
     const appointmentId = isAppointment ? payload.appointmentId as string : null;
     const requestId = isDispatch ? payload.requestId as string : null;
+    const directPatientId = isPatient ? payload.patientId as string : null;
     const {serviceClient: db, user} = auth;
     const {data: profile, error: profileError} = await db.from('profiles')
       .select('role, active').eq('user_id', user.id).maybeSingle();
@@ -110,6 +112,26 @@ export async function handler(req: Request): Promise<Response> {
       }
       patientId = dispatch.patient_id;
       guestDispatch = dispatch;
+    } else if (directPatientId) {
+      const [team, visit, dispatchRel, doctorPatient, privIdentity] = await Promise.all([
+        db.from('patient_care_team').select('id').eq('doctor_id', doctor.id)
+          .eq('patient_id', directPatientId).eq('active', true).limit(1).maybeSingle(),
+        db.from('appointments').select('id').eq('doctor_id', doctor.id)
+          .eq('patient_id', directPatientId).is('deleted_at', null).limit(1).maybeSingle(),
+        db.from('pharmacy_dispatch_requests').select('id').eq('assigned_doctor_id', doctor.id)
+          .eq('patient_id', directPatientId).limit(1).maybeSingle(),
+        db.from('doctor_patient').select('patient_id').eq('doctor_id', doctor.id)
+          .eq('patient_id', directPatientId).limit(1).maybeSingle(),
+        db.from('patient_private_identities').select('id').eq('doctor_id', doctor.id)
+          .eq('patient_id', directPatientId).limit(1).maybeSingle(),
+      ]);
+      if (team.error || visit.error || dispatchRel.error || doctorPatient.error || privIdentity.error) {
+        return reply({code: 'MEMED_MOBILE_PREFLIGHT_ERROR'}, 500, cors);
+      }
+      if (!team.data && !visit.data && !dispatchRel.data && !doctorPatient.data && !privIdentity.data) {
+        return reply({code: 'DOCTOR_PATIENT_ACCESS_REQUIRED'}, 403, cors);
+      }
+      patientId = directPatientId;
     }
     if (!patientId) return reply({code: 'CLINICAL_ENCOUNTER_REQUIRED'}, 403, cors);
     const {data: patient, error: patientError} = await db.from('patients')
@@ -173,9 +195,14 @@ export async function handler(req: Request): Promise<Response> {
     if (!validBrazilPatientIdentity(effectiveCpf, effectiveBirthDate, effectiveGender, Date.now())) {
       return reply({code: 'PATIENT_IDENTITY_INCOMPLETE'}, 403, cors);
     }
+    const launchTarget = appointmentId
+      ? {id: appointmentId, queryKey: 'appointmentId' as const}
+      : requestId
+        ? {id: requestId, queryKey: 'requestId' as const}
+        : {id: directPatientId!, queryKey: 'patientId' as const};
     return reply({
       success: true,
-      launchUrl: buildMemedMobileLaunchUrl(appointmentId ?? requestId!, appointmentId ? 'appointmentId' : 'requestId'),
+      launchUrl: buildMemedMobileLaunchUrl(launchTarget.id, launchTarget.queryKey),
       requiresBrowserSignIn: true,
       provider: 'memed',
       country: 'BR',
@@ -187,4 +214,6 @@ export async function handler(req: Request): Promise<Response> {
   }
 }
 
-Deno.serve(withEdgeSentry('memed-mobile-preflight', handler))
+if (import.meta.main) {
+  Deno.serve(withEdgeSentry('memed-mobile-preflight', handler));
+}

@@ -754,6 +754,16 @@ private fun mapCertificateIssueError(raw: String, httpCode: Int): String {
             "El paciente debe tener nombre completo y DNI registrados para emitir el certificado."
         "certificate_period_invalid", "certificate_period_or_diagnosis_invalid" ->
             "Verificá el período de reposo y el diagnóstico antes de emitir."
+        "certificate_review_failed" ->
+            "No se pudo verificar el vínculo clínico o los datos del certificado (error interno del servidor)."
+        "certificate_doctor_not_found", "doctor_not_found" ->
+            "No se encontró el perfil médico habilitado."
+        "certificate_forbidden", "forbidden" ->
+            "No tenés permisos clínicos sobre este paciente o certificado."
+        "certificate_electronic_ar_only" ->
+            "La firma electrónica directa aplica solo a certificados emitidos en Argentina; en Brasil usá Memed ICP-Brasil."
+        "certificate_country_mismatch" ->
+            "El país del profesional no coincide con el del paciente."
         else -> parsedError ?: "No se pudo firmar y emitir el certificado (HTTP $httpCode)"
     }
 }

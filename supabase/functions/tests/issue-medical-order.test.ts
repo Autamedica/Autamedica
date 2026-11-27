@@ -226,6 +226,23 @@ Deno.test("issue-medical-order - Successful order issuance with O- CUIR, QR, PDF
         { status: 200, headers: { "Content-Type": "application/json" } },
       );
     }
+    if (url.includes("/rest/v1/doctor_patient")) {
+      return new Response(
+        JSON.stringify({ doctor_id: "doc-123", patient_id: "pat-123" }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    }
+    if (
+      url.includes("/rest/v1/patient_care_team") ||
+      url.includes("/rest/v1/appointments") ||
+      url.includes("/rest/v1/patient_private_identities") ||
+      url.includes("/rest/v1/pharmacy_dispatch_requests")
+    ) {
+      return new Response(JSON.stringify(null), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     if (url.includes("/rest/v1/patients")) {
       return new Response(
         JSON.stringify({
@@ -243,8 +260,6 @@ Deno.test("issue-medical-order - Successful order issuance with O- CUIR, QR, PDF
         JSON.stringify({
           first_name: "Federico",
           last_name: "Sosa",
-          dni: "40112233",
-          cuil: "20-40112233-1",
         }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       );
@@ -314,6 +329,63 @@ Deno.test("issue-medical-order - Successful order issuance with O- CUIR, QR, PDF
     assertMatch(body.data.cuir, /^O-[A-Z0-9]{8}$/);
     assertEquals(body.data.qr_code_content, `https://autamedica.com/orders/${body.data.cuir}`);
     assertEquals(typeof body.data.signed_pdf_url, "string");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("issue-medical-order - Unlinked doctor-patient relationship returns 403 FORBIDDEN_PATIENT_ACCESS", async () => {
+  DUMMY_ENV();
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (url.includes("/auth/v1/user")) {
+      return new Response(JSON.stringify({ id: "doc-user-123" }), { status: 200 });
+    }
+    if (url.includes("/rest/v1/profiles")) {
+      return new Response(
+        JSON.stringify({ first_name: "Esteban", last_name: "Quito", role: "doctor", active: true }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    }
+    if (url.includes("/rest/v1/doctors")) {
+      return new Response(
+        JSON.stringify({ id: "doc-123", user_id: "doc-user-123", active: true, license_number: "MN 445566" }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    }
+    if (
+      url.includes("/rest/v1/patient_care_team") ||
+      url.includes("/rest/v1/appointments") ||
+      url.includes("/rest/v1/doctor_patient") ||
+      url.includes("/rest/v1/patient_private_identities") ||
+      url.includes("/rest/v1/pharmacy_dispatch_requests")
+    ) {
+      return new Response(JSON.stringify(null), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return originalFetch(input, init);
+  };
+
+  try {
+    const req = new Request("http://localhost/issue-medical-order", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer doc-token",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        patientId: "unlinked-pat",
+        studyType: "laboratory",
+        practices: [{ name: "Hemograma completo" }],
+      }),
+    });
+    const res = await handler(req);
+    assertEquals(res.status, 403);
+    const body = await res.json();
+    assertEquals(body.code, "FORBIDDEN_PATIENT_ACCESS");
   } finally {
     globalThis.fetch = originalFetch;
   }

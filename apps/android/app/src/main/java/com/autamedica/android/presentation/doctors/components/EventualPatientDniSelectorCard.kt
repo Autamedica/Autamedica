@@ -650,8 +650,9 @@ fun ShareDocumentToPatientButton(
 ) {
     val contact = patient?.contact?.trim().orEmpty()
     val verifyUrl = "https://www.autamedica.com/verify/$cuir"
-    val patientName = patient?.fullName?.takeIf { it.isNotBlank() } ?: "Paciente"
-    val shareMessage = "Hola $patientName, te comparto tu $documentTitle emitido en AutaMedica (Código: $cuir). Podés verificarlo y descargarlo en: $verifyUrl"
+    val fallbackName = stringResource(R.string.doctor_dni_share_patient_fallback)
+    val patientName = patient?.fullName?.takeIf { it.isNotBlank() } ?: fallbackName
+    val shareMessage = stringResource(R.string.doctor_dni_share_message_fmt, patientName, documentTitle, cuir, verifyUrl)
 
     OutlinedButton(
         onClick = {
