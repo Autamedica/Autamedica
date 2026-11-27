@@ -75,9 +75,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.credentials.CredentialManager
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.BuildConfig
@@ -100,8 +97,7 @@ import com.autamedica.android.presentation.theme.PortalCompanies
 import com.autamedica.android.presentation.theme.PortalDoctors
 import com.autamedica.android.presentation.theme.PortalPatients
 import com.autamedica.android.presentation.theme.PortalPharmacists
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 @Composable
@@ -128,24 +124,17 @@ fun LoginScreen(
     val launchGoogleSignIn: () -> Unit = remember(context) {
         {
             coroutineScope.launch {
+                val activity = context as? Activity ?: return@launch
+                viewModel.setGoogleLoading(true)
                 try {
-                    val credentialManager = CredentialManager.create(context)
-                    val googleIdOption = GetGoogleIdOption.Builder()
-                        .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
-                        .setFilterByAuthorizedAccounts(false)
-                        .build()
-                    val request = GetCredentialRequest.Builder()
-                        .addCredentialOption(googleIdOption)
-                        .build()
-                    val result = credentialManager.getCredential(
-                        request = request,
-                        context = context as Activity,
+                    val idToken = GoogleSignInRequestFactory.requestGoogleIdToken(
+                        activity = activity,
+                        serverClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID,
                     )
-                    val googleIdTokenCredential = GoogleIdTokenCredential
-                        .createFrom(result.credential.data)
-                    viewModel.onGoogleSignIn(googleIdTokenCredential.idToken)
-                } catch (e: GetCredentialCancellationException) {
-                    viewModel.onGoogleSignInError(e)
+                    viewModel.onGoogleSignIn(idToken)
+                } catch (e: CancellationException) {
+                    viewModel.setGoogleLoading(false)
+                    throw e
                 } catch (e: Exception) {
                     viewModel.onGoogleSignInError(e)
                 }
@@ -595,11 +584,12 @@ private fun LoginFormCard(
             }
 
             // Error banner
+            val displayedError = uiState.errorResId?.let { stringResource(it) } ?: uiState.error
             AnimatedVisibility(
-                visible = uiState.error != null,
+                visible = displayedError != null,
                 enter = fadeIn() + slideInVertically(),
             ) {
-                uiState.error?.let { error ->
+                displayedError?.let { error ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()

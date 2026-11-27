@@ -61,11 +61,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.credentials.CredentialManager
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.exceptions.GetCredentialCancellationException
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.autamedica.android.BuildConfig
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -145,24 +140,15 @@ fun RegisterScreen(
     val launchGoogleSignIn: () -> Unit = remember(context) {
         {
             coroutineScope.launch {
+                val activity = context as? Activity ?: return@launch
                 try {
-                    val credentialManager = CredentialManager.create(context)
-                    val googleIdOption = GetGoogleIdOption.Builder()
-                        .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
-                        .setFilterByAuthorizedAccounts(false)
-                        .build()
-                    val request = GetCredentialRequest.Builder()
-                        .addCredentialOption(googleIdOption)
-                        .build()
-                    val result = credentialManager.getCredential(
-                        request = request,
-                        context = context as Activity,
+                    val idToken = GoogleSignInRequestFactory.requestGoogleIdToken(
+                        activity = activity,
+                        serverClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID,
                     )
-                    val googleIdTokenCredential = GoogleIdTokenCredential
-                        .createFrom(result.credential.data)
-                    viewModel.onGoogleSignIn(googleIdTokenCredential.idToken)
-                } catch (e: GetCredentialCancellationException) {
-                    viewModel.onGoogleSignInError(e)
+                    viewModel.onGoogleSignIn(idToken)
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     viewModel.onGoogleSignInError(e)
                 }
