@@ -11,17 +11,27 @@ vi.mock('@/lib/runtime-env', () => ({
 const ID = '11111111-1111-4111-8111-111111111111'
 const ROOM = 'cf-room-general-synthetic-demo'
 
-function mockAdmin(roomId: string) {
+function mockAdmin(roomId: string, ownerUserId: string | null = 'user-owner-1', authUserId: string | null = 'user-owner-1') {
   const maybeSingle = vi.fn().mockResolvedValue({
     data: {
       id: ID, cloudflare_room_id: roomId,
       care_country: 'BR', tier_requested: 'general', status: 'in_call',
+      requested_by_user_id: ownerUserId,
     }, error: null,
   })
   const chain = { eq: vi.fn(), select: vi.fn(), maybeSingle }
   chain.eq.mockReturnValue(chain)
   chain.select.mockReturnValue(chain)
-  const admin = { from: vi.fn().mockReturnValue(chain) } as unknown as SupabaseClient
+  const admin = {
+    from: vi.fn().mockReturnValue(chain),
+    auth: {
+      getUser: vi.fn().mockResolvedValue(
+        authUserId
+          ? { data: { user: { id: authUserId } }, error: null }
+          : { data: { user: null }, error: new Error('invalid_jwt') },
+      ),
+    },
+  } as unknown as SupabaseClient
   return { admin, maybeSingle }
 }
 
@@ -67,5 +77,15 @@ describe('pharmacy payment guest authorization', () => {
     const { admin } = mockAdmin(ROOM)
     expect(await authorizePharmacyPaymentRequest(admin,ID,guest)).toBeNull()
     expect(admin.from).not.toHaveBeenCalled()
+  })
+  it('accepts authenticated Bearer owner when no guest token is supplied', async () => {
+    const { admin } = mockAdmin(ROOM, 'patient-1', 'patient-1')
+    const authorized = await authorizePharmacyPaymentRequest(admin, ID, undefined, undefined, 'Bearer valid-supabase-jwt')
+    expect(authorized?.id).toBe(ID)
+    expect(authorized?.care_country).toBe('BR')
+  })
+  it('rejects authenticated Bearer user when dispatch belongs to another user', async () => {
+    const { admin } = mockAdmin(ROOM, 'patient-owner', 'patient-other')
+    expect(await authorizePharmacyPaymentRequest(admin, ID, undefined, undefined, 'Bearer valid-supabase-jwt')).toBeNull()
   })
 })

@@ -22,9 +22,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const body = await request.json().catch(() => null)
     const admin = createAstroAdminClient(locals.runtime?.env) as unknown as SupabaseClient
-    const dispatch = await authorizePharmacyPaymentRequest(
-      admin, body?.requestId, body?.accessToken, locals.runtime?.env,
-    )
+    const authHeader = request.headers.get('authorization')
+    const dispatch = authHeader
+      ? await authorizePharmacyPaymentRequest(
+        admin, body?.requestId, body?.accessToken, locals.runtime?.env, authHeader,
+      )
+      : await authorizePharmacyPaymentRequest(
+        admin, body?.requestId, body?.accessToken, locals.runtime?.env,
+      )
     if (!dispatch) return unauthorized('pharmacy_request_token_required')
 
     const fetchPayment = async () => admin.from('pharmacy_dispatch_payments')

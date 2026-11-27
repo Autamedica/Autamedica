@@ -777,17 +777,42 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 
     private suspend fun paymentRequest(requestId: String, endpoint: String): DispatchCheckoutResult =
         withContext(ioDispatcher) {
+            require(requestId.matches(Regex("^[0-9a-fA-F-]{36}$"))) { "Invalid payment request" }
+            val guestToken = runCatching { paymentGuestToken(requestId) }.getOrNull()
+            val bearerToken = if (guestToken == null) {
+                val sessionUserId = supabaseClient.currentAuthenticatedUserIdOrNull()
+                val currentUserId = authRepository.getCurrentUser()?.id
+                if (sessionUserId != null && sessionUserId == currentUserId) {
+                    supabaseClient.auth.currentSessionOrNull()?.accessToken?.takeIf { it.isNotBlank() }
+                } else {
+                    null
+                }
+            } else {
+                null
+            }
+            if (guestToken == null && bearerToken == null) {
+                error("Signed payment credential unavailable")
+            }
             val body = buildJsonObject {
                 put("requestId", requestId)
-                put("accessToken", paymentGuestToken(requestId))
+                if (guestToken != null) {
+                    put("accessToken", guestToken)
+                }
             }
-            val request = Request.Builder()
+            val requestBuilder = Request.Builder()
                 .url("$guestApiOrigin/api/pharmacy/dispatch/payment/$endpoint")
                 .post(body.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
-                .build()
-            guestClient.newCall(request).execute().use { response ->
-                check(response.isSuccessful) { "Payment API unavailable (HTTP ${response.code})" }
-                val raw = response.body?.string() ?: error("Empty payment response")
+            if (bearerToken != null) {
+                requestBuilder.header("Authorization", "Bearer $bearerToken")
+            }
+            guestClient.newCall(requestBuilder.build()).execute().use { response ->
+                val raw = response.body?.string().orEmpty()
+                if (!response.isSuccessful) {
+                    val safeCode = extractSafeDispatchErrorCode(raw)
+                    val suffix = if (safeCode != null) " [$safeCode]" else ""
+                    error("Payment API unavailable (HTTP ${response.code})$suffix")
+                }
+                check(raw.isNotBlank()) { "Empty payment response" }
                 val payment = json.parseToJsonElement(raw).jsonObject["data"]?.jsonObject
                     ?: error("Missing payment response data")
                 val status = payment["status"]?.jsonPrimitive?.content ?: error("Missing payment status")
@@ -801,11 +826,11 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 
     override suspend fun startDispatchCheckout(requestId: String): Result<DispatchCheckoutResult> = runCatching {
         paymentRequest(requestId, "create")
-    }.onFailure { SecureLog.warn("[PharmacyDispatch] Secure Brazilian checkout unavailable") }
+    }.onFailure { SecureLog.warn("[PharmacyDispatch] Secure Brazilian checkout unavailable", it) }
 
     override suspend fun getDispatchPaymentStatus(requestId: String): Result<String> = runCatching {
         paymentRequest(requestId, "status").status
-    }.onFailure { SecureLog.warn("[PharmacyDispatch] Payment confirmation not available") }
+    }.onFailure { SecureLog.warn("[PharmacyDispatch] Payment confirmation not available", it) }
 
     override suspend fun getPharmacyDispatchDocuments(
         requestId: String,
@@ -1176,24 +1201,26 @@ internal data class DispatchClaimRpcDto(
 
 internal fun extractSafeDispatchErrorCode(rawBody: String): String? {
     if (rawBody.isBlank()) return null
-    val rawCandidate = runCatching {
+    val candidates = runCatching {
         val root = Json { ignoreUnknownKeys = true }.parseToJsonElement(rawBody).jsonObject
         val errEl = root["error"]
         val direct = runCatching { errEl?.jsonPrimitive?.content }.getOrNull()
-        val nestedCode = runCatching { errEl?.jsonObject?.get("code")?.jsonPrimitive?.content }.getOrNull()
         val nestedMsg = runCatching { errEl?.jsonObject?.get("message")?.jsonPrimitive?.content }.getOrNull()
+        val nestedCode = runCatching { errEl?.jsonObject?.get("code")?.jsonPrimitive?.content }.getOrNull()
         val topMsg = runCatching { root["message"]?.jsonPrimitive?.content }.getOrNull()
-        listOfNotNull(direct, nestedCode, nestedMsg, topMsg).firstOrNull { it.isNotBlank() }
-    }.getOrNull() ?: return null
+        listOfNotNull(direct, nestedMsg, nestedCode, topMsg).filter { it.isNotBlank() }
+    }.getOrNull().orEmpty()
 
-    val normalized = rawCandidate.trim().lowercase(java.util.Locale.ROOT)
-    return when {
-        normalized in SAFE_DISPATCH_ERROR_CODES -> normalized
-        "no corresponde a un paciente habilitado" in normalized -> "dispatch_patient_role_required"
-        "selecciona tu país de atención" in normalized -> "care_country_or_patient_profile_required"
-        "cpf inválido" in normalized -> "pharmacy_error_cpf_checksum"
-        else -> null
+    for (rawCandidate in candidates) {
+        val normalized = rawCandidate.trim().lowercase(java.util.Locale.ROOT)
+        when {
+            normalized in SAFE_DISPATCH_ERROR_CODES -> return normalized
+            "no corresponde a un paciente habilitado" in normalized -> return "dispatch_patient_role_required"
+            "selecciona tu país de atención" in normalized -> return "care_country_or_patient_profile_required"
+            "cpf inválido" in normalized -> return "pharmacy_error_cpf_checksum"
+        }
     }
+    return null
 }
 
 private val SAFE_DISPATCH_ERROR_CODES = setOf(
@@ -1217,4 +1244,17 @@ private val SAFE_DISPATCH_ERROR_CODES = setOf(
     "referral_code_not_found",
     "referral_code_invalid",
     "dispatch_request_failed",
+    "mercadopago_access_not_configured",
+    "pharmacy_checkout_not_enabled",
+    "pharmacy_commercial_channel_paused",
+    "pharmacy_financial_rail_unavailable",
+    "pharmacy_country_quote_not_verified",
+    "pharmacy_payment_request_not_payable",
+    "pharmacy_request_token_required",
+    "checkout_already_initializing",
+    "checkout_requires_manual_reconciliation",
+    "checkout_provider_unavailable",
+    "pharmacy_checkout_unavailable",
+    "argentina_checkout_broker_unavailable",
+    "argentina_checkout_reconciliation_unavailable",
 )
