@@ -4,8 +4,18 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Inspect active Play Store locales without modifying screenshots"
+        description: "Inspect active Play Store locales without modifying listing images"
         required: true
+        default: false
+        type: boolean
+      sync_icon:
+        description: "Upload 512x512 app icon across all active Play Store locales"
+        required: false
+        default: true
+        type: boolean
+      sync_screenshots:
+        description: "Replace phoneScreenshots across all active Play Store locales"
+        required: false
         default: false
         type: boolean
 
@@ -14,7 +24,7 @@ permissions:
 
 jobs:
   upload-screenshots:
-    name: Upload real phoneScreenshots to Google Play Console
+    name: Sync Play Store icon and screenshots
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -29,10 +39,12 @@ jobs:
       - name: Install Google Play API client
         run: pip install --quiet google-auth google-api-python-client
 
-      - name: Upload real phoneScreenshots for active listings
+      - name: Sync Play Store assets for active listings
         env:
           SERVICE_ACCOUNT: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
           DRY_RUN: ${{ inputs.dry_run }}
+          SYNC_ICON: ${{ inputs.sync_icon }}
+          SYNC_SCREENSHOTS: ${{ inputs.sync_screenshots }}
         run: |
           python3 - <<'PY'
           import json, os, sys
@@ -47,8 +59,19 @@ jobs:
               sys.exit(1)
 
           dry_run = os.environ.get("DRY_RUN", "false").lower() == "true"
+          sync_icon = os.environ.get("SYNC_ICON", "true").lower() == "true"
+          sync_screenshots = os.environ.get("SYNC_SCREENSHOTS", "false").lower() == "true"
           package_name = "com.autamedica.android"
+          icon_path = Path("apps/android/play-store-assets/icon_512x512.png")
           assets_root = Path("apps/android/play-store-assets/screenshots")
+
+          if not sync_icon and not sync_screenshots:
+              print("Nothing to sync (both sync_icon and sync_screenshots are false).")
+              sys.exit(0)
+
+          if sync_icon and not icon_path.is_file():
+              print(f"::error::Icon asset not found at {icon_path}")
+              sys.exit(1)
 
           creds = service_account.Credentials.from_service_account_info(
               json.loads(sa_raw),
@@ -77,32 +100,50 @@ jobs:
                   return assets_root / "en-US"
 
               for lang in active_languages:
-                  src_dir = resolve_asset_dir(lang)
-                  pngs = sorted(src_dir.glob("*.png"))
-                  if not pngs:
-                      print(f"WARNING: No PNGs found for {lang} in {src_dir}, skipping")
-                      continue
-                  print(f"Locale {lang} -> {len(pngs)} real screenshots from {src_dir}")
-                  if dry_run:
-                      continue
+                  if sync_icon:
+                      print(f"Locale {lang} -> uploading 512x512 app icon from {icon_path}")
+                      if not dry_run:
+                          edits.images().deleteall(
+                              packageName=package_name,
+                              editId=edit_id,
+                              language=lang,
+                              imageType="icon",
+                          ).execute()
+                          icon_media = MediaFileUpload(str(icon_path), mimetype="image/png", resumable=False)
+                          edits.images().upload(
+                              packageName=package_name,
+                              editId=edit_id,
+                              language=lang,
+                              imageType="icon",
+                              media_body=icon_media,
+                          ).execute()
+                          print(f"  Uploaded {lang}/icon_512x512.png")
 
-                  edits.images().deleteall(
-                      packageName=package_name,
-                      editId=edit_id,
-                      language=lang,
-                      imageType="phoneScreenshots",
-                  ).execute()
+                  if sync_screenshots:
+                      src_dir = resolve_asset_dir(lang)
+                      pngs = sorted(src_dir.glob("*.png"))
+                      if not pngs:
+                          print(f"WARNING: No PNGs found for {lang} in {src_dir}, skipping")
+                      else:
+                          print(f"Locale {lang} -> {len(pngs)} real screenshots from {src_dir}")
+                          if not dry_run:
+                              edits.images().deleteall(
+                                  packageName=package_name,
+                                  editId=edit_id,
+                                  language=lang,
+                                  imageType="phoneScreenshots",
+                              ).execute()
 
-                  for png in pngs:
-                      media = MediaFileUpload(str(png), mimetype="image/png", resumable=False)
-                      edits.images().upload(
-                          packageName=package_name,
-                          editId=edit_id,
-                          language=lang,
-                          imageType="phoneScreenshots",
-                          media_body=media,
-                      ).execute()
-                      print(f"  Uploaded {lang}/{png.name}")
+                              for png in pngs:
+                                  media = MediaFileUpload(str(png), mimetype="image/png", resumable=False)
+                                  edits.images().upload(
+                                      packageName=package_name,
+                                      editId=edit_id,
+                                      language=lang,
+                                      imageType="phoneScreenshots",
+                                      media_body=media,
+                                  ).execute()
+                                  print(f"  Uploaded {lang}/{png.name}")
 
               if dry_run:
                   edits.delete(packageName=package_name, editId=edit_id).execute()
