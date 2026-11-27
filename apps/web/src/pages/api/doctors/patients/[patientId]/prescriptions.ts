@@ -29,7 +29,7 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
 
   const { data, error } = await admin
     .from('prescriptions')
-    .select('id, cuir, status, created_at, expires_at, clinical_data, signed_pdf_url')
+    .select('id, cuir, status, created_at, clinical_data, signed_pdf_url')
     .eq('doctor_id', doctor.id)
     .eq('patient_id', patientId)
     .order('created_at', { ascending: false })

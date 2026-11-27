@@ -41,7 +41,7 @@ export async function queryNotificationFeed(
 
     supabase
       .from('medical_records')
-      .select('id, created_at, record_type, doctor_id')
+      .select('id, created_at, type, doctor_id')
       .eq('patient_id', patientId)
       .order('created_at', { ascending: false })
       .limit(8),
@@ -74,7 +74,7 @@ export async function queryNotificationFeed(
       id: `report-${report.id}`,
       type: 'report',
       title: 'Nuevo informe médico',
-      body: report.record_type ?? 'Consulta',
+      body: report.type ?? 'Consulta',
       createdAt: report.created_at,
       read: false,
       dedupeKey: `report:${report.id}`,

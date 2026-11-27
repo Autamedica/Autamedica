@@ -1,21 +1,27 @@
 package com.autamedica.android.data.repository
 
+import com.autamedica.android.BuildConfig
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
-import io.ktor.client.statement.bodyAsText
-import kotlinx.serialization.Serializable
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.net.URI
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -26,6 +32,10 @@ import javax.inject.Singleton
 @Singleton
 class MemedMobileBridgeRepository @Inject constructor(private val client: SupabaseClient) {
     private val json = Json { ignoreUnknownKeys = true }
+    private val httpClient = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(20, TimeUnit.SECONDS)
+        .build()
 
     suspend fun createLaunch(appointmentId: String): Result<String> =
         createLaunchForEncounter("appointmentId", appointmentId)
@@ -96,14 +106,43 @@ class MemedMobileBridgeRepository @Inject constructor(private val client: Supaba
 
     private suspend fun createLaunchForEncounter(key: String, encounterId: String): Result<String> = runCatching {
         require(MemedMobileLaunchUrl.isUuid(encounterId)) { "Consulta inválida" }
-        val response = client.functions(
-            "memed-mobile-preflight",
-            buildJsonObject { put(key, encounterId) },
-        )
-        check(response.status.value in 200..299) {
-            "Memed indisponível: autorização médica ou habilitação pendente"
+        val accessToken = client.auth.currentSessionOrNull()?.accessToken
+            ?: error("Sessão autenticada necessária para abrir a Memed")
+        val payload = buildJsonObject { put(key, encounterId) }
+        val endpoint = BuildConfig.SUPABASE_URL.trimEnd('/') + "/functions/v1/memed-mobile-preflight"
+        val (httpCode, responseText) = withContext(Dispatchers.IO) {
+            val body = payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+            val httpRequest = Request.Builder()
+                .url(endpoint)
+                .header("Authorization", "Bearer $accessToken")
+                .header("apikey", BuildConfig.SUPABASE_ANON_KEY)
+                .header("Accept", "application/json")
+                .post(body)
+                .build()
+            httpClient.newCall(httpRequest).execute().use { resp ->
+                resp.code to resp.body?.string().orEmpty()
+            }
         }
-        val result = json.decodeFromString<MemedMobilePreflightResponse>(response.bodyAsText())
+        if (httpCode !in 200..299) {
+            val root = runCatching { json.parseToJsonElement(responseText) as? JsonObject }.getOrNull()
+            val errCode = root?.get("code")?.jsonPrimitive?.contentOrNull
+            val errMsg = root?.get("message")?.jsonPrimitive?.contentOrNull
+                ?: root?.get("error")?.jsonPrimitive?.contentOrNull
+            val friendly = when (errCode) {
+                "MEMED_MOBILE_DISABLED" -> "Memed indisponível neste ambiente no momento."
+                "PILOT_DOCTOR_REQUIRED" -> "Seu perfil médico ainda não está habilitado para a Memed."
+                "CFM_LICENSE_NOT_VERIFIED" -> "Sua matrícula CRM/CFM precisa estar validada para usar a Memed."
+                "DOCTOR_PATIENT_ACCESS_REQUIRED" -> "Sem vínculo clínico ativo com este paciente."
+                "CLINICAL_ENCOUNTER_REQUIRED" -> "Atendimento clínico inválido ou sem permissão para emitir receita."
+                "BRAZIL_PATIENT_CONSENT_REQUIRED" -> "Paciente precisa aceitar o termo LGPD Brasil antes de usar a Memed."
+                "PATIENT_IDENTITY_INCOMPLETE" -> "Cadastro do paciente incompleto (CPF ou data de nascimento ausente)."
+                "PATIENT_ACCOUNT_INACTIVE" -> "Conta do paciente inativa."
+                "DOCTOR_REQUIRED" -> "Conta médica ativa necessária para acessar a Memed."
+                else -> errMsg ?: errCode ?: "Memed indisponível (HTTP $httpCode)"
+            }
+            error(friendly)
+        }
+        val result = json.decodeFromString<MemedMobilePreflightResponse>(responseText)
         check(result.success && result.provider == "memed" &&
             result.country == "BR" && result.requiresBrowserSignIn) {
             "Resposta Memed não autorizada"

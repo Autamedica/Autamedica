@@ -6,7 +6,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Json } from '@autamedica/types'
 import { buildAnamnesisSummary, logger } from '@autamedica/shared'
-import { createHash } from 'node:crypto'
 import {
   buildAnamnesisExtractionRequest,
   executeAnamnesisExtraction,
@@ -33,8 +32,8 @@ interface SectionRecord {
 
 interface ExtractionCacheRecord {
   extraction_result: unknown
-  provider_name: string
-  model_name: string
+  provider: string
+  model: string
   prompt_version: string
 }
 
@@ -66,14 +65,6 @@ export interface ConsultationContextResult {
   }
 }
 
-function computeSectionsHash(sections: SectionRecord[]): string {
-  const content = sections
-    .map(s => `${s.section}:${JSON.stringify(s.data)}`)
-    .sort()
-    .join('|')
-  return createHash('sha256').update(content).digest('hex')
-}
-
 async function getOrCreateExtraction(
   admin: AdminClient,
   anamnesisId: string,
@@ -84,14 +75,14 @@ async function getOrCreateExtraction(
 ): Promise<{ extraction: unknown; fromCache: boolean } | null> {
   if (!isAnamnesisExtractionConfigured()) return null
 
-  const sectionsHash = computeSectionsHash(sections)
+  const checkpoint = anamnesisStatus === 'completed' ? 'final' : 'partial'
 
   const { data: cached } = await admin
     .from('anamnesis_extractions')
-    .select('extraction_result, provider_name, model_name, prompt_version')
+    .select('extraction_result, provider, model, prompt_version')
     .eq('anamnesis_id', anamnesisId)
-    .eq('source_sections_hash', sectionsHash)
-    .order('created_at', { ascending: false })
+    .eq('checkpoint', checkpoint)
+    .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle()
 
@@ -109,18 +100,22 @@ async function getOrCreateExtraction(
     })
 
     const { result, providerName, modelName } = await executeAnamnesisExtraction(request)
+    const extractionObj = result as unknown as Record<string, unknown>
+    const hasCriticalQuestions = Array.isArray(result.safetyFlags) && result.safetyFlags.length > 0
 
     await admin.from('anamnesis_extractions').upsert(
       {
         anamnesis_id: anamnesisId,
         patient_id: patientId,
-        provider_name: providerName,
-        model_name: modelName,
+        checkpoint,
+        provider: providerName,
+        model: modelName,
         prompt_version: ANAMNESIS_EXTRACTION_PROMPT_VERSION,
-        extraction_result: result as unknown as Record<string, unknown>,
-        source_sections_hash: sectionsHash,
+        extraction_result: extractionObj,
+        sections_count: sections.length,
+        has_critical_questions: hasCriticalQuestions,
       },
-      { onConflict: 'anamnesis_id,source_sections_hash' },
+      { onConflict: 'anamnesis_id,checkpoint' },
     )
 
     return { extraction: result, fromCache: false }

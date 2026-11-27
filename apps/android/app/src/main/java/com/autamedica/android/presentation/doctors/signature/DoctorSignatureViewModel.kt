@@ -2,26 +2,33 @@ package com.autamedica.android.presentation.doctors.signature
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.autamedica.android.BuildConfig
 import com.autamedica.android.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import com.autamedica.android.data.local.SecurePreferences
-import io.github.jan.supabase.functions.functions
-import io.ktor.client.statement.bodyAsText
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import com.autamedica.android.presentation.common.UiErrorMapper
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 data class DoctorSignatureState(
@@ -43,6 +50,10 @@ class DoctorSignatureViewModel @Inject constructor(
     private val supabaseClient: SupabaseClient,
     private val securePreferences: SecurePreferences,
 ) : ViewModel() {
+    private val httpClient = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(25, TimeUnit.SECONDS)
+        .build()
     private val _state = MutableStateFlow(DoctorSignatureState())
     val state: StateFlow<DoctorSignatureState> = _state.asStateFlow()
 
@@ -147,14 +158,49 @@ class DoctorSignatureViewModel @Inject constructor(
                 if (!normalizedDocument.matches(Regex("^\\d{7,9}$"))) {
                     throw IllegalArgumentException("invalid_argentine_dni")
                 }
+                val accessToken = supabaseClient.auth.currentSessionOrNull()?.accessToken
+                    ?: throw IllegalStateException("doctor_session_missing")
                 val payload = buildJsonObject {
                     put("dni", normalizedDocument)
                     put("matricula", normalizedLicense)
                 }
-                val response = supabaseClient.functions("verify-doctor-license", payload)
-                val dto = Json { ignoreUnknownKeys = true }
-                    .decodeFromString<VerifyDoctorLicenseResponseDto>(response.bodyAsText())
-                val status = dto.data?.status
+                val endpoint = BuildConfig.SUPABASE_URL.trimEnd('/') + "/functions/v1/verify-doctor-license"
+                val (httpCode, responseText) = withContext(Dispatchers.IO) {
+                    val body = payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+                    val httpRequest = Request.Builder()
+                        .url(endpoint)
+                        .header("Authorization", "Bearer $accessToken")
+                        .header("apikey", BuildConfig.SUPABASE_ANON_KEY)
+                        .header("Accept", "application/json")
+                        .post(body)
+                        .build()
+                    httpClient.newCall(httpRequest).execute().use { resp ->
+                        resp.code to resp.body?.string().orEmpty()
+                    }
+                }
+                val dto = runCatching {
+                    Json { ignoreUnknownKeys = true }.decodeFromString<VerifyDoctorLicenseResponseDto>(responseText)
+                }.getOrNull()
+                if (httpCode !in 200..299) {
+                    if (dto?.code == "LICENSE_PENDING_REVIEW") {
+                        _state.update { it.copy(
+                            isLoading = false,
+                            sisaValidated = false,
+                            validationStatus = "pending_review",
+                            validationMessage = dto.error ?: dto.message,
+                            validationMessageRes = R.string.signature_status_unverified,
+                            lastCheckedAt = dto.data?.checkedAt,
+                            errorMessage = dto.error ?: dto.message ?: dto.code,
+                            errorMessageRes = R.string.signature_status_unverified,
+                        ) }
+                        return@launch
+                    }
+                    throw IllegalStateException(
+                        dto?.message ?: dto?.error ?: dto?.code ?: "verify_doctor_license_http_$httpCode",
+                    )
+                }
+                val parsedDto = dto ?: throw IllegalStateException("verify_doctor_license_invalid_response")
+                val status = parsedDto.data?.status
                 val verified = status == "valid" || status == "exempt"
                 val messageRes = when (status) {
                     "valid" -> R.string.signature_status_sisa_verified
@@ -165,8 +211,8 @@ class DoctorSignatureViewModel @Inject constructor(
                     isLoading = false, sisaValidated = verified,
                     validationStatus = status ?: "pending_review",
                     validationMessage = null, validationMessageRes = messageRes,
-                    lastCheckedAt = dto.data?.checkedAt,
-                    errorMessage = if (verified) null else dto.message ?: dto.code,
+                    lastCheckedAt = parsedDto.data?.checkedAt,
+                    errorMessage = if (verified) null else parsedDto.message ?: parsedDto.error ?: parsedDto.code,
                     errorMessageRes = if (verified) null else messageRes,
                 ) }
             }.onFailure { error ->
