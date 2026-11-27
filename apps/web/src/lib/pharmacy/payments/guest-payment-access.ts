@@ -75,7 +75,8 @@ export async function authorizePharmacyPaymentRequest(
     .select('id,cloudflare_room_id,care_country,tier_requested,status,requested_by_user_id')
     .eq('id', requestId).maybeSingle()
   if (error) throw error
-  if (!data || data.requested_by_user_id !== identity.user.id) return null
+  if (!data) return null
+  if (data.requested_by_user_id !== identity.user.id) return null
 
   return {
     id: data.id,
