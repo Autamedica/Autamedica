@@ -69,10 +69,11 @@ data class DoctorCertificatesUiState(
 )
 
 @HiltViewModel
-class DoctorCertificatesViewModel internal constructor(
+class DoctorCertificatesViewModel private constructor(
     private val certificateRepository: MedicalCertificateRepository,
     private val prescriptionRepository: PrescriptionRepository,
     private val memedMobileBridgeRepository: MemedMobileBridgeRepository?,
+    @Suppress("UNUSED_PARAMETER") nullableMarker: Unit,
 ) : ViewModel() {
 
     @Inject
@@ -80,12 +81,12 @@ class DoctorCertificatesViewModel internal constructor(
         certificateRepository: MedicalCertificateRepository,
         prescriptionRepository: PrescriptionRepository,
         memedMobileBridgeRepository: MemedMobileBridgeRepository,
-    ) : this(certificateRepository, prescriptionRepository, memedMobileBridgeRepository as MemedMobileBridgeRepository?)
+    ) : this(certificateRepository, prescriptionRepository, memedMobileBridgeRepository, Unit)
 
     constructor(
         certificateRepository: MedicalCertificateRepository,
         prescriptionRepository: PrescriptionRepository,
-    ) : this(certificateRepository, prescriptionRepository, null)
+    ) : this(certificateRepository, prescriptionRepository, null, Unit)
 
     private val _uiState = MutableStateFlow(DoctorCertificatesUiState())
     val uiState: StateFlow<DoctorCertificatesUiState> = _uiState.asStateFlow()

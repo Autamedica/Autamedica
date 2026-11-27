@@ -21,7 +21,7 @@ BEGIN
   WHERE user_id IN (v_user_br, v_user_ar);
 
   UPDATE public.profiles
-  SET active = true, role = 'platform_admin'
+  SET active = true, role = 'admin'
   WHERE user_id = v_user_admin;
 
   SELECT id INTO v_doctor_br FROM public.doctors WHERE user_id = v_user_br;

@@ -61,7 +61,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
 
   const rawBody = await request.json().catch(() => null);
   const parsed = parseAdminVerifyEnablement(rawBody);
-  if (!parsed.ok) return badRequest(parsed.error);
+  if ('error' in parsed) return badRequest(parsed.error);
 
   try {
     const { data: doctor, error: docErr } = await admin

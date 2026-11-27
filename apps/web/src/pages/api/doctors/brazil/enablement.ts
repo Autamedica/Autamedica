@@ -112,7 +112,7 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
 
   const rawBody = await request.json().catch(() => null);
   const parsed = parseDoctorEnablementPatch(rawBody);
-  if (!parsed.ok) return badRequest(parsed.error);
+  if ('error' in parsed) return badRequest(parsed.error);
 
   try {
     const admin = createAstroAdminClient(locals.runtime?.env);
