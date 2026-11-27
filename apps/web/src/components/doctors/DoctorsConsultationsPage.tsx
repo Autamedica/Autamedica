@@ -2,6 +2,7 @@
 
 import { DoctorsPortalFrame } from "@/components/doctors/DoctorsPortalFrame";
 import { PatientChat } from "@/components/doctors/patients/PatientChat";
+import { PatientClinicalWorkspace } from "@/components/doctors/patients/PatientClinicalWorkspace";
 import { useAuthenticatedUser } from "@/hooks/doctors/useAuthenticatedUser";
 import { useRealPatients } from "@/hooks/doctors/useRealPatients";
 import { useCurrentDoctor } from "@/hooks/doctors/useRealDoctors";
@@ -345,6 +346,11 @@ export function DoctorsConsultationsPage({
               {isBrazilianDoctor ? "Histórico clínico" : "Historial clínico"}
             </a>
           </nav>
+
+          <PatientClinicalWorkspace
+            patientId={selectedPatientId}
+            isBrazilianDoctor={isBrazilianDoctor}
+          />
 
           {activePatientTab === "patient-info" ? (
             <div className="space-y-4">

@@ -680,4 +680,42 @@ class PharmacyDispatchRepositoryImplTest {
         assertThat(extractSafeDispatchErrorCode("""{"error":"CPF 12345678909 leaked"}""")).isNull()
     }
 
+    @Test
+    fun `authenticated patient without guest recovery uses Bearer token for checkout`() = runTest {
+        val patientUserId = "77777777-7777-4777-8777-777777777777"
+        val email = "paciente.br@example.invalid"
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{"id":"$patientUserId","aud":"authenticated","role":"authenticated","email":"$email","email_confirmed_at":"2026-01-01T00:00:00Z","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","app_metadata":{"provider":"email","providers":["email"]},"user_metadata":{},"identities":[]}""",
+                ),
+        )
+        supabaseClient.auth.importAuthToken(
+            accessToken = syntheticAuthenticatedJwt(patientUserId),
+            retrieveUser = true,
+            autoRefresh = false,
+        )
+        mockWebServer.takeRequest(2, TimeUnit.SECONDS)
+        fakeAuthRepository.currentUser = User(id = patientUserId, email = email, role = UserRole.PATIENT)
+
+        val requestId = "99999999-9999-4999-8999-999999999999"
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"success":true,"data":{"status":"pending","checkoutUrl":"https://www.mercadopago.com.br/checkout/auth-test"}}"""),
+        )
+
+        val checkout = repository.startDispatchCheckout(requestId).getOrThrow()
+        assertThat(checkout.status).isEqualTo("pending")
+        assertThat(checkout.checkoutUrl).isEqualTo("https://www.mercadopago.com.br/checkout/auth-test")
+
+        val post = mockWebServer.takeRequest(2, TimeUnit.SECONDS)
+        assertThat(post?.path).isEqualTo("/api/pharmacy/dispatch/payment/create")
+        assertThat(post?.getHeader("Authorization")).startsWith("Bearer ")
+        val sentBody = post?.body?.readUtf8().orEmpty()
+        assertThat(sentBody).contains("\"requestId\":\"$requestId\"")
+        assertThat(sentBody).doesNotContain("accessToken")
+    }
+
 }

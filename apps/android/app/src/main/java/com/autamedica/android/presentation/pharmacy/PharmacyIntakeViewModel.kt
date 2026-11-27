@@ -537,11 +537,28 @@ class PharmacyIntakeViewModel @Inject constructor(
                                 !current.roomId.isNullOrBlank() && payment.status == "approved",
                         )
                     }
-                }.onFailure {
-                    _uiState.update { it.copy(
-                        isPaymentLoading = false,
-                        paymentError = "Não foi possível iniciar ou confirmar o pagamento. Tente novamente.",
-                    ) }
+                }.onFailure { err ->
+                    SecureLog.warn("[PharmacyIntakeVM] Checkout failed", err)
+                    val msg = err.message.orEmpty()
+                    val userError = when {
+                        "pharmacy_checkout_not_enabled" in msg ||
+                            "pharmacy_commercial_channel_paused" in msg ||
+                            "pharmacy_financial_rail_unavailable" in msg ||
+                            "mercadopago_access_not_configured" in msg ->
+                            "O pagamento online está temporariamente indisponível. Tente novamente em instantes."
+                        "checkout_requires_manual_reconciliation" in msg ->
+                            "Há um pagamento anterior em verificação para esta solicitação. Aguarde ou contate o suporte."
+                        "pharmacy_request_token_required" in msg ||
+                            "Signed payment credential unavailable" in msg ->
+                            "Sua sessão expirou. Saia e entre novamente para continuar o pagamento."
+                        else -> "Não foi possível iniciar ou confirmar o pagamento. Tente novamente."
+                    }
+                    _uiState.update {
+                        it.copy(
+                            isPaymentLoading = false,
+                            paymentError = userError,
+                        )
+                    }
                 }
         }
     }

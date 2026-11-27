@@ -134,6 +134,7 @@ fun MainScreen(
     onNavigateToPatientDetail: (patientId: String) -> Unit = {},
     onNavigateToChatConversation: (chatId: String) -> Unit = {},
     onNavigateToAnamnesisForm: () -> Unit = {},
+    onNavigateToConsultationReports: () -> Unit = {},
     onNavigateToPreventiveHealth: () -> Unit = {},
     onNavigateToBookAppointment: () -> Unit = {},
     onNavigateToPrescriptions: () -> Unit = {},
@@ -417,6 +418,7 @@ fun MainScreen(
                                 selectedTab = PatientBottomNavPolicy.TAB_PROFILE
                             },
                             onNavigateToAnamnesisForm = onNavigateToAnamnesisForm,
+                            onNavigateToConsultationReports = onNavigateToConsultationReports,
                             onNavigateToPreventiveHealth = onNavigateToPreventiveHealth,
                             onNavigateToBookAppointment = {
                                 consultSegment = PatientConsultSegment.SCHEDULED

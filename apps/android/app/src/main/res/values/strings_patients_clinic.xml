@@ -194,4 +194,47 @@
     <string name="patient_detail_empty_title">Ficha no disponible</string>
     <string name="patient_detail_empty_desc">No hay datos del paciente para mostrar. Reintentá cargar la ficha.</string>
     <string name="patients_record_reference">Registro #%1$s</string>
+
+    <!-- Clinical Patients Workspace & External Patients -->
+    <string name="patients_search_placeholder">Buscar por nombre, DNI o contacto...</string>
+    <string name="patients_filter_all">Todos</string>
+    <string name="patients_filter_upcoming">Próximas</string>
+    <string name="patients_filter_recent">Recientes</string>
+    <string name="patients_filter_external">Externos</string>
+    <string name="patients_external_badge">Externo</string>
+    <string name="patients_add_external_fab">Paciente externo</string>
+    <string name="patients_add_external_title">Registrar paciente externo</string>
+    <string name="patients_add_external_subtitle">Registra a un paciente atendido fuera de plataforma para gestionar recetas, evoluciones y seguimiento clínico.</string>
+    <string name="patients_add_external_name">Nombre y apellido</string>
+    <string name="patients_add_external_contact">Email o teléfono (opcional)</string>
+    <string name="patients_add_external_saving">Guardando...</string>
+    <string name="patients_add_external_submit">Registrar paciente</string>
+    <string name="patient_detail_tab_summary">Resumen</string>
+    <string name="patient_detail_tab_prescriptions">Recetas</string>
+    <string name="patient_detail_tab_evolutions">Evoluciones</string>
+    <string name="patient_detail_tab_monitoring">Monitoreo</string>
+    <string name="patient_detail_latest_vitals_title">Últimos signos vitales</string>
+    <string name="patient_detail_pending_followups_title">Seguimientos activos</string>
+    <string name="patient_detail_new_rx_btn">Nueva receta</string>
+    <string name="patient_detail_empty_rx">No hay recetas registradas para este paciente.</string>
+    <string name="patient_detail_renew_rx_btn">Renovar receta</string>
+    <string name="patient_detail_rx_expired">Vencida</string>
+    <string name="patient_detail_rx_expiring_days">Vence en %1$d días</string>
+    <string name="patient_detail_rx_active">Vigente</string>
+    <string name="patient_detail_rx_cancelled">Anulada</string>
+    <string name="patient_detail_add_note_btn">Registrar evolución</string>
+    <string name="patient_detail_empty_notes">Sin notas clínicas ni evoluciones registradas.</string>
+    <string name="patient_detail_add_vitals_btn">Registrar signos</string>
+    <string name="patient_detail_add_followup_btn">Nuevo seguimiento</string>
+    <string name="patient_detail_vitals_section_title">Registro de signos vitales</string>
+    <string name="patient_detail_empty_vitals">Sin signos vitales registrados.</string>
+    <string name="patient_detail_followups_section_title">Plan de seguimiento</string>
+    <string name="patient_detail_empty_followups">Sin seguimientos clínicos programados.</string>
+    <string name="patient_detail_followup_complete">Marcar completado</string>
+    <string name="patient_detail_note_title_label">Motivo o título de la evolución</string>
+    <string name="patient_detail_note_diagnosis_label">Diagnóstico presuntivo (opcional)</string>
+    <string name="patient_detail_note_summary_label">Evolución clínica / SOAP</string>
+    <string name="patient_detail_save_btn">Guardar</string>
+    <string name="patient_detail_vitals_notes_label">Observaciones clínicas (opcional)</string>
+    <string name="patient_detail_followup_objective_label">Objetivo del seguimiento</string>
 </resources>

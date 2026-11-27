@@ -56,6 +56,7 @@ fun CreatePrescriptionScreen(
     patientId: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    renewFromPrescriptionId: String = "",
     viewModel: DoctorPrescriptionsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -65,8 +66,8 @@ fun CreatePrescriptionScreen(
     var patientSearchQuery by remember { mutableStateOf("") }
     var expandedPatientDropdown by remember { mutableStateOf(false) }
 
-    LaunchedEffect(patientId) {
-        viewModel.initCreatePrescription(patientId)
+    LaunchedEffect(patientId, renewFromPrescriptionId) {
+        viewModel.initCreatePrescription(patientId, renewFromPrescriptionId)
     }
 
     Scaffold(

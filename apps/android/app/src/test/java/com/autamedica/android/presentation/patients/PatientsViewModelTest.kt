@@ -1,13 +1,23 @@
 package com.autamedica.android.presentation.patients
 
+import com.autamedica.android.domain.model.ClinicalNoteEntry
+import com.autamedica.android.domain.model.CreateClinicalNoteRequest
+import com.autamedica.android.domain.model.CreateFollowupRequest
+import com.autamedica.android.domain.model.CreateVitalSignRequest
 import com.autamedica.android.domain.model.DoctorProfile
 import com.autamedica.android.domain.model.DoctorStats
+import com.autamedica.android.domain.model.ExternalPatientRecord
 import com.autamedica.android.domain.model.PatientDetail
+import com.autamedica.android.domain.model.PatientFollowupEntry
+import com.autamedica.android.domain.model.PatientPrescriptionRenewalItem
 import com.autamedica.android.domain.model.PatientSummary
+import com.autamedica.android.domain.model.RegisterExternalPatientRequest
 import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.domain.repository.AuthRepository
+import com.autamedica.android.domain.repository.DoctorPatientWorkspaceRepository
 import com.autamedica.android.domain.repository.DoctorRepository
+import com.autamedica.android.domain.repository.PatientVitalsPayload
 import com.autamedica.android.domain.repository.UserRegistrationResult
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
@@ -89,6 +99,42 @@ class PatientsViewModelTest {
             Result.failure(NotImplementedError())
     }
 
+    private class FakeWorkspaceRepository : DoctorPatientWorkspaceRepository {
+        override suspend fun getClinicalNotes(patientId: String): Result<List<ClinicalNoteEntry>> =
+            Result.success(emptyList())
+
+        override suspend fun createClinicalNote(request: CreateClinicalNoteRequest): Result<ClinicalNoteEntry> =
+            Result.failure(NotImplementedError())
+
+        override suspend fun getVitals(patientId: String): Result<PatientVitalsPayload> =
+            Result.success(PatientVitalsPayload())
+
+        override suspend fun recordVitals(request: CreateVitalSignRequest): Result<PatientVitalsPayload> =
+            Result.failure(NotImplementedError())
+
+        override suspend fun getFollowups(patientId: String): Result<List<PatientFollowupEntry>> =
+            Result.success(emptyList())
+
+        override suspend fun createFollowup(request: CreateFollowupRequest): Result<PatientFollowupEntry> =
+            Result.failure(NotImplementedError())
+
+        override suspend fun updateFollowup(
+            patientId: String,
+            followupId: String,
+            action: String,
+        ): Result<PatientFollowupEntry> = Result.failure(NotImplementedError())
+
+        override suspend fun getPatientPrescriptions(patientId: String): Result<List<PatientPrescriptionRenewalItem>> =
+            Result.success(emptyList())
+
+        override suspend fun getExternalPatients(): Result<List<ExternalPatientRecord>> =
+            Result.success(emptyList())
+
+        override suspend fun registerExternalPatient(
+            request: RegisterExternalPatientRequest,
+        ): Result<ExternalPatientRecord> = Result.failure(NotImplementedError())
+    }
+
     private fun patient(
         id: String,
         first: String,
@@ -117,7 +163,7 @@ class PatientsViewModelTest {
             profileResult = Result.success(doctorProfile),
             patientsResult = Result.success(patients),
         )
-        val vm = PatientsViewModel(repo, FakeAuthRepository(doctorUser))
+        val vm = PatientsViewModel(repo, FakeWorkspaceRepository(), FakeAuthRepository(doctorUser))
 
         advanceUntilIdle()
 
@@ -133,7 +179,7 @@ class PatientsViewModelTest {
 
     @Test
     fun `missing current user reports auth error`() = runTest {
-        val vm = PatientsViewModel(FakeDoctorRepository(), FakeAuthRepository(null))
+        val vm = PatientsViewModel(FakeDoctorRepository(), FakeWorkspaceRepository(), FakeAuthRepository(null))
 
         advanceUntilIdle()
 
@@ -144,7 +190,7 @@ class PatientsViewModelTest {
     @Test
     fun `doctor profile failure reports identification error`() = runTest {
         val repo = FakeDoctorRepository(profileResult = Result.failure(RuntimeException("boom")))
-        val vm = PatientsViewModel(repo, FakeAuthRepository(doctorUser))
+        val vm = PatientsViewModel(repo, FakeWorkspaceRepository(), FakeAuthRepository(doctorUser))
 
         advanceUntilIdle()
 
@@ -157,7 +203,7 @@ class PatientsViewModelTest {
             profileResult = Result.success(doctorProfile),
             patientsResult = Result.failure(RuntimeException("boom")),
         )
-        val vm = PatientsViewModel(repo, FakeAuthRepository(doctorUser))
+        val vm = PatientsViewModel(repo, FakeWorkspaceRepository(), FakeAuthRepository(doctorUser))
 
         advanceUntilIdle()
 
@@ -174,7 +220,7 @@ class PatientsViewModelTest {
             profileResult = Result.success(doctorProfile),
             patientsResult = Result.success(patients),
         )
-        val vm = PatientsViewModel(repo, FakeAuthRepository(doctorUser))
+        val vm = PatientsViewModel(repo, FakeWorkspaceRepository(), FakeAuthRepository(doctorUser))
         advanceUntilIdle()
 
         vm.onSearchQueryChange("mar")
@@ -200,7 +246,7 @@ class PatientsViewModelTest {
             profileResult = Result.success(doctorProfile),
             patientsResult = Result.success(patients),
         )
-        val vm = PatientsViewModel(repo, FakeAuthRepository(doctorUser))
+        val vm = PatientsViewModel(repo, FakeWorkspaceRepository(), FakeAuthRepository(doctorUser))
         advanceUntilIdle()
 
         vm.onFilterSelected(PatientFilter.UPCOMING)
@@ -218,7 +264,7 @@ class PatientsViewModelTest {
             profileResult = Result.success(doctorProfile),
             patientsResult = Result.success(emptyList()),
         )
-        val vm = PatientsViewModel(repo, FakeAuthRepository(doctorUser))
+        val vm = PatientsViewModel(repo, FakeWorkspaceRepository(), FakeAuthRepository(doctorUser))
         advanceUntilIdle()
 
         vm.refresh()

@@ -67,11 +67,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.R
+import com.autamedica.android.domain.model.ClinicalWorkspaceLogic
 import com.autamedica.android.domain.model.DoctorProfile
 import com.autamedica.android.domain.model.PatientProfileSnapshot
 import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.presentation.dashboard.DoctorDashboardViewModel
+import com.autamedica.android.presentation.health.isPortugueseUi
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
@@ -351,7 +353,8 @@ private fun ProfileHeroCard(
                             color = AuTextTertiary,
                         )
                         Text(
-                            doctor.specialty.ifBlank { stringResource(R.string.profile_doctor_specialty_pending) },
+                            ClinicalWorkspaceLogic.localizeSpecialty(doctor.specialty, isPortugueseUi())
+                                .ifBlank { stringResource(R.string.profile_doctor_specialty_pending) },
                             style = MaterialTheme.typography.bodyMedium,
                             color = AuTextPrimary,
                             fontWeight = FontWeight.SemiBold,

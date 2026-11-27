@@ -40,7 +40,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const token = body?.accessToken
 
     failureStage = 'authorize_dispatch'
-    const dispatch = await authorizePharmacyPaymentRequest(admin, requestId, token, locals.runtime?.env)
+    const authHeader = request.headers.get('authorization')
+    const dispatch = authHeader
+      ? await authorizePharmacyPaymentRequest(admin, requestId, token, locals.runtime?.env, authHeader)
+      : await authorizePharmacyPaymentRequest(admin, requestId, token, locals.runtime?.env)
     if (!dispatch) return unauthorized('pharmacy_request_token_required')
     failureCountry = dispatch.care_country === 'AR' || dispatch.care_country === 'BR' ? dispatch.care_country : 'unknown'
     if (!['BR', 'AR'].includes(dispatch?.care_country ?? '') || dispatch?.tier_requested !== 'general') {
