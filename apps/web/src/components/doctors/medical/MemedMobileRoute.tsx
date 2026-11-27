@@ -14,15 +14,19 @@ export function MemedMobileRoute() {
     const params = new URLSearchParams(window.location.search);
     const appointmentId = params.get('appointmentId') ?? '';
     const requestId = params.get('requestId') ?? '';
-    const isAppointment = UUID.test(appointmentId) && !requestId;
-    const isDispatch = UUID.test(requestId) && !appointmentId;
-    if (!isAppointment && !isDispatch) {
-      setState({status: 'error', error: 'Consulta inválida.'});
+    const patientIdParam = params.get('patientId') ?? '';
+    const isAppointment = UUID.test(appointmentId) && !requestId && !patientIdParam;
+    const isDispatch = UUID.test(requestId) && !appointmentId && !patientIdParam;
+    const isPatient = UUID.test(patientIdParam) && !appointmentId && !requestId;
+    if (!isAppointment && !isDispatch && !isPatient) {
+      setState({status: 'error', error: 'Consulta ou paciente inválido.'});
       return () => controller.abort();
     }
     const encounterQuery = isAppointment
       ? 'appointmentId=' + encodeURIComponent(appointmentId)
-      : 'requestId=' + encodeURIComponent(requestId);
+      : isDispatch
+        ? 'requestId=' + encodeURIComponent(requestId)
+        : 'patientId=' + encodeURIComponent(patientIdParam);
     void fetch('/api/doctors/prescriptions/memed-mobile-context?' + encounterQuery,
         {credentials: 'include', cache: 'no-store', signal: controller.signal})
       .then(async response => {

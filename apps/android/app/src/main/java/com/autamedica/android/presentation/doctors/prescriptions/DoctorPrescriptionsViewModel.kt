@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autamedica.android.R
+import com.autamedica.android.data.repository.MemedMobileBridgeRepository
 import com.autamedica.android.domain.model.CreatePrescriptionRequest
 import com.autamedica.android.domain.model.DoctorEligibility
 import com.autamedica.android.domain.model.Prescription
@@ -44,7 +45,7 @@ data class DoctorPrescriptionsUiState(
     val isCancelling: Boolean = false,
     val cancellationError: String? = null,
     @StringRes val cancellationErrorResId: Int? = null,
-    val cancellationErrorArgs: List<String> = emptyList(),
+    val cancellationErrorArgs: List<Any> = emptyList(),
 
     // Creation
     val patientId: String = "",
@@ -61,19 +62,32 @@ data class DoctorPrescriptionsUiState(
     val diagnosisCode: String? = null,
     val notes: String = "",
     val isSubmitting: Boolean = false,
+    val isOpeningMemed: Boolean = false,
+    val memedLaunchUrl: String? = null,
+    val memedSessionTokens: Pair<String, String>? = null,
     val createdPrescription: Prescription? = null,
     val createError: String? = null,
     @StringRes val createErrorResId: Int? = null,
-    val createErrorArgs: List<String> = emptyList(),
+    val createErrorArgs: List<Any> = emptyList(),
     val userMessage: String? = null,
     @StringRes val userMessageResId: Int? = null,
     val userMessageArgs: List<String> = emptyList(),
 )
 
 @HiltViewModel
-class DoctorPrescriptionsViewModel @Inject constructor(
+class DoctorPrescriptionsViewModel private constructor(
     private val prescriptionRepository: PrescriptionRepository,
+    private val memedMobileBridgeRepository: MemedMobileBridgeRepository?,
+    @Suppress("UNUSED_PARAMETER") nullableMarker: Unit,
 ) : ViewModel() {
+
+    @Inject
+    constructor(
+        prescriptionRepository: PrescriptionRepository,
+        memedMobileBridgeRepository: MemedMobileBridgeRepository,
+    ) : this(prescriptionRepository, memedMobileBridgeRepository, Unit)
+
+    constructor(prescriptionRepository: PrescriptionRepository) : this(prescriptionRepository, null, Unit)
 
     private val _uiState = MutableStateFlow(DoctorPrescriptionsUiState())
     val uiState: StateFlow<DoctorPrescriptionsUiState> = _uiState.asStateFlow()
@@ -431,7 +445,7 @@ class DoctorPrescriptionsViewModel @Inject constructor(
                     it.copy(
                         createError = "Complete el nombre del medicamento #${idx + 1}",
                         createErrorResId = R.string.doctor_rx_val_med_name_required,
-                        createErrorArgs = listOf("${idx + 1}"),
+                        createErrorArgs = listOf(idx + 1),
                     )
                 }
                 return
@@ -504,15 +518,6 @@ class DoctorPrescriptionsViewModel @Inject constructor(
             }
 
             val resolvedCountry = state.doctorEligibility?.countryCode?.takeIf { it.isNotBlank() } ?: "AR"
-            if (resolvedCountry.equals("BR", ignoreCase = true)) {
-                _uiState.update {
-                    it.copy(
-                        isSubmitting = false,
-                        createError = "No Brasil, receitas digitais devem ser emitidas via Memed durante a consulta.",
-                    )
-                }
-                return@launch
-            }
 
             val request = CreatePrescriptionRequest(
                 patientId = effectivePatientId,
@@ -549,6 +554,63 @@ class DoctorPrescriptionsViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    fun openMemedForBrazil() {
+        val patientId = _uiState.value.selectedPatient?.patientId ?: _uiState.value.patientId
+        if (patientId.isBlank()) {
+            _uiState.update {
+                it.copy(
+                    createError = "Seleccione un paciente antes de abrir Memed",
+                    createErrorResId = R.string.doctor_create_rx_memed_select_patient,
+                    createErrorArgs = emptyList(),
+                )
+            }
+            return
+        }
+        val bridge = memedMobileBridgeRepository ?: return
+        if (_uiState.value.isOpeningMemed) return
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isOpeningMemed = true,
+                    createError = null,
+                    createErrorResId = null,
+                    createErrorArgs = emptyList(),
+                )
+            }
+            bridge.createLaunchForPatient(patientId)
+                .onSuccess { url ->
+                    _uiState.update {
+                        it.copy(
+                            isOpeningMemed = false,
+                            memedLaunchUrl = url,
+                            memedSessionTokens = bridge.currentSessionTokens(),
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    val errMsg = UiErrorMapper.map(error, "No se pudo abrir Memed")
+                    _uiState.update {
+                        it.copy(
+                            isOpeningMemed = false,
+                            createError = errMsg,
+                            createErrorResId = null,
+                            createErrorArgs = emptyList(),
+                        )
+                    }
+                }
+        }
+    }
+
+    fun onMemedClosed() {
+        _uiState.update {
+            it.copy(
+                memedLaunchUrl = null,
+                memedSessionTokens = null,
+            )
+        }
+        loadPrescriptions()
     }
 
     fun clearCreatedPrescription() {

@@ -3,6 +3,7 @@ package com.autamedica.android.presentation.doctors.certificates
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autamedica.android.R
+import com.autamedica.android.data.repository.MemedMobileBridgeRepository
 import com.autamedica.android.domain.model.CertificateType
 import com.autamedica.android.domain.model.CreateCertificateRequest
 import com.autamedica.android.domain.model.DoctorEligibility
@@ -55,6 +56,9 @@ data class DoctorCertificatesUiState(
     val observations: String = "",
 
     val isSubmitting: Boolean = false,
+    val isOpeningMemed: Boolean = false,
+    val memedLaunchUrl: String? = null,
+    val memedSessionTokens: Pair<String, String>? = null,
     val createdCertificate: MedicalCertificate? = null,
     val createError: String? = null,
     val createErrorRes: Int? = null,
@@ -65,10 +69,24 @@ data class DoctorCertificatesUiState(
 )
 
 @HiltViewModel
-class DoctorCertificatesViewModel @Inject constructor(
+class DoctorCertificatesViewModel private constructor(
     private val certificateRepository: MedicalCertificateRepository,
     private val prescriptionRepository: PrescriptionRepository,
+    private val memedMobileBridgeRepository: MemedMobileBridgeRepository?,
+    @Suppress("UNUSED_PARAMETER") nullableMarker: Unit,
 ) : ViewModel() {
+
+    @Inject
+    constructor(
+        certificateRepository: MedicalCertificateRepository,
+        prescriptionRepository: PrescriptionRepository,
+        memedMobileBridgeRepository: MemedMobileBridgeRepository,
+    ) : this(certificateRepository, prescriptionRepository, memedMobileBridgeRepository, Unit)
+
+    constructor(
+        certificateRepository: MedicalCertificateRepository,
+        prescriptionRepository: PrescriptionRepository,
+    ) : this(certificateRepository, prescriptionRepository, null, Unit)
 
     private val _uiState = MutableStateFlow(DoctorCertificatesUiState())
     val uiState: StateFlow<DoctorCertificatesUiState> = _uiState.asStateFlow()
@@ -454,7 +472,11 @@ class DoctorCertificatesViewModel @Inject constructor(
                             } else {
                                 "Borrador de certificado guardado, pendiente de firma: ${certificate.cuir}"
                             },
-                            userMessageRes = R.string.cert_success_issued_cuir,
+                            userMessageRes = if (certificate.isActive) {
+                                R.string.cert_success_signed_cuir
+                            } else {
+                                R.string.cert_success_issued_cuir
+                            },
                             userMessageArg = certificate.cuir,
                         )
                     }
@@ -489,6 +511,62 @@ class DoctorCertificatesViewModel @Inject constructor(
                     onFailure()
                 }
         }
+    }
+
+    fun openMemedForBrazilCertificate() {
+        val patientId = _uiState.value.selectedPatient?.patientId ?: _uiState.value.patientId
+        if (patientId.isBlank()) {
+            _uiState.update {
+                it.copy(
+                    createError = "Seleccione un paciente antes de abrir Memed",
+                    createErrorRes = R.string.cert_create_memed_select_patient,
+                    createErrorArg = null,
+                )
+            }
+            return
+        }
+        val bridge = memedMobileBridgeRepository ?: return
+        if (_uiState.value.isOpeningMemed) return
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isOpeningMemed = true,
+                    createError = null,
+                    createErrorRes = null,
+                    createErrorArg = null,
+                )
+            }
+            bridge.createLaunchForPatient(patientId)
+                .onSuccess { url ->
+                    _uiState.update {
+                        it.copy(
+                            isOpeningMemed = false,
+                            memedLaunchUrl = url,
+                            memedSessionTokens = bridge.currentSessionTokens(),
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(
+                            isOpeningMemed = false,
+                            createError = UiErrorMapper.map(error, "No se pudo abrir Memed ICP-Brasil"),
+                            createErrorRes = null,
+                            createErrorArg = null,
+                        )
+                    }
+                }
+        }
+    }
+
+    fun onMemedClosed() {
+        _uiState.update {
+            it.copy(
+                memedLaunchUrl = null,
+                memedSessionTokens = null,
+            )
+        }
+        loadCertificates()
     }
 
     fun clearCreatedCertificate() {

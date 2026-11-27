@@ -11,6 +11,7 @@ import com.autamedica.android.domain.model.PrescriptionPatientItem
 import com.autamedica.android.domain.model.StudyType
 import com.autamedica.android.domain.repository.MedicalOrderRepository
 import com.autamedica.android.domain.repository.PrescriptionRepository
+import com.autamedica.android.presentation.common.UiErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -61,6 +62,7 @@ data class DoctorMedicalOrdersUiState(
     val userMessageArgs: List<String> = emptyList(),
     val errorMessage: String? = null,
     @StringRes val errorMessageResId: Int? = null,
+    val errorMessageArgs: List<Any> = emptyList(),
 )
 
 @HiltViewModel
@@ -79,7 +81,7 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
 
     fun loadOrders() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null, errorMessageResId = null) }
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, errorMessageResId = null, errorMessageArgs = emptyList()) }
             medicalOrderRepository.getDoctorMedicalOrders()
                 .onSuccess { list ->
                     val total = list.size
@@ -103,11 +105,13 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
                     }
                 }
                 .onFailure { error ->
+                    val detail = UiErrorMapper.map(error, "No se pudieron cargar las órdenes médicas")
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = error.localizedMessage ?: "Error al cargar órdenes médicas",
+                            errorMessage = detail,
                             errorMessageResId = R.string.doctor_orders_val_load_error,
+                            errorMessageArgs = listOf(detail),
                         )
                     }
                 }
@@ -154,6 +158,7 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
                 patientId = patient?.patientId.orEmpty(),
                 errorMessage = null,
                 errorMessageResId = null,
+                errorMessageArgs = emptyList(),
                 dniLookupError = null,
                 needsManualName = false,
             )
@@ -185,6 +190,7 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
                         needsManualName = false,
                         errorMessage = null,
                         errorMessageResId = null,
+                        errorMessageArgs = emptyList(),
                     )
                 }
             }.onFailure { err ->
@@ -219,6 +225,7 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
                 createdOrder = null,
                 errorMessage = null,
                 errorMessageResId = null,
+                errorMessageArgs = emptyList(),
                 userMessage = null,
                 userMessageResId = null,
             )
@@ -246,7 +253,7 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
     }
 
     fun onDiagnosisChange(diagnosis: String) {
-        _uiState.update { it.copy(diagnosis = diagnosis, errorMessage = null, errorMessageResId = null) }
+        _uiState.update { it.copy(diagnosis = diagnosis, errorMessage = null, errorMessageResId = null, errorMessageArgs = emptyList()) }
     }
 
     fun onNotesChange(notes: String) {
@@ -275,7 +282,7 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
             if (index in updated.indices) {
                 updated[index] = value
             }
-            current.copy(practices = updated, errorMessage = null, errorMessageResId = null)
+            current.copy(practices = updated, errorMessage = null, errorMessageResId = null, errorMessageArgs = emptyList())
         }
     }
 
@@ -287,6 +294,7 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
                 it.copy(
                     errorMessage = "Seleccione un paciente elegible",
                     errorMessageResId = R.string.doctor_orders_val_patient_required,
+                    errorMessageArgs = emptyList(),
                 )
             }
             return
@@ -302,6 +310,7 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
                 it.copy(
                     errorMessage = "Ingrese al menos un estudio o práctica médica",
                     errorMessageResId = R.string.doctor_orders_val_practice_required,
+                    errorMessageArgs = emptyList(),
                 )
             }
             return
@@ -312,6 +321,7 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
                 it.copy(
                     errorMessage = "Ingrese el diagnóstico presuntivo / código CIE-10",
                     errorMessageResId = R.string.doctor_orders_val_diagnosis_required,
+                    errorMessageArgs = emptyList(),
                 )
             }
             return
@@ -341,6 +351,7 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
                     isSubmitting = true,
                     errorMessage = null,
                     errorMessageResId = null,
+                    errorMessageArgs = emptyList(),
                     userMessage = null,
                     userMessageResId = null,
                     userMessageArgs = emptyList(),
@@ -375,11 +386,13 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
                     onSuccess?.invoke()
                 }
                 .onFailure { error ->
+                    val detail = UiErrorMapper.map(error, "No se pudo emitir la orden médica")
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
-                            errorMessage = error.localizedMessage ?: "Error al emitir orden médica",
+                            errorMessage = detail,
                             errorMessageResId = R.string.doctor_orders_val_issue_error,
+                            errorMessageArgs = listOf(detail),
                         )
                     }
                 }
@@ -392,6 +405,7 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
                 it.copy(
                     errorMessage = "Debe especificar un motivo de cancelación",
                     errorMessageResId = R.string.doctor_orders_val_cancel_reason_required,
+                    errorMessageArgs = emptyList(),
                 )
             }
             return
@@ -409,11 +423,13 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
                     loadOrders()
                 }
                 .onFailure { error ->
+                    val detail = UiErrorMapper.map(error, "No se pudo cancelar la orden")
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = error.localizedMessage ?: "No se pudo cancelar la orden",
+                            errorMessage = detail,
                             errorMessageResId = R.string.doctor_orders_val_cancel_error,
+                            errorMessageArgs = listOf(detail),
                         )
                     }
                 }
@@ -428,6 +444,7 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
                 userMessageArgs = emptyList(),
                 errorMessage = null,
                 errorMessageResId = null,
+                errorMessageArgs = emptyList(),
             )
         }
     }

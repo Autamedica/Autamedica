@@ -164,6 +164,20 @@ class DoctorMedicalOrdersViewModelTest {
         val state = viewModel.uiState.value
         assertThat(state.errorMessage).contains("diagnóstico")
     }
+
+    @Test
+    fun `createOrder failure propagates error detail into errorMessageArgs`() = runTest {
+        fakeMedicalOrderRepo.createOrderError = IllegalStateException("El profesional no tiene vínculo clínico activo con este paciente.")
+        viewModel.selectPatient(samplePatients.first())
+        viewModel.updatePractice(0, "Hemograma completo")
+        viewModel.onDiagnosisChange("Anemia ferropénica")
+
+        viewModel.createOrder()
+
+        val state = viewModel.uiState.value
+        assertThat(state.errorMessage).contains("vínculo clínico activo")
+        assertThat(state.errorMessageArgs).containsExactly("El profesional no tiene vínculo clínico activo con este paciente.")
+    }
 }
 
 private class FakeMedicalOrderRepository(
@@ -171,6 +185,7 @@ private class FakeMedicalOrderRepository(
 ) : MedicalOrderRepository {
 
     private val orders = initialOrders.toMutableList()
+    var createOrderError: Throwable? = null
 
     override suspend fun getDoctorMedicalOrders(): Result<List<MedicalOrder>> {
         return Result.success(orders)
@@ -186,6 +201,7 @@ private class FakeMedicalOrderRepository(
     }
 
     override suspend fun createMedicalOrder(request: CreateMedicalOrderRequest): Result<MedicalOrder> {
+        createOrderError?.let { return Result.failure(it) }
         val newOrder = MedicalOrder(
             id = "order-${orders.size + 1}",
             cuir = "AR-ORD-20260912-${orders.size + 1000}",

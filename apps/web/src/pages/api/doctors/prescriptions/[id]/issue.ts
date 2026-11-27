@@ -68,6 +68,10 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       return internalError('pdf_upload_failed', details);
     }
 
+    if (code === 'farmalink_mapping_failed') {
+      return badRequest(code, details);
+    }
+
     return badRequest(code);
   } catch (err) {
     logger.error('[issue] POST error', {

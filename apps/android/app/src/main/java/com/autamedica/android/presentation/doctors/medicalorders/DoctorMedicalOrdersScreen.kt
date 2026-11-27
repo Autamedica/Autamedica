@@ -81,7 +81,7 @@ fun DoctorMedicalOrdersScreen(
 
     LaunchedEffect(uiState.errorMessage, uiState.errorMessageResId) {
         val err = when {
-            uiState.errorMessageResId != null -> context.getString(uiState.errorMessageResId!!)
+            uiState.errorMessageResId != null -> context.getString(uiState.errorMessageResId!!, *uiState.errorMessageArgs.toTypedArray())
             uiState.errorMessage != null -> uiState.errorMessage
             else -> null
         }

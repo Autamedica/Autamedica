@@ -236,16 +236,23 @@
     <string name="doctor_rx_val_complete_issue_error">Não foi possível concluir a emissão</string>
 
     <!-- Medical Orders ViewModel Messages -->
-    <string name="doctor_orders_val_load_error">Erro ao carregar pedidos médicos</string>
+    <string name="doctor_orders_val_load_error">Erro ao carregar pedidos médicos: %1$s</string>
     <string name="doctor_orders_val_patient_required">Selecione um paciente elegível</string>
     <string name="doctor_orders_val_practice_required">Insira pelo menos um exame ou procedimento médico</string>
     <string name="doctor_orders_val_diagnosis_required">Insira o diagnóstico presuntivo / código CID-10</string>
     <string name="doctor_orders_val_issued_success">Pedido médico emitido (código de validação: %1$s)</string>
     <string name="doctor_orders_val_issued_fallback">Emitido</string>
-    <string name="doctor_orders_val_issue_error">Erro ao emitir pedido médico</string>
+    <string name="doctor_orders_val_issue_error">Erro ao emitir pedido médico: %1$s</string>
     <string name="doctor_orders_val_cancel_reason_required">Deve especificar um motivo de cancelamento</string>
     <string name="doctor_orders_val_cancelled_success">Pedido médico cancelado</string>
-    <string name="doctor_orders_val_cancel_error">Não foi possível cancelar o pedido</string>
+    <string name="doctor_orders_val_cancel_error">Não foi possível cancelar o pedido: %1$s</string>
+
+    <string name="doctor_create_rx_farmalink_single_item_note">O Farmalink AR admite 1 medicamento por receita eletrônica.</string>
+    <string name="doctor_create_rx_memed_btn">Emitir na Memed (ICP-Brasil)</string>
+    <string name="doctor_create_rx_memed_opening">Abrindo Memed...</string>
+    <string name="doctor_create_rx_memed_select_patient">Selecione um paciente antes de abrir a Memed.</string>
+    <string name="doctor_create_rx_memed_title">Receita Oficial via Memed</string>
+    <string name="doctor_create_rx_share_title">Receita Digital</string>
 
     <string name="doctor_orders_card_notes_prefix">Indicações: %1$s</string>
     <string name="doctor_orders_card_cuir_prefix">Código de validação: %1$s</string>

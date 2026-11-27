@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="es">
     <!-- Common / Actions -->
     <string name="clinical_ops_back">Volver</string>
     <string name="clinical_ops_refresh">Actualizar</string>
@@ -209,4 +209,23 @@
     <string name="in_call_clinical_ops_title">Utilidad Clínica In-Call</string>
     <string name="in_call_clinical_ops_status">Llamada activa • Documentos sujetos a verificación</string>
     <string name="in_call_chat_send_error">No se pudo enviar. Verifica la conexión del chat.</string>
+
+    <!-- Jurisdiction-aware Certificate Issuance & Memed ICP-Brasil -->
+    <string name="cert_create_title_ar">Emitir certificado médico electrónico</string>
+    <string name="cert_create_legal_ar">Firma electrónica verificada · Ley 27.553</string>
+    <string name="cert_create_submit_ar">Firmar y emitir certificado oficial</string>
+    <string name="cert_create_title_br">Preparar atestado (borrador)</string>
+    <string name="cert_create_legal_br">Referencia interna AutaMedica · Para validez oficial firmá con Memed ICP-Brasil</string>
+    <string name="cert_create_submit_br">Guardar borrador sin firma</string>
+    <string name="cert_create_memed_icp_btn">Firmar atestado con ICP-Brasil en Memed</string>
+    <string name="cert_create_memed_opening">Abriendo Memed ICP-Brasil...</string>
+    <string name="cert_create_memed_select_patient">Seleccioná un paciente antes de abrir Memed.</string>
+    <string name="cert_create_memed_title">Atestado ICP-Brasil vía Memed</string>
+    <string name="cert_success_dialog_title_signed">¡Certificado Emitido con Éxito!</string>
+    <string name="cert_success_dialog_body_signed">El certificado médico ha sido firmado electrónicamente y registrado según la Ley 27.553.</string>
+    <string name="cert_success_cuir_header_signed">CÓDIGO ÚNICO (CUIR):</string>
+    <string name="cert_success_dialog_footer_signed">Válido ante empleadores, instituciones educativas y obras sociales mediante código QR.</string>
+    <string name="cert_success_back_signed">Ver Mis Certificados</string>
+    <string name="cert_success_signed_cuir">Certificado emitido y firmado: %1$s</string>
+    <string name="cert_share_doc_title">Certificado Médico</string>
 </resources>

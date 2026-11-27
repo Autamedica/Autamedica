@@ -41,9 +41,11 @@ export interface MedicalOrderPdfData {
   cuir: string;
   issuedAt: string;
   studyType: string;
+  countryCode?: 'AR' | 'BR';
   doctor: {
     name: string;
     licenseNumber: string;
+    licenseType?: string;
     licenseJurisdiction?: string;
     refepsId?: string;
     specialty?: string;
@@ -317,6 +319,7 @@ export function generatePrescriptionPdfBytes(data: PrescriptionPdfData): Uint8Ar
 }
 
 export function generateMedicalOrderPdfBytes(data: MedicalOrderPdfData): Uint8Array {
+  const isBr = data.countryCode === 'BR';
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pageWidth = 210;
   const marginLeft = 18;
@@ -330,6 +333,21 @@ export function generateMedicalOrderPdfBytes(data: MedicalOrderPdfData): Uint8Ar
   const darkText: [number, number, number] = [15, 23, 42];
   const mutedText: [number, number, number] = [100, 116, 139];
 
+  const studyTypeLabels: Record<string, string> = isBr
+    ? {
+        laboratory: 'LABORATÓRIO',
+        imaging: 'DIAGNÓSTICO POR IMAGEM',
+        cardiology: 'CARDIOLOGIA',
+        other: 'OUTROS EXAMES',
+      }
+    : {
+        laboratory: 'LABORATORIO',
+        imaging: 'DIAGNÓSTICO POR IMÁGENES',
+        cardiology: 'CARDIOLOGÍA',
+        other: 'OTROS ESTUDIOS',
+      };
+  const studyLabel = studyTypeLabels[data.studyType.toLowerCase()] ?? data.studyType.toUpperCase();
+
   // Header Banner
   doc.setFillColor(headerBg[0], headerBg[1], headerBg[2]);
   doc.rect(0, 0, pageWidth, 42, 'F');
@@ -337,22 +355,34 @@ export function generateMedicalOrderPdfBytes(data: MedicalOrderPdfData): Uint8Ar
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text('ORDEN MÉDICA / ESTUDIO COMPLEMENTARIO', marginLeft, 16);
+  doc.text(
+    isBr ? 'SOLICITAÇÃO DE EXAMES / PROCEDIMENTOS' : 'ORDEN MÉDICA / ESTUDIO COMPLEMENTARIO',
+    marginLeft,
+    16,
+  );
 
   doc.setFontSize(8.5);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(203, 213, 225);
-  doc.text(`Tipo de Solicitud: ${sanitizePdfText(data.studyType.toUpperCase())}`, marginLeft, 22);
+  doc.text(
+    `${isBr ? 'Tipo de Solicitação' : 'Tipo de Solicitud'}: ${sanitizePdfText(studyLabel)}`,
+    marginLeft,
+    22,
+  );
 
   doc.setTextColor(accentTeal[0], accentTeal[1], accentTeal[2]);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
-  doc.text(`CUIR: ${data.cuir}`, marginLeft, 29);
+  doc.text(`${isBr ? 'Código de Validação' : 'CUIR'}: ${data.cuir}`, marginLeft, 29);
 
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.text(`Fecha de Emisión: ${formatDate(data.issuedAt)}`, marginLeft, 35);
+  doc.text(
+    `${isBr ? 'Data de Emissão' : 'Fecha de Emisión'}: ${formatDate(data.issuedAt)}`,
+    marginLeft,
+    35,
+  );
 
   // QR Code top right in header
   const qrUrl = `https://autamedica.com/orders/${encodeURIComponent(data.cuir)}`;
@@ -368,7 +398,7 @@ export function generateMedicalOrderPdfBytes(data: MedicalOrderPdfData): Uint8Ar
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
-  doc.text('PROFESIONAL SOLICITANTE', marginLeft + 4, y + 5);
+  doc.text(isBr ? 'PROFISSIONAL SOLICITANTE' : 'PROFESIONAL SOLICITANTE', marginLeft + 4, y + 5);
 
   doc.setFontSize(10.5);
   doc.setFont('helvetica', 'bold');
@@ -378,11 +408,16 @@ export function generateMedicalOrderPdfBytes(data: MedicalOrderPdfData): Uint8Ar
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(darkText[0], darkText[1], darkText[2]);
-  const docMeta = [
-    `Matrícula: ${sanitizePdfText(data.doctor.licenseNumber)}${data.doctor.licenseJurisdiction ? ` (${sanitizePdfText(data.doctor.licenseJurisdiction)})` : ''}`,
-    data.doctor.refepsId ? `REFEPS: ${sanitizePdfText(data.doctor.refepsId)}` : '',
-    data.doctor.specialty ? `Especialidad: ${sanitizePdfText(data.doctor.specialty)}` : '',
-  ].filter(Boolean).join('   |   ');
+  const docMeta = isBr
+    ? [
+        `CRM: ${sanitizePdfText(data.doctor.licenseNumber)}${data.doctor.licenseJurisdiction ? `/${sanitizePdfText(data.doctor.licenseJurisdiction)}` : ''}`,
+        data.doctor.specialty ? `Especialidade: ${sanitizePdfText(data.doctor.specialty)}` : '',
+      ].filter(Boolean).join('   |   ')
+    : [
+        `Matrícula: ${sanitizePdfText(data.doctor.licenseNumber)}${data.doctor.licenseJurisdiction ? ` (${sanitizePdfText(data.doctor.licenseJurisdiction)})` : ''}`,
+        data.doctor.refepsId ? `REFEPS: ${sanitizePdfText(data.doctor.refepsId)}` : '',
+        data.doctor.specialty ? `Especialidad: ${sanitizePdfText(data.doctor.specialty)}` : '',
+      ].filter(Boolean).join('   |   ');
   doc.text(docMeta, marginLeft + 4, y + 18);
 
   y += 28;
@@ -394,7 +429,7 @@ export function generateMedicalOrderPdfBytes(data: MedicalOrderPdfData): Uint8Ar
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
-  doc.text('DATOS DEL PACIENTE', marginLeft + 4, y + 5);
+  doc.text(isBr ? 'DADOS DO PACIENTE' : 'DATOS DEL PACIENTE', marginLeft + 4, y + 5);
 
   doc.setFontSize(10.5);
   doc.setFont('helvetica', 'bold');
@@ -403,12 +438,18 @@ export function generateMedicalOrderPdfBytes(data: MedicalOrderPdfData): Uint8Ar
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  const patMeta = [
-    data.patient.dni ? `DNI: ${sanitizePdfText(data.patient.dni)}` : '',
-    data.patient.cuil ? `CUIL: ${sanitizePdfText(data.patient.cuil)}` : '',
-    data.patient.insurancePlan ? `Cobertura: ${sanitizePdfText(data.patient.insurancePlan)}` : '',
-    data.patient.address ? `Domicilio: ${sanitizePdfText(data.patient.address)}` : '',
-  ].filter(Boolean).join('   |   ');
+  const patMeta = isBr
+    ? [
+        data.patient.dni ? `CPF: ${sanitizePdfText(data.patient.dni)}` : '',
+        data.patient.insurancePlan ? `Convênio: ${sanitizePdfText(data.patient.insurancePlan)}` : '',
+        data.patient.address ? `Endereço: ${sanitizePdfText(data.patient.address)}` : '',
+      ].filter(Boolean).join('   |   ')
+    : [
+        data.patient.dni ? `DNI: ${sanitizePdfText(data.patient.dni)}` : '',
+        data.patient.cuil ? `CUIL: ${sanitizePdfText(data.patient.cuil)}` : '',
+        data.patient.insurancePlan ? `Cobertura: ${sanitizePdfText(data.patient.insurancePlan)}` : '',
+        data.patient.address ? `Domicilio: ${sanitizePdfText(data.patient.address)}` : '',
+      ].filter(Boolean).join('   |   ');
   doc.text(patMeta, marginLeft + 4, y + 18);
 
   y += 28;
@@ -420,12 +461,21 @@ export function generateMedicalOrderPdfBytes(data: MedicalOrderPdfData): Uint8Ar
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
-  doc.text('DIAGNÓSTICO PRESUNTIVO (CIE-10 / CLÍNICO)', marginLeft + 4, y + 5);
+  doc.text(
+    isBr ? 'DIAGNÓSTICO PRESUNTIVO (CID-10 / CLÍNICO)' : 'DIAGNÓSTICO PRESUNTIVO (CIE-10 / CLÍNICO)',
+    marginLeft + 4,
+    y + 5,
+  );
 
   doc.setFontSize(8.5);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(darkText[0], darkText[1], darkText[2]);
-  doc.text(sanitizePdfText(data.diagnosis || 'Control clínico general'), marginLeft + 4, y + 11, { maxWidth: contentWidth - 8 });
+  doc.text(
+    sanitizePdfText(data.diagnosis || (isBr ? 'Avaliação clínica geral' : 'Control clínico general')),
+    marginLeft + 4,
+    y + 11,
+    { maxWidth: contentWidth - 8 },
+  );
 
   y += 20;
 
@@ -433,7 +483,11 @@ export function generateMedicalOrderPdfBytes(data: MedicalOrderPdfData): Uint8Ar
   doc.setFontSize(8.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
-  doc.text('PRÁCTICAS / ESTUDIOS SOLICITADOS', marginLeft, y + 3);
+  doc.text(
+    isBr ? 'EXAMES / PROCEDIMENTOS SOLICITADOS' : 'PRÁCTICAS / ESTUDIOS SOLICITADOS',
+    marginLeft,
+    y + 3,
+  );
   y += 6;
 
   // Practices List Box
@@ -458,7 +512,11 @@ export function generateMedicalOrderPdfBytes(data: MedicalOrderPdfData): Uint8Ar
     doc.setFontSize(7.5);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
-    doc.text('INDICACIONES DE PREPARACIÓN / INSTRUCCIONES AL PACIENTE', marginLeft + 4, y + 5);
+    doc.text(
+      isBr ? 'INSTRUÇÕES DE PREPARO / ORIENTAÇÕES AO PACIENTE' : 'INDICACIONES DE PREPARACIÓN / INSTRUCCIONES AL PACIENTE',
+      marginLeft + 4,
+      y + 5,
+    );
 
     doc.setFontSize(8);
     doc.setFont('helvetica', 'italic');
@@ -476,12 +534,16 @@ export function generateMedicalOrderPdfBytes(data: MedicalOrderPdfData): Uint8Ar
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
   doc.text(
-    'Solicitud médica digital firmada electrónicamente por profesional habilitado. Válida para su presentación en centros de diagnóstico.',
+    isBr
+      ? 'Solicitação médica digital emitida por profissional habilitado (CFM). Válida para apresentação em laboratórios e centros de diagnóstico.'
+      : 'Solicitud médica digital firmada electrónicamente por profesional habilitado. Válida para su presentación en centros de diagnóstico.',
     marginLeft,
     footerY + 4,
   );
   doc.text(
-    `Verificación de autenticidad en ${qrUrl} o escaneando el código QR. AutaMedica Healthcare OS.`,
+    isBr
+      ? `Verificação de autenticidade em ${qrUrl} ou via código QR. AutaMedica Healthcare OS.`
+      : `Verificación de autenticidad en ${qrUrl} o escaneando el código QR. AutaMedica Healthcare OS.`,
     marginLeft,
     footerY + 8,
   );

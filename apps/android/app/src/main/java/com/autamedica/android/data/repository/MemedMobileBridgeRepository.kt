@@ -1,6 +1,7 @@
 package com.autamedica.android.data.repository
 
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
@@ -31,6 +32,14 @@ class MemedMobileBridgeRepository @Inject constructor(private val client: Supaba
 
     suspend fun createLaunchForDispatch(requestId: String): Result<String> =
         createLaunchForEncounter("requestId", requestId)
+
+    suspend fun createLaunchForPatient(patientId: String): Result<String> =
+        createLaunchForEncounter("patientId", patientId)
+
+    fun currentSessionTokens(): Pair<String, String>? {
+        val session = client.auth.currentSessionOrNull() ?: return null
+        return session.accessToken to session.refreshToken
+    }
 
     /**
      * Confirms a Jordan pharmacy prescription only after the Memed event has
@@ -186,7 +195,7 @@ object MemedMobileLaunchUrl {
         validate(raw, expectedAppointmentId, "appointmentId")
 
     fun validate(raw: String, expectedEncounterId: String, queryKey: String): String {
-        require(queryKey == "appointmentId" || queryKey == "requestId") { "Consulta inválida" }
+        require(queryKey == "appointmentId" || queryKey == "requestId" || queryKey == "patientId") { "Consulta inválida" }
         require(isUuid(expectedEncounterId)) { "Consulta inválida" }
         require(raw.length < 512) { "Endereço Memed inválido" }
         val uri = URI(raw)

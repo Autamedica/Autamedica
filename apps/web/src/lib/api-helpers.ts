@@ -46,8 +46,8 @@ export const forbidden = (msg = 'forbidden') =>
 export const notFound = (msg = 'not_found') =>
   jsonFail('NOT_FOUND', msg, 404)
 
-export const badRequest = (msg: string) =>
-  jsonFail('VALIDATION', msg, 400)
+export const badRequest = (msg: string, details?: unknown) =>
+  jsonFail('VALIDATION', msg, 400, details)
 
 export const conflict = (msg: string) =>
   jsonFail('CONFLICT', msg, 409)

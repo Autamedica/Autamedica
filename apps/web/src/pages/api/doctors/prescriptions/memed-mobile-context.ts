@@ -21,9 +21,11 @@ export const GET: APIRoute = async ({request, locals}) => {
   const params = new URL(request.url).searchParams;
   const appointmentId = params.get('appointmentId') ?? '';
   const requestId = params.get('requestId') ?? '';
-  const isAppointment = UUID.test(appointmentId) && !requestId;
-  const isDispatch = UUID.test(requestId) && !appointmentId;
-  if (!isAppointment && !isDispatch) return badRequest('invalid_encounter');
+  const directPatientId = params.get('patientId') ?? '';
+  const isAppointment = UUID.test(appointmentId) && !requestId && !directPatientId;
+  const isDispatch = UUID.test(requestId) && !appointmentId && !directPatientId;
+  const isPatient = UUID.test(directPatientId) && !appointmentId && !requestId;
+  if (!isAppointment && !isDispatch && !isPatient) return badRequest('invalid_encounter');
   try {
     const admin = createAstroAdminClient(locals.runtime?.env);
     const {data: profile, error: profileError} = await admin.from('profiles')
@@ -64,7 +66,7 @@ export const GET: APIRoute = async ({request, locals}) => {
         return forbidden('clinical_encounter_required');
       }
       patientId = appt.patient_id;
-    } else {
+    } else if (isDispatch) {
       const {data: dispatch, error: dispatchError} = await admin.from('pharmacy_dispatch_requests')
         .select('assigned_doctor_id, patient_id, status, call_started_at')
         .eq('id', requestId).maybeSingle();
@@ -76,6 +78,8 @@ export const GET: APIRoute = async ({request, locals}) => {
         return forbidden('clinical_encounter_required');
       }
       patientId = dispatch.patient_id;
+    } else {
+      patientId = directPatientId;
     }
     if (!patientId) return forbidden('clinical_encounter_required');
     // Reuse the same patient access policy as /memed-token: consent, country,

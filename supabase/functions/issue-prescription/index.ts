@@ -181,15 +181,26 @@ async function issuePrescriptionHandler(req: Request): Promise<Response> {
     );
     const issueBody = await issueResponse.json().catch(() => null) as JsonObject | null;
     if (!issueResponse.ok || issueBody?.success !== true || !issueBody.data) {
+      const errorObj = (issueBody?.error && typeof issueBody.error === 'object' && !Array.isArray(issueBody.error))
+        ? (issueBody.error as JsonObject)
+        : null;
+      const resolvedCode = String(
+        errorObj?.message
+          ?? (typeof issueBody?.error === 'string' ? issueBody.error : null)
+          ?? issueBody?.code
+          ?? 'ISSUER_REJECTED',
+      );
+      const resolvedDetails = typeof errorObj?.details === 'string' ? errorObj.details : undefined;
       console.error('[issue-prescription] country issuer rejected draft', {
         countryCode, status: issueResponse.status,
-        code: issueBody?.error ?? issueBody?.code ?? 'ISSUER_REJECTED',
+        code: resolvedCode,
       });
       return jsonResponse({
         success: false,
-        code: String(issueBody?.error ?? issueBody?.code ?? 'ISSUER_REJECTED'),
+        code: resolvedCode,
+        ...(resolvedDetails ? { details: resolvedDetails } : {}),
         prescriptionId: draft.id,
-      }, issueResponse.status >= 500 ? 502 : 409, cors);
+      }, issueResponse.status >= 500 ? 502 : (issueResponse.status === 400 ? 400 : 409), cors);
     }
 
     const issued = issueBody.data as JsonObject;
@@ -217,3 +228,7 @@ async function issuePrescriptionHandler(req: Request): Promise<Response> {
 }
 
 export const handler = withEdgeSentry('issue-prescription', issuePrescriptionHandler);
+
+if (import.meta.main) {
+  Deno.serve(handler);
+}

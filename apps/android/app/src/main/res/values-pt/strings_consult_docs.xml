@@ -67,4 +67,6 @@
     <string name="doctor_dni_submit_btn">Buscar e vincular</string>
     <string name="doctor_dni_share_direct_btn">Enviar para %1$s (WhatsApp / E-mail)</string>
     <string name="doctor_dni_share_generic_btn">Enviar por WhatsApp / E-mail</string>
+    <string name="doctor_dni_share_message_fmt">Olá %1$s, compartilho o seu documento (%2$s) emitido na AutaMedica (Código: %3$s). Pode verificar e descarregar em: %4$s</string>
+    <string name="doctor_dni_share_patient_fallback">Paciente</string>
 </resources>
