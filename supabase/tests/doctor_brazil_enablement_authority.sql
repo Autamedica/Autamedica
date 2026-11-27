@@ -26,23 +26,23 @@ BEGIN
 
   SELECT id INTO v_doctor_br FROM public.doctors WHERE user_id = v_user_br;
   IF v_doctor_br IS NULL THEN
-    INSERT INTO public.doctors(id, user_id, active, care_country, license_type, license_number, uf_brazil, specialty)
-    VALUES (gen_random_uuid(), v_user_br, true, 'BR', 'CRM', '991234', 'RS', 'Psiquiatria')
+    INSERT INTO public.doctors(id, user_id, active, license_type, license_number, uf_brazil, specialty)
+    VALUES (gen_random_uuid(), v_user_br, true, 'CRM', '991234', 'RS', 'Psiquiatria')
     RETURNING id INTO v_doctor_br;
   ELSE
     UPDATE public.doctors
-    SET active = true, care_country = 'BR', license_type = 'CRM', license_number = '991234', uf_brazil = 'RS'
+    SET active = true, license_type = 'CRM', license_number = '991234', uf_brazil = 'RS'
     WHERE id = v_doctor_br;
   END IF;
 
   SELECT id INTO v_doctor_ar FROM public.doctors WHERE user_id = v_user_ar;
   IF v_doctor_ar IS NULL THEN
-    INSERT INTO public.doctors(id, user_id, active, care_country, license_type, license_number, specialty)
-    VALUES (gen_random_uuid(), v_user_ar, true, 'AR', 'MN', 'AR-991234', 'Clínica Médica')
+    INSERT INTO public.doctors(id, user_id, active, license_type, license_number, specialty)
+    VALUES (gen_random_uuid(), v_user_ar, true, 'MN', 'AR-991234', 'Clínica Médica')
     RETURNING id INTO v_doctor_ar;
   ELSE
     UPDATE public.doctors
-    SET active = true, care_country = 'AR', license_type = 'MN', license_number = 'AR-991234'
+    SET active = true, license_type = 'MN', license_number = 'AR-991234'
     WHERE id = v_doctor_ar;
   END IF;
 
