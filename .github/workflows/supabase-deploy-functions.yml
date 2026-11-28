@@ -9,7 +9,7 @@ on:
         default: "memed-mobile-preflight"
         type: string
       sync_memed_mobile_secrets:
-        description: "Also ensure MEMED_MOBILE_ENABLED=true and clear MEMED_MOBILE_PILOT_DOCTOR_ID"
+        description: "Also ensure MEMED_MOBILE_ENABLED=true and MEMED_RX_ENABLED=true and clear MEMED_MOBILE_PILOT_DOCTOR_ID"
         required: false
         default: false
         type: boolean
@@ -69,7 +69,7 @@ jobs:
 
           if [[ "${SYNC_MEMED_SECRETS}" == "true" ]]; then
             test "${SUPABASE_PROJECT_ID}" = "qxjjrpksmwwrmubhvjew"
-            supabase secrets set --yes --project-ref "${SUPABASE_PROJECT_ID}" MEMED_MOBILE_ENABLED=true
+            supabase secrets set --yes --project-ref "${SUPABASE_PROJECT_ID}" MEMED_MOBILE_ENABLED=true MEMED_RX_ENABLED=true
             supabase secrets unset --yes --project-ref "${SUPABASE_PROJECT_ID}" MEMED_MOBILE_PILOT_DOCTOR_ID || true
             echo "Memed mobile Edge Function secrets synchronized."
           fi

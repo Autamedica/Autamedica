@@ -214,10 +214,12 @@
     <string name="cert_create_title_ar">Emitir certificado médico electrónico</string>
     <string name="cert_create_legal_ar">Firma electrónica verificada · Ley 27.553</string>
     <string name="cert_create_submit_ar">Firmar y emitir certificado oficial</string>
-    <string name="cert_create_title_br">Preparar atestado (borrador)</string>
-    <string name="cert_create_legal_br">Referencia interna AutaMedica · Para validez oficial firmá con Memed ICP-Brasil</string>
-    <string name="cert_create_submit_br">Guardar borrador sin firma</string>
+    <string name="cert_create_title_br">Emitir atestado ICP-Brasil</string>
+    <string name="cert_create_legal_br">Firma digital ICP-Brasil vía Memed · CFM 2.381/2024</string>
+    <string name="cert_create_submit_br">Firmar atestado con ICP-Brasil en Memed</string>
     <string name="cert_create_memed_icp_btn">Firmar atestado con ICP-Brasil en Memed</string>
+    <string name="cert_create_br_icp_card_title">Atestado oficial vía Memed (ICP-Brasil)</string>
+    <string name="cert_create_br_icp_card_body">1. Seleccioná o registrá un paciente de Brasil con CPF válido.\n2. Tocá «Firmar atestado con ICP-Brasil en Memed» para emitir el atestado firmado con validez legal y sincronización automática en AutaMedica, sin dejar borradores.</string>
     <string name="cert_create_memed_opening">Abriendo Memed ICP-Brasil...</string>
     <string name="cert_create_memed_select_patient">Seleccioná un paciente antes de abrir Memed.</string>
     <string name="cert_create_memed_title">Atestado ICP-Brasil vía Memed</string>

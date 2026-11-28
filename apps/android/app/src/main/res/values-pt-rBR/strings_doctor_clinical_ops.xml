@@ -214,10 +214,12 @@
     <string name="cert_create_title_ar">Emitir certificado médico eletrônico</string>
     <string name="cert_create_legal_ar">Assinatura eletrônica verificada · Lei 27.553</string>
     <string name="cert_create_submit_ar">Assinar e emitir certificado oficial</string>
-    <string name="cert_create_title_br">Preparar atestado (rascunho)</string>
-    <string name="cert_create_legal_br">Referência interna AutaMedica · Para validade oficial assine com Memed ICP-Brasil</string>
-    <string name="cert_create_submit_br">Salvar rascunho sem assinatura</string>
+    <string name="cert_create_title_br">Emitir atestado ICP-Brasil</string>
+    <string name="cert_create_legal_br">Assinatura digital ICP-Brasil via Memed · CFM 2.381/2024</string>
+    <string name="cert_create_submit_br">Assinar atestado com ICP-Brasil na Memed</string>
     <string name="cert_create_memed_icp_btn">Assinar atestado com ICP-Brasil na Memed</string>
+    <string name="cert_create_br_icp_card_title">Atestado oficial via Memed (ICP-Brasil)</string>
+    <string name="cert_create_br_icp_card_body">1. Selecione ou cadastre um paciente do Brasil com CPF válido.\n2. Toque em \"Assinar atestado com ICP-Brasil na Memed\" para emitir o atestado assinado com validade legal e sincronização automática na AutaMedica, sem deixar rascunhos.</string>
     <string name="cert_create_memed_opening">Abrindo Memed ICP-Brasil...</string>
     <string name="cert_create_memed_select_patient">Selecione um paciente antes de abrir a Memed.</string>
     <string name="cert_create_memed_title">Atestado ICP-Brasil via Memed</string>

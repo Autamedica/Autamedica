@@ -322,6 +322,7 @@ Deno.test("issue-prescription - forwards nested Astro jsonFail error code and de
   DUMMY_ENV();
   Deno.env.set("AUTAMEDICA_WEB_URL", "https://web.example.com");
   const originalFetch = globalThis.fetch;
+  let draftDeleted = false;
   globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     if (url.includes("/auth/v1/user")) {
@@ -377,6 +378,10 @@ Deno.test("issue-prescription - forwards nested Astro jsonFail error code and de
         headers: { "Content-Type": "application/json" },
       });
     }
+    if (url.includes("/rest/v1/prescriptions") && init?.method === "DELETE") {
+      draftDeleted = true;
+      return new Response(null, { status: 204 });
+    }
     if (url === "https://web.example.com/api/doctors/prescriptions/draft-rx-1/issue") {
       return new Response(JSON.stringify({
         success: false,
@@ -415,6 +420,7 @@ Deno.test("issue-prescription - forwards nested Astro jsonFail error code and de
     assertEquals(body.code, "farmalink_mapping_failed");
     assertEquals(body.details, "prescriber.documentNumber");
     assertEquals(body.prescriptionId, "draft-rx-1");
+    assertEquals(draftDeleted, true);
   } finally {
     globalThis.fetch = originalFetch;
   }

@@ -252,6 +252,8 @@
     <string name="doctor_create_rx_memed_opening">Abriendo Memed...</string>
     <string name="doctor_create_rx_memed_select_patient">Seleccioná un paciente antes de abrir Memed.</string>
     <string name="doctor_create_rx_memed_title">Receta Oficial vía Memed</string>
+    <string name="doctor_create_rx_br_icp_card_title">Emisión oficial vía Memed (ICP-Brasil)</string>
+    <string name="doctor_create_rx_br_icp_card_body">1. Seleccioná o registrá un paciente de Brasil con CPF válido.\n2. Tocá «Emitir con Memed (ICP-Brasil)» para prescribir, firmar digitalmente con validez nacional (CFM 2.299/2021) y sincronizar la receta automáticamente sin borradores.</string>
     <string name="doctor_create_rx_share_title">Receta Digital</string>
 
     <string name="doctor_orders_card_notes_prefix">Indicaciones: %1$s</string>
