@@ -56,11 +56,17 @@ internal fun mapClinicalDocumentError(
     }
 
     val (code, message) = extractErrorCodeAndMessage(error)
-    return mapClinicalDocumentRawError(
+    val mapped = mapClinicalDocumentRawError(
         rawMessage = message ?: error?.message,
         errorCode = code,
         isOrder = isOrder,
     )
+    val hadStructuredPayload = error is EdgeFunctionException || rawLooksLikeJson(error?.message)
+    return if (hadStructuredPayload && !mapped.isKnownCategory) {
+        mapped.copy(isKnownCategory = true)
+    } else {
+        mapped
+    }
 }
 
 internal fun mapClinicalDocumentRawError(
