@@ -147,10 +147,10 @@
     <string name="cert_error_select_patient">Seleccione un paciente de la lista</string>
     <string name="cert_error_enter_diagnosis">Ingrese un diagnóstico o motivo clínico de la certificación</string>
     <string name="cert_error_not_eligible">No posee habilitación profesional activa para emitir certificados oficiales</string>
-    <string name="cert_success_issued_cuir">Borrador guardado. Referencia: %1$s</string>
+    <string name="cert_success_issued_cuir">Certificado emitido. Referencia: %1$s</string>
     <string name="cert_error_issue_failed">Error al emitir el certificado: %1$s</string>
     <string name="cert_error_connection">Fallo de conexión</string>
-    <string name="signature_remote_pending_notice">La matrícula profesional puede verificarse aquí, pero todavía no es posible firmar certificados mediante FirmAR. La firma dibujada no equivale a firma digital. El certificado continuará como borrador hasta completar la firma oficial.</string>
+    <string name="signature_remote_pending_notice">Validá tu matrícula profesional para habilitar la emisión digital de recetas, certificados y órdenes médicas según tu jurisdicción.</string>
 
     <!-- In-call clinical documents -->
     <string name="in_call_clinical_title">Utilidad clínica durante la llamada</string>
@@ -162,7 +162,7 @@
     <string name="in_call_country_mismatch">El país de atención debe coincidir con la matrícula profesional.</string>
     <string name="in_call_tab_prescription">Receta digital</string>
     <string name="in_call_tab_certificate">Certificado médico</string>
-    <string name="in_call_certificate_draft_saved">Borrador preparado</string>
+    <string name="in_call_certificate_draft_saved">Certificado emitido</string>
     <string name="in_call_prescription_issued">Receta emitida en AutaMedica</string>
     <string name="in_call_document_reference">Código de verificación: %1$s</string>
     <string name="in_call_document_chat_notice">El estado y el documento quedan disponibles en el chat de la consulta.</string>

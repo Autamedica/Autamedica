@@ -7,12 +7,12 @@ on:
         description: "Android versionName to promote"
         required: true
         type: string
-        default: "1.2.24"
+        default: "1.2.42"
       version_code:
         description: "Exact Play versionCode already present on Internal testing"
         required: true
         type: string
-        default: "34"
+        default: "52"
 
 permissions:
   contents: read
