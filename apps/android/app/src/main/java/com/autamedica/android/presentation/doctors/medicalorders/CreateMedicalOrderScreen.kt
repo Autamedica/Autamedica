@@ -4,7 +4,6 @@ import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -31,12 +30,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -44,9 +50,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.R
 import com.autamedica.android.domain.model.PracticeItem
 import com.autamedica.android.domain.model.PrescriptionPatientItem
-import com.autamedica.android.presentation.doctors.components.EventualPatientDniSelectorCard
 import com.autamedica.android.domain.model.StudyType
+import com.autamedica.android.presentation.doctors.common.ClinicalErrorAction
+import com.autamedica.android.presentation.doctors.components.EventualPatientDniSelectorCard
 import com.autamedica.android.presentation.theme.*
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,17 +62,27 @@ fun CreateMedicalOrderScreen(
     patientId: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenCertificateSetup: () -> Unit = {},
     viewModel: DoctorMedicalOrdersViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
+    val diagnosisFocusRequester = remember { FocusRequester() }
 
     var expandedPatientDropdown by remember { mutableStateOf(false) }
     var patientSearchQuery by remember { mutableStateOf("") }
 
     LaunchedEffect(patientId) {
         viewModel.initCreateOrder(patientId)
+    }
+
+    LaunchedEffect(uiState.isDiagnosisValidationError) {
+        if (uiState.isDiagnosisValidationError) {
+            scrollState.animateScrollTo(scrollState.maxValue)
+            runCatching { diagnosisFocusRequester.requestFocus() }
+        }
     }
 
     Scaffold(
@@ -83,12 +101,15 @@ fun CreateMedicalOrderScreen(
                         Text(
                             text = stringResource(R.string.doctor_create_order_subtitle),
                             style = MaterialTheme.typography.labelSmall,
-                            color = AuTextTertiary,
+                            color = AuTextSecondary,
                         )
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.minimumInteractiveComponentSize(),
+                    ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.doctor_create_order_action_back),
@@ -102,14 +123,14 @@ fun CreateMedicalOrderScreen(
         bottomBar = {
             Surface(
                 color = AuSurface,
-                border = BorderStroke(1.dp, AuBorder),
+                border = BorderStroke(1.dp, AuInputBorder.copy(alpha = 0.35f)),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     val errorMessageText = when {
                         uiState.errorMessageResId != null -> stringResource(
@@ -120,26 +141,32 @@ fun CreateMedicalOrderScreen(
                         else -> null
                     }
                     errorMessageText?.let { err ->
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = AuDanger.copy(alpha = 0.10f),
-                            border = BorderStroke(1.dp, AuDanger.copy(alpha = 0.3f)),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(Icons.Default.Warning, contentDescription = null, tint = AuDanger, modifier = Modifier.size(16.dp))
-                                Text(
-                                    text = err,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = AuDanger,
-                                    fontWeight = FontWeight.Medium,
-                                )
-                            }
-                        }
+                        OrderErrorBanner(
+                            message = err,
+                            action = uiState.errorAction,
+                            onActionClick = { action ->
+                                when (action) {
+                                    ClinicalErrorAction.ACTIVATE_CERTIFICATE -> onOpenCertificateSetup()
+                                    ClinicalErrorAction.REVIEW_PATIENT -> {
+                                        expandedPatientDropdown = true
+                                        coroutineScope.launch { scrollState.animateScrollTo(0) }
+                                    }
+                                    ClinicalErrorAction.RETRY -> {
+                                        viewModel.createOrder(
+                                            onSuccess = {
+                                                Toast.makeText(
+                                                    context,
+                                                    context.getString(R.string.doctor_create_order_success_toast),
+                                                    Toast.LENGTH_SHORT,
+                                                ).show()
+                                                onBack()
+                                            },
+                                        )
+                                    }
+                                    ClinicalErrorAction.NONE -> Unit
+                                }
+                            },
+                        )
                     }
 
                     Button(
@@ -153,7 +180,8 @@ fun CreateMedicalOrderScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp),
+                            .minimumInteractiveComponentSize()
+                            .heightIn(min = 48.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PortalPatientsAction, contentColor = Color.White),
                         enabled = !uiState.isSubmitting,
@@ -223,6 +251,8 @@ fun CreateMedicalOrderScreen(
             // 4. Diagnóstico Presuntivo / CIE-10
             DiagnosisCard(
                 diagnosis = uiState.diagnosis,
+                isError = uiState.isDiagnosisValidationError,
+                focusRequester = diagnosisFocusRequester,
                 onDiagnosisChange = { viewModel.onDiagnosisChange(it) },
             )
 
@@ -478,7 +508,7 @@ private fun StudyTypeSelectorCard(
                                         StudyType.OTHER -> stringResource(R.string.doctor_create_order_type_other_desc)
                                     },
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = AuTextTertiary,
+                                    color = AuTextSecondary,
                                 )
                             }
 
@@ -495,6 +525,7 @@ private fun StudyTypeSelectorCard(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DynamicPracticesCard(
     studyType: StudyType,
@@ -513,7 +544,7 @@ private fun DynamicPracticesCard(
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = AuSurface),
-        border = BorderStroke(1.dp, AuBorder),
+        border = BorderStroke(1.dp, AuInputBorder.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
@@ -522,73 +553,81 @@ private fun DynamicPracticesCard(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Icon(Icons.Outlined.Description, contentDescription = null, tint = PortalDoctors)
-                    Text(
-                        text = stringResource(R.string.doctor_create_order_practices_title),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = AuTextPrimary,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-
-                TextButton(onClick = { onAddPractice("") }) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp), tint = PortalDoctors)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = stringResource(R.string.doctor_create_order_add_practice),
-                        color = PortalDoctors,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+                Icon(Icons.Outlined.Description, contentDescription = null, tint = PrimaryDark)
+                Text(
+                    text = stringResource(R.string.doctor_create_order_practices_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = AuTextPrimary,
+                )
             }
 
-            // Quick suggestions chips
+            // Quick suggestions chips with FlowRow and real selected state
             if (suggestions.isNotEmpty()) {
                 Text(
                     text = stringResource(R.string.doctor_create_order_suggestions_title),
                     style = MaterialTheme.typography.labelSmall,
-                    color = AuTextTertiary,
+                    color = AuTextSecondary,
+                    fontWeight = FontWeight.SemiBold,
                 )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     suggestions.forEach { suggestion ->
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = AuBackground,
-                            border = BorderStroke(1.dp, AuBorder),
-                            modifier = Modifier.clickable {
-                                val emptyIndex = practices.indexOfFirst { it.isBlank() }
-                                if (emptyIndex != -1) {
-                                    onUpdatePractice(emptyIndex, suggestion)
+                        val isSelected = practices.any { it.trim().equals(suggestion, ignoreCase = true) }
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                val existingIdx = practices.indexOfFirst { it.trim().equals(suggestion, ignoreCase = true) }
+                                if (existingIdx != -1) {
+                                    onRemovePractice(existingIdx)
                                 } else {
-                                    onAddPractice(suggestion)
+                                    val emptyIndex = practices.indexOfFirst { it.isBlank() }
+                                    if (emptyIndex != -1) {
+                                        onUpdatePractice(emptyIndex, suggestion)
+                                    } else {
+                                        onAddPractice(suggestion)
+                                    }
                                 }
                             },
-                        ) {
-                            Text(
-                                text = "+ $suggestion",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = PortalDoctors,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            )
-                        }
+                            modifier = Modifier.minimumInteractiveComponentSize(),
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = if (isSelected) Icons.Default.Check else Icons.Default.Add,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(FilterChipDefaults.IconSize),
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = suggestion,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                                )
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                containerColor = AuBackground,
+                                labelColor = AuTextPrimary,
+                                iconColor = PrimaryDark,
+                                selectedContainerColor = PrimaryContainer,
+                                selectedLabelColor = PrimaryDark,
+                                selectedLeadingIconColor = PrimaryDark,
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = isSelected,
+                                borderColor = AuInputBorder,
+                                selectedBorderColor = PrimaryDark,
+                                borderWidth = 1.dp,
+                                selectedBorderWidth = 1.5.dp,
+                            ),
+                        )
                     }
                 }
             }
@@ -611,21 +650,48 @@ private fun DynamicPracticesCard(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = AuBackground,
                             unfocusedContainerColor = AuBackground,
-                            focusedBorderColor = PortalDoctors,
-                            unfocusedBorderColor = AuBorder,
+                            focusedBorderColor = PrimaryDark,
+                            unfocusedBorderColor = AuInputBorder,
+                            focusedLabelColor = PrimaryDark,
+                            unfocusedLabelColor = AuTextSecondary,
+                            unfocusedPlaceholderColor = AuTextSecondary,
                         )
                     )
 
                     if (practices.size > 1) {
-                        IconButton(onClick = { onRemovePractice(index) }) {
+                        IconButton(
+                            onClick = { onRemovePractice(index) },
+                            modifier = Modifier.minimumInteractiveComponentSize(),
+                        ) {
                             Icon(
                                 Icons.Default.Delete,
                                 contentDescription = stringResource(R.string.doctor_create_order_delete_practice_desc),
-                                tint = AuDanger.copy(alpha = 0.8f),
+                                tint = AuDangerText,
                             )
                         }
                     }
                 }
+            }
+
+            OutlinedButton(
+                onClick = { onAddPractice("") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .minimumInteractiveComponentSize()
+                    .heightIn(min = 48.dp),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, PrimaryDark),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryDark),
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = stringResource(R.string.doctor_create_order_add_practice),
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }
@@ -634,12 +700,15 @@ private fun DynamicPracticesCard(
 @Composable
 private fun DiagnosisCard(
     diagnosis: String,
+    isError: Boolean = false,
+    focusRequester: FocusRequester = remember { FocusRequester() },
     onDiagnosisChange: (String) -> Unit,
 ) {
+    val requiredDesc = stringResource(R.string.a11y_required_field)
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = AuSurface),
-        border = BorderStroke(1.dp, AuBorder),
+        border = BorderStroke(1.dp, if (isError) AuDangerText else AuInputBorder.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
@@ -655,21 +724,37 @@ private fun DiagnosisCard(
             Text(
                 text = stringResource(R.string.doctor_create_order_diagnosis_desc),
                 style = MaterialTheme.typography.labelSmall,
-                color = AuTextTertiary,
+                color = AuTextSecondary,
             )
             OutlinedTextField(
                 value = diagnosis,
                 onValueChange = onDiagnosisChange,
+                label = { Text(stringResource(R.string.doctor_create_order_diagnosis_label)) },
                 placeholder = { Text(stringResource(R.string.doctor_create_order_diagnosis_placeholder)) },
-                modifier = Modifier.fillMaxWidth(),
+                supportingText = {
+                    Text(
+                        text = stringResource(R.string.doctor_create_order_diagnosis_supporting),
+                        color = if (isError) AuDangerText else AuTextSecondary,
+                    )
+                },
+                isError = isError,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester)
+                    .semantics { stateDescription = requiredDesc },
                 singleLine = false,
                 minLines = 2,
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = AuBackground,
                     unfocusedContainerColor = AuBackground,
-                    focusedBorderColor = PortalDoctors,
-                    unfocusedBorderColor = AuBorder,
+                    focusedBorderColor = PrimaryDark,
+                    unfocusedBorderColor = AuInputBorder,
+                    errorBorderColor = AuDangerText,
+                    errorLabelColor = AuDangerText,
+                    focusedLabelColor = PrimaryDark,
+                    unfocusedLabelColor = AuTextSecondary,
+                    unfocusedPlaceholderColor = AuTextSecondary,
                 )
             )
         }
@@ -684,7 +769,7 @@ private fun PreparationNotesCard(
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = AuSurface),
-        border = BorderStroke(1.dp, AuBorder),
+        border = BorderStroke(1.dp, AuInputBorder.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
@@ -700,11 +785,12 @@ private fun PreparationNotesCard(
             Text(
                 text = stringResource(R.string.doctor_create_order_notes_desc),
                 style = MaterialTheme.typography.labelSmall,
-                color = AuTextTertiary,
+                color = AuTextSecondary,
             )
             OutlinedTextField(
                 value = notes,
                 onValueChange = onNotesChange,
+                label = { Text(stringResource(R.string.doctor_create_order_notes_label)) },
                 placeholder = { Text(stringResource(R.string.doctor_create_order_notes_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = false,
@@ -713,9 +799,120 @@ private fun PreparationNotesCard(
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = AuBackground,
                     unfocusedContainerColor = AuBackground,
-                    focusedBorderColor = PortalDoctors,
-                    unfocusedBorderColor = AuBorder,
+                    focusedBorderColor = PrimaryDark,
+                    unfocusedBorderColor = AuInputBorder,
+                    focusedLabelColor = PrimaryDark,
+                    unfocusedLabelColor = AuTextSecondary,
+                    unfocusedPlaceholderColor = AuTextSecondary,
                 )
+            )
+        }
+    }
+}
+
+@Composable
+private fun OrderErrorBanner(
+    message: String,
+    action: ClinicalErrorAction,
+    onActionClick: (ClinicalErrorAction) -> Unit,
+) {
+    val actionLabelRes = when (action) {
+        ClinicalErrorAction.ACTIVATE_CERTIFICATE -> R.string.clinical_err_action_activate_certificate
+        ClinicalErrorAction.REVIEW_PATIENT -> R.string.clinical_err_action_review_patient
+        ClinicalErrorAction.RETRY -> R.string.clinical_err_action_retry
+        ClinicalErrorAction.NONE -> null
+    }
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = ErrorContainer,
+        border = BorderStroke(1.dp, AuDangerText.copy(alpha = 0.45f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics { liveRegion = LiveRegionMode.Assertive },
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = stringResource(R.string.a11y_error_banner_prefix),
+                tint = AuDangerText,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = AuDangerText,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f),
+            )
+            if (actionLabelRes != null) {
+                TextButton(
+                    onClick = { onActionClick(action) },
+                    modifier = Modifier.minimumInteractiveComponentSize(),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                ) {
+                    Text(
+                        text = stringResource(actionLabelRes),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PrimaryDark,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Preview(name = "Order 360dp 1.5x Normal", widthDp = 360, fontScale = 1.5f, showBackground = true)
+@Composable
+private fun CreateMedicalOrderPreviewNormal() {
+    AutamedicaTheme {
+        Column(
+            modifier = Modifier
+                .background(AuBackground)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            DynamicPracticesCard(
+                studyType = StudyType.IMAGING,
+                practices = listOf("Radiografia de tórax (PA e Perfil)"),
+                onUpdatePractice = { _, _ -> },
+                onAddPractice = {},
+                onRemovePractice = {},
+            )
+            DiagnosisCard(
+                diagnosis = "R05 - Tosse",
+                isError = false,
+                onDiagnosisChange = {},
+            )
+        }
+    }
+}
+
+@Preview(name = "Order 360dp 1.5x Error", widthDp = 360, fontScale = 1.5f, showBackground = true)
+@Composable
+private fun CreateMedicalOrderPreviewError() {
+    AutamedicaTheme {
+        Column(
+            modifier = Modifier
+                .background(AuBackground)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            DiagnosisCard(
+                diagnosis = "",
+                isError = true,
+                onDiagnosisChange = {},
+            )
+            OrderErrorBanner(
+                message = stringResource(R.string.clinical_err_order_issue_failed),
+                action = ClinicalErrorAction.RETRY,
+                onActionClick = {},
             )
         }
     }

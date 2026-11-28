@@ -12,6 +12,8 @@ import com.autamedica.android.domain.model.PrescriptionItem
 import com.autamedica.android.domain.model.PrescriptionPatientItem
 import com.autamedica.android.domain.repository.PrescriptionRepository
 import com.autamedica.android.presentation.common.UiErrorMapper
+import com.autamedica.android.presentation.doctors.common.ClinicalErrorAction
+import com.autamedica.android.presentation.doctors.common.PrescriptionErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -69,6 +71,8 @@ data class DoctorPrescriptionsUiState(
     val createError: String? = null,
     @StringRes val createErrorResId: Int? = null,
     val createErrorArgs: List<Any> = emptyList(),
+    val createErrorAction: ClinicalErrorAction = ClinicalErrorAction.NONE,
+    val isDiagnosisValidationError: Boolean = false,
     val userMessage: String? = null,
     @StringRes val userMessageResId: Int? = null,
     val userMessageArgs: List<String> = emptyList(),
@@ -405,7 +409,17 @@ class DoctorPrescriptionsViewModel private constructor(
     }
 
     fun onDiagnosisChanged(diagnosis: String, code: String? = null) {
-        _uiState.update { it.copy(diagnosis = diagnosis, diagnosisCode = code, createError = null) }
+        _uiState.update {
+            it.copy(
+                diagnosis = diagnosis,
+                diagnosisCode = code,
+                createError = null,
+                createErrorResId = null,
+                createErrorArgs = emptyList(),
+                createErrorAction = ClinicalErrorAction.NONE,
+                isDiagnosisValidationError = false,
+            )
+        }
     }
 
     fun onNotesChanged(notes: String) {
@@ -478,6 +492,8 @@ class DoctorPrescriptionsViewModel private constructor(
                     createError = "Indique el diagnóstico clínico (CIE-10)",
                     createErrorResId = R.string.doctor_rx_val_diagnosis_required,
                     createErrorArgs = emptyList(),
+                    createErrorAction = ClinicalErrorAction.NONE,
+                    isDiagnosisValidationError = true,
                 )
             }
             return
@@ -491,6 +507,8 @@ class DoctorPrescriptionsViewModel private constructor(
                     createError = "Debe configurar su matrícula médica antes de emitir recetas",
                     createErrorResId = R.string.doctor_rx_val_license_required,
                     createErrorArgs = emptyList(),
+                    createErrorAction = ClinicalErrorAction.ACTIVATE_CERTIFICATE,
+                    isDiagnosisValidationError = false,
                 )
             }
             return
@@ -503,6 +521,8 @@ class DoctorPrescriptionsViewModel private constructor(
                     createError = null,
                     createErrorResId = null,
                     createErrorArgs = emptyList(),
+                    createErrorAction = ClinicalErrorAction.NONE,
+                    isDiagnosisValidationError = false,
                 )
             }
 
@@ -543,14 +563,28 @@ class DoctorPrescriptionsViewModel private constructor(
                     onSuccess(created)
                 }
                 .onFailure { error ->
-                    val errMsg = UiErrorMapper.map(error, "No se pudo completar la emisión")
-                    _uiState.update {
-                        it.copy(
-                            isSubmitting = false,
-                            createError = "Error al emitir: ${UiErrorMapper.map(error, "No se pudo emitir la receta")}",
-                            createErrorResId = R.string.doctor_rx_val_issue_error,
-                            createErrorArgs = listOf(errMsg),
-                        )
+                    val mapped = PrescriptionErrorMapper.map(error)
+                    if (mapped.isKnownCategory) {
+                        _uiState.update {
+                            it.copy(
+                                isSubmitting = false,
+                                createError = null,
+                                createErrorResId = mapped.messageResId,
+                                createErrorArgs = emptyList(),
+                                createErrorAction = mapped.action,
+                            )
+                        }
+                    } else {
+                        val errMsg = UiErrorMapper.map(error, "No se pudo completar la emisión")
+                        _uiState.update {
+                            it.copy(
+                                isSubmitting = false,
+                                createError = errMsg,
+                                createErrorResId = R.string.doctor_rx_val_issue_error,
+                                createErrorArgs = listOf(errMsg),
+                                createErrorAction = mapped.action,
+                            )
+                        }
                     }
                 }
         }
@@ -561,9 +595,10 @@ class DoctorPrescriptionsViewModel private constructor(
         if (patientId.isBlank()) {
             _uiState.update {
                 it.copy(
-                    createError = "Seleccione un paciente antes de abrir Memed",
+                    createError = null,
                     createErrorResId = R.string.doctor_create_rx_memed_select_patient,
                     createErrorArgs = emptyList(),
+                    createErrorAction = ClinicalErrorAction.REVIEW_PATIENT,
                 )
             }
             return
@@ -577,6 +612,7 @@ class DoctorPrescriptionsViewModel private constructor(
                     createError = null,
                     createErrorResId = null,
                     createErrorArgs = emptyList(),
+                    createErrorAction = ClinicalErrorAction.NONE,
                 )
             }
             bridge.createLaunchForPatient(patientId)
@@ -590,13 +626,14 @@ class DoctorPrescriptionsViewModel private constructor(
                     }
                 }
                 .onFailure { error ->
-                    val errMsg = UiErrorMapper.map(error, "No se pudo abrir Memed")
+                    val mapped = PrescriptionErrorMapper.map(error)
                     _uiState.update {
                         it.copy(
                             isOpeningMemed = false,
-                            createError = errMsg,
-                            createErrorResId = null,
+                            createError = null,
+                            createErrorResId = mapped.messageResId,
                             createErrorArgs = emptyList(),
+                            createErrorAction = mapped.action,
                         )
                     }
                 }
