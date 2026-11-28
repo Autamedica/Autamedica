@@ -403,7 +403,7 @@ class PrescriptionRepositoryImpl @Inject constructor(
                 "br_cfm_license_required", "CRM_UF_REQUIRED", "CFM_LICENSE_NOT_VERIFIED" ->
                     "Valide seu CRM e UF junto ao CFM para emitir receitas no Brasil."
                 "br_special_prescription_provider_required" ->
-                    "Este medicamento ou modelo exige emissão via Memed (ICP-Brasil)."
+                    "Este medicamento exige emissão pelo emissor digital oficial."
                 "br_patient_cpf_required", "BR_PATIENT_CPF_REQUIRED" ->
                     if (isBr) "É obrigatório informar um CPF válido do paciente para emitir no Brasil."
                     else "Se requiere un CPF válido del paciente para emitir en Brasil."
@@ -417,7 +417,7 @@ class PrescriptionRepositoryImpl @Inject constructor(
                 "missing_patient_identification", "missing_patient_address" ->
                     "Faltan datos de identificación o domicilio del paciente."
                 "digital_signature_required", "digital_signature_failed" ->
-                    if (isBr) "Ative seu certificado ICP-Brasil antes de emitir diretamente, ou emita pela Memed."
+                    if (isBr) "Ative sua assinatura digital profissional para concluir a emissão."
                     else "Active o renueve su certificado de firma digital profesional antes de emitir."
                 "farmalink_mapping_failed" ->
                     if (!details.isNullOrBlank()) {
