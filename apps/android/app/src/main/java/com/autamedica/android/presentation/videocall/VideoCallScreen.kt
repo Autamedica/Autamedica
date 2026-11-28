@@ -1,23 +1,6 @@
 package com.autamedica.android.presentation.videocall
 
 import android.Manifest
-import android.content.ActivityNotFoundException
-import android.content.Intent
-import android.net.Uri
-import android.os.Message
-import androidx.browser.customtabs.CustomTabsIntent
-import com.autamedica.android.BuildConfig
-import androidx.activity.compose.BackHandler
-import android.webkit.CookieManager
-import android.util.Base64
-import android.webkit.WebChromeClient
-import android.webkit.WebResourceRequest
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import android.webkit.SslErrorHandler
-import android.net.http.SslError
-import androidx.compose.ui.viewinterop.AndroidView
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -80,7 +63,9 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.R
+import com.autamedica.android.data.repository.MemedMobileLaunchSession
 import com.autamedica.android.presentation.common.findHostActivity
+import com.autamedica.android.presentation.doctors.components.MemedPrescriberWebView
 import com.autamedica.android.domain.model.ConnectionState
 import com.autamedica.android.navigation.VIDEO_PREVIEW_APPOINTMENT_ID
 import com.autamedica.android.presentation.videocall.components.CallActionsOverflowSheet
@@ -204,15 +189,13 @@ fun VideoCallScreen(
     var clinicalSheetMode by remember { mutableStateOf<InCallClinicalMode?>(null) }
 
     // Keep the WebRTC call mounted while Memed runs in an in-call WebView overlay.
-    // The doctor authenticates in the portal WebView; no JWT or provider token enters the URL.
-    val memedLaunchUrl = uiState.memedLaunchUrl
-    var memedInCallUrl by remember { mutableStateOf<String?>(null) }
-    var memedSessionTokens by remember { mutableStateOf<Pair<String, String>?>(null) }
-    LaunchedEffect(memedLaunchUrl) {
-        if (memedLaunchUrl != null) {
-            memedSessionTokens = viewModel.memedSessionTokens()
-            memedInCallUrl = memedLaunchUrl
-            viewModel.consumeMemedLaunchUrl()
+    // The server-side session handoff sets HttpOnly SSR cookies; no JWT or provider token enters the URL.
+    val pendingMemedSession = uiState.memedSession
+    var memedInCallSession by remember { mutableStateOf<MemedMobileLaunchSession?>(null) }
+    LaunchedEffect(pendingMemedSession) {
+        if (pendingMemedSession != null) {
+            memedInCallSession = pendingMemedSession
+            viewModel.consumeMemedLaunchSession()
             clinicalSheetMode = null
         }
     }
@@ -823,13 +806,22 @@ fun VideoCallScreen(
 
     }
 
-    memedInCallUrl?.let { launchUrl ->
-        MemedInCallWebView(
-            url = launchUrl,
-            sessionTokens = memedSessionTokens,
+    memedInCallSession?.let { activeMemedSession ->
+        MemedPrescriberWebView(
+            exchangeUrl = activeMemedSession.exchangeUrl,
+            onRetryHandoff = { forceRefreshSession ->
+                viewModel.retryMemedHandoff(
+                    canonicalLaunchUrl = activeMemedSession.canonicalLaunchUrl,
+                    forceRefreshSession = forceRefreshSession,
+                ).onSuccess { freshExchangeUrl ->
+                    memedInCallSession = activeMemedSession.copy(exchangeUrl = freshExchangeUrl)
+                }
+            },
+            titleRes = R.string.video_memed_title,
+            closeLabelRes = R.string.video_memed_back_to_call,
+            applyStatusBarPadding = false,
             onClose = {
-                memedInCallUrl = null
-                memedSessionTokens = null
+                memedInCallSession = null
                 viewModel.verifyMemedDispatchPrescriptionOnReturn()
             },
         )
@@ -847,225 +839,4 @@ private fun Context.hasTelemedicineMediaPermissions(): Boolean {
     ) == PackageManager.PERMISSION_GRANTED
 
     return cameraGranted && audioGranted
-}
-
-private val ICP_OAUTH_HOSTS = listOf(
-    "vidaas.com.br",
-    "birdid.com.br",
-    "safeweb.com.br",
-    "certisign.com.br",
-    "soluti.com.br",
-    "validcertificadora.com.br",
-    "serasaexperian.com.br",
-    "iti.gov.br",
-    "gov.br",
-)
-
-private val ICP_APP_SCHEMES = setOf("vidaas", "birdid", "safeid", "serasaid")
-
-private fun isExternalIcpOAuthHost(host: String): Boolean {
-    val normalized = host.lowercase()
-    return ICP_OAUTH_HOSTS.any { normalized == it || normalized.endsWith(".$it") }
-}
-
-private fun isMemedTrustedInWebViewHost(host: String): Boolean {
-    val normalized = host.lowercase()
-    return normalized == "doctor.autamedica.com" ||
-        normalized == "autamedica.com" ||
-        normalized == "www.autamedica.com" ||
-        normalized == "partners.memed.com.br" ||
-        normalized == "integrations.memed.com.br" ||
-        normalized == "accounts.google.com" ||
-        normalized.endsWith(".google.com") ||
-        normalized.endsWith(".gstatic.com") ||
-        normalized.endsWith(".googleapis.com") ||
-        normalized == "memed.com.br" ||
-        normalized.endsWith(".memed.com.br")
-}
-
-private fun launchExternalIcpOAuth(context: Context, uri: Uri) {
-    if (uri.scheme.equals("https", ignoreCase = true)) {
-        try {
-            CustomTabsIntent.Builder()
-                .setShowTitle(true)
-                .build()
-                .launchUrl(context, uri)
-            return
-        } catch (_: ActivityNotFoundException) {
-            // Fall through to generic external browser/app handler.
-        } catch (_: SecurityException) {
-            // Fall through to generic external browser/app handler.
-        }
-    }
-    runCatching {
-        context.startActivity(
-            Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-        )
-    }
-}
-
-/**
- * Full-screen prescription surface layered above the active call. The call's
- * WebRTC engine and lifecycle remain mounted underneath this view.
- */
-@Composable
-private fun MemedInCallWebView(
-    url: String,
-    sessionTokens: Pair<String, String>?,
-    onClose: () -> Unit,
-) {
-    val webViewRef = remember { mutableStateOf<WebView?>(null) }
-
-    BackHandler(enabled = true) {
-        val webView = webViewRef.value
-        if (webView?.canGoBack() == true) webView.goBack() else onClose()
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            runCatching {
-                val cookies = CookieManager.getInstance()
-                cookies.removeSessionCookies(null)
-                cookies.flush()
-            }
-            webViewRef.value?.let { webView ->
-                webView.stopLoading()
-                webView.loadUrl("about:blank")
-                webView.clearHistory()
-                webView.removeAllViews()
-                webView.destroy()
-            }
-            webViewRef.value = null
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.White)
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(R.string.video_memed_title),
-                color = Color(0xFF172033),
-                fontWeight = FontWeight.SemiBold,
-            )
-            TextButton(onClick = onClose) {
-                Text(stringResource(R.string.video_memed_back_to_call))
-            }
-        }
-        AndroidView(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            factory = { viewContext ->
-                WebView(viewContext).apply {
-                    webViewRef.value = this
-                    settings.javaScriptEnabled = true
-                    settings.domStorageEnabled = true
-                    settings.javaScriptCanOpenWindowsAutomatically = true
-                    settings.setSupportMultipleWindows(true)
-                    settings.allowFileAccess = false
-                    settings.allowContentAccess = false
-                    settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
-                    CookieManager.getInstance().setAcceptCookie(true)
-                    CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
-                    webChromeClient = object : WebChromeClient() {
-                        override fun onCreateWindow(
-                            view: WebView?,
-                            isDialog: Boolean,
-                            isUserGesture: Boolean,
-                            resultMsg: Message?,
-                        ): Boolean {
-                            val hostWebView = view ?: return false
-                            val transport = resultMsg?.obj as? WebView.WebViewTransport ?: return false
-                            val popupWebView = WebView(hostWebView.context)
-                            popupWebView.webViewClient = object : WebViewClient() {
-                                override fun shouldOverrideUrlLoading(
-                                    popup: WebView,
-                                    request: WebResourceRequest,
-                                ): Boolean {
-                                    val target = request.url
-                                    val scheme = target.scheme?.lowercase().orEmpty()
-                                    if (scheme == "autamedica" && target.host == "return") {
-                                        onClose()
-                                    } else if (scheme in ICP_APP_SCHEMES) {
-                                        launchExternalIcpOAuth(viewContext, target)
-                                    } else if (scheme == "https") {
-                                        val host = target.host?.lowercase().orEmpty()
-                                        if (isExternalIcpOAuthHost(host)) {
-                                            launchExternalIcpOAuth(viewContext, target)
-                                        } else if (isMemedTrustedInWebViewHost(host)) {
-                                            hostWebView.loadUrl(target.toString())
-                                        }
-                                    }
-                                    popup.destroy()
-                                    return true
-                                }
-                            }
-                            transport.webView = popupWebView
-                            resultMsg.sendToTarget()
-                            return true
-                        }
-                    }
-                    webViewClient = object : WebViewClient() {
-                        override fun shouldOverrideUrlLoading(
-                            view: WebView,
-                            request: WebResourceRequest,
-                        ): Boolean {
-                            val target = request.url
-                            val scheme = target.scheme?.lowercase().orEmpty()
-                            if (scheme == "autamedica" && target.host == "return") {
-                                onClose()
-                                return true
-                            }
-                            if (scheme in ICP_APP_SCHEMES) {
-                                launchExternalIcpOAuth(viewContext, target)
-                                return true
-                            }
-                            if (scheme != "https") return true
-                            val host = target.host?.lowercase() ?: return true
-                            if (isExternalIcpOAuthHost(host)) {
-                                launchExternalIcpOAuth(viewContext, target)
-                                return true
-                            }
-                            return !isMemedTrustedInWebViewHost(host)
-                        }
-
-                        override fun onReceivedSslError(
-                            view: WebView,
-                            handler: SslErrorHandler,
-                            error: SslError,
-                        ) {
-                            handler.cancel()
-                        }
-                    }
-                    val tokens = sessionTokens
-                    if (tokens == null) {
-                        onClose()
-                    } else {
-                        val projectRef = BuildConfig.SUPABASE_URL.substringAfter("https://").substringBefore('.')
-                        val sessionJson = """{"access_token":"${tokens.first}","refresh_token":"${tokens.second}","token_type":"bearer"}"""
-                        val encodedSession = "base64-" + Base64.encodeToString(
-                            sessionJson.toByteArray(Charsets.UTF_8),
-                            Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING,
-                        )
-                        val sessionCookie = "sb-$projectRef-auth-token=$encodedSession; Domain=.autamedica.com; Path=/; Secure; SameSite=Lax"
-                        CookieManager.getInstance().setCookie("https://doctor.autamedica.com", sessionCookie) {
-                            CookieManager.getInstance().flush()
-                            post { loadUrl(url) }
-                        }
-                    }
-                }
-            },
-            update = {},
-        )
-    }
 }

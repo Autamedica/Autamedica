@@ -155,6 +155,13 @@
     <string name="cert_create_memed_opening">Abrindo emissor digital...</string>
     <string name="cert_create_memed_select_patient">Selecione um paciente antes de continuar.</string>
     <string name="cert_create_memed_title">Atestado Digital Oficial</string>
+    <string name="memed_webview_loading">A ligar ao emissor digital…</string>
+    <string name="memed_webview_error_title">Não foi possível abrir o emissor digital</string>
+    <string name="memed_webview_error_session">A sua sessão web expirou ou não pôde ser validada. Tente novamente sem sair da AutaMedica.</string>
+    <string name="memed_webview_error_clinical">O seu perfil médico ou os dados clínicos ainda não cumprem os requisitos para emissão.</string>
+    <string name="memed_webview_error_generic">Ocorreu um problema de ligação ao portal de prescrição. Tente novamente em instantes.</string>
+    <string name="memed_webview_diagnostic_code">Código de diagnóstico: %1$s</string>
+    <string name="memed_webview_retry">Tentar novamente</string>
     <string name="cert_success_dialog_title_signed">Certificado Emitido com Sucesso!</string>
     <string name="cert_success_dialog_body_signed">O certificado médico foi assinado eletronicamente e registado ao abrigo da Lei 27.553.</string>
     <string name="cert_success_cuir_header_signed">CÓDIGO ÚNICO (CUIR):</string>

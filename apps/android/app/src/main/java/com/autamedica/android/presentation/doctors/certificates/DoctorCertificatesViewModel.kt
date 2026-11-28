@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autamedica.android.R
 import com.autamedica.android.data.repository.MemedMobileBridgeRepository
+import com.autamedica.android.data.repository.MemedMobileLaunchSession
 import com.autamedica.android.domain.model.CertificateType
 import com.autamedica.android.domain.model.CreateCertificateRequest
 import com.autamedica.android.domain.model.DoctorEligibility
@@ -57,8 +58,7 @@ data class DoctorCertificatesUiState(
 
     val isSubmitting: Boolean = false,
     val isOpeningMemed: Boolean = false,
-    val memedLaunchUrl: String? = null,
-    val memedSessionTokens: Pair<String, String>? = null,
+    val memedSession: MemedMobileLaunchSession? = null,
     val createdCertificate: MedicalCertificate? = null,
     val createError: String? = null,
     val createErrorRes: Int? = null,
@@ -537,12 +537,11 @@ class DoctorCertificatesViewModel private constructor(
                 )
             }
             bridge.createLaunchForPatient(patientId)
-                .onSuccess { url ->
+                .onSuccess { session ->
                     _uiState.update {
                         it.copy(
                             isOpeningMemed = false,
-                            memedLaunchUrl = url,
-                            memedSessionTokens = bridge.currentSessionTokens(),
+                            memedSession = session,
                         )
                     }
                 }
@@ -559,11 +558,25 @@ class DoctorCertificatesViewModel private constructor(
         }
     }
 
+    suspend fun retryMemedHandoff(forceRefreshSession: Boolean): Result<String> {
+        val bridge = memedMobileBridgeRepository
+            ?: return Result.failure(IllegalStateException("Emissor digital indisponível"))
+        val session = _uiState.value.memedSession
+            ?: return Result.failure(IllegalStateException("Sessão Memed não iniciada"))
+        return bridge.createSessionExchangeForLaunchUrl(
+            canonicalLaunchUrl = session.canonicalLaunchUrl,
+            forceRefreshSession = forceRefreshSession,
+        ).onSuccess { freshExchangeUrl ->
+            _uiState.update { state ->
+                state.copy(memedSession = session.copy(exchangeUrl = freshExchangeUrl))
+            }
+        }
+    }
+
     fun onMemedClosed() {
         _uiState.update {
             it.copy(
-                memedLaunchUrl = null,
-                memedSessionTokens = null,
+                memedSession = null,
             )
         }
         loadCertificates()

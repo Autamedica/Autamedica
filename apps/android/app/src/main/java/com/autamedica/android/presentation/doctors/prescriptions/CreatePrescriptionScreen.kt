@@ -489,10 +489,10 @@ fun CreatePrescriptionScreen(
         )
     }
 
-    uiState.memedLaunchUrl?.let { launchUrl ->
+    uiState.memedSession?.let { memedSession ->
         MemedPrescriberWebView(
-            url = launchUrl,
-            sessionTokens = uiState.memedSessionTokens,
+            exchangeUrl = memedSession.exchangeUrl,
+            onRetryHandoff = viewModel::retryMemedHandoff,
             titleRes = R.string.doctor_create_rx_memed_title,
             onClose = { viewModel.onMemedClosed() },
         )

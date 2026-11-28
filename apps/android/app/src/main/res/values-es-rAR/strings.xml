@@ -25,4 +25,11 @@
     <string name="patient_profile_gender_female">Femenino</string>
     <string name="patient_profile_gender_other">Otro</string>
     <string name="patient_profile_gender_prefer_not_to_say">Prefiero no especificar</string>
+    <string name="memed_webview_loading">Conectando con el emisor digital…</string>
+    <string name="memed_webview_error_title">No pudimos iniciar el emisor digital</string>
+    <string name="memed_webview_error_session">Tu sesión web expiró o no pudo validarse. Reintentá la conexión sin salir de AutaMedica.</string>
+    <string name="memed_webview_error_clinical">Tu perfil médico o los datos clínicos aún no cumplen los requisitos para emitir.</string>
+    <string name="memed_webview_error_generic">Ocurrió un problema de conexión con el portal de prescripción. Reintentá en unos segundos.</string>
+    <string name="memed_webview_diagnostic_code">Código de diagnóstico: %1$s</string>
+    <string name="memed_webview_retry">Reintentar conexión</string>
 </resources>

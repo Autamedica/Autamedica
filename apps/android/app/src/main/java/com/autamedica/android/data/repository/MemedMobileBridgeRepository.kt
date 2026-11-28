@@ -21,34 +21,109 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.net.URI
+import java.net.URLDecoder
+import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
+data class MemedMobileLaunchSession(
+    val canonicalLaunchUrl: String,
+    val exchangeUrl: String,
+)
+
 /**
  * AutaMedica Brazil only. Server rechecks role, physician, CFM, encounter,
- * patient identity and LGPD before returning a link. No tokens in browser URL.
+ * patient identity and LGPD before issuing an ephemeral single-use handoff code.
+ * No JWT, refresh token or Memed token is ever placed in browser URLs.
  */
 @Singleton
-class MemedMobileBridgeRepository @Inject constructor(private val client: SupabaseClient) {
-    private val json = Json { ignoreUnknownKeys = true }
-    private val httpClient = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(20, TimeUnit.SECONDS)
-        .build()
+class MemedMobileBridgeRepository internal constructor(
+    private val client: SupabaseClient,
+    private val httpClient: OkHttpClient,
+    private val supabaseBaseUrl: String,
+    private val portalBaseUrl: String,
+) {
+    @Inject
+    constructor(client: SupabaseClient) : this(
+        client = client,
+        httpClient = defaultHttpClient(),
+        supabaseBaseUrl = BuildConfig.SUPABASE_URL.trimEnd('/'),
+        portalBaseUrl = DEFAULT_PORTAL_BASE_URL,
+    )
 
-    suspend fun createLaunch(appointmentId: String): Result<String> =
+    private val json = Json { ignoreUnknownKeys = true }
+
+    suspend fun createLaunch(appointmentId: String): Result<MemedMobileLaunchSession> =
         createLaunchForEncounter("appointmentId", appointmentId)
 
-    suspend fun createLaunchForDispatch(requestId: String): Result<String> =
+    suspend fun createLaunchForDispatch(requestId: String): Result<MemedMobileLaunchSession> =
         createLaunchForEncounter("requestId", requestId)
 
-    suspend fun createLaunchForPatient(patientId: String): Result<String> =
+    suspend fun createLaunchForPatient(patientId: String): Result<MemedMobileLaunchSession> =
         createLaunchForEncounter("patientId", patientId)
 
-    fun currentSessionTokens(): Pair<String, String>? {
-        val session = client.auth.currentSessionOrNull() ?: return null
-        return session.accessToken to session.refreshToken
+    suspend fun createSessionExchangeForLaunchUrl(
+        canonicalLaunchUrl: String,
+        forceRefreshSession: Boolean = false,
+    ): Result<String> = runCatching {
+        val nextPath = MemedMobileLaunchUrl.extractCanonicalNextPath(canonicalLaunchUrl)
+        if (forceRefreshSession || client.auth.currentSessionOrNull() == null) {
+            runCatching { client.auth.refreshCurrentSession() }
+        }
+
+        val initialSession = client.auth.currentSessionOrNull()
+            ?: error("Sessão autenticada necessária para emitir documentos digitais")
+        val initialAccess = initialSession.accessToken.takeIf { it.isNotBlank() }
+            ?: error("Sessão autenticada necessária para emitir documentos digitais")
+        val initialRefresh = initialSession.refreshToken.takeIf { it.isNotBlank() }
+            ?: error("Sessão autenticada necessária para emitir documentos digitais")
+
+        var (httpCode, responseText) = postSessionExchange(
+            accessToken = initialAccess,
+            refreshToken = initialRefresh,
+            nextPath = nextPath,
+        )
+
+        if (httpCode == 401 && !forceRefreshSession) {
+            runCatching { client.auth.refreshCurrentSession() }
+            val refreshedSession = client.auth.currentSessionOrNull()
+            val refreshedAccess = refreshedSession?.accessToken?.takeIf { it.isNotBlank() }
+            val refreshedRefresh = refreshedSession?.refreshToken?.takeIf { it.isNotBlank() }
+            if (refreshedAccess != null && refreshedRefresh != null) {
+                val retryResult = postSessionExchange(
+                    accessToken = refreshedAccess,
+                    refreshToken = refreshedRefresh,
+                    nextPath = nextPath,
+                )
+                httpCode = retryResult.first
+                responseText = retryResult.second
+            }
+        }
+
+        if (httpCode !in 200..299) {
+            val root = runCatching { json.parseToJsonElement(responseText) as? JsonObject }.getOrNull()
+            val errorObj = root?.get("error") as? JsonObject
+            val errMsg = errorObj?.get("message")?.jsonPrimitive?.contentOrNull
+                ?: root?.get("message")?.jsonPrimitive?.contentOrNull
+            val friendly = when (httpCode) {
+                401 -> "Sessão expirada ao iniciar o emissor digital. Faça login novamente."
+                403 -> "Perfil médico ou habilitação pendente para abrir o emissor digital."
+                else -> errMsg ?: "Não foi possível iniciar a sessão no emissor digital (HTTP $httpCode)"
+            }
+            error(friendly)
+        }
+
+        val parsed = json.decodeFromString<MemedSessionExchangeEnvelope>(responseText)
+        val exchangeData = parsed.data
+        check(parsed.success && exchangeData != null) {
+            "Resposta inválida do servidor de sessão Memed"
+        }
+        MemedMobileLaunchUrl.validateExchangeUrl(
+            raw = exchangeData.exchangeUrl,
+            expectedNextPath = nextPath,
+            expectedOrigin = portalBaseUrl,
+        )
     }
 
     /**
@@ -68,9 +143,15 @@ class MemedMobileBridgeRepository @Inject constructor(private val client: Supaba
 
         val rows = client.postgrest
             .from("prescriptions")
-            .select(Columns.list(
-                "id", "doctor_id", "patient_id", "status", "clinical_data",
-            )) {
+            .select(
+                Columns.list(
+                    "id",
+                    "doctor_id",
+                    "patient_id",
+                    "status",
+                    "clinical_data",
+                ),
+            ) {
                 filter {
                     eq("doctor_id", doctorId)
                     eq("patient_id", patientId)
@@ -104,12 +185,15 @@ class MemedMobileBridgeRepository @Inject constructor(private val client: Supaba
         }
     }
 
-    private suspend fun createLaunchForEncounter(key: String, encounterId: String): Result<String> = runCatching {
+    private suspend fun createLaunchForEncounter(
+        key: String,
+        encounterId: String,
+    ): Result<MemedMobileLaunchSession> = runCatching {
         require(MemedMobileLaunchUrl.isUuid(encounterId)) { "Consulta inválida" }
-        val accessToken = client.auth.currentSessionOrNull()?.accessToken
+        val accessToken = client.auth.currentSessionOrNull()?.accessToken?.takeIf { it.isNotBlank() }
             ?: error("Sessão autenticada necessária para emitir documentos digitais")
         val payload = buildJsonObject { put(key, encounterId) }
-        val endpoint = BuildConfig.SUPABASE_URL.trimEnd('/') + "/functions/v1/memed-mobile-preflight"
+        val endpoint = "$supabaseBaseUrl/functions/v1/memed-mobile-preflight"
         val (httpCode, responseText) = withContext(Dispatchers.IO) {
             val body = payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
             val httpRequest = Request.Builder()
@@ -143,11 +227,53 @@ class MemedMobileBridgeRepository @Inject constructor(private val client: Supaba
             error(friendly)
         }
         val result = json.decodeFromString<MemedMobilePreflightResponse>(responseText)
-        check(result.success && result.provider == "memed" &&
-            result.country == "BR" && result.requiresBrowserSignIn) {
+        check(
+            result.success &&
+                result.provider == "memed" &&
+                result.country == "BR" &&
+                result.requiresBrowserSignIn,
+        ) {
             "Resposta do emissor digital não autorizada"
         }
-        MemedMobileLaunchUrl.validate(result.launchUrl, encounterId, key)
+        val canonicalLaunchUrl = MemedMobileLaunchUrl.validate(result.launchUrl, encounterId, key)
+        val exchangeUrl = createSessionExchangeForLaunchUrl(canonicalLaunchUrl).getOrThrow()
+        MemedMobileLaunchSession(
+            canonicalLaunchUrl = canonicalLaunchUrl,
+            exchangeUrl = exchangeUrl,
+        )
+    }
+
+    private suspend fun postSessionExchange(
+        accessToken: String,
+        refreshToken: String,
+        nextPath: String,
+    ): Pair<Int, String> = withContext(Dispatchers.IO) {
+        val endpoint = "${portalBaseUrl.trimEnd('/')}$SESSION_EXCHANGE_PATH"
+        val payload = buildJsonObject {
+            put("refreshToken", refreshToken)
+            put("next", nextPath)
+        }
+        val body = payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+        val httpRequest = Request.Builder()
+            .url(endpoint)
+            .header("Authorization", "Bearer $accessToken")
+            .header("Accept", "application/json")
+            .header("User-Agent", "AutaMedica-Android/1.0")
+            .post(body)
+            .build()
+        httpClient.newCall(httpRequest).execute().use { resp ->
+            resp.code to resp.body?.string().orEmpty()
+        }
+    }
+
+    private companion object {
+        private const val DEFAULT_PORTAL_BASE_URL = "https://doctor.autamedica.com"
+        private const val SESSION_EXCHANGE_PATH = "/api/doctors/memed-mobile/session-exchange"
+
+        private fun defaultHttpClient(): OkHttpClient = OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(20, TimeUnit.SECONDS)
+            .build()
     }
 }
 
@@ -158,6 +284,19 @@ data class MemedMobilePreflightResponse(
     val requiresBrowserSignIn: Boolean,
     val provider: String,
     val country: String,
+)
+
+@Serializable
+private data class MemedSessionExchangeEnvelope(
+    val success: Boolean,
+    val data: MemedSessionExchangeData? = null,
+)
+
+@Serializable
+private data class MemedSessionExchangeData(
+    val code: String,
+    val exchangeUrl: String,
+    val expiresInSeconds: Int = 45,
 )
 
 @Serializable
@@ -223,7 +362,17 @@ object MemedEncounterTargetResolver {
 /** Appointment ID is a lookup handle only, never an authorization credential. */
 object MemedMobileLaunchUrl {
     private val uuid = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+    private val opaqueCode = Regex("^[A-Za-z0-9_-]{32,128}$")
+    private val forbiddenSecretTokens = listOf("access_token", "refresh_token", "jwt=", "eyJ")
+
+    const val TARGET_PATH = "/doctors/prescriptions/memed-mobile"
+    const val EXCHANGE_PATH = "/api/doctors/memed-mobile/session-exchange"
+    const val DEFAULT_ORIGIN = "https://doctor.autamedica.com"
+
     fun isUuid(value: String): Boolean = uuid.matches(value)
+
+    fun isOpaqueHandoffCode(code: String): Boolean =
+        opaqueCode.matches(code) && !code.contains('.')
 
     fun resolveEncounterTarget(
         appointmentId: String,
@@ -238,14 +387,102 @@ object MemedMobileLaunchUrl {
         require(isUuid(expectedEncounterId)) { "Consulta inválida" }
         require(raw.length < 512) { "Endereço Memed inválido" }
         val uri = URI(raw)
-        require(uri.scheme == "https" && uri.host == "doctor.autamedica.com" &&
-            uri.port == -1 && uri.rawUserInfo == null && uri.fragment == null &&
-            uri.path == "/doctors/prescriptions/memed-mobile") {
+        require(
+            uri.scheme == "https" &&
+                uri.host == "doctor.autamedica.com" &&
+                uri.port == -1 &&
+                uri.rawUserInfo == null &&
+                uri.fragment == null &&
+                uri.path == TARGET_PATH,
+        ) {
             "Destino Memed não autorizado"
         }
         require(uri.rawQuery == "$queryKey=$expectedEncounterId") {
             "Consulta Memed não corresponde à consulta atual"
         }
+        return uri.toASCIIString()
+    }
+
+    fun extractCanonicalNextPath(rawLaunchUrl: String): String {
+        require(rawLaunchUrl.length < 512) { "Endereço Memed inválido" }
+        val uri = URI(rawLaunchUrl)
+        require(
+            uri.scheme == "https" &&
+                uri.host == "doctor.autamedica.com" &&
+                uri.port == -1 &&
+                uri.rawUserInfo == null &&
+                uri.fragment == null &&
+                uri.path == TARGET_PATH,
+        ) {
+            "Destino Memed não autorizado"
+        }
+        val query = uri.rawQuery ?: error("Destino Memed inválido")
+        val parts = query.split('=')
+        require(parts.size == 2) { "Destino Memed inválido" }
+        val key = parts[0]
+        val value = parts[1]
+        validate(rawLaunchUrl, value, key)
+        return "$TARGET_PATH?$key=$value"
+    }
+
+    fun buildExchangeUrl(
+        code: String,
+        nextPath: String,
+        baseOrigin: String = DEFAULT_ORIGIN,
+    ): String {
+        require(isOpaqueHandoffCode(code)) { "Código de handoff inválido" }
+        val canonicalNext = extractCanonicalNextPath("$DEFAULT_ORIGIN$nextPath")
+        val originUri = URI(baseOrigin.trimEnd('/'))
+        require(
+            (originUri.scheme == "https" || originUri.scheme == "http") &&
+                !originUri.host.isNullOrBlank() &&
+                originUri.rawUserInfo == null,
+        ) {
+            "Origem de handoff inválida"
+        }
+        val encodedCode = URLEncoder.encode(code, Charsets.UTF_8.name())
+        val encodedNext = URLEncoder.encode(canonicalNext, Charsets.UTF_8.name())
+        val built = "${baseOrigin.trimEnd('/')}$EXCHANGE_PATH?code=$encodedCode&next=$encodedNext"
+        return validateExchangeUrl(built, canonicalNext, baseOrigin)
+    }
+
+    fun validateExchangeUrl(
+        raw: String,
+        expectedNextPath: String,
+        expectedOrigin: String = DEFAULT_ORIGIN,
+    ): String {
+        require(raw.length in 1..1024) { "URL de handoff inválida" }
+        require(forbiddenSecretTokens.none { raw.contains(it, ignoreCase = false) }) {
+            "URL de handoff contém credencial proibida"
+        }
+        val expectedOriginUri = URI(expectedOrigin.trimEnd('/'))
+        val uri = URI(raw)
+        require(
+            uri.scheme == expectedOriginUri.scheme &&
+                uri.host == expectedOriginUri.host &&
+                uri.port == expectedOriginUri.port &&
+                uri.rawUserInfo == null &&
+                uri.fragment == null &&
+                uri.path == EXCHANGE_PATH,
+        ) {
+            "Destino de exchange Memed não autorizado"
+        }
+        val rawQuery = uri.rawQuery ?: error("Parâmetros de exchange ausentes")
+        val params = rawQuery.split('&').associate { pair ->
+            val idx = pair.indexOf('=')
+            require(idx > 0) { "Parâmetro de exchange inválido" }
+            val k = URLDecoder.decode(pair.substring(0, idx), Charsets.UTF_8.name())
+            val v = URLDecoder.decode(pair.substring(idx + 1), Charsets.UTF_8.name())
+            k to v
+        }
+        require(params.size == 2 && params.keys == setOf("code", "next")) {
+            "Parâmetros de exchange não autorizados"
+        }
+        val code = params["code"].orEmpty()
+        val next = params["next"].orEmpty()
+        require(isOpaqueHandoffCode(code)) { "Código de exchange inválido" }
+        require(next == expectedNextPath) { "Destino de exchange divergente" }
+        extractCanonicalNextPath("$DEFAULT_ORIGIN$next")
         return uri.toASCIIString()
     }
 }

@@ -77,6 +77,9 @@ const PUBLIC_ROUTES = [
   // and can produce false 401s for guests with valid guest tokens (ASTRO-A/9).
   "/api/calls",
   "/api/preanamnesis",
+  // Ephemeral Android -> WebView session handoff: POST authenticates via Bearer JWT,
+  // GET redeems a single-use server-side opaque code. /doctors/* remains protected.
+  "/api/doctors/memed-mobile/session-exchange",
 ];
 
 // Public marketing landings. Their nested portal routes remain protected.
@@ -684,6 +687,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // Captura cualquier retorno OAuth con `code` que haya aterrizado en la raíz u otra ruta
   if (
     pathname !== "/auth/callback" &&
+    pathname !== "/api/doctors/memed-mobile/session-exchange" &&
     requestUrl.searchParams.has("code")
   ) {
     const callbackUrl = new URL("/auth/callback", context.request.url);
