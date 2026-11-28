@@ -248,10 +248,10 @@
     <string name="doctor_orders_val_cancel_error">Não foi possível cancelar o pedido: %1$s</string>
 
     <string name="doctor_create_rx_farmalink_single_item_note">O Farmalink AR admite 1 medicamento por receita eletrónica.</string>
-    <string name="doctor_create_rx_memed_btn">Emitir na Memed (ICP-Brasil)</string>
-    <string name="doctor_create_rx_memed_opening">A abrir Memed...</string>
-    <string name="doctor_create_rx_memed_select_patient">Selecione um paciente antes de abrir a Memed.</string>
-    <string name="doctor_create_rx_memed_title">Receita Oficial via Memed</string>
+    <string name="doctor_create_rx_memed_btn">Emitir Receita Digital</string>
+    <string name="doctor_create_rx_memed_opening">Abrindo emissor digital...</string>
+    <string name="doctor_create_rx_memed_select_patient">Selecione um paciente antes de continuar.</string>
+    <string name="doctor_create_rx_memed_title">Receita Digital Oficial</string>
     <string name="doctor_create_rx_share_title">Receita Digital</string>
 
     <string name="doctor_orders_card_notes_prefix">Indicações: %1$s</string>

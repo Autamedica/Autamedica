@@ -60,23 +60,11 @@ async function fetchOrCreateProfileImpl(supabase: Db, user: User): Promise<Profi
   const db = supabase as unknown as LooseDb
   const email = ensureEmail(user)
 
-  // Attempt 1: new schema (user_id)
-  let { data, error } = await db
+  const { data, error } = await db
     .from('profiles')
     .select('*')
     .eq('user_id', user.id)
     .maybeSingle()
-
-  // If column doesn't exist or no row, try legacy schema (id)
-  if ((error && error.code !== 'PGRST116') || (!data && !error)) {
-    const tryLegacy = await db
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .maybeSingle()
-    data = tryLegacy.data as DbRow | null
-    error = tryLegacy.error
-  }
 
   if (error && error.code !== 'PGRST116') {
     logger.error('[patientSessionService] fetchOrCreateProfile select failed', error)
@@ -85,16 +73,7 @@ async function fetchOrCreateProfileImpl(supabase: Db, user: User): Promise<Profi
 
   let profileRow: DbRow | null = (data as DbRow | null) ?? null
 
-  // Normalize id -> user_id if legacy
-  if (profileRow && !profileRow['user_id'] && profileRow['id']) {
-    profileRow = { ...profileRow, user_id: profileRow['id'] }
-  }
-
   if (!profileRow) {
-    // Try inserting with user_id; fallback to id schema
-    let inserted: DbRow | null = null
-    let insertError: Error | null = null
-
     const insert = await (db
       .from('profiles')
       .insert({
@@ -106,26 +85,8 @@ async function fetchOrCreateProfileImpl(supabase: Db, user: User): Promise<Profi
       .select('*')
       .single())
 
-    inserted = insert.data as DbRow | null
-    insertError = insert.error
-
-    if (insertError) {
-      logger.warn('[patientSessionService] insert with user_id failed, retrying legacy schema', insertError)
-      // Retry legacy schema
-      const legacy = await (db
-        .from('profiles')
-        .insert({
-          id: user.id,
-          email,
-          role: 'patient',
-          external_id: user.id,
-        } satisfies DbRow)
-        .select('*')
-        .single())
-
-      inserted = legacy.data as DbRow | null
-      insertError = legacy.error
-    }
+    const inserted = insert.data as DbRow | null
+    const insertError = insert.error
 
     if (insertError) {
       throw insertError
@@ -143,7 +104,7 @@ async function fetchOrCreateProfileImpl(supabase: Db, user: User): Promise<Profi
       const updateTry = await (db
         .from('profiles')
         .update(updates)
-        .eq(profileRow['user_id'] ? 'user_id' : 'id', user.id)
+        .eq('user_id', user.id)
         .select('*')
         .single())
 

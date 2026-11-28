@@ -36,7 +36,7 @@
     <string name="ui_clinical_completed_today">Consultas atendidas hoje</string>
     <string name="ui_clinical_completed_today_hint">Agendamentos e plantões de farmácia concluídos</string>
     <string name="ui_memed_select_patient_title">Selecionar paciente</string>
-    <string name="ui_memed_select_patient_body">Escolha um paciente da sua lista clínica para continuar pelo fluxo brasileiro do Memed.</string>
+    <string name="ui_memed_select_patient_body">Escolha um paciente da sua lista clínica para emitir documentos digitais.</string>
     <string name="ui_memed_select_patient_action">Selecionar paciente</string>
     <string name="ui_action_cancel">Cancelar</string>
     <string name="ui_doctor_duty_requires_approval">Aprovação administrativa do registro profissional necessária</string>

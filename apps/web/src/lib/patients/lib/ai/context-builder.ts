@@ -37,7 +37,7 @@ export async function getAdminClient(): Promise<AppSupabaseClient> {
 export async function buildPatientContext(userId: string, admin?: AppSupabaseClient) {
   const client = admin ?? (await getAdminClient())
   const [{ data: profile }, { data: patient }] = await Promise.all([
-    client.from('profiles').select('*').eq('id', userId).maybeSingle(),
+    client.from('profiles').select('*').eq('user_id', userId).maybeSingle(),
     client.from('patients').select('*').eq('user_id', userId).maybeSingle(),
   ])
 

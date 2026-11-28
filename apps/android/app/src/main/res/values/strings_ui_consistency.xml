@@ -36,7 +36,7 @@
     <string name="ui_clinical_completed_today">Consultas atendidas hoy</string>
     <string name="ui_clinical_completed_today_hint">Turnos y guardias de farmacia completados</string>
     <string name="ui_memed_select_patient_title">Seleccionar paciente</string>
-    <string name="ui_memed_select_patient_body">Elegí un paciente desde tu lista clínica para continuar por el flujo brasileño de Memed.</string>
+    <string name="ui_memed_select_patient_body">Elegí un paciente desde tu lista clínica para emitir documentos digitales.</string>
     <string name="ui_memed_select_patient_action">Seleccionar paciente</string>
     <string name="ui_action_cancel">Cancelar</string>
     <string name="ui_doctor_duty_requires_approval">Requiere aprobación administrativa de matrícula</string>
