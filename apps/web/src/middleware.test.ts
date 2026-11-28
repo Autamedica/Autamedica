@@ -410,3 +410,16 @@ describe('Locale cookie domain scoping in middleware.ts', () => {
     expect(block).toContain('".autamedica.com"');
   });
 });
+
+describe('Memed mobile session-exchange exemption in middleware.ts', () => {
+  it('allows /api/doctors/memed-mobile/session-exchange without hijacking ?code= while keeping /doctors/prescriptions/memed-mobile protected', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const source = fs.readFileSync(path.resolve(__dirname, 'middleware.ts'), 'utf8');
+
+    expect(source).toContain('"/api/doctors/memed-mobile/session-exchange"');
+    expect(source).toContain('pathname !== "/api/doctors/memed-mobile/session-exchange"');
+    expect(isProtectedPath('/doctors/prescriptions/memed-mobile')).toBe(true);
+    expect(isPublicPath('/doctors/prescriptions/memed-mobile')).toBe(false);
+  });
+});

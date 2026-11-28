@@ -6,9 +6,9 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -21,25 +21,28 @@ import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.HealthAndSafety
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.R
 import com.autamedica.android.domain.model.CertificateType
+import com.autamedica.android.domain.model.ClinicalJurisdictionResolution
 import com.autamedica.android.domain.model.DoctorEligibility
-import com.autamedica.android.domain.model.MedicalCertificate
-import com.autamedica.android.domain.model.PrescriptionPatientItem
+import com.autamedica.android.domain.model.resolveClinicalJurisdictionState
 import com.autamedica.android.presentation.doctors.components.EventualPatientDniSelectorCard
 import com.autamedica.android.presentation.doctors.components.MemedPrescriberWebView
 import com.autamedica.android.presentation.doctors.components.ShareDocumentToPatientButton
@@ -68,14 +71,26 @@ fun CreateCertificateScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+    val diagnosisFocusRequester = remember { FocusRequester() }
 
     var patientSearchQuery by remember { mutableStateOf("") }
     var expandedPatientDropdown by remember { mutableStateOf(false) }
-    val isBrazil = uiState.doctorEligibility?.countryCode.equals("BR", ignoreCase = true) ||
-        uiState.doctorEligibility?.doctorLicense?.startsWith("CRM", ignoreCase = true) == true
+    val jurisdictionState = resolveClinicalJurisdictionState(
+        eligibility = uiState.doctorEligibility,
+        isLoadingEligibility = uiState.isLoadingEligibility,
+    )
+    val isBrazil = jurisdictionState == ClinicalJurisdictionResolution.BR
+    val isArgentina = jurisdictionState == ClinicalJurisdictionResolution.AR
 
     LaunchedEffect(patientId) {
         viewModel.initCreateCertificate(patientId)
+    }
+
+    LaunchedEffect(uiState.isDiagnosisValidationError) {
+        if (uiState.isDiagnosisValidationError) {
+            scrollState.animateScrollTo(scrollState.maxValue)
+            runCatching { diagnosisFocusRequester.requestFocus() }
+        }
     }
 
     Scaffold(
@@ -98,12 +113,15 @@ fun CreateCertificateScreen(
                                 if (isBrazil) R.string.cert_create_legal_br else R.string.cert_create_legal_ar
                             ),
                             style = MaterialTheme.typography.labelSmall,
-                            color = AuTextTertiary,
+                            color = AuTextSecondary,
                         )
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.minimumInteractiveComponentSize(),
+                    ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.clinical_ops_back),
@@ -117,7 +135,7 @@ fun CreateCertificateScreen(
         bottomBar = {
             Surface(
                 color = AuSurface,
-                border = BorderStroke(1.dp, AuBorder),
+                border = BorderStroke(1.dp, AuInputBorder.copy(alpha = 0.35f)),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(
@@ -134,75 +152,108 @@ fun CreateCertificateScreen(
                     errorMessage?.let { err ->
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = AuDanger.copy(alpha = 0.10f),
-                            border = BorderStroke(1.dp, AuDanger.copy(alpha = 0.3f)),
-                            modifier = Modifier.fillMaxWidth()
+                            color = ErrorContainer,
+                            border = BorderStroke(1.dp, AuDangerText.copy(alpha = 0.45f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .semantics { liveRegion = LiveRegionMode.Assertive }
                         ) {
                             Row(
                                 modifier = Modifier.padding(10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(Icons.Default.Warning, contentDescription = null, tint = AuDanger, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Warning, contentDescription = null, tint = AuDangerText, modifier = Modifier.size(16.dp))
                                 Text(
                                     text = err,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = AuDanger,
+                                    color = AuDangerText,
                                     fontWeight = FontWeight.Medium
                                 )
                             }
                         }
                     }
 
-                    if (isBrazil) {
-                        Button(
-                            onClick = { viewModel.openMemedForBrazilCertificate() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PortalDoctors, contentColor = Color.White),
-                            enabled = !uiState.isOpeningMemed,
-                        ) {
-                            if (uiState.isOpeningMemed) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    color = Color.White,
-                                    strokeWidth = 2.dp,
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(R.string.cert_create_memed_opening), fontWeight = FontWeight.Bold)
-                            } else {
-                                Icon(Icons.Outlined.HealthAndSafety, contentDescription = null, modifier = Modifier.size(20.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(R.string.cert_create_memed_icp_btn), fontWeight = FontWeight.Bold)
+                    when (jurisdictionState) {
+                        ClinicalJurisdictionResolution.BR -> {
+                            Button(
+                                onClick = { viewModel.openMemedForBrazilCertificate() },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .minimumInteractiveComponentSize()
+                                    .heightIn(min = 50.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryDark, contentColor = Color.White),
+                                enabled = !uiState.isOpeningMemed,
+                            ) {
+                                if (uiState.isOpeningMemed) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp,
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(stringResource(R.string.cert_create_memed_opening), fontWeight = FontWeight.Bold)
+                                } else {
+                                    Icon(Icons.Outlined.HealthAndSafety, contentDescription = null, modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(stringResource(R.string.cert_create_memed_icp_btn), fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
-                    } else {
-                        Button(
-                            onClick = { viewModel.onSubmitCertificate() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PortalPatientsAction, contentColor = Color.White),
-                            enabled = !uiState.isSubmitting,
-                        ) {
-                            if (uiState.isSubmitting) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    color = Color.White,
-                                    strokeWidth = 2.dp
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(R.string.cert_create_submitting))
-                            } else {
-                                Icon(Icons.Outlined.HealthAndSafety, contentDescription = null, modifier = Modifier.size(20.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = stringResource(R.string.cert_create_submit_ar),
-                                    fontWeight = FontWeight.Bold,
-                                )
+                        ClinicalJurisdictionResolution.AR -> {
+                            Button(
+                                onClick = { viewModel.onSubmitCertificate() },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .minimumInteractiveComponentSize()
+                                    .heightIn(min = 50.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryDark, contentColor = Color.White),
+                                enabled = !uiState.isSubmitting,
+                            ) {
+                                if (uiState.isSubmitting) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(stringResource(R.string.cert_create_submitting))
+                                } else {
+                                    Icon(Icons.Outlined.HealthAndSafety, contentDescription = null, modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = stringResource(R.string.cert_create_submit_ar),
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
+                            }
+                        }
+                        ClinicalJurisdictionResolution.LOADING -> {
+                            Button(
+                                onClick = {},
+                                enabled = false,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .minimumInteractiveComponentSize()
+                                    .heightIn(min = 50.dp),
+                                shape = RoundedCornerShape(12.dp),
+                            ) {
+                                Text(stringResource(R.string.doctor_eligibility_verifying_title), fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                        ClinicalJurisdictionResolution.UNRESOLVED -> {
+                            Button(
+                                onClick = { viewModel.loadEligibility() },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .minimumInteractiveComponentSize()
+                                    .heightIn(min = 50.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryDark, contentColor = Color.White),
+                            ) {
+                                Text(stringResource(R.string.doctor_eligibility_retry_action), fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -218,10 +269,14 @@ fun CreateCertificateScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. Regulatory Verification Status Banner
-            DoctorRegulatoryBanner(uiState.doctorEligibility)
+            // 1. Regulatory Verification Status Banner (fail-closed)
+            DoctorRegulatoryBanner(
+                eligibility = uiState.doctorEligibility,
+                isLoadingEligibility = uiState.isLoadingEligibility,
+                onRetryEligibility = { viewModel.loadEligibility() },
+            )
 
-            // 2. Patient Selector Card (Existing patients + 3-field DNI/Sex/WhatsApp eventual lookup)
+            // 2. Patient Selector Card (Existing patients + 3-field DNI/CPF/WhatsApp eventual lookup)
             EventualPatientDniSelectorCard(
                 selectedPatient = uiState.selectedPatient,
                 eligiblePatients = uiState.eligiblePatients,
@@ -245,8 +300,8 @@ fun CreateCertificateScreen(
             if (isBrazil) {
                 Card(
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = PortalDoctors.copy(alpha = 0.06f)),
-                    border = BorderStroke(1.dp, PortalDoctors.copy(alpha = 0.25f)),
+                    colors = CardDefaults.cardColors(containerColor = PrimaryContainer.copy(alpha = 0.45f)),
+                    border = BorderStroke(1.dp, PrimaryDark.copy(alpha = 0.3f)),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(
@@ -260,7 +315,7 @@ fun CreateCertificateScreen(
                             Icon(
                                 imageVector = Icons.Outlined.HealthAndSafety,
                                 contentDescription = null,
-                                tint = PortalDoctors,
+                                tint = PrimaryDark,
                                 modifier = Modifier.size(20.dp),
                             )
                             Text(
@@ -277,7 +332,7 @@ fun CreateCertificateScreen(
                         )
                     }
                 }
-            } else {
+            } else if (isArgentina) {
                 // 3. Certificate Type Selector
                 CertificateTypeSelectorSection(
                     selectedType = uiState.certificateType,
@@ -304,6 +359,8 @@ fun CreateCertificateScreen(
                     cid10Code = uiState.diagnosisCode.orEmpty(),
                     showCid10Field = false,
                     hideDiagnosis = uiState.hideDiagnosis,
+                    isDiagnosisError = uiState.isDiagnosisValidationError,
+                    diagnosisFocusRequester = diagnosisFocusRequester,
                     jurisdiction = com.autamedica.android.domain.model.resolveRegulatoryJurisdiction(
                         countryCode = uiState.doctorEligibility?.countryCode,
                         doctorLicense = uiState.doctorEligibility?.doctorLicense
@@ -317,7 +374,7 @@ fun CreateCertificateScreen(
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = AuSurface,
-                    border = BorderStroke(1.dp, AuBorder),
+                    border = BorderStroke(1.dp, AuInputBorder.copy(alpha = 0.35f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
@@ -339,8 +396,11 @@ fun CreateCertificateScreen(
                             maxLines = 4,
                             shape = RoundedCornerShape(10.dp),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = PortalDoctors,
-                                unfocusedBorderColor = AuBorder,
+                                focusedBorderColor = PrimaryDark,
+                                unfocusedBorderColor = AuInputBorder,
+                                focusedLabelColor = PrimaryDark,
+                                unfocusedLabelColor = AuTextSecondary,
+                                unfocusedPlaceholderColor = AuTextSecondary,
                             )
                         )
                     }
@@ -362,7 +422,7 @@ fun CreateCertificateScreen(
                 Icon(
                     imageVector = Icons.Outlined.CheckCircle,
                     contentDescription = null,
-                    tint = AuSuccess,
+                    tint = AuSuccessText,
                     modifier = Modifier.size(48.dp)
                 )
             },
@@ -393,7 +453,7 @@ fun CreateCertificateScreen(
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = AuSurfaceHover,
-                        border = BorderStroke(1.dp, PortalDoctors.copy(alpha = 0.3f)),
+                        border = BorderStroke(1.dp, PrimaryDark.copy(alpha = 0.3f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
@@ -407,26 +467,29 @@ fun CreateCertificateScreen(
                                     else R.string.cert_success_cuir_header
                                 ),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = AuTextTertiary,
+                                color = AuTextSecondary,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = created.cuir,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = PortalDoctors
+                                color = PrimaryDark
                             )
-                            TextButton(onClick = {
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                clipboard.setPrimaryClip(ClipData.newPlainText("CUIR", created.cuir))
-                                Toast.makeText(context, context.getString(R.string.cert_toast_cuir_copied), Toast.LENGTH_SHORT).show()
-                            }) {
+                            TextButton(
+                                onClick = {
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    clipboard.setPrimaryClip(ClipData.newPlainText("CUIR", created.cuir))
+                                    Toast.makeText(context, context.getString(R.string.cert_toast_cuir_copied), Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.minimumInteractiveComponentSize(),
+                            ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp), tint = PortalDoctors)
+                                    Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp), tint = PrimaryDark)
                                     Text(
                                         text = stringResource(R.string.clinical_ops_copy),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = PortalDoctors,
+                                        color = PrimaryDark,
                                         maxLines = 1,
                                         softWrap = false,
                                     )
@@ -459,7 +522,7 @@ fun CreateCertificateScreen(
                             else R.string.cert_success_dialog_footer
                         ),
                         style = MaterialTheme.typography.bodySmall,
-                        color = AuTextTertiary
+                        color = AuTextSecondary
                     )
                 }
             },
@@ -469,8 +532,11 @@ fun CreateCertificateScreen(
                         viewModel.clearCreatedCertificate()
                         onBack()
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = PortalPatientsAction, contentColor = Color.White)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .minimumInteractiveComponentSize()
+                        .heightIn(min = 48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryDark, contentColor = Color.White)
                 ) {
                     Text(
                         stringResource(
@@ -483,10 +549,10 @@ fun CreateCertificateScreen(
         )
     }
 
-    uiState.memedLaunchUrl?.let { launchUrl ->
+    uiState.memedSession?.let { memedSession ->
         MemedPrescriberWebView(
-            url = launchUrl,
-            sessionTokens = uiState.memedSessionTokens,
+            exchangeUrl = memedSession.exchangeUrl,
+            onRetryHandoff = viewModel::retryMemedHandoff,
             titleRes = R.string.cert_create_memed_title,
             onClose = { viewModel.onMemedClosed() },
         )
@@ -494,18 +560,116 @@ fun CreateCertificateScreen(
 }
 
 @Composable
-private fun DoctorRegulatoryBanner(eligibility: DoctorEligibility?) {
-    val isEligible = eligibility?.isEligible ?: true
-    val license = eligibility?.doctorLicense ?: stringResource(R.string.cert_reg_registered)
+private fun DoctorRegulatoryBanner(
+    eligibility: DoctorEligibility?,
+    isLoadingEligibility: Boolean = false,
+    onRetryEligibility: (() -> Unit)? = null,
+) {
+    if (isLoadingEligibility) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = PrimaryContainer,
+            border = BorderStroke(1.dp, PrimaryDark.copy(alpha = 0.35f)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { liveRegion = LiveRegionMode.Polite },
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = PrimaryDark,
+                    strokeWidth = 2.dp,
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.doctor_eligibility_verifying_title),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryDark,
+                    )
+                    Text(
+                        text = stringResource(R.string.doctor_eligibility_verifying_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AuTextSecondary,
+                    )
+                }
+            }
+        }
+        return
+    }
+
+    if (eligibility == null) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = ErrorContainer,
+            border = BorderStroke(1.dp, AuDangerText.copy(alpha = 0.35f)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { liveRegion = LiveRegionMode.Assertive },
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = AuDangerText,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.doctor_eligibility_unresolved_title),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = AuDangerText,
+                        )
+                        Text(
+                            text = stringResource(R.string.doctor_eligibility_unresolved_subtitle),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AuTextSecondary,
+                        )
+                    }
+                }
+                if (onRetryEligibility != null) {
+                    OutlinedButton(
+                        onClick = onRetryEligibility,
+                        modifier = Modifier
+                            .minimumInteractiveComponentSize()
+                            .heightIn(min = 48.dp),
+                        border = BorderStroke(1.dp, AuDangerText),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = AuDangerText),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.doctor_eligibility_retry_action),
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
+            }
+        }
+        return
+    }
+
+    val isEligible = eligibility.isEligible
+    val license = eligibility.doctorLicense ?: stringResource(R.string.cert_reg_registered)
     val jurisdiction = com.autamedica.android.domain.model.resolveRegulatoryJurisdiction(
-        countryCode = eligibility?.countryCode,
-        doctorLicense = eligibility?.doctorLicense,
+        countryCode = eligibility.countryCode,
+        doctorLicense = eligibility.doctorLicense,
     )
 
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = if (isEligible) AuSuccess.copy(alpha = 0.08f) else AuCrimson.copy(alpha = 0.08f),
-        border = BorderStroke(1.dp, if (isEligible) AuSuccess.copy(alpha = 0.25f) else AuCrimson.copy(alpha = 0.35f)),
+        color = if (isEligible) SuccessContainer else ErrorContainer,
+        border = BorderStroke(1.dp, if (isEligible) AuSuccessText.copy(alpha = 0.35f) else AuDangerText.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -516,7 +680,7 @@ private fun DoctorRegulatoryBanner(eligibility: DoctorEligibility?) {
             Icon(
                 imageVector = if (isEligible) Icons.Outlined.HealthAndSafety else Icons.Default.Warning,
                 contentDescription = null,
-                tint = if (isEligible) AuSuccess else AuCrimson,
+                tint = if (isEligible) AuSuccessText else AuDangerText,
                 modifier = Modifier.size(20.dp)
             )
             Column(modifier = Modifier.weight(1f)) {
@@ -524,13 +688,13 @@ private fun DoctorRegulatoryBanner(eligibility: DoctorEligibility?) {
                     text = if (isEligible) stringResource(R.string.cert_reg_active_title) else stringResource(R.string.cert_reg_pending_title),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (isEligible) AuSuccess else PortalPatientsAction,
+                    color = if (isEligible) AuSuccessText else AuDangerText,
                 )
                 Text(
                     text = if (isEligible) {
                         stringResource(R.string.cert_reg_license_active, license)
                     } else {
-                        eligibility?.reason ?: stringResource(
+                        eligibility.reason ?: stringResource(
                             com.autamedica.android.domain.model.RegulatoryJurisdictionCopy
                                 .certificateLicenseRequiredRes(jurisdiction)
                         )
@@ -543,156 +707,7 @@ private fun DoctorRegulatoryBanner(eligibility: DoctorEligibility?) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PatientSelectorSection(
-    selectedPatient: PrescriptionPatientItem?,
-    eligiblePatients: List<PrescriptionPatientItem>,
-    isLoadingPatients: Boolean,
-    patientSearchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
-    expanded: Boolean,
-    onExpandedChange: (Boolean) -> Unit,
-    onSelectPatient: (PrescriptionPatientItem) -> Unit,
-) {
-    val filtered = remember(eligiblePatients, patientSearchQuery) {
-        if (patientSearchQuery.isBlank()) eligiblePatients
-        else eligiblePatients.filter {
-            it.fullName.contains(patientSearchQuery, ignoreCase = true) ||
-                (it.dni?.contains(patientSearchQuery) == true)
-        }
-    }
-
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = AuSurface,
-        border = BorderStroke(1.dp, AuBorder),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .background(PortalDoctors.copy(alpha = 0.12f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Outlined.Person, contentDescription = null, tint = PortalDoctors, modifier = Modifier.size(18.dp))
-                }
-                Column {
-                    Text(
-                        text = stringResource(R.string.cert_patient_recipient_title),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = AuTextPrimary
-                    )
-                    Text(
-                        text = stringResource(R.string.cert_patient_recipient_subtitle),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = AuTextTertiary
-                    )
-                }
-            }
-
-            if (selectedPatient != null) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = AuSurfaceHover,
-                    border = BorderStroke(1.dp, PortalDoctors.copy(alpha = 0.35f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = selectedPatient.fullName,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = AuTextPrimary
-                            )
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                selectedPatient.dni?.let { dni ->
-                                    Text(
-                                        text = stringResource(R.string.cert_patient_dni_label, dni),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = AuTextSecondary
-                                    )
-                                }
-                                selectedPatient.birthDate?.let { b ->
-                                    Text(text = "· $b", style = MaterialTheme.typography.labelSmall, color = AuTextTertiary)
-                                }
-                            }
-                        }
-                        TextButton(onClick = { onExpandedChange(true) }) {
-                            Text(stringResource(R.string.clinical_ops_change), color = PortalDoctors, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = onExpandedChange,
-            ) {
-                OutlinedTextField(
-                    value = if (selectedPatient != null && !expanded) selectedPatient.fullName else patientSearchQuery,
-                    onValueChange = onSearchQueryChange,
-                    placeholder = { Text(stringResource(R.string.cert_patient_search_placeholder)) },
-                    leadingIcon = { Icon(Icons.Outlined.Person, contentDescription = null, tint = AuTextTertiary) },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PortalDoctors,
-                        unfocusedBorderColor = AuBorder,
-                    )
-                )
-
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { onExpandedChange(false) },
-                    modifier = Modifier.background(AuSurface)
-                ) {
-                    if (isLoadingPatients) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.cert_patient_loading)) },
-                            onClick = {}
-                        )
-                    } else if (filtered.isEmpty()) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.cert_patient_empty)) },
-                            onClick = {}
-                        )
-                    } else {
-                        filtered.forEach { p ->
-                            DropdownMenuItem(
-                                text = {
-                                    Column {
-                                        Text(p.fullName, fontWeight = FontWeight.Bold)
-                                        p.dni?.let { Text(stringResource(R.string.cert_patient_dni_label, it), style = MaterialTheme.typography.labelSmall, color = AuTextTertiary) }
-                                    }
-                                },
-                                onClick = { onSelectPatient(p) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CertificateTypeSelectorSection(
     selectedType: CertificateType,
@@ -701,7 +716,7 @@ private fun CertificateTypeSelectorSection(
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = AuSurface,
-        border = BorderStroke(1.dp, AuBorder),
+        border = BorderStroke(1.dp, AuInputBorder.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -715,10 +730,10 @@ private fun CertificateTypeSelectorSection(
                 Box(
                     modifier = Modifier
                         .size(32.dp)
-                        .background(PortalDoctors.copy(alpha = 0.12f), CircleShape),
+                        .background(PrimaryContainer, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Outlined.Description, contentDescription = null, tint = PortalDoctors, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Outlined.Description, contentDescription = null, tint = PrimaryDark, modifier = Modifier.size(18.dp))
                 }
                 Column {
                     Text(
@@ -730,28 +745,37 @@ private fun CertificateTypeSelectorSection(
                     Text(
                         text = stringResource(R.string.cert_type_section_subtitle),
                         style = MaterialTheme.typography.labelSmall,
-                        color = AuTextTertiary
+                        color = AuTextSecondary
                     )
                 }
             }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 CertificateType.entries.forEach { type ->
                     val isSelected = selectedType == type
                     FilterChip(
                         selected = isSelected,
                         onClick = { onSelectType(type) },
-                        label = { Text(getCertificateTypeDisplayName(type), fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                        modifier = Modifier
+                            .minimumInteractiveComponentSize()
+                            .semantics {
+                                // Expose clear radio-button semantics without breaking Material3 FilterChip state
+                            },
+                        label = {
+                            Text(
+                                getCertificateTypeDisplayName(type),
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            )
+                        },
                         leadingIcon = if (isSelected) {
                             { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
                         } else null,
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = PortalDoctors,
+                            selectedContainerColor = PrimaryDark,
                             selectedLabelColor = Color.White,
                             selectedLeadingIconColor = Color.White,
                         )
@@ -762,6 +786,7 @@ private fun CertificateTypeSelectorSection(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DaysOfRestSection(
     certificateType: CertificateType,
@@ -781,7 +806,7 @@ private fun DaysOfRestSection(
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = AuSurface,
-        border = BorderStroke(1.dp, AuBorder),
+        border = BorderStroke(1.dp, AuInputBorder.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -795,45 +820,48 @@ private fun DaysOfRestSection(
                 color = AuTextPrimary
             )
 
-            Row(
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 FilterChip(
                     selected = restPeriodUnit == "days",
                     onClick = { onRestPeriodUnitChange("days") },
+                    modifier = Modifier.minimumInteractiveComponentSize(),
                     label = { Text(stringResource(R.string.cert_rest_unit_days)) },
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = PortalDoctors,
+                        selectedContainerColor = PrimaryDark,
                         selectedLabelColor = Color.White,
                     )
                 )
                 FilterChip(
                     selected = restPeriodUnit == "hours",
                     onClick = { onRestPeriodUnitChange("hours") },
+                    modifier = Modifier.minimumInteractiveComponentSize(),
                     label = { Text(stringResource(R.string.cert_rest_unit_hours)) },
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = PortalDoctors,
+                        selectedContainerColor = PrimaryDark,
                         selectedLabelColor = Color.White,
                     )
                 )
                 FilterChip(
                     selected = restPeriodUnit == "none",
                     onClick = { onRestPeriodUnitChange("none") },
+                    modifier = Modifier.minimumInteractiveComponentSize(),
                     label = { Text(stringResource(R.string.cert_rest_unit_none)) },
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = PortalDoctors,
+                        selectedContainerColor = PrimaryDark,
                         selectedLabelColor = Color.White,
                     )
                 )
             }
 
             when (restPeriodUnit) {
-                "days" -> Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                "days" -> FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     presetDays.forEach { days ->
                         val chipText = when (days) {
@@ -844,27 +872,28 @@ private fun DaysOfRestSection(
                         FilterChip(
                             selected = daysOfRest == days,
                             onClick = { onDaysChange(days) },
+                            modifier = Modifier.minimumInteractiveComponentSize(),
                             label = { Text(chipText) },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = PortalDoctors,
+                                selectedContainerColor = PrimaryDark,
                                 selectedLabelColor = Color.White,
                             )
                         )
                     }
                 }
-                "hours" -> Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                "hours" -> FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     presetHours.forEach { hours ->
                         FilterChip(
                             selected = restHours == hours,
                             onClick = { onHoursChange(hours) },
+                            modifier = Modifier.minimumInteractiveComponentSize(),
                             label = { Text(stringResource(R.string.cert_rest_hours_format, hours)) },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = PortalDoctors,
+                                selectedContainerColor = PrimaryDark,
                                 selectedLabelColor = Color.White,
                             )
                         )
@@ -875,7 +904,7 @@ private fun DaysOfRestSection(
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = AuSurfaceHover,
-                border = BorderStroke(1.dp, AuBorder),
+                border = BorderStroke(1.dp, AuInputBorder.copy(alpha = 0.35f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -915,7 +944,7 @@ private fun DaysOfRestSection(
                                     endDate,
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF16A34A)
+                                    color = AuSuccessText
                                 )
                             }
                         }
@@ -932,7 +961,7 @@ private fun DaysOfRestSection(
                                 stringResource(R.string.cert_rest_hours_format, restHours),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF16A34A)
+                                color = AuSuccessText
                             )
                         }
                     }
@@ -942,12 +971,15 @@ private fun DaysOfRestSection(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DiagnosisAndPrivacySection(
     diagnosis: String,
     cid10Code: String,
     showCid10Field: Boolean,
     hideDiagnosis: Boolean,
+    isDiagnosisError: Boolean = false,
+    diagnosisFocusRequester: FocusRequester = remember { FocusRequester() },
     onDiagnosisChange: (String) -> Unit,
     onCid10CodeChange: (String) -> Unit,
     onToggleHide: (Boolean) -> Unit,
@@ -957,7 +989,7 @@ private fun DiagnosisAndPrivacySection(
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = AuSurface,
-        border = BorderStroke(1.dp, AuBorder),
+        border = BorderStroke(1.dp, AuInputBorder.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -972,11 +1004,10 @@ private fun DiagnosisAndPrivacySection(
             )
 
             // Common diagnoses chips
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 COMMON_CERT_DIAGNOSES_RES.take(4).forEach { resId ->
                     val diagText = stringResource(resId)
@@ -984,9 +1015,10 @@ private fun DiagnosisAndPrivacySection(
                     FilterChip(
                         selected = isSelected,
                         onClick = { onDiagnosisChange(diagText) },
-                        label = { Text(diagText.take(24) + "...", style = MaterialTheme.typography.labelSmall) },
+                        modifier = Modifier.minimumInteractiveComponentSize(),
+                        label = { Text(diagText, style = MaterialTheme.typography.labelSmall) },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = PortalDoctors,
+                            selectedContainerColor = PrimaryDark,
                             selectedLabelColor = Color.White,
                         )
                     )
@@ -997,13 +1029,18 @@ private fun DiagnosisAndPrivacySection(
                 value = diagnosis,
                 onValueChange = onDiagnosisChange,
                 placeholder = { Text(stringResource(R.string.cert_diag_placeholder)) },
-                modifier = Modifier.fillMaxWidth(),
+                isError = isDiagnosisError,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(diagnosisFocusRequester),
                 minLines = 2,
                 maxLines = 4,
                 shape = RoundedCornerShape(10.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PortalDoctors,
-                    unfocusedBorderColor = AuBorder,
+                    focusedBorderColor = PrimaryDark,
+                    unfocusedBorderColor = AuInputBorder,
+                    errorBorderColor = AuDangerText,
+                    unfocusedPlaceholderColor = AuTextSecondary,
                 )
             )
 
@@ -1018,8 +1055,11 @@ private fun DiagnosisAndPrivacySection(
                     maxLines = 1,
                     shape = RoundedCornerShape(10.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PortalDoctors,
-                        unfocusedBorderColor = AuBorder,
+                        focusedBorderColor = PrimaryDark,
+                        unfocusedBorderColor = AuInputBorder,
+                        focusedLabelColor = PrimaryDark,
+                        unfocusedLabelColor = AuTextSecondary,
+                        unfocusedPlaceholderColor = AuTextSecondary,
                     )
                 )
             }
@@ -1027,9 +1067,19 @@ private fun DiagnosisAndPrivacySection(
             // Secreto Médico Switch Card
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = if (hideDiagnosis) Color(0xFFF0FDF4) else AuSurfaceHover,
-                border = BorderStroke(1.dp, if (hideDiagnosis) Color(0xFF86EFAC) else AuBorder),
-                modifier = Modifier.fillMaxWidth()
+                color = if (hideDiagnosis) SuccessContainer else AuSurfaceHover,
+                border = BorderStroke(
+                    1.dp,
+                    if (hideDiagnosis) AuSuccessText.copy(alpha = 0.45f) else AuInputBorder.copy(alpha = 0.35f),
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .selectable(
+                        selected = hideDiagnosis,
+                        role = Role.Switch,
+                        onClick = { onToggleHide(!hideDiagnosis) },
+                    )
+                    .minimumInteractiveComponentSize(),
             ) {
                 Row(
                     modifier = Modifier.padding(12.dp),
@@ -1039,7 +1089,7 @@ private fun DiagnosisAndPrivacySection(
                     Icon(
                         imageVector = Icons.Outlined.Lock,
                         contentDescription = null,
-                        tint = if (hideDiagnosis) Color(0xFF16A34A) else AuTextTertiary,
+                        tint = if (hideDiagnosis) AuSuccessText else AuTextSecondary,
                         modifier = Modifier.size(24.dp)
                     )
                     Column(modifier = Modifier.weight(1f)) {
@@ -1061,10 +1111,10 @@ private fun DiagnosisAndPrivacySection(
                     }
                     Switch(
                         checked = hideDiagnosis,
-                        onCheckedChange = onToggleHide,
+                        onCheckedChange = null,
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = Color.White,
-                            checkedTrackColor = Color(0xFF16A34A),
+                            checkedTrackColor = AuSuccessText,
                         )
                     )
                 }

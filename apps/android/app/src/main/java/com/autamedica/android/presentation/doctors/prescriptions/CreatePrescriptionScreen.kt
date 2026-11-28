@@ -48,8 +48,10 @@ import com.autamedica.android.R
 import com.autamedica.android.domain.model.COMMON_CIE10_DIAGNOSES
 import com.autamedica.android.domain.model.COMMON_MEDICATIONS
 import com.autamedica.android.domain.model.Cie10Item
+import com.autamedica.android.domain.model.ClinicalJurisdictionResolution
 import com.autamedica.android.domain.model.Prescription
 import com.autamedica.android.domain.model.PrescriptionPatientItem
+import com.autamedica.android.domain.model.resolveClinicalJurisdictionState
 import com.autamedica.android.presentation.doctors.common.ClinicalErrorAction
 import com.autamedica.android.presentation.doctors.components.EventualPatientDniSelectorCard
 import com.autamedica.android.presentation.doctors.components.MemedPrescriberWebView
@@ -75,8 +77,12 @@ fun CreatePrescriptionScreen(
 
     var patientSearchQuery by remember { mutableStateOf("") }
     var expandedPatientDropdown by remember { mutableStateOf(false) }
-    val isBrazil = uiState.doctorEligibility?.countryCode.equals("BR", ignoreCase = true) ||
-        uiState.doctorEligibility?.doctorLicense?.startsWith("CRM", ignoreCase = true) == true
+    val jurisdictionState = resolveClinicalJurisdictionState(
+        eligibility = uiState.doctorEligibility,
+        isLoadingEligibility = uiState.isLoadingEligibility,
+    )
+    val isBrazil = jurisdictionState == ClinicalJurisdictionResolution.BR
+    val isArgentina = jurisdictionState == ClinicalJurisdictionResolution.AR
 
     LaunchedEffect(patientId, renewFromPrescriptionId) {
         viewModel.initCreatePrescription(patientId, renewFromPrescriptionId)
@@ -163,8 +169,12 @@ fun CreatePrescriptionScreen(
                                         coroutineScope.launch { scrollState.animateScrollTo(0) }
                                     }
                                     ClinicalErrorAction.RETRY -> {
-                                        if (isBrazil) viewModel.openMemedForBrazil()
-                                        else viewModel.onSubmitPrescription()
+                                        when (jurisdictionState) {
+                                            ClinicalJurisdictionResolution.BR -> viewModel.openMemedForBrazil()
+                                            ClinicalJurisdictionResolution.AR -> viewModel.onSubmitPrescription()
+                                            ClinicalJurisdictionResolution.LOADING,
+                                            ClinicalJurisdictionResolution.UNRESOLVED, -> viewModel.loadEligibility()
+                                        }
                                     }
                                     ClinicalErrorAction.NONE -> Unit
                                 }
@@ -172,60 +182,92 @@ fun CreatePrescriptionScreen(
                         )
                     }
 
-                    if (isBrazil) {
-                        Button(
-                            onClick = { viewModel.openMemedForBrazil() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .minimumInteractiveComponentSize()
-                                .heightIn(min = 48.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = PortalPatientsAction,
-                                contentColor = Color.White,
-                            ),
-                            enabled = !uiState.isOpeningMemed,
-                        ) {
-                            if (uiState.isOpeningMemed) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    color = Color.White,
-                                    strokeWidth = 2.dp
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(R.string.doctor_create_rx_memed_opening), fontWeight = FontWeight.Bold)
-                            } else {
-                                Icon(Icons.Outlined.HealthAndSafety, contentDescription = null, modifier = Modifier.size(20.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(R.string.doctor_create_rx_memed_btn), fontWeight = FontWeight.Bold)
+                    when (jurisdictionState) {
+                        ClinicalJurisdictionResolution.BR -> {
+                            Button(
+                                onClick = { viewModel.openMemedForBrazil() },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .minimumInteractiveComponentSize()
+                                    .heightIn(min = 48.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = PrimaryDark,
+                                    contentColor = Color.White,
+                                ),
+                                enabled = !uiState.isOpeningMemed,
+                            ) {
+                                if (uiState.isOpeningMemed) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(stringResource(R.string.doctor_create_rx_memed_opening), fontWeight = FontWeight.Bold)
+                                } else {
+                                    Icon(Icons.Outlined.HealthAndSafety, contentDescription = null, modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(stringResource(R.string.doctor_create_rx_memed_btn), fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
-                    } else {
-                        Button(
-                            onClick = { viewModel.onSubmitPrescription() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .minimumInteractiveComponentSize()
-                                .heightIn(min = 48.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = PortalPatientsAction,
-                                contentColor = Color.White,
-                            ),
-                            enabled = !uiState.isSubmitting,
-                        ) {
-                            if (uiState.isSubmitting) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    color = Color.White,
-                                    strokeWidth = 2.dp
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(R.string.doctor_create_rx_submitting))
-                            } else {
-                                Icon(Icons.Outlined.HealthAndSafety, contentDescription = null, modifier = Modifier.size(20.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(R.string.doctor_create_rx_submit_button), fontWeight = FontWeight.Bold)
+                        ClinicalJurisdictionResolution.AR -> {
+                            Button(
+                                onClick = { viewModel.onSubmitPrescription() },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .minimumInteractiveComponentSize()
+                                    .heightIn(min = 48.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = PrimaryDark,
+                                    contentColor = Color.White,
+                                ),
+                                enabled = !uiState.isSubmitting,
+                            ) {
+                                if (uiState.isSubmitting) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(stringResource(R.string.doctor_create_rx_submitting))
+                                } else {
+                                    Icon(Icons.Outlined.HealthAndSafety, contentDescription = null, modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(stringResource(R.string.doctor_create_rx_submit_button), fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                        ClinicalJurisdictionResolution.LOADING -> {
+                            Button(
+                                onClick = {},
+                                enabled = false,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .minimumInteractiveComponentSize()
+                                    .heightIn(min = 48.dp),
+                                shape = RoundedCornerShape(12.dp),
+                            ) {
+                                Text(stringResource(R.string.doctor_eligibility_verifying_title), fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                        ClinicalJurisdictionResolution.UNRESOLVED -> {
+                            Button(
+                                onClick = { viewModel.loadEligibility() },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .minimumInteractiveComponentSize()
+                                    .heightIn(min = 48.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = PrimaryDark,
+                                    contentColor = Color.White,
+                                ),
+                            ) {
+                                Text(stringResource(R.string.doctor_eligibility_retry_action), fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -241,10 +283,14 @@ fun CreatePrescriptionScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. SISA / REFEPS Regulatory Verification Status Banner
-            DoctorRegulatoryBanner(uiState.doctorEligibility)
+            // 1. SISA / REFEPS / CFM Regulatory Verification Status Banner (fail-closed)
+            DoctorRegulatoryBanner(
+                eligibility = uiState.doctorEligibility,
+                isLoadingEligibility = uiState.isLoadingEligibility,
+                onRetryEligibility = { viewModel.loadEligibility() },
+            )
 
-            // 2. Patient Selector Card (Existing patients + 3-field DNI/Sex/WhatsApp eventual lookup)
+            // 2. Patient Selector Card (Existing patients + 3-field DNI/CPF/WhatsApp eventual lookup)
             EventualPatientDniSelectorCard(
                 selectedPatient = uiState.selectedPatient,
                 eligiblePatients = uiState.eligiblePatients,
@@ -300,7 +346,7 @@ fun CreatePrescriptionScreen(
                         )
                     }
                 }
-            } else {
+            } else if (isArgentina) {
                 // 3. Medications Multi-Item Section
                 Text(
                     text = stringResource(R.string.doctor_create_rx_items_section_title),
@@ -396,7 +442,7 @@ fun CreatePrescriptionScreen(
                 Icon(
                     imageVector = Icons.Outlined.CheckCircle,
                     contentDescription = null,
-                    tint = AuSuccess,
+                    tint = AuSuccessText,
                     modifier = Modifier.size(48.dp)
                 )
             },
@@ -421,7 +467,7 @@ fun CreatePrescriptionScreen(
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = AuSurfaceHover,
-                        border = BorderStroke(1.dp, PortalDoctors.copy(alpha = 0.3f)),
+                        border = BorderStroke(1.dp, PrimaryDark.copy(alpha = 0.3f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
@@ -432,26 +478,29 @@ fun CreatePrescriptionScreen(
                             Text(
                                 text = stringResource(R.string.doctor_create_rx_cuir_label),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = AuTextTertiary,
+                                color = AuTextSecondary,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = created.cuir ?: created.id,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = PortalDoctors
+                                color = PrimaryDark
                             )
-                            TextButton(onClick = {
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                clipboard.setPrimaryClip(ClipData.newPlainText("CUIR", created.cuir ?: created.id))
-                                Toast.makeText(context, context.getString(R.string.doctor_create_rx_cuir_copied_toast), Toast.LENGTH_SHORT).show()
-                            }) {
+                            TextButton(
+                                onClick = {
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    clipboard.setPrimaryClip(ClipData.newPlainText("CUIR", created.cuir ?: created.id))
+                                    Toast.makeText(context, context.getString(R.string.doctor_create_rx_cuir_copied_toast), Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.minimumInteractiveComponentSize(),
+                            ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp), tint = PortalDoctors)
+                                    Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp), tint = PrimaryDark)
                                     Text(
                                         text = stringResource(R.string.doctor_create_rx_copy_cuir),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = PortalDoctors,
+                                        color = PrimaryDark,
                                         maxLines = 1,
                                         softWrap = false,
                                     )
@@ -470,7 +519,7 @@ fun CreatePrescriptionScreen(
                     Text(
                         text = stringResource(R.string.doctor_create_rx_success_validity),
                         style = MaterialTheme.typography.bodySmall,
-                        color = AuTextTertiary
+                        color = AuTextSecondary
                     )
                 }
             },
@@ -480,8 +529,11 @@ fun CreatePrescriptionScreen(
                         viewModel.clearCreatedPrescription()
                         onBack()
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = PortalPatientsAction, contentColor = Color.White)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .minimumInteractiveComponentSize()
+                        .heightIn(min = 48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryDark, contentColor = Color.White)
                 ) {
                     Text(stringResource(R.string.doctor_create_rx_success_button))
                 }
@@ -489,10 +541,10 @@ fun CreatePrescriptionScreen(
         )
     }
 
-    uiState.memedLaunchUrl?.let { launchUrl ->
+    uiState.memedSession?.let { memedSession ->
         MemedPrescriberWebView(
-            url = launchUrl,
-            sessionTokens = uiState.memedSessionTokens,
+            exchangeUrl = memedSession.exchangeUrl,
+            onRetryHandoff = viewModel::retryMemedHandoff,
             titleRes = R.string.doctor_create_rx_memed_title,
             onClose = { viewModel.onMemedClosed() },
         )
@@ -500,12 +552,110 @@ fun CreatePrescriptionScreen(
 }
 
 @Composable
-private fun DoctorRegulatoryBanner(eligibility: com.autamedica.android.domain.model.DoctorEligibility?) {
-    val isEligible = eligibility?.isEligible ?: true
-    val license = eligibility?.doctorLicense ?: stringResource(R.string.doctor_create_rx_regulatory_registered)
+private fun DoctorRegulatoryBanner(
+    eligibility: com.autamedica.android.domain.model.DoctorEligibility?,
+    isLoadingEligibility: Boolean = false,
+    onRetryEligibility: (() -> Unit)? = null,
+) {
+    if (isLoadingEligibility) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = PrimaryContainer,
+            border = BorderStroke(1.dp, PrimaryDark.copy(alpha = 0.35f)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { liveRegion = LiveRegionMode.Polite },
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = PrimaryDark,
+                    strokeWidth = 2.dp,
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.doctor_eligibility_verifying_title),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryDark,
+                    )
+                    Text(
+                        text = stringResource(R.string.doctor_eligibility_verifying_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AuTextSecondary,
+                    )
+                }
+            }
+        }
+        return
+    }
+
+    if (eligibility == null) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = ErrorContainer,
+            border = BorderStroke(1.dp, AuDangerText.copy(alpha = 0.35f)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { liveRegion = LiveRegionMode.Assertive },
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = AuDangerText,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.doctor_eligibility_unresolved_title),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = AuDangerText,
+                        )
+                        Text(
+                            text = stringResource(R.string.doctor_eligibility_unresolved_subtitle),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AuTextSecondary,
+                        )
+                    }
+                }
+                if (onRetryEligibility != null) {
+                    OutlinedButton(
+                        onClick = onRetryEligibility,
+                        modifier = Modifier
+                            .minimumInteractiveComponentSize()
+                            .heightIn(min = 48.dp),
+                        border = BorderStroke(1.dp, AuDangerText),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = AuDangerText),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.doctor_eligibility_retry_action),
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
+            }
+        }
+        return
+    }
+
+    val isEligible = eligibility.isEligible
+    val license = eligibility.doctorLicense ?: stringResource(R.string.doctor_create_rx_regulatory_registered)
     val jurisdiction = com.autamedica.android.domain.model.resolveRegulatoryJurisdiction(
-        countryCode = eligibility?.countryCode,
-        doctorLicense = eligibility?.doctorLicense,
+        countryCode = eligibility.countryCode,
+        doctorLicense = eligibility.doctorLicense,
     )
 
     Surface(
@@ -543,7 +693,7 @@ private fun DoctorRegulatoryBanner(eligibility: com.autamedica.android.domain.mo
                     text = if (isEligible) {
                         stringResource(R.string.doctor_create_rx_regulatory_license_info, license)
                     } else {
-                        eligibility?.reason ?: stringResource(
+                        eligibility.reason ?: stringResource(
                             com.autamedica.android.domain.model.RegulatoryJurisdictionCopy
                                 .prescriptionFallbackReasonRes(jurisdiction)
                         )

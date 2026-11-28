@@ -30,6 +30,7 @@ import com.autamedica.android.domain.repository.DoctorRepository
 import com.autamedica.android.domain.repository.MedicalCertificateRepository
 import com.autamedica.android.domain.repository.PrescriptionRepository
 import com.autamedica.android.data.repository.MemedMobileBridgeRepository
+import com.autamedica.android.data.repository.MemedMobileLaunchSession
 import com.autamedica.android.data.repository.MemedEncounterTargetResolver
 import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
@@ -124,7 +125,7 @@ data class VideoCallUiState(
     val isIssuingPrescription: Boolean = false,
     val isOpeningMemed: Boolean = false,
     val isVerifyingMemedPrescription: Boolean = false,
-    val memedLaunchUrl: String? = null,
+    val memedSession: MemedMobileLaunchSession? = null,
     val memedLaunchError: String? = null,
     val memedLaunchNotice: String? = null,
     val isIssuingCertificate: Boolean = false,
@@ -190,13 +191,6 @@ class VideoCallViewModel @Inject constructor(
     private val medicalCertificateRepository: MedicalCertificateRepository,
     private val pharmacyDispatchRepository: PharmacyDispatchRepository,
 ) : ViewModel() {
-
-    fun memedSessionTokens(): Pair<String, String>? {
-        val session = supabaseClient.auth.currentSessionOrNull() ?: return null
-        val access = session.accessToken.takeIf { it.isNotBlank() } ?: return null
-        val refresh = session.refreshToken.takeIf { it.isNotBlank() } ?: return null
-        return access to refresh
-    }
 
     val appointmentId: String = savedStateHandle["appointmentId"] ?: ""
     /** roomId real de la call (room_XXXX). Si está vacío, se usa appointmentId como fallback. */
@@ -1677,15 +1671,15 @@ class VideoCallViewModel @Inject constructor(
         if (state.isOpeningMemed || state.isVerifyingMemedPrescription) return
         viewModelScope.launch {
             _uiState.update {
-                it.copy(isOpeningMemed = true, memedLaunchError = null, memedLaunchNotice = null, memedLaunchUrl = null)
+                it.copy(isOpeningMemed = true, memedLaunchError = null, memedLaunchNotice = null, memedSession = null)
             }
             val launch = if (target.queryKey == "requestId") {
                 memedMobileBridgeRepository.createLaunchForDispatch(target.encounterId)
             } else {
                 memedMobileBridgeRepository.createLaunch(target.encounterId)
             }
-            launch.onSuccess { url ->
-                    _uiState.update { it.copy(isOpeningMemed = false, memedLaunchUrl = url) }
+            launch.onSuccess { session ->
+                    _uiState.update { it.copy(isOpeningMemed = false, memedSession = session) }
                 }
                 .onFailure {
                     _uiState.update {
@@ -1698,9 +1692,17 @@ class VideoCallViewModel @Inject constructor(
         }
     }
 
-    /** Consume the URL before launching the in-call WebView to avoid duplicate overlays on recreation. */
-    fun consumeMemedLaunchUrl() {
-        _uiState.update { it.copy(memedLaunchUrl = null) }
+    suspend fun retryMemedHandoff(
+        canonicalLaunchUrl: String,
+        forceRefreshSession: Boolean,
+    ): Result<String> = memedMobileBridgeRepository.createSessionExchangeForLaunchUrl(
+        canonicalLaunchUrl = canonicalLaunchUrl,
+        forceRefreshSession = forceRefreshSession,
+    )
+
+    /** Consume the session before launching the in-call WebView to avoid duplicate overlays on recreation. */
+    fun consumeMemedLaunchSession() {
+        _uiState.update { it.copy(memedSession = null) }
     }
 
     fun reportMemedBrowserError() {

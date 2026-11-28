@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autamedica.android.R
 import com.autamedica.android.data.repository.MemedMobileBridgeRepository
+import com.autamedica.android.data.repository.MemedMobileLaunchSession
 import com.autamedica.android.domain.model.CreatePrescriptionRequest
 import com.autamedica.android.domain.model.DoctorEligibility
 import com.autamedica.android.domain.model.Prescription
@@ -65,8 +66,7 @@ data class DoctorPrescriptionsUiState(
     val notes: String = "",
     val isSubmitting: Boolean = false,
     val isOpeningMemed: Boolean = false,
-    val memedLaunchUrl: String? = null,
-    val memedSessionTokens: Pair<String, String>? = null,
+    val memedSession: MemedMobileLaunchSession? = null,
     val createdPrescription: Prescription? = null,
     val createError: String? = null,
     @StringRes val createErrorResId: Int? = null,
@@ -251,6 +251,7 @@ class DoctorPrescriptionsViewModel private constructor(
                 it.copy(
                     patientId = preselectedPatientId,
                     isLoadingPatients = true,
+                    isLoadingEligibility = if (it.doctorEligibility == null) true else it.isLoadingEligibility,
                     createError = null,
                     createdPrescription = null,
                     items = listOf(PrescriptionItemFormState()),
@@ -499,7 +500,24 @@ class DoctorPrescriptionsViewModel private constructor(
             return
         }
 
-        // Regulatory check warning
+        // Fail-closed jurisdiction & regulatory check
+        val jurisdictionState = com.autamedica.android.domain.model.resolveClinicalJurisdictionState(
+            eligibility = state.doctorEligibility,
+            isLoadingEligibility = state.isLoadingEligibility,
+        )
+        if (jurisdictionState != com.autamedica.android.domain.model.ClinicalJurisdictionResolution.AR) {
+            _uiState.update {
+                it.copy(
+                    createError = "Debés verificar tu habilitación médica y jurisdicción antes de emitir.",
+                    createErrorResId = R.string.doctor_eligibility_required_before_issue,
+                    createErrorArgs = emptyList(),
+                    createErrorAction = ClinicalErrorAction.RETRY,
+                    isDiagnosisValidationError = false,
+                )
+            }
+            return
+        }
+
         val eligibility = state.doctorEligibility
         if (eligibility != null && !eligibility.isEligible && eligibility.doctorLicense.isNullOrBlank()) {
             _uiState.update {
@@ -537,7 +555,15 @@ class DoctorPrescriptionsViewModel private constructor(
                 )
             }
 
-            val resolvedCountry = state.doctorEligibility?.countryCode?.takeIf { it.isNotBlank() } ?: "AR"
+            val resolvedCountry = state.doctorEligibility?.countryCode
+                ?.trim()
+                ?.uppercase()
+                ?.takeIf { it == "AR" }
+                ?: if (jurisdictionState == com.autamedica.android.domain.model.ClinicalJurisdictionResolution.AR) {
+                    "AR"
+                } else {
+                    ""
+                }
 
             val request = CreatePrescriptionRequest(
                 patientId = effectivePatientId,
@@ -616,12 +642,11 @@ class DoctorPrescriptionsViewModel private constructor(
                 )
             }
             bridge.createLaunchForPatient(patientId)
-                .onSuccess { url ->
+                .onSuccess { session ->
                     _uiState.update {
                         it.copy(
                             isOpeningMemed = false,
-                            memedLaunchUrl = url,
-                            memedSessionTokens = bridge.currentSessionTokens(),
+                            memedSession = session,
                         )
                     }
                 }
@@ -640,11 +665,25 @@ class DoctorPrescriptionsViewModel private constructor(
         }
     }
 
+    suspend fun retryMemedHandoff(forceRefreshSession: Boolean): Result<String> {
+        val bridge = memedMobileBridgeRepository
+            ?: return Result.failure(IllegalStateException("Emissor digital indisponível"))
+        val session = _uiState.value.memedSession
+            ?: return Result.failure(IllegalStateException("Sessão Memed não iniciada"))
+        return bridge.createSessionExchangeForLaunchUrl(
+            canonicalLaunchUrl = session.canonicalLaunchUrl,
+            forceRefreshSession = forceRefreshSession,
+        ).onSuccess { freshExchangeUrl ->
+            _uiState.update { state ->
+                state.copy(memedSession = session.copy(exchangeUrl = freshExchangeUrl))
+            }
+        }
+    }
+
     fun onMemedClosed() {
         _uiState.update {
             it.copy(
-                memedLaunchUrl = null,
-                memedSessionTokens = null,
+                memedSession = null,
             )
         }
         loadPrescriptions()

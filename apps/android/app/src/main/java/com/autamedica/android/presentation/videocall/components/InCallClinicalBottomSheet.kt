@@ -2,7 +2,7 @@ package com.autamedica.android.presentation.videocall.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,11 +13,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -33,7 +35,6 @@ import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,8 +49,10 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -57,8 +60,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import com.autamedica.android.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -67,14 +76,16 @@ import com.autamedica.android.domain.model.CertificateType
 import com.autamedica.android.domain.model.InCallDocumentPolicy
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
-import com.autamedica.android.presentation.theme.AuBorderHover
-import com.autamedica.android.presentation.theme.AuDanger
-import com.autamedica.android.presentation.theme.AuSuccess
+import com.autamedica.android.presentation.theme.AuDangerText
+import com.autamedica.android.presentation.theme.AuInputBorder
+import com.autamedica.android.presentation.theme.AuSuccessText
 import com.autamedica.android.presentation.theme.AuSurface
 import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
-import com.autamedica.android.presentation.theme.AuTextTertiary
-import com.autamedica.android.presentation.theme.PortalDoctor
+import com.autamedica.android.presentation.theme.ErrorContainer
+import com.autamedica.android.presentation.theme.PrimaryContainer
+import com.autamedica.android.presentation.theme.PrimaryDark
+import com.autamedica.android.presentation.theme.SuccessContainer
 
 enum class InCallClinicalMode {
     PRESCRIPTION,
@@ -119,10 +130,20 @@ fun InCallClinicalBottomSheet(
     // Feedback state
     var successCuir by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val medicationFocusRequester = remember { FocusRequester() }
+    val prescriptionDiagnosisFocusRequester = remember { FocusRequester() }
+    val certDiagnosisFocusRequester = remember { FocusRequester() }
+    val successFocusRequester = remember { FocusRequester() }
     val validationMedicationDiagnosisMessage = stringResource(R.string.in_call_validation_medication_diagnosis)
     val prescriptionIssueErrorMessage = stringResource(R.string.in_call_prescription_error)
     val certificateIssueErrorMessage = stringResource(R.string.in_call_certificate_error)
     val countriesMatch = InCallDocumentPolicy.countriesMatchForDocumentIssuance(countryCode, patientCareCountryCode)
+
+    LaunchedEffect(successCuir) {
+        if (successCuir != null) {
+            runCatching { successFocusRequester.requestFocus() }
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = {
@@ -155,7 +176,7 @@ fun InCallClinicalBottomSheet(
                 ) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = PortalDoctor.copy(alpha = 0.15f),
+                        color = PrimaryContainer,
                         modifier = Modifier.size(38.dp),
                     ) {
                         Box(contentAlignment = Alignment.Center) {
@@ -166,7 +187,7 @@ fun InCallClinicalBottomSheet(
                                     Icons.Outlined.Description
                                 },
                                 contentDescription = null,
-                                tint = PortalDoctor,
+                                tint = PrimaryDark,
                                 modifier = Modifier.size(22.dp),
                             )
                         }
@@ -185,12 +206,12 @@ fun InCallClinicalBottomSheet(
                             Box(
                                 modifier = Modifier
                                     .size(7.dp)
-                                    .background(AuSuccess, CircleShape)
+                                    .background(AuSuccessText, CircleShape)
                             )
                             Text(
                                 text = stringResource(R.string.in_call_clinical_ops_status),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = AuTextTertiary,
+                                color = AuTextSecondary,
                             )
                         }
                     }
@@ -198,12 +219,12 @@ fun InCallClinicalBottomSheet(
                 IconButton(
                     onClick = onDismiss,
                     enabled = !isSubmitting,
-                    modifier = Modifier.size(32.dp),
+                    modifier = Modifier.minimumInteractiveComponentSize(),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = stringResource(R.string.in_call_close),
-                        tint = AuTextTertiary,
+                        tint = AuTextSecondary,
                     )
                 }
             }
@@ -213,7 +234,7 @@ fun InCallClinicalBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 color = AuBackground,
-                border = BorderStroke(1.dp, AuBorder),
+                border = BorderStroke(1.dp, AuInputBorder.copy(alpha = 0.35f)),
             ) {
                 Row(
                     modifier = Modifier
@@ -225,7 +246,7 @@ fun InCallClinicalBottomSheet(
                     Icon(
                         imageVector = Icons.Outlined.Person,
                         contentDescription = null,
-                        tint = PortalDoctor,
+                        tint = PrimaryDark,
                         modifier = Modifier.size(20.dp),
                     )
                     Column {
@@ -249,32 +270,38 @@ fun InCallClinicalBottomSheet(
 
             if (!patientLinked) {
                 Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = AuDanger.copy(alpha = 0.10f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { liveRegion = LiveRegionMode.Assertive },
+                    color = ErrorContainer,
                     shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(1.dp, AuDanger.copy(alpha = 0.25f)),
+                    border = BorderStroke(1.dp, AuDangerText.copy(alpha = 0.35f)),
                 ) {
                     Text(
                         stringResource(R.string.in_call_patient_link_required),
                         modifier = Modifier.padding(12.dp),
                         style = MaterialTheme.typography.bodySmall,
-                        color = AuDanger,
+                        color = AuDangerText,
+                        fontWeight = FontWeight.Medium,
                     )
                 }
             }
 
             if (patientLinked && !countriesMatch) {
                 Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = AuDanger.copy(alpha = 0.10f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { liveRegion = LiveRegionMode.Assertive },
+                    color = ErrorContainer,
                     shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(1.dp, AuDanger.copy(alpha = 0.25f)),
+                    border = BorderStroke(1.dp, AuDangerText.copy(alpha = 0.35f)),
                 ) {
                     Text(
                         stringResource(R.string.in_call_country_mismatch),
                         modifier = Modifier.padding(12.dp),
                         style = MaterialTheme.typography.bodySmall,
-                        color = AuDanger,
+                        color = AuDangerText,
+                        fontWeight = FontWeight.Medium,
                     )
                 }
             }
@@ -283,13 +310,13 @@ fun InCallClinicalBottomSheet(
             TabRow(
                 selectedTabIndex = if (currentMode == InCallClinicalMode.PRESCRIPTION) 0 else 1,
                 containerColor = AuBackground,
-                contentColor = PortalDoctor,
+                contentColor = PrimaryDark,
                 indicator = { tabPositions ->
                     TabRowDefaults.SecondaryIndicator(
                         modifier = Modifier.tabIndicatorOffset(
                             tabPositions[if (currentMode == InCallClinicalMode.PRESCRIPTION) 0 else 1]
                         ),
-                        color = PortalDoctor,
+                        color = PrimaryDark,
                     )
                 },
                 modifier = Modifier
@@ -312,8 +339,8 @@ fun InCallClinicalBottomSheet(
                             Text(stringResource(R.string.in_call_tab_prescription), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                         }
                     },
-                    selectedContentColor = PortalDoctor,
-                    unselectedContentColor = AuTextTertiary,
+                    selectedContentColor = PrimaryDark,
+                    unselectedContentColor = AuTextSecondary,
                 )
                 Tab(
                     selected = currentMode == InCallClinicalMode.CERTIFICATE,
@@ -331,18 +358,22 @@ fun InCallClinicalBottomSheet(
                             Text(stringResource(R.string.in_call_tab_certificate), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                         }
                     },
-                    selectedContentColor = PortalDoctor,
-                    unselectedContentColor = AuTextTertiary,
+                    selectedContentColor = PrimaryDark,
+                    unselectedContentColor = AuTextSecondary,
                 )
             }
 
             // Success feedback
             if (successCuir != null) {
                 Surface(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(successFocusRequester)
+                        .focusable()
+                        .semantics { liveRegion = LiveRegionMode.Polite },
                     shape = RoundedCornerShape(12.dp),
-                    color = AuSuccess.copy(alpha = 0.12f),
-                    border = BorderStroke(1.dp, AuSuccess.copy(alpha = 0.35f)),
+                    color = SuccessContainer,
+                    border = BorderStroke(1.dp, AuSuccessText.copy(alpha = 0.35f)),
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -355,14 +386,14 @@ fun InCallClinicalBottomSheet(
                             Icon(
                                 imageVector = Icons.Outlined.CheckCircle,
                                 contentDescription = null,
-                                tint = AuSuccess,
+                                tint = AuSuccessText,
                                 modifier = Modifier.size(22.dp),
                             )
                             Text(
                                 text = if (currentMode == InCallClinicalMode.CERTIFICATE) stringResource(R.string.in_call_certificate_draft_saved) else stringResource(R.string.in_call_prescription_issued),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = AuSuccess,
+                                color = AuSuccessText,
                             )
                         }
                         Text(
@@ -382,10 +413,13 @@ fun InCallClinicalBottomSheet(
                         ) {
                             Button(
                                 onClick = onDismiss,
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .minimumInteractiveComponentSize()
+                                    .heightIn(min = 48.dp),
                                 shape = RoundedCornerShape(10.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = PortalDoctor,
+                                    containerColor = PrimaryDark,
                                     contentColor = Color.White,
                                 ),
                             ) {
@@ -398,9 +432,12 @@ fun InCallClinicalBottomSheet(
                                     dosage = ""
                                     instructions = ""
                                 },
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .minimumInteractiveComponentSize()
+                                    .heightIn(min = 48.dp),
                                 shape = RoundedCornerShape(10.dp),
-                                border = BorderStroke(1.dp, AuBorder),
+                                border = BorderStroke(1.dp, AuInputBorder.copy(alpha = 0.5f)),
                             ) {
                                 Text(stringResource(R.string.in_call_prepare_another), color = AuTextPrimary)
                             }
@@ -412,10 +449,12 @@ fun InCallClinicalBottomSheet(
             // Error feedback
             if (errorMessage != null) {
                 Surface(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { liveRegion = LiveRegionMode.Assertive },
                     shape = RoundedCornerShape(12.dp),
-                    color = AuDanger.copy(alpha = 0.1f),
-                    border = BorderStroke(1.dp, AuDanger.copy(alpha = 0.3f)),
+                    color = ErrorContainer,
+                    border = BorderStroke(1.dp, AuDangerText.copy(alpha = 0.35f)),
                 ) {
                     Row(
                         modifier = Modifier.padding(14.dp),
@@ -425,13 +464,14 @@ fun InCallClinicalBottomSheet(
                         Icon(
                             imageVector = Icons.Outlined.ErrorOutline,
                             contentDescription = null,
-                            tint = AuDanger,
+                            tint = AuDangerText,
                             modifier = Modifier.size(20.dp),
                         )
                         Text(
                             text = errorMessage.orEmpty(),
                             style = MaterialTheme.typography.bodySmall,
-                            color = AuDanger,
+                            color = AuDangerText,
+                            fontWeight = FontWeight.Medium,
                             modifier = Modifier.weight(1f),
                         )
                     }
@@ -444,36 +484,66 @@ fun InCallClinicalBottomSheet(
                     InCallClinicalMode.PRESCRIPTION -> {
                         if (countryCode == "BR") {
                             Text(
-                                text = "Emissão digital oficial para o Brasil. A assinatura e a entrega ao paciente são concluídas diretamente no emissor autorizado.",
-                                style = MaterialTheme.typography.bodyMedium,
+                                text = stringResource(R.string.in_call_memed_rx_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
                                 color = AuTextPrimary,
                             )
-                            if (memedLaunchError != null) {
-                                Text(
-                                    text = memedLaunchError,
-                                    color = AuDanger,
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                            }
-                            if (memedLaunchNotice != null) {
-                                Text(
-                                    text = memedLaunchNotice,
-                                    color = AuTextSecondary,
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                            }
                             Text(
-                                text = "Ao abrir o emissor, conclua a assinatura e retorne à consulta.",
-                                style = MaterialTheme.typography.bodySmall,
+                                text = stringResource(R.string.in_call_memed_rx_description),
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = AuTextSecondary,
                             )
+                            if (memedLaunchError != null) {
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .semantics { liveRegion = LiveRegionMode.Assertive },
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = ErrorContainer,
+                                    border = BorderStroke(1.dp, AuDangerText.copy(alpha = 0.35f)),
+                                ) {
+                                    Text(
+                                        text = memedLaunchError,
+                                        color = AuDangerText,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.padding(12.dp),
+                                    )
+                                }
+                            }
+                            if (memedLaunchNotice != null) {
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .semantics { liveRegion = LiveRegionMode.Polite },
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = PrimaryContainer,
+                                    border = BorderStroke(1.dp, PrimaryDark.copy(alpha = 0.35f)),
+                                ) {
+                                    Text(
+                                        text = memedLaunchNotice,
+                                        color = PrimaryDark,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.padding(12.dp),
+                                    )
+                                }
+                            }
                             Button(
                                 onClick = { onOpenMemed?.invoke() },
                                 enabled = onOpenMemed != null && !isSubmitting && memedEncounterAvailable && countriesMatch,
-                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .minimumInteractiveComponentSize()
+                                    .heightIn(min = 50.dp),
                                 shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = PrimaryDark,
+                                    contentColor = Color.White,
+                                ),
                             ) {
-                                if (isSubmitting) {
+                                if (isSubmitting || isVerifyingMemedPrescription) {
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(20.dp),
                                         color = Color.White,
@@ -482,11 +552,12 @@ fun InCallClinicalBottomSheet(
                                     Spacer(modifier = Modifier.width(8.dp))
                                 }
                                 Text(
-                                    when {
-                                        isVerifyingMemedPrescription -> "Confirmando documento..."
-                                        isSubmitting -> "Abrindo emissor digital..."
-                                        else -> "Emitir Receita Digital"
+                                    if (isSubmitting || isVerifyingMemedPrescription) {
+                                        stringResource(R.string.in_call_memed_rx_opening)
+                                    } else {
+                                        stringResource(R.string.in_call_memed_rx_open_action)
                                     },
+                                    fontWeight = FontWeight.Bold,
                                 )
                             }
                         } else {
@@ -496,13 +567,17 @@ fun InCallClinicalBottomSheet(
                             onValueChange = { medicationName = it },
                             label = { Text(stringResource(R.string.in_call_medication_label)) },
                             placeholder = { Text(stringResource(R.string.in_call_medication_placeholder)) },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(medicationFocusRequester),
                             singleLine = true,
                             enabled = !isSubmitting,
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = PortalDoctor,
-                                unfocusedBorderColor = AuBorder,
-                                focusedLabelColor = PortalDoctor,
+                                focusedBorderColor = PrimaryDark,
+                                unfocusedBorderColor = AuInputBorder,
+                                focusedLabelColor = PrimaryDark,
+                                unfocusedLabelColor = AuTextSecondary,
+                                unfocusedPlaceholderColor = AuTextSecondary,
                                 unfocusedContainerColor = AuBackground,
                                 focusedContainerColor = AuBackground,
                             ),
@@ -519,9 +594,11 @@ fun InCallClinicalBottomSheet(
                             singleLine = true,
                             enabled = !isSubmitting,
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = PortalDoctor,
-                                unfocusedBorderColor = AuBorder,
-                                focusedLabelColor = PortalDoctor,
+                                focusedBorderColor = PrimaryDark,
+                                unfocusedBorderColor = AuInputBorder,
+                                focusedLabelColor = PrimaryDark,
+                                unfocusedLabelColor = AuTextSecondary,
+                                unfocusedPlaceholderColor = AuTextSecondary,
                                 unfocusedContainerColor = AuBackground,
                                 focusedContainerColor = AuBackground,
                             ),
@@ -534,9 +611,20 @@ fun InCallClinicalBottomSheet(
                             onValueChange = { prescriptionDiagnosis = it },
                             label = { Text(stringResource(R.string.in_call_diagnosis_required)) },
                             placeholder = { Text(stringResource(R.string.in_call_diagnosis_placeholder)) },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(prescriptionDiagnosisFocusRequester),
                             singleLine = true,
                             enabled = !isSubmitting,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = PrimaryDark,
+                                unfocusedBorderColor = AuInputBorder,
+                                focusedLabelColor = PrimaryDark,
+                                unfocusedLabelColor = AuTextSecondary,
+                                unfocusedPlaceholderColor = AuTextSecondary,
+                                unfocusedContainerColor = AuBackground,
+                                focusedContainerColor = AuBackground,
+                            ),
                             shape = RoundedCornerShape(10.dp),
                         )
 
@@ -551,9 +639,11 @@ fun InCallClinicalBottomSheet(
                             maxLines = 5,
                             enabled = !isSubmitting,
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = PortalDoctor,
-                                unfocusedBorderColor = AuBorder,
-                                focusedLabelColor = PortalDoctor,
+                                focusedBorderColor = PrimaryDark,
+                                unfocusedBorderColor = AuInputBorder,
+                                focusedLabelColor = PrimaryDark,
+                                unfocusedLabelColor = AuTextSecondary,
+                                unfocusedPlaceholderColor = AuTextSecondary,
                                 unfocusedContainerColor = AuBackground,
                                 focusedContainerColor = AuBackground,
                             ),
@@ -562,18 +652,24 @@ fun InCallClinicalBottomSheet(
 
                         if (countryCode !in setOf("AR", "BR")) {
                             Text(
-                                text = if (countryCode == "BR") stringResource(R.string.in_call_country_unavailable)
-                                else stringResource(R.string.in_call_country_unavailable),
+                                text = stringResource(R.string.in_call_country_unavailable),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = AuDanger,
+                                color = AuDangerText,
+                                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
                             )
                         }
 
                         // Registrar receta solo en Argentina, por emisor autorizado.
                         Button(
                             onClick = {
-                                if (medicationName.isBlank() || prescriptionDiagnosis.isBlank()) {
+                                if (medicationName.isBlank()) {
                                     errorMessage = validationMedicationDiagnosisMessage
+                                    runCatching { medicationFocusRequester.requestFocus() }
+                                    return@Button
+                                }
+                                if (prescriptionDiagnosis.isBlank()) {
+                                    errorMessage = validationMedicationDiagnosisMessage
+                                    runCatching { prescriptionDiagnosisFocusRequester.requestFocus() }
                                     return@Button
                                 }
                                 errorMessage = null
@@ -589,10 +685,11 @@ fun InCallClinicalBottomSheet(
                                 prescriptionDiagnosis.isNotBlank() && countryCode in setOf("AR", "BR") && patientLinked && countriesMatch,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(50.dp),
+                                .minimumInteractiveComponentSize()
+                                .heightIn(min = 50.dp),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF0284C7),
+                                containerColor = PrimaryDark,
                                 contentColor = Color.White,
                             ),
                         ) {
@@ -616,36 +713,66 @@ fun InCallClinicalBottomSheet(
                     InCallClinicalMode.CERTIFICATE -> {
                         if (countryCode == "BR") {
                             Text(
-                                text = "Emissão digital oficial de atestado médico para o Brasil. A assinatura e a entrega ao paciente são concluídas no emissor autorizado.",
-                                style = MaterialTheme.typography.bodyMedium,
+                                text = stringResource(R.string.in_call_memed_cert_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
                                 color = AuTextPrimary,
                             )
-                            if (memedLaunchError != null) {
-                                Text(
-                                    text = memedLaunchError,
-                                    color = AuDanger,
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                            }
-                            if (memedLaunchNotice != null) {
-                                Text(
-                                    text = memedLaunchNotice,
-                                    color = AuTextSecondary,
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                            }
                             Text(
-                                text = "Ao abrir o emissor, conclua a assinatura e retorne à consulta.",
-                                style = MaterialTheme.typography.bodySmall,
+                                text = stringResource(R.string.in_call_memed_cert_description),
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = AuTextSecondary,
                             )
+                            if (memedLaunchError != null) {
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .semantics { liveRegion = LiveRegionMode.Assertive },
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = ErrorContainer,
+                                    border = BorderStroke(1.dp, AuDangerText.copy(alpha = 0.35f)),
+                                ) {
+                                    Text(
+                                        text = memedLaunchError,
+                                        color = AuDangerText,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.padding(12.dp),
+                                    )
+                                }
+                            }
+                            if (memedLaunchNotice != null) {
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .semantics { liveRegion = LiveRegionMode.Polite },
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = PrimaryContainer,
+                                    border = BorderStroke(1.dp, PrimaryDark.copy(alpha = 0.35f)),
+                                ) {
+                                    Text(
+                                        text = memedLaunchNotice,
+                                        color = PrimaryDark,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.padding(12.dp),
+                                    )
+                                }
+                            }
                             Button(
                                 onClick = { onOpenMemed?.invoke() },
                                 enabled = onOpenMemed != null && !isSubmitting && memedEncounterAvailable && countriesMatch,
-                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .minimumInteractiveComponentSize()
+                                    .heightIn(min = 50.dp),
                                 shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = PrimaryDark,
+                                    contentColor = Color.White,
+                                ),
                             ) {
-                                if (isSubmitting) {
+                                if (isSubmitting || isVerifyingMemedPrescription) {
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(20.dp),
                                         color = Color.White,
@@ -654,11 +781,12 @@ fun InCallClinicalBottomSheet(
                                     Spacer(modifier = Modifier.width(8.dp))
                                 }
                                 Text(
-                                    when {
-                                        isVerifyingMemedPrescription -> "Confirmando documento..."
-                                        isSubmitting -> "Abrindo emissor digital..."
-                                        else -> "Emitir Atestado Digital"
+                                    if (isSubmitting || isVerifyingMemedPrescription) {
+                                        stringResource(R.string.in_call_memed_cert_opening)
+                                    } else {
+                                        stringResource(R.string.in_call_memed_cert_open_action)
                                     },
+                                    fontWeight = FontWeight.Bold,
                                 )
                             }
                         } else {
@@ -684,17 +812,22 @@ fun InCallClinicalBottomSheet(
                                 val isSelected = selectedCertType == type
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
-                                    color = if (isSelected) PortalDoctor.copy(alpha = 0.15f) else AuBackground,
+                                    color = if (isSelected) PrimaryContainer else AuBackground,
                                     border = BorderStroke(
                                         1.dp,
-                                        if (isSelected) PortalDoctor else AuBorder,
+                                        if (isSelected) PrimaryDark else AuInputBorder.copy(alpha = 0.5f),
                                     ),
-                                    modifier = Modifier.clickable(!isSubmitting) {
-                                        selectedCertType = type
-                                    }
+                                    modifier = Modifier
+                                        .minimumInteractiveComponentSize()
+                                        .selectable(
+                                            selected = isSelected,
+                                            enabled = !isSubmitting,
+                                            role = Role.RadioButton,
+                                            onClick = { selectedCertType = type },
+                                        )
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     ) {
@@ -702,8 +835,8 @@ fun InCallClinicalBottomSheet(
                                             Icon(
                                                 imageVector = Icons.Default.Check,
                                                 contentDescription = null,
-                                                tint = PortalDoctor,
-                                                modifier = Modifier.size(14.dp),
+                                                tint = PrimaryDark,
+                                                modifier = Modifier.size(16.dp),
                                             )
                                         }
                                         val inCallJurisdiction = com.autamedica.android.domain.model.resolveRegulatoryJurisdiction(
@@ -724,7 +857,7 @@ fun InCallClinicalBottomSheet(
                                             ),
                                             style = MaterialTheme.typography.bodySmall,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            color = if (isSelected) PortalDoctor else AuTextPrimary,
+                                            color = if (isSelected) PrimaryDark else AuTextPrimary,
                                         )
                                     }
                                 }
@@ -749,18 +882,23 @@ fun InCallClinicalBottomSheet(
                                 else stringResource(R.string.cert_rest_days_format, days)
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
-                                    color = if (isSelected) PortalDoctor else AuBackground,
-                                    border = BorderStroke(1.dp, if (isSelected) PortalDoctor else AuBorder),
-                                    modifier = Modifier.clickable(!isSubmitting) {
-                                        daysOfRest = days
-                                    }
+                                    color = if (isSelected) PrimaryDark else AuBackground,
+                                    border = BorderStroke(1.dp, if (isSelected) PrimaryDark else AuInputBorder.copy(alpha = 0.5f)),
+                                    modifier = Modifier
+                                        .minimumInteractiveComponentSize()
+                                        .selectable(
+                                            selected = isSelected,
+                                            enabled = !isSubmitting,
+                                            role = Role.RadioButton,
+                                            onClick = { daysOfRest = days },
+                                        )
                                 ) {
                                     Text(
                                         text = label,
                                         style = MaterialTheme.typography.bodySmall,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                         color = if (isSelected) Color.White else AuTextPrimary,
-                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                                     )
                                 }
                             }
@@ -772,13 +910,17 @@ fun InCallClinicalBottomSheet(
                             onValueChange = { diagnosis = it },
                             label = { Text(stringResource(R.string.in_call_certificate_diagnosis)) },
                             placeholder = { Text(stringResource(R.string.in_call_certificate_diagnosis_placeholder)) },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(certDiagnosisFocusRequester),
                             singleLine = true,
                             enabled = !isSubmitting,
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = PortalDoctor,
-                                unfocusedBorderColor = AuBorder,
-                                focusedLabelColor = PortalDoctor,
+                                focusedBorderColor = PrimaryDark,
+                                unfocusedBorderColor = AuInputBorder,
+                                focusedLabelColor = PrimaryDark,
+                                unfocusedLabelColor = AuTextSecondary,
+                                unfocusedPlaceholderColor = AuTextSecondary,
                                 unfocusedContainerColor = AuBackground,
                                 focusedContainerColor = AuBackground,
                             ),
@@ -794,16 +936,20 @@ fun InCallClinicalBottomSheet(
                                         successCuir = result
                                     } else {
                                         errorMessage = result ?: certificateIssueErrorMessage
+                                        if (diagnosis.isBlank()) {
+                                            runCatching { certDiagnosisFocusRequester.requestFocus() }
+                                        }
                                     }
                                 }
                             },
                             enabled = !isSubmitting && patientLinked && countriesMatch,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(50.dp),
+                                .minimumInteractiveComponentSize()
+                                .heightIn(min = 50.dp),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = PortalDoctor,
+                                containerColor = PrimaryDark,
                                 contentColor = Color.White,
                             ),
                         ) {

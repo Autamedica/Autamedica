@@ -9984,6 +9984,53 @@ export type Database = {
           },
         ]
       }
+      memed_mobile_session_handoffs: {
+        Row: {
+          access_token: string | null
+          code_hash: string
+          consumed_at: string | null
+          created_at: string
+          doctor_id: string
+          expires_at: string
+          id: string
+          next_path: string
+          refresh_token: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          code_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          doctor_id: string
+          expires_at: string
+          id?: string
+          next_path: string
+          refresh_token?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          code_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          doctor_id?: string
+          expires_at?: string
+          id?: string
+          next_path?: string
+          refresh_token?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memed_mobile_session_handoffs_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       memed_prescriptions: {
         Row: {
           created_at: string
@@ -14294,6 +14341,10 @@ export type Database = {
         }
         Returns: number
       }
+      cleanup_expired_memed_mobile_session_handoffs: {
+        Args: never
+        Returns: number
+      }
       cleanup_stuck_conversation_sessions: {
         Args: { threshold_interval: string }
         Returns: Json
@@ -14315,6 +14366,16 @@ export type Database = {
         Returns: {
           already_approved: boolean
           appointment_payment_id: string
+        }[]
+      }
+      consume_memed_mobile_session_handoff: {
+        Args: { p_code_hash: string }
+        Returns: {
+          access_token: string | null
+          doctor_id: string
+          next_path: string
+          refresh_token: string | null
+          user_id: string
         }[]
       }
       create_call: {
