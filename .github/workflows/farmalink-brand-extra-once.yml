@@ -24,7 +24,7 @@ jobs:
       FARMALINK_TEST_BASIC_PASSWORD: ${{ secrets.FARMALINK_TEST_BASIC_PASSWORD }}
       FARMALINK_HOMOLOGATION_OUTPUT: /tmp/farmalink-brand-extra
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - run: python3 -m pip install --disable-pip-version-check 'reportlab==4.2.5'
@@ -32,7 +32,7 @@ jobs:
         run: python3 scripts/farmalink/brand_one_extra_attempt.py
       - name: Preserve actual TEST receipt and its PDF if approved
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: farmalink-second-brand-test-20261103
           path: /tmp/farmalink-brand-extra/

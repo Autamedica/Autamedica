@@ -175,9 +175,9 @@ La documentación de GitHub indica que el uso de runners autohospedados no consu
 ## 7. Antecedentes verificables de AutaMedica
 
 El repositorio ya utilizó `runs-on: self-hosted` y revirtió cambios a runners hospedados cuando el grupo/organización no asignaba máquinas:
-- [Cambio a runners autohospedados](https://github.com/ecucondorSA/Autamedica/commit/2b6789424491dba5da40dff344de289a20738eeb)
-- [Reversión a self-hosted tras fallos de asignación](https://github.com/ecucondorSA/Autamedica/commit/60bed456f52986ebad8563bdf042829e03fdad78)
-- [Consolidación de CI/CD y runner canary](https://github.com/ecucondorSA/Autamedica/commit/0af6b6bf6afd86c3129be17602383811f85bb1f3)
+- [Cambio a runners autohospedados](https://github.com/Autamedica/Autamedica/commit/2b6789424491dba5da40dff344de289a20738eeb)
+- [Reversión a self-hosted tras fallos de asignación](https://github.com/Autamedica/Autamedica/commit/60bed456f52986ebad8563bdf042829e03fdad78)
+- [Consolidación de CI/CD y runner canary](https://github.com/Autamedica/Autamedica/commit/0af6b6bf6afd86c3129be17602383811f85bb1f3)
 
 La decisión actual es conservar dos caminos complementarios: el runner autohospedado para jobs confiables cuando GitHub los despacha, y el script local para no perder toda la validación cuando el despacho remoto está bloqueado.
 

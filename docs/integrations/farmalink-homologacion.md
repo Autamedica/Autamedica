@@ -20,8 +20,8 @@
 
 ## Repetición de pruebas pendientes — 03/11/2026
 
-- **Alta DEMO, segundo intento independiente**: POST autenticado con el mismo fixture de SwaggerHub y un identificador de correlación distinto en `infoBrowser` (`AutaMedica-Test-c7db15b7b4`). Farmalink respondió **HTTP 504 Gateway Timeout en 30,6 s**, a pesar de aumentar el timeout del cliente a 85 s. Sin `nroRecElectronica`; resultado remoto incierto. No repetir para evitar duplicados. [Run](https://github.com/ecucondorSA/Autamedica/actions/runs/41587599039).
-- **Tres POST negativos reales**: `altaReceta`, `consultaReceta`, `bajaReceta` con JSON deliberadamente incompleto y SIN datos de paciente, medicamentos ni receta: **HTTP 400 / error interno 5075** en los tres casos. Los rechazos de formato son correctos, pero **NO** homologan operaciones válidas. [Run](https://github.com/ecucondorSA/Autamedica/actions/runs/41587250781).
+- **Alta DEMO, segundo intento independiente**: POST autenticado con el mismo fixture de SwaggerHub y un identificador de correlación distinto en `infoBrowser` (`AutaMedica-Test-c7db15b7b4`). Farmalink respondió **HTTP 504 Gateway Timeout en 30,6 s**, a pesar de aumentar el timeout del cliente a 85 s. Sin `nroRecElectronica`; resultado remoto incierto. No repetir para evitar duplicados. [Run](https://github.com/Autamedica/Autamedica/actions/runs/41587599039).
+- **Tres POST negativos reales**: `altaReceta`, `consultaReceta`, `bajaReceta` con JSON deliberadamente incompleto y SIN datos de paciente, medicamentos ni receta: **HTTP 400 / error interno 5075** en los tres casos. Los rechazos de formato son correctos, pero **NO** homologan operaciones válidas. [Run](https://github.com/Autamedica/Autamedica/actions/runs/41587250781).
 - **Baja real**: no ejecutada, porque no existe identificador de receta DEMO aprobado y confirmado por consulta. Está prohibido cancelar una receta de tercero o usar referencias inventadas para una baja.
 - **Escalación a Farmalink**: enviado nuevo correo de seguimiento al hilo de `homologacionre@farmalink.com.ar` solicitando rastrear el 504 por etiqueta, confirmar si hubo altas DEMO creadas y suministrar parámetros de organización/canal de homologación.
 - **Workflow de red**: después de cada prueba quedó en `workflow_dispatch`; sin ejecuciones mutativas en cada push de GitHub. No fusionar con main mientras haya casos P0 sin resolver.
@@ -38,7 +38,7 @@
 | Baja de receta | Solo tests unitarios con fetch simulado | No se cancelo ninguna receta externa |
 | PDF/barcode y cliente Farmalink | Vitest con respuestas simuladas | 26 tests aprobados inicialmente; guardar ejecucion posterior para nuevas validaciones |
 
-Evidencia: workflow [alta demo](https://github.com/ecucondorSA/Autamedica/actions/runs/41584218813), [consulta real no mutativa](https://github.com/ecucondorSA/Autamedica/actions/runs/41585851984), [test unitario](https://github.com/ecucondorSA/Autamedica/actions/runs/41586118934).
+Evidencia: workflow [alta demo](https://github.com/Autamedica/Autamedica/actions/runs/41584218813), [consulta real no mutativa](https://github.com/Autamedica/Autamedica/actions/runs/41585851984), [test unitario](https://github.com/Autamedica/Autamedica/actions/runs/41586118934).
 
 **Restricciones operativas:** No automatizar repeticion de altaReceta tras timeout, ni bajaReceta sin numero de receta confirmado y autorizacion de cancelacion; no activar Farmalink en produccion. El workflow de acceso TEST quedo en modo manual para evitar pruebas de red inesperadas.
 
@@ -65,8 +65,8 @@ Dos `altaReceta` con datos DEMO aprobadas por Farmalink TEST, usando `idOrganiza
 
 | Escenario | HTTP / código | nroRecElectronica | Evidencia |
 | --- | --- | --- | --- |
-| `generico=S` (sin marca) | `200 / 0` | `9600000421228` | [run 41703530442](https://github.com/ecucondorSA/Autamedica/actions/runs/41703530442) |
-| `generico=N` (producto comercial sugerido) | `200 / 0` (`OK`) | `9600000421242` | [run 41704314290](https://github.com/ecucondorSA/Autamedica/actions/runs/41704314290) |
+| `generico=S` (sin marca) | `200 / 0` | `9600000421228` | [run 41703530442](https://github.com/Autamedica/Autamedica/actions/runs/41703530442) |
+| `generico=N` (producto comercial sugerido) | `200 / 0` (`OK`) | `9600000421242` | [run 41704314290](https://github.com/Autamedica/Autamedica/actions/runs/41704314290) |
 
 Se generaron PDFs de prueba con códigos de barras Code 128 que representan los números reales de receta, conservados como artefactos en los runs de GitHub Actions. Un intento previo de marca con código de producto `60763` fue rechazado con código funcional `30` (sin receta emitida). El segundo caso aprobado usa el código de producto `56800`, ya aceptado en la prueba genérica.
 
@@ -176,7 +176,7 @@ Campos minimos para que `FARMALINK_ENABLED=true` no bloquee la emision:
 
 **Hallazgo P0**: Los dos números Farmalink TEST aceptados por la API no son recetas
 de prednisolona. La consulta autenticada de ambos números en
-[GitHub Actions 41717111174](https://github.com/ecucondorSA/Autamedica/actions/runs/41717111174)
+[GitHub Actions 41717111174](https://github.com/Autamedica/Autamedica/actions/runs/41717111174)
 devolvió:
 - `droga.codigo=01033`, `droga.nombre=GLICOLICOAC.ASOC.`.
 - `producto.codProducto=56800`, `producto.nombre=ESFUMEL blanqueadora cr. x 20 g`.

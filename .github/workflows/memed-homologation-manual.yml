@@ -24,7 +24,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout reviewed PR #704 sandbox script, never production
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: deb246189fbfde8dc2067523096fda472982eec3
           persist-credentials: false
@@ -40,7 +40,7 @@ jobs:
         run: node scripts/memed-homologation-browser.mjs
       - name: Upload masked Memed UI evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: memed-sandbox-demo-masked-ui
           path: test-results/memed-demo-identificacao.png
@@ -48,7 +48,7 @@ jobs:
           retention-days: 1
       - name: Upload provider PDF only after binary authenticity verification
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: memed-authentic-sandbox-demo-pdf
           path: test-results/memed-sandbox-provider-demo.pdf

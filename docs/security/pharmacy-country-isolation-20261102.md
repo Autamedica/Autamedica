@@ -1,6 +1,6 @@
 # Farmacias AR/BR — candidato de liberación
 
-Actualizado: 2026-11-03. PR existente: https://github.com/ecucondorSA/Autamedica/pull/646.
+Actualizado: 2026-11-03. PR existente: https://github.com/Autamedica/Autamedica/pull/646.
 **No fusionado ni desplegado por este trabajo. No equivale a un circuito clínico habilitado.**
 
 ## 1. Estado general y método de cierre
