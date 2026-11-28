@@ -5,8 +5,8 @@ Estado al 03/11/2026: **OAuth Test aprobado**. Dos intentos de `altaReceta` con 
 ## Identificadores de prueba para soporte
 
 - Datos usados **en las pruebas anteriores** de SwaggerHub, no en la nueva homologación: `codEntidad=7100`; PAN `12345678`; `idOrganizacion=100`. No reutilizar estos datos.
-- Primer intento: [run 41584218813](https://github.com/ecucondorSA/Autamedica/actions/runs/41584218813), cerca de las **02:30 ART** del 03/11/2026; petición del ejemplo oficial de SwaggerHub.
-- Segundo intento: [run 41587599039](https://github.com/ecucondorSA/Autamedica/actions/runs/41587599039), etiqueta `AutaMedica-Test-c7db15b7b4`, cerca de las **03:05 ART** del 03/11/2026, `HTTP 504`.
+- Primer intento: [run 41584218813](https://github.com/Autamedica/Autamedica/actions/runs/41584218813), cerca de las **02:30 ART** del 03/11/2026; petición del ejemplo oficial de SwaggerHub.
+- Segundo intento: [run 41587599039](https://github.com/Autamedica/Autamedica/actions/runs/41587599039), etiqueta `AutaMedica-Test-c7db15b7b4`, cerca de las **03:05 ART** del 03/11/2026, `HTTP 504`.
 - Farmalink: solicitud formal de rastreo enviada al hilo `homologacionre@farmalink.com.ar`, ticket **SOL-3144**.
 - No incluir ni reenviar las contraseñas OAuth ni los access tokens en correos o reportes.
 

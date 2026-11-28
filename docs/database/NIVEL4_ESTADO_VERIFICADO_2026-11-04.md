@@ -1,7 +1,7 @@
 # AutaMedica — Estado verificado hacia Nivel 4
 
 **Corte de evidencia:** 2026-11-04 (America/Sao_Paulo).  
-**Entornos:** GitHub `ecucondorSA/Autamedica` y Supabase producción `qxjjrpksmwwrmubhvjew`.  
+**Entornos:** GitHub `Autamedica/Autamedica` y Supabase producción `qxjjrpksmwwrmubhvjew`.  
 **Clasificación:** evidencia factual, limitaciones y criterios de aceptación.  
 **Resultado general:** **NIVEL 4 NO ACREDITADO**. No sustituir pruebas con usuarios reales por CI o por estado `ACTIVE_HEALTHY`.
 
@@ -11,10 +11,10 @@ Este documento es una fotografía operativa fechada, **no** una certificación d
 
 ### 1.1 Respaldo cifrado y custodia externa
 
-- GitHub Actions generó el respaldo retenido #38: [run 41734833692](https://github.com/ecucondorSA/Autamedica/actions/runs/41734833692), artefacto `encrypted-recovery-41734833692-1`. La copia temporal de GitHub está sujeta a vencimiento (registrado 2026-12-03); **no** se considera custodia permanente.
+- GitHub Actions generó el respaldo retenido #38: [run 41734833692](https://github.com/Autamedica/Autamedica/actions/runs/41734833692), artefacto `encrypted-recovery-41734833692-1`. La copia temporal de GitHub está sujeta a vencimiento (registrado 2026-12-03); **no** se considera custodia permanente.
 - Una restauración **offline** del respaldo retenido, ejecutada en un Codespace controlado, verificó **228 tablas, 106.832 filas y 318 claves foráneas** de la base recuperada, más **359 objetos** por SHA-256. Evidencia del ensayo local reportada por su operador; el reporte distingue restauración DB/bytes de recuperación completa del servicio Storage. No se utilizó conexión al origen.
-- Se ejecutó el replay del **ciphertext real** por una Storage API Supabase local y aislada: **359/359 archivos**, SHA-256 íntegro, rechazo anónimo y rechazo de segundo usuario según **políticas sintéticas** del replay. El ensayo no preservó IDs, versiones, propietarios, metadatos ni RLS clínico original. Referencias [PR #666](https://github.com/ecucondorSA/Autamedica/pull/666) y [procedimiento de prueba](RETAINED_STORAGE_API_REPLAY.md).
-- Se completó la transferencia GitHub → **Cloudflare R2 privado** del fichero exclusivamente cifrado (`recovery.tar.gz.gpg`), dividido en cuatro partes, al bucket `autamedica-recovery-offsite-2026`. El [workflow #41766930658, intento 3](https://github.com/ecucondorSA/Autamedica/actions/runs/41766930658) terminó con `success` y `OFFSITE_CIPHERTEXT_CUSTODY_VERIFIED=true`. El archivo original verificó SHA-256; se descargaron las cuatro partes desde R2 y el SHA-256 reconstruido coincidió.
+- Se ejecutó el replay del **ciphertext real** por una Storage API Supabase local y aislada: **359/359 archivos**, SHA-256 íntegro, rechazo anónimo y rechazo de segundo usuario según **políticas sintéticas** del replay. El ensayo no preservó IDs, versiones, propietarios, metadatos ni RLS clínico original. Referencias [PR #666](https://github.com/Autamedica/Autamedica/pull/666) y [procedimiento de prueba](RETAINED_STORAGE_API_REPLAY.md).
+- Se completó la transferencia GitHub → **Cloudflare R2 privado** del fichero exclusivamente cifrado (`recovery.tar.gz.gpg`), dividido en cuatro partes, al bucket `autamedica-recovery-offsite-2026`. El [workflow #41766930658, intento 3](https://github.com/Autamedica/Autamedica/actions/runs/41766930658) terminó con `success` y `OFFSITE_CIPHERTEXT_CUSTODY_VERIFIED=true`. El archivo original verificó SHA-256; se descargaron las cuatro partes desde R2 y el SHA-256 reconstruido coincidió.
 - Consulta directa posterior en Cloudflare R2: cuatro fragmentos de ciphertext de 134.217.728, 134.217.728, 134.217.728 y 130.784.190 bytes (**533.437.374 bytes**), más `SHA256SUMS`, `PARTS.sha256` y `MANIFEST.txt` (y el archivo inocuo `preflight.txt`). URL pública R2 deshabilitada y **cero dominios públicos personalizados**.
 - La clave GPG privada y su passphrase **no se transfirieron a R2 ni a CI**. La recuperación de esas credenciales desde un custodio independiente aún **no está acreditada**. No borrar la copia de Codespaces ni el escrow original sin verificar antes custodia separada.
 
@@ -29,7 +29,7 @@ Este documento es una fotografía operativa fechada, **no** una certificación d
   - `storage.objects`: RLS habilitado; **14** políticas registradas en `pg_policies`.
 - El número 359 de objetos actuales coincide con el inventario del respaldo, pero **la igualdad del conteo no demuestra identidad de contenido, recuperación de metadatos, consistencia temporal ni autorizaciones clínicas**.
 - Los dos buckets públicos requieren inspección funcional por finalidad, reglas, enlaces firmados y acceso cruzado; **no** se infiere exposición indebida solo por el indicador `public`.
-- [Production Deploy #41763404924](https://github.com/ecucondorSA/Autamedica/actions/runs/41763404924) terminó `success` para el commit `5322bf3`. Otros commits posteriores únicamente de documentación/workflows no acreditan por sí solos un nuevo despliegue aplicativo.
+- [Production Deploy #41763404924](https://github.com/Autamedica/Autamedica/actions/runs/41763404924) terminó `success` para el commit `5322bf3`. Otros commits posteriores únicamente de documentación/workflows no acreditan por sí solos un nuevo despliegue aplicativo.
 
 ### 1.3 Estado de código clínico / farmacéutico
 
@@ -37,12 +37,12 @@ Los siguientes cambios continúan **abiertos y no fusionados** al corte; por lo 
 
 | Área | Referencia | Estado al corte |
 | --- | --- | --- |
-| Android: emisión de documentos durante videollamada farmacia AR/BR | [PR #670](https://github.com/ecucondorSA/Autamedica/pull/670) | Draft, abierto |
-| Ingreso farmacia: identidad invitado y país AR/BR explícito | [PR #672](https://github.com/ecucondorSA/Autamedica/pull/672) | Draft, abierto |
-| Certificados AR: protección contra reversión / DEMO reversible | [PR #667](https://github.com/ecucondorSA/Autamedica/pull/667), [#668](https://github.com/ecucondorSA/Autamedica/pull/668) | Drafts, abiertos |
-| Recetas AR Farmalink / BR Memed: validación de país clínico | [PR #653](https://github.com/ecucondorSA/Autamedica/pull/653) | Draft, abierto |
-| Homologación Farmalink organización 182 / sin puntoEmisor | [PR #655](https://github.com/ecucondorSA/Autamedica/pull/655) | Draft, abierto |
-| FirmAR: preflight de firma y callback no activado | [PR #650](https://github.com/ecucondorSA/Autamedica/pull/650) | Draft, abierto |
+| Android: emisión de documentos durante videollamada farmacia AR/BR | [PR #670](https://github.com/Autamedica/Autamedica/pull/670) | Draft, abierto |
+| Ingreso farmacia: identidad invitado y país AR/BR explícito | [PR #672](https://github.com/Autamedica/Autamedica/pull/672) | Draft, abierto |
+| Certificados AR: protección contra reversión / DEMO reversible | [PR #667](https://github.com/Autamedica/Autamedica/pull/667), [#668](https://github.com/Autamedica/Autamedica/pull/668) | Drafts, abiertos |
+| Recetas AR Farmalink / BR Memed: validación de país clínico | [PR #653](https://github.com/Autamedica/Autamedica/pull/653) | Draft, abierto |
+| Homologación Farmalink organización 182 / sin puntoEmisor | [PR #655](https://github.com/Autamedica/Autamedica/pull/655) | Draft, abierto |
+| FirmAR: preflight de firma y callback no activado | [PR #650](https://github.com/Autamedica/Autamedica/pull/650) | Draft, abierto |
 
 **No está acreditado** un circuito de emisión real completo desde una consulta en farmacia en Android/web, con médico autorizado, documento clínico válido y recuperación por el paciente, tanto en Argentina como en Brasil. Ni una prueba DEMO ni un PDF local equivalen automáticamente a aprobación formal de proveedor o validez profesional/regulatoria.
 

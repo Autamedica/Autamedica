@@ -4,7 +4,7 @@
 
 ## Evidence status — 2026-11-02
 
-The [production database-only drill passed](https://github.com/ecucondorSA/Autamedica/actions/runs/41381103309): 226 tables and 106,411 rows matched, 317 foreign keys were verified, and data/security metadata plus exact table permission facts matched the source snapshot. Three destination permission objects required reconciliation to the source facts. The source was read-only, the restore destination was offline, and cleanup was verified. Restore plus validation took 8.85 seconds; the complete measured drill took 641.86 seconds, including export and disposable stack setup/cleanup.
+The [production database-only drill passed](https://github.com/Autamedica/Autamedica/actions/runs/41381103309): 226 tables and 106,411 rows matched, 317 foreign keys were verified, and data/security metadata plus exact table permission facts matched the source snapshot. Three destination permission objects required reconciliation to the source facts. The source was read-only, the restore destination was offline, and cleanup was verified. Restore plus validation took 8.85 seconds; the complete measured drill took 641.86 seconds, including export and disposable stack setup/cleanup.
 
 Full platform recovery is **not yet accredited**. This drill retained no backup and excludes Storage object bytes, Vault secrets and external platform configuration. The historical 2026-04-02 report of unavailable managed backups/PITR still requires an authenticated dashboard recheck before selecting a retention strategy. These timings do not establish a full platform RPO/RTO commitment.
 

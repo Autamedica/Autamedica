@@ -3,7 +3,7 @@
 > Fecha: 2026-02-19
 > Proyecto Supabase: `qxjjrpksmwwrmubhvjew`
 > Cloudflare Pages: `autamedica-web`
-> Repositorio: `ecucondorSA/Autamedica`
+> Repositorio: `Autamedica/Autamedica`
 
 ---
 
@@ -345,6 +345,6 @@ PGPASSWORD="..." psql "postgresql://postgres.qxjjrpksmwwrmubhvjew@aws-1-us-east-
 | Supabase Región  | us-east-2              | sa-east-1              |
 | CF Pages         | `autamedica-web`       | `autorentar`           |
 | Dominio          | autamedica.com         | autorentar.com         |
-| Repositorio      | ecucondorSA/Autamedica | (separado)             |
+| Repositorio      | Autamedica/Autamedica  | (separado)             |
 
 No hay recursos compartidos. No mezclar tokens, secrets, ni migraciones entre proyectos.
