@@ -10,11 +10,9 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -70,7 +68,7 @@ fun getCertificateTypeDisplayName(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun DoctorCertificatesScreen(
     onBack: () -> Unit,
@@ -146,13 +144,16 @@ fun DoctorCertificatesScreen(
                         Text(
                             text = stringResource(R.string.cert_header_counts, uiState.validCount, uiState.totalCount),
                             style = MaterialTheme.typography.labelSmall,
-                            color = AuTextTertiary,
+                            color = AuTextSecondary,
                         )
                     }
                 },
                 navigationIcon = {
                     if (showBackButton) {
-                        IconButton(onClick = onBack) {
+                        IconButton(
+                            onClick = onBack,
+                            modifier = Modifier.minimumInteractiveComponentSize(),
+                        ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = stringResource(R.string.clinical_ops_back),
@@ -162,7 +163,10 @@ fun DoctorCertificatesScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.loadCertificates() }) {
+                    IconButton(
+                        onClick = { viewModel.loadCertificates() },
+                        modifier = Modifier.minimumInteractiveComponentSize(),
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = stringResource(R.string.clinical_ops_refresh),
@@ -178,7 +182,7 @@ fun DoctorCertificatesScreen(
                 onClick = onNavigateToCreateCertificate,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text(stringResource(R.string.cert_action_new_certificate), fontWeight = FontWeight.Bold) },
-                containerColor = PortalPatientsAction,
+                containerColor = PrimaryDark,
                 contentColor = Color.White,
                 shape = RoundedCornerShape(16.dp),
             )
@@ -192,7 +196,7 @@ fun DoctorCertificatesScreen(
             // Search Bar
             Surface(
                 color = AuSurface,
-                border = BorderStroke(1.dp, AuBorder),
+                border = BorderStroke(1.dp, AuInputBorder.copy(alpha = 0.35f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -203,47 +207,50 @@ fun DoctorCertificatesScreen(
                         value = uiState.searchQuery,
                         onValueChange = { viewModel.onSearchQueryChange(it) },
                         placeholder = { Text(stringResource(R.string.cert_search_placeholder)) },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = AuTextTertiary) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = AuTextSecondary) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PortalDoctors,
-                            unfocusedBorderColor = AuBorder,
+                            focusedBorderColor = PrimaryDark,
+                            unfocusedBorderColor = AuInputBorder,
+                            unfocusedPlaceholderColor = AuTextSecondary,
                         )
                     )
 
                     // Status Filter Chips
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         FilterChip(
                             selected = uiState.selectedStatusFilter == "todos",
                             onClick = { viewModel.onSelectStatusFilter("todos") },
+                            modifier = Modifier.minimumInteractiveComponentSize(),
                             label = { Text(stringResource(R.string.cert_filter_all, uiState.totalCount)) },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = PortalDoctors,
+                                selectedContainerColor = PrimaryDark,
                                 selectedLabelColor = Color.White,
                             )
                         )
                         FilterChip(
                             selected = uiState.selectedStatusFilter == "validos",
                             onClick = { viewModel.onSelectStatusFilter("validos") },
+                            modifier = Modifier.minimumInteractiveComponentSize(),
                             label = { Text(stringResource(R.string.cert_filter_valid, uiState.validCount)) },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = PortalDoctors,
+                                selectedContainerColor = PrimaryDark,
                                 selectedLabelColor = Color.White,
                             )
                         )
                         FilterChip(
                             selected = uiState.selectedStatusFilter == "cancelados",
                             onClick = { viewModel.onSelectStatusFilter("cancelados") },
+                            modifier = Modifier.minimumInteractiveComponentSize(),
                             label = { Text(stringResource(R.string.cert_filter_cancelled, uiState.cancelledCount)) },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = PortalDoctors,
+                                selectedContainerColor = PrimaryDark,
                                 selectedLabelColor = Color.White,
                             )
                         )
@@ -257,7 +264,7 @@ fun DoctorCertificatesScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = PortalDoctors, strokeWidth = 2.dp)
+                    CircularProgressIndicator(color = PrimaryDark, strokeWidth = 2.dp)
                 }
             } else if (uiState.filteredCertificates.isEmpty()) {
                 Box(
@@ -339,7 +346,7 @@ fun DoctorCertificatesScreen(
                         text = stringResource(R.string.cert_detail_cuir_label, cert.cuir),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color = PortalDoctors
+                        color = PrimaryDark
                     )
                     cert.patientName?.let { name ->
                         val patientText = cert.patientDni?.takeIf { it.isNotBlank() }?.let { dni ->
@@ -356,13 +363,13 @@ fun DoctorCertificatesScreen(
                             text = stringResource(R.string.cert_rest_hours_detail, cert.restHours, cert.startDate),
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF16A34A)
+                            color = AuSuccessText
                         )
                         cert.daysOfRest > 0 -> Text(
                             text = stringResource(R.string.cert_days_of_rest_detail, cert.daysOfRest, cert.endDate ?: cert.startDate),
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF16A34A)
+                            color = AuSuccessText
                         )
                     }
                     if (cert.diagnosis != null) {
@@ -376,7 +383,7 @@ fun DoctorCertificatesScreen(
                         Text(
                             text = stringResource(R.string.cert_detail_observations, it),
                             style = MaterialTheme.typography.labelSmall,
-                            color = AuTextTertiary
+                            color = AuTextSecondary
                         )
                     }
                 }
@@ -393,17 +400,23 @@ fun DoctorCertificatesScreen(
                         },
                         enabled = cert.isActive,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF0F766E),
+                            containerColor = AuSuccessText,
                             contentColor = Color.White
                         ),
+                        modifier = Modifier
+                            .minimumInteractiveComponentSize()
+                            .heightIn(min = 48.dp),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Icon(Icons.Outlined.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(stringResource(R.string.cert_detail_download_pdf), fontWeight = FontWeight.Bold)
                     }
-                    TextButton(onClick = { selectedCertForDetail = null }) {
-                        Text(stringResource(R.string.clinical_ops_close), color = PortalDoctors, fontWeight = FontWeight.Bold)
+                    TextButton(
+                        onClick = { selectedCertForDetail = null },
+                        modifier = Modifier.minimumInteractiveComponentSize(),
+                    ) {
+                        Text(stringResource(R.string.clinical_ops_close), color = PrimaryDark, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -445,14 +458,14 @@ private fun DoctorCertificateCard(
                 ) {
                     Surface(
                         shape = CircleShape,
-                        color = PortalPatients.copy(alpha = 0.15f),
+                        color = PrimaryContainer,
                         modifier = Modifier.size(32.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 Icons.Outlined.Person,
                                 contentDescription = null,
-                                tint = PortalPatients,
+                                tint = PrimaryDark,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -470,7 +483,7 @@ private fun DoctorCertificateCard(
                             Text(
                                 text = stringResource(R.string.cert_card_dni_label, maskPatientDocument(dni)),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = AuTextTertiary
+                                color = AuTextSecondary
                             )
                         }
                     }
@@ -478,7 +491,11 @@ private fun DoctorCertificateCard(
 
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = if (isValid) Color(0xFFDCFCE7) else if (isPending) Color(0xFFFEF3C7) else Color(0xFFFEE2E2),
+                    color = when {
+                        isValid -> SuccessContainer
+                        isPending -> PrimaryContainer
+                        else -> ErrorContainer
+                    },
                 ) {
                     Text(
                         text = when {
@@ -489,7 +506,11 @@ private fun DoctorCertificateCard(
                         },
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = if (isValid) Color(0xFF16A34A) else if (isPending) Color(0xFF92400E) else Color(0xFFDC2626),
+                        color = when {
+                            isValid -> AuSuccessText
+                            isPending -> PrimaryDark
+                            else -> AuDangerText
+                        },
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                 }
@@ -514,7 +535,7 @@ private fun DoctorCertificateCard(
                         text = getCertificateTypeDisplayName(certificate.certificateType, certJurisdiction),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
-                        color = PortalDoctors
+                        color = PrimaryDark
                     )
                     val restText = when {
                         certificate.restHours > 0 -> stringResource(R.string.cert_rest_hours_format, certificate.restHours)
@@ -547,7 +568,7 @@ private fun DoctorCertificateCard(
                 Text(
                     text = stringResource(RegulatoryJurisdictionCopy.certificateDiagnosisReservedRes(certJurisdiction)),
                     style = MaterialTheme.typography.labelSmall,
-                    color = AuTextTertiary
+                    color = AuTextSecondary
                 )
             }
 
@@ -559,13 +580,14 @@ private fun DoctorCertificateCard(
             ) {
                 TextButton(
                     onClick = onCopyCuir,
+                    modifier = Modifier.minimumInteractiveComponentSize(),
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp), tint = AuTextSecondary)
+                        Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp), tint = AuTextSecondary)
                         Text(
                             text = certificate.cuir,
                             style = MaterialTheme.typography.labelSmall,
@@ -583,12 +605,14 @@ private fun DoctorCertificateCard(
                         onClick = { onOpenPdf(certificate) },
                         enabled = isValid && certificate.signedPdfUrl?.isNotBlank() == true,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF0F766E),
+                            containerColor = AuSuccessText,
                             contentColor = Color.White
                         ),
                         shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                        modifier = Modifier.height(34.dp)
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                        modifier = Modifier
+                            .minimumInteractiveComponentSize()
+                            .heightIn(min = 48.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.PictureAsPdf,
@@ -605,9 +629,11 @@ private fun DoctorCertificateCard(
 
                     FilledTonalButton(
                         onClick = onOpenDetail,
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                         shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.height(34.dp)
+                        modifier = Modifier
+                            .minimumInteractiveComponentSize()
+                            .heightIn(min = 48.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,

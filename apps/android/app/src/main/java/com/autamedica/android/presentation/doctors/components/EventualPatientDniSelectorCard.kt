@@ -15,9 +15,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -44,6 +46,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,6 +58,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -66,15 +75,17 @@ import com.autamedica.android.R
 import com.autamedica.android.domain.model.PrescriptionPatientItem
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
-import com.autamedica.android.presentation.theme.AuDanger
-import com.autamedica.android.presentation.theme.AuEmerald
+import com.autamedica.android.presentation.theme.AuDangerText
+import com.autamedica.android.presentation.theme.AuInputBorder
 import com.autamedica.android.presentation.theme.AuSurface
 import com.autamedica.android.presentation.theme.AuSurfaceHover
+import com.autamedica.android.presentation.theme.AuSuccessText
 import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
-import com.autamedica.android.presentation.theme.AuTextTertiary
-import com.autamedica.android.presentation.theme.PortalPatientsAction
+import com.autamedica.android.presentation.theme.ErrorContainer
 import com.autamedica.android.presentation.theme.PrimaryContainer
+import com.autamedica.android.presentation.theme.PrimaryDark
+import com.autamedica.android.presentation.theme.SuccessContainer
 
 @Composable
 fun EventualPatientDniSelectorCard(
@@ -127,7 +138,7 @@ fun EventualPatientDniSelectorCard(
                         Icon(
                             imageVector = Icons.Outlined.Person,
                             contentDescription = null,
-                            tint = PortalPatientsAction,
+                            tint = PrimaryDark,
                             modifier = Modifier.size(18.dp),
                         )
                     }
@@ -141,7 +152,7 @@ fun EventualPatientDniSelectorCard(
                         Text(
                             text = stringResource(R.string.doctor_dni_selector_subtitle),
                             style = MaterialTheme.typography.labelSmall,
-                            color = AuTextTertiary,
+                            color = AuTextSecondary,
                         )
                     }
                 }
@@ -150,30 +161,33 @@ fun EventualPatientDniSelectorCard(
                     Surface(
                         shape = RoundedCornerShape(999.dp),
                         color = PrimaryContainer,
-                        border = BorderStroke(1.dp, PortalPatientsAction.copy(alpha = 0.25f)),
+                        border = BorderStroke(1.dp, PrimaryDark.copy(alpha = 0.35f)),
                         modifier = Modifier
+                            .minimumInteractiveComponentSize()
+                            .heightIn(min = 48.dp)
                             .clip(RoundedCornerShape(999.dp))
+                            .semantics { role = Role.Button }
                             .clickable {
                                 showDniQuickForm = true
                                 onExpandedChange(false)
                             },
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = null,
-                                tint = PortalPatientsAction,
-                                modifier = Modifier.size(14.dp),
+                                tint = PrimaryDark,
+                                modifier = Modifier.size(16.dp),
                             )
                             Text(
                                 text = stringResource(R.string.doctor_dni_quick_add_btn),
-                                style = MaterialTheme.typography.labelSmall,
+                                style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = PortalPatientsAction,
+                                color = PrimaryDark,
                             )
                         }
                     }
@@ -185,7 +199,7 @@ fun EventualPatientDniSelectorCard(
                 Surface(
                     shape = RoundedCornerShape(14.dp),
                     color = AuSurfaceHover,
-                    border = BorderStroke(1.5.dp, PortalPatientsAction.copy(alpha = 0.35f)),
+                    border = BorderStroke(1.5.dp, PrimaryDark.copy(alpha = 0.35f)),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
@@ -213,7 +227,7 @@ fun EventualPatientDniSelectorCard(
                             ) {
                                 selectedPatient.dni?.takeIf { it.isNotBlank() }?.let { dni ->
                                     Text(
-                                        text = "DNI/CPF: $dni",
+                                        text = stringResource(R.string.doctor_dni_document_prefix, dni),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.SemiBold,
                                         color = AuTextSecondary,
@@ -223,7 +237,7 @@ fun EventualPatientDniSelectorCard(
                                     Text(
                                         text = "· $cov",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = PortalPatientsAction,
+                                        color = PrimaryDark,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
@@ -234,14 +248,14 @@ fun EventualPatientDniSelectorCard(
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
-                                    color = Color(0xFFECFDF5),
+                                    color = SuccessContainer,
                                 ) {
                                     Text(
                                         text = stringResource(R.string.doctor_dni_delivery_badge, contact),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontSize = 10.5.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF065F46),
+                                        color = AuSuccessText,
                                         modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
@@ -249,10 +263,13 @@ fun EventualPatientDniSelectorCard(
                                 }
                             }
                         }
-                        TextButton(onClick = { onExpandedChange(!expanded) }) {
+                        TextButton(
+                            onClick = { onExpandedChange(!expanded) },
+                            modifier = Modifier.minimumInteractiveComponentSize(),
+                        ) {
                             Text(
                                 text = stringResource(R.string.clinical_ops_change),
-                                color = PortalPatientsAction,
+                                color = PrimaryDark,
                                 fontWeight = FontWeight.Bold,
                             )
                         }
@@ -260,12 +277,12 @@ fun EventualPatientDniSelectorCard(
                 }
             }
 
-            // Expandable 3-Field DNI + Sex + WhatsApp/Email panel for non-registered people
+            // Expandable 3-Field DNI/CPF + Sex + WhatsApp/Email panel for non-registered people
             AnimatedVisibility(visible = showDniQuickForm) {
                 Surface(
                     shape = RoundedCornerShape(14.dp),
                     color = Color(0xFFF8FAFC),
-                    border = BorderStroke(1.dp, PortalPatientsAction.copy(alpha = 0.30f)),
+                    border = BorderStroke(1.dp, PrimaryDark.copy(alpha = 0.30f)),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(
@@ -291,7 +308,7 @@ fun EventualPatientDniSelectorCard(
                                         text = stringResource(R.string.doctor_dni_panel_title),
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = PortalPatientsAction,
+                                        color = PrimaryDark,
                                     )
                                     Text(
                                         text = stringResource(R.string.doctor_dni_panel_subtitle),
@@ -302,11 +319,11 @@ fun EventualPatientDniSelectorCard(
                             }
                             IconButton(
                                 onClick = { showDniQuickForm = false },
-                                modifier = Modifier.size(28.dp),
+                                modifier = Modifier.minimumInteractiveComponentSize(),
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = null,
+                                    contentDescription = stringResource(R.string.doctor_dni_close_quick_add_cd),
                                     tint = AuTextSecondary,
                                     modifier = Modifier.size(18.dp),
                                 )
@@ -318,14 +335,17 @@ fun EventualPatientDniSelectorCard(
                             value = dniInput,
                             onValueChange = { dniInput = it.filter { ch -> ch.isDigit() || ch == '.' || ch == '-' } },
                             label = { Text(stringResource(R.string.doctor_dni_field_document)) },
-                            placeholder = { Text("Ej: 32456789") },
+                            placeholder = { Text(stringResource(R.string.doctor_dni_placeholder_document)) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = PortalPatientsAction,
-                                unfocusedBorderColor = AuBorder,
+                                focusedBorderColor = PrimaryDark,
+                                unfocusedBorderColor = AuInputBorder,
+                                focusedLabelColor = PrimaryDark,
+                                unfocusedLabelColor = AuTextSecondary,
+                                unfocusedPlaceholderColor = AuTextSecondary,
                                 focusedContainerColor = Color.White,
                                 unfocusedContainerColor = Color.White,
                             ),
@@ -359,12 +379,14 @@ fun EventualPatientDniSelectorCard(
                                             )
                                         },
                                         colors = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = PortalPatientsAction,
+                                            selectedContainerColor = PrimaryDark,
                                             selectedLabelColor = Color.White,
                                             containerColor = Color.White,
                                             labelColor = AuTextPrimary,
                                         ),
-                                        modifier = Modifier.weight(1f),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .minimumInteractiveComponentSize(),
                                     )
                                 }
                             }
@@ -375,12 +397,12 @@ fun EventualPatientDniSelectorCard(
                             value = contactInput,
                             onValueChange = { contactInput = it },
                             label = { Text(stringResource(R.string.doctor_dni_field_contact)) },
-                            placeholder = { Text("+54 9 11 ... o correo@ejemplo.com") },
+                            placeholder = { Text(stringResource(R.string.doctor_dni_placeholder_contact)) },
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Outlined.Email,
                                     contentDescription = null,
-                                    tint = PortalPatientsAction,
+                                    tint = PrimaryDark,
                                     modifier = Modifier.size(18.dp),
                                 )
                             },
@@ -388,8 +410,11 @@ fun EventualPatientDniSelectorCard(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = PortalPatientsAction,
-                                unfocusedBorderColor = AuBorder,
+                                focusedBorderColor = PrimaryDark,
+                                unfocusedBorderColor = AuInputBorder,
+                                focusedLabelColor = PrimaryDark,
+                                unfocusedLabelColor = AuTextSecondary,
+                                unfocusedPlaceholderColor = AuTextSecondary,
                                 focusedContainerColor = Color.White,
                                 unfocusedContainerColor = Color.White,
                             ),
@@ -401,13 +426,16 @@ fun EventualPatientDniSelectorCard(
                                 value = manualNameInput,
                                 onValueChange = { manualNameInput = it },
                                 label = { Text(stringResource(R.string.doctor_dni_field_manual_name)) },
-                                placeholder = { Text("Nombre y Apellido completos") },
+                                placeholder = { Text(stringResource(R.string.doctor_dni_placeholder_full_name)) },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(10.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = PortalPatientsAction,
-                                    unfocusedBorderColor = AuBorder,
+                                    focusedBorderColor = PrimaryDark,
+                                    unfocusedBorderColor = AuInputBorder,
+                                    focusedLabelColor = PrimaryDark,
+                                    unfocusedLabelColor = AuTextSecondary,
+                                    unfocusedPlaceholderColor = AuTextSecondary,
                                     focusedContainerColor = Color.White,
                                     unfocusedContainerColor = Color.White,
                                 ),
@@ -415,12 +443,22 @@ fun EventualPatientDniSelectorCard(
                         }
 
                         dniLookupError?.takeIf { it.isNotBlank() }?.let { err ->
-                            Text(
-                                text = err,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = AuDanger,
-                                fontWeight = FontWeight.SemiBold,
-                            )
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = ErrorContainer,
+                                border = BorderStroke(1.dp, AuDangerText.copy(alpha = 0.4f)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .semantics { liveRegion = LiveRegionMode.Assertive },
+                            ) {
+                                Text(
+                                    text = err,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = AuDangerText,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                )
+                            }
                         }
 
                         Button(
@@ -435,10 +473,11 @@ fun EventualPatientDniSelectorCard(
                             enabled = !isRegisteringDni && dniInput.filter(Char::isDigit).length >= 7 && contactInput.isNotBlank(),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(46.dp),
+                                .minimumInteractiveComponentSize()
+                                .heightIn(min = 48.dp),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = PortalPatientsAction,
+                                containerColor = PrimaryDark,
                                 contentColor = Color.White,
                             ),
                         ) {
@@ -465,9 +504,12 @@ fun EventualPatientDniSelectorCard(
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = AuBackground,
-                    border = BorderStroke(1.dp, AuBorder),
+                    border = BorderStroke(1.dp, AuInputBorder.copy(alpha = 0.5f)),
                     modifier = Modifier
                         .fillMaxWidth()
+                        .minimumInteractiveComponentSize()
+                        .heightIn(min = 48.dp)
+                        .semantics { role = Role.DropdownList }
                         .clickable { onExpandedChange(!expanded) },
                 ) {
                     Row(
@@ -482,9 +524,9 @@ fun EventualPatientDniSelectorCard(
                                 stringResource(R.string.doctor_create_order_patient_unselected)
                             },
                             style = MaterialTheme.typography.bodyMedium,
-                            color = AuTextTertiary,
+                            color = AuTextSecondary,
                         )
-                        Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = AuTextTertiary)
+                        Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = AuTextSecondary)
                     }
                 }
 
@@ -500,10 +542,15 @@ fun EventualPatientDniSelectorCard(
                             value = searchQuery,
                             onValueChange = onSearchQueryChange,
                             placeholder = { Text(stringResource(R.string.doctor_create_order_patient_search_placeholder)) },
-                            leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, tint = AuTextTertiary) },
+                            leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, tint = AuTextSecondary) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             shape = RoundedCornerShape(8.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = PrimaryDark,
+                                unfocusedBorderColor = AuInputBorder,
+                                unfocusedPlaceholderColor = AuTextSecondary,
+                            ),
                         )
 
                         val filteredList = eligiblePatients.filter {
@@ -521,7 +568,7 @@ fun EventualPatientDniSelectorCard(
                                 Text(
                                     text = stringResource(R.string.doctor_create_order_patient_empty),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = AuTextTertiary,
+                                    color = AuTextSecondary,
                                 )
                                 OutlinedButton(
                                     onClick = {
@@ -531,31 +578,52 @@ fun EventualPatientDniSelectorCard(
                                         showDniQuickForm = true
                                         onExpandedChange(false)
                                     },
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .minimumInteractiveComponentSize()
+                                        .heightIn(min = 48.dp),
                                     shape = RoundedCornerShape(10.dp),
-                                    border = BorderStroke(1.dp, PortalPatientsAction),
+                                    border = BorderStroke(1.dp, PrimaryDark),
                                 ) {
-                                    Icon(Icons.Default.Add, contentDescription = null, tint = PortalPatientsAction, modifier = Modifier.size(16.dp))
+                                    Icon(Icons.Default.Add, contentDescription = null, tint = PrimaryDark, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         text = stringResource(R.string.doctor_dni_quick_add_btn),
-                                        color = PortalPatientsAction,
+                                        color = PrimaryDark,
                                         fontWeight = FontWeight.Bold,
                                     )
                                 }
                             }
                         } else {
+                            val selectedStateText = stringResource(R.string.doctor_dni_selected_state)
+                            val notSelectedStateText = stringResource(R.string.doctor_dni_not_selected_state)
                             filteredList.take(8).forEach { patient ->
+                                val isPatientSelected = selectedPatient?.patientId == patient.patientId
                                 Surface(
                                     shape = RoundedCornerShape(10.dp),
-                                    color = if (selectedPatient?.patientId == patient.patientId) PrimaryContainer else Color.White,
-                                    border = BorderStroke(0.5.dp, AuBorder),
+                                    color = if (isPatientSelected) PrimaryContainer else Color.White,
+                                    border = BorderStroke(
+                                        if (isPatientSelected) 1.5.dp else 1.dp,
+                                        if (isPatientSelected) PrimaryDark else AuInputBorder.copy(alpha = 0.35f),
+                                    ),
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable { onSelectPatient(patient) },
+                                        .minimumInteractiveComponentSize()
+                                        .selectable(
+                                            selected = isPatientSelected,
+                                            role = Role.RadioButton,
+                                            onClick = { onSelectPatient(patient) },
+                                        )
+                                        .semantics {
+                                            stateDescription = if (isPatientSelected) {
+                                                selectedStateText
+                                            } else {
+                                                notSelectedStateText
+                                            }
+                                        },
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                                     ) {
@@ -573,20 +641,22 @@ fun EventualPatientDniSelectorCard(
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis,
                                             )
-                                            val dniLabel = patient.dni?.takeIf { it.isNotBlank() }?.let { "DNI/CPF: $it" } ?: ""
+                                            val dniLabel = patient.dni?.takeIf { it.isNotBlank() }?.let {
+                                                stringResource(R.string.doctor_dni_document_prefix, it)
+                                            } ?: ""
                                             val contactLabel = patient.contact?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""
                                             if (dniLabel.isNotBlank() || contactLabel.isNotBlank()) {
                                                 Text(
                                                     text = dniLabel + contactLabel,
                                                     style = MaterialTheme.typography.labelSmall,
-                                                    color = AuTextTertiary,
+                                                    color = AuTextSecondary,
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis,
                                                 )
                                             }
                                         }
-                                        if (selectedPatient?.patientId == patient.patientId) {
-                                            Icon(Icons.Default.Check, contentDescription = null, tint = PortalPatientsAction, modifier = Modifier.size(18.dp))
+                                        if (isPatientSelected) {
+                                            Icon(Icons.Default.Check, contentDescription = null, tint = PrimaryDark, modifier = Modifier.size(18.dp))
                                         }
                                     }
                                 }

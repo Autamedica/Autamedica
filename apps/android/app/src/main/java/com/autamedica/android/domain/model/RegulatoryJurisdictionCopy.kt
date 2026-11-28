@@ -9,6 +9,31 @@ enum class RegulatoryJurisdiction {
     GENERIC,
 }
 
+enum class ClinicalJurisdictionResolution {
+    LOADING,
+    UNRESOLVED,
+    BR,
+    AR,
+}
+
+fun resolveClinicalJurisdictionState(
+    eligibility: DoctorEligibility?,
+    isLoadingEligibility: Boolean,
+): ClinicalJurisdictionResolution {
+    if (isLoadingEligibility) return ClinicalJurisdictionResolution.LOADING
+    if (eligibility == null) return ClinicalJurisdictionResolution.UNRESOLVED
+    return when (
+        resolveRegulatoryJurisdiction(
+            countryCode = eligibility.countryCode,
+            doctorLicense = eligibility.doctorLicense,
+        )
+    ) {
+        RegulatoryJurisdiction.BR -> ClinicalJurisdictionResolution.BR
+        RegulatoryJurisdiction.AR -> ClinicalJurisdictionResolution.AR
+        RegulatoryJurisdiction.GENERIC -> ClinicalJurisdictionResolution.UNRESOLVED
+    }
+}
+
 /**
  * Resolves regulatory copy strictly from the doctor's or clinical document's
  * persisted jurisdiction (`care_country`, `license_type`, `uf_brazil`, or license prefix).

@@ -165,4 +165,24 @@ class MemedPrescriberWebViewTest {
         assertFalse(prescriberWebView.contains("removeSessionCookies("))
         assertFalse(videoCallScreen.contains("removeSessionCookies("))
     }
+
+    @Test
+    fun `handles renderer crashes, edge-to-edge bottom insets, and live region announcements`() {
+        val androidMainDir = listOf(
+            File("src/main/java/com/autamedica/android"),
+            File("app/src/main/java/com/autamedica/android"),
+            File("apps/android/app/src/main/java/com/autamedica/android"),
+        ).first { it.exists() }
+
+        val prescriberWebView = File(androidMainDir, "presentation/doctors/components/MemedPrescriberWebView.kt").readText()
+        val videoCallScreen = File(androidMainDir, "presentation/videocall/VideoCallScreen.kt").readText()
+
+        assertTrue(MemedWebViewErrorCode.entries.contains(MemedWebViewErrorCode.RENDER_PROCESS_GONE))
+        assertTrue(prescriberWebView.contains("navigationBarsPadding()"))
+        assertTrue(prescriberWebView.contains("imePadding()"))
+        assertTrue(prescriberWebView.contains("onRenderProcessGone("))
+        assertTrue(prescriberWebView.contains("LiveRegionMode.Polite"))
+        assertTrue(prescriberWebView.contains("LiveRegionMode.Assertive"))
+        assertFalse(videoCallScreen.contains("applyStatusBarPadding = false"))
+    }
 }

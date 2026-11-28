@@ -4,8 +4,10 @@ import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.net.http.SslError
 import android.os.Message
+import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
@@ -25,6 +27,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Button
@@ -34,9 +39,12 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -45,12 +53,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.autamedica.android.R
+import com.autamedica.android.presentation.theme.PrimaryDark
 import kotlinx.coroutines.launch
 
 private const val MEMED_JS_BRIDGE_NAME = "AutamedicaMemedBridge"
@@ -98,6 +110,8 @@ fun MemedPrescriberWebView(
     val coroutineScope = rememberCoroutineScope()
     val retryController = remember(exchangeUrl) { MemedHandoffRetryController(maxAutoRetries = 1) }
 
+    var activeUrl by remember(exchangeUrl) { mutableStateOf(exchangeUrl) }
+    var webViewInstanceKey by remember(exchangeUrl) { mutableIntStateOf(0) }
     var isLoading by remember(exchangeUrl) { mutableStateOf(true) }
     var errorState by remember(exchangeUrl) { mutableStateOf<MemedWebViewErrorState?>(null) }
     var isRetrying by remember(exchangeUrl) { mutableStateOf(false) }
@@ -112,7 +126,13 @@ fun MemedPrescriberWebView(
             isRetrying = false
             result
                 .onSuccess { freshExchangeUrl ->
-                    webViewRef.value?.loadUrl(freshExchangeUrl)
+                    activeUrl = freshExchangeUrl
+                    val currentWebView = webViewRef.value
+                    if (currentWebView != null) {
+                        currentWebView.loadUrl(freshExchangeUrl)
+                    } else {
+                        webViewInstanceKey += 1
+                    }
                 }
                 .onFailure { err ->
                     isLoading = false
@@ -162,7 +182,9 @@ fun MemedPrescriberWebView(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .let { base -> if (applyStatusBarPadding) base.statusBarsPadding() else base },
+            .let { base -> if (applyStatusBarPadding) base.statusBarsPadding() else base }
+            .navigationBarsPadding()
+            .imePadding(),
     ) {
         Row(
             modifier = Modifier
@@ -177,8 +199,11 @@ fun MemedPrescriberWebView(
                 color = Color(0xFF172033),
                 fontWeight = FontWeight.SemiBold,
             )
-            TextButton(onClick = onClose) {
-                Text(stringResource(closeLabelRes))
+            TextButton(
+                onClick = onClose,
+                modifier = Modifier.minimumInteractiveComponentSize(),
+            ) {
+                Text(stringResource(closeLabelRes), color = PrimaryDark)
             }
         }
 
@@ -187,9 +212,10 @@ fun MemedPrescriberWebView(
                 .fillMaxWidth()
                 .weight(1f),
         ) {
-            AndroidView(
-                modifier = Modifier.fillMaxSize(),
-                factory = { viewContext ->
+            key(webViewInstanceKey) {
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { viewContext ->
                     WebView(viewContext).apply {
                         webViewRef.value = this
                         settings.javaScriptEnabled = true
@@ -369,13 +395,38 @@ fun MemedPrescriberWebView(
                                     ),
                                 )
                             }
+
+                            override fun onRenderProcessGone(
+                                view: WebView,
+                                detail: RenderProcessGoneDetail,
+                            ): Boolean {
+                                (view.parent as? ViewGroup)?.removeView(view)
+                                view.removeJavascriptInterface(MEMED_JS_BRIDGE_NAME)
+                                view.destroy()
+                                if (webViewRef.value === view) {
+                                    webViewRef.value = null
+                                }
+                                handleWebViewFailure(
+                                    MemedWebViewErrorState(
+                                        code = MemedWebViewErrorCode.RENDER_PROCESS_GONE,
+                                        diagnosticCode = if (detail.didCrash()) {
+                                            "WEBVIEW_RENDERER_CRASHED"
+                                        } else {
+                                            "WEBVIEW_RENDERER_KILLED"
+                                        },
+                                        canAutoRetry = false,
+                                    ),
+                                )
+                                return true
+                            }
                         }
 
-                        loadUrl(exchangeUrl)
+                        loadUrl(activeUrl)
                     }
                 },
                 update = {},
             )
+            }
 
             errorState?.let { error ->
                 MemedWebViewErrorOverlay(
@@ -393,7 +444,8 @@ fun MemedPrescriberWebView(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.White.copy(alpha = 0.92f)),
+                        .background(Color.White.copy(alpha = 0.92f))
+                        .semantics { liveRegion = LiveRegionMode.Polite },
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(
@@ -428,6 +480,7 @@ private fun MemedWebViewErrorOverlay(
         MemedWebViewErrorCode.SESSION_EXPIRED_IN_PAGE -> R.string.memed_webview_error_session
         MemedWebViewErrorCode.EXCHANGE_FORBIDDEN,
         MemedWebViewErrorCode.CLINICAL_DENIED_IN_PAGE -> R.string.memed_webview_error_clinical
+        MemedWebViewErrorCode.RENDER_PROCESS_GONE -> R.string.memed_webview_error_renderer
         MemedWebViewErrorCode.PROVIDER_OR_NETWORK_ERROR,
         MemedWebViewErrorCode.SSL_ERROR -> R.string.memed_webview_error_generic
     }
@@ -436,7 +489,8 @@ private fun MemedWebViewErrorOverlay(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .padding(24.dp),
+            .padding(24.dp)
+            .semantics { liveRegion = LiveRegionMode.Assertive },
         contentAlignment = Alignment.Center,
     ) {
         Surface(
@@ -473,13 +527,19 @@ private fun MemedWebViewErrorOverlay(
                 Spacer(modifier = Modifier.height(4.dp))
                 Button(
                     onClick = onRetry,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .minimumInteractiveComponentSize(),
                 ) {
                     Text(stringResource(R.string.memed_webview_retry))
                 }
                 OutlinedButton(
                     onClick = onClose,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .minimumInteractiveComponentSize(),
                 ) {
                     Text(stringResource(closeLabelRes))
                 }

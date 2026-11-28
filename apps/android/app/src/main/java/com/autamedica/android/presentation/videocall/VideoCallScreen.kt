@@ -819,7 +819,6 @@ fun VideoCallScreen(
             },
             titleRes = R.string.video_memed_title,
             closeLabelRes = R.string.video_memed_back_to_call,
-            applyStatusBarPadding = false,
             onClose = {
                 memedInCallSession = null
                 viewModel.verifyMemedDispatchPrescriptionOnReturn()

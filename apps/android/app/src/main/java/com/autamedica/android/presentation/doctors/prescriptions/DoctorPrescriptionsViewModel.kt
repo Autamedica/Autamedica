@@ -251,6 +251,7 @@ class DoctorPrescriptionsViewModel private constructor(
                 it.copy(
                     patientId = preselectedPatientId,
                     isLoadingPatients = true,
+                    isLoadingEligibility = if (it.doctorEligibility == null) true else it.isLoadingEligibility,
                     createError = null,
                     createdPrescription = null,
                     items = listOf(PrescriptionItemFormState()),
@@ -499,7 +500,24 @@ class DoctorPrescriptionsViewModel private constructor(
             return
         }
 
-        // Regulatory check warning
+        // Fail-closed jurisdiction & regulatory check
+        val jurisdictionState = com.autamedica.android.domain.model.resolveClinicalJurisdictionState(
+            eligibility = state.doctorEligibility,
+            isLoadingEligibility = state.isLoadingEligibility,
+        )
+        if (jurisdictionState != com.autamedica.android.domain.model.ClinicalJurisdictionResolution.AR) {
+            _uiState.update {
+                it.copy(
+                    createError = "Debés verificar tu habilitación médica y jurisdicción antes de emitir.",
+                    createErrorResId = R.string.doctor_eligibility_required_before_issue,
+                    createErrorArgs = emptyList(),
+                    createErrorAction = ClinicalErrorAction.RETRY,
+                    isDiagnosisValidationError = false,
+                )
+            }
+            return
+        }
+
         val eligibility = state.doctorEligibility
         if (eligibility != null && !eligibility.isEligible && eligibility.doctorLicense.isNullOrBlank()) {
             _uiState.update {
@@ -537,7 +555,15 @@ class DoctorPrescriptionsViewModel private constructor(
                 )
             }
 
-            val resolvedCountry = state.doctorEligibility?.countryCode?.takeIf { it.isNotBlank() } ?: "AR"
+            val resolvedCountry = state.doctorEligibility?.countryCode
+                ?.trim()
+                ?.uppercase()
+                ?.takeIf { it == "AR" }
+                ?: if (jurisdictionState == com.autamedica.android.domain.model.ClinicalJurisdictionResolution.AR) {
+                    "AR"
+                } else {
+                    ""
+                }
 
             val request = CreatePrescriptionRequest(
                 patientId = effectivePatientId,

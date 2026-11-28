@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -37,6 +38,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -442,7 +444,7 @@ private fun StudyTypeSelectorCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Icon(Icons.Outlined.MedicalServices, contentDescription = null, tint = PortalDoctors)
+                Icon(Icons.Outlined.MedicalServices, contentDescription = null, tint = PrimaryDark)
                 Text(
                     text = stringResource(R.string.doctor_create_order_study_type_title),
                     style = MaterialTheme.typography.titleSmall,
@@ -455,10 +457,10 @@ private fun StudyTypeSelectorCard(
                 StudyType.entries.forEach { type ->
                     val isSelected = selectedStudyType == type
                     val (icon, color) = when (type) {
-                        StudyType.LABORATORY -> Icons.Outlined.Science to PortalPatients
-                        StudyType.IMAGING -> Icons.Outlined.Visibility to PortalPatientsAction
+                        StudyType.LABORATORY -> Icons.Outlined.Science to PrimaryDark
+                        StudyType.IMAGING -> Icons.Outlined.Visibility to PrimaryDark
                         StudyType.CARDIOLOGY -> Icons.Outlined.Favorite to SecondaryDark
-                        StudyType.OTHER -> Icons.Outlined.Description to PortalDoctors
+                        StudyType.OTHER -> Icons.Outlined.Description to PrimaryDark
                     }
                     val typeName = when (type) {
                         StudyType.LABORATORY -> stringResource(R.string.doctor_create_order_type_lab_name)
@@ -469,14 +471,19 @@ private fun StudyTypeSelectorCard(
 
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = if (isSelected) color.copy(alpha = 0.08f) else AuBackground,
+                        color = if (isSelected) PrimaryContainer.copy(alpha = 0.55f) else AuBackground,
                         border = BorderStroke(
-                            1.dp,
-                            if (isSelected) color else AuBorder,
+                            if (isSelected) 1.5.dp else 1.dp,
+                            if (isSelected) color else AuInputBorder.copy(alpha = 0.45f),
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onSelectStudyType(type) },
+                            .minimumInteractiveComponentSize()
+                            .selectable(
+                                selected = isSelected,
+                                role = Role.RadioButton,
+                                onClick = { onSelectStudyType(type) },
+                            ),
                     ) {
                         Row(
                             modifier = Modifier.padding(14.dp),
@@ -487,7 +494,7 @@ private fun StudyTypeSelectorCard(
                                 modifier = Modifier
                                     .size(36.dp)
                                     .clip(CircleShape)
-                                    .background(color.copy(alpha = 0.12f)),
+                                    .background(PrimaryContainer),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
@@ -514,7 +521,7 @@ private fun StudyTypeSelectorCard(
 
                             RadioButton(
                                 selected = isSelected,
-                                onClick = { onSelectStudyType(type) },
+                                onClick = null,
                                 colors = RadioButtonDefaults.colors(selectedColor = color),
                             )
                         }

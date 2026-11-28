@@ -69,4 +69,30 @@
     <string name="doctor_dni_share_generic_btn">Enviar por WhatsApp / E-mail</string>
     <string name="doctor_dni_share_message_fmt">Olá %1$s, compartilho o seu documento (%2$s) emitido na AutaMedica (Código: %3$s). Pode verificar e descarregar em: %4$s</string>
     <string name="doctor_dni_share_patient_fallback">Paciente</string>
+
+    <string name="doctor_eligibility_verifying_title">A verificar habilitação médica…</string>
+    <string name="doctor_eligibility_verifying_subtitle">A confirmar o seu registo e jurisdição antes de liberar a emissão.</string>
+    <string name="doctor_eligibility_unresolved_title">Não foi possível verificar a sua habilitação médica</string>
+    <string name="doctor_eligibility_unresolved_subtitle">Por segurança clínica, tente novamente a verificação antes de emitir documentos.</string>
+    <string name="doctor_eligibility_retry_action">Tentar novamente</string>
+    <string name="doctor_eligibility_required_before_issue">Verifique a sua habilitação médica e jurisdição antes de emitir.</string>
+
+    <string name="doctor_dni_placeholder_document">Ex: 123.456.789-00</string>
+    <string name="doctor_dni_placeholder_contact">+351 9… ou email@exemplo.com</string>
+    <string name="doctor_dni_placeholder_full_name">Nome completo</string>
+    <string name="doctor_dni_close_quick_add_cd">Fechar registo rápido</string>
+    <string name="doctor_dni_document_prefix">Doc.: %1$s</string>
+    <string name="doctor_dni_selected_state">Selecionado</string>
+    <string name="doctor_dni_not_selected_state">Não selecionado</string>
+
+    <string name="in_call_memed_rx_title">Emissão digital de receita (Brasil)</string>
+    <string name="in_call_memed_rx_description">Receitas digitais para CRM Brasil são emitidas e assinadas pelo emissor oficial Memed com certificado ICP-Brasil sem sair da videochamada.</string>
+    <string name="in_call_memed_rx_opening">A abrir Memed…</string>
+    <string name="in_call_memed_rx_open_action">Emitir receita via Memed</string>
+    <string name="in_call_memed_cert_title">Emissão digital de atestado (Brasil)</string>
+    <string name="in_call_memed_cert_description">Atestados digitais para CRM Brasil são emitidos e assinados pelo emissor oficial Memed com certificado ICP-Brasil sem sair da videochamada.</string>
+    <string name="in_call_memed_cert_opening">A abrir Memed…</string>
+    <string name="in_call_memed_cert_open_action">Emitir atestado via Memed</string>
+
+    <string name="memed_webview_error_renderer">O visualizador web foi encerrado inesperadamente. Tente novamente para retomar a emissão sem sair da AutaMedica.</string>
 </resources>

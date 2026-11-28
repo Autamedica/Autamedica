@@ -63,6 +63,7 @@ data class DoctorCertificatesUiState(
     val createError: String? = null,
     val createErrorRes: Int? = null,
     val createErrorArg: String? = null,
+    val isDiagnosisValidationError: Boolean = false,
     val userMessage: String? = null,
     val userMessageRes: Int? = null,
     val userMessageArg: String? = null,
@@ -161,6 +162,7 @@ class DoctorCertificatesViewModel private constructor(
         viewModelScope.launch {
             var eligibility = _uiState.value.doctorEligibility
             if (eligibility == null) {
+                _uiState.update { it.copy(isLoadingEligibility = true) }
                 eligibility = prescriptionRepository.getDoctorEligibility().getOrNull()
                 _uiState.update {
                     it.copy(
@@ -196,6 +198,7 @@ class DoctorCertificatesViewModel private constructor(
                     createError = null,
                     createErrorRes = null,
                     createErrorArg = null,
+                    isDiagnosisValidationError = false,
                     createdCertificate = null,
                     isLoadingPatients = true,
                 )
@@ -375,6 +378,7 @@ class DoctorCertificatesViewModel private constructor(
                 createError = null,
                 createErrorRes = null,
                 createErrorArg = null,
+                isDiagnosisValidationError = false,
             )
         }
     }
@@ -386,6 +390,7 @@ class DoctorCertificatesViewModel private constructor(
                 createError = null,
                 createErrorRes = null,
                 createErrorArg = null,
+                isDiagnosisValidationError = false,
             )
         }
     }
@@ -401,6 +406,22 @@ class DoctorCertificatesViewModel private constructor(
     fun onSubmitCertificate() {
         val state = _uiState.value
 
+        val jurisdictionState = com.autamedica.android.domain.model.resolveClinicalJurisdictionState(
+            eligibility = state.doctorEligibility,
+            isLoadingEligibility = state.isLoadingEligibility,
+        )
+        if (jurisdictionState != com.autamedica.android.domain.model.ClinicalJurisdictionResolution.AR) {
+            _uiState.update {
+                it.copy(
+                    createError = "Debés verificar tu habilitación médica y jurisdicción antes de emitir.",
+                    createErrorRes = R.string.doctor_eligibility_required_before_issue,
+                    createErrorArg = null,
+                    isDiagnosisValidationError = false,
+                )
+            }
+            return
+        }
+
         val patient = state.selectedPatient
         if (patient == null || state.patientId.isBlank()) {
             _uiState.update {
@@ -408,6 +429,7 @@ class DoctorCertificatesViewModel private constructor(
                     createError = "Seleccione un paciente de la lista",
                     createErrorRes = R.string.cert_error_select_patient,
                     createErrorArg = null,
+                    isDiagnosisValidationError = false,
                 )
             }
             return
@@ -419,6 +441,7 @@ class DoctorCertificatesViewModel private constructor(
                     createError = "Ingrese un diagnóstico o motivo clínico de la certificación",
                     createErrorRes = R.string.cert_error_enter_diagnosis,
                     createErrorArg = null,
+                    isDiagnosisValidationError = true,
                 )
             }
             return
@@ -431,6 +454,7 @@ class DoctorCertificatesViewModel private constructor(
                     createError = eligibility.reason ?: "El profesional no cumple los requisitos para emitir certificados",
                     createErrorRes = if (eligibility.reason == null) R.string.cert_error_not_eligible else null,
                     createErrorArg = null,
+                    isDiagnosisValidationError = false,
                 )
             }
             return
@@ -443,6 +467,7 @@ class DoctorCertificatesViewModel private constructor(
                     createError = null,
                     createErrorRes = null,
                     createErrorArg = null,
+                    isDiagnosisValidationError = false,
                 )
             }
 

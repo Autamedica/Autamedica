@@ -35,6 +35,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -119,13 +124,16 @@ fun DoctorPrescriptionsScreen(
                         Text(
                             text = stringResource(R.string.doctor_rx_subtitle),
                             style = MaterialTheme.typography.labelSmall,
-                            color = AuTextTertiary,
+                            color = AuTextSecondary,
                         )
                     }
                 },
                 navigationIcon = {
                     if (showBackButton) {
-                        IconButton(onClick = onBack) {
+                        IconButton(
+                            onClick = onBack,
+                            modifier = Modifier.minimumInteractiveComponentSize(),
+                        ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = stringResource(R.string.doctor_rx_action_back),
@@ -135,11 +143,14 @@ fun DoctorPrescriptionsScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.loadPrescriptions() }) {
+                    IconButton(
+                        onClick = { viewModel.loadPrescriptions() },
+                        modifier = Modifier.minimumInteractiveComponentSize(),
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = stringResource(R.string.doctor_rx_action_refresh),
-                            tint = PortalDoctors,
+                            tint = PrimaryDark,
                         )
                     }
                 },
@@ -149,7 +160,7 @@ fun DoctorPrescriptionsScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onNavigateToCreatePrescription,
-                containerColor = PortalPatientsAction,
+                containerColor = PrimaryDark,
                 contentColor = Color.White,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text(stringResource(R.string.doctor_rx_action_new), fontWeight = FontWeight.SemiBold) },
@@ -177,14 +188,17 @@ fun DoctorPrescriptionsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                placeholder = { Text(stringResource(R.string.doctor_rx_search_placeholder), color = AuTextTertiary) },
+                placeholder = { Text(stringResource(R.string.doctor_rx_search_placeholder), color = AuTextSecondary) },
                 leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = stringResource(R.string.doctor_rx_search_desc), tint = AuTextTertiary)
+                    Icon(Icons.Default.Search, contentDescription = stringResource(R.string.doctor_rx_search_desc), tint = AuTextSecondary)
                 },
                 trailingIcon = {
                     if (uiState.searchQuery.isNotBlank()) {
-                        IconButton(onClick = { viewModel.onSearchQueryChanged("") }) {
-                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.doctor_rx_clear_search_desc), tint = AuTextTertiary)
+                        IconButton(
+                            onClick = { viewModel.onSearchQueryChanged("") },
+                            modifier = Modifier.minimumInteractiveComponentSize(),
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.doctor_rx_clear_search_desc), tint = AuTextSecondary)
                         }
                     }
                 },
@@ -193,8 +207,8 @@ fun DoctorPrescriptionsScreen(
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = AuSurface,
                     unfocusedContainerColor = AuSurface,
-                    focusedBorderColor = PortalDoctors,
-                    unfocusedBorderColor = AuBorder,
+                    focusedBorderColor = PrimaryDark,
+                    unfocusedBorderColor = AuInputBorder,
                 ),
             )
 
@@ -216,19 +230,22 @@ fun DoctorPrescriptionsScreen(
                     label = stringResource(R.string.doctor_rx_filter_active, uiState.activeCount),
                     selected = uiState.selectedStatusFilter == "activa",
                     onClick = { viewModel.onStatusFilterChanged("activa") },
-                    accentColor = AuSuccess,
+                    accentColor = AuSuccessText,
+                    accentContainer = SuccessContainer,
                 )
                 FilterChipItem(
                     label = stringResource(R.string.doctor_rx_filter_dispensed, uiState.dispensedCount),
                     selected = uiState.selectedStatusFilter == "dispensada",
                     onClick = { viewModel.onStatusFilterChanged("dispensada") },
-                    accentColor = Color(0xFF0284C7),
+                    accentColor = PrimaryDark,
+                    accentContainer = PrimaryContainer,
                 )
                 FilterChipItem(
                     label = stringResource(R.string.doctor_rx_filter_cancelled, uiState.cancelledCount),
                     selected = uiState.selectedStatusFilter == "cancelada",
                     onClick = { viewModel.onStatusFilterChanged("cancelada") },
-                    accentColor = AuDanger,
+                    accentColor = AuDangerText,
+                    accentContainer = ErrorContainer,
                 )
             }
 
@@ -384,11 +401,11 @@ private fun MetricsHeader(
         ) {
             MetricPill(count = total, label = stringResource(R.string.doctor_rx_metric_total), color = AuTextPrimary)
             Box(modifier = Modifier.width(1.dp).height(28.dp).background(AuBorder))
-            MetricPill(count = active, label = stringResource(R.string.doctor_rx_metric_active), color = AuSuccess)
+            MetricPill(count = active, label = stringResource(R.string.doctor_rx_metric_active), color = AuSuccessText)
             Box(modifier = Modifier.width(1.dp).height(28.dp).background(AuBorder))
-            MetricPill(count = dispensed, label = stringResource(R.string.doctor_rx_metric_dispensed), color = Color(0xFF0284C7))
+            MetricPill(count = dispensed, label = stringResource(R.string.doctor_rx_metric_dispensed), color = PrimaryDark)
             Box(modifier = Modifier.width(1.dp).height(28.dp).background(AuBorder))
-            MetricPill(count = cancelled, label = stringResource(R.string.doctor_rx_metric_cancelled), color = AuDanger)
+            MetricPill(count = cancelled, label = stringResource(R.string.doctor_rx_metric_cancelled), color = AuDangerText)
         }
     }
 }
@@ -405,7 +422,7 @@ private fun MetricPill(count: Int, label: String, color: Color) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = AuTextTertiary,
+            color = AuTextSecondary,
         )
     }
 }
@@ -415,17 +432,21 @@ private fun FilterChipItem(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
-    accentColor: Color = PortalDoctors,
+    accentColor: Color = PrimaryDark,
+    accentContainer: Color = PrimaryContainer,
 ) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(999.dp),
-        color = if (selected) accentColor.copy(alpha = 0.15f) else AuSurface,
-        border = BorderStroke(1.dp, if (selected) accentColor else AuBorder),
+        color = if (selected) accentContainer else AuSurface,
+        border = BorderStroke(1.dp, if (selected) accentColor else AuInputBorder.copy(alpha = 0.5f)),
+        modifier = Modifier
+            .minimumInteractiveComponentSize()
+            .semantics { role = Role.Tab },
     ) {
         Text(
             text = label,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
             color = if (selected) accentColor else AuTextSecondary,
@@ -478,7 +499,7 @@ private fun DoctorPrescriptionCard(
                         imageVector = Icons.Outlined.QrCode,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
-                        tint = PortalDoctors
+                        tint = PrimaryDark
                     )
                     Text(
                         text = prescription.cuir ?: "ID: ${prescription.id.take(8)}",
@@ -491,13 +512,13 @@ private fun DoctorPrescriptionCard(
                     prescription.cuir?.let { cuir ->
                         IconButton(
                             onClick = { onCopyCuir(cuir) },
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.minimumInteractiveComponentSize()
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ContentCopy,
                                 contentDescription = stringResource(R.string.doctor_rx_card_copy_cuir),
-                                modifier = Modifier.size(14.dp),
-                                tint = AuTextTertiary
+                                modifier = Modifier.size(16.dp),
+                                tint = AuTextSecondary
                             )
                         }
                     }
@@ -621,12 +642,14 @@ private fun DoctorPrescriptionCard(
                         Button(
                             onClick = { onOpenPdf(pdfUrl) },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFDC2626),
+                                containerColor = AuDangerText,
                                 contentColor = Color.White
                             ),
                             shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                            modifier = Modifier.height(34.dp)
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                            modifier = Modifier
+                                .minimumInteractiveComponentSize()
+                                .heightIn(min = 48.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.PictureAsPdf,
@@ -645,8 +668,9 @@ private fun DoctorPrescriptionCard(
                     if (prescription.isActive) {
                         TextButton(
                             onClick = onRequestCancel,
-                            colors = ButtonDefaults.textButtonColors(contentColor = AuDanger),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                            modifier = Modifier.minimumInteractiveComponentSize(),
+                            colors = ButtonDefaults.textButtonColors(contentColor = AuDangerText),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text(
                                 text = stringResource(R.string.doctor_rx_card_cancel_action),
@@ -719,10 +743,10 @@ private fun MedicationItemRow(item: PrescriptionItem, index: Int) {
 @Composable
 private fun StatusBadge(prescription: Prescription) {
     val (label, bg, fg) = when {
-        prescription.isCancelled -> Triple(stringResource(R.string.doctor_rx_badge_cancelled), AuDanger.copy(alpha = 0.12f), AuDanger)
-        prescription.isDispensed -> Triple(stringResource(R.string.doctor_rx_badge_dispensed), Color(0xFF0284C7).copy(alpha = 0.12f), Color(0xFF0284C7))
-        prescription.isActive -> Triple(stringResource(R.string.doctor_rx_badge_active), AuSuccess.copy(alpha = 0.12f), AuSuccess)
-        prescription.isExpired -> Triple(stringResource(R.string.doctor_rx_badge_expired), Color(0xFF64748B).copy(alpha = 0.12f), Color(0xFF475569))
+        prescription.isCancelled -> Triple(stringResource(R.string.doctor_rx_badge_cancelled), ErrorContainer, AuDangerText)
+        prescription.isDispensed -> Triple(stringResource(R.string.doctor_rx_badge_dispensed), PrimaryContainer, PrimaryDark)
+        prescription.isActive -> Triple(stringResource(R.string.doctor_rx_badge_active), SuccessContainer, AuSuccessText)
+        prescription.isExpired -> Triple(stringResource(R.string.doctor_rx_badge_expired), AuSurfaceHover, AuTextSecondary)
         else -> Triple(prescription.status.uppercase(), AuSurfaceHover, AuTextSecondary)
     }
 

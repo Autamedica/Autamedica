@@ -22,6 +22,7 @@ enum class MemedWebViewErrorCode {
     CLINICAL_DENIED_IN_PAGE,
     PROVIDER_OR_NETWORK_ERROR,
     SSL_ERROR,
+    RENDER_PROCESS_GONE,
 }
 
 data class MemedWebViewErrorState(
