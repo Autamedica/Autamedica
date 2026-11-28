@@ -262,4 +262,25 @@
     <string name="doctor_orders_card_copy_action">Copiar código de validação</string>
     <string name="doctor_orders_card_view_qr_desc">Ver código QR</string>
     <string name="doctor_orders_card_view_pdf_desc">Ver pedido em PDF</string>
+
+    <!-- Accessibility & Validation Support -->
+    <string name="doctor_create_rx_diagnosis_label">Diagnóstico principal (CID-10) *</string>
+    <string name="doctor_create_rx_diagnosis_supporting">Ex: R51 - Cefaleia</string>
+    <string name="doctor_create_order_diagnosis_label">Diagnóstico presuntivo / CID-10 *</string>
+    <string name="doctor_create_order_diagnosis_supporting">Ex: R51 - Cefaleia</string>
+    <string name="doctor_create_order_notes_label">Preparo e instruções clínicas (opcional)</string>
+    <string name="a11y_required_field">Campo obrigatório</string>
+    <string name="a11y_error_banner_prefix">Erro</string>
+
+    <!-- Typed Clinical Document Error Messages -->
+    <string name="clinical_err_digital_issuer_unavailable">A emissão digital no aplicativo não está disponível no momento. Tente novamente em instantes ou conclua pela versão web.</string>
+    <string name="clinical_err_certificate_inactive">Seu certificado digital ou registro profissional está inativo ou vencido. Ative sua habilitação antes de emitir.</string>
+    <string name="clinical_err_patient_country_or_profile">O país clínico ou o cadastro do paciente não confere com sua habilitação. Revise os dados do paciente.</string>
+    <string name="clinical_err_network">Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.</string>
+    <string name="clinical_err_validation">Revise os campos obrigatórios indicados antes de continuar.</string>
+    <string name="clinical_err_rx_issue_failed">Não foi possível emitir a receita digital no momento. Verifique os dados e tente novamente.</string>
+    <string name="clinical_err_order_issue_failed">Não foi possível emitir o pedido médico no momento. Verifique os dados e tente novamente.</string>
+    <string name="clinical_err_action_activate_certificate">Ativar certificado</string>
+    <string name="clinical_err_action_review_patient">Revisar paciente</string>
+    <string name="clinical_err_action_retry">Tentar novamente</string>
 </resources>

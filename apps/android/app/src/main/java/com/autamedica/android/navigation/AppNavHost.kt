@@ -451,7 +451,8 @@ fun AppNavHost(
             com.autamedica.android.presentation.doctors.prescriptions.CreatePrescriptionScreen(
                 patientId = route.patientId,
                 renewFromPrescriptionId = route.renewFromPrescriptionId,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onOpenCertificateSetup = { navController.navigate(Route.DoctorSignature) },
             )
         }
 
@@ -485,7 +486,8 @@ fun AppNavHost(
             val route = backStackEntry.toRoute<Route.CreateMedicalOrder>()
             com.autamedica.android.presentation.doctors.medicalorders.CreateMedicalOrderScreen(
                 patientId = route.patientId,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onOpenCertificateSetup = { navController.navigate(Route.DoctorSignature) },
             )
         }
 

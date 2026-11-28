@@ -6,7 +6,6 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -28,12 +27,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -44,10 +50,12 @@ import com.autamedica.android.domain.model.COMMON_MEDICATIONS
 import com.autamedica.android.domain.model.Cie10Item
 import com.autamedica.android.domain.model.Prescription
 import com.autamedica.android.domain.model.PrescriptionPatientItem
+import com.autamedica.android.presentation.doctors.common.ClinicalErrorAction
 import com.autamedica.android.presentation.doctors.components.EventualPatientDniSelectorCard
 import com.autamedica.android.presentation.doctors.components.MemedPrescriberWebView
 import com.autamedica.android.presentation.doctors.components.ShareDocumentToPatientButton
 import com.autamedica.android.presentation.theme.*
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,11 +64,14 @@ fun CreatePrescriptionScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     renewFromPrescriptionId: String = "",
+    onOpenCertificateSetup: () -> Unit = {},
     viewModel: DoctorPrescriptionsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
+    val diagnosisFocusRequester = remember { FocusRequester() }
 
     var patientSearchQuery by remember { mutableStateOf("") }
     var expandedPatientDropdown by remember { mutableStateOf(false) }
@@ -69,6 +80,13 @@ fun CreatePrescriptionScreen(
 
     LaunchedEffect(patientId, renewFromPrescriptionId) {
         viewModel.initCreatePrescription(patientId, renewFromPrescriptionId)
+    }
+
+    LaunchedEffect(uiState.isDiagnosisValidationError) {
+        if (uiState.isDiagnosisValidationError) {
+            scrollState.animateScrollTo(scrollState.maxValue)
+            runCatching { diagnosisFocusRequester.requestFocus() }
+        }
     }
 
     Scaffold(
@@ -94,12 +112,15 @@ fun CreatePrescriptionScreen(
                                     .prescriptionCreateSubtitleRes(headerJurisdiction)
                             ),
                             style = MaterialTheme.typography.labelSmall,
-                            color = AuTextTertiary,
+                            color = AuTextSecondary,
                         )
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.minimumInteractiveComponentSize(),
+                    ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.doctor_create_rx_action_back),
@@ -113,14 +134,14 @@ fun CreatePrescriptionScreen(
         bottomBar = {
             Surface(
                 color = AuSurface,
-                border = BorderStroke(1.dp, AuBorder),
+                border = BorderStroke(1.dp, AuInputBorder.copy(alpha = 0.35f)),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     val createErrorText = when {
                         uiState.createErrorResId != null -> stringResource(
@@ -131,26 +152,24 @@ fun CreatePrescriptionScreen(
                         else -> null
                     }
                     createErrorText?.let { err ->
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = AuDanger.copy(alpha = 0.10f),
-                            border = BorderStroke(1.dp, AuDanger.copy(alpha = 0.3f)),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(Icons.Default.Warning, contentDescription = null, tint = AuDanger, modifier = Modifier.size(16.dp))
-                                Text(
-                                    text = err,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = AuDanger,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
+                        PrescriptionErrorBanner(
+                            message = err,
+                            action = uiState.createErrorAction,
+                            onActionClick = { action ->
+                                when (action) {
+                                    ClinicalErrorAction.ACTIVATE_CERTIFICATE -> onOpenCertificateSetup()
+                                    ClinicalErrorAction.REVIEW_PATIENT -> {
+                                        expandedPatientDropdown = true
+                                        coroutineScope.launch { scrollState.animateScrollTo(0) }
+                                    }
+                                    ClinicalErrorAction.RETRY -> {
+                                        if (isBrazil) viewModel.openMemedForBrazil()
+                                        else viewModel.onSubmitPrescription()
+                                    }
+                                    ClinicalErrorAction.NONE -> Unit
+                                }
+                            },
+                        )
                     }
 
                     if (isBrazil) {
@@ -158,9 +177,13 @@ fun CreatePrescriptionScreen(
                             onClick = { viewModel.openMemedForBrazil() },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(50.dp),
+                                .minimumInteractiveComponentSize()
+                                .heightIn(min = 48.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PortalDoctors, contentColor = Color.White),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PortalPatientsAction,
+                                contentColor = Color.White,
+                            ),
                             enabled = !uiState.isOpeningMemed,
                         ) {
                             if (uiState.isOpeningMemed) {
@@ -182,9 +205,13 @@ fun CreatePrescriptionScreen(
                             onClick = { viewModel.onSubmitPrescription() },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(50.dp),
+                                .minimumInteractiveComponentSize()
+                                .heightIn(min = 48.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PortalPatientsAction, contentColor = Color.White),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PortalPatientsAction,
+                                contentColor = Color.White,
+                            ),
                             enabled = !uiState.isSubmitting,
                         ) {
                             if (uiState.isSubmitting) {
@@ -241,8 +268,8 @@ fun CreatePrescriptionScreen(
             if (isBrazil) {
                 Card(
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = PortalDoctors.copy(alpha = 0.06f)),
-                    border = BorderStroke(1.dp, PortalDoctors.copy(alpha = 0.25f)),
+                    colors = CardDefaults.cardColors(containerColor = PrimaryContainer.copy(alpha = 0.45f)),
+                    border = BorderStroke(1.dp, PrimaryDark.copy(alpha = 0.3f)),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(
@@ -256,7 +283,7 @@ fun CreatePrescriptionScreen(
                             Icon(
                                 imageVector = Icons.Outlined.HealthAndSafety,
                                 contentDescription = null,
-                                tint = PortalDoctors,
+                                tint = PrimaryDark,
                                 modifier = Modifier.size(20.dp),
                             )
                             Text(
@@ -301,16 +328,22 @@ fun CreatePrescriptionScreen(
                 if (uiState.items.size < maxMedicationItems) {
                     OutlinedButton(
                         onClick = { viewModel.onAddMedicationItem() },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .minimumInteractiveComponentSize()
+                            .heightIn(min = 48.dp),
                         shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, PortalDoctors.copy(alpha = 0.5f)),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PortalPatientsAction),
+                        border = BorderStroke(1.dp, PrimaryDark),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryDark),
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            stringResource(R.string.doctor_create_rx_add_medication, uiState.items.size),
-                            fontWeight = FontWeight.SemiBold
+                            text = stringResource(R.string.doctor_create_rx_add_medication, uiState.items.size),
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 } else {
@@ -324,6 +357,8 @@ fun CreatePrescriptionScreen(
                 // 4. Clinical Diagnosis Section (CIE-10)
                 DiagnosisSelectorSection(
                     currentDiagnosis = uiState.diagnosis,
+                    isError = uiState.isDiagnosisValidationError,
+                    focusRequester = diagnosisFocusRequester,
                     onDiagnosisChange = { diag, code -> viewModel.onDiagnosisChanged(diag, code) }
                 )
 
@@ -340,8 +375,11 @@ fun CreatePrescriptionScreen(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = AuSurface,
                         unfocusedContainerColor = AuSurface,
-                        focusedBorderColor = PortalDoctors,
-                        unfocusedBorderColor = AuBorder,
+                        focusedBorderColor = PrimaryDark,
+                        unfocusedBorderColor = AuInputBorder,
+                        focusedLabelColor = PrimaryDark,
+                        unfocusedLabelColor = AuTextSecondary,
+                        unfocusedPlaceholderColor = AuTextSecondary,
                     )
                 )
             }
@@ -472,8 +510,8 @@ private fun DoctorRegulatoryBanner(eligibility: com.autamedica.android.domain.mo
 
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = if (isEligible) AuSuccess.copy(alpha = 0.08f) else AuCrimson.copy(alpha = 0.08f),
-        border = BorderStroke(1.dp, if (isEligible) AuSuccess.copy(alpha = 0.25f) else AuCrimson.copy(alpha = 0.35f)),
+        color = if (isEligible) SuccessContainer else ErrorContainer,
+        border = BorderStroke(1.dp, if (isEligible) AuSuccessText.copy(alpha = 0.35f) else AuDangerText.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -484,7 +522,7 @@ private fun DoctorRegulatoryBanner(eligibility: com.autamedica.android.domain.mo
             Icon(
                 imageVector = if (isEligible) Icons.Outlined.CheckCircle else Icons.Default.Warning,
                 contentDescription = null,
-                tint = if (isEligible) AuSuccess else AuCrimson,
+                tint = if (isEligible) AuSuccessText else AuDangerText,
                 modifier = Modifier.size(20.dp)
             )
             Column(modifier = Modifier.weight(1f)) {
@@ -499,7 +537,7 @@ private fun DoctorRegulatoryBanner(eligibility: com.autamedica.android.domain.mo
                     },
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (isEligible) AuSuccess else PortalPatientsAction
+                    color = if (isEligible) AuSuccessText else AuDangerText
                 )
                 Text(
                     text = if (isEligible) {
@@ -513,6 +551,64 @@ private fun DoctorRegulatoryBanner(eligibility: com.autamedica.android.domain.mo
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PrescriptionErrorBanner(
+    message: String,
+    action: ClinicalErrorAction,
+    onActionClick: (ClinicalErrorAction) -> Unit,
+) {
+    val actionLabelRes = when (action) {
+        ClinicalErrorAction.ACTIVATE_CERTIFICATE -> R.string.clinical_err_action_activate_certificate
+        ClinicalErrorAction.REVIEW_PATIENT -> R.string.clinical_err_action_review_patient
+        ClinicalErrorAction.RETRY -> R.string.clinical_err_action_retry
+        ClinicalErrorAction.NONE -> null
+    }
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = ErrorContainer,
+        border = BorderStroke(1.dp, AuDangerText.copy(alpha = 0.45f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics { liveRegion = LiveRegionMode.Assertive },
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = stringResource(R.string.a11y_error_banner_prefix),
+                tint = AuDangerText,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = AuDangerText,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f),
+            )
+            if (actionLabelRes != null) {
+                TextButton(
+                    onClick = { onActionClick(action) },
+                    modifier = Modifier.minimumInteractiveComponentSize(),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                ) {
+                    Text(
+                        text = stringResource(actionLabelRes),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PrimaryDark,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false,
+                    )
+                }
             }
         }
     }
@@ -664,6 +760,7 @@ private fun PatientSelectorSection(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MedicationItemFormCard(
     itemNumber: Int,
@@ -678,11 +775,20 @@ private fun MedicationItemFormCard(
     onDelete: () -> Unit,
 ) {
     var medicationSuggestionsExpanded by remember { mutableStateOf(false) }
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedContainerColor = AuSurface,
+        unfocusedContainerColor = AuSurface,
+        focusedBorderColor = PrimaryDark,
+        unfocusedBorderColor = AuInputBorder,
+        focusedLabelColor = PrimaryDark,
+        unfocusedLabelColor = AuTextSecondary,
+        unfocusedPlaceholderColor = AuTextSecondary,
+    )
 
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = AuSurface,
-        border = BorderStroke(1.dp, AuBorder),
+        border = BorderStroke(1.dp, AuInputBorder.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -695,7 +801,7 @@ private fun MedicationItemFormCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(Icons.Outlined.Medication, contentDescription = null, tint = PortalDoctors, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Outlined.Medication, contentDescription = null, tint = PrimaryDark, modifier = Modifier.size(18.dp))
                     Text(
                         text = stringResource(R.string.doctor_create_rx_medication_item_title, itemNumber),
                         style = MaterialTheme.typography.titleSmall,
@@ -704,13 +810,21 @@ private fun MedicationItemFormCard(
                     )
                 }
                 if (canDelete) {
-                    IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.doctor_create_rx_delete_item_desc), tint = AuDanger, modifier = Modifier.size(18.dp))
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.minimumInteractiveComponentSize(),
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = stringResource(R.string.doctor_create_rx_delete_item_desc),
+                            tint = AuDangerText,
+                            modifier = Modifier.size(20.dp),
+                        )
                     }
                 }
             }
 
-            HorizontalDivider(color = AuBorder.copy(alpha = 0.5f))
+            HorizontalDivider(color = AuInputBorder.copy(alpha = 0.25f))
 
             // 1. Medication Name with autocomplete suggestions
             Column {
@@ -724,12 +838,7 @@ private fun MedicationItemFormCard(
                     placeholder = { Text(stringResource(R.string.doctor_create_rx_med_name_placeholder)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = AuSurface,
-                        unfocusedContainerColor = AuSurface,
-                        focusedBorderColor = PortalDoctors,
-                        unfocusedBorderColor = AuBorder,
-                    )
+                    colors = fieldColors,
                 )
 
                 if (medicationSuggestionsExpanded) {
@@ -741,7 +850,7 @@ private fun MedicationItemFormCard(
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = AuSurfaceHover,
-                            border = BorderStroke(1.dp, AuBorder),
+                            border = BorderStroke(1.dp, AuInputBorder.copy(alpha = 0.4f)),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 4.dp)
@@ -753,7 +862,9 @@ private fun MedicationItemFormCard(
                                             onMedicationNameChange(suggestion)
                                             medicationSuggestionsExpanded = false
                                         },
-                                        modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .minimumInteractiveComponentSize(),
                                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                                     ) {
                                         Text(
@@ -770,8 +881,8 @@ private fun MedicationItemFormCard(
                 }
             }
 
-            // 2. Dosage + Preset Chips
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            // 2. Dosage + Preset Chips (FlowRow + FilterChip with selected state)
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 OutlinedTextField(
                     value = itemState.dosage,
                     onValueChange = onDosageChange,
@@ -779,27 +890,25 @@ private fun MedicationItemFormCard(
                     placeholder = { Text(stringResource(R.string.doctor_create_rx_dosage_placeholder)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = AuSurface,
-                        unfocusedContainerColor = AuSurface,
-                        focusedBorderColor = PortalDoctors,
-                        unfocusedBorderColor = AuBorder,
-                    )
+                    colors = fieldColors,
                 )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     stringArrayResource(R.array.rx_dosage_presets).forEach { preset ->
-                        PresetChip(text = preset, onClick = { onDosageChange(preset) })
+                        SelectablePresetChip(
+                            text = preset,
+                            selected = itemState.dosage.trim().equals(preset, ignoreCase = true),
+                            onClick = { onDosageChange(preset) },
+                        )
                     }
                 }
             }
 
-            // 3. Frequency + Preset Chips
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            // 3. Frequency + Preset Chips (FlowRow + FilterChip with selected state)
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 OutlinedTextField(
                     value = itemState.frequency,
                     onValueChange = onFrequencyChange,
@@ -807,27 +916,25 @@ private fun MedicationItemFormCard(
                     placeholder = { Text(stringResource(R.string.doctor_create_rx_frequency_placeholder)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = AuSurface,
-                        unfocusedContainerColor = AuSurface,
-                        focusedBorderColor = PortalDoctors,
-                        unfocusedBorderColor = AuBorder,
-                    )
+                    colors = fieldColors,
                 )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     stringArrayResource(R.array.rx_frequency_presets).forEach { preset ->
-                        PresetChip(text = preset, onClick = { onFrequencyChange(preset) })
+                        SelectablePresetChip(
+                            text = preset,
+                            selected = itemState.frequency.trim().equals(preset, ignoreCase = true),
+                            onClick = { onFrequencyChange(preset) },
+                        )
                     }
                 }
             }
 
-            // 4. Duration + Preset Chips
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            // 4. Duration + Preset Chips (FlowRow + FilterChip with selected state)
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 OutlinedTextField(
                     value = itemState.duration,
                     onValueChange = onDurationChange,
@@ -835,21 +942,19 @@ private fun MedicationItemFormCard(
                     placeholder = { Text(stringResource(R.string.doctor_create_rx_duration_placeholder)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = AuSurface,
-                        unfocusedContainerColor = AuSurface,
-                        focusedBorderColor = PortalDoctors,
-                        unfocusedBorderColor = AuBorder,
-                    )
+                    colors = fieldColors,
                 )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     stringArrayResource(R.array.rx_duration_presets).forEach { preset ->
-                        PresetChip(text = preset, onClick = { onDurationChange(preset) })
+                        SelectablePresetChip(
+                            text = preset,
+                            selected = itemState.duration.trim().equals(preset, ignoreCase = true),
+                            onClick = { onDurationChange(preset) },
+                        )
                     }
                 }
             }
@@ -862,12 +967,7 @@ private fun MedicationItemFormCard(
                 placeholder = { Text(stringResource(R.string.doctor_create_rx_instructions_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = AuSurface,
-                    unfocusedContainerColor = AuSurface,
-                    focusedBorderColor = PortalDoctors,
-                    unfocusedBorderColor = AuBorder,
-                )
+                colors = fieldColors,
             )
         }
     }
@@ -876,14 +976,17 @@ private fun MedicationItemFormCard(
 @Composable
 private fun DiagnosisSelectorSection(
     currentDiagnosis: String,
+    isError: Boolean = false,
+    focusRequester: FocusRequester = remember { FocusRequester() },
     onDiagnosisChange: (diagnosis: String, code: String?) -> Unit,
 ) {
     var diagSuggestionsExpanded by remember { mutableStateOf(false) }
+    val requiredDesc = stringResource(R.string.a11y_required_field)
 
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = AuSurface,
-        border = BorderStroke(1.dp, AuBorder),
+        border = BorderStroke(1.dp, if (isError) AuDangerText else AuInputBorder.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -894,7 +997,7 @@ private fun DiagnosisSelectorSection(
                 text = stringResource(R.string.doctor_create_rx_diagnosis_title),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
-                color = AuTextSecondary
+                color = AuTextPrimary,
             )
 
             OutlinedTextField(
@@ -903,14 +1006,30 @@ private fun DiagnosisSelectorSection(
                     onDiagnosisChange(it, null)
                     diagSuggestionsExpanded = it.isNotBlank() && it.length >= 2
                 },
+                label = { Text(stringResource(R.string.doctor_create_rx_diagnosis_label)) },
                 placeholder = { Text(stringResource(R.string.doctor_create_rx_diagnosis_placeholder)) },
-                modifier = Modifier.fillMaxWidth(),
+                supportingText = {
+                    Text(
+                        text = stringResource(R.string.doctor_create_rx_diagnosis_supporting),
+                        color = if (isError) AuDangerText else AuTextSecondary,
+                    )
+                },
+                isError = isError,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester)
+                    .semantics { stateDescription = requiredDesc },
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = AuSurface,
                     unfocusedContainerColor = AuSurface,
-                    focusedBorderColor = PortalDoctors,
-                    unfocusedBorderColor = AuBorder,
+                    focusedBorderColor = PrimaryDark,
+                    unfocusedBorderColor = AuInputBorder,
+                    errorBorderColor = AuDangerText,
+                    errorLabelColor = AuDangerText,
+                    focusedLabelColor = PrimaryDark,
+                    unfocusedLabelColor = AuTextSecondary,
+                    unfocusedPlaceholderColor = AuTextSecondary,
                 )
             )
 
@@ -926,7 +1045,7 @@ private fun DiagnosisSelectorSection(
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = AuSurfaceHover,
-                        border = BorderStroke(1.dp, AuBorder),
+                        border = BorderStroke(1.dp, AuInputBorder.copy(alpha = 0.4f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column {
@@ -936,7 +1055,9 @@ private fun DiagnosisSelectorSection(
                                         onDiagnosisChange(cieItem.description, cieItem.code)
                                         diagSuggestionsExpanded = false
                                     },
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .minimumInteractiveComponentSize(),
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                                 ) {
                                     Row(
@@ -954,12 +1075,12 @@ private fun DiagnosisSelectorSection(
                                         )
                                         Surface(
                                             shape = RoundedCornerShape(4.dp),
-                                            color = PortalDoctors.copy(alpha = 0.15f)
+                                            color = PrimaryContainer,
                                         ) {
                                             Text(
                                                 text = cieItem.code,
                                                 style = MaterialTheme.typography.labelSmall,
-                                                color = PortalDoctors,
+                                                color = PrimaryDark,
                                                 fontWeight = FontWeight.Bold,
                                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                             )
@@ -976,18 +1097,103 @@ private fun DiagnosisSelectorSection(
 }
 
 @Composable
-private fun PresetChip(text: String, onClick: () -> Unit) {
-    Surface(
+private fun SelectablePresetChip(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    FilterChip(
+        selected = selected,
         onClick = onClick,
-        shape = RoundedCornerShape(8.dp),
-        color = AuSurfaceHover,
-        border = BorderStroke(1.dp, AuBorder.copy(alpha = 0.8f))
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            color = AuTextSecondary,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-        )
+        modifier = Modifier.minimumInteractiveComponentSize(),
+        leadingIcon = if (selected) {
+            {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(FilterChipDefaults.IconSize),
+                )
+            }
+        } else {
+            null
+        },
+        label = {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+            )
+        },
+        shape = RoundedCornerShape(10.dp),
+        colors = FilterChipDefaults.filterChipColors(
+            containerColor = AuBackground,
+            labelColor = AuTextPrimary,
+            selectedContainerColor = PrimaryContainer,
+            selectedLabelColor = PrimaryDark,
+            selectedLeadingIconColor = PrimaryDark,
+        ),
+        border = FilterChipDefaults.filterChipBorder(
+            enabled = true,
+            selected = selected,
+            borderColor = AuInputBorder,
+            selectedBorderColor = PrimaryDark,
+            borderWidth = 1.dp,
+            selectedBorderWidth = 1.5.dp,
+        ),
+    )
+}
+
+@Preview(name = "Rx 360dp 1.5x Normal", widthDp = 360, fontScale = 1.5f, showBackground = true)
+@Composable
+private fun CreatePrescriptionPreviewNormal() {
+    AutamedicaTheme {
+        Column(
+            modifier = Modifier
+                .background(AuBackground)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            MedicationItemFormCard(
+                itemNumber = 1,
+                canDelete = false,
+                itemState = PrescriptionItemFormState(
+                    medicationName = "Dipirona 500 mg",
+                    dosage = "500 mg",
+                    frequency = "1x ao dia (em jejum)",
+                    duration = "Por 5 dias",
+                ),
+                onMedicationNameChange = {},
+                onGenericNameChange = {},
+                onDosageChange = {},
+                onFrequencyChange = {},
+                onDurationChange = {},
+                onInstructionsChange = {},
+                onDelete = {},
+            )
+        }
+    }
+}
+
+@Preview(name = "Rx 360dp 1.5x Error", widthDp = 360, fontScale = 1.5f, showBackground = true)
+@Composable
+private fun CreatePrescriptionPreviewError() {
+    AutamedicaTheme {
+        Column(
+            modifier = Modifier
+                .background(AuBackground)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            DiagnosisSelectorSection(
+                currentDiagnosis = "",
+                isError = true,
+                onDiagnosisChange = { _, _ -> },
+            )
+            PrescriptionErrorBanner(
+                message = stringResource(R.string.clinical_err_digital_issuer_unavailable),
+                action = ClinicalErrorAction.RETRY,
+                onActionClick = {},
+            )
+        }
     }
 }

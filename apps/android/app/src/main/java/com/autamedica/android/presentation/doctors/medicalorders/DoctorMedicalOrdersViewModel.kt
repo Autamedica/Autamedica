@@ -12,6 +12,8 @@ import com.autamedica.android.domain.model.StudyType
 import com.autamedica.android.domain.repository.MedicalOrderRepository
 import com.autamedica.android.domain.repository.PrescriptionRepository
 import com.autamedica.android.presentation.common.UiErrorMapper
+import com.autamedica.android.presentation.doctors.common.ClinicalErrorAction
+import com.autamedica.android.presentation.doctors.common.OrderErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -63,6 +65,8 @@ data class DoctorMedicalOrdersUiState(
     val errorMessage: String? = null,
     @StringRes val errorMessageResId: Int? = null,
     val errorMessageArgs: List<Any> = emptyList(),
+    val errorAction: ClinicalErrorAction = ClinicalErrorAction.NONE,
+    val isDiagnosisValidationError: Boolean = false,
 )
 
 @HiltViewModel
@@ -253,7 +257,16 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
     }
 
     fun onDiagnosisChange(diagnosis: String) {
-        _uiState.update { it.copy(diagnosis = diagnosis, errorMessage = null, errorMessageResId = null, errorMessageArgs = emptyList()) }
+        _uiState.update {
+            it.copy(
+                diagnosis = diagnosis,
+                errorMessage = null,
+                errorMessageResId = null,
+                errorMessageArgs = emptyList(),
+                errorAction = ClinicalErrorAction.NONE,
+                isDiagnosisValidationError = false,
+            )
+        }
     }
 
     fun onNotesChange(notes: String) {
@@ -322,6 +335,8 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
                     errorMessage = "Ingrese el diagnóstico presuntivo / código CIE-10",
                     errorMessageResId = R.string.doctor_orders_val_diagnosis_required,
                     errorMessageArgs = emptyList(),
+                    errorAction = ClinicalErrorAction.NONE,
+                    isDiagnosisValidationError = true,
                 )
             }
             return
@@ -352,6 +367,8 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
                     errorMessage = null,
                     errorMessageResId = null,
                     errorMessageArgs = emptyList(),
+                    errorAction = ClinicalErrorAction.NONE,
+                    isDiagnosisValidationError = false,
                     userMessage = null,
                     userMessageResId = null,
                     userMessageArgs = emptyList(),
@@ -386,14 +403,28 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
                     onSuccess?.invoke()
                 }
                 .onFailure { error ->
-                    val detail = UiErrorMapper.map(error, "No se pudo emitir la orden médica")
-                    _uiState.update {
-                        it.copy(
-                            isSubmitting = false,
-                            errorMessage = detail,
-                            errorMessageResId = R.string.doctor_orders_val_issue_error,
-                            errorMessageArgs = listOf(detail),
-                        )
+                    val mapped = OrderErrorMapper.map(error)
+                    if (mapped.isKnownCategory) {
+                        _uiState.update {
+                            it.copy(
+                                isSubmitting = false,
+                                errorMessage = null,
+                                errorMessageResId = mapped.messageResId,
+                                errorMessageArgs = emptyList(),
+                                errorAction = mapped.action,
+                            )
+                        }
+                    } else {
+                        val detail = UiErrorMapper.map(error, "No se pudo emitir la orden médica")
+                        _uiState.update {
+                            it.copy(
+                                isSubmitting = false,
+                                errorMessage = detail,
+                                errorMessageResId = R.string.doctor_orders_val_issue_error,
+                                errorMessageArgs = listOf(detail),
+                                errorAction = mapped.action,
+                            )
+                        }
                     }
                 }
         }

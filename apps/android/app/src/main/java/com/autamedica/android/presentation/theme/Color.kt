@@ -55,8 +55,11 @@ val AuCrimson = Color(0xFFEF4444)          // Clinical Crimson (Alert/Danger/Dec
 
 // Semantic
 val AuSuccess = Color(0xFF10B981)          // Emerald 500
+val AuSuccessText = Color(0xFF047857)      // Emerald 700 (>= 5.4:1 on white)
 val AuWarning = Color(0xFF0891B2)          // Clinical Cyan (Zero-Yellow Gate compliant)
 val AuDanger = Color(0xFFEF4444)           // Crimson 500
+val AuDangerText = Color(0xFFB91C1C)       // Red 700 (6.47:1 on white, 5.6:1 on red-50)
+val AuInputBorder = Color(0xFF64748B)      // Slate 500 (4.76:1 on white, >= 3:1 UI contrast)
 
 // Semantic containers
 val SuccessContainer = Color(0xFFECFDF5)   // emerald-50
