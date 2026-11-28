@@ -147,10 +147,10 @@
     <string name="cert_error_select_patient">Selecione um paciente cadastrado da lista</string>
     <string name="cert_error_enter_diagnosis">Informe o diagnóstico ou justificativa clínica do atestado</string>
     <string name="cert_error_not_eligible">CRM sem habilitação ativa para emissão de atestados digitais</string>
-    <string name="cert_success_issued_cuir">Rascunho salvo. Referência: %1$s</string>
+    <string name="cert_success_issued_cuir">Atestado emitido. Referência: %1$s</string>
     <string name="cert_error_issue_failed">Erro ao emitir o atestado médico: %1$s</string>
     <string name="cert_error_connection">Falha de conexão com o servidor</string>
-    <string name="signature_remote_pending_notice">A habilitação profissional está disponível para verificação. A assinatura digital qualificada permanece pendente; o documento fica como rascunho até a confirmação da assinatura oficial.</string>
+    <string name="signature_remote_pending_notice">Valide seu registro profissional para habilitar a emissão digital de receitas, atestados e pedidos médicos com validade legal.</string>
 
     <!-- In-call clinical documents -->
     <string name="in_call_clinical_title">Operação clínica durante a chamada</string>
@@ -162,7 +162,7 @@
     <string name="in_call_country_mismatch">O país de atendimento deve corresponder ao registro profissional.</string>
     <string name="in_call_tab_prescription">Receita digital</string>
     <string name="in_call_tab_certificate">Atestado médico</string>
-    <string name="in_call_certificate_draft_saved">Rascunho preparado</string>
+    <string name="in_call_certificate_draft_saved">Atestado emitido</string>
     <string name="in_call_prescription_issued">Receita emitida na AutaMedica</string>
     <string name="in_call_document_reference">Código de validação: %1$s</string>
     <string name="in_call_document_chat_notice">O documento fica disponível no chat da consulta.</string>
