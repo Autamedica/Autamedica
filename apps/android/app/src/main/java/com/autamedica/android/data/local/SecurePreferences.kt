@@ -8,6 +8,12 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Encrypted key-value store backed by Jetpack Security Crypto.
+ *
+ * TODO: Track migration from deprecated EncryptedSharedPreferences to DataStore + Android Keystore
+ * with a verified migration path that preserves existing persisted session keys.
+ */
 @Singleton
 class SecurePreferences @Inject constructor(
     @ApplicationContext context: Context,

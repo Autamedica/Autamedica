@@ -43,7 +43,7 @@ fun quoteForBuildConfig(value: String): String {
 
 android {
     namespace = "com.autamedica.android"
-    compileSdk = 35
+    compileSdk = 36
 
     // Robolectric tests exercise app resources (strings, notification channels and layouts).
     // Without this, tests fall back to framework-only resources and fail with resource IDs.
