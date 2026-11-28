@@ -1,6 +1,7 @@
 package com.autamedica.android.data.repository
 
 import com.autamedica.android.data.local.SecurePreferences
+import com.autamedica.android.data.remote.invokeEdgeFunctionJson
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentTransitionRules
@@ -17,11 +18,9 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.UUID
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
-import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -845,7 +844,7 @@ class AppointmentRepositoryImpl @Inject constructor(
             val pendingIds = reconcilable.map { it.id }
             val statuses = supabaseClient.postgrest
                 .from("appointment_payments")
-                .select(Columns.list("appointment_id,status")) {
+                .select(Columns.list("appointment_id", "status")) {
                     filter {
                         isIn("appointment_id", pendingIds)
                     }
@@ -855,6 +854,8 @@ class AppointmentRepositoryImpl @Inject constructor(
                 .map { it.appointmentId }
                 .toSet()
             statuses
+        }.onFailure { e ->
+            SecureLog.warn("[Appointments] Failed reconciling approved payments: ${e.message}")
         }.getOrDefault(emptySet())
 
         if (approvedIds.isEmpty()) return appointments
@@ -876,8 +877,7 @@ class AppointmentRepositoryImpl @Inject constructor(
         val payload = buildJsonObject {
             put("appointmentId", appointmentId)
         }
-        val response = supabaseClient.functions("create-appointment-payment", payload)
-        val text = response.bodyAsText()
+        val text = supabaseClient.invokeEdgeFunctionJson("create-appointment-payment", payload)
         val json = Json { ignoreUnknownKeys = true }
         val dto = json.decodeFromString<AppointmentPaymentResponseDto>(text)
         AppointmentPaymentExecution(

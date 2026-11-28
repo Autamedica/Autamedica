@@ -41,7 +41,7 @@ export function useVitalSigns(patientId: UUID | null): UseVitalSignsResult {
         .from('vital_signs')
         .select('*')
         .eq('patient_id', patientId)
-        .eq('active', true)
+        .is('deleted_at', null)
         .order('recorded_at', { ascending: false })
 
       if (fetchError) throw fetchError

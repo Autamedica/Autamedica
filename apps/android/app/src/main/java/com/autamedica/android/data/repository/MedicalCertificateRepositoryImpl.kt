@@ -331,6 +331,10 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             }.decodeSingleOrNull<PatientCountryDto>()?.countryCode
         InCallDocumentPolicy.requireMatchingPatientCountry(patientCountry, resolvedCountry)
 
+        if (resolvedCountry == "BR") {
+            throw IllegalStateException("Para o Brasil, emita o atestado pelo emissor digital oficial.")
+        }
+
         val timestampHex = java.lang.Long.toHexString(System.currentTimeMillis()).uppercase()
         val randomHex = UUID.randomUUID().toString().replace("-", "").take(6).uppercase()
         // Internal reference only. A draft has no public verification QR.
@@ -350,15 +354,10 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             put("start_date", request.startDate)
             request.endDate?.let { put("end_date", it) }
             request.diagnosis?.let { put("diagnosis", it) }
-            put("hide_diagnosis", request.hideDiagnosis || resolvedCountry == "BR")
+            put("hide_diagnosis", request.hideDiagnosis)
             val trimmedCid10 = request.cid10Code?.trim()?.takeIf { it.isNotEmpty() }
             if (trimmedCid10 != null) {
                 put("cid10_code", trimmedCid10)
-                if (resolvedCountry == "BR") {
-                    put("cid_requested_by_patient", true)
-                    put("cid_consent_recorded_at", now)
-                    put("cid_consent_recorded_by", userId)
-                }
             }
             request.observations?.let { put("observations", it) }
             put("country_code", resolvedCountry)
@@ -368,7 +367,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
 
         supabaseClient.postgrest.from("medical_certificates").insert(insertPayload)
 
-        val issued = if (resolvedCountry == "AR") {
+        val issued = try {
             val accessToken = supabaseClient.auth.currentSessionOrNull()?.accessToken
                 ?: throw IllegalStateException("Sesión autenticada requerida para firmar y emitir el certificado")
             withContext(Dispatchers.IO) {
@@ -379,8 +378,15 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
                     accessToken = accessToken,
                 )
             }
-        } else {
-            null
+        } catch (e: Exception) {
+            runCatching {
+                supabaseClient.postgrest
+                    .from("medical_certificates")
+                    .delete { filter { eq("id", certId) } }
+            }.onFailure { cleanupErr ->
+                SecureLog.warn("[Certificates] Failed cleaning up orphan draft $certId: ${cleanupErr.message}")
+            }
+            throw e
         }
 
         val (patientNameMap, patientDniMap) = resolvePatientsInfo(listOf(request.patientId))

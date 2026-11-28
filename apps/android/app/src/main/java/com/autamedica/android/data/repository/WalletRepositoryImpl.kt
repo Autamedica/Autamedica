@@ -1,11 +1,10 @@
 package com.autamedica.android.data.repository
 
+import com.autamedica.android.data.remote.invokeEdgeFunctionJson
 import com.autamedica.android.domain.repository.WalletRepository
 import com.autamedica.android.domain.repository.WalletBalanceDetails
 import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.functions.functions
-import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -25,8 +24,8 @@ class WalletRepositoryImpl @Inject constructor(
         getWalletBalanceDetails().map { it.availableCreditCents }
 
     override suspend fun getWalletBalanceDetails(): Result<WalletBalanceDetails> = runCatching {
-        val response = supabaseClient.functions.invoke("patients-wallet-balance")
-        val dto = json.decodeFromString<WalletBalanceResponseDto>(response.bodyAsText())
+        val text = supabaseClient.invokeEdgeFunctionJson("patients-wallet-balance")
+        val dto = json.decodeFromString<WalletBalanceResponseDto>(text)
         val currency = dto.currency?.uppercase()?.takeIf { it == "BRL" || it == "ARS" }
         WalletBalanceDetails(
             availableCreditCents = dto.availableCreditCents ?: dto.balance?.availableCreditCents ?: 0L,
@@ -43,8 +42,7 @@ class WalletRepositoryImpl @Inject constructor(
         val payload = buildJsonObject {
             put("amount", amount)
         }
-        val response = supabaseClient.functions("patients-wallet-topup", payload)
-        val text = response.bodyAsText()
+        val text = supabaseClient.invokeEdgeFunctionJson("patients-wallet-topup", payload)
         val dto = json.decodeFromString<TopupResponseDto>(text)
         require(dto.currency == verifiedCurrency) {
             "La moneda del pago no coincide con la billetera ($verifiedCurrency)."

@@ -29,19 +29,11 @@ async function resolvePatientLabel(
     return `Paciente ${patientId}`;
   }
 
-  let profileQuery = await admin
+  const profileQuery = await admin
     .from('profiles')
     .select('first_name, last_name')
     .eq('user_id', userId)
     .maybeSingle();
-
-  if ((profileQuery.error && (profileQuery.error as { code?: string }).code !== 'PGRST116') || (!profileQuery.data && !profileQuery.error)) {
-    profileQuery = await admin
-      .from('profiles')
-      .select('first_name, last_name')
-      .eq('id', userId)
-      .maybeSingle();
-  }
 
   if (profileQuery.error && (profileQuery.error as { code?: string }).code !== 'PGRST116') {
     logger.warn('[Doctor patient anamnesis] Unable to resolve patient profile label', profileQuery.error);

@@ -1,6 +1,7 @@
 package com.autamedica.android.data.repository
 
 import com.autamedica.android.BuildConfig
+import com.autamedica.android.data.remote.invokeEdgeFunctionJson
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
 import com.autamedica.android.domain.repository.IceServerInfo
@@ -8,10 +9,8 @@ import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.domain.repository.TelemedicineSessionInfo
 import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
-import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -93,8 +92,7 @@ class TelemedicineRepositoryImpl @Inject constructor(
                 if (trimmedApptId.isNotEmpty()) put("appointmentId", trimmedApptId)
                 if (trimmedPatientId != null) put("patientId", trimmedPatientId)
             }
-            val response = supabaseClient.functions.invoke("create-call", payload)
-            val text = response.bodyAsText()
+            val text = supabaseClient.invokeEdgeFunctionJson("create-call", payload)
             SecureLog.info("[Telemedicine] create-call response: $text")
             val jsonObj = Json.parseToJsonElement(text) as? JsonObject
             val callObj = jsonObj?.get("call") as? JsonObject
@@ -216,7 +214,7 @@ class TelemedicineRepositoryImpl @Inject constructor(
         } else {
             // Último recurso autorizado: edge function con service role (nunca UPDATE directo a public.calls).
             runCatching {
-                supabaseClient.functions.invoke(
+                supabaseClient.invokeEdgeFunctionJson(
                     "update-call-status",
                     buildJsonObject {
                         put("callId", resolvedCallId)
@@ -416,8 +414,7 @@ class TelemedicineRepositoryImpl @Inject constructor(
         if (custom != null) return custom
 
         val fetched = runCatching {
-            val response = supabaseClient.functions.invoke("turn-credentials")
-            val text = response.bodyAsText()
+            val text = supabaseClient.invokeEdgeFunctionJson("turn-credentials")
             parseTurnIceServersJson(text)
         }.getOrNull()
 

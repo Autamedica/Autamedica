@@ -1933,6 +1933,9 @@ class VideoCallViewModel @Inject constructor(
             _uiState.update { it.copy(isIssuingCertificate = true, inCallClinicalError = null) }
             runCatching {
                 val country = InCallDocumentPolicy.requireCountry(_uiState.value.doctorCountryCode)
+                if (country == "BR") {
+                    throw IllegalStateException("Para o Brasil, emita o atestado pelo emissor digital oficial.")
+                }
                 require(effectiveRest in 0..365) { invalidDaysMessage }
                 require(effectiveRest == 0 || trimmedDiagnosis.isNotBlank()) {
                     diagnosisRequiredMessage

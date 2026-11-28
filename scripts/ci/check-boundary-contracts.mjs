@@ -206,8 +206,7 @@ function stripEmbeddedRelations(selectExpr) {
   return out;
 }
 
-function checkWebPostgrestColumns() {
-  const schemaCols = loadSchemaColumns();
+function checkWebPostgrestColumns(schemaCols) {
   const webSrc = path.join(ROOT, 'apps/web/src');
   if (!fs.existsSync(webSrc)) return;
   const files = walkFiles(
@@ -248,6 +247,134 @@ function checkWebPostgrestColumns() {
     }
   }
   console.log(`[boundary-check] Checked ${checkedQueries} PostgREST .select() queries across ${schemaCols.size} known tables`);
+}
+
+function checkWebPostgrestFilterColumns(schemaCols) {
+  const webSrc = path.join(ROOT, 'apps/web/src');
+  if (!fs.existsSync(webSrc)) return;
+  const files = walkFiles(
+    webSrc,
+    (full, name) => /\.(ts|tsx)$/.test(name) && !/\.(test|spec)\.(ts|tsx)$/.test(full),
+  );
+
+  const fromRegex = /\.from\(\s*['"`]([a-zA-Z0-9_]+)['"`]\s*\)/g;
+  const filterRegex = /\.(?:eq|neq|in|is|gt|gte|lt|lte|like|ilike|contains|containedBy|overlaps|order)\(\s*(['"`])([^'"`]+)\1/g;
+  let checkedFilters = 0;
+
+  for (const file of files) {
+    const content = fs.readFileSync(file, 'utf8');
+    let match;
+    while ((match = fromRegex.exec(content)) !== null) {
+      const table = match[1].toLowerCase();
+      if (!schemaCols.has(table)) continue;
+      const colsAllowed = schemaCols.get(table);
+
+      const tailStart = match.index + match[0].length;
+      const tailSlice = content.slice(tailStart, tailStart + 1200);
+      const stopSemi = tailSlice.indexOf(';');
+      const stopNextFrom = tailSlice.search(/\.from(?:<[^>]+>)?\s*\(/);
+      const stopBlankLine = tailSlice.search(/\r?\n\s*\r?\n/);
+      const stopStmt = tailSlice.search(/(?:^|\n)\s*(?:const|let|var|return|export|async|function|if|try|catch|throw)\b/);
+      const candidates = [stopSemi, stopNextFrom, stopBlankLine, stopStmt].filter((i) => i >= 0);
+      const stopAt = candidates.length > 0 ? Math.min(...candidates) : tailSlice.length;
+      const stmt = tailSlice.slice(0, stopAt);
+
+      filterRegex.lastIndex = 0;
+      let fm;
+      while ((fm = filterRegex.exec(stmt)) !== null) {
+        const rawCol = fm[2].trim();
+        if (!rawCol || rawCol.includes('${') || rawCol.includes('.') || rawCol.includes('->')) continue;
+        checkedFilters++;
+        const col = rawCol.toLowerCase();
+        if (!colsAllowed.has(col)) {
+          const lineNum = content.slice(0, tailStart + fm.index).split('\n').length;
+          errors.push(
+            `[postgrest-filter-column] ${rel(file)}:${lineNum} filters/orders by non-existent column "${col}" on table "${table}"`,
+          );
+        }
+      }
+    }
+  }
+  console.log(`[boundary-check] Checked ${checkedFilters} Web PostgREST filter/order column references`);
+}
+
+function checkAndroidPostgrestColumns(schemaCols) {
+  const ktRoot = path.join(ROOT, 'apps/android/app/src/main/java');
+  if (!fs.existsSync(ktRoot)) return;
+  const ktFiles = walkFiles(ktRoot, (_full, name) => name.endsWith('.kt'));
+
+  const colsListRegex = /Columns\.list\(([\s\S]*?)\)/g;
+  const fromSelectRegex = /\.from\(\s*"([a-zA-Z0-9_]+)"\s*\)([\s\S]{0,400}?)\.select\(\s*Columns\.list\(([\s\S]*?)\)/g;
+  let checkedLists = 0;
+  let checkedCols = 0;
+
+  for (const file of ktFiles) {
+    const content = fs.readFileSync(file, 'utf8');
+
+    let lm;
+    while ((lm = colsListRegex.exec(content)) !== null) {
+      checkedLists++;
+      const argsBody = lm[1];
+      const strRegex = /"([^"]*)"/g;
+      let sm;
+      while ((sm = strRegex.exec(argsBody)) !== null) {
+        if (sm[1].includes(',')) {
+          const lineNum = content.slice(0, lm.index).split('\n').length;
+          errors.push(
+            `[android-columns-list] ${rel(file)}:${lineNum} passes comma-joined string "${sm[1]}" to Columns.list(); pass separate arguments`,
+          );
+        }
+      }
+    }
+
+    let fm;
+    while ((fm = fromSelectRegex.exec(content)) !== null) {
+      const table = fm[1].toLowerCase();
+      const between = fm[2];
+      if (between.includes('.from(') || !schemaCols.has(table)) continue;
+      const colsAllowed = schemaCols.get(table);
+      const argsBody = fm[3];
+      const strRegex = /"([^"]*)"/g;
+      let sm;
+      while ((sm = strRegex.exec(argsBody)) !== null) {
+        const token = sm[1].trim();
+        if (!token || token.includes(',') || token.includes('(') || token.includes('!') || token.includes('*') || token.includes('.') || token.includes('->')) {
+          continue;
+        }
+        checkedCols++;
+        if (!colsAllowed.has(token.toLowerCase())) {
+          const lineNum = content.slice(0, fm.index).split('\n').length;
+          errors.push(
+            `[android-postgrest-column] ${rel(file)}:${lineNum} selects non-existent column "${token}" on table "${table}"`,
+          );
+        }
+      }
+    }
+  }
+  console.log(`[boundary-check] Checked ${checkedLists} Android Columns.list() calls and ${checkedCols} table columns`);
+}
+
+function checkAndroidDirectSupabaseFunctions() {
+  const ktRoot = path.join(ROOT, 'apps/android/app/src/main/java');
+  if (!fs.existsSync(ktRoot)) return;
+  const ktFiles = walkFiles(ktRoot, (_full, name) => name.endsWith('.kt'));
+  let checkedFiles = 0;
+
+  for (const file of ktFiles) {
+    if (file.endsWith('SupabaseEdgeFunctionClient.kt')) continue;
+    checkedFiles++;
+    const lines = fs.readFileSync(file, 'utf8').split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.includes('boundary-check: allow-supabase-functions') || line.trim().startsWith('//')) continue;
+      if (/\bsupabaseClient\.functions\b|\.functions\.invoke\s*\(/.test(line)) {
+        errors.push(
+          `[android-edge-client] ${rel(file)}:${i + 1} calls raw supabaseClient.functions; use invokeEdgeFunctionJson() for structured error parsing`,
+        );
+      }
+    }
+  }
+  console.log(`[boundary-check] Checked ${checkedFiles} Kotlin files for raw supabaseClient.functions calls`);
 }
 
 // 4. Android string format positional placeholder parity
@@ -343,10 +470,14 @@ function checkAndroidFormatStrings() {
   console.log(`[boundary-check] Checked ${checkedCalls} formatted Android string call sites (${formatCounts.size} formatted resources)`);
 }
 
+const schemaCols = loadSchemaColumns();
 checkEdgeFunctionEntrypoints();
 checkSecurityDefinerCurrentUser();
-checkWebPostgrestColumns();
+checkWebPostgrestColumns(schemaCols);
+checkWebPostgrestFilterColumns(schemaCols);
 checkAndroidFormatStrings();
+checkAndroidPostgrestColumns(schemaCols);
+checkAndroidDirectSupabaseFunctions();
 
 if (errors.length > 0) {
   console.error(`\n[boundary-check] FAILED with ${errors.length} violation(s):`);

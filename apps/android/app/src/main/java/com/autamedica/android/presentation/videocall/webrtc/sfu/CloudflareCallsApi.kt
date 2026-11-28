@@ -95,7 +95,7 @@ class SupabaseCloudflareCallsApi(
 
         com.autamedica.android.logging.SecureLog.info("[SFU-API] -> $method $path (roomId=$roomId)")
         val response = try {
-            supabaseClient.functions.invoke(
+            supabaseClient.functions.invoke( // boundary-check: allow-supabase-functions
                 function = "cloudflare-calls",
                 body = payload,
                 headers = headers,
@@ -104,7 +104,10 @@ class SupabaseCloudflareCallsApi(
             // supabase-kt converts non-2xx function responses to RestException.
             // Keep the original HTTP code (not its generic exception subclass).
             val errorCode = runCatching {
-                json.parseToJsonElement(error.error).jsonObject["error"]?.jsonPrimitive?.contentOrNull
+                val obj = json.parseToJsonElement(error.error).jsonObject
+                obj["error"]?.jsonPrimitive?.contentOrNull
+                    ?: obj["code"]?.jsonPrimitive?.contentOrNull
+                    ?: obj["message"]?.jsonPrimitive?.contentOrNull
             }.getOrNull()
             throw CloudflareCallsApiException(error.statusCode, error.error, errorCode)
         }

@@ -444,7 +444,7 @@ fun InCallClinicalBottomSheet(
                     InCallClinicalMode.PRESCRIPTION -> {
                         if (countryCode == "BR") {
                             Text(
-                                text = "Receita brasileira pelo módulo oficial Memed. A assinatura e a entrega são feitas pelo médico no ambiente autorizado.",
+                                text = "Emissão digital oficial para o Brasil. A assinatura e a entrega ao paciente são concluídas diretamente no emissor autorizado.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = AuTextPrimary,
                             )
@@ -463,7 +463,7 @@ fun InCallClinicalBottomSheet(
                                 )
                             }
                             Text(
-                                text = "Ao abrir o navegador, entre com a conta médica e retorne à chamada após a prescrição.",
+                                text = "Ao abrir o emissor, conclua a assinatura e retorne à consulta.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AuTextSecondary,
                             )
@@ -483,9 +483,9 @@ fun InCallClinicalBottomSheet(
                                 }
                                 Text(
                                     when {
-                                        isVerifyingMemedPrescription -> "Confirmando receita..."
-                                        isSubmitting -> "Autorizando Memed..."
-                                        else -> "Abrir receita BR no Memed"
+                                        isVerifyingMemedPrescription -> "Confirmando documento..."
+                                        isSubmitting -> "Abrindo emissor digital..."
+                                        else -> "Emitir Receita Digital"
                                     },
                                 )
                             }
@@ -614,6 +614,54 @@ fun InCallClinicalBottomSheet(
                     }
 
                     InCallClinicalMode.CERTIFICATE -> {
+                        if (countryCode == "BR") {
+                            Text(
+                                text = "Emissão digital oficial de atestado médico para o Brasil. A assinatura e a entrega ao paciente são concluídas no emissor autorizado.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = AuTextPrimary,
+                            )
+                            if (memedLaunchError != null) {
+                                Text(
+                                    text = memedLaunchError,
+                                    color = AuDanger,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                            if (memedLaunchNotice != null) {
+                                Text(
+                                    text = memedLaunchNotice,
+                                    color = AuTextSecondary,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                            Text(
+                                text = "Ao abrir o emissor, conclua a assinatura e retorne à consulta.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = AuTextSecondary,
+                            )
+                            Button(
+                                onClick = { onOpenMemed?.invoke() },
+                                enabled = onOpenMemed != null && !isSubmitting && memedEncounterAvailable && countriesMatch,
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                shape = RoundedCornerShape(12.dp),
+                            ) {
+                                if (isSubmitting) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp,
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+                                Text(
+                                    when {
+                                        isVerifyingMemedPrescription -> "Confirmando documento..."
+                                        isSubmitting -> "Abrindo emissor digital..."
+                                        else -> "Emitir Atestado Digital"
+                                    },
+                                )
+                            }
+                        } else {
                         // Tipo de certificado (Chips)
                         Text(
                             text = stringResource(R.string.in_call_certificate_type),
@@ -718,24 +766,6 @@ fun InCallClinicalBottomSheet(
                             }
                         }
 
-                        if (countryCode == "BR") {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Checkbox(
-                                    checked = hideDiagnosis,
-                                    onCheckedChange = { hideDiagnosis = it },
-                                    enabled = !isSubmitting,
-                                )
-                                Text(
-                                    text = stringResource(R.string.in_call_hide_diagnosis),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = AuTextPrimary,
-                                )
-                            }
-                        }
-
                         // Diagnóstico
                         OutlinedTextField(
                             value = diagnosis,
@@ -790,6 +820,7 @@ fun InCallClinicalBottomSheet(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(stringResource(R.string.in_call_certificate_submit), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
+                        }
                         }
                     }
                 }

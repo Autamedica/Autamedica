@@ -1,6 +1,7 @@
 package com.autamedica.android.data.repository
 
 import com.autamedica.android.data.local.SecurePreferences
+import com.autamedica.android.data.remote.invokeEdgeFunctionJson
 import com.autamedica.android.domain.model.AnamnesisSection
 import com.autamedica.android.domain.model.AnamnesisSummary
 import com.autamedica.android.domain.model.ANAMNESIS_STATUS_COMPLETED
@@ -12,11 +13,9 @@ import com.autamedica.android.domain.model.isAnamnesisSummaryReadOnly
 import com.autamedica.android.domain.repository.HealthRepository
 import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
-import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -47,8 +46,7 @@ class HealthRepositoryImpl @Inject constructor(
     override suspend fun getAnamnesisSummary(): Result<AnamnesisSummary?> = runCatching {
         // Try via Edge Function first (resolves patient_id and RLS cleanly)
         try {
-            val response = supabaseClient.functions.invoke("patients-anamnesis")
-            val text = response.bodyAsText()
+            val text = supabaseClient.invokeEdgeFunctionJson("patients-anamnesis")
             val dto = json.decodeFromString<EdgeAnamnesisSnapshotDto>(text)
             cachedSnapshot = dto
             return@runCatching dto.anamnesis.toDomain()
@@ -91,8 +89,7 @@ class HealthRepositoryImpl @Inject constructor(
 
     override suspend fun getOrCreateAnamnesis(): Result<AnamnesisSummary> = runCatching {
         try {
-            val response = supabaseClient.functions.invoke("patients-anamnesis")
-            val text = response.bodyAsText()
+            val text = supabaseClient.invokeEdgeFunctionJson("patients-anamnesis")
             val dto = json.decodeFromString<EdgeAnamnesisSnapshotDto>(text)
             cachedSnapshot = dto
             return@runCatching dto.anamnesis.toDomain()
@@ -159,8 +156,7 @@ class HealthRepositoryImpl @Inject constructor(
             }
 
             try {
-                val response = supabaseClient.functions.invoke("patients-anamnesis")
-                val text = response.bodyAsText()
+                val text = supabaseClient.invokeEdgeFunctionJson("patients-anamnesis")
                 val dto = json.decodeFromString<EdgeAnamnesisSnapshotDto>(text)
                 cachedSnapshot = dto
                 return@runCatching dto.sections.map { it.toDomain() }
@@ -201,7 +197,7 @@ class HealthRepositoryImpl @Inject constructor(
                 })
                 put("completed", false)
             }
-            supabaseClient.functions("patients-anamnesis", payload)
+            supabaseClient.invokeEdgeFunctionJson("patients-anamnesis", payload)
             cachedSnapshot = null
             return@runCatching
         } catch (e: Exception) {
@@ -236,7 +232,7 @@ class HealthRepositoryImpl @Inject constructor(
                 put("section", section)
                 put("completed", true)
             }
-            supabaseClient.functions("patients-anamnesis", payload)
+            supabaseClient.invokeEdgeFunctionJson("patients-anamnesis", payload)
             cachedSnapshot = null
             return@runCatching
         } catch (e: Exception) {
@@ -283,7 +279,7 @@ class HealthRepositoryImpl @Inject constructor(
             val payload = buildJsonObject {
                 put("action", "submit")
             }
-            supabaseClient.functions("patients-anamnesis", payload)
+            supabaseClient.invokeEdgeFunctionJson("patients-anamnesis", payload)
             cachedSnapshot = null
             return@runCatching
         } catch (e: Exception) {
@@ -323,8 +319,7 @@ class HealthRepositoryImpl @Inject constructor(
     override suspend fun getAnamnesisPreload(): Result<Map<String, String>> = runCatching {
         cachedSnapshot?.preload?.let { return@runCatching it.toMap() }
         try {
-            val response = supabaseClient.functions.invoke("patients-anamnesis")
-            val text = response.bodyAsText()
+            val text = supabaseClient.invokeEdgeFunctionJson("patients-anamnesis")
             val dto = json.decodeFromString<EdgeAnamnesisSnapshotDto>(text)
             cachedSnapshot = dto
             return@runCatching dto.preload?.toMap() ?: emptyMap()
