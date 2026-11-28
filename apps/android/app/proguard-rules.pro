@@ -3,7 +3,7 @@
 -dontwarn org.webrtc.**
 
 # ── Kotlin Serialization ──
--keepattributes *Annotation*, InnerClasses
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
 -dontnote kotlinx.serialization.AnnotationsKt
 
 -keepclassmembers class kotlinx.serialization.json.** {
@@ -20,8 +20,8 @@
     kotlinx.serialization.KSerializer serializer(...);
 }
 
-# Keep @SerialName annotated fields
--keepclassmembers @kotlinx.serialization.Serializable class com.autamedica.android.** {
+# Keep @Serializable models & @SerialName annotated fields under R8 full mode
+-keep,includedescriptorclasses @kotlinx.serialization.Serializable class com.autamedica.android.** {
     <fields>;
     <init>(...);
 }
@@ -66,8 +66,11 @@
 }
 
 # ── R8 full mode ──
--keepattributes RuntimeVisibleAnnotations,RuntimeVisibleParameterAnnotations
+-keepattributes RuntimeVisibleAnnotations,RuntimeVisibleParameterAnnotations,Signature,InnerClasses,EnclosingMethod
 -keepattributes SourceFile,LineNumberTable
+
+# ── Play Install Referrer AIDL ──
+-keep class com.android.installreferrer.** { *; }
 
 # ── Enums ──
 -keepclassmembers enum * {
