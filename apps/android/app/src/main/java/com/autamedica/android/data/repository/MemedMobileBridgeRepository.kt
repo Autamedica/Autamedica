@@ -107,7 +107,7 @@ class MemedMobileBridgeRepository @Inject constructor(private val client: Supaba
     private suspend fun createLaunchForEncounter(key: String, encounterId: String): Result<String> = runCatching {
         require(MemedMobileLaunchUrl.isUuid(encounterId)) { "Consulta inválida" }
         val accessToken = client.auth.currentSessionOrNull()?.accessToken
-            ?: error("Sessão autenticada necessária para abrir a Memed")
+            ?: error("Sessão autenticada necessária para emitir documentos digitais")
         val payload = buildJsonObject { put(key, encounterId) }
         val endpoint = BuildConfig.SUPABASE_URL.trimEnd('/') + "/functions/v1/memed-mobile-preflight"
         val (httpCode, responseText) = withContext(Dispatchers.IO) {
@@ -129,23 +129,23 @@ class MemedMobileBridgeRepository @Inject constructor(private val client: Supaba
             val errMsg = root?.get("message")?.jsonPrimitive?.contentOrNull
                 ?: root?.get("error")?.jsonPrimitive?.contentOrNull
             val friendly = when (errCode) {
-                "MEMED_MOBILE_DISABLED" -> "Memed indisponível neste ambiente no momento."
-                "PILOT_DOCTOR_REQUIRED" -> "Seu perfil médico ainda não está habilitado para a Memed."
-                "CFM_LICENSE_NOT_VERIFIED" -> "Sua matrícula CRM/CFM precisa estar validada para usar a Memed."
+                "MEMED_MOBILE_DISABLED" -> "Emissor digital indisponível neste momento."
+                "PILOT_DOCTOR_REQUIRED" -> "Seu perfil médico ainda não está habilitado para emissão digital."
+                "CFM_LICENSE_NOT_VERIFIED" -> "Sua matrícula CRM/CFM precisa estar validada para emitir documentos."
                 "DOCTOR_PATIENT_ACCESS_REQUIRED" -> "Sem vínculo clínico ativo com este paciente."
                 "CLINICAL_ENCOUNTER_REQUIRED" -> "Atendimento clínico inválido ou sem permissão para emitir receita."
-                "BRAZIL_PATIENT_CONSENT_REQUIRED" -> "Paciente precisa aceitar o termo LGPD Brasil antes de usar a Memed."
+                "BRAZIL_PATIENT_CONSENT_REQUIRED" -> "Paciente precisa aceitar o termo LGPD antes da emissão."
                 "PATIENT_IDENTITY_INCOMPLETE" -> "Cadastro do paciente incompleto (CPF ou data de nascimento ausente)."
                 "PATIENT_ACCOUNT_INACTIVE" -> "Conta do paciente inativa."
-                "DOCTOR_REQUIRED" -> "Conta médica ativa necessária para acessar a Memed."
-                else -> errMsg ?: errCode ?: "Memed indisponível (HTTP $httpCode)"
+                "DOCTOR_REQUIRED" -> "Conta médica ativa necessária para emitir documentos."
+                else -> errMsg ?: errCode ?: "Emissor digital indisponível (HTTP $httpCode)"
             }
             error(friendly)
         }
         val result = json.decodeFromString<MemedMobilePreflightResponse>(responseText)
         check(result.success && result.provider == "memed" &&
             result.country == "BR" && result.requiresBrowserSignIn) {
-            "Resposta Memed não autorizada"
+            "Resposta do emissor digital não autorizada"
         }
         MemedMobileLaunchUrl.validate(result.launchUrl, encounterId, key)
     }

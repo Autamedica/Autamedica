@@ -389,26 +389,36 @@ class PrescriptionRepositoryImpl @Inject constructor(
                 ?: (errorObj as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull
             val details = responseObj["details"]?.jsonPrimitive?.contentOrNull
                 ?: (errorObj as? JsonObject)?.get("details")?.jsonPrimitive?.contentOrNull
+            val isBr = request.countryCode.equals("BR", ignoreCase = true)
             val friendlyMessage = when (errorCode) {
                 "REFEPS_REQUIRED" -> "Complete su código REFEPS en el perfil médico para emitir recetas en Argentina."
                 "DOCTOR_COUNTRY_MISMATCH", "ARGENTINE_LICENSE_REQUIRED", "doctor_country_mismatch" ->
-                    "La matrícula y país del profesional no habilitan esta emisión."
+                    if (isBr) "Seu registro e país profissional não habilitam esta emissão."
+                    else "La matrícula y país del profesional no habilitan esta emisión."
+                "PATIENT_COUNTRY_MISMATCH", "patient_country_required_or_mismatched" ->
+                    if (isBr) "O país clínico do paciente não está verificado ou não coincide com o do médico."
+                    else "El país clínico del paciente no está verificado o no coincide con el médico."
                 "br_doctor_cpf_required", "BR_DOCTOR_CPF_REQUIRED" ->
                     "Registre um CPF válido no seu perfil médico para emitir receitas no Brasil."
-                "br_cfm_license_required", "CRM_UF_REQUIRED" ->
+                "br_cfm_license_required", "CRM_UF_REQUIRED", "CFM_LICENSE_NOT_VERIFIED" ->
                     "Valide seu CRM e UF junto ao CFM para emitir receitas no Brasil."
                 "br_special_prescription_provider_required" ->
-                    "Este medicamento ou modelo exige emissão via Memed (ICP-Brasil)."
-                "br_patient_cpf_required" ->
-                    "Se requiere un CPF válido del paciente para emitir en Brasil."
+                    "Este medicamento exige emissão pelo emissor digital oficial."
+                "br_patient_cpf_required", "BR_PATIENT_CPF_REQUIRED" ->
+                    if (isBr) "É obrigatório informar um CPF válido do paciente para emitir no Brasil."
+                    else "Se requiere un CPF válido del paciente para emitir en Brasil."
                 "patient_identity_consent_required" ->
                     "Registre o consentimento LGPD do paciente antes de emitir."
+                "DOCTOR_PATIENT_ACCESS_REQUIRED" ->
+                    if (isBr) "Sem vínculo clínico ativo com este paciente."
+                    else "No existe vínculo clínico activo con este paciente."
                 "missing_professional_address" ->
                     "Complete su domicilio profesional en Perfil → Firma digital."
                 "missing_patient_identification", "missing_patient_address" ->
                     "Faltan datos de identificación o domicilio del paciente."
                 "digital_signature_required", "digital_signature_failed" ->
-                    "Active o renueve su certificado de firma digital profesional antes de emitir."
+                    if (isBr) "Ative sua assinatura digital profissional para concluir a emissão."
+                    else "Active o renueve su certificado de firma digital profesional antes de emitir."
                 "farmalink_mapping_failed" ->
                     if (!details.isNullOrBlank()) {
                         "Faltan datos requeridos para Farmalink ($details). Verificá tu perfil médico y los datos del paciente."
@@ -421,8 +431,10 @@ class PrescriptionRepositoryImpl @Inject constructor(
                     "La emisión vía Farmalink no está habilitada en el servidor."
                 "farmalink_pending_reconciliation" ->
                     "Emisión pendiente de conciliación con Farmalink; no reintente sin verificar."
-                null -> "El servicio de recetas no confirmó el registro (HTTP $httpCode)"
-                else -> "El servicio de recetas rechazó la emisión ($errorCode)"
+                null -> if (isBr) "O serviço de receitas não confirmou a emissão (HTTP $httpCode)"
+                else "El servicio de recetas no confirmó el registro (HTTP $httpCode)"
+                else -> if (isBr) "Não foi possível concluir a emissão ($errorCode)"
+                else "El servicio de recetas rechazó la emisión ($errorCode)"
             }
             throw IllegalStateException(friendlyMessage)
         }
@@ -514,7 +526,21 @@ class PrescriptionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getEligiblePatients(): Result<List<PrescriptionPatientItem>> = runCatching {
-        val doctorId = resolveDoctorId()
+        val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
+            ?: throw IllegalStateException("No authenticated user ID found")
+        val doctorRecord = supabaseClient.postgrest
+            .from("doctors")
+            .select(Columns.list("id", "license_number", "license_type", "uf_brazil", "care_country", "active")) {
+                filter { eq("user_id", userId) }
+            }
+            .decodeSingleOrNull<DoctorRecordDto>()
+            ?: throw IllegalStateException("No doctor profile found for user $userId")
+        val doctorId = doctorRecord.id
+        val doctorCountry = InCallDocumentPolicy.doctorCountry(
+            doctorRecord.licenseType,
+            doctorRecord.careCountry,
+            doctorRecord.ufBrazil,
+        )
 
         // 1. From doctor_patient table
         val linkedPatientIds = runCatching {
@@ -569,13 +595,19 @@ class PrescriptionRepositoryImpl @Inject constructor(
         if (allPatientIds.isEmpty()) return@runCatching emptyList()
         val patients = supabaseClient.postgrest
             .from("patients")
-            .select(Columns.list("id", "user_id", "dni", "birth_date")) {
+            .select(Columns.list("id", "user_id", "dni", "cpf", "birth_date", "care_country")) {
                 filter { isIn("id", allPatientIds) }
             }.decodeList<PatientRecordDto>()
 
-        if (patients.isEmpty()) return@runCatching emptyList()
+        val countryFilteredPatients = if (doctorCountry != null) {
+            patients.filter { pat -> pat.careCountry.equals(doctorCountry, ignoreCase = true) }
+        } else {
+            patients
+        }
 
-        val userIds = patients.mapNotNull { it.userId }.distinct()
+        if (countryFilteredPatients.isEmpty()) return@runCatching emptyList()
+
+        val userIds = countryFilteredPatients.mapNotNull { it.userId }.distinct()
         val profiles = if (userIds.isNotEmpty()) {
             try {
                 supabaseClient.postgrest
@@ -592,7 +624,7 @@ class PrescriptionRepositoryImpl @Inject constructor(
 
         val eventualByPatientId = fetchEventualPatientsMap()
 
-        patients.map { pat ->
+        countryFilteredPatients.map { pat ->
             val prof = pat.userId?.let { profiles[it] }
             val ev = eventualByPatientId[pat.id]
             val fullName = if (prof != null) {
@@ -605,10 +637,15 @@ class PrescriptionRepositoryImpl @Inject constructor(
             val contact = prof?.phone?.takeIf { it.isNotBlank() }
                 ?: prof?.email?.takeIf { it.isNotBlank() }
                 ?: ev?.contact
+            val documentNumber = if (doctorCountry == "BR") {
+                pat.cpf?.takeIf { it.isNotBlank() } ?: pat.dni?.takeIf { it.isNotBlank() } ?: ev?.dni
+            } else {
+                pat.dni?.takeIf { it.isNotBlank() } ?: ev?.dni
+            }
             PrescriptionPatientItem(
                 patientId = pat.id,
                 fullName = fullName.ifBlank { "Paciente #${pat.id.take(6)}" },
-                dni = pat.dni?.takeIf { it.isNotBlank() } ?: ev?.dni,
+                dni = documentNumber,
                 birthDate = pat.birthDate?.takeIf { it.isNotBlank() } ?: ev?.birthDate,
                 avatarUrl = prof?.avatarUrl?.takeIf { it.isNotBlank() } ?: ev?.avatarUrl,
                 contact = contact,
@@ -1255,6 +1292,8 @@ class PrescriptionRepositoryImpl @Inject constructor(
         val id: String,
         @SerialName("user_id") val userId: String? = null,
         val dni: String? = null,
+        val cpf: String? = null,
         @SerialName("birth_date") val birthDate: String? = null,
+        @SerialName("care_country") val careCountry: String? = null,
     )
 }

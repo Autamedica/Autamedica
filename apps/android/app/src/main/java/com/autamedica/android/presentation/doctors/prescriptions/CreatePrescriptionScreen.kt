@@ -64,6 +64,8 @@ fun CreatePrescriptionScreen(
 
     var patientSearchQuery by remember { mutableStateOf("") }
     var expandedPatientDropdown by remember { mutableStateOf(false) }
+    val isBrazil = uiState.doctorEligibility?.countryCode.equals("BR", ignoreCase = true) ||
+        uiState.doctorEligibility?.doctorLicense?.startsWith("CRM", ignoreCase = true) == true
 
     LaunchedEffect(patientId, renewFromPrescriptionId) {
         viewModel.initCreatePrescription(patientId, renewFromPrescriptionId)
@@ -151,46 +153,53 @@ fun CreatePrescriptionScreen(
                         }
                     }
 
-                    Button(
-                        onClick = { viewModel.onSubmitPrescription() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PortalPatientsAction, contentColor = Color.White),
-                        enabled = !uiState.isSubmitting,
-                    ) {
-                        if (uiState.isSubmitting) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = Color.White,
-                                strokeWidth = 2.dp
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(R.string.doctor_create_rx_submitting))
-                        } else {
-                            Icon(Icons.Outlined.HealthAndSafety, contentDescription = null, modifier = Modifier.size(20.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(R.string.doctor_create_rx_submit_button), fontWeight = FontWeight.Bold)
-                        }
-                    }
-
-                    if (uiState.doctorEligibility?.countryCode.equals("BR", ignoreCase = true)) {
-                        OutlinedButton(
+                    if (isBrazil) {
+                        Button(
                             onClick = { viewModel.openMemedForBrazil() },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
                             shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, PortalDoctors),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = PortalDoctors),
-                            enabled = !uiState.isSubmitting && !uiState.isOpeningMemed,
+                            colors = ButtonDefaults.buttonColors(containerColor = PortalDoctors, contentColor = Color.White),
+                            enabled = !uiState.isOpeningMemed,
                         ) {
-                            Text(
-                                text = stringResource(
-                                    if (uiState.isOpeningMemed) R.string.doctor_create_rx_memed_opening
-                                    else R.string.doctor_create_rx_memed_btn
-                                ),
-                                fontWeight = FontWeight.SemiBold,
-                            )
+                            if (uiState.isOpeningMemed) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(stringResource(R.string.doctor_create_rx_memed_opening), fontWeight = FontWeight.Bold)
+                            } else {
+                                Icon(Icons.Outlined.HealthAndSafety, contentDescription = null, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(stringResource(R.string.doctor_create_rx_memed_btn), fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    } else {
+                        Button(
+                            onClick = { viewModel.onSubmitPrescription() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PortalPatientsAction, contentColor = Color.White),
+                            enabled = !uiState.isSubmitting,
+                        ) {
+                            if (uiState.isSubmitting) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(stringResource(R.string.doctor_create_rx_submitting))
+                            } else {
+                                Icon(Icons.Outlined.HealthAndSafety, contentDescription = null, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(stringResource(R.string.doctor_create_rx_submit_button), fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
@@ -229,76 +238,113 @@ fun CreatePrescriptionScreen(
                 },
             )
 
-            // 3. Medications Multi-Item Section
-            Text(
-                text = stringResource(R.string.doctor_create_rx_items_section_title),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = AuTextPrimary
-            )
-
-            uiState.items.forEachIndexed { index, itemState ->
-                MedicationItemFormCard(
-                    itemNumber = index + 1,
-                    canDelete = uiState.items.size > 1,
-                    itemState = itemState,
-                    onMedicationNameChange = { viewModel.onMedicationNameChanged(index, it) },
-                    onGenericNameChange = { viewModel.onGenericNameChanged(index, it) },
-                    onDosageChange = { viewModel.onDosageChanged(index, it) },
-                    onFrequencyChange = { viewModel.onFrequencyChanged(index, it) },
-                    onDurationChange = { viewModel.onDurationChanged(index, it) },
-                    onInstructionsChange = { viewModel.onInstructionsChanged(index, it) },
-                    onDelete = { viewModel.onRemoveMedicationItem(index) },
-                )
-            }
-
-            val maxMedicationItems = if (uiState.doctorEligibility?.countryCode.equals("BR", ignoreCase = true)) 3 else 1
-            if (uiState.items.size < maxMedicationItems) {
-                OutlinedButton(
-                    onClick = { viewModel.onAddMedicationItem() },
+            if (isBrazil) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = PortalDoctors.copy(alpha = 0.06f)),
+                    border = BorderStroke(1.dp, PortalDoctors.copy(alpha = 0.25f)),
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, PortalDoctors.copy(alpha = 0.5f)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PortalPatientsAction),
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        stringResource(R.string.doctor_create_rx_add_medication, uiState.items.size),
-                        fontWeight = FontWeight.SemiBold
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.HealthAndSafety,
+                                contentDescription = null,
+                                tint = PortalDoctors,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Text(
+                                text = stringResource(R.string.doctor_create_rx_br_icp_card_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = AuTextPrimary,
+                            )
+                        }
+                        Text(
+                            text = stringResource(R.string.doctor_create_rx_br_icp_card_body),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AuTextSecondary,
+                        )
+                    }
+                }
+            } else {
+                // 3. Medications Multi-Item Section
+                Text(
+                    text = stringResource(R.string.doctor_create_rx_items_section_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = AuTextPrimary
+                )
+
+                uiState.items.forEachIndexed { index, itemState ->
+                    MedicationItemFormCard(
+                        itemNumber = index + 1,
+                        canDelete = uiState.items.size > 1,
+                        itemState = itemState,
+                        onMedicationNameChange = { viewModel.onMedicationNameChanged(index, it) },
+                        onGenericNameChange = { viewModel.onGenericNameChanged(index, it) },
+                        onDosageChange = { viewModel.onDosageChanged(index, it) },
+                        onFrequencyChange = { viewModel.onFrequencyChanged(index, it) },
+                        onDurationChange = { viewModel.onDurationChanged(index, it) },
+                        onInstructionsChange = { viewModel.onInstructionsChanged(index, it) },
+                        onDelete = { viewModel.onRemoveMedicationItem(index) },
                     )
                 }
-            } else if (maxMedicationItems == 1) {
-                Text(
-                    text = stringResource(R.string.doctor_create_rx_farmalink_single_item_note),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AuTextSecondary,
+
+                val maxMedicationItems = 1
+                if (uiState.items.size < maxMedicationItems) {
+                    OutlinedButton(
+                        onClick = { viewModel.onAddMedicationItem() },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, PortalDoctors.copy(alpha = 0.5f)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PortalPatientsAction),
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            stringResource(R.string.doctor_create_rx_add_medication, uiState.items.size),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                } else {
+                    Text(
+                        text = stringResource(R.string.doctor_create_rx_farmalink_single_item_note),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AuTextSecondary,
+                    )
+                }
+
+                // 4. Clinical Diagnosis Section (CIE-10)
+                DiagnosisSelectorSection(
+                    currentDiagnosis = uiState.diagnosis,
+                    onDiagnosisChange = { diag, code -> viewModel.onDiagnosisChanged(diag, code) }
+                )
+
+                // 5. Notes / Observations
+                OutlinedTextField(
+                    value = uiState.notes,
+                    onValueChange = viewModel::onNotesChanged,
+                    label = { Text(stringResource(R.string.doctor_create_rx_notes_label)) },
+                    placeholder = { Text(stringResource(R.string.doctor_create_rx_notes_placeholder)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    maxLines = 4,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = AuSurface,
+                        unfocusedContainerColor = AuSurface,
+                        focusedBorderColor = PortalDoctors,
+                        unfocusedBorderColor = AuBorder,
+                    )
                 )
             }
-
-            // 4. Clinical Diagnosis Section (CIE-10)
-            DiagnosisSelectorSection(
-                currentDiagnosis = uiState.diagnosis,
-                onDiagnosisChange = { diag, code -> viewModel.onDiagnosisChanged(diag, code) }
-            )
-
-            // 5. Notes / Observations
-            OutlinedTextField(
-                value = uiState.notes,
-                onValueChange = viewModel::onNotesChanged,
-                label = { Text(stringResource(R.string.doctor_create_rx_notes_label)) },
-                placeholder = { Text(stringResource(R.string.doctor_create_rx_notes_placeholder)) },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
-                maxLines = 4,
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = AuSurface,
-                    unfocusedContainerColor = AuSurface,
-                    focusedBorderColor = PortalDoctors,
-                    unfocusedBorderColor = AuBorder,
-                )
-            )
 
             Spacer(modifier = Modifier.height(32.dp))
         }

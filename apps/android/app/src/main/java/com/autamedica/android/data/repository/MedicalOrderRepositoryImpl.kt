@@ -286,6 +286,8 @@ class MedicalOrderRepositoryImpl @Inject constructor(
             val friendly = when (errCode) {
                 "FORBIDDEN_PATIENT_ACCESS" -> "El profesional no tiene vínculo clínico activo con este paciente."
                 "DOCTOR_INACTIVE", "FORBIDDEN_ROLE" -> "Tu matrícula médica no está activa para emitir pedidos."
+                "PATIENT_COUNTRY_MISMATCH" -> "El país clínico del paciente no está verificado o no coincide con tu matrícula."
+                "PATIENT_NOT_FOUND" -> "No se encontró el paciente seleccionado."
                 "INVALID_STUDY_TYPE" -> "Tipo de estudio inválido."
                 "PRACTICES_REQUIRED" -> "Indicá al menos una práctica o estudio."
                 else -> errMsg ?: errCode ?: "El servicio de pedidos médicos no respondió (HTTP $httpCode)"

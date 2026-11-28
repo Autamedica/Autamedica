@@ -195,6 +195,13 @@ async function issuePrescriptionHandler(req: Request): Promise<Response> {
         countryCode, status: issueResponse.status,
         code: resolvedCode,
       });
+      if (resolvedCode !== 'farmalink_pending_reconciliation') {
+        try {
+          await serviceClient.from('prescriptions').delete().eq('id', draft.id).eq('status', 'draft');
+        } catch {
+          // Best-effort cleanup so rejected attempts do not pollute drafts.
+        }
+      }
       return jsonResponse({
         success: false,
         code: resolvedCode,

@@ -35,6 +35,8 @@ export async function handler(req: Request): Promise<Response> {
     );
   }
 
+  let rollbackDraft: (() => Promise<void>) | null = null;
+
   try {
     const { user, serviceClient } = await requireAuth(req, corsHeaders);
 
@@ -226,7 +228,43 @@ export async function handler(req: Request): Promise<Response> {
       );
     }
 
-    // 4. Insert draft order if orderId wasn't provided
+    // 4. Query patient and validate clinical jurisdiction BEFORE inserting a draft
+    const { data: patient, error: patientError } = await serviceClient
+      .from('patients')
+      .select('id, user_id, care_country, dni, cpf, cuil, address, insurance_info')
+      .eq('id', patientId)
+      .maybeSingle();
+
+    if (patientError) {
+      throw patientError;
+    }
+
+    if (!patient) {
+      return jsonResponse(
+        { error: 'Patient not found', code: 'PATIENT_NOT_FOUND' },
+        404,
+        corsHeaders,
+      );
+    }
+
+    const countryCode: 'AR' | 'BR' | null = doctor.care_country === 'BR' || (doctor.license_type === 'CRM' && /^[A-Z]{2}$/.test(String(doctor.uf_brazil ?? '')))
+      ? 'BR'
+      : doctor.care_country === 'AR' || ['MN', 'MP'].includes(String(doctor.license_type ?? ''))
+        ? 'AR'
+        : null;
+
+    if (!countryCode || !patient.care_country || patient.care_country !== countryCode) {
+      return jsonResponse(
+        {
+          error: 'Patient clinical country is unset or does not match doctor jurisdiction',
+          code: 'PATIENT_COUNTRY_MISMATCH',
+        },
+        409,
+        corsHeaders,
+      );
+    }
+
+    // 5. Insert draft order if orderId wasn't provided
     if (!orderId) {
       const { data: insertedOrder, error: insertError } = await serviceClient
         .from('medical_orders')
@@ -247,14 +285,14 @@ export async function handler(req: Request): Promise<Response> {
       }
 
       orderId = insertedOrder.id;
+      rollbackDraft = async () => {
+        await serviceClient
+          .from('medical_orders')
+          .delete()
+          .eq('id', insertedOrder.id)
+          .eq('status', 'draft');
+      };
     }
-
-    // 5. Query patient details for PDF header
-    const { data: patient } = await serviceClient
-      .from('patients')
-      .select('id, user_id, dni, cpf, cuil, address, insurance_info')
-      .eq('id', patientId)
-      .maybeSingle();
 
     let patientName = 'Paciente';
     let patientDni = patient?.dni || patient?.cpf;
@@ -299,7 +337,6 @@ export async function handler(req: Request): Promise<Response> {
     const qrCodeContent = `https://autamedica.com/orders/${cuir}`;
 
     // 7. Render official PDF
-    const countryCode: 'AR' | 'BR' = doctor.care_country === 'BR' || doctor.license_type === 'CRM' ? 'BR' : 'AR';
     const doctorName = `Dr/Dra. ${profile.first_name || ''} ${profile.last_name || ''}`.trim() || (countryCode === 'BR' ? 'Médico(a)' : 'Médico');
     const doctorLicense = doctor.license_number || profile.matricula_nacional || 'S/N';
     const doctorJurisdiction = countryCode === 'BR'
@@ -376,6 +413,8 @@ export async function handler(req: Request): Promise<Response> {
       throw new Error(`Failed to update medical order: ${updateError?.message}`);
     }
 
+    rollbackDraft = null;
+
     // 11. Return JSON response
     return jsonResponse(
       {
@@ -395,6 +434,14 @@ export async function handler(req: Request): Promise<Response> {
   } catch (error) {
     if (error instanceof Response) {
       return error;
+    }
+
+    if (rollbackDraft) {
+      try {
+        await rollbackDraft();
+      } catch {
+        // Best-effort draft cleanup on issuance failure.
+      }
     }
 
     console.error('[issue-medical-order] Unexpected error:', error);

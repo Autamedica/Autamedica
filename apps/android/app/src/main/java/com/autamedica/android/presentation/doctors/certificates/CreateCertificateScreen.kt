@@ -154,51 +154,56 @@ fun CreateCertificateScreen(
                         }
                     }
 
-                    Button(
-                        onClick = { viewModel.onSubmitCertificate() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PortalPatientsAction, contentColor = Color.White),
-                        enabled = !uiState.isSubmitting,
-                    ) {
-                        if (uiState.isSubmitting) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = Color.White,
-                                strokeWidth = 2.dp
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(R.string.cert_create_submitting))
-                        } else {
-                            Icon(Icons.Outlined.HealthAndSafety, contentDescription = null, modifier = Modifier.size(20.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(
-                                    if (isBrazil) R.string.cert_create_submit_br else R.string.cert_create_submit_ar
-                                ),
-                                fontWeight = FontWeight.Bold,
-                            )
-                        }
-                    }
-
                     if (isBrazil) {
-                        OutlinedButton(
+                        Button(
                             onClick = { viewModel.openMemedForBrazilCertificate() },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
                             shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, PortalDoctors),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = PortalDoctors),
-                            enabled = !uiState.isSubmitting && !uiState.isOpeningMemed,
+                            colors = ButtonDefaults.buttonColors(containerColor = PortalDoctors, contentColor = Color.White),
+                            enabled = !uiState.isOpeningMemed,
                         ) {
-                            Text(
-                                text = stringResource(
-                                    if (uiState.isOpeningMemed) R.string.cert_create_memed_opening
-                                    else R.string.cert_create_memed_icp_btn
-                                ),
-                                fontWeight = FontWeight.SemiBold,
-                            )
+                            if (uiState.isOpeningMemed) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp,
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(stringResource(R.string.cert_create_memed_opening), fontWeight = FontWeight.Bold)
+                            } else {
+                                Icon(Icons.Outlined.HealthAndSafety, contentDescription = null, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(stringResource(R.string.cert_create_memed_icp_btn), fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    } else {
+                        Button(
+                            onClick = { viewModel.onSubmitCertificate() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PortalPatientsAction, contentColor = Color.White),
+                            enabled = !uiState.isSubmitting,
+                        ) {
+                            if (uiState.isSubmitting) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(stringResource(R.string.cert_create_submitting))
+                            } else {
+                                Icon(Icons.Outlined.HealthAndSafety, contentDescription = null, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = stringResource(R.string.cert_create_submit_ar),
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
                         }
                     }
                 }
@@ -237,71 +242,108 @@ fun CreateCertificateScreen(
                 },
             )
 
-            // 3. Certificate Type Selector
-            CertificateTypeSelectorSection(
-                selectedType = uiState.certificateType,
-                onSelectType = { viewModel.onSelectType(it) }
-            )
-
-            // 4. Days of Rest & Period (if applicable)
-            DaysOfRestSection(
-                certificateType = uiState.certificateType,
-                daysOfRest = uiState.daysOfRest,
-                restHours = uiState.restHours,
-                restPeriodUnit = uiState.restPeriodUnit,
-                startDate = uiState.startDate,
-                endDate = uiState.endDate,
-                onRestPeriodUnitChange = { viewModel.onRestPeriodUnitChange(it) },
-                onDaysChange = { viewModel.onDaysOfRestChange(it) },
-                onHoursChange = { viewModel.onRestHoursChange(it) },
-                onStartDateChange = { viewModel.onStartDateChange(it) }
-            )
-
-            // 5. Clinical Diagnosis & Secreto Médico Toggle
-            DiagnosisAndPrivacySection(
-                diagnosis = uiState.diagnosis,
-                cid10Code = uiState.diagnosisCode.orEmpty(),
-                showCid10Field = uiState.doctorEligibility?.countryCode == "BR",
-                hideDiagnosis = uiState.hideDiagnosis,
-                jurisdiction = com.autamedica.android.domain.model.resolveRegulatoryJurisdiction(
-                    countryCode = uiState.doctorEligibility?.countryCode,
-                    doctorLicense = uiState.doctorEligibility?.doctorLicense
-                ),
-                onDiagnosisChange = { viewModel.onDiagnosisChange(it) },
-                onCid10CodeChange = { viewModel.onDiagnosisCodeChange(it) },
-                onToggleHide = { viewModel.onToggleHideDiagnosis(it) }
-            )
-
-            // 6. Clinical Observations
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = AuSurface,
-                border = BorderStroke(1.dp, AuBorder),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+            if (isBrazil) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = PortalDoctors.copy(alpha = 0.06f)),
+                    border = BorderStroke(1.dp, PortalDoctors.copy(alpha = 0.25f)),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(
-                        text = stringResource(R.string.cert_obs_section_title),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = AuTextPrimary
-                    )
-                    OutlinedTextField(
-                        value = uiState.observations,
-                        onValueChange = { viewModel.onObservationsChange(it) },
-                        placeholder = { Text(stringResource(R.string.cert_obs_placeholder)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 2,
-                        maxLines = 4,
-                        shape = RoundedCornerShape(10.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PortalDoctors,
-                            unfocusedBorderColor = AuBorder,
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.HealthAndSafety,
+                                contentDescription = null,
+                                tint = PortalDoctors,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Text(
+                                text = stringResource(R.string.cert_create_br_icp_card_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = AuTextPrimary,
+                            )
+                        }
+                        Text(
+                            text = stringResource(R.string.cert_create_br_icp_card_body),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AuTextSecondary,
                         )
-                    )
+                    }
+                }
+            } else {
+                // 3. Certificate Type Selector
+                CertificateTypeSelectorSection(
+                    selectedType = uiState.certificateType,
+                    onSelectType = { viewModel.onSelectType(it) }
+                )
+
+                // 4. Days of Rest & Period (if applicable)
+                DaysOfRestSection(
+                    certificateType = uiState.certificateType,
+                    daysOfRest = uiState.daysOfRest,
+                    restHours = uiState.restHours,
+                    restPeriodUnit = uiState.restPeriodUnit,
+                    startDate = uiState.startDate,
+                    endDate = uiState.endDate,
+                    onRestPeriodUnitChange = { viewModel.onRestPeriodUnitChange(it) },
+                    onDaysChange = { viewModel.onDaysOfRestChange(it) },
+                    onHoursChange = { viewModel.onRestHoursChange(it) },
+                    onStartDateChange = { viewModel.onStartDateChange(it) }
+                )
+
+                // 5. Clinical Diagnosis & Secreto Médico Toggle
+                DiagnosisAndPrivacySection(
+                    diagnosis = uiState.diagnosis,
+                    cid10Code = uiState.diagnosisCode.orEmpty(),
+                    showCid10Field = false,
+                    hideDiagnosis = uiState.hideDiagnosis,
+                    jurisdiction = com.autamedica.android.domain.model.resolveRegulatoryJurisdiction(
+                        countryCode = uiState.doctorEligibility?.countryCode,
+                        doctorLicense = uiState.doctorEligibility?.doctorLicense
+                    ),
+                    onDiagnosisChange = { viewModel.onDiagnosisChange(it) },
+                    onCid10CodeChange = { viewModel.onDiagnosisCodeChange(it) },
+                    onToggleHide = { viewModel.onToggleHideDiagnosis(it) }
+                )
+
+                // 6. Clinical Observations
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = AuSurface,
+                    border = BorderStroke(1.dp, AuBorder),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.cert_obs_section_title),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = AuTextPrimary
+                        )
+                        OutlinedTextField(
+                            value = uiState.observations,
+                            onValueChange = { viewModel.onObservationsChange(it) },
+                            placeholder = { Text(stringResource(R.string.cert_obs_placeholder)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 2,
+                            maxLines = 4,
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = PortalDoctors,
+                                unfocusedBorderColor = AuBorder,
+                            )
+                        )
+                    }
                 }
             }
 

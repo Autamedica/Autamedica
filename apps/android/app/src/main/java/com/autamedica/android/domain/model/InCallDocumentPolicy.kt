@@ -33,7 +33,11 @@ object InCallDocumentPolicy {
     /** Country isolation is not optional when issuing a clinical document. */
     fun requireMatchingPatientCountry(patientCountry: String?, doctorCountry: String) {
         require(patientCountry == doctorCountry) {
-            "El país clínico del paciente no está verificado o no coincide con el médico"
+            if (doctorCountry.equals("BR", ignoreCase = true)) {
+                "O país clínico do paciente não está verificado ou não coincide com o do médico"
+            } else {
+                "El país clínico del paciente no está verificado o no coincide con el médico"
+            }
         }
     }
 
