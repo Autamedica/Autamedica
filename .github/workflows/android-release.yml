@@ -129,10 +129,10 @@ jobs:
     timeout-minutes: 12
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: 'zulu'
           java-version: '17'
@@ -189,7 +189,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Extract Version Info
         id: version_info
@@ -201,7 +201,7 @@ jobs:
           echo "📌 Building AutaMedica Android Version: $VERSION_NAME (Code: $VERSION_CODE)"
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: 'zulu'
           java-version: '17'
@@ -324,7 +324,7 @@ jobs:
           ./gradlew bundleRelease --stacktrace --info
 
       - name: Upload AAB Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: autamedica-release-v${{ steps.version_info.outputs.version_name }}-code${{ steps.version_info.outputs.version_code }}
           path: apps/android/app/build/outputs/bundle/release/*.aab
@@ -356,8 +356,101 @@ jobs:
           echo "APK_SIGNED_AND_PACKAGE_VERIFIED=true" >> "$GITHUB_STEP_SUMMARY"
           echo "SHA-256 recorded in action logs; no keystore or clinical data exposed" >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Check 16 KB ELF page-size alignment in release APK
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import glob
+          import os
+          import struct
+          import zipfile
+
+          PAGE_SIZE_16K = 16384
+          TARGET_ABIS = ("lib/arm64-v8a/", "lib/x86_64/")
+
+          apks = sorted(glob.glob("apps/android/app/build/outputs/apk/release/*.apk"))
+          if not apks:
+              print("::warning::No release APK found for 16 KB ELF alignment check")
+              raise SystemExit(0)
+
+          apk_path = apks[0]
+          rows = []
+          unaligned = []
+
+          with zipfile.ZipFile(apk_path, "r") as zf:
+              so_names = sorted(
+                  name
+                  for name in zf.namelist()
+                  if name.startswith(TARGET_ABIS) and name.endswith(".so")
+              )
+              for name in so_names:
+                  data = zf.read(name)
+                  abi = name.split("/", 2)[1]
+                  if len(data) < 64 or data[:4] != b"\x7fELF" or data[4] != 2 or data[5] not in (1, 2):
+                      print(f"::warning::{name} is not a valid ELF64 binary; skipping alignment check")
+                      rows.append((name, abi, "invalid", "WARN (non-ELF64)"))
+                      unaligned.append(name)
+                      continue
+
+                  endian = "<" if data[5] == 1 else ">"
+                  e_phoff = struct.unpack_from(endian + "Q", data, 32)[0]
+                  e_phentsize, e_phnum = struct.unpack_from(endian + "HH", data, 54)
+
+                  pt_load_aligns = []
+                  for i in range(e_phnum):
+                      off = e_phoff + i * e_phentsize
+                      if off + 56 > len(data):
+                          break
+                      p_type = struct.unpack_from(endian + "I", data, off)[0]
+                      if p_type == 1:
+                          p_align = struct.unpack_from(endian + "Q", data, off + 48)[0]
+                          pt_load_aligns.append(p_align)
+
+                  if not pt_load_aligns:
+                      print(f"::warning::{name} has no PT_LOAD segments")
+                      rows.append((name, abi, "none", "WARN (no PT_LOAD)"))
+                      unaligned.append(name)
+                      continue
+
+                  min_align = min(pt_load_aligns)
+                  if min_align < PAGE_SIZE_16K:
+                      print(
+                          f"::warning::{name} has PT_LOAD p_align={min_align} (< {PAGE_SIZE_16K})"
+                      )
+                      rows.append((name, abi, f"{min_align} (0x{min_align:x})", "WARN (< 16 KB)"))
+                      unaligned.append(name)
+                  else:
+                      rows.append((name, abi, f"{min_align} (0x{min_align:x})", "PASS (>= 16 KB)"))
+
+          summary_lines = [
+              "",
+              "### 16 KB ELF Page-Size Alignment Check",
+              "",
+              f"- **APK:** `{apk_path}`",
+              f"- **Checked 64-bit native libraries (`arm64-v8a`, `x86_64`):** {len(rows)}",
+              f"- **Warnings (`p_align < 16384`):** {len(unaligned)}",
+              "",
+          ]
+          if rows:
+              summary_lines.extend([
+                  "| Native Library | ABI | Min `PT_LOAD` `p_align` | Status |",
+                  "| --- | --- | --- | --- |",
+              ])
+              for name, abi, align_str, status in rows:
+                  summary_lines.append(f"| `{name}` | `{abi}` | `{align_str}` | {status} |")
+          else:
+              summary_lines.append("_No `lib/arm64-v8a/*.so` or `lib/x86_64/*.so` entries found in APK._")
+
+          summary_text = "\n".join(summary_lines) + "\n"
+          print(summary_text)
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary_path:
+              with open(summary_path, "a", encoding="utf-8") as sf:
+                  sf.write(summary_text)
+          PY
+
       - name: Upload signed release APK for private device verification
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: autamedica-android-clinical-v${{ steps.version_info.outputs.version_name }}-code${{ steps.version_info.outputs.version_code }}-signed-apk
           path: apps/android/app/build/outputs/apk/release/*.apk
@@ -429,10 +522,10 @@ jobs:
        (github.event_name == 'workflow_dispatch' && github.event.inputs.upload_to_play_store == 'true'))
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download AAB Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: autamedica-release-v${{ needs.build-release-aab.outputs.version_name }}-code${{ needs.build-release-aab.outputs.version_code }}
           path: ./aab

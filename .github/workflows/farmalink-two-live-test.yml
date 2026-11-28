@@ -26,7 +26,7 @@ jobs:
       FARMALINK_TEST_BASIC_PASSWORD: ${{ secrets.FARMALINK_TEST_BASIC_PASSWORD }}
       FARMALINK_HOMOLOGATION_OUTPUT: /tmp/farmalink-homologacion-test
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Install PDF dependency
@@ -35,7 +35,7 @@ jobs:
         run: python3 scripts/farmalink/homologacion_two_live_test.py
       - name: Preserve only provider-confirmed PDFs and redacted receipts
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: farmalink-homologacion-test-20261103
           path: /tmp/farmalink-homologacion-test/
